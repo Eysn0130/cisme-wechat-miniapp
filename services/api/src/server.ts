@@ -10,7 +10,7 @@ import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
 import { createPool } from "./db.js";
 import { CommunityService } from "./communityService.js";
 import { PlatformService } from "./platformService.js";
-import { createApiGatewayStorage, createS3Storage, type ObjectStorage } from "./storage.js";
+import { createObjectStorage, type ObjectStorage } from "./storage.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -237,7 +237,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadConfig();
   const pool = createPool(config.databaseUrl);
-  const storage = config.objectStorage.driver === "s3" ? createS3Storage(config) : createApiGatewayStorage(config);
+  const storage = createObjectStorage(config);
   await storage.ensureReady();
   const app = await createApp({ config, pool, storage });
   await app.listen({ port: config.port, host: "0.0.0.0" });

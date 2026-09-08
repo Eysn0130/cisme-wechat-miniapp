@@ -1,7 +1,7 @@
 import type pg from "pg";
 import { loadConfig } from "@cisme/config";
 import { createPool, transaction } from "../../api/src/db.js";
-import { createApiGatewayStorage, createS3Storage, type ObjectStorage } from "../../api/src/storage.js";
+import { createObjectStorage, type ObjectStorage } from "../../api/src/storage.js";
 
 interface EventRow {
   id: string;
@@ -144,7 +144,7 @@ export async function sweepExpired(pool: pg.Pool, now = new Date()): Promise<voi
 if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadConfig();
   const pool = createPool(config.databaseUrl);
-  const storage = config.objectStorage.driver === "s3" ? createS3Storage(config) : createApiGatewayStorage(config);
+  const storage = createObjectStorage(config);
   const run = async () => {
     await processOutboxBatch(pool, new Date(), 50, { ugcGoLiveGate: config.ugcGoLiveGate });
     await processMediaCleanup(pool, storage);

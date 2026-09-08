@@ -7,6 +7,7 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
   type S3ClientConfig
 } from "@aws-sdk/client-s3";
@@ -41,7 +42,7 @@ function detectImageMime(bytes: Uint8Array): StoredObject["detectedMime"] {
   throw new DomainError("UPLOAD_CONTENT_INVALID", "Uploaded bytes are not an allowed image format", 422);
 }
 
-export function createS3Storage(config: AppConfig): ObjectStorage {
+function s3Client(config: AppConfig): S3Client {
   const clientConfig: S3ClientConfig = {
     region: config.objectStorage.region,
     forcePathStyle: true,
@@ -50,7 +51,11 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       ? { credentials: { accessKeyId: config.objectStorage.accessKeyId, secretAccessKey: config.objectStorage.secretAccessKey } }
       : {})
   };
-  const client = new S3Client(clientConfig);
+  return new S3Client(clientConfig);
+}
+
+export function createS3Storage(config: AppConfig): ObjectStorage {
+  const client = s3Client(config);
   const bucket = config.objectStorage.bucket;
   return {
     acceptsGatewayUpload: false,
@@ -62,6 +67,7 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       }
     },
     async authorize(input) {
+      validateUploadAuthorization(input);
       const result = await createPresignedPost(client, {
         Bucket: bucket,
         Key: input.objectKey,
@@ -110,6 +116,7 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       await mkdir(directory, { recursive: true });
     },
     async authorize(input) {
+      validateUploadAuthorization(input);
       const expires = input.now.getTime() + 600_000;
       const payload = Buffer.from(JSON.stringify({ mediaId: input.mediaId, objectKey: input.objectKey, mimeType: input.mimeType, maxBytes: input.maxBytes, expires })).toString("base64url");
       const token = `${payload}.${gatewaySignature(payload, secret)}`;
@@ -122,19 +129,10 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       };
     },
     async writeGatewayObject(input) {
-      const [payload, supplied] = input.token.split(".");
-      if (!payload || !supplied) throw new DomainError("UPLOAD_TOKEN_INVALID", "Upload token is invalid", 401);
-      const expected = gatewaySignature(payload, secret);
-      const a = Buffer.from(supplied);
-      const b = Buffer.from(expected);
-      if (a.length !== b.length || !timingSafeEqual(a, b)) throw new DomainError("UPLOAD_TOKEN_INVALID", "Upload token is invalid", 401);
-      const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { mediaId: string; objectKey: string; mimeType: string; maxBytes: number; expires: number };
-      if (claims.expires <= input.now.getTime() || claims.mediaId !== input.mediaId || claims.objectKey !== input.objectKey || (input.mimeType !== "application/octet-stream" && claims.mimeType !== input.mimeType)) {
-        throw new DomainError("UPLOAD_TOKEN_INVALID", "Upload token claims do not match", 401);
-      }
-      if (input.bytes.length < 1 || input.bytes.length > claims.maxBytes) throw new DomainError("UPLOAD_SIZE_INVALID", "Upload size is outside the authorized range", 422);
+      const claims = validateGatewayUpload(input, secret);
+      const detectedMime = detectImageMime(input.bytes);
       await writeFile(resolve(directory, claims.objectKey.replaceAll("/", "__")), input.bytes, { flag: "w" });
-      return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime: detectImageMime(input.bytes) };
+      return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
     },
     async verify(objectKey) {
       const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")));
@@ -144,6 +142,63 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       try { await unlink(resolve(directory, objectKey.replaceAll("/", "__"))); } catch { /* idempotent */ }
     }
   };
+}
+
+type GatewayUploadInput = Parameters<NonNullable<ObjectStorage["writeGatewayObject"]>>[0];
+
+function validateUploadAuthorization(input: { maxBytes: number; mimeType: string }) {
+  if (!Number.isInteger(input.maxBytes) || input.maxBytes < 1 || input.maxBytes > 10 * 1024 * 1024) {
+    throw new DomainError("UPLOAD_SIZE_INVALID", "Upload authorization requires a valid size limit", 422);
+  }
+  if (!["image/jpeg", "image/png", "image/webp"].includes(input.mimeType)) {
+    throw new DomainError("UPLOAD_CONTENT_INVALID", "Upload format is not allowed", 422);
+  }
+}
+
+function validateGatewayUpload(input: GatewayUploadInput, secret: string) {
+  const [payload, supplied, extra] = input.token.split(".");
+  if (!payload || !supplied || extra !== undefined) throw new DomainError("UPLOAD_TOKEN_INVALID", "Upload token is invalid", 401);
+  const expected = gatewaySignature(payload, secret);
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) throw new DomainError("UPLOAD_TOKEN_INVALID", "Upload token is invalid", 401);
+  const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { mediaId: string; objectKey: string; mimeType: string; maxBytes: number; expires: number };
+  if (!Number.isFinite(claims.expires) || claims.expires <= input.now.getTime() || claims.mediaId !== input.mediaId || claims.objectKey !== input.objectKey || (input.mimeType !== "application/octet-stream" && claims.mimeType !== input.mimeType)) {
+    throw new DomainError("UPLOAD_TOKEN_INVALID", "Upload token claims do not match", 401);
+  }
+  validateUploadAuthorization(claims);
+  if (input.bytes.length < 1 || input.bytes.length > claims.maxBytes) throw new DomainError("UPLOAD_SIZE_INVALID", "Upload size is outside the authorized range", 422);
+  return claims;
+}
+
+export function createS3GatewayStorage(config: AppConfig): ObjectStorage {
+  const persistent = createS3Storage(config);
+  const authorization = createApiGatewayStorage(config);
+  const client = s3Client(config);
+  return {
+    ...persistent,
+    acceptsGatewayUpload: true,
+    authorize: authorization.authorize,
+    async writeGatewayObject(input) {
+      const claims = validateGatewayUpload(input, config.objectStorage.uploadTokenSecret);
+      const detectedMime = detectImageMime(input.bytes);
+      if (detectedMime !== claims.mimeType) throw new DomainError("UPLOAD_CONTENT_MISMATCH", "Image content does not match authorization", 422);
+      await client.send(new PutObjectCommand({
+        Bucket: config.objectStorage.bucket,
+        Key: claims.objectKey,
+        Body: input.bytes,
+        ContentType: claims.mimeType,
+        Metadata: { "media-id": claims.mediaId }
+      }));
+      return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
+    }
+  };
+}
+
+export function createObjectStorage(config: AppConfig): ObjectStorage {
+  if (config.objectStorage.driver === "s3_gateway") return createS3GatewayStorage(config);
+  if (config.objectStorage.driver === "api_gateway") return createApiGatewayStorage(config);
+  return createS3Storage(config);
 }
 
 export function objectKey(submissionId: string, kind: string): string {

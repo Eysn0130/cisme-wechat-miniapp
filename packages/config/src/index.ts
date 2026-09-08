@@ -13,7 +13,7 @@ export interface AppConfig {
   wechat: { appId: string | null; appSecret: string | null };
   objectStorage: {
     profile: string | null;
-    driver: "s3" | "api_gateway";
+    driver: "s3" | "api_gateway" | "s3_gateway";
     endpoint: string | null;
     region: string;
     bucket: string;
@@ -97,9 +97,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if ((appEnv === "production" || appEnv === "staging") && (!env.APP_SESSION_SECRET || !env.ADMIN_API_TOKEN)) {
     throw new Error("FAIL_CLOSED:AUTH_SECRETS_REQUIRED");
   }
-  const storageDriver = (env.OBJECT_STORAGE_DRIVER ?? "s3") as "s3" | "api_gateway";
-  if (!['s3', 'api_gateway'].includes(storageDriver)) throw new Error("CONFIG_INVALID:OBJECT_STORAGE_DRIVER");
-  if ((appEnv === "production" || appEnv === "staging") && storageDriver === "api_gateway" && !env.UPLOAD_TOKEN_SECRET) {
+  const storageDriver = (env.OBJECT_STORAGE_DRIVER ?? "s3") as "s3" | "api_gateway" | "s3_gateway";
+  if (!['s3', 'api_gateway', 's3_gateway'].includes(storageDriver)) throw new Error("CONFIG_INVALID:OBJECT_STORAGE_DRIVER");
+  if ((appEnv === "production" || appEnv === "staging") && storageDriver !== "s3" && !env.UPLOAD_TOKEN_SECRET) {
     throw new Error("FAIL_CLOSED:UPLOAD_SECRET_REQUIRED");
   }
   if ((appEnv === "production" || appEnv === "staging") && !env.OBJECT_STORAGE_PROFILE) {
