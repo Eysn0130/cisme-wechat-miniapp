@@ -2,13 +2,27 @@ import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import pg from "pg";
 
-export const TEST_DATABASE_URL = process.env.DATABASE_URL ?? "postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme";
+function assertTestDatabaseName(name: string): void {
+  if (!name.startsWith("cisme_") || !/(^|_)test(_|$)/.test(name)) {
+    throw new Error("TEST_DATABASE_REQUIRED: reset is limited to a dedicated cisme_*test* database");
+  }
+}
+
+export function resolveTestDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const url = env.TEST_DATABASE_URL ?? env.DATABASE_URL ?? "postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme_test";
+  assertTestDatabaseName(decodeURIComponent(new URL(url).pathname.slice(1)));
+  return url;
+}
+
+export const TEST_DATABASE_URL = resolveTestDatabaseUrl();
 
 export function testPool(): pg.Pool {
   return new pg.Pool({ connectionString: TEST_DATABASE_URL, max: 12 });
 }
 
 export async function resetDatabase(pool: pg.Pool): Promise<void> {
+  const target = await pool.query<{ name: string }>("SELECT current_database() AS name");
+  assertTestDatabaseName(target.rows[0]?.name ?? "");
   await pool.query("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public");
   await pool.query("CREATE TABLE schema_migration(version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
   const directory = resolve(process.cwd(), "db/migrations");
