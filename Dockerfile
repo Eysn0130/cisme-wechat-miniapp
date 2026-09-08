@@ -11,6 +11,7 @@ RUN mkdir -p /app/tmp && chown node:node /app/tmp
 ENV APP_ENV=staging
 ENV ALLOW_DEV_ADAPTERS=false
 ENV PORT=3100
+ENV RUN_BACKGROUND_WORKER=true
 USER node
 EXPOSE 3100
 CMD ["node", "dist/services/api/src/server.js"]

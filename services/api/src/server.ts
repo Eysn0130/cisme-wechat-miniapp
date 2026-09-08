@@ -1,3 +1,4 @@
+import { startBackgroundWorker } from "../../worker/src/jobs.js";
 import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
@@ -240,5 +241,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const storage = createObjectStorage(config);
   await storage.ensureReady();
   const app = await createApp({ config, pool, storage });
+  const worker = process.env.RUN_BACKGROUND_WORKER === "true"
+    ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", error))
+    : null;
+  app.addHook("onClose", async () => { await worker?.stop(); await pool.end(); });
+  const stop = () => void app.close().catch((error) => { console.error("CISME_SHUTDOWN_FAILED", error); process.exitCode = 1; });
+  process.once("SIGTERM", stop);
+  process.once("SIGINT", stop);
   await app.listen({ port: config.port, host: "0.0.0.0" });
 }
