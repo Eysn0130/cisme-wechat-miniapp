@@ -1,0 +1,21 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+<view class="topbar shop-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="shop-topbar__copy"><text class="topbar__title">商品目录</text><small class="shop-topbar__subtitle">商品预览 · 暂不能购买</small></view></view>
+<view class="page page--stack shop-page">
+  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载商品目录…</view>
+  <button wx:if="{{featured}}" class="shop-hero {{navigating ? 'control--disabled' : ''}}" data-id="{{featured.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看商品详情：{{featured.name}}，价格 {{featured.displayPrice}} 元，交易尚未开放">
+    <image class="shop-hero__image" src="{{featured.image}}" mode="aspectFill"/>
+    <view class="shop-hero__shade"></view>
+    <view class="shop-hero__copy"><text class="shop-hero__eyebrow">MEMBER EDIT</text><strong class="shop-hero__title">把护理带进<br/>每一个日常</strong><small class="shop-hero__meta">{{featured.name}} · ¥{{featured.displayPrice}}</small><view class="shop-hero__cta">查看详情</view></view>
+  </button>
+  <view wx:if="{{catalog}}" class="shop-catalog-label"><text class="shop-catalog-label__title">品牌精选</text><small class="shop-catalog-label__meta">人工维护的只读目录</small></view>
+  <view wx:if="{{catalog}}" class="shop-gate"><image class="shop-gate__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>当前为测试商品目录，名称与价格仅供预览，暂不支持下单、积分抵扣或支付。</text></view>
+  <view wx:if="{{catalog}}" class="product-grid">
+    <button wx:for="{{catalog.items}}" wx:key="id" class="product-card {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看商品详情：{{item.name}}，价格 {{item.displayPrice}} 元，交易尚未开放">
+      <image class="product-card__image" src="{{item.image}}" mode="aspectFill"/>
+      <view class="product-card__body"><text class="product-card__eyebrow">护理精选</text><strong class="product-card__title">{{item.name}}</strong><small class="product-card__subtitle">{{item.subtitle}}</small><view class="product-card__price">¥{{item.displayPrice}}</view></view>
+    </button>
+  </view>
+  <view wx:if="{{catalog && !catalog.items.length}}" class="state">当前没有可展示商品。</view>
+  <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试</button></view>
+</view>
+</view>

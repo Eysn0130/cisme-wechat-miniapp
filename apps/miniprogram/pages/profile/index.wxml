@@ -1,0 +1,37 @@
+<view class="page profile-page" style="{{chromeStyle}}">
+  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载会员资料…</view>
+  <block wx:if="{{member && points && care}}">
+  <view class="profile-identity">
+    <image class="profile-avatar" src="/assets/icons/user-circle-plum.svg" mode="aspectFit" aria-label="默认会员头像"/>
+    <view class="profile-identity__copy"><text class="profile-identity__eyebrow">CISME MEMBER</text><strong class="profile-identity__title">{{member.display_name || 'CISME 会员'}}</strong><small class="profile-identity__meta">护理周期成员 · {{careStatus}}</small></view>
+    <button class="profile-bell {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}" aria-label="设置与许可"><image class="profile-bell__icon" src="/assets/icons/gear-plum.svg" mode="aspectFit"/></button>
+  </view>
+
+  <view class="member-pass">
+    <view class="member-pass__glow"></view>
+    <view class="member-pass__head">MEMBER · {{memberCode}}</view>
+    <view class="member-pass__title">{{careTitle}}</view>
+    <view class="member-pass__copy">{{careCopy}}</view>
+    <view class="member-progress"><view class="member-progress__bar" style="width: {{progressPercent}}%"></view></view>
+    <view class="pass-stats">
+      <view class="pass-stat pass-stat--first pass-stat--balance"><strong class="pass-stat__value {{pointsBalanceClass}}">{{points.projection.available || 0}}</strong><small class="pass-stat__label">可用积分</small></view>
+      <view class="pass-stat pass-stat--milestone"><strong class="pass-stat__value">{{care.due || care.next || '—'}}</strong><small class="pass-stat__label">当前节点</small></view>
+      <view class="pass-stat pass-stat--share"><strong class="pass-stat__value">分享</strong><small class="pass-stat__label">邀请与归因</small></view>
+    </view>
+  </view>
+
+  <view class="profile-shortcuts">
+    <button class="profile-shortcut {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" disabled="{{navigating}}" aria-label="查看积分账本"><view class="shortcut-icon"><image class="shortcut-icon__image" src="/assets/icons/wallet-plum.svg" mode="aspectFit"/></view><strong class="profile-shortcut__title">积分</strong><small class="profile-shortcut__meta">查看账本</small></button>
+    <button class="profile-shortcut {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}" aria-label="查看只读商品目录，交易尚未开放"><view class="shortcut-icon"><image class="shortcut-icon__image" src="/assets/icons/storefront-plum.svg" mode="aspectFit"/></view><strong class="profile-shortcut__title">商品目录</strong><small class="profile-shortcut__meta">购买暂未开放</small></button>
+    <button class="profile-shortcut {{tasksLoading || navigating ? 'control--disabled' : ''}}" bindtap="openInvite" disabled="{{tasksLoading || navigating}}" aria-label="投稿与邀请，{{tasksLoading ? '正在核验' : tasksError ? '同步失败，点击重试' : tasks.length > 1 ? tasks.length + '项，前往列表选择' : tasks.length ? tasks[0].statusLabel + '，' + tasks[0].actionLabel : '前往社区查看邀请活动'}}"><view class="shortcut-icon"><image class="shortcut-icon__image" src="/assets/icons/gift-plum.svg" mode="aspectFit"/></view><strong class="profile-shortcut__title">投稿与邀请</strong><small class="profile-shortcut__meta">{{tasksLoading ? '正在核验' : tasksError ? '同步失败 · 点此重试' : tasks.length > 1 ? tasks.length + ' 项待查看' : tasks.length ? tasks[0].actionLabel : '前往社区看活动'}}</small></button>
+  </view>
+
+  <view class="glass profile-gate"><image class="profile-gate__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><view><strong class="profile-gate__title">交易能力尚未开放</strong><small class="profile-gate__copy">购买服务尚在准备中，目前可以浏览商品，暂不能下单。</small></view></view>
+
+  <view class="glass profile-menu">
+    <button class="menu-row menu-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}"><image class="menu-row__icon" src="/assets/icons/gear-plum.svg" mode="aspectFit"/><view class="menu-row__copy"><strong class="menu-row__title">设置与隐私</strong><small class="menu-row__meta">公开范围、授权与注销</small></view><image class="menu-caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+  </view>
+  </block>
+  <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试</button></view>
+  <view wx:if="{{tasksError && member}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">有效邀请同步失败，当前页面不会把失败冒充为无邀请。</text><button class="text-button state-error__action" bindtap="retryTasks">重试邀请同步</button></view>
+</view>

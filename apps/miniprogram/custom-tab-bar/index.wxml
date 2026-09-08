@@ -1,0 +1,7 @@
+<view class="bar bar--{{active}} {{reducedMotion ? 'bar--reduced-motion' : ''}}" style="{{chromeStyle}}" aria-role="tablist">
+  <view class="bar__lens"><view class="bar__shine"></view></view>
+  <button wx:for="{{items}}" wx:key="path" data-index="{{index}}" bindtap="switchTab" class="bar__item {{active === index ? 'is-active' : ''}} {{switching || externalBusy ? 'control--disabled' : ''}}" disabled="{{switching || externalBusy}}" aria-label="{{item.text}}，{{externalBusy ? '当前操作确认中，暂不能切换' : active === index ? '当前页面' : switching ? '正在切换' : '未选中'}}" aria-selected="{{active === index}}" aria-role="tab">
+    <image class="bar__icon" src="{{active === index ? item.activeIcon : item.icon}}" mode="aspectFit" />
+    <text>{{item.text}}</text>
+  </button>
+</view>

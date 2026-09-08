@@ -1,0 +1,299 @@
+openapi: 3.1.0
+info:
+  title: CISME R0 Platform API
+  version: 0.1.0
+  description: Authoritative API for the first production vertical slice. Transaction profile remains UNSET.
+servers:
+  - url: https://api.example.invalid
+    description: Placeholder only; production domain is an external blocker.
+tags:
+  - name: Identity
+  - name: Care
+  - name: Submission
+  - name: Admin
+  - name: Read models
+  - name: Attribution
+paths:
+  /health/live:
+    get: {operationId: live, responses: {'200': {description: Process live}}}
+  /health/ready:
+    get: {operationId: ready, responses: {'200': {description: Database and object storage ready}}}
+  /v1/identity/dev:
+    post:
+      tags: [Identity]
+      operationId: devIdentity
+      description: Development adapter only; forbidden in staging and production.
+      requestBody: {$ref: '#/components/requestBodies/Identity'}
+      responses: {'200': {$ref: '#/components/responses/Identity'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/identity/wechat:
+    post:
+      tags: [Identity]
+      operationId: wechatIdentity
+      requestBody: {$ref: '#/components/requestBodies/Identity'}
+      responses: {'200': {$ref: '#/components/responses/Identity'}, '502': {$ref: '#/components/responses/Problem'}}
+  /v1/qualifications/dev:
+    post:
+      tags: [Care]
+      operationId: devQualification
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [externalRef, occurredAt], properties: {externalRef: {type: string}, occurredAt: {type: string, format: date-time}, payload: {type: object}}}}}}
+      responses: {'200': {description: Idempotent qualification fact, content: {application/json: {schema: {$ref: '#/components/schemas/Id'}}}}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/care-cycles:
+    post:
+      tags: [Care]
+      operationId: planCareCycle
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [qualificationFactId, timezone, protocolVersion], properties: {qualificationFactId: {$ref: '#/components/schemas/Uuid'}, timezone: {type: string}, protocolVersion: {type: string}}}}}}
+      responses: {'200': {$ref: '#/components/responses/Care'}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/me/care:
+    get: {tags: [Care], operationId: getCare, security: [{session: []}], responses: {'200': {$ref: '#/components/responses/Care'}}}
+  /v1/care-cycles/{cycleId}/activate:
+    post:
+      tags: [Care]
+      operationId: activateCareCycle
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CycleId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CareVersionCommandInput'}}}}
+      responses: {'200': {description: Versioned activation or exact command replay, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/care-cycles/{cycleId}/{action}:
+    post:
+      tags: [Care]
+      operationId: changeCarePhase
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CycleId'}, {name: action, in: path, required: true, schema: {type: string, enum: [pause, resume, terminate]}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}}}}
+      responses: {'200': {description: Versioned state transition or exact replay}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/care-cycles/{cycleId}/milestones/{milestone}/complete:
+    post:
+      tags: [Care]
+      operationId: completeCareMilestone
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CycleId'}, {name: milestone, in: path, required: true, schema: {$ref: '#/components/schemas/Milestone'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CareVersionCommandInput'}}}}
+      responses: {'200': {description: Versioned milestone record and optional task, or exact command replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/me/tasks:
+    get: {tags: [Read models], operationId: getEligibleTasks, security: [{session: []}], responses: {'200': {description: Member-owned effective invitations}}}
+  /v1/tasks/{taskId}:
+    get: {tags: [Read models], operationId: getTask, security: [{session: []}], parameters: [{$ref: '#/components/parameters/TaskId'}], responses: {'200': {description: Member-owned task}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/tasks/{taskId}/claim:
+    post:
+      tags: [Submission]
+      operationId: claimTask
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/TaskId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      responses: {'200': {description: Same claim and submission for every replay}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/submissions/{submissionId}/media/authorize:
+    post:
+      tags: [Submission]
+      operationId: authorizeMedia
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind, mimeType], properties: {kind: {type: string, enum: [original, screenshot]}, mimeType: {type: string}, maxBytes: {type: integer, maximum: 10485760}}}}}}
+      responses: {'200': {description: Presigned POST or controlled gateway authorization}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/uploads/{mediaId}:
+    post:
+      tags: [Submission]
+      operationId: gatewayUpload
+      description: Local fallback adapter; production storage remains supplier-dependent.
+      parameters: [{name: mediaId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, required: [token, file], properties: {token: {type: string}, file: {type: string, format: binary}}}}}}
+      responses: {'200': {description: Object persisted}, '401': {$ref: '#/components/responses/Problem'}}
+  /v1/submissions/{submissionId}/media/{mediaId}/complete:
+    post:
+      tags: [Submission]
+      operationId: completeMedia
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {name: mediaId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses: {'200': {description: HEAD and checksum recorded}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/submissions/{submissionId}/media/{mediaId}:
+    delete:
+      tags: [Submission]
+      operationId: deleteMedia
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {name: mediaId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses: {'200': {description: Media is removed from the active read model and durable object cleanup is queued}}
+  /v1/submissions/{submissionId}/draft:
+    put:
+      tags: [Submission]
+      operationId: saveSubmissionDraft
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/SubmissionId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubmissionInput'}}}}
+      responses: {'200': {description: Versioned server-side draft saved}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/submissions/{submissionId}/submit:
+    post:
+      tags: [Submission]
+      operationId: submitEvidence
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubmissionInput'}}}}
+      responses: {'200': {description: Submitted or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/submissions/{submissionId}:
+    get: {tags: [Read models], operationId: getSubmission, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}], responses: {'200': {description: Object-owned submission view}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/submissions/{submissionId}/appeal:
+    post: {tags: [Submission], operationId: appeal, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: Versioned appeal created or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/reviews:
+    get: {tags: [Admin], operationId: reviewQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered queue}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/tester-enrollments:
+    post:
+      tags: [Admin]
+      operationId: qualifyExperienceMember
+      description: Audited experience-member bridge when no transaction profile exists. A review lead or support principal records verified delivery or approved tester fulfillment and atomically creates one PLANNED care cycle. It is not a production order substitute.
+      security: [{adminToken: [], adminPrincipal: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/TesterEnrollmentInput'}}}}
+      responses: {'200': {description: Idempotent qualification fact and planned care cycle}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/campaigns:
+    get:
+      tags: [Admin]
+      operationId: listEligibilityCampaigns
+      description: Versioned campaign configuration with effective allocation counts. Review lead, auditor or support only.
+      security: [{adminToken: [], adminPrincipal: []}]
+      responses: {'200': {description: Campaign configuration and current allocation facts}, '403': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/campaigns/{campaignId}:
+    put:
+      tags: [Admin]
+      operationId: updateEligibilityCampaign
+      description: Review-lead-only, evidence-bearing update of campaign availability, window and capacity. Reward amount and qualifying milestone remain immutable finance/product facts.
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{name: campaignId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [active, capacity, startsAt, endsAt, expectedVersion, reasonCode, evidence], properties: {active: {type: boolean}, capacity: {type: integer, minimum: 1, maximum: 100000}, startsAt: {type: string, format: date-time}, endsAt: {type: string, format: date-time}, expectedVersion: {type: integer, minimum: 1}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}}}}
+      responses: {'200': {description: Versioned audited update or exact replay}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/submissions/{submissionId}/review:
+    post:
+      tags: [Admin]
+      operationId: reviewSubmission
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReviewInput'}}}}
+      responses: {'200': {description: Versioned reward/evidence review; when finance-approved rules are enabled, approval creates at most one frozen grant; it never publishes content}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/publications:
+    get: {tags: [Admin], operationId: publicationQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Approved submissions awaiting a separate public-content decision; review lead or auditor only}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/submissions/{submissionId}/publish:
+    post:
+      tags: [Admin]
+      operationId: approveSubmissionPublication
+      description: Requires the UGC go-live gate, an active feed consent, a review-lead principal different from the reward reviewer, structured AI-use declaration and auditable evidence. Queues publication; the worker revalidates before visibility.
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PublicationInput'}}}}
+      responses: {'200': {description: Idempotent publication decision queued or already published}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/points/actions:
+    get: {tags: [Admin], operationId: pointsActionQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Finance-operator, finance-approver or auditor action queue}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/points/grants:
+    get: {tags: [Admin], operationId: pointsGrantQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Finance asset queue with lot buckets, policy dates, version and pending-action state}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/points/grants/{grantId}/actions:
+    post:
+      tags: [Admin]
+      operationId: requestPointsAction
+      description: Finance operator proposes one whole-lot unfreeze, expiry, or remaining-balance reversal. No balance changes before a different finance approver signs.
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{name: grantId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PointsActionInput'}}}}
+      responses: {'200': {description: Pending action or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/points/actions/{requestId}/approve:
+    post:
+      tags: [Admin]
+      operationId: approvePointsAction
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PointsDecisionInput'}}}}
+      responses: {'200': {description: Atomic lot, projection, append-only entry and event update, or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/points/actions/{requestId}/reject:
+    post:
+      tags: [Admin]
+      operationId: rejectPointsAction
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PointsDecisionInput'}}}}
+      responses: {'200': {description: Rejected action or exact replay}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/switches:
+    get: {tags: [Admin], operationId: listEmergencySwitches, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Versioned emergency and business switch states}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/switches/{key}:
+    put: {tags: [Admin], operationId: setEmergencySwitch, security: [{adminToken: [], adminPrincipal: []}], parameters: [{name: key, in: path, required: true, schema: {type: string, enum: [identity, uploads, reviews, rewards, submissions, redemption, commerce]}}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, reason, expectedVersion], properties: {enabled: {type: boolean}, reason: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Versioned, audited switch update or exact replay; independent business kill switches}, '409': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/worker-failures:
+    get: {tags: [Admin], operationId: listWorkerFailures, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered dead-lettered outbox and media-cleanup items}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/worker-backlog:
+    get: {tags: [Admin], operationId: listWorkerBacklog, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered unprocessed event counts, oldest event and explicit implemented/unimplemented handler state}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/worker-failures/{queue}/{itemId}/redrive:
+    post:
+      tags: [Admin]
+      operationId: redriveWorkerFailure
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{name: queue, in: path, required: true, schema: {type: string, enum: [outbox, media_cleanup]}}, {name: itemId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [reason, expectedAttempts], properties: {reason: {type: string, minLength: 1}, expectedAttempts: {type: integer, minimum: 1}}}}}}
+      responses: {'200': {description: Audited exact replay or one explicitly requeued dead-letter item}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/me/points:
+    get: {tags: [Read models], operationId: getPointsLedger, security: [{session: []}], responses: {'200': {description: Append-only entries and projection}}}
+  /v1/me:
+    get: {tags: [Read models], operationId: getMember, security: [{session: []}], responses: {'200': {description: Redacted member profile}}}
+  /v1/me/consents:
+    get: {tags: [Read models], operationId: getConsentGrants, security: [{session: []}], responses: {'200': {description: Purpose grants and revocation state}}}
+  /v1/consents/{consentGrantId}/revoke:
+    post: {tags: [Submission], operationId: revokeConsent, security: [{session: []}], parameters: [{name: consentGrantId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: New use blocked; historical evidence retained; exact replay returned}}}
+  /v1/feed:
+    get: {tags: [Read models], operationId: curatedFeed, responses: {'200': {description: Explicitly publication-approved, licensed, non-revoked read-only feed; fail-closed empty while the UGC go-live gate is off}}}
+  /v1/catalog:
+    get: {tags: [Read models], operationId: catalog, security: [], responses: {'200': {description: Public small read-only SKU catalog; checkout disabled}}}
+  /v1/shares:
+    post:
+      tags: [Attribution]
+      operationId: createShare
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShareInput'}}}}
+      responses: {'200': {description: Stable active member share link or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/shares/{shareId}:
+    get:
+      tags: [Attribution]
+      operationId: resolveShare
+      security: []
+      parameters: [{$ref: '#/components/parameters/ShareId'}]
+      responses: {'200': {description: Active target without member identity}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/shares/{shareId}/visits:
+    post:
+      tags: [Attribution]
+      operationId: recordShareVisit
+      security: []
+      parameters: [{$ref: '#/components/parameters/ShareId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShareVisitInput'}}}}
+      responses: {'200': {description: Idempotent anonymous visit fact}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/shares/{shareId}/attributions/identity:
+    post:
+      tags: [Attribution]
+      operationId: attributeShareIdentity
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/ShareId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShareVisitInput'}}}}
+      responses: {'200': {description: First-touch identity attribution; self-attribution is not credited}, '404': {$ref: '#/components/responses/Problem'}}
+components:
+  securitySchemes:
+    session: {type: http, scheme: bearer}
+    adminToken: {type: apiKey, in: header, name: x-admin-token}
+    adminPrincipal: {type: apiKey, in: header, name: x-principal-id}
+  parameters:
+    IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 200}}
+    CycleId: {name: cycleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    TaskId: {name: taskId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    SubmissionId: {name: submissionId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    ShareId: {name: shareId, in: path, required: true, schema: {type: string, pattern: '^[0-9a-f]{32}$'}}
+  requestBodies:
+    Identity: {required: true, content: {application/json: {schema: {type: object, required: [displayName, consents], properties: {code: {type: string}, externalUserId: {type: string}, displayName: {type: string}, consents: {type: array, minItems: 2, items: {type: object, required: [documentType, version], properties: {documentType: {type: string}, version: {type: string}}}}}}}}}
+  responses:
+    Identity: {description: Member identity and short-lived signed session, content: {application/json: {schema: {type: object, required: [memberId, identityId, principalId, sessionToken], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, identityId: {$ref: '#/components/schemas/Uuid'}, principalId: {type: string}, sessionToken: {type: string}}}}}}
+    Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
+    Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+  schemas:
+    CareVersionCommandInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
+    Uuid: {type: string, format: uuid}
+    Id: {type: object, required: [id], properties: {id: {$ref: '#/components/schemas/Uuid'}}}
+    Milestone: {type: string, enum: [D1, D7, D14, D28]}
+    CareView: {type: [object, 'null'], properties: {id: {$ref: '#/components/schemas/Uuid'}, phase: {type: string, enum: [planned, active, paused, terminated, completed]}, startedOn: {type: [string, 'null'], format: date}, timezone: {type: string}, protocolVersion: {type: string}, completed: {type: array, items: {$ref: '#/components/schemas/Milestone'}}, due: {oneOf: [{$ref: '#/components/schemas/Milestone'}, {type: 'null'}]}, next: {oneOf: [{$ref: '#/components/schemas/Milestone'}, {type: 'null'}]}, version: {type: integer}, scheduleOffsetDays: {type: integer, minimum: 0}, pausePolicy: {type: object, properties: {enabled: {type: boolean}, maxDays: {type: integer, minimum: 0}, version: {type: [string, 'null']}}}}}
+    SubmissionInput: {type: object, required: [postUrl, platformAccount, disclosure, license, expectedVersion], properties: {postUrl: {type: string, maxLength: 500}, platformAccount: {type: string, maxLength: 120}, disclosure: {type: string, maxLength: 300}, license: {type: object, required: [content_storage, human_review, feed_readonly], properties: {content_storage: {const: true}, human_review: {const: true}, feed_readonly: {type: boolean, default: false, description: Optional public read-only publication consent; never required for review or base reward}}}, expectedVersion: {type: integer, minimum: 1}}}
+    ReviewInput: {type: object, required: [decision, reasonCode, expectedVersion], properties: {decision: {type: string, enum: [request_changes, reject, approve]}, reasonCode: {type: string}, evidence: {type: object}, expectedVersion: {type: integer, minimum: 1}}}
+    PointsActionInput: {type: object, required: [action, expectedGrantVersion, reasonCode, evidence], properties: {action: {type: string, enum: [unfreeze, expire, reverse_remaining]}, expectedGrantVersion: {type: integer, minimum: 1}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}
+    PointsDecisionInput: {type: object, required: [reasonCode, evidence], properties: {reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}
+    PublicationInput: {type: object, required: [title, excerpt, aiUsage, reasonCode, evidence], properties: {title: {type: string, minLength: 1, maxLength: 60}, excerpt: {type: string, minLength: 1, maxLength: 240}, aiUsage: {type: string, enum: [none, assisted, generated, unknown]}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}
+    TesterEnrollmentInput: {type: object, required: [memberId, qualificationType, externalRef, occurredAt, timezone, protocolVersion, reasonCode, evidence], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, qualificationType: {type: string, enum: [verified_delivery, approved_tester_fulfillment]}, externalRef: {type: string, minLength: 1, maxLength: 200}, occurredAt: {type: string, format: date-time}, timezone: {type: string}, protocolVersion: {type: string, minLength: 1}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}
+    ShareInput: {type: object, required: [targetType, targetRef], properties: {targetType: {type: string, enum: [post, product]}, targetRef: {type: string, minLength: 1, maxLength: 200}}}
+    ShareVisitInput: {type: object, required: [visitKey], properties: {visitKey: {type: string, minLength: 16, maxLength: 100}}}
+    Problem: {type: object, required: [type, title, status, code, trace_id], properties: {type: {type: string, format: uri}, title: {type: string}, status: {type: integer}, code: {type: string}, trace_id: {type: string}}}

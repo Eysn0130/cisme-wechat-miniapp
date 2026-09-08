@@ -1,0 +1,283 @@
+.home-page {
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  color: #2f2149;
+  background: #e9e1ee;
+}
+
+.home-background {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.care-console {
+  position: absolute;
+  z-index: 2;
+  top: 22.8%;
+  left: 7.4%;
+  width: 85.2%;
+  text-align: center;
+}
+
+.brand-wordmark {
+  color: #322249;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 54rpx;
+  line-height: 1;
+  letter-spacing: 7rpx;
+}
+
+.care-greeting {
+  margin: 52rpx 0 30rpx;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 58rpx;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 4rpx;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.care-greeting--long { font-size: 42rpx; line-height: 1.22; letter-spacing: 2rpx; }
+.care-greeting--very-long { font-size: 32rpx; line-height: 1.25; letter-spacing: 1rpx; }
+
+.home-authority-state {
+  margin: 84rpx auto 0;
+  color: #62586a;
+  font-size: 28rpx;
+  line-height: 1.6;
+  letter-spacing: 2rpx;
+}
+.home-auth-retry { display:flex; margin:16rpx auto 0; }
+
+.today-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+  color: #817888;
+  font-size: 28rpx;
+  letter-spacing: 2rpx;
+}
+
+.today-marker__line {
+  width: 68rpx;
+  height: 1rpx;
+  background: rgba(94, 78, 103, .25);
+}
+
+.protocol-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28rpx;
+  width: 100%;
+  min-height: 100rpx;
+  margin-top: 24rpx;
+  padding: 0;
+  border: 0;
+  color: #2f2149;
+  background: transparent;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 46rpx;
+  font-weight: 400;
+}
+
+.protocol-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100rpx;
+  height: 100rpx;
+  border: 1rpx solid rgba(255, 255, 255, .65);
+  border-radius: 50%;
+  background: rgba(213, 201, 230, .31);
+  box-shadow: inset 0 2rpx 12rpx rgba(255, 255, 255, .7), 0 6rpx 16rpx rgba(75, 50, 96, .06);
+}
+
+.protocol-icon__asset {
+  width: 48rpx;
+  height: 48rpx;
+  opacity: .68;
+}
+
+.protocol-number {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 50rpx;
+}
+
+.care-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 82%;
+  height: 120rpx;
+  min-height: 120rpx;
+  margin: 40rpx auto 28rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(255, 255, 255, .88);
+  border-radius: 999rpx;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(122, 88, 145, .55), rgba(57, 29, 77, .96) 56%, rgba(78, 44, 102, .95));
+  box-shadow: inset 0 3rpx 8rpx rgba(255, 255, 255, .84), inset 0 -12rpx 25rpx rgba(26, 9, 44, .35), 0 16rpx 30rpx rgba(55, 30, 82, .22), 0 0 0 4rpx rgba(129, 94, 153, .3), 0 0 0 7rpx rgba(255, 255, 255, .55);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  font-size: 20px;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 5rpx rgba(22, 8, 37, .45);
+}
+
+.care-cta__label {
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 25px;
+  transform: translateY(1px);
+}
+
+.protocol-rail {
+  position: relative;
+  display: flex;
+  width: 96%;
+  height: 166rpx;
+  margin: 0 auto;
+  padding: 14rpx 20rpx 10rpx;
+  border: 1rpx solid rgba(255, 255, 255, .64);
+  border-radius: 74rpx;
+  background: rgba(248, 245, 249, .34);
+  box-shadow: inset 0 2rpx 22rpx rgba(255, 255, 255, .62), 0 9rpx 19rpx rgba(69, 45, 85, .08);
+}
+
+.protocol-line {
+  position: absolute;
+  top: 44rpx;
+  left: 12%;
+  right: 12%;
+  height: 1rpx;
+  background: rgba(101, 88, 106, .26);
+}
+
+.protocol-step {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  color: #716a75;
+  background: transparent;
+}
+
+.step-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70rpx;
+  height: 70rpx;
+  border: 1rpx solid rgba(103, 88, 108, .33);
+  border-radius: 50%;
+  background: rgba(242, 237, 244, .7);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 32rpx;
+}
+
+.step-label {
+  margin-top: 8rpx;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 28rpx;
+}
+
+.step-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26rpx;
+  height: 26rpx;
+  margin-top: 8rpx;
+  border: 1rpx solid rgba(97, 85, 102, .35);
+  border-radius: 50%;
+  color: transparent;
+  font-size: var(--cisme-text-micro);
+}
+
+.protocol-step.is-active,
+.protocol-step.is-done {
+  color: #412758;
+}
+
+.protocol-step.is-active .step-code {
+  border-color: #796092;
+  box-shadow: 0 0 0 4rpx rgba(255, 255, 255, .62), 0 0 0 6rpx rgba(103, 71, 124, .22);
+}
+
+.protocol-step.is-active .step-state {
+  border-color: #5c3d76;
+  color: #5c3d76;
+}
+
+.protocol-step.is-done .step-state {
+  border-color: #66427f;
+  color: #fff;
+  background: #66427f;
+}
+
+.points-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  margin-top: 50rpx;
+  color: #716b75;
+  font-size: 28rpx;
+  line-height: 1.45;
+}
+
+.points-note__icon {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+.points-note__copy {
+  max-width: 88%;
+}
+
+.home-error {
+  position: absolute;
+  z-index: 20;
+  left: 38rpx;
+  right: 38rpx;
+  bottom: calc(var(--cisme-safe-bottom, env(safe-area-inset-bottom)) + 142rpx);
+  padding: 18rpx 22rpx;
+  border-radius: 24rpx;
+  color: #8d3150;
+  background: rgba(248, 232, 237, .92);
+  text-align: center;
+}
+
+.home-error__copy { display:block; line-height:1.55; }
+.home-error .text-button { display:flex; width:100%; margin:12rpx auto 0; }
+
+@media (max-height: 700px) {
+  .care-console { top: 18%; }
+  .care-greeting { margin-top: 24rpx; font-size: 46rpx; }
+  .care-cta { min-height: 92rpx; margin-top: 18rpx; }
+  .protocol-rail { height: 124rpx; }
+  .points-note { margin-top: 15rpx; }
+}

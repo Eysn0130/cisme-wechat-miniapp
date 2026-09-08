@@ -1,0 +1,27 @@
+<view class="page community-page" style="{{chromeStyle}}">
+  <view class="community-head">
+    <view class="community-title-row"><view class="community-wordmark">CISME <text class="community-wordmark__section">社区</text></view><view class="community-curation">品牌精选</view></view>
+    <view class="community-mode" aria-label="品牌精选由人工审核，不使用个性化推荐"><view class="community-mode__active"><text>精选</text><view class="community-mode__line"></view></view><text class="community-mode__meta">人工审核</text></view>
+  </view>
+
+  <view wx:if="{{loading}}" class="community-loading" aria-live="polite">正在同步人工精选与有效邀请…</view>
+  <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试经审内容同步</button></view>
+
+  <button class="community-hero-card {{navigating ? 'control--disabled' : ''}}" data-id="{{hero.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读品牌精选护理故事：{{hero.title}}">
+    <image class="community-hero-image" src="{{hero.image}}" mode="aspectFill"/><view class="community-hero-shade"></view>
+    <view class="community-hero-copy"><view class="community-hero-copy__title">{{hero.title}}</view><text class="community-hero-copy__excerpt">{{hero.excerpt}}</text></view>
+    <view class="featured-author"><image class="featured-author__avatar" src="{{hero.avatar}}" mode="aspectFill"/><view class="featured-author__copy"><strong class="featured-author__name">{{hero.author}}</strong><small class="featured-author__label">{{hero.publishedLabel}}</small></view></view>
+    <view class="hero-actions"><image class="hero-action-icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text class="hero-action-label">品牌编辑精选 · 点击阅读全文</text></view>
+  </button>
+
+  <view wx:if="{{tasksLoading}}" class="community-loading" aria-live="polite">正在核验有效邀请…</view>
+  <view wx:elif="{{tasksError}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">有效邀请暂时无法同步，不能据此判断为无邀请。</text><button class="text-button state-error__action" bindtap="loadTasks">重试邀请同步</button></view>
+  <view wx:elif="{{tasks.length}}" class="glass community-task-list"><view class="community-task-list__head"><strong class="community-task-list__title">我的投稿与邀请</strong><small class="community-task-list__count">{{tasks.length}} 项</small></view><button wx:for="{{tasks}}" wx:key="id" class="community-task-row {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openInvite" disabled="{{navigating}}" aria-label="{{item.name || '投稿任务'}}，{{item.statusLabel}}，{{item.actionLabel}}"><view class="community-task-row__copy"><strong class="community-task-row__title">{{item.name || '护理故事投稿'}}</strong><small class="community-task-row__status">{{item.statusLabel}}</small></view><text class="community-task-row__action">{{item.actionLabel}}</text></button></view>
+  <view class="feed-grid">
+    <button wx:for="{{displayFeed}}" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}">
+      <image wx:if="{{item.image}}" class="feed-card__image" src="{{item.image}}" mode="aspectFill" />
+      <view class="feed-card__body"><view class="card-title feed-card__title">{{item.title}}</view><view class="feed-card__meta"><image wx:if="{{item.avatar}}" class="feed-card__avatar" src="{{item.avatar}}" mode="aspectFill"/><text class="feed-card__author">{{item.author}}</text><image class="feed-card__meta-icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text class="feed-card__engagement">{{item.engagementLabel}}</text></view></view>
+    </button>
+  </view>
+  <view wx:if="{{!loading && !feed.length}}" class="community-notice"><image class="community-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>公开 UGC 尚未启用；当前展示均为品牌护理内容。用户投稿须经真实邀请、人工审核和有效许可后才会出现。</text></view>
+</view>

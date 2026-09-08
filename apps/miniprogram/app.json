@@ -1,0 +1,36 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/records/index",
+    "pages/community/index",
+    "pages/profile/index",
+    "pages/account/index",
+    "pages/task/index",
+    "pages/submit/index",
+    "pages/progress/index",
+    "pages/points/index",
+    "pages/post/index",
+    "pages/shop/index",
+    "pages/product/index",
+    "pages/settings/index"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#f7f1f8",
+    "backgroundTextStyle": "dark"
+  },
+  "__usePrivacyCheck__": true,
+  "tabBar": {
+    "custom": true,
+    "color": "#6f6573",
+    "selectedColor": "#56306f",
+    "list": [
+      {"pagePath":"pages/home/index","text":"护理"},
+      {"pagePath":"pages/records/index","text":"记录"},
+      {"pagePath":"pages/community/index","text":"社区"},
+      {"pagePath":"pages/profile/index","text":"我的"}
+    ]
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

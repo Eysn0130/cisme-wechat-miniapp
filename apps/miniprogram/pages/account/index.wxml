@@ -1,0 +1,20 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+<view class="topbar account-topbar"><button class="topbar__back {{leavePromptOpen || leaving ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leavePromptOpen || leaving}}" aria-label="{{leaving ? '正在返回来源页面' : loading ? '停止等待并返回' : '返回'}}"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="account-topbar__copy"><text class="topbar__title">会员账号</text><small class="account-topbar__subtitle">微信身份与必要授权分开确认</small></view></view>
+<view class="page page--stack account-page">
+  <view class="account-icon"><image class="account-icon__image" src="/assets/icons/user-circle-plum.svg" mode="aspectFit"/></view>
+  <text class="account-eyebrow">CISME MEMBER</text>
+  <view class="account-title"><text class="account-title__line">用一个可信身份</text><text class="account-title__line">保存你的长期护理记录</text></view>
+  <view class="account-subtitle">拒绝可选授权仍可浏览公开社区；下单、积分和投稿时再完成必要验证。</view>
+
+  <view class="glass account-card">
+    <view class="account-row"><view class="account-row__icon">1</view><view class="account-row__copy"><strong class="account-row__title">授权微信身份</strong><small class="account-row__meta">用于建立唯一会员档案，不读取手机号；由下方按钮统一确认</small></view></view>
+    <view class="account-row account-agreement {{loading || leaving || !legalTextsReady ? 'control--disabled' : ''}}"><checkbox-group class="account-agreement__selector" bindchange="toggleAgreement"><label class="account-agreement__label"><checkbox class="account-checkbox" value="accepted" checked="{{agreementAccepted}}" disabled="{{loading || leaving || !legalTextsReady}}" color="#56306f" /><view class="account-row__copy"><strong class="account-row__title">我已阅读并同意必选协议 <em class="account-row__qualifier">必选</em></strong><small class="account-row__meta">{{identityCommitStarted ? '身份请求已提交，本次同意在结果返回前不可更改' : localLegalFixture ? '仅供本地测试，正式协议尚未发布' : legalTextsReady ? '基础服务协议不捆绑公开展示或营销授权' : '正式协议尚未发布，暂不能确认身份'}}</small></view></label></checkbox-group><button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openLegalDocuments" disabled="{{loading || leaving}}" aria-label="选择查看用户协议或隐私保护指引">查看协议</button></view>
+    <view class="account-row"><view class="account-row__icon">2</view><view class="account-row__copy"><strong class="account-row__title">手机号授权 <em class="account-row__qualifier">按需确认</em></strong><small class="account-row__meta">当前不收集手机号；相关服务开放后再单独征求同意</small></view><text class="account-gate">未开放</text></view>
+  </view>
+
+  <view class="account-safety"><image class="account-safety__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>手机号不会展示在公开主页。身份确认不会自动开启公开展示或营销授权。</text></view>
+  <view wx:if="{{error}}" id="account-error-summary" class="state state--error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text></view>
+  <button class="primary account-login {{loading || leaving || !legalTextsReady || (!agreementAccepted && !pendingDestination) ? 'primary--disabled' : ''}}" loading="{{loading}}" disabled="{{loading || leaving || !legalTextsReady || (!agreementAccepted && !pendingDestination)}}" bindtap="login"><text class="action-label">{{pendingDestination ? '重新打开身份确认后的页面' : legalTextsReady ? '确认身份并继续' : '协议未发布，暂不能登录'}}</text></button>
+  <button class="secondary account-browse {{leavePromptOpen || leaving ? 'secondary--disabled' : ''}}" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving}}"><text class="action-label">{{identityCommitStarted ? '身份请求已发送，仍然离开' : loading ? '停止等待，浏览公开社区' : '暂不登录，浏览公开社区'}}</text></button>
+</view>
+</view>

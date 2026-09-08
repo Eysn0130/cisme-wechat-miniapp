@@ -1,0 +1,16 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+<view class="topbar post-topbar"><button class="topbar__back {{leaving ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leaving}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="post-topbar__copy"><text class="topbar__title">护理故事</text><small class="post-topbar__subtitle">{{loading ? '正在核验内容' : item ? (item.publishedLabel || '经审内容') : errorKind === 'missing' ? '内容不可用' : '内容加载失败'}}</small></view></view>
+<view class="page page--stack post-page">
+  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载护理故事…</view>
+  <image wx:if="{{item && item.image}}" class="post-cover" src="{{item.image}}" mode="aspectFill" />
+  <view wx:if="{{item}}" class="post-content">
+    <view class="post-author"><image wx:if="{{item.avatar}}" class="post-author__avatar" src="{{item.avatar}}" mode="aspectFill"/><view class="post-author__copy"><strong class="post-author__name">{{item.author}}</strong><small class="post-author__meta">{{item.publishedLabel}} · {{item.engagementLabel || '只读展示'}}</small></view><view class="post-badge">{{item.kind === 'brand' ? '测试内容' : '审核通过'}}</view></view>
+    <view class="post-title">{{item.title}}</view>
+    <view class="post-copy">{{item.excerpt}}</view>
+    <view class="post-tags"><text class="post-tag">#真实护理</text><text class="post-tag">#护理记录</text><text class="post-tag">#头皮清洁</text></view>
+    <view class="post-provenance"><image class="post-provenance__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><view><strong class="post-provenance__title">{{item.kind === 'brand' ? '品牌内容预览' : '审核与展示许可可核验'}}</strong><small class="post-provenance__meta">{{item.provenanceLabel || '人工审核通过，并在有效许可范围内展示'}}</small></view></view>
+    <view class="post-actions"><button class="post-action post-action--share" open-type="share" aria-label="分享这篇护理故事"><image class="post-action__icon" src="/assets/icons/share-network-plum.svg" mode="aspectFit"/><text>微信分享</text></button></view>
+  </view>
+  <view wx:if="{{!item && error}}" class="glass error-scene post-unavailable" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">STORY UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary post-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载护理故事</text></button><button class="post-error-action {{leaving ? 'control--disabled' : ''}} {{errorKind === 'missing' ? 'primary' : 'secondary'}}" bindtap="back" disabled="{{leaving}}"><text class="action-label">安全返回品牌精选</text></button></view></view>
+</view>
+</view>

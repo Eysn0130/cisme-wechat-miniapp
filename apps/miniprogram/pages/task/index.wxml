@@ -1,0 +1,41 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+<view class="topbar"><button class="topbar__back {{leaving || working ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leaving || working}}" aria-label="{{leaving || working ? '任务领取结果确认中，暂不能返回' : '返回'}}"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">任务详情</text></view>
+<view class="page page--stack task-page {{task && error ? 'task-page--has-error' : ''}}">
+  <view wx:if="{{loading}}" class="state" aria-live="polite">正在核验邀请资格…</view>
+  <view wx:elif="{{!task && error}}" class="glass error-scene task-error-scene" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/gift-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">INVITATION UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorAction === 'continue'}}" class="primary task-error-action {{working ? 'primary--disabled' : ''}}" bindtap="continueSubmission" disabled="{{working}}"><text class="action-label">继续完成已生成的投稿</text></button><button wx:elif="{{errorAction === 'load'}}" class="primary task-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新核验邀请资格</text></button><button class="task-error-action {{errorAction === 'missing' ? 'primary' : 'secondary'}} {{leaving || working ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leaving || working}}"><text class="action-label">返回邀请来源</text></button><button class="text-button task-error-action {{leaving || working ? 'text-button--disabled' : ''}}" bindtap="goCommunity" disabled="{{leaving || working}}">返回品牌精选社区</button></view></view>
+  <block wx:elif="{{task}}">
+  <view class="task-hero">
+    <text class="task-hero__eyebrow">小红书 · 图文</text>
+    <view class="task-hero__title">{{task.name}}</view>
+    <view class="task-hero__state">如实记录即可，不要求正面评价</view>
+    <view class="task-hero__reward"><strong class="task-hero__reward-value">{{task.reward_enabled ? task.reward_points : '审核闭环'}}</strong><small class="task-hero__reward-unit">{{task.reward_enabled ? '积分候选' : '体验'}}</small></view>
+    <view class="task-hero__orb"></view>
+  </view>
+
+  <view class="glass task-section">
+    <view class="task-section__title">如何完成</view>
+    <view class="task-step"><text class="task-step__index">1</text><view><strong class="task-step__title">领取任务</strong><small class="task-step__meta">系统原子锁定资格，并生成投稿与归因编号</small></view></view>
+    <view class="task-step"><text class="task-step__index">2</text><view><strong class="task-step__title">准备并发布</strong><small class="task-step__meta">上传真实原图，按提示发布到外部社交平台</small></view></view>
+    <view class="task-step"><text class="task-step__index">3</text><view><strong class="task-step__title">回来提交证明</strong><small class="task-step__meta">补充发布截图、公开链接、平台账号与利益披露</small></view></view>
+    <view class="task-step"><text class="task-step__index">4</text><view><strong class="task-step__title">人工审核</strong><small class="task-step__meta">{{task.reward_enabled ? '审核通过后奖励只生成一次并先冻结' : '本轮只验证投稿、补件与审核，不生成积分资产'}}</small></view></view>
+  </view>
+
+  <view class="glass task-section task-requirements">
+    <view class="task-section__title">发布要求</view>
+    <view class="task-requirement"><image class="task-requirement__icon" src="/assets/icons/check-plum.svg" mode="aspectFit"/><text>原创图片与真实护理场景，不使用模板批量发布</text></view>
+    <view class="task-requirement"><image class="task-requirement__icon" src="/assets/icons/check-plum.svg" mode="aspectFit"/><text>正文说明真实体验，不作医疗效果承诺</text></view>
+    <view class="task-requirement"><image class="task-requirement__icon" src="/assets/icons/check-plum.svg" mode="aspectFit"/><text>保留可核验的账号、链接与发布时间</text></view>
+    <view class="task-requirement"><image class="task-requirement__icon" src="/assets/icons/check-plum.svg" mode="aspectFit"/><text>明确利益关系与内容用途许可</text></view>
+  </view>
+
+  <view class="task-notice"><image class="task-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>领取只会生成唯一投稿编号，不代表你已授权品牌转载；精选展示许可稍后单独选择。</text></view>
+
+  <view wx:if="{{task}}" class="task-action">
+    <view wx:if="{{error}}" class="task-action__error" aria-live="assertive" aria-atomic="true"><strong class="task-action__error-title">{{errorTitle}}</strong><text class="task-action__error-copy">{{error}}</text></view>
+    <button wx:if="{{!task.submission_id && task.claimable}}" class="primary task-action__button {{working ? 'primary--disabled' : ''}}" loading="{{working}}" disabled="{{working}}" bindtap="claim"><text class="action-label">领取任务并生成专属编号</text></button>
+    <button wx:elif="{{!task.submission_id}}" class="primary primary--disabled task-action__button" disabled="{{true}}"><text class="action-label">{{task.claim_block_reason || '邀请暂不可领取'}}</text></button>
+    <button wx:else class="primary task-action__button {{working ? 'primary--disabled' : ''}}" loading="{{working}}" disabled="{{working}}" bindtap="continueSubmission"><text class="action-label">{{task.submission_status === 'draft' || task.submission_status === 'needs_changes' ? '继续完成投稿' : task.submission_status === 'submitted' || task.submission_status === 'appealed' ? '查看审核进度' : '查看审核结果'}}</text></button>
+  </view>
+  </block>
+</view>
+</view>

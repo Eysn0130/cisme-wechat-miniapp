@@ -1,0 +1,54 @@
+<view class="records-page" style="{{chromeStyle}}">
+  <view class="records-hero">
+    <view class="records-hero__orb"></view>
+    <block wx:if="{{authorityAvailable}}">
+    <view class="records-kicker"><text class="records-wordmark">CISME CARE</text><text class="records-archive">护理档案</text></view>
+    <view class="record-streak" aria-label="已完成 {{summary.completed}} 个里程碑"><strong class="record-streak__count">{{summary.completed}}</strong><view class="record-streak__copy"><text class="record-streak__label">里程碑记录</text><small class="record-streak__meta">MILESTONES</small></view></view>
+    <view class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text class="records-headline__line">{{summary.headlineLine2}}</text></view>
+    <view class="records-subline">{{summary.completed}} / 4 个里程碑已完成 · {{summary.phaseLabel}}</view>
+    </block>
+    <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><text class="records-wordmark">CISME CARE</text><strong>正在同步护理档案…</strong></view>
+    <view wx:else class="records-hero-status" aria-live="assertive"><text class="records-wordmark">CISME CARE</text><strong>护理档案暂不可用</strong></view>
+  </view>
+
+  <view class="records-content">
+    <view wx:if="{{operationStatus}}" class="records-operation-status" aria-live="polite" aria-atomic="true">{{operationStatus}}</view>
+    <view wx:if="{{error}}" id="records-error-summary" class="state state--error records-error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="retryLoad">重试</button></view>
+    <view wx:if="{{loading}}" class="glass records-loading" aria-live="polite">正在同步护理事实…</view>
+    <view wx:elif="{{authorityAvailable && care}}" class="glass milestone-card">
+      <view class="milestone-head"><view class="milestone-head__copy"><text class="milestone-kicker">CARE CYCLE</text><strong class="milestone-title">本周期进度</strong></view><text class="milestone-phase">{{summary.phaseLabel}}</text></view>
+      <view class="milestone-track">
+        <view wx:for="{{timeline}}" wx:key="milestone" class="milestone-node {{item.done ? 'is-done' : ''}} {{item.current ? 'is-current' : ''}}">
+          <text class="milestone-label">{{item.milestone}}</text><small class="milestone-status">{{item.status}}</small>
+        </view>
+      </view>
+      <view class="cycle-summary">{{summary.cycleSummary}}</view>
+    </view>
+
+    <view wx:elif="{{authorityAvailable && !care}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">尚无护理周期</view><text class="records-empty__copy">完成体验资格确认后，将在这里生成待开始周期。</text></view>
+
+    <view wx:if="{{authorityAvailable && care && (care.phase === 'planned' || care.phase === 'active' || care.phase === 'paused')}}" class="glass cycle-controls">
+      <view class="cycle-controls__title">周期管理</view>
+      <view class="cycle-controls__copy">暂停会保留已有记录；终止后不会继续生成里程碑。</view>
+      <view class="cycle-controls__actions">
+        <button wx:if="{{care.phase === 'planned'}}" class="cycle-button cycle-button--single {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}">前往确认开始</button>
+        <button wx:elif="{{care.phase === 'active' && care.pausePolicy.enabled}}" class="cycle-button {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="pause" loading="{{workingAction === 'pause'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">暂停周期</button>
+        <view wx:elif="{{care.phase === 'active'}}" class="cycle-policy-note">暂停策略尚未签字</view>
+        <button wx:elif="{{care.phase === 'paused'}}" class="cycle-button {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="resume" loading="{{workingAction === 'resume'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">恢复周期</button>
+        <button wx:if="{{care.phase === 'active' || care.phase === 'paused'}}" class="cycle-button cycle-button--danger {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="terminate" loading="{{workingAction === 'terminate'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">终止周期</button>
+      </view>
+    </view>
+
+    <view wx:if="{{authorityAvailable && care}}" class="record-list">
+      <view class="record-list__head"><text class="record-list__title">最近记录</text><text class="record-list__count">{{records.length}} 条记录</text></view>
+      <view wx:if="{{records.length}}">
+        <view wx:for="{{records}}" wx:key="milestone" class="record-row">
+          <text class="record-index">{{item.index}}</text><view class="record-row__copy"><strong class="record-row__title">{{item.milestone}} 护理里程碑</strong><small class="record-row__meta">已保存护理事实</small></view><text class="record-row__time">{{item.completedAt}}</text>
+        </view>
+      </view>
+      <view wx:else class="record-row record-row--pending"><text class="record-index">01</text><view class="record-row__copy"><strong class="record-row__title">尚无护理记录</strong><small class="record-row__meta">{{care.phase === 'planned' ? '确认开始周期后才会出现 D1' : '当前没有到期里程碑'}}</small></view><text class="record-row__time">—</text></view>
+    </view>
+
+    <view wx:if="{{authorityAvailable && care}}" class="records-actions"><button class="records-home {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}"><image class="records-home__icon" src="/assets/icons/drop-active.svg" mode="aspectFit"/>查看护理首页</button></view>
+  </view>
+</view>

@@ -1,0 +1,22 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+<view class="topbar product-topbar"><button class="{{leaving ? 'control--disabled' : ''}} topbar__back" disabled="{{leaving}}" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">商品详情</text></view>
+<view class="page page--stack product-page">
+  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载商品资料…</view>
+  <image wx:if="{{item}}" class="product-cover" src="{{item.image}}" mode="aspectFill" />
+  <view wx:if="{{item}}" class="product-content">
+    <text class="product-eyebrow">CISME DAILY RITUAL</text>
+    <view class="product-title">{{item.name}}</view>
+    <view class="product-subtitle">{{item.subtitle}}</view>
+    <view class="product-price">¥{{item.displayPrice}}</view>
+    <view class="product-contract">测试商品预览 · 价格尚未正式发布 · 暂不接受支付</view>
+    <view class="glass product-facts">
+      <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>成分、用法与功效表达以审核后的商品资料为准</text></view>
+      <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/package-plum.svg" mode="aspectFit"/><text>库存、配送与售后信息将在购买服务开放时公布</text></view>
+      <view class="product-fact product-fact--last"><image class="product-fact__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><text>当前名称与价格仅供测试预览，不构成购买承诺</text></view>
+    </view>
+    <view class="product-note">购买服务尚在准备中，目前仅可浏览商品资料。</view>
+  </view>
+  <view wx:if="{{item}}" class="product-action"><button class="primary primary--disabled product-action__button" disabled><text class="action-label">交易尚未开放 · ¥{{item.displayPrice}}</text></button></view>
+  <view wx:if="{{!item && error}}" class="glass error-scene product-error-scene" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/package-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">PRODUCT UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary product-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载商品资料</text></button><button class="{{leaving ? 'control--disabled' : ''}} product-error-action {{errorKind === 'missing' ? 'primary' : 'secondary'}}" disabled="{{leaving}}" bindtap="back"><text class="action-label">返回商品目录</text></button></view></view>
+</view>
+</view>

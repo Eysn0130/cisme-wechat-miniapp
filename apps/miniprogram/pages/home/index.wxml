@@ -1,0 +1,25 @@
+<view class="home-page">
+  <image class="home-background" src="/assets/cisme/cisme-home-background-v1.jpg" mode="aspectFill" />
+  <view class="care-console">
+    <view class="brand-wordmark">CISME</view>
+    <block wx:if="{{authorityAvailable}}">
+    <view class="care-greeting {{view.greetingClass}}" aria-label="{{view.greeting}}">{{view.greeting}}</view>
+    <view class="today-marker"><view class="today-marker__line"></view><text>{{view.schedule}}</text><view class="today-marker__line"></view></view>
+    <view class="protocol-title" aria-label="{{view.protocolAria}}">
+      <view class="protocol-icon"><image class="protocol-icon__asset" src="/assets/icons/spray-bottle-plum.svg" mode="aspectFit" /></view>
+      <view><text class="protocol-number">{{view.protocolCode}}</text><text> {{view.protocolLabel}}</text></view>
+    </view>
+    <button class="care-cta {{loading || working || !authorityAvailable || !view.actionable ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{loading || working || !authorityAvailable || !view.actionable}}" bindtap="primaryAction"><text class="care-cta__label">{{view.action}}</text></button>
+    <view class="protocol-rail">
+      <view class="protocol-line"></view>
+      <view wx:for="{{view.steps}}" wx:key="code" class="protocol-step {{item.done ? 'is-done' : ''}} {{item.active ? 'is-active' : ''}}" aria-label="{{item.code}} {{item.label}}，{{item.done ? '已完成' : item.active ? '当前步骤' : '待开始'}}">
+        <text class="step-code">{{item.code}}</text><text class="step-label">{{item.label}}</text><text class="step-state">{{item.done ? '✓' : item.active ? '●' : ''}}</text>
+      </view>
+    </view>
+    <view class="points-note"><image class="points-note__icon" src="/assets/icons/star-muted.svg" mode="aspectFit" /><text class="points-note__copy">{{loading ? '正在同步护理状态…' : view.note}}</text></view>
+    </block>
+    <view wx:elif="{{loading}}" class="home-authority-state" aria-live="polite">正在同步护理状态…</view>
+    <view wx:else class="home-authority-state" aria-live="assertive"><text>{{needsAuthentication ? '请先完成微信身份确认，再继续护理。' : '护理状态暂不可用，请重试。'}}</text><button wx:if="{{needsAuthentication}}" class="text-button home-auth-retry" bindtap="retryAuthentication">重新打开身份确认</button></view>
+  </view>
+  <view wx:if="{{error}}" class="home-error" aria-live="assertive"><text class="home-error__copy">{{error}}</text><button class="text-button" bindtap="retryLoad">重试</button></view>
+</view>
