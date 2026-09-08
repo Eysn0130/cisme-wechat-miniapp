@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "cisme-dev",
+      "credentials": [
+        {
+          "accessKey": "cisme-dev",
+          "secretKey": "cisme-dev-secret-change-me"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write"]
+    }
+  ]
+}
