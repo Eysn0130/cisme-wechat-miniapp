@@ -1,0 +1,20 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back {{leaving ? 'control--disabled' : ''}}" disabled="{{leaving}}" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="invite-topbar-copy"><text class="topbar__title">邀请与分享</text><text class="invite-topbar-subtitle">邀请朋友，一起记录护理</text></view></view>
+  <view class="page page--stack invite-page">
+    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载邀请资料…</view>
+    <block wx:if="{{!loading}}">
+      <view class="invite-card">
+        <text class="invite-eyebrow">MY INVITATION</text>
+        <view class="invite-avatar"><image class="invite-avatar-image" src="/assets/icons/user-circle-plum.svg" mode="aspectFit" aria-label="默认会员头像"/></view>
+        <view class="invite-title"><text class="invite-title-line">邀请朋友一起</text><text class="invite-title-line">记录真实的头皮护理</text></view>
+        <text class="invite-code-label">分享编号</text><text class="invite-code">{{shareCode}}</text>
+        <text class="invite-validity">分享链接有效期 30 天</text>
+        <button wx:if="{{!shareId}}" class="invite-primary {{preparing || !!error ? 'primary--disabled' : ''}}" bindtap="prepare" disabled="{{preparing || !!error}}"><image class="invite-button-icon" src="/assets/icons/share-network-white.svg" mode="aspectFit"/><text>{{preparing ? '正在生成…' : '生成分享卡片'}}</text></button>
+        <button wx:else class="invite-primary" open-type="share"><image class="invite-button-icon" src="/assets/icons/share-network-white.svg" mode="aspectFit"/><text>分享给朋友</text></button>
+      </view>
+      <view wx:if="{{!error}}" class="glass invite-history"><view class="invite-history-heading"><text class="invite-history-title">最近生成记录</text><text class="invite-history-meta">{{history.length ? '已生成' : '暂无记录'}}</text></view><view wx:if="{{!history.length}}" class="invite-empty">还没有分享记录，先生成一张邀请卡吧。</view><view wx:for="{{history}}" wx:key="shareId" class="invite-history-row"><text class="invite-history-code">{{item.code}}</text><text class="invite-history-date">{{item.date}} · {{item.label}}</text></view></view>
+      <view class="invite-note"><image class="invite-note-icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><view class="invite-note-copy"><text class="invite-note-title">仅展示你的分享记录</text><text class="invite-note-detail">生成卡片后，由你选择是否发送。</text></view></view>
+    </block>
+    <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试</button></view>
+  </view>
+</view>

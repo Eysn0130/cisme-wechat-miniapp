@@ -26,7 +26,7 @@ Page({
   },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 1 }); void this.load(); },
+  onShow() { const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 1 }); tab?.syncActive?.(1); void this.load(); },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; wx.disableAlertBeforeUnload(); },
   async load(preserveSnapshot = false): Promise<boolean> {
     const attempt = this.data.loadAttempt + 1;
@@ -45,7 +45,7 @@ Page({
         current: care?.due === milestone,
         status: completed.includes(milestone) ? "已完成" : care?.due === milestone ? "今日" : "待开始"
       }));
-      const phaseLabel = care?.phase === "active" ? "护理进行中" : care?.phase === "completed" ? "本周期已完成" : care?.phase === "paused" ? "周期已暂停" : care?.phase === "terminated" ? "周期已终止" : "待用户确认开始";
+      const phaseLabel = !care ? "等待体验资格确认" : care.phase === "active" ? "护理进行中" : care.phase === "completed" ? "本周期已完成" : care.phase === "paused" ? "周期已暂停" : care.phase === "terminated" ? "周期已终止" : "待用户确认开始";
       const cycleSummary = care?.startedOn ? `${care.startedOn} 开始 · 按护理日程自动更新` : "确认开始后生成 D1、D7、D14、D28";
       const headline = care?.phase === "completed" ? ["这个护理周期，", "已经完整保存。"] : ["你的头皮护理，", "正在成为一种习惯。"];
       const records = (Array.isArray(care?.records) ? care.records.slice() : []).sort((left: { completedAt?: string }, right: { completedAt?: string }) => String(right.completedAt ?? "").localeCompare(String(left.completedAt ?? ""))).map((record: { milestone: string; completedAt?: string }) => ({ milestone: record.milestone, index: record.milestone.replace("D", "").padStart(2, "0"), completedAt: record.completedAt ? String(record.completedAt).slice(5, 10).replace("-", "/") : "—" }));

@@ -1,10 +1,12 @@
-import { request } from "../../services/api";
+import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
 import { editorialStory } from "../../services/editorial";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, motionDuration } from "../../services/layout";
 import { prepareShareLink, registerIncomingShare } from "../../services/share";
 
+import { commentThreads, emptyCommunity, type CommunityView } from "../../services/community";
+
 Page({
-  data: { chromeStyle: currentChromeStyle(), id: "", item: null as any, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], mediaIndex: 0, galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
@@ -13,19 +15,20 @@ Page({
     wx.hideShareMenu();
   },
   onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); },
-  onHide() { this.data.loadAttempt += 1; },
+  onHide() { this.data.loadAttempt += 1; this.setData({ composerFocused: false, keyboardHeight: 0 }); },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; },
   async load() {
     const attempt = this.data.loadAttempt + 1;
     wx.hideShareMenu();
-    this.setData({ loadAttempt: attempt, item: null, shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
+    this.setData({ loadAttempt: attempt, socialBusy: false, socialLoading: false, item: null, media: [], mediaIndex: 0, shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
     try {
       const editorial = editorialStory(this.data.id);
       if (editorial) {
         if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
-        this.setData({ item: editorial, loading: false, errorKind: "none", errorTitle: "", error: "" });
+        this.setData({ item: editorial, media: editorial.media ?? [editorial.image], mediaIndex: 0, loading: false, errorKind: "none", errorTitle: "", error: "" });
         wx.showShareMenu({ menus: ["shareAppMessage"] });
         void this.prepareShare(attempt);
+        void this.loadSocial();
         return;
       }
       const feed = await request<any[]>({ path: "/v1/feed", authMode: "public" });
@@ -41,6 +44,106 @@ Page({
     }
     catch (error) {
       if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ item: null, shareId: "", loading: false, errorKind: "load", errorTitle: "护理故事暂时未同步", error: "请检查网络后重试。加载失败不会被误显示为内容已撤回。" });
+    }
+  },
+  async loadSocial() {
+    const attempt = this.data.loadAttempt;
+    this.setData({ socialLoading: true, socialError: "" });
+    try {
+      const health = await request<{ communityPreviewEnabled: boolean }>({ path: "/health/ready", authMode: "public" });
+      if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return;
+      this.setData({ socialEnabled: health.communityPreviewEnabled === true });
+      if (!health.communityPreviewEnabled) return;
+      const social = await request<CommunityView>({ path: `/v1/community/${encodeURIComponent(this.data.id)}`, authMode: "optional" });
+      if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return;
+      this.setData({ social, threads: commentThreads(social.comments, this.data.expandedThreads) });
+    } catch {
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialError: "交流暂时未同步，点击重试" });
+    } finally {
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialLoading: false });
+    }
+  },
+  async mutateSocial(path: string, method: "POST" | "PUT" | "DELETE", data: WechatMiniprogram.IAnyObject, operationId?: string) {
+    if (!this.data.pageAlive || this.data.leaving || this.data.socialBusy || !this.data.socialEnabled || this.data.socialLoading) return false;
+    clearAuthenticationRedirectSuppression();
+    const attempt = this.data.loadAttempt;
+    this.setData({ socialBusy: true, socialError: "" });
+    try {
+      const social = await request<CommunityView>({ path: `/v1/community/${encodeURIComponent(this.data.id)}${path}`, method, data, idempotencyKey: operationId });
+      if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return false;
+      this.setData({ social, threads: commentThreads(social.comments, this.data.expandedThreads) });
+      return true;
+    } catch (error) {
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialError: (error as { title?: string }).title || "暂未保存，请重试；已输入的内容仍保留" });
+      return false;
+    } finally {
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialBusy: false });
+    }
+  },
+  toggleLike() { void this.mutateSocial("/reaction", "PUT", { kind: "like", active: !this.data.social.liked }); },
+  toggleSave() { void this.mutateSocial("/reaction", "PUT", { kind: "save", active: !this.data.social.saved }); },
+  showComments() { wx.pageScrollTo({ selector: "#post-comments", duration: motionDuration(250) }); },
+  focusComment() { this.setData({ composerFocused: true }); },
+  blurComment() { this.setData({ composerFocused: false, keyboardHeight: 0 }); },
+  keyboardChanged(event: WechatMiniprogram.CustomEvent) { this.setData({ keyboardHeight: Math.max(0, Number(event.detail.height) || 0) }); },
+  inputComment(event: WechatMiniprogram.CustomEvent) { this.setData({ draft: String(event.detail.value ?? ""), draftOperation: "" }); },
+  replyComment(event: WechatMiniprogram.TouchEvent) {
+    const comment = this.data.social.comments.find(item => item.id === event.currentTarget.dataset.id);
+    if (!comment || comment.status !== "published") return;
+    this.setData({ replyToId: comment.id, replyToName: comment.authorName, draftOperation: "", composerFocused: true });
+  },
+  cancelReply() { this.setData({ replyToId: "", replyToName: "", draftOperation: "" }); },
+  expandReplies(event: WechatMiniprogram.TouchEvent) {
+    const id = String(event.currentTarget.dataset.id ?? "");
+    const expanded = this.data.expandedThreads.includes(id) ? this.data.expandedThreads.filter(value => value !== id) : [...this.data.expandedThreads, id];
+    this.setData({ expandedThreads: expanded, threads: commentThreads(this.data.social.comments, expanded) });
+  },
+  likeComment(event: WechatMiniprogram.TouchEvent) {
+    const comment = this.data.social.comments.find(item => item.id === event.currentTarget.dataset.id);
+    if (comment?.status === "published") void this.mutateSocial(`/comments/${comment.id}/like`, "PUT", { active: !comment.liked });
+  },
+  deleteComment(event: WechatMiniprogram.TouchEvent) {
+    const comment = this.data.social.comments.find(item => item.id === event.currentTarget.dataset.id);
+    if (comment?.isMine && comment.status !== "deleted") void this.mutateSocial(`/comments/${comment.id}`, "DELETE", {});
+  },
+  async sendComment() {
+    const body = this.data.draft.trim();
+    if (body.length < 2 || body.length > 180) { this.setData({ socialError: "评论请输入 2 至 180 个字" }); return; }
+    const operation = this.data.draftOperation || `comment-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+    this.setData({ draftOperation: operation });
+    const submitted = await this.mutateSocial("/comments", "POST", { body, ...(this.data.replyToId ? { replyToId: this.data.replyToId } : {}) }, operation);
+    if (submitted) {
+      if (this.data.draftOperation === operation) {
+      this.setData({ draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0 });
+      wx.hideKeyboard();
+      }
+      wx.showToast({ title: "已提交审核，仅本人可见", icon: "none" });
+      this.showComments();
+    }
+  },
+  mediaLoaded(event: WechatMiniprogram.CustomEvent) {
+    if (Number(event.currentTarget.dataset.index) !== 0) return;
+    const ratio = Math.min(16 / 9, Math.max(3 / 4, Number(event.detail.width) / Math.max(1, Number(event.detail.height))));
+    if (Number.isFinite(ratio)) this.setData({ galleryHeight: 750 / ratio });
+  },
+  onMediaChange(event: WechatMiniprogram.CustomEvent) {
+    this.setData({ mediaIndex: Number(event.detail.current) || 0 });
+  },
+  async previewMedia(event: WechatMiniprogram.TouchEvent) {
+    const current = String(event.currentTarget.dataset.src ?? "");
+    const selected = this.data.media.indexOf(current);
+    if (selected < 0) return;
+    const attempt = this.data.loadAttempt;
+    try {
+      const urls = await Promise.all(this.data.media.map((src) => new Promise<string>((resolve, reject) => {
+        if (!src.startsWith("/assets/")) { resolve(src); return; }
+        const destination = `${wx.env.USER_DATA_PATH}/preview-${src.split("/").pop()}`;
+        wx.getFileSystemManager().copyFile({ srcPath: src, destPath: destination, success: () => resolve(destination), fail: reject });
+      })));
+      if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
+      wx.previewImage({ current: urls[selected], urls, fail: () => wx.showToast({ title: "图片暂时无法打开，请重试", icon: "none" }) });
+    } catch {
+      if (this.data.pageAlive && this.data.loadAttempt === attempt) wx.showToast({ title: "图片暂时无法打开，请重试", icon: "none" });
     }
   },
   async prepareShare(loadAttempt?: number) {

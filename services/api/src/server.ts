@@ -8,6 +8,7 @@ import { DomainError } from "@cisme/domain";
 import type { CareVersionCommandInput, EmergencySwitchKey, WorkerQueue } from "@cisme/contracts";
 import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
 import { createPool } from "./db.js";
+import { CommunityService } from "./communityService.js";
 import { PlatformService } from "./platformService.js";
 import { createApiGatewayStorage, createS3Storage, type ObjectStorage } from "./storage.js";
 
@@ -46,6 +47,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const { config, pool, storage } = dependencies;
   const app = Fastify({ logger: false, genReqId: () => randomUUID(), bodyLimit: 12 * 1024 * 1024 });
   const service = new PlatformService(pool, config, storage);
+  const community = new CommunityService(pool, config);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
 
@@ -68,9 +70,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
 
   app.addHook("preHandler", async (request) => {
+    const publicCommunityRead = request.method === "GET" && /^\/v1\/community\/[^/?]+$/.test(request.url) && !request.headers.authorization;
     const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(request.url);
     const publicShareVisit = request.method === "POST" && /^\/v1\/shares\/[0-9a-f]{32}\/visits$/.test(request.url);
-    if (!request.url.startsWith("/v1/") || request.url.startsWith("/v1/identity/") || request.url.startsWith("/v1/admin/") || request.url.startsWith("/v1/uploads/") || request.url === "/v1/feed" || request.url === "/v1/catalog" || publicShareRead || publicShareVisit) return;
+    if (!request.url.startsWith("/v1/") || request.url.startsWith("/v1/identity/") || request.url.startsWith("/v1/admin/") || request.url.startsWith("/v1/uploads/") || request.url === "/v1/feed" || request.url === "/v1/catalog" || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret);
     if (principal.memberId) {
@@ -84,7 +87,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/health/ready", async () => {
     await pool.query("SELECT 1");
     await storage.ensureReady();
-    return { status: "ready", transactionProfile: config.selectedTransactionProfile, pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled() };
+    return { status: "ready", communityPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile, pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled() };
   });
 
   app.post("/v1/identity/dev", async (request) => {
@@ -124,6 +127,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/v1/me", async (request) => service.getMember(request.memberId));
   app.get("/v1/me/tasks", async (request) => service.getEligibleTasks(request.memberId, service.now(devClock(request))));
   app.get("/v1/me/consents", async (request) => service.getConsentGrants(request.memberId));
+  app.get<{ Querystring: { targetType?: string } }>("/v1/me/shares", async (request) => service.getShareLinks(request.memberId, service.now(devClock(request)), request.query.targetType));
   app.get("/v1/catalog", async () => service.catalog());
   app.post("/v1/shares", async (request) => {
     return service.createShare(request.memberId, idempotencyKey(request), request.body as never, service.now(devClock(request)));
@@ -191,6 +195,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{ Params: { consentGrantId: string } }>("/v1/consents/:consentGrantId/revoke", async (request) => service.revokeConsent(request.memberId, request.params.consentGrantId, idempotencyKey(request), (request.body as { reason: string }).reason, service.now(devClock(request))));
   app.get("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request))));
   app.get("/v1/feed", async () => service.feed());
+  app.get<{ Params: { postId: string } }>("/v1/community/:postId", async request => community.read(request.params.postId, request.memberId));
+  app.put<{ Params: { postId: string } }>("/v1/community/:postId/reaction", async request => community.reaction(request.params.postId, request.memberId, request.body as never));
+  app.post<{ Params: { postId: string } }>("/v1/community/:postId/comments", async request => community.comment(request.params.postId, request.memberId, idempotencyKey(request), request.body as never));
+  app.delete<{ Params: { postId: string; commentId: string } }>("/v1/community/:postId/comments/:commentId", async request => community.deleteComment(request.params.postId, request.memberId, request.params.commentId));
+  app.put<{ Params: { postId: string; commentId: string } }>("/v1/community/:postId/comments/:commentId/like", async request => community.likeComment(request.params.postId, request.memberId, request.params.commentId, (request.body as { active?: unknown })?.active));
+  app.post<{ Params: { postId: string; commentId: string } }>("/v1/admin/community/:postId/comments/:commentId/review", async request => community.review(request.params.postId, adminPrincipal(request, config), request.params.commentId, request.body as never, request.id));
+
 
   app.get("/v1/admin/reviews", async (request) => service.adminQueue(adminPrincipal(request, config), service.now(devClock(request))));
   app.post("/v1/admin/tester-enrollments", async (request) => service.enrollExperienceMember(adminPrincipal(request, config), request.body as never, service.now(devClock(request))));

@@ -5,10 +5,10 @@
   <button wx:if="{{featured}}" class="shop-hero {{navigating ? 'control--disabled' : ''}}" data-id="{{featured.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看商品详情：{{featured.name}}，价格 {{featured.displayPrice}} 元，交易尚未开放">
     <image class="shop-hero__image" src="{{featured.image}}" mode="aspectFill"/>
     <view class="shop-hero__shade"></view>
-    <view class="shop-hero__copy"><text class="shop-hero__eyebrow">MEMBER EDIT</text><strong class="shop-hero__title">把护理带进<br/>每一个日常</strong><small class="shop-hero__meta">{{featured.name}} · ¥{{featured.displayPrice}}</small><view class="shop-hero__cta">查看详情</view></view>
+    <view class="shop-hero__copy"><text class="shop-hero__eyebrow">MEMBER EDIT</text><strong class="shop-hero__title"><text class="shop-hero__line">让护理</text><text class="shop-hero__line">融入日常</text></strong><small class="shop-hero__meta">{{featured.name}} · ¥{{featured.displayPrice}}</small><view class="shop-hero__cta">查看详情</view></view>
   </button>
-  <view wx:if="{{catalog}}" class="shop-catalog-label"><text class="shop-catalog-label__title">品牌精选</text><small class="shop-catalog-label__meta">人工维护的只读目录</small></view>
-  <view wx:if="{{catalog}}" class="shop-gate"><image class="shop-gate__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>当前为测试商品目录，名称与价格仅供预览，暂不支持下单、积分抵扣或支付。</text></view>
+  <view wx:if="{{catalog}}" class="shop-catalog-label"><text class="shop-catalog-label__title">品牌精选</text><small class="shop-catalog-label__meta">护理精选</small></view>
+  <view wx:if="{{catalog}}" class="shop-gate"><image class="shop-gate__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>名称与价格仅供预览，暂不支持购买。</text></view>
   <view wx:if="{{catalog}}" class="product-grid">
     <button wx:for="{{catalog.items}}" wx:key="id" class="product-card {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看商品详情：{{item.name}}，价格 {{item.displayPrice}} 元，交易尚未开放">
       <image class="product-card__image" src="{{item.image}}" mode="aspectFill"/>

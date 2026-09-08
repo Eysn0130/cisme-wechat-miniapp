@@ -7,8 +7,8 @@
     <view class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text class="records-headline__line">{{summary.headlineLine2}}</text></view>
     <view class="records-subline">{{summary.completed}} / 4 个里程碑已完成 · {{summary.phaseLabel}}</view>
     </block>
-    <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><text class="records-wordmark">CISME CARE</text><strong>正在同步护理档案…</strong></view>
-    <view wx:else class="records-hero-status" aria-live="assertive"><text class="records-wordmark">CISME CARE</text><strong>护理档案暂不可用</strong></view>
+    <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">正在同步护理档案…</strong></view>
+    <view wx:else class="records-hero-status" aria-live="assertive"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">护理档案暂不可用</strong></view>
   </view>
 
   <view class="records-content">

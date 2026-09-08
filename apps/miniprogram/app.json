@@ -12,7 +12,8 @@
     "pages/post/index",
     "pages/shop/index",
     "pages/product/index",
-    "pages/settings/index"
+    "pages/settings/index",
+    "pages/invite/index"
   ],
   "window": {
     "navigationStyle": "custom",
@@ -25,10 +26,22 @@
     "color": "#6f6573",
     "selectedColor": "#56306f",
     "list": [
-      {"pagePath":"pages/home/index","text":"护理"},
-      {"pagePath":"pages/records/index","text":"记录"},
-      {"pagePath":"pages/community/index","text":"社区"},
-      {"pagePath":"pages/profile/index","text":"我的"}
+      {
+        "pagePath": "pages/home/index",
+        "text": "护理"
+      },
+      {
+        "pagePath": "pages/records/index",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/community/index",
+        "text": "社区"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
     ]
   },
   "lazyCodeLoading": "requiredComponents",

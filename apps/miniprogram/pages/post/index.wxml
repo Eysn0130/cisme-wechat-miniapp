@@ -1,16 +1,47 @@
+<template name="community-comment">
+  <view class="comment-entry {{nested ? 'comment-entry--reply' : ''}}">
+    <image class="comment-avatar" src="/assets/icons/user-circle-plum.svg" mode="aspectFit"/>
+    <view class="comment-main"><view class="comment-author-name">{{comment.authorName}}<text wx:if="{{comment.isMine}}" class="comment-mine">我</text></view><view class="comment-body"><text wx:if="{{comment.replyToName && comment.status !== 'deleted'}}" class="comment-mention">回复 {{comment.replyToName}}：</text>{{comment.body}}</view><view class="comment-meta"><view class="comment-date"><text>{{comment.dateLabel}}</text><text wx:if="{{comment.statusLabel}}">{{comment.statusLabel}}</text></view><view class="comment-inline-actions"><button wx:if="{{comment.status === 'published'}}" class="comment-like {{comment.liked ? 'is-active' : ''}} {{busy ? 'control--disabled' : ''}}" data-id="{{comment.id}}" bindtap="likeComment" disabled="{{busy}}" aria-label="{{comment.liked ? '取消赞这条评论' : '赞这条评论'}}"><image class="post-interaction-icon" src="/assets/icons/heart-plum.svg" mode="aspectFit"/><text>{{comment.likeCount || ''}}</text></button><button wx:if="{{comment.status === 'published'}}" class="comment-text-action {{busy ? 'control--disabled' : ''}}" data-id="{{comment.id}}" bindtap="replyComment" disabled="{{busy}}">回复</button><button wx:if="{{comment.isMine && comment.status !== 'deleted'}}" class="comment-text-action {{busy ? 'control--disabled' : ''}}" data-id="{{comment.id}}" bindtap="deleteComment" disabled="{{busy}}">删除</button></view></view></view>
+
+  </view>
+</template>
 <view class="chrome-root" style="{{chromeStyle}}">
-<view class="topbar post-topbar"><button class="topbar__back {{leaving ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leaving}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="post-topbar__copy"><text class="topbar__title">护理故事</text><small class="post-topbar__subtitle">{{loading ? '正在核验内容' : item ? (item.publishedLabel || '经审内容') : errorKind === 'missing' ? '内容不可用' : '内容加载失败'}}</small></view></view>
+<view class="topbar post-topbar"><button class="topbar__back {{leaving ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leaving}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="post-topbar__copy"><image wx:if="{{item.avatar}}" class="post-topbar__avatar" src="{{item.avatar}}" mode="aspectFill"/><text class="topbar__title">{{item ? item.author : '护理故事'}}</text></view><button wx:if="{{item}}" class="post-header-share" open-type="share" aria-label="分享这篇护理故事"><image class="post-header-share-icon" src="/assets/icons/share-network-plum.svg" mode="aspectFit"/></button></view>
 <view class="page page--stack post-page">
   <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载护理故事…</view>
-  <image wx:if="{{item && item.image}}" class="post-cover" src="{{item.image}}" mode="aspectFill" />
+  <view wx:if="{{item && media.length}}" class="post-gallery"><swiper class="post-swiper" style="height:{{galleryHeight}}rpx" current="{{mediaIndex}}" bindchange="onMediaChange" indicator-dots="{{media.length > 1}}" indicator-active-color="#694577" duration="280"><swiper-item wx:for="{{media}}" wx:key="*this"><image class="post-cover" style="height:{{galleryHeight}}rpx" src="{{item}}" mode="aspectFit" bindload="mediaLoaded" data-index="{{index}}" bindtap="previewMedia" data-src="{{item}}" aria-label="查看大图"/></swiper-item></swiper><text wx:if="{{media.length > 1}}" class="post-gallery-count">{{mediaIndex + 1}}/{{media.length}}</text></view>
   <view wx:if="{{item}}" class="post-content">
     <view class="post-author"><image wx:if="{{item.avatar}}" class="post-author__avatar" src="{{item.avatar}}" mode="aspectFill"/><view class="post-author__copy"><strong class="post-author__name">{{item.author}}</strong><small class="post-author__meta">{{item.publishedLabel}} · {{item.engagementLabel || '只读展示'}}</small></view><view class="post-badge">{{item.kind === 'brand' ? '测试内容' : '审核通过'}}</view></view>
     <view class="post-title">{{item.title}}</view>
     <view class="post-copy">{{item.excerpt}}</view>
     <view class="post-tags"><text class="post-tag">#真实护理</text><text class="post-tag">#护理记录</text><text class="post-tag">#头皮清洁</text></view>
     <view class="post-provenance"><image class="post-provenance__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><view><strong class="post-provenance__title">{{item.kind === 'brand' ? '品牌内容预览' : '审核与展示许可可核验'}}</strong><small class="post-provenance__meta">{{item.provenanceLabel || '人工审核通过，并在有效许可范围内展示'}}</small></view></view>
-    <view class="post-actions"><button class="post-action post-action--share" open-type="share" aria-label="分享这篇护理故事"><image class="post-action__icon" src="/assets/icons/share-network-plum.svg" mode="aspectFit"/><text>微信分享</text></button></view>
+    <view wx:if="{{socialEnabled}}" id="post-comments" class="post-comments">
+      <view class="post-comments-count">共 {{social.commentCount}} 条评论</view>
+      <text wx:if="{{socialLoading}}" class="comment-empty">正在同步交流…</text>
+      <view wx:for="{{threads}}" wx:key="id" class="comment-thread">
+        <template is="community-comment" data="{{comment:item,nested:false,busy:socialBusy}}"/>
+        <view class="comment-replies"><view wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id"><template is="community-comment" data="{{comment:reply,nested:true,busy:socialBusy}}"/></view><button wx:if="{{item.replyCount > 1}}" class="comment-expand" data-id="{{item.id}}" bindtap="expandReplies">{{item.expanded ? '收起回复' : '展开其余 ' + item.hiddenCount + ' 条回复'}}</button></view>
+      </view>
+      <view wx:if="{{!socialLoading && !socialError && !threads.length}}" class="comment-empty">还没有评论，聊聊你的护理感受吧</view>
+      <text wx:if="{{social.truncated}}" class="comment-empty">当前展示前 500 条交流</text>
+      <text class="community-preview-note">互动测试预览 · 新评论审核后才会公开</text>
+    </view>
   </view>
   <view wx:if="{{!item && error}}" class="glass error-scene post-unavailable" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">STORY UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary post-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载护理故事</text></button><button class="post-error-action {{leaving ? 'control--disabled' : ''}} {{errorKind === 'missing' ? 'primary' : 'secondary'}}" bindtap="back" disabled="{{leaving}}"><text class="action-label">安全返回品牌精选</text></button></view></view>
+</view>
+<view wx:if="{{item}}" class="post-bottom-wrap" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px;padding-bottom:6px;' : ''}}">
+  <button wx:if="{{socialError}}" class="post-social-error {{socialBusy || socialLoading ? 'control--disabled' : ''}}" bindtap="loadSocial" disabled="{{socialBusy || socialLoading}}">{{socialError}}</button>
+  <view wx:if="{{replyToName}}" class="post-reply-context"><text>回复 {{replyToName}}</text><button bindtap="cancelReply" class="comment-text-action">取消回复</button></view>
+  <view wx:if="{{socialEnabled}}" class="post-bottom-actions">
+    <input class="post-comment-input" value="{{draft}}" maxlength="180" placeholder="{{replyToName ? '回复 ' + replyToName : '说点什么…'}}" focus="{{composerFocused}}" bindinput="inputComment" bindfocus="focusComment" bindblur="blurComment" bindkeyboardheightchange="keyboardChanged" adjust-position="{{false}}" confirm-type="send" bindconfirm="sendComment" aria-label="写评论"/>
+    <button wx:if="{{draft || composerFocused}}" class="post-send {{socialBusy || socialLoading || draft.length < 2 ? 'control--disabled' : ''}}" bindtap="sendComment" disabled="{{socialBusy || socialLoading || draft.length < 2}}">{{socialBusy ? '发送中' : '发送'}}</button>
+    <block wx:else>
+      <button class="post-bottom-action {{social.liked ? 'is-active' : ''}} {{socialBusy || socialLoading ? 'control--disabled' : ''}}" bindtap="toggleLike" disabled="{{socialBusy || socialLoading}}" aria-label="{{social.liked ? '取消点赞' : '点赞'}}"><image class="post-interaction-icon" src="/assets/icons/heart-plum.svg" mode="aspectFit"/><text>{{social.likeCount}}</text></button>
+      <button class="post-bottom-action {{social.saved ? 'is-active' : ''}} {{socialBusy || socialLoading ? 'control--disabled' : ''}}" bindtap="toggleSave" disabled="{{socialBusy || socialLoading}}" aria-label="{{social.saved ? '取消收藏' : '收藏'}}"><image class="post-interaction-icon" src="/assets/icons/bookmark-simple-plum.svg" mode="aspectFit"/><text>{{social.saveCount}}</text></button>
+      <button class="post-bottom-action" bindtap="showComments" aria-label="查看评论"><image class="post-interaction-icon" src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><text>{{social.commentCount}}</text></button>
+    </block>
+  </view>
+  <button wx:else class="post-action post-action--share" open-type="share" aria-label="分享这篇护理故事"><image class="post-action__icon" src="/assets/icons/share-network-plum.svg" mode="aspectFit"/><text>微信分享</text></button>
 </view>
 </view>

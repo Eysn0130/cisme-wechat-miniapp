@@ -1,4 +1,5 @@
 import { beginAuthentication, request, resumeAuthentication } from "../../services/api";
+import { registerIncomingShare } from "../../services/share";
 
 interface CareView { id: string; version: number; phase: string; startedOn: string | null; timezone: string; due: string | null; next: string | null; completed: string[]; records: Array<{ milestone: string; completedAt: string }> }
 interface MemberView { display_name: string }
@@ -36,9 +37,9 @@ function homeView(care: CareView | null, displayName = "CISME 会员") {
 
 Page({
   data: { care: null as CareView | null, view: homeView(null), loading: true, working: false, authorityAvailable: false, needsAuthentication: false, loadAttempt: 0, pageAlive: true, error: "" },
-  onLoad() { this.data.pageAlive = true; },
+  onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; void registerIncomingShare(query.share_id, "invite", "home"); },
   onShow() {
-    const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 0 });
+    const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 0 }); tab?.syncActive?.(0);
     void this.load();
   },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; wx.disableAlertBeforeUnload(); },

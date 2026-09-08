@@ -1,5 +1,7 @@
 import { currentChromeStyle, shouldReduceMotion } from "../services/layout";
 
+let pendingLens: { from: number; to: number; at: number } | null = null;
+
 function currentTabIndex(items: Array<{ path: string }>): number {
   const pages = getCurrentPages();
   const route = pages[pages.length - 1]?.route;
@@ -16,6 +18,8 @@ function currentPageBusy(): boolean {
 Component({
   data: {
     active: 0,
+    lensIndex: 0,
+    lensSettling: false,
     switching: false,
     externalBusy: false,
     reducedMotion: shouldReduceMotion(),
@@ -31,17 +35,26 @@ Component({
     attached() {
       this.setData({
         active: currentTabIndex(this.data.items),
+        lensIndex: pendingLens?.from ?? currentTabIndex(this.data.items),
         reducedMotion: shouldReduceMotion(),
         chromeStyle: currentChromeStyle()
       });
     }
   },
   pageLifetimes: {
-    show() {
-      this.setData({ active: currentTabIndex(this.data.items), reducedMotion: shouldReduceMotion(), chromeStyle: currentChromeStyle(), switching: false, externalBusy: currentPageBusy() });
-    }
+    show() { this.syncActive(currentTabIndex(this.data.items)); }
   },
   methods: {
+    syncActive(active: number) {
+      if (!this.data.items[active]) return;
+      const reducedMotion = shouldReduceMotion();
+      const motion = pendingLens;
+      if (motion?.to === active) pendingLens = null;
+      const from = motion && motion.to === active && Date.now() - motion.at < 1000 && !reducedMotion ? motion.from : active;
+      this.setData({ active, lensIndex: from, lensSettling: false, reducedMotion, chromeStyle: currentChromeStyle(), switching: false, externalBusy: currentPageBusy() }, () => {
+        wx.nextTick(() => { if (this.data.active === active) this.setData({ lensIndex: active, lensSettling: !reducedMotion }); });
+      });
+    },
     switchTab(event: WechatMiniprogram.TouchEvent) {
       const index = Number(event.currentTarget.dataset.index);
       const item = this.data.items[index];
@@ -57,11 +70,12 @@ Component({
         return;
       }
       const previous = this.data.active;
-      this.setData({ active: index, switching: true });
+      pendingLens = { from: previous, to: index, at: Date.now() };
+      this.setData({ active: index, lensIndex: index, lensSettling: true, switching: true });
       wx.switchTab({
         url: item.path,
         success: () => this.setData({ switching: false }),
-        fail: () => this.setData({ active: previous, switching: false }, () => wx.showToast({ title: "页面切换失败，请重试", icon: "none" }))
+        fail: () => { pendingLens = null; this.setData({ active: previous, lensIndex: previous, switching: false }, () => wx.showToast({ title: "页面切换失败，请重试", icon: "none" })); }
       });
     }
   }

@@ -14,11 +14,12 @@ const colors = {
 const assets: Record<string, Array<keyof typeof colors>> = {
   "arrow-left": ["ink"],
   "bookmark-simple": ["plum", "white"],
-  "caret-right": ["muted"],
+  "caret-right": ["muted", "white"],
   check: ["plum", "white"],
   "check-circle": ["plum"],
   "clipboard-text": ["muted", "active"],
   clock: ["plum"],
+  "chat-circle": ["plum"],
   copy: ["plum"],
   drop: ["muted", "active"],
   gear: ["plum"],
@@ -51,7 +52,7 @@ for (const [icon, variants] of Object.entries(assets)) {
   const svg = await readFile(resolve(source, `${icon}-thin.svg`), "utf8");
   for (const variant of variants) {
     const color = colors[variant];
-    await writeFile(resolve(destination, `${icon}-${variant}.svg`), svg.replaceAll("currentColor", color));
+    await writeFile(resolve(destination, `${icon}-${variant}.svg`), (icon === "caret-right" && variant === "white" ? await readFile(resolve(source, "../regular/caret-right.svg"), "utf8") : svg).replaceAll("currentColor", color));
     count += 1;
   }
 }

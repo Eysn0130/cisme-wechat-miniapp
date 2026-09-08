@@ -4,6 +4,7 @@ export interface EditorialStory {
   title: string;
   excerpt: string;
   image: string;
+  media?: string[];
   avatar: string;
   author: string;
   publishedLabel: string;
@@ -18,6 +19,7 @@ export const editorialStories: EditorialStory[] = [
     title: "今晚的三分钟头皮仪式",
     excerpt: "从发际线缓慢梳到头顶，先让头皮回到舒展、清爽的状态。",
     image: "/assets/cisme/community-hero-scalp-ritual-v1.jpg",
+    media: ["/assets/cisme/community-hero-scalp-ritual-v1.jpg", "/assets/cisme/community-card-scalp-massage-v2.jpg", "/assets/cisme/community-card-care-flatlay-v2.jpg"],
     avatar: "/assets/cisme/avatars/avatar-jingyu-v1.jpg",
     author: "CISME 护理编辑部",
     publishedLabel: "品牌护理内容",

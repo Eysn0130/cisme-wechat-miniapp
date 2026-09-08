@@ -2,3 +2,14 @@
 .product-facts { margin-top:24rpx; padding:7rpx 25rpx; border-radius:42rpx; }.product-fact { display:flex; align-items:center; gap:14rpx; min-height:81rpx; border-bottom:1rpx solid rgba(78,47,91,.1); color:#6f6573; font-size:var(--cisme-text-small); line-height:1.5; }.product-fact--last { border-bottom:0; }.product-fact__icon { flex:0 0 auto; width:30rpx; height:30rpx; }.product-note { margin-top:24rpx; color:#8a7e8d; font-size:var(--cisme-text-small); line-height:1.5; }
 .product-action { position:fixed; z-index:30; right:20rpx; bottom:calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 16rpx); left:20rpx; }.product-action__button { min-height:50px; margin:0; }.product-error-scene { min-height:520rpx; margin:18rpx 24rpx 0; }.product-error-action { margin-top:0; }
 .product-page { padding-top:var(--cisme-stack-top,calc(env(safe-area-inset-top) + 218rpx)); }
+.product-price { display:flex; align-items:baseline; gap:8rpx; font:500 56rpx/1.15 -apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif; font-variant-numeric:lining-nums tabular-nums; }
+.product-price__currency { font-size:34rpx; font-weight:400; }
+.product-gallery { position:relative; height:680rpx; }
+.gallery-arrow { position:absolute; z-index:2; top:calc(50% - 44rpx); display:flex; align-items:center; justify-content:center; width:88rpx; height:88rpx; padding:0; border:1rpx solid rgba(255,255,255,.4); border-radius:50%; background:rgba(45,31,53,.24); }
+.gallery-arrow__icon { width:40rpx; height:40rpx; }
+.gallery-arrow--left { left:24rpx; }
+.gallery-arrow--left .gallery-arrow__icon { transform:rotate(180deg); }
+.gallery-arrow--right { right:24rpx; }
+.gallery-count { position:absolute; right:28rpx; bottom:26rpx; padding:10rpx 16rpx; border-radius:24rpx; color:white; background:rgba(51,34,60,.38); font-size:22rpx; font-variant-numeric:tabular-nums; }
+.gallery-pause { position:absolute; left:24rpx; bottom:8rpx; min-width:88rpx; min-height:88rpx; padding:0 16rpx; color:white; background:transparent; font-size:22rpx; line-height:88rpx; text-shadow:0 1px 4px #372d3d; }
+.product-fact__icon { flex:0 0 36rpx; width:36rpx; height:36rpx; }

@@ -34,6 +34,7 @@ export async function inspectMiniProgramPackage(root = resolve("apps/miniprogram
   }
 
   for (const page of app.pages ?? []) {
+    if (allFiles.includes(resolve(root, `${page}.ts`)) && allFiles.includes(resolve(root, `${page}.js`))) errors.push(`PAGE_SOURCE_SHADOWED_BY_JS:${page}`);
     for (const extension of [".ts", ".wxml", ".wxss", ".json"]) {
       const expected = resolve(root, `${page}${extension}`);
       if (!allFiles.includes(expected)) errors.push(`PAGE_FILE_MISSING:${page}${extension}`);

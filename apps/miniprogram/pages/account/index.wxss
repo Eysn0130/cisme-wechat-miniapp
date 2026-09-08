@@ -10,3 +10,8 @@
   .account-login { margin-top:24rpx; }
   .account-browse { margin-top:12rpx; }
 }
+
+.account-row { min-height:152rpx; padding:24rpx 0; box-sizing:border-box; }
+.account-agreement__label { min-height:0; }
+.account-safety { align-items:center; }
+.account-safety__icon { width:18px; height:18px; margin-top:0; }

@@ -13,7 +13,7 @@ export type SubmissionStatus =
 export type ReviewDecision = "request_changes" | "reject" | "approve";
 export type AdminRole = "reviewer" | "review_lead" | "auditor" | "support" | "finance_operator" | "finance_approver";
 export type EmergencySwitchKey = "identity" | "uploads" | "reviews" | "rewards" | "submissions" | "redemption" | "commerce";
-export type ShareTargetType = "post" | "product";
+export type ShareTargetType = "post" | "product" | "invite";
 export type WorkerQueue = "outbox" | "media_cleanup";
 
 export interface ProblemDetails {

@@ -13,3 +13,11 @@
 .community-notice { display:flex; align-items:flex-start; gap:11rpx; margin-top:20rpx; padding:17rpx 19rpx; border-radius:24rpx; color:#726779; background:rgba(236,225,241,.58); font-size:var(--cisme-text-small); line-height:1.5; }.community-notice__icon { flex:0 0 auto; width:27rpx; height:27rpx; margin-top:1rpx; }
 .feed-grid { display:grid; grid-template-columns:1fr 1fr; gap:16rpx 14rpx; margin-top:18rpx; }.feed-card { overflow:hidden; margin:0; padding:0; border-radius:42rpx; background:rgba(255,252,255,.82); text-align:left; line-height:1.4; }.feed-card__image { width:100%; height:438rpx; }.feed-card__body { padding:17rpx 16rpx 15rpx; }.feed-card__title { display:-webkit-box; overflow:hidden; font-family:"Songti SC","STSong",serif; font-size:28rpx; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
 .feed-card__meta { display:flex; align-items:center; gap:7rpx; margin-top:14rpx; color:#7c737f; font-size:var(--cisme-text-small); line-height:1.5; }.feed-card__avatar { width:35rpx; height:35rpx; border-radius:50%; }.feed-card__author { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.feed-card__meta-icon { width:22rpx; height:22rpx; }.feed-card__engagement { max-width:88rpx; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* Mobile discovery puts every story in the same masonry feed. */
+.feed-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16rpx; margin-top:12rpx; }
+.feed-column { min-width:0; }
+.feed-card { display:inline-block; width:100%; margin:0 0 18rpx; border-radius:24rpx; break-inside:avoid; vertical-align:top; }
+.feed-card__image--compact { height:350rpx; }
+.feed-card__title { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; font-size:28rpx; font-weight:600; line-height:1.45; }
+.feed-card__meta-icon,.feed-card__engagement { display:none; }

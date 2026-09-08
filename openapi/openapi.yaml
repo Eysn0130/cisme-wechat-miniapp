@@ -234,6 +234,13 @@ paths:
     get: {tags: [Read models], operationId: curatedFeed, responses: {'200': {description: Explicitly publication-approved, licensed, non-revoked read-only feed; fail-closed empty while the UGC go-live gate is off}}}
   /v1/catalog:
     get: {tags: [Read models], operationId: catalog, security: [], responses: {'200': {description: Public small read-only SKU catalog; checkout disabled}}}
+  /v1/me/shares:
+    get:
+      tags: [Attribution]
+      operationId: myShareLinks
+      security: [{session: []}]
+      parameters: [{name: targetType, in: query, schema: {type: string, enum: [post, product, invite]}}]
+      responses: {'200': {description: Up to 20 owner-only generated links; no send-success or conversion aggregates}, '401': {$ref: '#/components/responses/Problem'}}
   /v1/shares:
     post:
       tags: [Attribution]
@@ -265,12 +272,58 @@ paths:
       parameters: [{$ref: '#/components/parameters/ShareId'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShareVisitInput'}}}}
       responses: {'200': {description: First-touch identity attribution; self-attribution is not credited}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/community/{postId}:
+    get:
+      operationId: communityPreview
+      description: Local development/test only. Five explicitly labelled brand-preview stories. Never enables production UGC. Anonymous reads contain published comments and previously public tombstones; pending/rejected comments are owner-only. At most 500 comment rows; truncated indicates the limit. Counts come from persisted active-member interactions.
+      security: [{}, {session: []}]
+      parameters: [{$ref: '#/components/parameters/CommunityPostId'}]
+      responses: {'200': {$ref: '#/components/responses/CommunityPreview'}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/community/{postId}/reaction:
+    put:
+      operationId: setCommunityReaction
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CommunityPostId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind, active], properties: {kind: {enum: [like, save]}, active: {type: boolean}}}}}}
+      responses: {'200': {$ref: '#/components/responses/CommunityPreview'}, '401': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/community/{postId}/comments:
+    post:
+      operationId: createCommunityComment
+      description: Idempotent owner command. New comments are pending and private until a review lead publishes them. Replies target a published comment in the same story and retain one-level root threading.
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CommunityPostId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [body], properties: {body: {type: string, minLength: 2, maxLength: 180}, replyToId: {$ref: '#/components/schemas/Uuid'}}}}}}
+      responses: {'200': {$ref: '#/components/responses/CommunityPreview'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/community/{postId}/comments/{commentId}:
+    delete:
+      operationId: deleteOwnCommunityComment
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CommunityPostId'}, {$ref: '#/components/parameters/CommentId'}]
+      responses: {'200': {$ref: '#/components/responses/CommunityPreview'}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/community/{postId}/comments/{commentId}/like:
+    put:
+      operationId: setCommunityCommentLike
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CommunityPostId'}, {$ref: '#/components/parameters/CommentId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [active], properties: {active: {type: boolean}}}}}}
+      responses: {'200': {$ref: '#/components/responses/CommunityPreview'}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/admin/community/{postId}/comments/{commentId}/review:
+    post:
+      operationId: reviewCommunityComment
+      description: Local preview only. Requires review_lead role and writes an audit record. Only pending comments can be reviewed.
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{$ref: '#/components/parameters/CommunityPostId'}, {$ref: '#/components/parameters/CommentId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason], properties: {decision: {enum: [published, rejected]}, reason: {type: string, minLength: 4}}}}}}
+      responses: {'200': {description: Audited review result}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
+
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
     adminToken: {type: apiKey, in: header, name: x-admin-token}
     adminPrincipal: {type: apiKey, in: header, name: x-principal-id}
   parameters:
+    CommunityPostId: {name: postId, in: path, required: true, schema: {type: string, enum: [brand-scalp-ritual, brand-night-routine, brand-care-journal, brand-roots-check, brand-product-ritual]}}
+    CommentId: {name: commentId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 200}}
     CycleId: {name: cycleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     TaskId: {name: taskId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
@@ -279,6 +332,7 @@ components:
   requestBodies:
     Identity: {required: true, content: {application/json: {schema: {type: object, required: [displayName, consents], properties: {code: {type: string}, externalUserId: {type: string}, displayName: {type: string}, consents: {type: array, minItems: 2, items: {type: object, required: [documentType, version], properties: {documentType: {type: string}, version: {type: string}}}}}}}}}
   responses:
+    CommunityPreview: {description: Persisted local-preview state, content: {application/json: {schema: {type: object, required: [preview, liked, saved, likeCount, saveCount, commentCount, comments, truncated], properties: {preview: {const: true}, liked: {type: boolean}, saved: {type: boolean}, likeCount: {type: integer}, saveCount: {type: integer}, commentCount: {type: integer}, truncated: {type: boolean}, comments: {type: array, maxItems: 500, items: {type: object, required: [id, body, status, authorName, isMine, createdAt, likeCount, liked], properties: {id: {$ref: '#/components/schemas/Uuid'}, body: {type: string}, status: {enum: [pending, published, rejected, deleted]}, authorName: {type: string}, isMine: {type: boolean}, createdAt: {type: string, format: date-time}, parentId: {type: [string, 'null']}, replyToId: {type: [string, 'null']}, replyToName: {type: [string, 'null']}, likeCount: {type: integer}, liked: {type: boolean}}}}}}}}}
     Identity: {description: Member identity and short-lived signed session, content: {application/json: {schema: {type: object, required: [memberId, identityId, principalId, sessionToken], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, identityId: {$ref: '#/components/schemas/Uuid'}, principalId: {type: string}, sessionToken: {type: string}}}}}}
     Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
     Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
@@ -294,6 +348,6 @@ components:
     PointsDecisionInput: {type: object, required: [reasonCode, evidence], properties: {reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}
     PublicationInput: {type: object, required: [title, excerpt, aiUsage, reasonCode, evidence], properties: {title: {type: string, minLength: 1, maxLength: 60}, excerpt: {type: string, minLength: 1, maxLength: 240}, aiUsage: {type: string, enum: [none, assisted, generated, unknown]}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}
     TesterEnrollmentInput: {type: object, required: [memberId, qualificationType, externalRef, occurredAt, timezone, protocolVersion, reasonCode, evidence], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, qualificationType: {type: string, enum: [verified_delivery, approved_tester_fulfillment]}, externalRef: {type: string, minLength: 1, maxLength: 200}, occurredAt: {type: string, format: date-time}, timezone: {type: string}, protocolVersion: {type: string, minLength: 1}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}
-    ShareInput: {type: object, required: [targetType, targetRef], properties: {targetType: {type: string, enum: [post, product]}, targetRef: {type: string, minLength: 1, maxLength: 200}}}
+    ShareInput: {type: object, required: [targetType, targetRef], properties: {targetType: {type: string, enum: [post, product, invite]}, targetRef: {type: string, minLength: 1, maxLength: 200}}}
     ShareVisitInput: {type: object, required: [visitKey], properties: {visitKey: {type: string, minLength: 16, maxLength: 100}}}
     Problem: {type: object, required: [type, title, status, code, trace_id], properties: {type: {type: string, format: uri}, title: {type: string}, status: {type: integer}, code: {type: string}, trace_id: {type: string}}}

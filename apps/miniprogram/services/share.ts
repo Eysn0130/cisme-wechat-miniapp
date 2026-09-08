@@ -1,6 +1,6 @@
 import { request } from "./api";
 
-type ShareTargetType = "post" | "product";
+type ShareTargetType = "post" | "product" | "invite";
 type PendingAttribution = { shareId: string; visitKey: string };
 
 const pendingKey = "cisme.pendingShareAttribution";

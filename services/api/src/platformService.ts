@@ -402,7 +402,7 @@ export class PlatformService {
   async createShare(memberId: string | undefined, idempotencyKey: string, input: { targetType: ShareTargetType; targetRef: string }, now: Date) {
     const owner = requireMember(memberId);
     const targetRef = input.targetRef?.trim();
-    if (!(["post", "product"] as string[]).includes(input.targetType) || !targetRef || targetRef.length > 200) {
+    if (!(["post", "product", "invite"] as string[]).includes(input.targetType) || !targetRef || targetRef.length > 200 || (input.targetType === "invite" && targetRef !== "home")) {
       throw new DomainError("SHARE_TARGET_INVALID", "A supported share target and reference are required", 422);
     }
     const idem = {
@@ -429,6 +429,15 @@ export class PlatformService {
       await this.idempotencySave(client, { ...idem, response });
       return response;
     }, "SERIALIZABLE");
+  }
+
+  async getShareLinks(memberId: string | undefined, now: Date, targetType?: string) {
+    const owner = requireMember(memberId);
+    if (targetType !== undefined && !["post", "product", "invite"].includes(targetType)) throw new DomainError("SHARE_TARGET_INVALID", "Unsupported share target", 422);
+    const result = await this.pool.query<{ share_id: string; target_type: ShareTargetType; target_ref: string; state: string; created_at: Date; expires_at: Date }>(
+      "SELECT share_id, target_type, target_ref, state, created_at, expires_at FROM share_link WHERE member_id=$1 AND ($2::text IS NULL OR target_type=$2) ORDER BY created_at DESC, id DESC LIMIT 20", [owner, targetType ?? null]
+    );
+    return result.rows.map((row) => ({ shareId: row.share_id, targetType: row.target_type, targetRef: row.target_ref, state: row.state === "active" && row.expires_at.getTime() <= now.getTime() ? "expired" : row.state, createdAt: row.created_at.toISOString(), expiresAt: row.expires_at.toISOString() }));
   }
 
   async resolveShare(shareId: string, now: Date) {

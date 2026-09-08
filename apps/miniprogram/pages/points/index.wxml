@@ -13,11 +13,11 @@
       <view class="points-summary__stat"><strong class="points-summary__value">{{points.entries.length}}</strong><small class="points-summary__label">账本笔数</small></view>
     </view>
     <view class="points-profile">{{points.rulesEnabled ? '积分规则已启用 · 购买服务单独开放' : '积分奖励尚未开放 · 当前不新增积分'}}</view>
-    <button class="points-shop {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}">浏览只读商品目录</button>
+    <button class="points-shop {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}">浏览护理商品</button>
   </view>
 
-  <view wx:if="{{points && points.rulesEnabled}}" class="points-notice"><image class="points-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>积分不可提现或转赠；每次奖励由唯一业务事实生成并可追溯。</text></view>
-  <view wx:elif="{{points}}" class="points-notice"><image class="points-notice__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>这里显示已有积分记录。奖励规则尚未发布，暂不发放新积分。</text></view>
+  <view wx:if="{{points && points.rulesEnabled}}" class="points-notice"><image class="points-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>积分不可提现或转赠，奖励来源可查询。</text></view>
+  <view wx:elif="{{points}}" class="points-notice"><image class="points-notice__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>可查看历史记录，暂不发放新积分。</text></view>
   <view wx:if="{{points}}" class="ledger-head"><view class="ledger-head__title">全部积分记录</view><text class="ledger-head__count">{{points.entries.length}} 笔</text></view>
   <view wx:if="{{points}}" class="ledger-list">
     <view wx:for="{{points.entries}}" wx:key="id" class="ledger-row">

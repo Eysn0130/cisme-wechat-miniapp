@@ -3,8 +3,8 @@
 <view class="page page--stack account-page">
   <view class="account-icon"><image class="account-icon__image" src="/assets/icons/user-circle-plum.svg" mode="aspectFit"/></view>
   <text class="account-eyebrow">CISME MEMBER</text>
-  <view class="account-title"><text class="account-title__line">用一个可信身份</text><text class="account-title__line">保存你的长期护理记录</text></view>
-  <view class="account-subtitle">拒绝可选授权仍可浏览公开社区；下单、积分和投稿时再完成必要验证。</view>
+  <view class="account-title"><text class="account-title__line">留住每次护理</text></view>
+  <view class="account-subtitle">登录保存记录，也可先逛社区。</view>
 
   <view class="glass account-card">
     <view class="account-row"><view class="account-row__icon">1</view><view class="account-row__copy"><strong class="account-row__title">授权微信身份</strong><small class="account-row__meta">用于建立唯一会员档案，不读取手机号；由下方按钮统一确认</small></view></view>
@@ -12,7 +12,7 @@
     <view class="account-row"><view class="account-row__icon">2</view><view class="account-row__copy"><strong class="account-row__title">手机号授权 <em class="account-row__qualifier">按需确认</em></strong><small class="account-row__meta">当前不收集手机号；相关服务开放后再单独征求同意</small></view><text class="account-gate">未开放</text></view>
   </view>
 
-  <view class="account-safety"><image class="account-safety__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>手机号不会展示在公开主页。身份确认不会自动开启公开展示或营销授权。</text></view>
+  <view class="account-safety"><image class="account-safety__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>手机号仅按需使用，不公开展示。</text></view>
   <view wx:if="{{error}}" id="account-error-summary" class="state state--error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text></view>
   <button class="primary account-login {{loading || leaving || !legalTextsReady || (!agreementAccepted && !pendingDestination) ? 'primary--disabled' : ''}}" loading="{{loading}}" disabled="{{loading || leaving || !legalTextsReady || (!agreementAccepted && !pendingDestination)}}" bindtap="login"><text class="action-label">{{pendingDestination ? '重新打开身份确认后的页面' : legalTextsReady ? '确认身份并继续' : '协议未发布，暂不能登录'}}</text></button>
   <button class="secondary account-browse {{leavePromptOpen || leaving ? 'secondary--disabled' : ''}}" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving}}"><text class="action-label">{{identityCommitStarted ? '身份请求已发送，仍然离开' : loading ? '停止等待，浏览公开社区' : '暂不登录，浏览公开社区'}}</text></button>

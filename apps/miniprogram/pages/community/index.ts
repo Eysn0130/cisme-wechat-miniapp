@@ -3,14 +3,16 @@ import { editorialStories } from "../../services/editorial";
 import { currentChromeStyle } from "../../services/layout";
 import { consumerTaskEntries } from "../../services/task-entry";
 
+const feedColumns = (items: any[]) => [0,1].map(column => items.map((item,index) => ({ ...item, compactImage: index % 3 === 1 })).filter((_,index) => index % 2 === column));
+
 Page({
-  data: { feed: [] as any[], displayFeed: editorialStories.slice(1), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), loading: true, navigating: false, error: "" },
+  data: { feed: [] as any[], displayFeed: editorialStories, feedColumns: feedColumns(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 2, externalBusy: false }); void this.load(); },
+  onShow() { this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 2, externalBusy: false }); tab?.syncActive?.(2); void this.load(); },
   onUnload() { this.data.feedAttempt += 1; this.data.tasksAttempt += 1; },
   async load() {
     const attempt = this.data.feedAttempt + 1;
-    this.setData({ feedAttempt: attempt, feed: [], displayFeed: editorialStories.slice(1), loading: true, error: "" });
+    this.setData({ feedAttempt: attempt, feed: [], displayFeed: editorialStories, feedColumns: feedColumns(editorialStories), loading: true, error: "" });
     const tasksPromise = this.loadTasks();
     try {
       const feed = await request<any[]>({ path: "/v1/feed", authMode: "public" });
@@ -18,9 +20,9 @@ Page({
       // The feed exposes an object key, not an authorized media URL or avatar.
       // Never attribute bundled brand imagery or a local portrait to a submission.
       const reviewed = feed.map((item) => ({ ...item, kind: "ugc", image: "", avatar: "", author: "CISME 会员", publishedLabel: "经审用户投稿", engagementLabel: "只读展示" }));
-      this.setData({ feed, displayFeed: reviewed.concat(editorialStories.slice(1)), error: "" });
+      this.setData({ feed, displayFeed: reviewed.concat(editorialStories), feedColumns: feedColumns(reviewed.concat(editorialStories)), error: "" });
     } catch (error) {
-      if (this.data.feedAttempt === attempt) this.setData({ feed: [], displayFeed: editorialStories.slice(1), error: "经审用户内容暂时无法同步；当前仅保留已标明的品牌编辑内容。" });
+      if (this.data.feedAttempt === attempt) this.setData({ feed: [], displayFeed: editorialStories, feedColumns: feedColumns(editorialStories), error: "经审用户内容暂时无法同步；当前仅保留已标明的品牌编辑内容。" });
     } finally {
       if (this.data.feedAttempt === attempt) this.setData({ loading: false });
       await tasksPromise;

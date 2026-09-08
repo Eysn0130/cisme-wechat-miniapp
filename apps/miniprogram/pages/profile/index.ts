@@ -17,7 +17,7 @@ Page({
   data: { chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", memberCode: "", loading: true, navigating: false, loadAttempt: 0, tasksAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); void this.load(); },
+  onShow() { this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); void this.load(); },
   onHide() { this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   async load(event?: WechatMiniprogram.TouchEvent) {
@@ -68,7 +68,8 @@ Page({
   openPoints() { this.openRoute("/pages/points/index", "navigate", "积分账本暂时无法打开"); },
   openSettings() { this.openRoute("/pages/settings/index", "navigate", "设置与隐私暂时无法打开"); },
   openShop() { this.openRoute("/pages/shop/index", "navigate", "商品目录暂时无法打开"); },
-  openInvite() {
+  openInvite() { this.openRoute("/pages/invite/index", "navigate", "邀请页面暂时无法打开"); },
+  openTasks() {
     if (this.data.tasksLoading || this.data.navigating) return;
     if (this.data.tasksError) { void this.loadTasks(); return; }
     const task = this.data.tasks[0];
