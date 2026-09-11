@@ -73,7 +73,7 @@ API path **没有新增或删除**；现有 `POST /v1/me/commerce/quotes`、`POS
 | Design QA structure | PASS；manifest 精确绑定 `949fcf9d…` |
 | Strict Design QA release gate | EXPECTED FAIL：27 路由完整 state matrix、iOS、Android 和开放 P0/P1 未闭合 |
 
-Review branch / PR / remote CI：在提交和 secrets 扫描完成后补入本节；在此之前不得把本地结果写成 GitHub CI 成功。
+Review branch：`codex/u0-u1-review`。实现与证据提交：`594490c6fcf2c072f4918ebdea350cb47d49092f`。PR：[GitHub #1](https://github.com/Eysn0130/cisme-wechat-miniapp/pull/1)。该提交的 [push CI 34635302492](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/34635302492) 与 [pull-request CI 34635329365](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/34635329365) 均 PASS；两次都执行 diff hygiene、经校验 Gitleaks、dependency audit、typecheck、Mini package、Design QA structure、285 unit、102 integration、build、contracts、SBOM 和 license report。报告元数据后续提交不改变 Mini source SHA；是否可合并仍以 PR 当前 head 的 required checks 和人工审阅为准。
 
 ## 5. 27 页前后图与六组关键交互
 
