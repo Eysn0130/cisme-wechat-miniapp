@@ -1,0 +1,88 @@
+{
+  "checkedAt": "2026-09-08T16:45:38.534Z",
+  "origin": "https://cisme-app.onrender.com",
+  "renderServiceId": "srv-dag3m7942hec7390kfhg",
+  "deployedCommit": "56a187477da080f11fd79b0dc5f68a2f2f28a441",
+  "nativeSourceSha256": "23691a4cfe64bb6e0e81c909f2ee7b134707663d8b3715d3ee98675185ea36d1",
+  "checks": [
+    {
+      "path": "/health/ready",
+      "httpStatus": 200,
+      "payload": {
+        "status": "ready",
+        "communityPreviewEnabled": false,
+        "transactionProfile": null,
+        "pointsRedemptionEnabled": false,
+        "ugcGoLiveGate": false,
+        "pointsRulesEnabled": false
+      }
+    },
+    {
+      "path": "/v1/catalog",
+      "httpStatus": 200,
+      "payload": {
+        "currency": "CNY",
+        "transactionProfile": null,
+        "checkoutEnabled": false,
+        "items": [
+          {
+            "id": "care-serum-30",
+            "name": "头皮护理精华 30ml",
+            "subtitle": "轻盈日常护理",
+            "price": 26900,
+            "image": "/assets/cisme/community-card-purple-bottle-v1.webp"
+          },
+          {
+            "id": "care-set-r0",
+            "name": "28 天护理组合",
+            "subtitle": "精华与护理手册",
+            "price": 48900,
+            "image": "/assets/cisme/community-card-care-flatlay-v2.webp"
+          },
+          {
+            "id": "travel-serum-10",
+            "name": "随行护理精华 10ml",
+            "subtitle": "便携装",
+            "price": 9900,
+            "image": "/assets/cisme/community-card-care-journal-v2.webp"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/v1/identity/dev",
+      "httpStatus": 503,
+      "payload": {
+        "type": "https://cisme.example/problems/DEV_ADAPTER_FORBIDDEN",
+        "title": "Development identity adapter is disabled",
+        "status": 503,
+        "code": "DEV_ADAPTER_FORBIDDEN",
+        "trace_id": "a31ae425-74f2-49a4-ba18-48c1d1a37de1"
+      }
+    },
+    {
+      "path": "/v1/me",
+      "httpStatus": 401,
+      "payload": {
+        "type": "https://cisme.example/problems/AUTH_REQUIRED",
+        "title": "Bearer session required",
+        "status": 401,
+        "code": "AUTH_REQUIRED",
+        "trace_id": "396c612c-ddb3-4097-b022-1a171c3682d0"
+      }
+    },
+    {
+      "path": "/v1/identity/wechat",
+      "httpStatus": 502,
+      "payload": {
+        "type": "https://cisme.example/problems/WECHAT_LOGIN_FAILED",
+        "title": "invalid code, rid: 6aa03bb2-5a6c1596-61ffb28b",
+        "status": 502,
+        "code": "WECHAT_LOGIN_FAILED",
+        "trace_id": "8bdcde40-25ed-45c1-80bd-0a8e9a4700ae"
+      }
+    }
+  ],
+  "realWechatLoginVerified": false,
+  "realWechatUploadVerified": false
+}

@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-09-09T03:07:00Z",
+  "environment": "cloud1-d4g0khuk495d48600",
+  "function": "cismeApi",
+  "devtoolsVersion": "Stable 2.02.2608070",
+  "baseLibrary": "3.15.2",
+  "method": "POST",
+  "path": "/v1/uploads/00000000-0000-4000-8000-000000000000",
+  "requestDataType": "ArrayBuffer",
+  "contentType": "multipart/form-data; boundary=cismeProbe",
+  "result": {
+    "errCode": -401003,
+    "errMsg": "parameter should be object instead of arraybuffer;"
+  },
+  "businessWrites": false,
+  "scope": "Actual native SDK invocation in DevTools Console; rejected before the business handler. Not a physical-device check or a successful upload."
+}

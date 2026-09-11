@@ -1,0 +1,9 @@
+{
+  "name": "@cisme/isolated-wechat-ci",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Credentialed official WeChat CI tool, intentionally outside the production lockfile",
+  "dependencies": {
+    "miniprogram-ci": "2.1.31"
+  }
+}

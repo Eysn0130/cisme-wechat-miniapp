@@ -1,0 +1,18 @@
+{
+  "environmentId": "cloud1-d4g0khuk495d48600",
+  "functionName": "cismeReadiness",
+  "runtimeConfigured": "Node.js 20.19",
+  "memoryConfiguredMB": 256,
+  "timeoutConfiguredSeconds": 3,
+  "platformStatus": "deployed",
+  "invocationSource": "WeChat DevTools CloudBase console",
+  "input": {},
+  "output": {},
+  "platformTestResult": "success",
+  "executionMs": 10,
+  "billedMs": 100,
+  "memoryUsedMB": 7.31,
+  "requestId": "1dd4a1c9-47a3-44a9-bba6-8b1c71cde4f3",
+  "code": "platform default sample; local CISME probe not yet uploaded",
+  "businessDeployment": false
+}

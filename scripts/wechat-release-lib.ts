@@ -5,6 +5,8 @@ export interface WeChatReleaseInput {
   projectAppId: string;
   expectedAppId?: string;
   apiOrigin: string;
+  cloudTarget?: { env: string; name: string };
+  cloudTransportVerified?: boolean;
   privacyCheckEnabled: boolean;
   devtoolsCliAvailable: boolean;
   manualGates: {
@@ -13,6 +15,7 @@ export interface WeChatReleaseInput {
     serverDomainsConfigured: boolean;
     demoScopeApproved: boolean;
     experienceMembersConfigured: boolean;
+    miniProgramFilingCompleted?: boolean;
   };
 }
 
@@ -41,8 +44,11 @@ export function validateWeChatRelease(input: WeChatReleaseInput): string[] {
   if (!input.devtoolsCliAvailable) errors.push("DEVTOOLS_CLI_MISSING");
   if (!input.privacyCheckEnabled) errors.push("APP_PRIVACY_CHECK_DISABLED");
 
+  const cloud = input.cloudTarget;
+  if (cloud && (!/^[a-zA-Z0-9-]+$/.test(cloud.env) || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(cloud.name))) errors.push("CLOUD_HTTP_TARGET_INVALID");
+
   if (input.target === "local") {
-    if (!input.apiOrigin.startsWith("http://127.0.0.1:") && !isPublicHttpsOrigin(input.apiOrigin)) {
+    if (!cloud && !input.apiOrigin.startsWith("http://127.0.0.1:") && !isPublicHttpsOrigin(input.apiOrigin)) {
       errors.push("LOCAL_API_ORIGIN_INVALID");
     }
     return errors;
@@ -51,12 +57,17 @@ export function validateWeChatRelease(input: WeChatReleaseInput): string[] {
   if (!isRealWeChatAppId(input.projectAppId)) errors.push("REAL_WECHAT_APP_ID_REQUIRED");
   if (!input.expectedAppId || !isRealWeChatAppId(input.expectedAppId)) errors.push("EXPECTED_WECHAT_APP_ID_REQUIRED");
   if (input.expectedAppId && input.projectAppId !== input.expectedAppId) errors.push("WECHAT_APP_ID_MISMATCH");
-  if (!isPublicHttpsOrigin(input.apiOrigin)) errors.push(`${input.target.toUpperCase()}_HTTPS_API_ORIGIN_REQUIRED`);
+  if (cloud) {
+    if (!input.cloudTransportVerified) errors.push("CLOUD_HTTP_TRANSPORT_PROOF_REQUIRED");
+  } else if (!isPublicHttpsOrigin(input.apiOrigin)) errors.push(`${input.target.toUpperCase()}_HTTPS_API_ORIGIN_REQUIRED`);
   if (!input.manualGates.privacyGuideConfigured) errors.push("PRIVACY_GUIDE_CONSOLE_PROOF_REQUIRED");
   if (!input.manualGates.legalTextsApproved) errors.push("LEGAL_TEXTS_APPROVAL_REQUIRED");
-  if (!input.manualGates.serverDomainsConfigured) errors.push("SERVER_DOMAIN_ALLOWLIST_PROOF_REQUIRED");
+  if (!cloud && !input.manualGates.serverDomainsConfigured) errors.push("SERVER_DOMAIN_ALLOWLIST_PROOF_REQUIRED");
   if (!input.manualGates.demoScopeApproved) errors.push("DEMO_SCOPE_APPROVAL_REQUIRED");
-  if ((input.target === "trial" || input.target === "release") && !input.manualGates.experienceMembersConfigured) {
+  if (input.target === "release" && !input.manualGates.miniProgramFilingCompleted) {
+    errors.push("MINIPROGRAM_FILING_REQUIRED");
+  }
+  if (input.target === "trial" && !input.manualGates.experienceMembersConfigured) {
     errors.push("EXPERIENCE_MEMBERS_PROOF_REQUIRED");
   }
   return errors;
@@ -71,6 +82,8 @@ export function validateWeChatCiPreview(input: WeChatCiPreviewInput): string[] {
       projectAppId: input.projectAppId,
       ...(input.expectedAppId ? { expectedAppId: input.expectedAppId } : {}),
       apiOrigin: input.apiOrigin,
+      ...(input.cloudTarget ? { cloudTarget: input.cloudTarget } : {}),
+      cloudTransportVerified: input.cloudTransportVerified ?? false,
       privacyCheckEnabled: input.privacyCheckEnabled,
       // miniprogram-ci itself is checked by the isolated runner before use.
       devtoolsCliAvailable: true,

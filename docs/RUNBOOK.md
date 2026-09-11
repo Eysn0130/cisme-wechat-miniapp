@@ -57,7 +57,15 @@ npm run license:report
 npm run wechat:preflight:local
 ```
 
-The package gate verifies all 13 route file sets, an internal 1.8 MB source budget, an 8 KB global WXSS budget, a 200 KB single-asset budget and a deterministic source SHA-256. These are conservative project gates, not claims about a current WeChat platform limit.
+The package gate verifies all 16 route file sets, the four-tab main package and 12 ordinary page subpackages independently, an internal 1.8 MB main-package source budget, a 400 KB per-subpackage budget, an 8 KB global WXSS budget, a 200 KB single-asset budget and a deterministic source SHA-256. These are conservative project gates, not claims about a current WeChat platform limit.
+
+Run the destructive performance smoke only against a dedicated `cisme_*test*` database. It refuses to start without the explicit reset acknowledgement and reports p50/p95/p99, throughput and error rate:
+
+```bash
+PERF_ALLOW_RESET=true TEST_DATABASE_URL=postgres://.../cisme_test npm run perf:smoke
+```
+
+This is an in-process regression gate, not a production capacity result. Before a deployment gate can pass, run the same route mix through the owned staging HTTPS/CloudBase path with production-like instance and database limits, then record saturation, cold-start and pool-wait percentiles.
 
 `design:qa:status` verifies that the evidence manifest is structurally valid and bound to the current package hash; it may honestly report `releaseReady:false` without failing ordinary push/PR engineering CI. Manual workflow dispatch and `candidate-*` tags add `candidate-design-qa`, which runs the strict gate after the full verify job. `design:qa:gate` is also mandatory for credentialed preview/release: it remains non-zero until current-hash DevTools compile/console/network evidence, all 13 route matrices, iOS and Android proof, and zero open P0/P1 are recorded. Never edit the manifest to green without the referenced files.
 

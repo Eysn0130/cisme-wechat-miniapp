@@ -1,10 +1,13 @@
-/** Run sequentially, including after a service resumes, and drain on shutdown. */
-export function startWorkerLoop(run: () => Promise<void>, onError: (error: unknown) => void, intervalMs = 2_000) {
+/** Run sequentially, drain full batches immediately, and back off while idle or unhealthy. */
+export function startWorkerLoop(run: () => Promise<boolean | void>, onError: (error: unknown) => void, intervalMs = 2_000) {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let current: Promise<void>;
   const tick = () => {
-    current = Promise.resolve().then(run).catch(onError).finally(() => {
+    current = Promise.resolve().then(run).then((hasMore) => {
+      if (!stopped) timer = setTimeout(tick, hasMore ? 0 : intervalMs);
+    }).catch((error) => {
+      onError(error);
       if (!stopped) timer = setTimeout(tick, intervalMs);
     });
   };

@@ -1,0 +1,13 @@
+import { requireMemberAccess } from "../../services/api";
+import { centsToYuan } from "../../services/commerce";
+import { cancelMyOrder, clientOperationKey, myOrder, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
+import { currentChromeStyle } from "../../services/layout";
+const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时"};
+Page({
+  data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,loading:true,busy:false,navigating:false,error:"",cancelKey:"",pageAlive:true},
+  onResize(){this.setData({chromeStyle:currentChromeStyle()});},onLoad(query:Record<string,string|undefined>){this.setData({id:query.id??""});},onShow(){this.data.pageAlive=true;this.setData({navigating:false});if(!requireMemberAccess())return;void this.load();},onUnload(){this.data.pageAlive=false;},
+  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
+  async load(){this.setData({loading:true,error:""});try{const order=await myOrder(this.data.id);if(this.data.pageAlive)this.setData({order:this.normalize(order),loading:false});}catch(error){if(this.data.pageAlive)this.setData({order:null,loading:false,error:(error as {title?:string}).title??"订单详情暂时无法同步。"});}},
+  async cancel(){if(this.data.busy||this.data.order?.status!=="pending_payment")return;const answer=await wx.showModal({title:"取消待支付订单？",content:"取消后将释放本单预留库存，订单记录仍保留。",confirmText:"确认取消",confirmColor:"#8d3150"}).catch(()=>({confirm:false}));if(!answer.confirm)return;const cancelKey=this.data.cancelKey||clientOperationKey("order-cancel");this.setData({busy:true,error:"",cancelKey});try{const order=await cancelMyOrder(this.data.id,this.data.order.version,"用户确认取消待支付订单",cancelKey);if(this.data.pageAlive)this.setData({order:this.normalize(order),busy:false});}catch(error){if(this.data.pageAlive)this.setData({busy:false,error:(error as {title?:string}).title??"取消未完成，请刷新订单状态后重试。"});}},
+  back(){if(this.data.busy||this.data.navigating)return;this.setData({navigating:true});wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/orders/index"})});}
+});

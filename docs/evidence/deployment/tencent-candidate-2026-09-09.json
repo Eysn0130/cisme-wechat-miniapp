@@ -1,0 +1,289 @@
+{
+  "checkedAt": "2026-09-09T06:13:04.134Z",
+  "instance": "lhins-61ikz4mi",
+  "region": "ap-shanghai",
+  "ip": "124.223.74.198",
+  "node": "24.14.0",
+  "database": "PostgreSQL 16",
+  "sourceDatabase": "PostgreSQL 17.6",
+  "tables": [
+    {
+      "table": "appeal",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "audit_log",
+      "sourceRows": 2,
+      "targetRows": 2,
+      "match": true
+    },
+    {
+      "table": "care_cycle",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "care_cycle_pause",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "care_record",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "community_comment",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "community_comment_like",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "community_follow",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "community_reaction",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "consent_acceptance",
+      "sourceRows": 3,
+      "targetRows": 3,
+      "match": true
+    },
+    {
+      "table": "consent_grant",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "eligibility_campaign",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "eligibility_decision",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "eligibility_task",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "emergency_switch",
+      "sourceRows": 7,
+      "targetRows": 7,
+      "match": true
+    },
+    {
+      "table": "feed_item",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "idempotency_operation",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "legal_document",
+      "sourceRows": 3,
+      "targetRows": 3,
+      "match": true
+    },
+    {
+      "table": "media_cleanup_queue",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "media_object",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "member",
+      "sourceRows": 1,
+      "targetRows": 1,
+      "match": true
+    },
+    {
+      "table": "member_contact",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "member_team_access",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "outbox_event",
+      "sourceRows": 1,
+      "targetRows": 1,
+      "match": true
+    },
+    {
+      "table": "phone_authorization",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "points_action_request",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "points_entry",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "points_grant",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "points_lot",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "points_projection",
+      "sourceRows": 1,
+      "targetRows": 1,
+      "match": true
+    },
+    {
+      "table": "principal_role",
+      "sourceRows": 1,
+      "targetRows": 1,
+      "match": true
+    },
+    {
+      "table": "privacy_request",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "qualification_fact",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "review_action",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "review_case",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "revocation_request",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "reward_claim",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "schema_migration",
+      "sourceRows": 21,
+      "targetRows": 21,
+      "match": true
+    },
+    {
+      "table": "share_attribution",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "share_link",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "share_visit",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "submission",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "task_claim",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "upload_chunk",
+      "sourceRows": 0,
+      "targetRows": 0,
+      "match": true
+    },
+    {
+      "table": "wechat_identity",
+      "sourceRows": 1,
+      "targetRows": 1,
+      "match": true
+    }
+  ],
+  "allSnapshotRowsAndHashesMatch": true,
+  "readyHttp": 200,
+  "unauthenticatedMeHttp": 401,
+  "localBackupRestoreVerified": true,
+  "publicCutover": false,
+  "backgroundWorker": false,
+  "objectStorage": "existing Supabase S3; Tencent bucket not yet integrated",
+  "domain": "registration pending enterprise identity review"
+}

@@ -1,3 +1,4 @@
+import { requireMemberAccess } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 
@@ -12,7 +13,7 @@ Page({
   data: { chromeStyle: currentChromeStyle(), loading: true, preparing: false, leaving: false, pageAlive: true, attempt: 0, displayName: "CISME 会员", shareId: "", shareCode: "待生成", expiresAt: "", history: [] as Array<ShareLink & { code: string; date: string; label: string }>, error: "" },
   onLoad() { wx.hideShareMenu(); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); },
+  onShow() { if (!requireMemberAccess()) return; this.setData({ pageAlive: true, leaving: false }); void this.load(); },
   onHide() { this.data.attempt += 1; },
   onUnload() { this.data.pageAlive = false; this.data.attempt += 1; },
   async load(event?: WechatMiniprogram.TouchEvent) {

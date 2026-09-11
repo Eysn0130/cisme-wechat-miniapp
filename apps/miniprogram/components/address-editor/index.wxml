@@ -1,0 +1,57 @@
+<form bindsubmit="emitSubmit" class="address-form" aria-label="{{draft.id ? '编辑收货地址' : '新增收货地址'}}">
+  <view class="address-form__head">
+    <view class="address-form__head-copy"><text class="address-form__title">{{draft.id ? '编辑收货地址' : '新增收货地址'}}</text><text class="address-form__meta">三种填写方式都会汇入下方草稿，请保存前逐项核对。</text></view>
+    <button class="text-action {{busy ? 'is-disabled' : ''}}" data-action="wechat" bindtap="emitSimple" disabled="{{busy}}"><text>从微信选择</text></button>
+  </view>
+  <view class="quick-fill">
+    <view class="quick-fill__head"><view><text class="quick-fill__title">快捷填写地址</text><text class="quick-fill__meta">姓名、电话和完整地址可换行输入，仅在本机识别。</text></view></view>
+    <textarea class="quick-fill__input {{busy || parsing ? 'is-disabled' : ''}}" value="{{quickInput}}" bindinput="emitQuickInput" maxlength="500" disabled="{{busy || parsing}}" placeholder="例如：林女士 13800000001\n广东省深圳市南山区……" aria-label="快捷填写地址原文" />
+    <view class="quick-fill__actions">
+      <button class="utility-button {{busy || parsing || !quickInput ? 'is-disabled' : ''}}" data-action="recognize" bindtap="emitSimple" disabled="{{busy || parsing || !quickInput}}"><text>{{parsing ? '识别中…' : '识别并填入'}}</text></button>
+      <button class="utility-button utility-button--accent {{busy || parsing ? 'is-disabled' : ''}}" data-action="paste" bindtap="emitSimple" disabled="{{busy || parsing}}"><text>粘贴并识别</text></button>
+    </view>
+    <view wx:if="{{parseSummary}}" class="parse-state parse-state--{{parseStatus}}" aria-live="polite">
+      <text class="parse-state__summary">{{parseSummary}}</text>
+      <text wx:for="{{parseWarnings}}" wx:key="*this" class="parse-state__warning">{{item}}</text>
+    </view>
+  </view>
+  <label id="address-field-recipientName" class="field-label">收货人
+    <input class="field-input {{fieldErrors.recipientName ? 'field-input--error' : ''}}" data-field="recipientName" value="{{draft.recipientName}}" bindinput="emitField" maxlength="40" disabled="{{busy}}" placeholder="填写真实姓名" aria-label="收货人" />
+    <text wx:if="{{fieldErrors.recipientName}}" class="field-error">{{fieldErrors.recipientName}}</text>
+  </label>
+  <label id="address-field-phone" class="field-label">联系电话
+    <input class="field-input {{fieldErrors.phone ? 'field-input--error' : ''}}" type="number" data-field="phone" value="{{draft.phone}}" bindinput="emitField" maxlength="20" disabled="{{busy}}" placeholder="用于配送联系" aria-label="联系电话" />
+    <text wx:if="{{fieldErrors.phone}}" class="field-error">{{fieldErrors.phone}}</text>
+  </label>
+  <view id="address-field-region" class="field-label">所在地区
+    <picker mode="region" value="{{draft.region}}" bindchange="emitRegion" disabled="{{busy}}" aria-label="选择省、市、区县">
+      <view class="field-input picker-value {{draft.region.length ? '' : 'picker-value--empty'}} {{fieldErrors.region ? 'field-input--error' : ''}}"><text>{{draft.regionText || '选择省、市、区县'}}</text><text class="picker-caret">›</text></view>
+    </picker>
+    <text wx:if="{{draft.regionNeedsConfirmation && !fieldErrors.region}}" class="field-help">地区名称尚未对应完整行政区划 code，请打开选择器确认。</text>
+    <text wx:if="{{fieldErrors.region}}" class="field-error">{{fieldErrors.region}}</text>
+  </view>
+  <label id="address-field-detail" class="field-label">详细地址
+    <textarea class="field-input field-textarea {{fieldErrors.detail ? 'field-input--error' : ''}}" data-field="detail" value="{{draft.detail}}" bindinput="emitField" maxlength="120" disabled="{{busy}}" auto-height placeholder="街道、门牌号、楼栋和房间号" aria-label="详细地址" />
+    <text wx:if="{{fieldErrors.detail}}" class="field-error">{{fieldErrors.detail}}</text>
+  </label>
+  <label id="address-field-postalCode" class="field-label">邮政编码（选填）
+    <input class="field-input {{fieldErrors.postalCode ? 'field-input--error' : ''}}" data-field="postalCode" value="{{draft.postalCode}}" bindinput="emitField" maxlength="12" disabled="{{busy}}" aria-label="邮政编码" />
+    <text wx:if="{{fieldErrors.postalCode}}" class="field-error">{{fieldErrors.postalCode}}</text>
+  </label>
+  <view id="address-field-label" class="field-label">地址标签
+    <view class="label-options" role="radiogroup" aria-label="地址标签">
+      <button data-label="home" class="label-option {{draft.label === 'home' ? 'label-option--selected' : ''}} {{busy ? 'is-disabled' : ''}}" bindtap="emitLabel" disabled="{{busy}}" aria-role="radio" aria-checked="{{draft.label === 'home'}}" aria-label="家{{draft.label === 'home' ? '，已选择' : ''}}"><text class="button-label">家</text></button>
+      <button data-label="company" class="label-option {{draft.label === 'company' ? 'label-option--selected' : ''}} {{busy ? 'is-disabled' : ''}}" bindtap="emitLabel" disabled="{{busy}}" aria-role="radio" aria-checked="{{draft.label === 'company'}}" aria-label="公司{{draft.label === 'company' ? '，已选择' : ''}}"><text class="button-label">公司</text></button>
+      <button data-label="other" class="label-option {{draft.label === 'other' ? 'label-option--selected' : ''}} {{busy ? 'is-disabled' : ''}}" bindtap="emitLabel" disabled="{{busy}}" aria-role="radio" aria-checked="{{draft.label === 'other'}}" aria-label="其他{{draft.label === 'other' ? '，已选择' : ''}}"><text class="button-label">其他</text></button>
+    </view>
+  </view>
+  <view class="default-row {{busy ? 'is-disabled' : ''}}"><view class="default-row__copy"><text class="default-row__title">设为默认地址</text><text class="default-row__meta">购物开放后默认优先展示，仍需下单时确认。</text></view><switch checked="{{draft.isDefault}}" bindchange="emitDefault" disabled="{{busy}}" color="#56306f" aria-label="设为默认地址"/></view>
+  <view wx:if="{{conflict}}" class="conflict-state" aria-live="assertive">
+    <text class="conflict-state__title">服务器已有更新</text><text class="conflict-state__copy">当前草稿没有覆盖服务器版本。请选择如何继续。</text>
+    <view class="conflict-state__actions"><button class="utility-button {{busy ? 'is-disabled' : ''}}" data-action="loadserver" bindtap="emitSimple" disabled="{{busy}}"><text>加载服务器版本</text></button><button class="utility-button utility-button--accent {{busy || !canSaveAsNew ? 'is-disabled' : ''}}" data-action="saveasnew" bindtap="emitSimple" disabled="{{busy || !canSaveAsNew}}"><text>另存为新地址</text></button></view>
+  </view>
+  <view class="form-actions safe-actions">
+    <button class="form-button form-button--secondary {{busy ? 'is-disabled' : ''}}" data-action="cancel" bindtap="emitSimple" disabled="{{busy}}"><text class="button-label">取消</text></button>
+    <button class="form-button form-button--primary {{busy ? 'is-disabled' : ''}}" form-type="submit" loading="{{busy}}" disabled="{{busy}}"><text class="button-label">{{busy ? '安全保存中' : '安全保存'}}</text></button>
+  </view>
+</form>

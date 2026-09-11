@@ -3,7 +3,8 @@
 export function nativeCatalogImage(image: string): string {
   const aliases: Record<string, string> = {
     "/assets/cisme/community-card-purple-bottle-v1.webp": "/assets/cisme/community-card-purple-bottle-v1.jpg",
-    "/assets/cisme/community-card-care-journal-v2.webp": "/assets/cisme/community-card-care-journal-v2.jpg"
+    "/assets/cisme/community-card-care-journal-v2.webp": "/assets/cisme/community-card-care-journal-v2.jpg",
+    "/assets/cisme/community-card-care-flatlay-v2.webp": "/assets/cisme/community-card-care-flatlay-v2.jpg"
   };
   return aliases[image] ?? image;
 }

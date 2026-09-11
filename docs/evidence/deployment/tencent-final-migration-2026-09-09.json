@@ -1,0 +1,249 @@
+{
+  "checkedAt": "2026-09-09T09:01:14.885Z",
+  "oldDatabaseWriteBlocked": true,
+  "target": "Tencent Shanghai",
+  "sourceTables": 46,
+  "mediaObjects": 0,
+  "backupSaved": true,
+  "restored": true,
+  "hashesVerified": true,
+  "productionCutover": true,
+  "tables": [
+    {
+      "table": "appeal",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "audit_log",
+      "rows": 4,
+      "match": true
+    },
+    {
+      "table": "care_cycle",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "care_cycle_pause",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "care_record",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "community_comment",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "community_comment_like",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "community_follow",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "community_reaction",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "consent_acceptance",
+      "rows": 6,
+      "match": true
+    },
+    {
+      "table": "consent_grant",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "eligibility_campaign",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "eligibility_decision",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "eligibility_task",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "emergency_switch",
+      "rows": 7,
+      "match": true
+    },
+    {
+      "table": "feed_item",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "idempotency_operation",
+      "rows": 6,
+      "match": true
+    },
+    {
+      "table": "legal_document",
+      "rows": 3,
+      "match": true
+    },
+    {
+      "table": "media_cleanup_queue",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "media_object",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "member",
+      "rows": 2,
+      "match": true
+    },
+    {
+      "table": "member_contact",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "member_profile",
+      "rows": 1,
+      "match": true
+    },
+    {
+      "table": "member_team_access",
+      "rows": 1,
+      "match": true
+    },
+    {
+      "table": "outbox_event",
+      "rows": 2,
+      "match": true
+    },
+    {
+      "table": "phone_authorization",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "points_action_request",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "points_entry",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "points_grant",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "points_lot",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "points_projection",
+      "rows": 2,
+      "match": true
+    },
+    {
+      "table": "principal_role",
+      "rows": 2,
+      "match": true
+    },
+    {
+      "table": "privacy_request",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "qualification_fact",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "review_action",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "review_case",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "revocation_request",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "reward_claim",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "schema_migration",
+      "rows": 22,
+      "match": true
+    },
+    {
+      "table": "share_attribution",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "share_link",
+      "rows": 6,
+      "match": true
+    },
+    {
+      "table": "share_visit",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "submission",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "task_claim",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "upload_chunk",
+      "rows": 0,
+      "match": true
+    },
+    {
+      "table": "wechat_identity",
+      "rows": 2,
+      "match": true
+    }
+  ],
+  "activatedAt": "2026-09-09T09:06:27Z",
+  "nativeLegalVersion": "2026-09-09-v2-domestic",
+  "oldRenderSuspended": true,
+  "oldCloudWorkerPaused": true,
+  "newShanghaiWorkerActive": true,
+  "historicalForeignCopyDeleted": false
+}

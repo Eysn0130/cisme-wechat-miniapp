@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 2,
+  "packageSourceSha256": "40b500b8b69e958f657c73fb56c7dedfca6ee5896b1bd6f829fa0c5a3270b920",
+  "finalResult": "blocked",
+  "evidenceIndex": {},
+  "devtools": null,
+  "routeCoverage": [
+    {
+      "route": "pages/account/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/home/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/records/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/profile/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/task/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/submit/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/progress/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/points/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/shop/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/settings/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/invite/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/legal/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    }
+  ],
+  "devices": [],
+  "findings": [
+    {
+      "id": "NATIVE_REQUEST_STALL_WITHOUT_CLIENT_RECOVERY",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CARE_MODAL_BACKGROUND_REMAINS_ACCESSIBLE",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "COMMUNITY_MODE_TABS_MISSING_SELECTED_SEMANTICS",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CARE_SHEET_OVERLAPS_AND_EXPOSES_PRIMARY_TABBAR",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "COMMUNITY_PUBLISH_FAB_AND_SCROLL_CHROME_RECOVERY",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "HOME_PUBLIC_AUTHORIZATION_CTA_AND_REDIRECT_LOOP",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CARE_PROTOCOL_RAIL_LINKAGE_AND_ORDERED_COMPLETION_FACTS",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CARE_RECORD_DETAIL_AND_HISTORICAL_COMPATIBILITY",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CURRENT_ACTIVE_DUE_CARE_AND_RECORD_DETAIL_NATIVE_CAPTURE",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "CURRENT_ROUTE_STATE_VISUAL_MATRIX_INCOMPLETE",
+      "severity": "P1",
+      "status": "open"
+    },
+    {
+      "id": "CURRENT_NETWORK_TRACE_MISSING",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "CURRENT_REFERENCE_AND_PRODUCTION_COPY_STATES_NOT_EQUIVALENT",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "CURRENT_ACCOUNT_CHECKED_ENABLED_STATE_NOT_RECAPTURED",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CURRENT_RC_EXACT_PAGEFRAME_EXPORT_NOT_AVAILABLE",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "ACCOUNT_ACTION_TEXT_AND_GEOMETRY_LOCAL_RETEST",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_LEGAL_ENTRY_CENTERING",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_IDENTITY_ROW_FALSE_AFFORDANCE",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_BACK_SOURCE_RESTORE_SEMANTICS",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_BACK_AUTOMATIC_AUTH_REDIRECT_LOOP",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CONCURRENT_PROTECTED_REQUESTS_REOPEN_ACCOUNT_AFTER_CANCEL",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "BUTTON_TYPOGRAPHY_PROFILE_POINTS_POST",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CATALOG_PRICE_PRECISION_AND_SAFE_FALLBACKS",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "SETTINGS_LOGOUT_CONFIRMATION",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "UNKNOWN_PROGRESS_STATUS_FAILS_CLOSED",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CURRENT_NON_ACCOUNT_ROUTE_RECAPTURE_REQUIRED",
+      "severity": "P1",
+      "status": "open"
+    },
+    {
+      "id": "ACCOUNT_COMPACT_VIEWPORT_SECONDARY_ACTION_VISIBILITY",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "PROGRESS_SOURCE_AWARE_BACK_STACK",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "PROGRESS_BOTTOM_ACTION_TEXT_BASELINE",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "LOAD_SERIALIZATION_AND_ERROR_STATE_LIVE_RETEST_OPEN",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "LONG_COPY_KEYBOARD_MODAL_AND_SCROLL_LIVE_RETEST_OPEN",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "CURRENT_HASH_STRUCTURED_EVIDENCE_GATE_RETESTED",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CONTROLLED_REMOTE_DEVICE_DEBUG_QR_AWAITING_AUTHORIZED_DEVICE",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "UGC_FEED_DTO_AND_CONTROLLED_COVER_URL_MISSING",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "UNINTENDED_TEST_ACCOUNT_DEVELOPMENT_PREVIEW_NOT_RELEASE",
+      "severity": "P2",
+      "status": "fixed"
+    },
+    {
+      "id": "PRODUCTION_LEGAL_TEXTS_UNSIGNED",
+      "severity": "P0",
+      "status": "blocked"
+    },
+    {
+      "id": "IOS_ANDROID_DEVICE_EVIDENCE_MISSING",
+      "severity": "P0",
+      "status": "blocked"
+    },
+    {
+      "id": "DEVTOOLS_LOCAL_API_DOMAIN_REJECTED",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "UGC_LOCAL_PORTRAIT_AND_BRAND_COVER_MISATTRIBUTION",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "POST_REPEATED_BACK_NAVIGATION",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "PRODUCT_TASK_SETTINGS_REPEATED_BACK_NAVIGATION",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "STALE_UNAUTHORIZED_RESPONSE_CLEARS_RENEWED_SESSION",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CLOUD_TRANSPORT_DEVELOPMENT_IDENTITY_FALLBACK",
+      "severity": "P1",
+      "status": "fixed"
+    }
+  ]
+}

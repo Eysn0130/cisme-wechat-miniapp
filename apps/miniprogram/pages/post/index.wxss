@@ -47,8 +47,8 @@
 .post-send.control--disabled { opacity:.45; }
 .post-reply-context { display:flex; align-items:center; justify-content:space-between; color:#947c9d; font-size:23rpx; }
 .post-social-error { width:100%; min-height:44px; margin:0; padding:8rpx; color:#965771; background:none; text-align:left; font-size:23rpx; line-height:1.5; }
-.post-topbar { justify-content:flex-start; height:calc(var(--cisme-topbar-height) - 20px); padding-left:60px; padding-right:var(--cisme-nav-side); }
-.post-page { padding-top:calc(var(--cisme-topbar-height) - 20px); }
+.post-topbar { justify-content:flex-start; height:var(--cisme-topbar-height); padding-left:60px; padding-right:var(--cisme-nav-side); }
+.post-page { padding-top:var(--cisme-stack-top); }
 .post-topbar__copy .topbar__title { letter-spacing:0; }
 
 /* Mobile-reference comment anatomy: 40px avatar, 12px gap and actions below body. */

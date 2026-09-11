@@ -1,0 +1,8 @@
+{
+  "isolatedDatabase": true,
+  "workerCycle": {
+    "published": 0,
+    "cleaned": 0
+  },
+  "liveDatabaseModified": false
+}

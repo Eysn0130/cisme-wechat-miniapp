@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-09-09T03:01:56.479Z",
+  "keyPrefix": "deployment-probes/cisme-presigned-put-",
+  "size": 68,
+  "putStatus": 200,
+  "replayStatus": 200,
+  "bytesVerified": true,
+  "deleted": true
+}

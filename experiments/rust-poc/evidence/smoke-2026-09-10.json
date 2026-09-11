@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-09-10T14:25:57.049Z",
+  "endedBefore": "2026-09-10T14:26:02Z",
+  "mode": "loopback_tcp_developer_smoke",
+  "decisionGrade": false,
+  "parameters": { "rounds": 5, "samplesPerRoutePerCandidatePerRound": 300, "concurrency": 10, "warmup": 50, "poolMax": 10 },
+  "environment": { "host": "macOS arm64", "logicalCpus": 10, "nodeLoadGenerator": "v24.14.0", "fastifyRuntime": "host", "rustRuntime": "Docker linux/arm64" },
+  "database": "cisme_rust_poc_test",
+  "parity": {
+    "passed": true,
+    "checks": ["capabilities", "settings_bootstrap", "auth_missing", "auth_tampered", "auth_expired"],
+    "volatileFieldsIgnored": ["asOf", "trace_id"],
+    "timestampStringsComparedByInstant": true
+  },
+  "results": {
+    "fastify": {
+      "/v1/capabilities": [
+        { "round": 1, "elapsedMs": 33.73, "rps": 8894.93, "p50Ms": 0.72, "p95Ms": 2.87, "p99Ms": 3.34, "maxMs": 3.45, "errors": 0 },
+        { "round": 2, "elapsedMs": 41.18, "rps": 7285.29, "p50Ms": 1.00, "p95Ms": 3.08, "p99Ms": 5.91, "maxMs": 6.86, "errors": 0 },
+        { "round": 3, "elapsedMs": 36.24, "rps": 8279.28, "p50Ms": 0.90, "p95Ms": 3.09, "p99Ms": 4.04, "maxMs": 4.05, "errors": 0 },
+        { "round": 4, "elapsedMs": 44.61, "rps": 6724.48, "p50Ms": 1.33, "p95Ms": 2.92, "p99Ms": 4.22, "maxMs": 5.39, "errors": 0 },
+        { "round": 5, "elapsedMs": 39.47, "rps": 7601.61, "p50Ms": 0.97, "p95Ms": 3.14, "p99Ms": 4.12, "maxMs": 4.58, "errors": 0 }
+      ],
+      "/v1/bootstrap/settings": [
+        { "round": 1, "elapsedMs": 236.62, "rps": 1267.83, "p50Ms": 7.68, "p95Ms": 13.31, "p99Ms": 15.09, "maxMs": 15.80, "errors": 0 },
+        { "round": 2, "elapsedMs": 252.30, "rps": 1189.07, "p50Ms": 8.03, "p95Ms": 13.02, "p99Ms": 14.62, "maxMs": 15.77, "errors": 0 },
+        { "round": 3, "elapsedMs": 184.29, "rps": 1627.84, "p50Ms": 5.76, "p95Ms": 9.62, "p99Ms": 11.62, "maxMs": 13.16, "errors": 0 },
+        { "round": 4, "elapsedMs": 414.52, "rps": 723.72, "p50Ms": 12.76, "p95Ms": 25.37, "p99Ms": 31.77, "maxMs": 47.00, "errors": 0 },
+        { "round": 5, "elapsedMs": 220.90, "rps": 1358.07, "p50Ms": 6.34, "p95Ms": 14.23, "p99Ms": 18.76, "maxMs": 21.13, "errors": 0 }
+      ]
+    },
+    "rust": {
+      "/v1/capabilities": [
+        { "round": 1, "elapsedMs": 41.02, "rps": 7312.63, "p50Ms": 1.24, "p95Ms": 2.43, "p99Ms": 3.50, "maxMs": 4.39, "errors": 0 },
+        { "round": 2, "elapsedMs": 62.32, "rps": 4813.90, "p50Ms": 1.68, "p95Ms": 4.50, "p99Ms": 8.29, "maxMs": 8.70, "errors": 0 },
+        { "round": 3, "elapsedMs": 60.28, "rps": 4976.58, "p50Ms": 1.64, "p95Ms": 4.78, "p99Ms": 5.84, "maxMs": 6.68, "errors": 0 },
+        { "round": 4, "elapsedMs": 51.14, "rps": 5866.57, "p50Ms": 1.38, "p95Ms": 4.31, "p99Ms": 5.62, "maxMs": 5.73, "errors": 0 },
+        { "round": 5, "elapsedMs": 44.94, "rps": 6675.13, "p50Ms": 1.40, "p95Ms": 2.75, "p99Ms": 3.13, "maxMs": 3.73, "errors": 0 }
+      ],
+      "/v1/bootstrap/settings": [
+        { "round": 1, "elapsedMs": 284.82, "rps": 1053.28, "p50Ms": 9.09, "p95Ms": 13.90, "p99Ms": 15.47, "maxMs": 18.78, "errors": 0 },
+        { "round": 2, "elapsedMs": 354.40, "rps": 846.51, "p50Ms": 11.27, "p95Ms": 19.12, "p99Ms": 21.56, "maxMs": 23.48, "errors": 0 },
+        { "round": 3, "elapsedMs": 292.79, "rps": 1024.63, "p50Ms": 8.89, "p95Ms": 17.25, "p99Ms": 19.34, "maxMs": 25.45, "errors": 0 },
+        { "round": 4, "elapsedMs": 341.82, "rps": 877.66, "p50Ms": 11.20, "p95Ms": 16.27, "p99Ms": 18.18, "maxMs": 21.15, "errors": 0 },
+        { "round": 5, "elapsedMs": 273.27, "rps": 1097.82, "p50Ms": 8.94, "p95Ms": 11.90, "p99Ms": 13.09, "maxMs": 13.70, "errors": 0 }
+      ]
+    }
+  },
+  "medianSummary": {
+    "fastify": { "capabilitiesRps": 7601.61, "capabilitiesP95Ms": 3.08, "settingsRps": 1267.83, "settingsP95Ms": 13.31 },
+    "rust": { "capabilitiesRps": 5866.57, "capabilitiesP95Ms": 4.31, "settingsRps": 1024.63, "settingsP95Ms": 16.27 }
+  },
+  "unverified": ["serverCpu", "serverPeakRss", "concurrency_50_to_1000", "poolSaturationRecovery", "capacity", "soak", "coldStart", "productionTopology", "cost"],
+  "limitations": [
+    "Fastify ran on the macOS host while Rust ran in a Linux Docker container, so network and runtime overhead are not symmetric.",
+    "The fixture is tiny and does not represent 100 to 100000 users.",
+    "No CPU or RSS claim was measured.",
+    "This smoke result cannot justify a Rust migration."
+  ]
+}
+

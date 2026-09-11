@@ -1,0 +1,20 @@
+{
+  "at": "20260909T073015Z",
+  "objectKey": "backups/postgres/cisme-20260909T073015Z-28600b6f74e44744a1f4fe52fcf48074.dump.aesgcm",
+  "bytes": 213877,
+  "sha256": "8c9ad43384b095847f340c3c250ba1c49c8aa6f5b3d49fd644b5de2a419d61d0",
+  "remoteChecksumVerified": true,
+  "authenticationVerified": true,
+  "archiveReadable": true,
+  "remoteRetentionDays": 30,
+  "remoteDeleted": 0,
+  "fullRestoreVerified": true,
+  "restoredPublicTables": 45,
+  "tamperedCiphertextRejected": true,
+  "bucketEnumerationDenied": true,
+  "retentionSimulation": {
+    "minimumSeven": true,
+    "thirtyDayAge": true,
+    "deletionScopeGuard": true
+  }
+}

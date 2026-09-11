@@ -1,0 +1,9 @@
+{
+  "at": "2026-09-09T07:36:29.537Z",
+  "bucket": "lhcos-81ddf-1257392443",
+  "integrity": true,
+  "mime": "image/png",
+  "anonymousGet": 403,
+  "outsidePrefixWrite": 403,
+  "deletedRead": 404
+}

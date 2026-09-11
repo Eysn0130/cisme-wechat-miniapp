@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-10T14:22:29.141Z",
+  "mode": "local_tcp_isolated_postgresql",
+  "scenario": "cheap",
+  "pattern": "matrix",
+  "fixtureUsers": 1000,
+  "fixtureCaps": {
+    "feedItems": 1000,
+    "commentsAndLikes": 1000
+  },
+  "host": {
+    "logicalCpuCount": 10,
+    "memoryLimit": "UNVERIFIED_NO_CONTAINER_QUOTA"
+  },
+  "fairness": {
+    "warmupSeparated": true,
+    "repeatedRounds": 2,
+    "sameMachine": true,
+    "samePostgreSql": true,
+    "syntheticDataOnly": true
+  },
+  "startupMs": 102.99,
+  "fixtureSeedMs": 896.73,
+  "coldRequest": {
+    "latencyMs": 17.22,
+    "status": 200,
+    "bytes": 211
+  },
+  "warmRequest": {
+    "latencyMs": 1.35,
+    "status": 200,
+    "bytes": 211
+  },
+  "results": [
+    {
+      "concurrency": 50,
+      "rounds": [
+        {
+          "round": 1,
+          "requests": 200,
+          "concurrency": 50,
+          "durationTargetMs": null,
+          "elapsedMs": 29.17,
+          "latencyMs": {
+            "p50": 4.08,
+            "p90": 20.01,
+            "p95": 20.07,
+            "p99": 22.15,
+            "max": 22.22
+          },
+          "responseBytes": {
+            "p50": 211,
+            "p90": 211,
+            "p95": 211,
+            "p99": 211,
+            "max": 211
+          },
+          "requestsPerSecond": 6857.31,
+          "requestsPerLogicalCpuSecond": 685.73,
+          "cpuMs": 47.6,
+          "cpuMsPerRequest": 0.24,
+          "eventLoopUtilization": 1,
+          "rssPeakBytes": 165986304,
+          "pool": {
+            "peakTotal": 1,
+            "peakWaiting": 0
+          },
+          "statuses": {
+            "200": 200
+          },
+          "failures": 0,
+          "errorRate": 0,
+          "timeoutRate": 0,
+          "serverErrorRate": 0,
+          "runtime": {
+            "startedAt": "2026-09-10T14:22:27.727Z",
+            "uptimeSeconds": 1,
+            "pool": {
+              "total": 1,
+              "idle": 1,
+              "waiting": 0
+            },
+            "poolWaitMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "sqlMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "storageMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "transactionRetries": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "http": {
+              "durationMs": {
+                "count": 200,
+                "p50": 0.005291999999826658,
+                "p95": 0.016208999999889784,
+                "p99": 0.026208000000224274,
+                "max": 0.05524999999988722
+              },
+              "coldDurationMs": {
+                "count": 0,
+                "p50": 0,
+                "p95": 0,
+                "p99": 0,
+                "max": 0
+              },
+              "responseBytes": {
+                "count": 200,
+                "p50": 211,
+                "p95": 211,
+                "p99": 211,
+                "max": 211
+              },
+              "total": 200,
+              "clientErrors": 0,
+              "serverErrors": 0,
+              "timeouts": 0,
+              "routes": {
+                "/v1/capabilities": {
+                  "durationMs": {
+                    "count": 200,
+                    "p50": 0.005291999999826658,
+                    "p95": 0.016208999999889784,
+                    "p99": 0.026208000000224274,
+                    "max": 0.05524999999988722
+                  },
+                  "responseBytes": {
+                    "count": 200,
+                    "p50": 211,
+                    "p95": 211,
+                    "p99": 211,
+                    "max": 211
+                  },
+                  "total": 200,
+                  "errors": 0
+                }
+              }
+            }
+          },
+          "slo": {
+            "latencyP95": true,
+            "latencyP99": true,
+            "poolWaitP95": true,
+            "sqlP95": true,
+            "timeoutRate": true,
+            "serverErrorRate": true,
+            "met": true
+          }
+        },
+        {
+          "round": 2,
+          "requests": 200,
+          "concurrency": 50,
+          "durationTargetMs": null,
+          "elapsedMs": 23.57,
+          "latencyMs": {
+            "p50": 4.35,
+            "p90": 10.03,
+            "p95": 10.05,
+            "p99": 10.07,
+            "max": 10.08
+          },
+          "responseBytes": {
+            "p50": 211,
+            "p90": 211,
+            "p95": 211,
+            "p99": 211,
+            "max": 211
+          },
+          "requestsPerSecond": 8484.06,
+          "requestsPerLogicalCpuSecond": 848.41,
+          "cpuMs": 56.19,
+          "cpuMsPerRequest": 0.28,
+          "eventLoopUtilization": 1,
+          "rssPeakBytes": 177782784,
+          "pool": {
+            "peakTotal": 1,
+            "peakWaiting": 0
+          },
+          "statuses": {
+            "200": 200
+          },
+          "failures": 0,
+          "errorRate": 0,
+          "timeoutRate": 0,
+          "serverErrorRate": 0,
+          "runtime": {
+            "startedAt": "2026-09-10T14:22:27.727Z",
+            "uptimeSeconds": 1,
+            "pool": {
+              "total": 1,
+              "idle": 1,
+              "waiting": 0
+            },
+            "poolWaitMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "sqlMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "storageMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "transactionRetries": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "http": {
+              "durationMs": {
+                "count": 200,
+                "p50": 0.004834000000073502,
+                "p95": 0.016499999999950887,
+                "p99": 0.06066699999996672,
+                "max": 0.08266700000012861
+              },
+              "coldDurationMs": {
+                "count": 0,
+                "p50": 0,
+                "p95": 0,
+                "p99": 0,
+                "max": 0
+              },
+              "responseBytes": {
+                "count": 200,
+                "p50": 211,
+                "p95": 211,
+                "p99": 211,
+                "max": 211
+              },
+              "total": 200,
+              "clientErrors": 0,
+              "serverErrors": 0,
+              "timeouts": 0,
+              "routes": {
+                "/v1/capabilities": {
+                  "durationMs": {
+                    "count": 200,
+                    "p50": 0.004834000000073502,
+                    "p95": 0.016499999999950887,
+                    "p99": 0.06066699999996672,
+                    "max": 0.08266700000012861
+                  },
+                  "responseBytes": {
+                    "count": 200,
+                    "p50": 211,
+                    "p95": 211,
+                    "p99": 211,
+                    "max": 211
+                  },
+                  "total": 200,
+                  "errors": 0
+                }
+              }
+            }
+          },
+          "slo": {
+            "latencyP95": true,
+            "latencyP99": true,
+            "poolWaitP95": true,
+            "sqlP95": true,
+            "timeoutRate": true,
+            "serverErrorRate": true,
+            "met": true
+          }
+        }
+      ],
+      "variance": {
+        "p95Min": 10.05,
+        "p95Max": 20.07,
+        "p95Spread": 10.02,
+        "rpsMin": 6857.31,
+        "rpsMax": 8484.06,
+        "rpsSpread": 1626.75
+      }
+    }
+  ],
+  "limitations": [
+    "Local loopback is not CloudBase or production-like network evidence.",
+    "Logical CPU count is reported; no vCPU quota was enforced.",
+    "Mini Program render, image decode, physical-device and 4G latency are not measured."
+  ]
+}

@@ -1,7 +1,13 @@
-<view class="bar bar--{{lensIndex}} {{lensSettling ? 'bar--settling' : ''}} {{reducedMotion ? 'bar--reduced-motion' : ''}}" style="{{chromeStyle}}" aria-role="tablist">
-  <view class="bar__lens"><view class="bar__shine"></view></view>
-  <button wx:for="{{items}}" wx:key="path" data-index="{{index}}" bindtap="switchTab" hover-class="bar__item--pressed" hover-stay-time="80" class="bar__item {{active === index ? 'is-active' : ''}} {{switching || externalBusy ? 'control--disabled' : ''}}" disabled="{{switching || externalBusy}}" aria-label="{{item.text}}，{{externalBusy ? '当前操作确认中，暂不能切换' : active === index ? '当前页面' : switching ? '正在切换' : '未选中'}}" aria-selected="{{active === index}}" aria-role="tab">
-    <image class="bar__icon" src="{{active === index ? item.activeIcon : item.icon}}" mode="aspectFit" />
-    <text>{{item.text}}</text>
+<view class="chrome {{chromeHidden ? 'chrome--hidden' : ''}} {{reducedMotion ? 'chrome--reduced-motion' : ''}}" style="{{chromeStyle}}">
+  <button wx:if="{{communityFabMounted}}" class="community-fab {{communityFabVisible ? 'community-fab--visible' : ''}} {{switching || externalBusy || chromeHidden ? 'control--disabled' : ''}}" bindtap="activateCommunityFab" disabled="{{switching || externalBusy || chromeHidden}}" aria-label="发布护理记录">
+    <view class="community-fab__halo"></view>
+    <image class="community-fab__icon" src="/assets/icons/plus-white.svg" mode="aspectFit" />
   </button>
+  <view class="bar bar--{{lensIndex}} {{lensSettling ? 'bar--settling' : ''}} {{reducedMotion ? 'bar--reduced-motion' : ''}}" aria-role="tablist">
+    <view class="bar__lens"><view class="bar__shine"></view></view>
+    <button wx:for="{{items}}" wx:key="path" data-index="{{index}}" bindtap="switchTab" hover-class="bar__item--pressed" hover-stay-time="80" class="bar__item {{active === index ? 'is-active' : ''}} {{switching || externalBusy || chromeHidden ? 'control--disabled' : ''}}" disabled="{{switching || externalBusy || chromeHidden}}" aria-label="{{item.text}}，{{chromeHidden ? '主导航暂时收起' : externalBusy ? '当前操作确认中，暂不能切换' : active === index ? '当前页面' : switching ? '正在切换' : '未选中'}}" aria-selected="{{active === index}}" aria-role="tab">
+      <image class="bar__icon" src="{{active === index ? item.activeIcon : item.icon}}" mode="aspectFit" />
+      <text>{{item.text}}</text>
+    </button>
+  </view>
 </view>

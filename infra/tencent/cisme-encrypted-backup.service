@@ -1,0 +1,17 @@
+[Unit]
+Description=CISME encrypted off-server PostgreSQL backup
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/opt/cisme-maintenance/bin/python /usr/local/lib/cisme/cisme-encrypted-backup.py
+TimeoutStartSec=1800
+Nice=10
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/cisme-encrypted
+

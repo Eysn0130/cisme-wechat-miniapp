@@ -1,0 +1,49 @@
+interface CachePolicy { ttlMs?: number; staleMs?: number; tags?: readonly string[] }
+interface CacheEntry<T> { value?: T; expiresAt: number; staleUntil: number; pending?: Promise<T>; generation: number }
+
+/** Session-scoped in-memory read coalescing with bounded TTL/SWR. */
+export class RequestCoordinator {
+  private cache = new Map<string, CacheEntry<unknown>>();
+  private generation = 0;
+  private tagGeneration = new Map<string, number>();
+  invalidate(tags?: readonly string[]): void {
+    if (!tags?.length) { this.generation++; this.cache.clear(); return; }
+    for (const tag of tags) this.tagGeneration.set(tag, (this.tagGeneration.get(tag) ?? 0) + 1);
+    for (const [key, entry] of this.cache) {
+      if (tags.some((tag) => key.includes(`|${tag}:${this.tagGeneration.get(tag)! - 1}`))) this.cache.delete(key);
+      else if (entry.generation !== this.generation) this.cache.delete(key);
+    }
+  }
+  read<T>(key: string, execute: () => Promise<T>, policy: CachePolicy = {}): Promise<T> {
+    const tags = policy.tags ?? [];
+    const tagScope = tags.map((tag) => `|${tag}:${this.tagGeneration.get(tag) ?? 0}`).join("");
+    const scoped = `${this.generation}:${key}${tagScope}`;
+    const now = Date.now();
+    const existing = this.cache.get(scoped) as CacheEntry<T> | undefined;
+    if (existing?.value !== undefined && now < existing.expiresAt) return Promise.resolve(existing.value);
+    if (existing?.value !== undefined && now < existing.staleUntil) {
+      if (!existing.pending) {
+        const pending = execute();
+        existing.pending = pending;
+        void pending.then((value) => {
+          if (this.cache.get(scoped) !== existing) return;
+          existing.value = value; existing.expiresAt = Date.now() + (policy.ttlMs ?? 0); existing.staleUntil = existing.expiresAt + (policy.staleMs ?? 0); delete existing.pending;
+        }, () => { if (this.cache.get(scoped) === existing) delete existing.pending; });
+      }
+      return Promise.resolve(existing.value);
+    }
+    if (existing?.pending) return existing.pending;
+    const entry: CacheEntry<T> = existing ?? { expiresAt: 0, staleUntil: 0, generation: this.generation };
+    const result = execute();
+    entry.pending = result;
+    this.cache.set(scoped, entry);
+    void result.then((value) => {
+      if (this.cache.get(scoped) !== entry) return;
+      delete entry.pending;
+      if ((policy.ttlMs ?? 0) > 0 || (policy.staleMs ?? 0) > 0) {
+        entry.value = value; entry.expiresAt = Date.now() + (policy.ttlMs ?? 0); entry.staleUntil = entry.expiresAt + (policy.staleMs ?? 0);
+      } else this.cache.delete(scoped);
+    }, () => { if (this.cache.get(scoped) === entry) this.cache.delete(scoped); });
+    return result;
+  }
+}

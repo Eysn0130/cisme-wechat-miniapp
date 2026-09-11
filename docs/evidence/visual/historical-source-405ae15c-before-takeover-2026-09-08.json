@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 2,
+  "packageSourceSha256": "405ae15c319e5d4c92d157edebf4c0a57f5ae0cd72741a9d0b27b0b97856efde",
+  "finalResult": "blocked",
+  "evidenceIndex": {
+    "docs/evidence/visual/current-run/native/devtools-package-405ae15c-compile-0-problems-2026-09-01.jpg": {
+      "sha256": "625773f6bc0971d0b4f2785668eba20f21eafdff5756fa69074599d17e20ae2b",
+      "bytes": 112704,
+      "mimeType": "image/jpeg",
+      "widthPx": 1250,
+      "heightPx": 733,
+      "kind": "devtools_compile",
+      "viewport": "WeChat DevTools RC 2.02.2608031 full window; iPhone X simulator at 50%; Problems total 0 after final compile; no QR present",
+      "packageSourceSha256": "405ae15c319e5d4c92d157edebf4c0a57f5ae0cd72741a9d0b27b0b97856efde"
+    },
+    "docs/evidence/visual/current-run/native/devtools-package-405ae15c-console-0-errors-0-warnings-2026-09-01.jpg": {
+      "sha256": "f1a74c6daff08faaeb4104313d67bef9f391e0d1ae7314163b2fd0b578790d87",
+      "bytes": 105796,
+      "mimeType": "image/jpeg",
+      "widthPx": 1250,
+      "heightPx": 733,
+      "kind": "devtools_console",
+      "viewport": "WeChat DevTools RC 2.02.2608031 full window; iPhone X simulator at 50%; stable Debugger reports Errors 0, Warnings 0; no QR present",
+      "packageSourceSha256": "405ae15c319e5d4c92d157edebf4c0a57f5ae0cd72741a9d0b27b0b97856efde"
+    },
+    "docs/evidence/visual/current-run/native/devtools-community-405ae15c-brand-editorial-2026-09-01.jpg": {
+      "sha256": "1a112961c92045aa55541144e04281109aea794e30e89ad12795fbfe9eef11b1",
+      "bytes": 106269,
+      "mimeType": "image/jpeg",
+      "widthPx": 1250,
+      "heightPx": 733,
+      "kind": "route_native",
+      "route": "pages/community/index",
+      "state": "brand-editorial-ugc-gate-off-local-api",
+      "viewport": "WeChat DevTools RC 2.02.2608031 full window; iPhone X simulator at 50%; no QR present; diagnostic only",
+      "packageSourceSha256": "405ae15c319e5d4c92d157edebf4c0a57f5ae0cd72741a9d0b27b0b97856efde"
+    },
+    "docs/evidence/visual/current-run/native/devtools-ios-405ae15c-remote-4g-connected-2026-09-01.jpg": {
+      "sha256": "1ee01353566d21e58543a0a7dbfc4ad9b52d88782dc396c22f1f74a8633f9a69",
+      "bytes": 49894,
+      "mimeType": "image/jpeg",
+      "widthPx": 1024,
+      "heightPx": 733,
+      "kind": "device_ios",
+      "state": "remote-debug-transport-connected-android-profile-mismatch",
+      "viewport": "WeChat DevTools true-device connection window 1024x733; handset page viewport was not captured",
+      "platform": "ios",
+      "deviceModel": "iPhone 17 Pro Max",
+      "osVersion": "iOS 26.5.2",
+      "hardware": true,
+      "packageSourceSha256": "405ae15c319e5d4c92d157edebf4c0a57f5ae0cd72741a9d0b27b0b97856efde"
+    }
+  },
+  "devtools": {
+    "packageSourceSha256": "405ae15c319e5d4c92d157edebf4c0a57f5ae0cd72741a9d0b27b0b97856efde",
+    "compileErrors": 0,
+    "consoleErrors": 0,
+    "networkFailures": null,
+    "compileEvidenceFiles": [
+      "docs/evidence/visual/current-run/native/devtools-package-405ae15c-compile-0-problems-2026-09-01.jpg"
+    ],
+    "consoleEvidenceFiles": [
+      "docs/evidence/visual/current-run/native/devtools-package-405ae15c-console-0-errors-0-warnings-2026-09-01.jpg"
+    ],
+    "networkEvidenceFiles": []
+  },
+  "routeCoverage": [
+    {
+      "route": "pages/home/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/records/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/current-run/native/devtools-community-405ae15c-brand-editorial-2026-09-01.jpg"
+      ]
+    },
+    {
+      "route": "pages/profile/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/account/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/task/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/submit/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/progress/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/points/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/shop/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/settings/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    }
+  ],
+  "devices": [
+    {
+      "platform": "ios",
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/current-run/native/devtools-ios-405ae15c-remote-4g-connected-2026-09-01.jpg"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "CURRENT_ROUTE_STATE_VISUAL_MATRIX_INCOMPLETE",
+      "severity": "P1",
+      "status": "open"
+    },
+    {
+      "id": "CURRENT_NETWORK_TRACE_MISSING",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "CURRENT_REFERENCE_AND_PRODUCTION_COPY_STATES_NOT_EQUIVALENT",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "CURRENT_ACCOUNT_CHECKED_ENABLED_STATE_NOT_RECAPTURED",
+      "severity": "P1",
+      "status": "open"
+    },
+    {
+      "id": "CURRENT_RC_EXACT_PAGEFRAME_EXPORT_NOT_AVAILABLE",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "ACCOUNT_ACTION_TEXT_AND_GEOMETRY_LOCAL_RETEST",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_LEGAL_ENTRY_CENTERING",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_IDENTITY_ROW_FALSE_AFFORDANCE",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_BACK_SOURCE_RESTORE_SEMANTICS",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "ACCOUNT_BACK_AUTOMATIC_AUTH_REDIRECT_LOOP",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CONCURRENT_PROTECTED_REQUESTS_REOPEN_ACCOUNT_AFTER_CANCEL",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "BUTTON_TYPOGRAPHY_PROFILE_POINTS_POST",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CATALOG_PRICE_PRECISION_AND_SAFE_FALLBACKS",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "SETTINGS_LOGOUT_CONFIRMATION",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "UNKNOWN_PROGRESS_STATUS_FAILS_CLOSED",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CURRENT_NON_ACCOUNT_ROUTE_RECAPTURE_REQUIRED",
+      "severity": "P1",
+      "status": "open"
+    },
+    {
+      "id": "ACCOUNT_COMPACT_VIEWPORT_SECONDARY_ACTION_VISIBILITY",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "PROGRESS_SOURCE_AWARE_BACK_STACK",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "PROGRESS_BOTTOM_ACTION_TEXT_BASELINE",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "LOAD_SERIALIZATION_AND_ERROR_STATE_LIVE_RETEST_OPEN",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "LONG_COPY_KEYBOARD_MODAL_AND_SCROLL_LIVE_RETEST_OPEN",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "CURRENT_HASH_STRUCTURED_EVIDENCE_GATE_RETESTED",
+      "severity": "P1",
+      "status": "fixed"
+    },
+    {
+      "id": "CONTROLLED_REMOTE_DEVICE_DEBUG_QR_AWAITING_AUTHORIZED_DEVICE",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "UGC_FEED_DTO_AND_CONTROLLED_COVER_URL_MISSING",
+      "severity": "P1",
+      "status": "blocked"
+    },
+    {
+      "id": "UNINTENDED_TEST_ACCOUNT_DEVELOPMENT_PREVIEW_NOT_RELEASE",
+      "severity": "P2",
+      "status": "fixed"
+    },
+    {
+      "id": "PRODUCTION_LEGAL_TEXTS_UNSIGNED",
+      "severity": "P0",
+      "status": "blocked"
+    },
+    {
+      "id": "IOS_ANDROID_DEVICE_EVIDENCE_MISSING",
+      "severity": "P0",
+      "status": "blocked"
+    }
+  ]
+}

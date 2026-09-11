@@ -6,7 +6,14 @@ interface SessionPayload {
   principalId: string;
   memberId: string;
   adapter: "wechat" | "dev";
+  provider: "wechat_miniprogram" | "dev_test";
+  appId: string;
   expiresAt: number;
+}
+
+export interface SessionAudience {
+  wechatAppId: string | null;
+  allowDevAdapters: boolean;
 }
 
 function signature(payload: string, secret: string): string {
@@ -18,7 +25,7 @@ export function issueSessionToken(payload: Omit<SessionPayload, "expiresAt">, se
   return `${encoded}.${signature(encoded, secret)}`;
 }
 
-export function verifySessionToken(token: string, secret: string, now = Date.now()): Principal {
+export function verifySessionToken(token: string, secret: string, audience: SessionAudience, now = Date.now()): Principal {
   const parts = token.split(".");
   if (parts.length !== 2) throw new DomainError("AUTH_INVALID", "Invalid session token", 401);
   const [encoded, supplied] = parts;
@@ -38,8 +45,16 @@ export function verifySessionToken(token: string, secret: string, now = Date.now
     typeof payload.principalId !== "string" || !payload.principalId ||
     typeof payload.memberId !== "string" || !payload.memberId ||
     (payload.adapter !== "wechat" && payload.adapter !== "dev") ||
+    (payload.provider !== "wechat_miniprogram" && payload.provider !== "dev_test") ||
+    typeof payload.appId !== "string" || !payload.appId ||
+    (payload.adapter === "wechat" && payload.provider !== "wechat_miniprogram") ||
+    (payload.adapter === "dev" && payload.provider !== "dev_test") ||
     typeof payload.expiresAt !== "number" || !Number.isFinite(payload.expiresAt)
   ) throw new DomainError("AUTH_INVALID", "Invalid session token", 401);
+  if ((payload.provider === "wechat_miniprogram" && payload.appId !== audience.wechatAppId) ||
+      (payload.provider === "dev_test" && (!audience.allowDevAdapters || payload.appId !== "dev"))) {
+    throw new DomainError("AUTH_AUDIENCE_INVALID", "Session belongs to a different identity namespace", 401);
+  }
   if (payload.expiresAt <= now) throw new DomainError("AUTH_EXPIRED", "Session token expired", 401);
   return { id: payload.principalId, memberId: payload.memberId, roles: [], adapter: payload.adapter };
 }

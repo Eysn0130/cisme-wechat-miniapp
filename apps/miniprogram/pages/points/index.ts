@@ -1,3 +1,4 @@
+import { requireMemberAccess } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 
@@ -28,7 +29,7 @@ Page({
   data: { chromeStyle: currentChromeStyle(), points: null as any, balanceClass: "", loading: true, navigating: false, loadAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { this.data.pageAlive = true; this.setData({ navigating: false }); void this.load(); },
+  onShow() { if (!requireMemberAccess()) return; this.data.pageAlive = true; this.setData({ navigating: false }); void this.load(); },
   onHide() { this.data.loadAttempt += 1; },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; },
   async load(event?: WechatMiniprogram.TouchEvent) {

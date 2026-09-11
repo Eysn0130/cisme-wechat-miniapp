@@ -1,0 +1,8 @@
+{
+  "checkedAt": "2026-09-08T17:34:53.547Z",
+  "suite": "tests/integration/worker-delivery.test.ts",
+  "passed": 5,
+  "failed": 0,
+  "database": "cisme_test",
+  "scope": "Dedicated test database: delivery, consent suppression, retries and cleanup; not CloudBase execution"
+}

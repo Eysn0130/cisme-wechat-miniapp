@@ -1,0 +1,16 @@
+{
+  "sourcePackage": "cisme-miniprogram-0.1.0-source.zip",
+  "sha256": "321912dc5beed9f20e39d1c92b18da7d49a8b8d112b852a7261d767667274e40",
+  "nativeSourceSha256": "96d8c96e6d2737f85686c9bd8d2999e0ee1a0e8fd9ca27445ccefeb4b21e1914",
+  "nativeFiles": 147,
+  "uploadedToWechat": true,
+  "releaseRuntimeConfigured": false,
+  "miniProgramFilingCompleted": false,
+  "developmentVersion": "0.1.0-dev.20260909",
+  "compiledPackageBytes": 1398915,
+  "trialVersionEnabled": false,
+  "submittedForReview": false,
+  "productionPublished": false,
+  "deviceAcceptanceComplete": false,
+  "uploadEvidence": "docs/evidence/wechat/development-upload-2026-09-09.json"
+}

@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-09-09T05:20:01.624Z",
+  "documents": [
+    {
+      "document_type": "cross_border",
+      "version": "2026-09-09-v1",
+      "operator_name": "熹芃（上海）生物科技有限公司",
+      "characters": 728
+    },
+    {
+      "document_type": "privacy",
+      "version": "2026-09-09-v1",
+      "operator_name": "熹芃（上海）生物科技有限公司",
+      "characters": 2186
+    },
+    {
+      "document_type": "terms",
+      "version": "2026-09-09-v1",
+      "operator_name": "熹芃（上海）生物科技有限公司",
+      "characters": 1158
+    }
+  ],
+  "requests": 0,
+  "members": 0,
+  "consents": 0,
+  "realMemberConsentCreated": false
+}

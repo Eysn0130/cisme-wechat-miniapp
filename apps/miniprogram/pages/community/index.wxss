@@ -21,3 +21,11 @@
 .feed-card__image--compact { height:350rpx; }
 .feed-card__title { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; font-size:28rpx; font-weight:600; line-height:1.45; }
 .feed-card__meta-icon,.feed-card__engagement { display:none; }
+
+.community-mode__tab { margin:0; padding:0 24rpx; background:transparent; font-size:30rpx; color:inherit; border-radius:0; }
+.community-mode__active { border-bottom:4rpx solid #673b56; font-weight:600; }
+.review-card { padding:24rpx; margin:24rpx 0; }
+.review-detail { display:block; margin:16rpx 0; }
+
+.review-profile { display:flex; align-items:center; gap:22rpx; }
+.review-profile-avatar { width:100rpx; height:100rpx; border-radius:50%; flex:none; }

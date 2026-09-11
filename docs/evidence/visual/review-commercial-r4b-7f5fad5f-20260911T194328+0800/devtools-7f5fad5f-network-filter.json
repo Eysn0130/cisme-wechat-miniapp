@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+  "tool": "wechatide 0.3.9 runtime.get_simulator_network",
+  "filter": "grep -Ein fail|error|ECONN|ERR_|status...(0|4xx|5xx)",
+  "matches": 0,
+  "qualification": "Bounded post-route-open text filter only; not a structured HAR and not proof of staging requests."
+}

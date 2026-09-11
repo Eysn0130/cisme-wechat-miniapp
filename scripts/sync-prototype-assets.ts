@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { copyFile, mkdir, readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
 const source = resolve(process.cwd(), "../cisme-home-prototype/public/assets/cisme");
@@ -30,8 +30,27 @@ const expectedAvatars: Record<string, string> = {
   "avatar-zhihe-v1.webp": "72bd8f6398154074068a2e3fe7b2ed22fbc91e819f3f13ff75675d090cab9cb1"
 };
 
-async function syncFrozenSet(sourceDirectory: string, destinationDirectory: string, hashes: Record<string, string>) {
-  await mkdir(destinationDirectory, { recursive: true });
+const nativeImages = [
+  "cisme-home-background-v1.jpg",
+  "community-card-care-flatlay-v2.jpg",
+  "community-card-care-journal-v2.jpg",
+  "community-card-glossy-hair-v1.jpg",
+  "community-card-mirror-roots-v2.jpg",
+  "community-card-purple-bottle-v1.jpg",
+  "community-card-scalp-massage-v2.jpg",
+  "community-hero-scalp-ritual-v1.jpg"
+];
+
+const nativeAvatars = [
+  "avatar-jiajing-v1.jpg",
+  "avatar-jingyu-v1.jpg",
+  "avatar-luna-v1.jpg",
+  "avatar-muguang-v1.jpg",
+  "avatar-yurou-v1.jpg",
+  "avatar-zhihe-v1.jpg"
+];
+
+async function verifyFrozenSet(sourceDirectory: string, hashes: Record<string, string>) {
   const actual = (await readdir(sourceDirectory)).filter((name) => name.endsWith(".webp")).sort();
   if (actual.join("\n") !== Object.keys(hashes).sort().join("\n")) throw new Error(`ASSET_SET_DRIFT:${sourceDirectory}`);
   for (const name of actual) {
@@ -39,10 +58,17 @@ async function syncFrozenSet(sourceDirectory: string, destinationDirectory: stri
     const bytes = await readFile(input);
     const digest = createHash("sha256").update(bytes).digest("hex");
     if (digest !== hashes[basename(input)]) throw new Error(`ASSET_HASH_DRIFT:${name}`);
-    await copyFile(input, resolve(destinationDirectory, name));
   }
 }
 
-await syncFrozenSet(source, destination, expected);
-await syncFrozenSet(resolve(source, "avatars"), resolve(destination, "avatars"), expectedAvatars);
-console.log(`synced ${Object.keys(expected).length + Object.keys(expectedAvatars).length} frozen CISME assets with verified SHA-256`);
+async function verifyNativeJpegs(directory: string, names: string[]) {
+  for (const name of names) await access(resolve(directory, name));
+  const webp = (await readdir(directory)).filter((name) => name.endsWith(".webp"));
+  if (webp.length) throw new Error(`NATIVE_WEBP_PACKAGE_DRIFT:${directory}:${webp.join(",")}`);
+}
+
+await verifyFrozenSet(source, expected);
+await verifyFrozenSet(resolve(source, "avatars"), expectedAvatars);
+await verifyNativeJpegs(destination, nativeImages);
+await verifyNativeJpegs(resolve(destination, "avatars"), nativeAvatars);
+console.log(`verified ${Object.keys(expected).length + Object.keys(expectedAvatars).length} frozen source assets and ${nativeImages.length + nativeAvatars.length} native JPEG outputs`);

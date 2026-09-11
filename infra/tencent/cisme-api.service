@@ -1,0 +1,26 @@
+[Unit]
+Description=CISME API
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=cisme
+Group=cisme
+WorkingDirectory=/opt/cisme/current
+EnvironmentFile=/opt/cisme/runtime.env
+Environment=TMPDIR=/opt/cisme/tmp
+ExecStart=/opt/node-v24.14.0-linux-x64/bin/node index.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/cisme/tmp
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

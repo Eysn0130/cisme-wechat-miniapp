@@ -1,4 +1,6 @@
+import { requireMemberAccess } from "../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../services/layout";
+import { nativeRouteRequiresMember } from "../services/route-access";
 
 let pendingLens: { from: number; to: number; at: number } | null = null;
 
@@ -22,6 +24,10 @@ Component({
     lensSettling: false,
     switching: false,
     externalBusy: false,
+    chromeHidden: false,
+    hiddenSources: [] as string[],
+    communityFabMounted: false,
+    communityFabVisible: false,
     reducedMotion: shouldReduceMotion(),
     chromeStyle: currentChromeStyle(),
     items: [
@@ -42,11 +48,17 @@ Component({
     }
   },
   pageLifetimes: {
-    show() { this.syncActive(currentTabIndex(this.data.items)); }
+    show() {
+      const active = currentTabIndex(this.data.items);
+      this.syncActive(active);
+      if (active === 2) this.enterCommunityFab();
+      else this.leaveCommunityFab();
+    }
   },
   methods: {
     syncActive(active: number) {
       if (!this.data.items[active]) return;
+      if (this.data.active === active && this.data.lensIndex === active && !pendingLens && !this.data.switching && this.data.externalBusy === currentPageBusy()) return;
       const reducedMotion = shouldReduceMotion();
       const motion = pendingLens;
       if (motion?.to === active) pendingLens = null;
@@ -55,14 +67,46 @@ Component({
         wx.nextTick(() => { if (this.data.active === active) this.setData({ lensIndex: active, lensSettling: !reducedMotion }); });
       });
     },
+    setPresentation(source: string, hidden: boolean) {
+      const owner = String(source || "page");
+      const current = this.data.hiddenSources as string[];
+      const hiddenSources = hidden
+        ? current.includes(owner) ? current : current.concat(owner)
+        : current.filter((item) => item !== owner);
+      const chromeHidden = hiddenSources.length > 0;
+      if (chromeHidden === this.data.chromeHidden && hiddenSources.length === current.length) return;
+      this.setData({ hiddenSources, chromeHidden });
+    },
+    enterCommunityFab() {
+      if (this.data.active !== 2) return;
+      if (this.data.communityFabMounted && this.data.communityFabVisible) return;
+      const reducedMotion = shouldReduceMotion();
+      this.setData({ communityFabMounted: true, communityFabVisible: reducedMotion, reducedMotion }, () => {
+        if (reducedMotion) return;
+        wx.nextTick(() => {
+          if (this.data.active === 2 && this.data.communityFabMounted) this.setData({ communityFabVisible: true });
+        });
+      });
+    },
+    leaveCommunityFab() {
+      if (!this.data.communityFabMounted && !this.data.communityFabVisible) return;
+      this.setData({ communityFabMounted: false, communityFabVisible: false });
+    },
+    activateCommunityFab() {
+      if (this.data.active !== 2 || !this.data.communityFabVisible || this.data.chromeHidden || this.data.switching || this.data.externalBusy) return;
+      const pages = getCurrentPages();
+      const current = pages[pages.length - 1] as WechatMiniprogram.Page.Instance<Record<string, unknown>, Record<string, unknown>> & { openPublisher?: () => void } | undefined;
+      current?.openPublisher?.();
+    },
     switchTab(event: WechatMiniprogram.TouchEvent) {
       const index = Number(event.currentTarget.dataset.index);
       const item = this.data.items[index];
       const liveExternalBusy = currentPageBusy();
-      if (!item || this.data.switching || this.data.externalBusy || liveExternalBusy) {
+      if (!item || this.data.chromeHidden || this.data.switching || this.data.externalBusy || liveExternalBusy) {
         if (liveExternalBusy && !this.data.externalBusy) this.setData({ externalBusy: true });
         return;
       }
+      if (nativeRouteRequiresMember(item.path) && !requireMemberAccess(item.path)) return;
       if (index === this.data.active) {
         // Re-selecting a tab is a recovery action, so it stays instant on every
         // device and never bypasses the OS reduced-motion preference in JS.
@@ -70,6 +114,7 @@ Component({
         return;
       }
       const previous = this.data.active;
+      this.leaveCommunityFab();
       pendingLens = { from: previous, to: index, at: Date.now() };
       this.setData({ active: index, lensIndex: index, lensSettling: true, switching: true });
       wx.switchTab({

@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+  "tool": "wechatide 0.3.9 project-action.simulator_open_page",
+  "project": "/Users/mini/CISME/cisme-r0-platform/apps/miniprogram",
+  "appId": "wx4eac2d4fb11d299b",
+  "baseLibraryVersion": "3.15.2",
+  "routeCount": 27,
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/records/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/community/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/profile/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/account/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/task/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/submit/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/progress/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/points/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/post/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/shop/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/product/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/checkout/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/orders/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/settings/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/invite/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/legal/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/support/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/management/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/management-product/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/management-support/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "query": "",
+      "scene": 1001,
+      "result": "success"
+    }
+  ],
+  "qualification": "Each route compiled/opened successfully after one clean project-window restart; this is not interaction or device acceptance."
+}

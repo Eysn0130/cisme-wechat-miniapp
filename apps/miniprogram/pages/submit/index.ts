@@ -1,4 +1,5 @@
-import { clearAuthenticationRedirectSuppression, request, submissionReturnUrl, uploadAuthorized } from "../../services/api";
+import { requireMemberAccess } from "../../services/api";
+import { clearAuthenticationRedirectSuppression, request, retainMemberSnapshot, submissionReturnUrl, uploadAuthorized } from "../../services/api";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 
 let draftSaveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -80,6 +81,7 @@ Page({
   data: {
     chromeStyle: currentChromeStyle(),
     submissionId: "", submission: null as any, originalReady: false, screenshotReady: false,
+    mediaUploadsEnabled: false,
     postUrl: "", platformAccount: "", disclosure: "",
     permissions: { content_storage: false, human_review: false, feed_readonly: false },
     loading: true, working: false, uploadingKind: "", lastUploadKind: "original" as "original" | "screenshot", uploadAttempt: 0, savingDraft: false, resolvingDraftConflict: false, confirmingExit: false, draftDirty: false, draftRevision: 0, loadAttempt: 0, pageAlive: true, hasShown: false,
@@ -90,11 +92,30 @@ Page({
     this.setData({ submissionId: query.id ?? "", pageAlive: true });
     keyboardListener = ({ height }) => { if (this.data.pageAlive) this.setData({ keyboardActionStyle: height > 0 ? `bottom:${height}px` : "" }); };
     wx.onKeyboardHeightChange(keyboardListener);
-    void this.load();
   },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
+  clearMemberSnapshot() {
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    draftSaveTimer = undefined;
+    this.data.loadAttempt += 1;
+    this.data.uploadAttempt += 1;
+    this.setData({
+      submission: null, mediaUploadsEnabled: false, originalReady: false, screenshotReady: false,
+      postUrl: "", platformAccount: "", disclosure: "",
+      permissions: { content_storage: false, human_review: false, feed_readonly: false },
+      loading: false, working: false, uploadingKind: "", savingDraft: false, resolvingDraftConflict: false,
+      confirmingExit: false, draftDirty: false, draftRevision: this.data.draftRevision + 1,
+      draftState: "草稿将在身份确认并重新加载后显示", canSubmit: false, editable: false,
+      submissionBlocked: false, draftSaveFailed: false, draftRecovery: "", uploadRecovery: "", submitRecovery: "",
+      navigatingToProgress: false, errorTitle: "", error: ""
+    });
+    disableDraftExitGuard();
+  },
   onShow() {
-    if (!this.data.hasShown) { this.data.hasShown = true; return; }
+    const hasMemberAccess = requireMemberAccess();
+    if (!retainMemberSnapshot(this)) this.clearMemberSnapshot();
+    if (!hasMemberAccess) return;
+    if (!this.data.hasShown) { this.data.hasShown = true; void this.load(); return; }
     this.setData({ navigatingToProgress: false });
     if (!this.data.draftDirty && !this.data.savingDraft && !this.data.working && !this.data.uploadingKind) void this.load();
   },
@@ -137,6 +158,7 @@ Page({
       const editable = ["draft", "needs_changes", "appealed"].includes(submission.status);
       const next = {
         submission,
+        mediaUploadsEnabled: submission.media_uploads_enabled === true,
         originalReady, screenshotReady, postUrl, platformAccount, disclosure, permissions,
         editable,
         submissionBlocked: false,
@@ -270,7 +292,7 @@ Page({
         this.setData({ submission: latest, editable: false, savingDraft: false, draftRecovery: "reload", error: "投稿状态已变化，当前草稿不能继续编辑。请打开审核进度核对。" }, scrollToSubmitError);
         return;
       }
-      this.setData({ submission: latest, editable: true, savingDraft: false, draftRecovery: "", error: "" });
+      this.setData({ submission: latest, mediaUploadsEnabled: latest.media_uploads_enabled === true, editable: true, savingDraft: false, draftRecovery: "", error: "" });
       await this.saveDraft();
     } catch {
       if (this.data.pageAlive) this.setData({ savingDraft: false, draftRecovery: "conflict", error: "最新草稿暂时无法读取，请检查网络后再次核对。" }, scrollToSubmitError);
@@ -286,6 +308,10 @@ Page({
   async chooseMedia(event: WechatMiniprogram.TouchEvent) {
     const kind = event.currentTarget.dataset.kind as "original" | "screenshot";
     if (!this.data.editable || this.data.working || this.data.uploadingKind || this.data.savingDraft) return;
+    if (!this.data.mediaUploadsEnabled) {
+      this.setData({ uploadRecovery: "", error: "图片上传当前未开放；本页不会请求相册或相机权限，也不会上传图片。" }, scrollToSubmitError);
+      return;
+    }
     if (this.data.draftDirty) await this.saveDraft();
     if (!this.data.pageAlive) return;
     if (this.data.draftDirty || this.data.savingDraft) {

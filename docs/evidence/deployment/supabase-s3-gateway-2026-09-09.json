@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-09-08T16:18:53.668Z",
+  "driver": "s3_gateway",
+  "oversizeRejected": true,
+  "oversizeObjectAbsent": true,
+  "written": {
+    "bytes": 68,
+    "checksumBase64": "LVvbiJqE44hoMRexbjt5Hj8qoUTzmMBb+KJkir1lGWw=",
+    "detectedMime": "image/png"
+  },
+  "verified": {
+    "bytes": 68,
+    "checksumBase64": "LVvbiJqE44hoMRexbjt5Hj8qoUTzmMBb+KJkir1lGWw=",
+    "detectedMime": "image/png"
+  },
+  "deleted": true,
+  "passed": true
+}

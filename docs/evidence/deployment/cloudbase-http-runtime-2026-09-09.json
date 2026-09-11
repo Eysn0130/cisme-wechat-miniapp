@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-09-08T17:19:50.237Z",
+  "function": "cismeHttpReadiness",
+  "environment": "cloud1-d4g0khuk495d48600",
+  "deployment": {
+    "officialDevToolsCLI": true,
+    "success": true,
+    "files": 3,
+    "packSize": "751 B"
+  },
+  "execution": {
+    "source": "CloudBase console HTTP cloud test",
+    "method": "GET",
+    "path": "/health/live",
+    "httpStatus": 200,
+    "body": {
+      "service": "cismeHttpReadiness",
+      "version": "2026-09-09.1",
+      "runtime": "v24.11.1",
+      "businessDeployment": false
+    }
+  },
+  "sourceSha256": "0c9c618fcfbef3cb144454cd827204587acfcc4955202dfa03ef37751b6ef11b",
+  "conclusion": "HTTP deployment and invocation confirmed. Actual bundled runtime is below project >=24.14 <25 requirement; business API migration remains pending."
+}

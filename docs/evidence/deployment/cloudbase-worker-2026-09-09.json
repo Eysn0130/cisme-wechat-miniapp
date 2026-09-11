@@ -1,0 +1,52 @@
+{
+  "date": "2026-09-09",
+  "environment": "cloud1-d4g0khuk495d48600",
+  "function": "cismeWorker",
+  "deployment": {
+    "files": 5667,
+    "packageSize": "33.9 MB",
+    "platformRuntime": "Nodejs24.11",
+    "bundledRuntime": "24.14.0",
+    "memoryMb": 512,
+    "timeoutSeconds": 60
+  },
+  "security": {
+    "clientInvoke": false,
+    "independentTriggerCredential": true,
+    "credentialIncludedInEvidence": false
+  },
+  "manual": {
+    "requestId": "0c1f5ba8-0426-408d-85fb-9fbcb8c3f6e7",
+    "durationMs": 7991,
+    "completed": true,
+    "summary": {
+      "published": 0,
+      "cleaned": 0
+    }
+  },
+  "timer": {
+    "schedule": "every minute",
+    "runs": [
+      {
+        "time": "2026-09-09T12:47:00+08:00",
+        "requestId": "9203926e-4ca5-47ab-bd76-6d6abfe1bb62",
+        "durationMs": 8013,
+        "statusCode": 200
+      },
+      {
+        "time": "2026-09-09T12:48:00+08:00",
+        "requestId": "7444f66d-b074-43e8-82e3-92325a3366dc",
+        "durationMs": 7310,
+        "statusCode": 200
+      }
+    ]
+  },
+  "screenshots": [
+    "cloudbase-worker-success-2026-09-09.png",
+    "cloudbase-worker-timer-2026-09-09.png"
+  ],
+  "limitations": [
+    "No real member publication or cleanup events were seeded for this verification.",
+    "Platform invocation success does not establish real-user acceptance."
+  ]
+}

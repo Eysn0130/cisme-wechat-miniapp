@@ -16,15 +16,17 @@
     <view class="product-title">{{item.name}}</view>
     <view class="product-subtitle">{{item.subtitle}}</view>
     <view class="product-price"><text class="product-price__currency">¥</text><text>{{item.displayPrice}}</text></view>
-    <view class="product-contract">测试商品预览 · 购买尚未开放</view>
+    <view class="product-contract">{{item.contractCopy}}</view>
+    <view class="product-skus"><button wx:for="{{item.variants}}" wx:key="id" data-id="{{item.id}}" bindtap="selectSku" disabled="{{navigating||!item.active}}" class="product-sku {{selectedSku.id===item.id?'product-sku--active':''}} {{!item.inStock?'product-sku--empty':''}} {{navigating||!item.active?'control--disabled':''}}"><strong>{{item.label}}</strong><small>¥{{item.priceCents/100}} · {{item.inStock?'可选':'缺货'}}</small></button></view>
+    <view class="product-quantity"><text>数量</text><button class="{{navigating||quantity<=1?'control--disabled':''}}" bindtap="decrease" disabled="{{navigating||quantity<=1}}" aria-label="减少数量">−</button><strong>{{quantity}}</strong><button class="{{navigating||quantity>=selectedSku.availableQuantity||quantity>=99?'control--disabled':''}}" bindtap="increase" disabled="{{navigating||quantity>=selectedSku.availableQuantity||quantity>=99}}" aria-label="增加数量">＋</button></view>
     <view class="glass product-facts">
       <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>成分与用法请参阅产品说明</text></view>
       <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/package-plum.svg" mode="aspectFit"/><text>配送与售后信息将在购买时展示</text></view>
-      <view class="product-fact product-fact--last"><image class="product-fact__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><text>名称与价格仅供测试预览</text></view>
+      <view class="product-fact product-fact--last"><image class="product-fact__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><text>价格与可用库存会在服务端报价时重新核验</text></view>
     </view>
-    <view class="product-note">购买服务尚在准备中，目前仅可浏览商品资料。</view>
+    <view class="product-note">{{item.purchaseCopy}}</view>
   </view>
-  <view wx:if="{{item}}" class="product-action"><button class="primary primary--disabled product-action__button" disabled><text class="action-label">购买尚未开放</text></button></view>
+  <view wx:if="{{item}}" class="product-action"><button class="primary product-action__button {{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating?'primary--disabled':''}}" bindtap="openCheckout" disabled="{{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating}}"><text class="action-label">{{item.purchaseEnabled&&selectedSku.purchaseEnabled?'立即购买 · 创建待支付订单':'购买尚未开放'}}</text></button></view>
   <view wx:if="{{!item && error}}" class="glass error-scene product-error-scene" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/package-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">PRODUCT UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary product-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载商品资料</text></button><button class="{{leaving ? 'control--disabled' : ''}} product-error-action {{errorKind === 'missing' ? 'primary' : 'secondary'}}" disabled="{{leaving}}" bindtap="back"><text class="action-label">返回商品目录</text></button></view></view>
 </view>
 </view>

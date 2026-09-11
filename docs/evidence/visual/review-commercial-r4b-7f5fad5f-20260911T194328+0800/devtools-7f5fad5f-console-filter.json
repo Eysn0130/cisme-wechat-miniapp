@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+  "tool": "wechatide 0.3.9 runtime.get_simulator_console",
+  "filter": "grep -Ein error|uncaught|exception|fail",
+  "matches": 0,
+  "qualification": "Bounded post-route-open filter only; empty matches do not prove the complete historical console buffer is empty."
+}

@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-09-08T16:15:39.264Z",
+  "provider": "Supabase",
+  "cases": [
+    {
+      "scenario": "oversize",
+      "httpStatus": 200,
+      "rejected": false,
+      "errorCode": "UNCLASSIFIED"
+    },
+    {
+      "scenario": "tampered-key",
+      "httpStatus": 403,
+      "rejected": true,
+      "errorCode": "AccessDenied"
+    },
+    {
+      "scenario": "tampered-mime",
+      "httpStatus": 403,
+      "rejected": true,
+      "errorCode": "AccessDenied"
+    },
+    {
+      "scenario": "tampered-signature",
+      "httpStatus": 403,
+      "rejected": true,
+      "errorCode": "SignatureDoesNotMatch"
+    },
+    {
+      "scenario": "anonymous-read",
+      "httpStatus": 403,
+      "rejected": true
+    }
+  ],
+  "allRejected": false,
+  "testObjectsDeleted": true
+}

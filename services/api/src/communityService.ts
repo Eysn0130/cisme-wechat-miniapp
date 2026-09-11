@@ -1,8 +1,9 @@
+import { communityAuthors } from './memberProfile.js';
 import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
-import { transaction } from "./db.js";
+import { readSnapshot, transaction } from "./db.js";
 
 // These are the explicitly labelled local brand-preview stories, not public UGC.
 const previewPosts = new Set(["brand-scalp-ritual", "brand-night-routine", "brand-care-journal", "brand-roots-check", "brand-product-ritual"]);
@@ -19,6 +20,23 @@ function boolean(value: unknown): boolean {
   if (typeof value !== "boolean") throw new DomainError("REACTION_INVALID", "请选择明确的互动状态", 422);
   return value;
 }
+function pageLimit(value: number | undefined): number {
+  if (value === undefined) return 50;
+  if (!Number.isInteger(value) || value < 1 || value > 100) throw new DomainError("PAGE_LIMIT_INVALID", "评论分页大小须为 1 至 100", 422);
+  return value;
+}
+function commentCursor(value: { createdAt: Date | string; id: string }): string {
+  return Buffer.from(JSON.stringify([new Date(value.createdAt).toISOString(), value.id])).toString("base64url");
+}
+function decodeCommentCursor(value: string | undefined): { createdAt: Date; id: string } | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    const createdAt = new Date(String(parsed[0])), id = identifier(parsed[1]);
+    if (!Number.isFinite(createdAt.getTime())) throw new Error();
+    return { createdAt, id };
+  } catch { throw new DomainError("CURSOR_INVALID", "评论分页游标无效", 422); }
+}
 export class CommunityService {
   constructor(private pool: pg.Pool, private config: AppConfig) {}
   enabled(): boolean { return this.config.allowDevAdapters && (this.config.env === "development" || this.config.env === "test"); }
@@ -26,23 +44,39 @@ export class CommunityService {
     if (!this.enabled()) throw new DomainError("COMMUNITY_PREVIEW_CLOSED", "社区互动尚未开放", 503);
     if (!previewPosts.has(postId)) throw new DomainError("COMMUNITY_POST_UNAVAILABLE", "这篇内容暂不支持互动", 404);
   }
-  async read(postId: string, memberId?: string) {
+  async read(postId: string, memberId?: string, options: { cursor?: string; limit?: number } = {}) {
     this.assertPost(postId);
-    const [counts, reactions, comments, commentCount] = await Promise.all([
-      this.pool.query("SELECT kind, count(*)::int count FROM community_reaction r JOIN member m ON m.id=r.member_id AND m.status='active' WHERE post_id=$1 GROUP BY kind", [postId]),
-      this.pool.query("SELECT kind FROM community_reaction WHERE post_id=$1 AND member_id=$2", [postId, memberId ?? null]),
-      this.pool.query(`SELECT c.id, c.body, c.status, c.parent_id AS "parentId", c.reply_to_id AS "replyToId", c.created_at AS "createdAt", m.display_name AS "authorName", c.member_id=$2 AS "isMine",
-        reply_author.display_name AS "replyToName", (SELECT count(*)::int FROM community_comment_like l JOIN member lm ON lm.id=l.member_id AND lm.status='active' WHERE l.comment_id=c.id) AS "likeCount",
-        EXISTS(SELECT 1 FROM community_comment_like l WHERE l.comment_id=c.id AND l.member_id=$2) AS liked
-        FROM community_comment c JOIN member m ON m.id=c.member_id AND m.status='active'
-        LEFT JOIN community_comment reply ON reply.id=c.reply_to_id LEFT JOIN member reply_author ON reply_author.id=reply.member_id
-        WHERE c.post_id=$1 AND ((c.status='published' OR (c.status='deleted' AND c.was_public)) OR (c.member_id=$2 AND c.status IN ('pending','rejected')))
-        ORDER BY c.created_at, c.id LIMIT 500`, [postId, memberId ?? null]),
-      this.pool.query("SELECT count(*)::int count FROM community_comment c JOIN member m ON m.id=c.member_id AND m.status='active' WHERE c.post_id=$1 AND c.status='published'", [postId])
-    ]);
-    return { preview: true, liked: reactions.rows.some(r => r.kind === "like"), saved: reactions.rows.some(r => r.kind === "save"), likeCount: counts.rows.find(r => r.kind === "like")?.count ?? 0, saveCount: counts.rows.find(r => r.kind === "save")?.count ?? 0,
-      commentCount: commentCount.rows[0].count, truncated: comments.rows.length === 500,
-      comments: comments.rows.map(c => ({ ...c, isMine: Boolean(c.isMine), body: c.status === "deleted" ? "这条评论已删除" : c.body })) };
+    const limit = pageLimit(options.limit), cursor = decodeCommentCursor(options.cursor);
+    return readSnapshot(this.pool, async (client, asOf) => {
+      const summary = await client.query(`SELECT
+          COALESCE(s.like_count,0)::int AS "likeCount",COALESCE(s.save_count,0)::int AS "saveCount",
+          COALESCE(s.comment_count,0)::int AS "commentCount",COALESCE(s.version,0)::bigint AS "aggregateVersion",
+          EXISTS(SELECT 1 FROM community_reaction WHERE post_id=$1 AND member_id=$2 AND kind='like') AS liked,
+          EXISTS(SELECT 1 FROM community_reaction WHERE post_id=$1 AND member_id=$2 AND kind='save') AS saved
+        FROM (VALUES(1)) singleton(value) LEFT JOIN community_post_stats s ON s.post_id=$1`, [postId, memberId ?? null]);
+      const comments = await client.query(`WITH page AS MATERIALIZED (
+          SELECT c.* FROM community_comment c JOIN member m ON m.id=c.member_id AND m.status='active'
+          WHERE c.post_id=$1 AND ((c.status='published' OR (c.status='deleted' AND c.was_public)) OR (c.member_id=$2 AND c.status IN ('pending','rejected')))
+            AND ($3::timestamptz IS NULL OR (c.created_at,c.id) > ($3::timestamptz,$4::uuid))
+          ORDER BY c.created_at,c.id LIMIT $5
+        ), like_counts AS (
+          SELECT l.comment_id,count(*)::int AS count FROM community_comment_like l JOIN page p ON p.id=l.comment_id
+          JOIN member lm ON lm.id=l.member_id AND lm.status='active' GROUP BY l.comment_id
+        ), mine AS (SELECT l.comment_id FROM community_comment_like l JOIN page p ON p.id=l.comment_id WHERE l.member_id=$2)
+        SELECT c.id,c.body,c.status,c.parent_id AS "parentId",c.reply_to_id AS "replyToId",c.created_at AS "createdAt",c.member_id AS "authorId",c.member_id=$2 AS "isMine",
+          reply.member_id AS "replyAuthorId",COALESCE(lc.count,0) AS "likeCount",(mine.comment_id IS NOT NULL) AS liked
+        FROM page c
+        LEFT JOIN community_comment reply ON reply.id=c.reply_to_id LEFT JOIN like_counts lc ON lc.comment_id=c.id LEFT JOIN mine ON mine.comment_id=c.id
+        ORDER BY c.created_at,c.id LIMIT $5`, [postId, memberId ?? null, cursor?.createdAt ?? null, cursor?.id ?? null, limit + 1]);
+      const rows = comments.rows.slice(0, limit);
+      const authors = await communityAuthors(client, rows.flatMap(c => [c.authorId,c.replyAuthorId]));
+      const last = comments.rows.length > limit ? rows[rows.length - 1] : null;
+      const nextCursor = last ? commentCursor({ createdAt: last.createdAt, id: last.id }) : null;
+      const aggregate = summary.rows[0];
+      return { preview: true, asOf: asOf.toISOString(), authors, liked: Boolean(aggregate.liked), saved: Boolean(aggregate.saved), likeCount: aggregate.likeCount ?? 0, saveCount: aggregate.saveCount ?? 0,
+        commentCount: aggregate.commentCount ?? 0, aggregateVersion: Number(aggregate.aggregateVersion ?? 0), truncated: Boolean(nextCursor), nextCursor,
+        comments: rows.map(c => ({ ...c, authorName: c.status === "deleted" ? "CISME 会员" : authors[c.authorId]?.name || "CISME 会员", replyToName: c.replyAuthorId ? authors[c.replyAuthorId]?.name || "CISME 会员" : null, isMine: Boolean(c.isMine), body: c.status === "deleted" ? "这条评论已删除" : c.body })) };
+    });
   }
   async reaction(postId: string, memberId: string | undefined, input: { kind?: unknown; active?: unknown }) {
     this.assertPost(postId);

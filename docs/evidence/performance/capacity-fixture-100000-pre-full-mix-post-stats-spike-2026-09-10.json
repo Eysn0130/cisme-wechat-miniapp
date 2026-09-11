@@ -1,0 +1,2193 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-10T14:40:37.438Z",
+  "mode": "local_tcp_isolated_postgresql",
+  "scenario": "mixed",
+  "pattern": "spike",
+  "fixtureUsers": 100000,
+  "fixtureCaps": {
+    "feedItems": 5000,
+    "commentsAndLikes": 20000
+  },
+  "host": {
+    "logicalCpuCount": 10,
+    "memoryLimit": "UNVERIFIED_NO_CONTAINER_QUOTA"
+  },
+  "fairness": {
+    "warmupSeparated": true,
+    "repeatedRounds": 3,
+    "sameMachine": true,
+    "samePostgreSql": true,
+    "syntheticDataOnly": true
+  },
+  "startupMs": 98.59,
+  "fixtureSeedMs": 2188.3,
+  "coldRequest": {
+    "latencyMs": 14.35,
+    "status": 200,
+    "bytes": 211
+  },
+  "warmRequest": {
+    "latencyMs": 4.7,
+    "status": 200,
+    "bytes": 211
+  },
+  "results": [
+    {
+      "round": 1,
+      "baseline": {
+        "requests": 200,
+        "concurrency": 50,
+        "durationTargetMs": null,
+        "elapsedMs": 209.61,
+        "latencyMs": {
+          "p50": 42.17,
+          "p90": 84.59,
+          "p95": 96.58,
+          "p99": 159.15,
+          "max": 187.03
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21503,
+          "p95": 21503,
+          "p99": 21503,
+          "max": 21503
+        },
+        "requestsPerSecond": 954.16,
+        "requestsPerLogicalCpuSecond": 95.42,
+        "cpuMs": 296.08,
+        "cpuMsPerRequest": 1.48,
+        "eventLoopUtilization": 0.7506,
+        "rssPeakBytes": 180715520,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 30
+        },
+        "statuses": {
+          "200": 200
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 2,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 200,
+            "p50": 23.21295800000007,
+            "p95": 52.765208999999686,
+            "p99": 59.02820900000006,
+            "max": 59.23195799999985
+          },
+          "sqlMs": {
+            "count": 620,
+            "p50": 2.2863750000001346,
+            "p95": 13.551916999999776,
+            "p99": 27.910750000000007,
+            "max": 41.80670799999962
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 200,
+              "p50": 40.440207999999984,
+              "p95": 92.31587500000023,
+              "p99": 158.00279100000034,
+              "max": 169.0980410000002
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 200,
+              "p50": 486,
+              "p95": 21503,
+              "p99": 21503,
+              "max": 21503
+            },
+            "total": 200,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 0.021833000000242464,
+                  "p95": 0.3717079999996713,
+                  "p99": 0.4571249999999054,
+                  "max": 0.4571249999999054
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 40,
+                  "p50": 41.44416699999965,
+                  "p95": 68.85866699999997,
+                  "p99": 82.18870799999968,
+                  "max": 82.18870799999968
+                },
+                "responseBytes": {
+                  "count": 40,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 40,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 60,
+                  "p50": 40.040374999999585,
+                  "p95": 64.8432499999999,
+                  "p99": 82.89816599999995,
+                  "max": 82.89816599999995
+                },
+                "responseBytes": {
+                  "count": 60,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 60,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 50.18158399999993,
+                  "p95": 92.31587500000023,
+                  "p99": 106.34191600000031,
+                  "max": 106.34191600000031
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 21503,
+                  "p95": 21503,
+                  "p99": 21503,
+                  "max": 21503
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 20,
+                  "p50": 41.57075000000032,
+                  "p95": 83.61604099999977,
+                  "p99": 93.17325000000028,
+                  "max": 93.17325000000028
+                },
+                "responseBytes": {
+                  "count": 20,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 20,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 61.955375000000004,
+                  "p95": 105.4561249999997,
+                  "p99": 105.4561249999997,
+                  "max": 105.4561249999997
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 10,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 94.22991700000011,
+                  "p95": 169.0980410000002,
+                  "p99": 169.0980410000002,
+                  "max": 169.0980410000002
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 21502,
+                  "p95": 21503,
+                  "p99": 21503,
+                  "max": 21503
+                },
+                "total": 10,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": false,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": false
+        }
+      },
+      "spike": {
+        "requests": 4000,
+        "concurrency": 1000,
+        "durationTargetMs": null,
+        "elapsedMs": 2826.25,
+        "latencyMs": {
+          "p50": 558.81,
+          "p90": 1206.58,
+          "p95": 1553.28,
+          "p99": 2041.53,
+          "max": 2414.45
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 1415.3,
+        "requestsPerLogicalCpuSecond": 141.53,
+        "cpuMs": 2511.65,
+        "cpuMsPerRequest": 0.63,
+        "eventLoopUtilization": 0.7265,
+        "rssPeakBytes": 412237824,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 980
+        },
+        "statuses": {
+          "200": 4000
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 5,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 2048,
+            "p50": 571.4593749999995,
+            "p95": 946.6600829999998,
+            "p99": 954.5571250000003,
+            "max": 957.7253750000004
+          },
+          "sqlMs": {
+            "count": 2048,
+            "p50": 1.569166999999652,
+            "p95": 9.427458000000115,
+            "p99": 15.60241700000006,
+            "max": 26.705165999999736
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 2048,
+              "p50": 598.4045420000002,
+              "p95": 1462.567458,
+              "p99": 2046.7586669999996,
+              "max": 2100.1038750000002
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 2048,
+              "p50": 599,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 4000,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 0.006499999999959982,
+                  "p95": 0.025749999999788997,
+                  "p99": 0.06779199999982666,
+                  "max": 0.09866599999986647
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 600,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 578.1317079999999,
+                  "p95": 845.2273749999995,
+                  "p99": 898.2775420000003,
+                  "max": 920.2587079999998
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 1200,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 619.2384160000001,
+                  "p95": 968.9034999999999,
+                  "p99": 975.7619999999997,
+                  "max": 980.1003750000004
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 800,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 400,
+                  "p50": 548.335333,
+                  "p95": 961.8701249999995,
+                  "p99": 973.1102919999994,
+                  "max": 981.5842500000003
+                },
+                "responseBytes": {
+                  "count": 400,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 400,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 594.9339170000003,
+                  "p95": 969.0278340000004,
+                  "p99": 983.5834170000003,
+                  "max": 984.8601249999997
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 600,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 200,
+                  "p50": 1130.422375,
+                  "p95": 1467.8970830000003,
+                  "p99": 1476.503666,
+                  "max": 1481.2648750000003
+                },
+                "responseBytes": {
+                  "count": 200,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 200,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 200,
+                  "p50": 1354.1560839999997,
+                  "p95": 2061.9689999999996,
+                  "p99": 2083.375667,
+                  "max": 2100.1038750000002
+                },
+                "responseBytes": {
+                  "count": 200,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 200,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": false,
+          "latencyP99": false,
+          "poolWaitP95": false,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": false
+        }
+      },
+      "recovery": {
+        "requests": 200,
+        "concurrency": 50,
+        "durationTargetMs": null,
+        "elapsedMs": 102.21,
+        "latencyMs": {
+          "p50": 22.75,
+          "p90": 40.3,
+          "p95": 43.92,
+          "p99": 63.08,
+          "max": 66.4
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 1956.69,
+        "requestsPerLogicalCpuSecond": 195.67,
+        "cpuMs": 85.5,
+        "cpuMsPerRequest": 0.43,
+        "eventLoopUtilization": 0.7437999999999999,
+        "rssPeakBytes": 422838272,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 30
+        },
+        "statuses": {
+          "200": 200
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 5,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 200,
+            "p50": 13.878459000000475,
+            "p95": 17.97699999999986,
+            "p99": 19.40587500000038,
+            "max": 19.50395800000024
+          },
+          "sqlMs": {
+            "count": 620,
+            "p50": 1.3806669999994483,
+            "p95": 6.83691700000054,
+            "p99": 13.801916999999776,
+            "max": 20.961166999999477
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 200,
+              "p50": 22.19354199999998,
+              "p95": 43.21808299999975,
+              "p99": 62.52045799999996,
+              "max": 65.98158299999977
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 200,
+              "p50": 486,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 200,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 0.004333000000769971,
+                  "p95": 0.019250000000283762,
+                  "p99": 0.023040999999466294,
+                  "max": 0.023040999999466294
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 60,
+                  "p50": 20.636083000000326,
+                  "p95": 27.92750000000069,
+                  "p99": 29.3403330000001,
+                  "max": 29.3403330000001
+                },
+                "responseBytes": {
+                  "count": 60,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 60,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 40,
+                  "p50": 23.5376669999996,
+                  "p95": 31.233250000000226,
+                  "p99": 40.68170900000041,
+                  "max": 40.68170900000041
+                },
+                "responseBytes": {
+                  "count": 40,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 40,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 34.05158399999982,
+                  "p95": 43.306666000000405,
+                  "p99": 43.7524999999996,
+                  "max": 43.7524999999996
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 20,
+                  "p50": 21.832792000000154,
+                  "p95": 28.980625000000146,
+                  "p99": 30.083666999999878,
+                  "max": 30.083666999999878
+                },
+                "responseBytes": {
+                  "count": 20,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 20,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 35.50262500000008,
+                  "p95": 43.07295899999917,
+                  "p99": 43.07295899999917,
+                  "max": 43.07295899999917
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 10,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 55.93920799999978,
+                  "p95": 65.98158299999977,
+                  "p99": 65.98158299999977,
+                  "max": 65.98158299999977
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 10,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        }
+      }
+    },
+    {
+      "round": 2,
+      "baseline": {
+        "requests": 200,
+        "concurrency": 50,
+        "durationTargetMs": null,
+        "elapsedMs": 97.17,
+        "latencyMs": {
+          "p50": 21.91,
+          "p90": 32.62,
+          "p95": 38.97,
+          "p99": 63.65,
+          "max": 65.11
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 2058.33,
+        "requestsPerLogicalCpuSecond": 205.83,
+        "cpuMs": 68.98,
+        "cpuMsPerRequest": 0.34,
+        "eventLoopUtilization": 0.7265,
+        "rssPeakBytes": 424656896,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 30
+        },
+        "statuses": {
+          "200": 200
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 5,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 200,
+            "p50": 12.753834000000097,
+            "p95": 16.979709000000184,
+            "p99": 17.46374999999989,
+            "max": 17.5215419999995
+          },
+          "sqlMs": {
+            "count": 620,
+            "p50": 1.4580000000005384,
+            "p95": 7.072000000000116,
+            "p99": 9.07091600000058,
+            "max": 12.346707999999126
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 200,
+              "p50": 21.356917000000067,
+              "p95": 38.09850000000006,
+              "p99": 62.96029200000066,
+              "max": 63.751916999999594
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 200,
+              "p50": 486,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 200,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 0.004500000000007276,
+                  "p95": 0.05791700000008859,
+                  "p99": 0.058167000000139524,
+                  "max": 0.058167000000139524
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 60,
+                  "p50": 18.474084000000403,
+                  "p95": 22.710415999999896,
+                  "p99": 25.58533299999999,
+                  "max": 25.58533299999999
+                },
+                "responseBytes": {
+                  "count": 60,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 60,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 40,
+                  "p50": 23.317958999999973,
+                  "p95": 28.890542000000096,
+                  "p99": 29.941790999999284,
+                  "max": 29.941790999999284
+                },
+                "responseBytes": {
+                  "count": 40,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 40,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 20,
+                  "p50": 22.34404100000029,
+                  "p95": 28.69470799999999,
+                  "p99": 30.379917000000205,
+                  "max": 30.379917000000205
+                },
+                "responseBytes": {
+                  "count": 20,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 20,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 29.13324999999986,
+                  "p95": 38.09850000000006,
+                  "p99": 38.698333000000275,
+                  "max": 38.698333000000275
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 30.840084000000388,
+                  "p95": 39.251375000000735,
+                  "p99": 39.251375000000735,
+                  "max": 39.251375000000735
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 10,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 56.5884589999996,
+                  "p95": 63.751916999999594,
+                  "p99": 63.751916999999594,
+                  "max": 63.751916999999594
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 10,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        }
+      },
+      "spike": {
+        "requests": 4000,
+        "concurrency": 1000,
+        "durationTargetMs": null,
+        "elapsedMs": 2354.84,
+        "latencyMs": {
+          "p50": 509.98,
+          "p90": 735.68,
+          "p95": 1223.2,
+          "p99": 1768.59,
+          "max": 1832.61
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 1698.63,
+        "requestsPerLogicalCpuSecond": 169.86,
+        "cpuMs": 1899.15,
+        "cpuMsPerRequest": 0.47,
+        "eventLoopUtilization": 0.7043,
+        "rssPeakBytes": 485244928,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 980
+        },
+        "statuses": {
+          "200": 4000
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 8,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 2048,
+            "p50": 509.225375,
+            "p95": 710.05825,
+            "p99": 716.0140000000001,
+            "max": 719.6648329999998
+          },
+          "sqlMs": {
+            "count": 2048,
+            "p50": 1.3725000000004002,
+            "p95": 7.637209000000439,
+            "p99": 11.216542000000118,
+            "max": 19.565874999999323
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 2048,
+              "p50": 650.8760000000002,
+              "p95": 1704.1695,
+              "p99": 1771.770125,
+              "max": 1812.0352080000002
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 2048,
+              "p50": 599,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 4000,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 0.005167000000255939,
+                  "p95": 0.017416000000594067,
+                  "p99": 0.04916699999921548,
+                  "max": 0.33908400000018446
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 600,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 523.7336659999992,
+                  "p95": 688.2422079999997,
+                  "p99": 713.7897079999993,
+                  "max": 720.1821670000008
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 1200,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 400,
+                  "p50": 528.4243749999996,
+                  "p95": 725.5091250000005,
+                  "p99": 737.0384160000003,
+                  "max": 741.7635840000003
+                },
+                "responseBytes": {
+                  "count": 400,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 400,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 602.9475419999999,
+                  "p95": 728.6727500000006,
+                  "p99": 737.9795830000003,
+                  "max": 743.4703330000002
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 800,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 590.6977909999996,
+                  "p95": 735.8788340000001,
+                  "p99": 750.8547079999998,
+                  "max": 758.0079169999999
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 600,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 200,
+                  "p50": 1092.7560829999993,
+                  "p95": 1285.5986669999993,
+                  "p99": 1296.330959,
+                  "max": 1301.5155829999994
+                },
+                "responseBytes": {
+                  "count": 200,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 200,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 200,
+                  "p50": 1704.9320419999995,
+                  "p95": 1785.6956660000005,
+                  "p99": 1799.688583,
+                  "max": 1812.0352080000002
+                },
+                "responseBytes": {
+                  "count": 200,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 200,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": false,
+          "latencyP99": false,
+          "poolWaitP95": false,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": false
+        }
+      },
+      "recovery": {
+        "requests": 200,
+        "concurrency": 50,
+        "durationTargetMs": null,
+        "elapsedMs": 117.26,
+        "latencyMs": {
+          "p50": 26.68,
+          "p90": 45.62,
+          "p95": 53.6,
+          "p99": 76.57,
+          "max": 83.03
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 1705.64,
+        "requestsPerLogicalCpuSecond": 170.56,
+        "cpuMs": 93.09,
+        "cpuMsPerRequest": 0.47,
+        "eventLoopUtilization": 0.69,
+        "rssPeakBytes": 476545024,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 30
+        },
+        "statuses": {
+          "200": 200
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 8,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 200,
+            "p50": 15.288708000000042,
+            "p95": 21.63379200000054,
+            "p99": 22.217540999999983,
+            "max": 23.006124999999884
+          },
+          "sqlMs": {
+            "count": 620,
+            "p50": 1.6526670000002923,
+            "p95": 6.85162500000115,
+            "p99": 13.779166999998779,
+            "max": 19.387124999999287
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 200,
+              "p50": 25.815709000000425,
+              "p95": 52.7973750000001,
+              "p99": 76.30612500000097,
+              "max": 82.57433300000048
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 200,
+              "p50": 486,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 200,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 0.005957999999736785,
+                  "p95": 0.02716599999985192,
+                  "p99": 0.05025000000023283,
+                  "max": 0.05025000000023283
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 60,
+                  "p50": 23.20050000000083,
+                  "p95": 31.36212499999965,
+                  "p99": 34.39262499999859,
+                  "max": 34.39262499999859
+                },
+                "responseBytes": {
+                  "count": 60,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 60,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 20,
+                  "p50": 30.83650000000125,
+                  "p95": 41.614708000000974,
+                  "p99": 46.257166999999754,
+                  "max": 46.257166999999754
+                },
+                "responseBytes": {
+                  "count": 20,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 20,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 40,
+                  "p50": 25.629540999998426,
+                  "p95": 45.1549159999995,
+                  "p99": 51.05662499999926,
+                  "max": 51.05662499999926
+                },
+                "responseBytes": {
+                  "count": 40,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 40,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 33.79945899999984,
+                  "p95": 52.61762500000077,
+                  "p99": 57.49379200000112,
+                  "max": 57.49379200000112
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 43.81029200000012,
+                  "p95": 57.4877919999999,
+                  "p99": 57.4877919999999,
+                  "max": 57.4877919999999
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 10,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 62.384000000000015,
+                  "p95": 82.57433300000048,
+                  "p99": 82.57433300000048,
+                  "max": 82.57433300000048
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 10,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        }
+      }
+    },
+    {
+      "round": 3,
+      "baseline": {
+        "requests": 200,
+        "concurrency": 50,
+        "durationTargetMs": null,
+        "elapsedMs": 99.59,
+        "latencyMs": {
+          "p50": 22.07,
+          "p90": 33.92,
+          "p95": 39.93,
+          "p99": 63.08,
+          "max": 67.22
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 2008.22,
+        "requestsPerLogicalCpuSecond": 200.82,
+        "cpuMs": 70.65,
+        "cpuMsPerRequest": 0.35,
+        "eventLoopUtilization": 0.7295999999999999,
+        "rssPeakBytes": 476987392,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 30
+        },
+        "statuses": {
+          "200": 200
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 8,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 200,
+            "p50": 13.315666999998939,
+            "p95": 16.167209000001094,
+            "p99": 17.172500000000582,
+            "max": 18.525915999998688
+          },
+          "sqlMs": {
+            "count": 620,
+            "p50": 1.525708000001032,
+            "p95": 6.49212499999885,
+            "p99": 10.95574999999917,
+            "max": 13.698500000000422
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 200,
+              "p50": 21.093666999999186,
+              "p95": 39.50595799999974,
+              "p99": 62.45679200000086,
+              "max": 66.77416699999958
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 200,
+              "p50": 486,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 200,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 0.004582999999911408,
+                  "p95": 0.0226249999996071,
+                  "p99": 0.04516700000021956,
+                  "max": 0.04516700000021956
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 60,
+                  "p50": 19.852082999999766,
+                  "p95": 23.551292000000103,
+                  "p99": 24.324209000000337,
+                  "max": 24.324209000000337
+                },
+                "responseBytes": {
+                  "count": 60,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 60,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 40,
+                  "p50": 22.372957999999926,
+                  "p95": 29.007790999999997,
+                  "p99": 31.313374999999724,
+                  "max": 31.313374999999724
+                },
+                "responseBytes": {
+                  "count": 40,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 40,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 20,
+                  "p50": 22.910750000000917,
+                  "p95": 28.906208999998853,
+                  "p99": 33.714625000000524,
+                  "max": 33.714625000000524
+                },
+                "responseBytes": {
+                  "count": 20,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 20,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 30.143207999999504,
+                  "p95": 41.39404099999956,
+                  "p99": 43.218667000001005,
+                  "max": 43.218667000001005
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 33.43425000000025,
+                  "p95": 36.64745799999946,
+                  "p99": 36.64745799999946,
+                  "max": 36.64745799999946
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 10,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 56.674582999999984,
+                  "p95": 66.77416699999958,
+                  "p99": 66.77416699999958,
+                  "max": 66.77416699999958
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 10,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        }
+      },
+      "spike": {
+        "requests": 4000,
+        "concurrency": 1000,
+        "durationTargetMs": null,
+        "elapsedMs": 2276.68,
+        "latencyMs": {
+          "p50": 483.09,
+          "p90": 599.81,
+          "p95": 1009.85,
+          "p99": 1502.76,
+          "max": 1604.91
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 1756.95,
+        "requestsPerLogicalCpuSecond": 175.69,
+        "cpuMs": 2008.28,
+        "cpuMsPerRequest": 0.5,
+        "eventLoopUtilization": 0.7061,
+        "rssPeakBytes": 503824384,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 980
+        },
+        "statuses": {
+          "200": 4000
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 10,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 2048,
+            "p50": 472.81875000000036,
+            "p95": 565.7918330000011,
+            "p99": 571.878999999999,
+            "max": 575.4909579999985
+          },
+          "sqlMs": {
+            "count": 2048,
+            "p50": 1.71875,
+            "p95": 16.419292000000496,
+            "p99": 30.205291000000216,
+            "max": 56.00754099999904
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 2048,
+              "p50": 503.4104580000003,
+              "p95": 1436.6032079999986,
+              "p99": 1521.7509580000005,
+              "max": 1602.8268329999992
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 2048,
+              "p50": 599,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 4000,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 0.004666999999244581,
+                  "p95": 0.017916999999215477,
+                  "p99": 0.06279100000028848,
+                  "max": 0.15795800000159943
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 600,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 479.6759579999998,
+                  "p95": 575.5298750000002,
+                  "p99": 580.3272919999999,
+                  "max": 593.3102920000001
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 1200,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 514.6769170000007,
+                  "p95": 576.6155409999992,
+                  "p99": 588.0855419999989,
+                  "max": 595.1692919999987
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 800,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 400,
+                  "p50": 483.6937909999997,
+                  "p95": 560.0477080000001,
+                  "p99": 584.2045419999995,
+                  "max": 597.1131659999992
+                },
+                "responseBytes": {
+                  "count": 400,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 400,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 512,
+                  "p50": 508.0105000000003,
+                  "p95": 580.4482910000006,
+                  "p99": 599.4434999999994,
+                  "max": 615.7707910000008
+                },
+                "responseBytes": {
+                  "count": 512,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 600,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 200,
+                  "p50": 956.5096250000006,
+                  "p95": 1022.5830829999995,
+                  "p99": 1034.3489170000012,
+                  "max": 1036.6036249999997
+                },
+                "responseBytes": {
+                  "count": 200,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 200,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 200,
+                  "p50": 1437.9689999999991,
+                  "p95": 1542.600708,
+                  "p99": 1570.8395830000009,
+                  "max": 1602.8268329999992
+                },
+                "responseBytes": {
+                  "count": 200,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 200,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": false,
+          "latencyP99": false,
+          "poolWaitP95": false,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": false
+        }
+      },
+      "recovery": {
+        "requests": 200,
+        "concurrency": 50,
+        "durationTargetMs": null,
+        "elapsedMs": 149.41,
+        "latencyMs": {
+          "p50": 33.85,
+          "p90": 53.79,
+          "p95": 58.52,
+          "p99": 94.46,
+          "max": 95.62
+        },
+        "responseBytes": {
+          "p50": 486,
+          "p90": 21504,
+          "p95": 21504,
+          "p99": 21504,
+          "max": 21504
+        },
+        "requestsPerSecond": 1338.58,
+        "requestsPerLogicalCpuSecond": 133.86,
+        "cpuMs": 89.37,
+        "cpuMsPerRequest": 0.45,
+        "eventLoopUtilization": 0.5527000000000001,
+        "rssPeakBytes": 503922688,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 30
+        },
+        "statuses": {
+          "200": 200
+        },
+        "failures": 0,
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "serverErrorRate": 0,
+        "runtime": {
+          "startedAt": "2026-09-10T14:40:26.667Z",
+          "uptimeSeconds": 10,
+          "pool": {
+            "total": 20,
+            "idle": 20,
+            "waiting": 0
+          },
+          "poolWaitMs": {
+            "count": 200,
+            "p50": 19.869125000001077,
+            "p95": 26.950541000000158,
+            "p99": 29.34520800000064,
+            "max": 30.809417000000394
+          },
+          "sqlMs": {
+            "count": 620,
+            "p50": 2.1112499999999272,
+            "p95": 12.12304199999926,
+            "p99": 19.037000000000262,
+            "max": 21.476667000000816
+          },
+          "storageMs": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "transactionRetries": {
+            "count": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0
+          },
+          "http": {
+            "durationMs": {
+              "count": 200,
+              "p50": 33.1025410000002,
+              "p95": 58.33883400000013,
+              "p99": 92.98958299999867,
+              "max": 93.93679200000042
+            },
+            "coldDurationMs": {
+              "count": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0,
+              "max": 0
+            },
+            "responseBytes": {
+              "count": 200,
+              "p50": 486,
+              "p95": 21504,
+              "p99": 21504,
+              "max": 21504
+            },
+            "total": 200,
+            "clientErrors": 0,
+            "serverErrors": 0,
+            "timeouts": 0,
+            "routes": {
+              "/v1/capabilities": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 0.004124999999476131,
+                  "p95": 0.04183299999931478,
+                  "p99": 0.04500000000007276,
+                  "max": 0.04500000000007276
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 211,
+                  "p95": 211,
+                  "p99": 211,
+                  "max": 211
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/bootstrap/home": {
+                "durationMs": {
+                  "count": 60,
+                  "p50": 28.64479200000096,
+                  "p95": 38.79620799999975,
+                  "p99": 45.05420799999956,
+                  "max": 45.05420799999956
+                },
+                "responseBytes": {
+                  "count": 60,
+                  "p50": 486,
+                  "p95": 486,
+                  "p99": 486,
+                  "max": 486
+                },
+                "total": 60,
+                "errors": 0
+              },
+              "/v1/bootstrap/profile": {
+                "durationMs": {
+                  "count": 20,
+                  "p50": 38.50012500000048,
+                  "p95": 41.68816699999843,
+                  "p99": 47.895667000000685,
+                  "max": 47.895667000000685
+                },
+                "responseBytes": {
+                  "count": 20,
+                  "p50": 599,
+                  "p95": 599,
+                  "p99": 599,
+                  "max": 599
+                },
+                "total": 20,
+                "errors": 0
+              },
+              "/v1/feed/page": {
+                "durationMs": {
+                  "count": 40,
+                  "p50": 36.93133399999897,
+                  "p95": 47.551124999999956,
+                  "p99": 53.141208000000915,
+                  "max": 53.141208000000915
+                },
+                "responseBytes": {
+                  "count": 40,
+                  "p50": 8223,
+                  "p95": 8223,
+                  "p99": 8223,
+                  "max": 8223
+                },
+                "total": 40,
+                "errors": 0
+              },
+              "/v1/community/:postId": {
+                "durationMs": {
+                  "count": 30,
+                  "p50": 48.19350000000122,
+                  "p95": 58.67345899999964,
+                  "p99": 59.93370799999866,
+                  "max": 59.93370799999866
+                },
+                "responseBytes": {
+                  "count": 30,
+                  "p50": 21504,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 30,
+                "errors": 0
+              },
+              "/v1/me/points": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 50.583291999999346,
+                  "p95": 56.358666999998604,
+                  "p99": 56.358666999998604,
+                  "max": 56.358666999998604
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 114,
+                  "p95": 114,
+                  "p99": 114,
+                  "max": 114
+                },
+                "total": 10,
+                "errors": 0
+              },
+              "/v1/community/:postId/reaction": {
+                "durationMs": {
+                  "count": 10,
+                  "p50": 84.79779099999905,
+                  "p95": 93.93679200000042,
+                  "p99": 93.93679200000042,
+                  "max": 93.93679200000042
+                },
+                "responseBytes": {
+                  "count": 10,
+                  "p50": 21503,
+                  "p95": 21504,
+                  "p99": 21504,
+                  "max": 21504
+                },
+                "total": 10,
+                "errors": 0
+              }
+            }
+          }
+        },
+        "slo": {
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Local loopback is not CloudBase or production-like network evidence.",
+    "Logical CPU count is reported; no vCPU quota was enforced.",
+    "Mini Program render, image decode, physical-device and 4G latency are not measured."
+  ]
+}

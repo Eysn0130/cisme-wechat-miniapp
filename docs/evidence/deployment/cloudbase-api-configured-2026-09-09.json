@@ -1,0 +1,135 @@
+{
+  "checkedAt": "2026-09-08T23:35:43.876367+00:00",
+  "environment": "cloud1-d4g0khuk495d48600",
+  "function": "cismeApi",
+  "authorization": "User explicitly authorized existing WeChat, database, storage and server credentials to this function in response annotation 1.",
+  "configuration": {
+    "savedAndReadBack": true,
+    "environmentKeyCount": 18,
+    "timeoutSeconds": 60,
+    "memoryMB": 256,
+    "databaseCertificatePath": "/var/user/supabase-prod-ca.crt",
+    "workerLoop": false
+  },
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/health/ready",
+      "status": 200,
+      "body": {
+        "status": "ready",
+        "communityPreviewEnabled": false,
+        "transactionProfile": null,
+        "pointsRedemptionEnabled": false,
+        "ugcGoLiveGate": false,
+        "pointsRulesEnabled": false
+      },
+      "scope": "Actual SELECT 1 and storage.ensureReady() in deployed business API"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/feed",
+      "status": 200,
+      "body": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me",
+      "status": 401,
+      "code": "AUTH_INVALID",
+      "scope": "No bearer token supplied; authentication gate remains effective"
+    }
+  ],
+  "logReadback": {
+    "available": false,
+    "error": "ResourceNotFound.TopicNotExist"
+  },
+  "remaining": [
+    "Permanent cloud transport configuration after upload validation",
+    "Full end-user login with approved legal documents and actual consent",
+    "Authenticated invite and upload lifecycle",
+    "Scheduled worker deployment",
+    "Current-source complete visual and physical-device acceptance",
+    "Team trial delivery"
+  ],
+  "nativeSdkCheck": {
+    "devtoolsVersion": "Stable 2.02.2608070",
+    "baseLibrary": "3.15.2",
+    "function": "cismeApi",
+    "path": "/health/ready",
+    "callbackStatus": 200,
+    "promiseStatus": 200,
+    "status": "ready",
+    "requestId": "573d25ce-abde-11f1-8b61-5254005a2290",
+    "scope": "Actual DevTools Console invocation through wx.cloud.callHTTPFunction; not page integration or physical-device acceptance"
+  },
+  "errorTransportDeployment": {
+    "success": true,
+    "filesCount": 5671,
+    "packSize": "33.9 MB",
+    "entrySha256": "ed30f4dd456ca306afa78dfa490591916e32b13d2059d7b6d0100952b2f37eda",
+    "requestHeader": {
+      "X-CISME-Transport": "cloud-http-v1"
+    },
+    "nativeCheck": {
+      "path": "/v1/me",
+      "transportStatus": 200,
+      "businessStatus": 401,
+      "code": "AUTH_REQUIRED",
+      "traceId": "fa233414-56b4-4a51-9f0a-48f24429fe5f"
+    },
+    "tests": {
+      "unitFiles": 18,
+      "unitTests": 134,
+      "passed": true,
+      "typecheck": true
+    }
+  },
+  "wechatExchangeDiagnostic": {
+    "submittedConsents": [],
+    "nativeHttpStatus": 200,
+    "businessStatus": 422,
+    "code": "CONSENT_REQUIRED",
+    "traceId": "e526121c-1c65-4509-96a5-76e4a24d8293",
+    "scope": "wx.login code passed to deployed /v1/identity/wechat; reached identity consent validation after official jscode2session exchange",
+    "completedLogin": false,
+    "memberCreated": false,
+    "consentGranted": false
+  },
+  "publicRouteDeployment": {
+    "success": true,
+    "entrySha256": "74fd69dd773b794b165169eddba7225378e16c6c2ff1accf9d9ad9f1ba28593f",
+    "filesCount": 5671,
+    "packSize": "33.9 MB",
+    "fix": "Authorize against pathname instead of full URL; query parameters cannot accidentally make a public read require login.",
+    "validation": "Query-parameter regression test passed; native page retry changed from 401 to successful feed load."
+  },
+  "nativePageCheck": {
+    "sourceSha256": "07336cb4ada052572756d262d7ca2b5c810ef411d6e7a3a7ad7e553994e01b23",
+    "devtoolsVersion": "Stable 2.02.2608070",
+    "baseLibrary": "3.15.2",
+    "recompiledAppServiceInstance": 1788911144583,
+    "route": "pages/community/index",
+    "loading": false,
+    "error": "",
+    "feedCount": 0,
+    "tasksError": "",
+    "cloudFunction": {
+      "env": "cloud1-d4g0khuk495d48600",
+      "name": "cismeApi"
+    },
+    "identityMode": "guest",
+    "cloudTargetTemporarilySetForDiagnostic": true,
+    "originalCloudTargetAndSessionRestored": true,
+    "consoleErrors": 0,
+    "consoleWarnings": 5,
+    "scope": "Current-source page request flow through real cloud API; not a full visual audit, member flow, permanent release configuration or device acceptance"
+  },
+  "tests": {
+    "unitFiles": 18,
+    "unitTests": 135,
+    "passed": true,
+    "typecheck": true,
+    "packageGate": true
+  }
+}

@@ -13,7 +13,215 @@ tags:
   - name: Admin
   - name: Read models
   - name: Attribution
+  - name: Authority
+  - name: Support
 paths:
+  /v1/capabilities:
+    get:
+      operationId: runtimeCapabilities
+      security: []
+      description: Cheap public feature projection; performs no database or object-storage readiness probe and contains no member data.
+      responses: {'200': {description: Versioned public runtime capabilities}}
+  /v1/bootstrap/home:
+    get: {tags: [Read models], operationId: bootstrapHome, security: [{session: []}], responses: {'200': {description: One repeatable-read member and care home snapshot with asOf and businessVersion}}}
+  /v1/bootstrap/profile:
+    get: {tags: [Read models], operationId: bootstrapProfile, security: [{session: []}], responses: {'200': {description: One repeatable-read member, care and points snapshot with asOf and businessVersion}}}
+  /v1/bootstrap/settings:
+    get: {tags: [Read models], operationId: bootstrapSettings, security: [{session: []}], responses: {'200': {description: One repeatable-read member, phone and consent snapshot with asOf and businessVersion}}}
+  /v1/identity/capabilities:
+    get:
+      operationId: identityCapabilities
+      security: []
+      description: Public runtime switches for the native login button. Contains no credentials or member data. Phone true means server configuration is enabled, not proof of successful end-user authorization.
+      responses:
+        '200':
+          description: Native login capabilities
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [phoneBindingEnabled, avatarSelection]
+                properties:
+                  phoneBindingEnabled: {type: boolean}
+                  avatarSelection: {type: string, enum: [chooseAvatar]}
+  /v1/me/privacy-requests:
+    get:
+      operationId: listMyPrivacyRequests
+      security: [{session: []}]
+      responses: {'200': {description: Last 100 requests belonging only to the current member}}
+    post:
+      operationId: submitPrivacyRequest
+      security: [{session: []}]
+      description: Registers access, correct, delete, close_account, withdraw or other request; deduplicates identical unanswered requests and limits to 10 per day. Does not execute deletion or account closure.
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}}}}}
+      responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
+  /v1/admin/privacy-requests:
+    get:
+      operationId: privacyRequestQueue
+      description: Requires admin token, principal, and support or review_lead role.
+      security: [{adminToken: [], adminPrincipal: []}]
+      responses: {'200': {description: Requests with pending first}, '403': {description: Missing operator role}}
+  /v1/admin/privacy-requests/{requestId}/response:
+    post:
+      operationId: respondPrivacyRequest
+      description: Requires admin token and support or review_lead role. Saves an auditable member-visible reply, not an automatic data operation.
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Version-guarded saved response; never proof of execution}, '409': {description: Request changed or closed}, '403': {description: Missing operator role}, '404': {description: Request not found}}
+  /v1/admin/privacy-requests/{requestId}/execution-plan:
+    post:
+      operationId: planPrivacyRequestExecution
+      description: Review-lead-only, idempotent creation of one plan-only export job or dry-run erasure job. Does not read an export archive, delete data, close an account, approve a job, or run a job.
+      security: [{adminToken: [], adminPrincipal: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [expectedVersion, reasonCode], properties: {expectedVersion: {type: integer, minimum: 1}, reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}}}}}
+      responses: {'200': {description: Non-executing plan created or exact idempotent replay}, '409': {description: Stale, closed, already planned, or manual-only request}, '403': {description: Missing review_lead role}, '404': {description: Request not found}}
+  /v1/legal:
+    get:
+      operationId: currentLegalDocuments
+      description: Public full text and versions of active terms/privacy and optional separate cross_border notice; ready only when both exist. Never records acceptance.
+      responses: {'200': {description: Current published documents and ready flag}}
+  /v1/me/profile:
+    get:
+      operationId: readOwnMemberProfile
+      security: [{session: []}]
+      description: Own nickname, small canonical JPEG avatar, optional private WeChat handle, revision and community display review status. No other member contact details.
+      responses: {'200': {description: Own profile}, '401': {description: Active member session required}}
+    put:
+      operationId: updateOwnMemberProfile
+      security: [{session: []}]
+      description: Updates only the current member. expectedVersion prevents stale edits; omitted only for legacy clients. Omitted avatar/handle/visibility preserve existing data. Null avatar removes it. Community identity is private unless explicitly requested and independently approved; nickname/avatar changes withdraw prior approval. Login never rewrites this profile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [displayName]
+              properties:
+                displayName: {type: string, minLength: 1, maxLength: 40}
+                wechatHandle: {type: string, maxLength: 20}
+                avatarDataUrl: {type: [string, 'null'], maxLength: 100000, description: JPEG data URI only; decoded with dimension/memory limits and re-encoded as a 128-pixel thumbnail. External and temporary URLs are rejected.}
+                communityVisible: {type: boolean}
+                expectedVersion: {type: integer, minimum: 0}
+      responses: {'200': {description: Saved own profile with incremented revision}, '409': {description: Profile changed; reload before retry}, '422': {description: Invalid nickname or avatar}}
+  /v1/team/member-profiles:
+    get:
+      operationId: pendingCommunityProfiles
+      security: [{session: []}]
+      description: Verified team members only; up to 50 pending public nickname/avatar requests. Excludes private contact information.
+      responses: {'200': {description: Pending profiles}, '403': {description: Team access required}}
+  /v1/team/member-profiles/{memberId}/review:
+    post:
+      operationId: reviewCommunityProfile
+      security: [{session: []}]
+      description: Requires independent team reviewer and the current revision; self-review, stale decisions and approval after withdrawal are rejected.
+      parameters: [{name: memberId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [decision, expectedVersion, reason], properties: {decision: {type: string, enum: [approve, reject]}, expectedVersion: {type: integer, minimum: 0}, reason: {type: string, minLength: 2, maxLength: 200}}}}}
+      responses: {'200': {description: Audited review}, '403': {description: Independent team reviewer required}, '409': {description: Profile or review changed}}
+  /v1/me/phone:
+    get:
+      operationId: phoneBindingStatus
+      security: [{session: []}]
+      responses: {'200': {description: Only the caller masked phone and binding capability}}
+    delete:
+      operationId: unbindOwnPhone
+      security: [{session: []}]
+      description: Deletes the current member encrypted phone and blind index without changing their identity, care records or profile. Keeps only prior code-consumption and action audit evidence. Does not require the phone capability to be enabled.
+      responses: {'200': {description: Unbound, idempotently}, '401': {description: Active member required}}
+    post:
+      operationId: bindWechatPhone
+      security: [{session: []}]
+      description: Exchanges a user-triggered one-time WeChat phone code, verifies app watermark, encrypts storage and uses a HMAC blind index. No automatic account merge or registration reward.
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [code], properties: {code: {type: string, minLength: 1, maxLength: 512}}}}}
+      responses: {'200': {description: Bound and masked number}, '409': {description: Code consumed by another member or phone already bound}, '503': {description: Binding service unavailable}}
+  /v1/me/community-access:
+    get:
+      operationId: communityCapabilities
+      security: [{session: []}]
+      responses: {'200': {description: Current environment-scoped community.moderate capability and canReview flag; legacy team rows do not authorize}}
+  /v1/me/follows:
+    get:
+      operationId: followedAuthors
+      security: [{session: []}]
+      responses: {'200': {description: Caller followed author IDs}}
+  /v1/me/following:
+    get:
+      operationId: followingFeed
+      security: [{session: []}]
+      responses: {'200': {description: Latest published content by followed authors; publication gate remains enforced}}
+  /v1/me/following/page:
+    get:
+      operationId: followingFeedPage
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Repeatable-read stable cursor page with de-duplicated public author projection}}
+  /v1/me/follows/{authorId}:
+    parameters: [{name: authorId, in: path, required: true, schema: {type: string}}]
+    put:
+      operationId: setFollow
+      security: [{session: []}]
+      description: Sets desired state idempotently; author must be CISME editorial or an author of published content.
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [active], properties: {active: {type: boolean}}}}}
+      responses: {'200': {description: Saved following state}, '422': {description: Invalid state or self follow}}
+  /v1/team/reviews:
+    get:
+      operationId: nativeReviewQueue
+      security: [{session: []}]
+      description: Requires current database team membership and review role; client role headers are ignored.
+      responses: {'200': {description: Pending submissions}, '403': {description: Team access denied}}
+  /v1/team/publications:
+    get:
+      operationId: nativePublicationQueue
+      security: [{session: []}]
+      responses: {'200': {description: Approved submissions awaiting publication review}, '403': {description: Team access denied}}
+  /v1/team/submissions/{submissionId}/review:
+    parameters: [{name: submissionId, in: path, required: true, schema: {type: string, format: uuid}}]
+    post:
+      operationId: nativeReviewSubmission
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      description: Same versioned evidence review as admin endpoint; only approve, reject or request_changes are accepted.
+      responses: {'200': {description: Reviewed state}, '403': {description: Team access denied}, '409': {description: Version or state conflict}}
+  /v1/team/submissions/{submissionId}/publish:
+    parameters: [{name: submissionId, in: path, required: true, schema: {type: string, format: uuid}}]
+    post:
+      operationId: nativePublishSubmission
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      description: Requires another review lead, active public-display consent, UGC gate and publication title/excerpt/AI declaration/evidence. Queues an audited publication event.
+      responses: {'200': {description: Publication queued or already published}, '403': {description: Team access denied}, '409': {description: Four-eyes or consent conflict}, '503': {description: Publication gate closed}}
+  /v1/uploads/{mediaId}/chunks:
+    parameters: [{name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}]
+    post:
+      operationId: cloudUploadChunk
+      description: Signed short-lived upload token required in body. Sequential 512 KiB base64 chunks, total at most 10 MiB. Replays must contain identical bytes. No final object is exposed to client writes.
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [token, index, totalBytes, base64], properties: {token: {type: string}, index: {type: integer, minimum: 0, maximum: 19}, totalBytes: {type: integer, minimum: 1, maximum: 10485760}, base64: {type: string, maxLength: 699052}}}}}
+      responses: {'200': {description: Chunk durably received}, '401': {description: Invalid or expired token}, '409': {description: Conflict or wrong order}}
+  /v1/uploads/{mediaId}/assemble:
+    parameters: [{name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}]
+    post:
+      operationId: assembleCloudUpload
+      description: Requires all chunks and same signed token; reuses submission/media locks and gateway validation. Member must still call existing media completion to verify and commit current evidence.
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [token], properties: {token: {type: string}}}}}
+      responses: {'200': {description: Object written awaiting completion}, '409': {description: Incomplete or locked upload}}
   /health/live:
     get: {operationId: live, responses: {'200': {description: Process live}}}
   /health/ready:
@@ -47,6 +255,41 @@ paths:
       responses: {'200': {$ref: '#/components/responses/Care'}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/me/care:
     get: {tags: [Care], operationId: getCare, security: [{session: []}], responses: {'200': {$ref: '#/components/responses/Care'}}}
+  /v1/me/addresses:
+    get:
+      tags: [Member]
+      operationId: listDeliveryAddresses
+      security: [{session: []}]
+      responses: {'200': {description: Member-owned encrypted delivery-address book, content: {application/json: {schema: {$ref: '#/components/schemas/DeliveryAddressList'}}}}}
+    post:
+      tags: [Member]
+      operationId: createDeliveryAddress
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DeliveryAddressInput'}}}}
+      responses: {'200': {description: Address saved without creating an order, content: {application/json: {schema: {$ref: '#/components/schemas/DeliveryAddress'}}}}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/me/addresses/{addressId}:
+    parameters: [{$ref: '#/components/parameters/AddressId'}]
+    put:
+      tags: [Member]
+      operationId: updateDeliveryAddress
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DeliveryAddressUpdateInput'}}}}
+      responses: {'200': {description: Versioned address update, content: {application/json: {schema: {$ref: '#/components/schemas/DeliveryAddress'}}}}, '409': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [Member]
+      operationId: deleteDeliveryAddress
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}
+      responses: {'200': {description: Address soft-deleted; another saved address becomes default when needed}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/me/addresses/{addressId}/default:
+    post:
+      tags: [Member]
+      operationId: setDefaultDeliveryAddress
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/AddressId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}
+      responses: {'200': {description: Address selected as the member default}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/care-cycles/{cycleId}/activate:
     post:
       tags: [Care]
@@ -69,7 +312,7 @@ paths:
       operationId: completeCareMilestone
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/CycleId'}, {name: milestone, in: path, required: true, schema: {$ref: '#/components/schemas/Milestone'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CareVersionCommandInput'}}}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CareMilestoneCommandInput'}}}}
       responses: {'200': {description: Versioned milestone record and optional task, or exact command replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/me/tasks:
     get: {tags: [Read models], operationId: getEligibleTasks, security: [{session: []}], responses: {'200': {description: Member-owned effective invitations}}}
@@ -89,7 +332,7 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind, mimeType], properties: {kind: {type: string, enum: [original, screenshot]}, mimeType: {type: string}, maxBytes: {type: integer, maximum: 10485760}}}}}}
-      responses: {'200': {description: Presigned POST or controlled gateway authorization}, '503': {$ref: '#/components/responses/Problem'}}
+      responses: {'200': {description: Controlled gateway POST or feature-gated 10-minute single-object COS PUT authorization; completion always revalidates bytes, type and hash}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/uploads/{mediaId}:
     post:
       tags: [Submission]
@@ -129,7 +372,7 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubmissionInput'}}}}
       responses: {'200': {description: Submitted or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/submissions/{submissionId}:
-    get: {tags: [Read models], operationId: getSubmission, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}], responses: {'200': {description: Object-owned submission view}, '404': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Read models], operationId: getSubmission, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}], responses: {'200': {description: Object-owned submission view including authoritative media_uploads_enabled kill-switch state}, '404': {$ref: '#/components/responses/Problem'}}}
   /v1/submissions/{submissionId}/appeal:
     post: {tags: [Submission], operationId: appeal, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: Versioned appeal created or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/reviews:
@@ -209,11 +452,13 @@ paths:
   /v1/admin/switches:
     get: {tags: [Admin], operationId: listEmergencySwitches, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Versioned emergency and business switch states}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/switches/{key}:
-    put: {tags: [Admin], operationId: setEmergencySwitch, security: [{adminToken: [], adminPrincipal: []}], parameters: [{name: key, in: path, required: true, schema: {type: string, enum: [identity, uploads, reviews, rewards, submissions, redemption, commerce]}}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, reason, expectedVersion], properties: {enabled: {type: boolean}, reason: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Versioned, audited switch update or exact replay; independent business kill switches}, '409': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}}}
+    put: {tags: [Admin], operationId: setEmergencySwitch, security: [{adminToken: [], adminPrincipal: []}], parameters: [{name: key, in: path, required: true, schema: {type: string, enum: [identity, uploads, reviews, rewards, submissions, redemption, commerce, community]}}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, reason, expectedVersion], properties: {enabled: {type: boolean}, reason: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Versioned, audited switch update or exact replay; independent business kill switches. Community remains off until formal UGC routes, moderation, legal, privacy and device gates pass.}, '409': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/worker-failures:
     get: {tags: [Admin], operationId: listWorkerFailures, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered dead-lettered outbox and media-cleanup items}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/worker-backlog:
     get: {tags: [Admin], operationId: listWorkerBacklog, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered unprocessed event counts, oldest event and explicit implemented/unimplemented handler state}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/admin/runtime-metrics:
+    get: {tags: [Admin], operationId: runtimeMetrics, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Bounded in-process latency percentiles, retry counts and pool occupancy; no SQL text, headers or member identifiers}}}
   /v1/admin/worker-failures/{queue}/{itemId}/redrive:
     post:
       tags: [Admin]
@@ -232,8 +477,154 @@ paths:
     post: {tags: [Submission], operationId: revokeConsent, security: [{session: []}], parameters: [{name: consentGrantId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: New use blocked; historical evidence retained; exact replay returned}}}
   /v1/feed:
     get: {tags: [Read models], operationId: curatedFeed, responses: {'200': {description: Explicitly publication-approved, licensed, non-revoked read-only feed; fail-closed empty while the UGC go-live gate is off}}}
+  /v1/feed/page:
+    get:
+      tags: [Read models]
+      operationId: curatedFeedPage
+      security: []
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Repeatable-read stable cursor page, de-duplicated public authors, nextCursor and asOf}}
+  /v1/feed/{postId}:
+    get:
+      tags: [Read models]
+      operationId: curatedFeedItem
+      security: []
+      parameters: [{name: postId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses: {'200': {description: One currently visible publication with public author projection and asOf}, '404': {$ref: '#/components/responses/Problem'}}
   /v1/catalog:
-    get: {tags: [Read models], operationId: catalog, security: [], responses: {'200': {description: Public small read-only SKU catalog; checkout disabled}}}
+    get:
+      tags: [Read models, Commerce]
+      operationId: catalog
+      security: []
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Cursor-paged eligible and published first-party products; checkout is enabled only for isolated synthetic non-production products when the server gate is open}}
+  /v1/catalog/{productCode}:
+    get:
+      tags: [Read models, Commerce]
+      operationId: catalogProductDetail
+      security: []
+      parameters: [{name: productCode, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9][a-z0-9-]{2,63}$'}}]
+      responses: {'200': {description: One eligible and published product with integer CNY cents and current stock}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/commerce/orders/status:
+    get:
+      tags: [Commerce]
+      operationId: commerceOrderStatus
+      security: []
+      responses: {'200': {description: Explicit order-flow and payment availability; payment remains unavailable and onboarding is IN_PROGRESS}}
+  /v1/me/commerce/quotes:
+    post:
+      tags: [Commerce]
+      operationId: createCommerceQuote
+      security: [{session: []}]
+      description: Creates an expiring server-authoritative CNY quote for one eligible published synthetic SKU and an owned versioned address. No inventory is reserved.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceQuoteInput'}}}}
+      responses: {'200': {description: Quote or exact replay}, '409': {description: stock, sellability or idempotency conflict}, '422': {$ref: '#/components/responses/Problem'}, '503': {description: isolated order gate closed}}
+  /v1/me/orders:
+    get:
+      tags: [Commerce]
+      operationId: myCommerceOrders
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Owner-only pending-payment, cancelled and expired order history}}
+    post:
+      tags: [Commerce]
+      operationId: createPendingCommerceOrder
+      security: [{session: []}]
+      description: Revalidates quote, current sellability, price, address version and available stock in one transaction; creates only pending_payment and reserves inventory. There is no payment-success route.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCreateInput'}}}}
+      responses: {'200': {description: Pending-payment order or exact replay}, '409': {description: quote stale or expired, address changed, or inventory unavailable}, '503': {description: isolated order gate closed}}
+  /v1/me/orders/{orderId}:
+    get:
+      tags: [Commerce]
+      operationId: myCommerceOrderDetail
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Owner-only immutable order line and address snapshots}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/cancel:
+    post:
+      tags: [Commerce]
+      operationId: cancelPendingCommerceOrder
+      security: [{session: []}]
+      description: Cancels an owned pending-payment order and releases active inventory reservations exactly once. Remains available when the create gate is closed.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCancelInput'}}}}
+      responses: {'200': {description: Cancelled order or exact replay}, '409': {description: stale or terminal order state}}
+  /v1/management/commerce/orders:
+    get:
+      tags: [Commerce, Authority]
+      operationId: managementCommerceOrders
+      security: [{session: []}]
+      description: Requires commerce.order.read; address fields are redacted and full delivery detail is not exposed by this slice.
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Cursor-paged redacted order list}, '403': {$ref: '#/components/responses/Problem'}}
+  /v1/management/commerce/orders/{orderId}:
+    get:
+      tags: [Commerce, Authority]
+      operationId: managementCommerceOrderDetail
+      security: [{session: []}]
+      description: Requires commerce.order.read and returns only masked recipient and phone plus broad region.
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Redacted order detail}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/management/catalog/products:
+    get:
+      tags: [Commerce, Authority]
+      operationId: managementCatalog
+      security: [{session: []}]
+      description: Requires any catalog management capability; includes draft, pending, blocked and legacy preview records.
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Cursor-paged management catalog}, '403': {$ref: '#/components/responses/Problem'}}
+    post:
+      tags: [Commerce, Authority]
+      operationId: createCatalogProduct
+      security: [{session: []}]
+      description: Requires commerce.product.manage. Creates one draft product with one SKU, integer-CNY-cent price and zero stock. No purchase flow is created.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CatalogProductCreate'}}}}
+      responses: {'200': {description: Created product or exact replay}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/management/catalog/products/{productId}:
+    get:
+      tags: [Commerce, Authority]
+      operationId: managementCatalogProduct
+      security: [{session: []}]
+      parameters: [{name: productId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses: {'200': {description: Current product, SKU, price and inventory versions}, '403': {$ref: '#/components/responses/Problem'}}
+    put:
+      tags: [Commerce, Authority]
+      operationId: updateCatalogProduct
+      security: [{session: []}]
+      description: Requires commerce.product.manage and expected product, SKU and price versions.
+      parameters: [{name: productId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CatalogProductUpdate'}}}}
+      responses: {'200': {description: Updated product or exact replay}, '409': {description: Version or idempotency conflict}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/management/catalog/products/{productId}/qualification:
+    post:
+      tags: [Commerce, Authority]
+      operationId: qualifyCatalogProduct
+      security: [{session: []}]
+      description: Requires commerce.qualification.manage. Eligible decisions require a reviewed evidence reference; immutable decision evidence is retained.
+      parameters: [{name: productId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion, status, reason], properties: {expectedVersion: {type: integer, minimum: 1}, status: {enum: [pending, eligible, blocked]}, reason: {type: string, minLength: 3, maxLength: 1000}, evidenceRef: {type: string, minLength: 3, maxLength: 500}}}}}}
+      responses: {'200': {description: Updated qualification state}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/management/catalog/products/{productId}/publication:
+    post:
+      tags: [Commerce, Authority]
+      operationId: changeCatalogPublication
+      security: [{session: []}]
+      description: Requires commerce.product.manage. Publish requires eligible qualification and an active priced SKU; synthetic products are forbidden in production. Purchase remains disabled.
+      parameters: [{name: productId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion, action, reason], properties: {expectedVersion: {type: integer, minimum: 1}, action: {enum: [publish, unpublish]}, reason: {type: string, minLength: 3, maxLength: 500}}}}}}
+      responses: {'200': {description: Publication state changed}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/management/catalog/skus/{skuId}/inventory-adjustments:
+    post:
+      tags: [Commerce, Authority]
+      operationId: adjustCatalogInventory
+      security: [{session: []}]
+      description: Requires commerce.inventory.manage. Row lock, expected version, reason and idempotency prevent lost or duplicate stock changes.
+      parameters: [{name: skuId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion, delta, reason], properties: {expectedVersion: {type: integer, minimum: 1}, delta: {type: integer, not: {const: 0}}, reason: {type: string, minLength: 3, maxLength: 500}}}}}}
+      responses: {'200': {description: Versioned inventory and immutable adjustment ID}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/me/shares:
     get:
       tags: [Attribution]
@@ -275,9 +666,9 @@ paths:
   /v1/community/{postId}:
     get:
       operationId: communityPreview
-      description: Local development/test only. Five explicitly labelled brand-preview stories. Never enables production UGC. Anonymous reads contain published comments and previously public tombstones; pending/rejected comments are owner-only. At most 500 comment rows; truncated indicates the limit. Counts come from persisted active-member interactions.
+      description: Local development/test only. Five explicitly labelled brand-preview stories. Never enables production UGC. Anonymous reads contain published comments and previously public tombstones; pending/rejected comments are owner-only. A repeatable-read stable cursor page contains at most 100 comments; nextCursor and truncated indicate more rows. Counts come from persisted active-member interactions.
       security: [{}, {session: []}]
-      parameters: [{$ref: '#/components/parameters/CommunityPostId'}]
+      parameters: [{$ref: '#/components/parameters/CommunityPostId'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
       responses: {'200': {$ref: '#/components/responses/CommunityPreview'}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/community/{postId}/reaction:
     put:
@@ -316,32 +707,174 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason], properties: {decision: {enum: [published, rejected]}, reason: {type: string, minLength: 4}}}}}}
       responses: {'200': {description: Audited review result}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
 
+  /v1/me/authority:
+    get:
+      tags: [Authority]
+      operationId: ownAuthorityProjection
+      security: [{session: []}]
+      description: Active capabilities granted to the authenticated member. Membership or client flags never imply management authority; every sensitive route rechecks its own capability.
+      responses: {'200': {description: Versioned role-aware capability projection}}
+  /v1/me/support/summary:
+    get: {tags: [Support], operationId: ownSupportSummary, security: [{session: []}], responses: {'200': {description: The caller's one conversation and unread badge, or an empty projection}}}
+  /v1/me/support/messages:
+    get:
+      tags: [Support]
+      operationId: ownSupportMessages
+      security: [{session: []}]
+      description: Latest, older-before, or incremental-after persisted messages from the caller's single support conversation.
+      parameters: [{name: after, in: query, schema: {type: integer, minimum: 0}}, {name: before, in: query, schema: {type: integer, minimum: 1}}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Cursor page; PostgreSQL sequence is authoritative}}
+    post:
+      tags: [Support]
+      operationId: sendOwnSupportMessage
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupportMessageInput'}}}}
+      responses: {'200': {description: Persisted message or exact client retry}, '409': {description: clientMessageId reused with different text}}
+  /v1/me/support/handoff:
+    post: {tags: [Support], operationId: requestHumanSupport, security: [{session: []}], responses: {'200': {description: Idempotent transition to waiting_human; never allows AI to reply after human_active}}}
+  /v1/me/support/read:
+    post:
+      tags: [Support]
+      operationId: markOwnSupportRead
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [lastSeenSequence], properties: {lastSeenSequence: {type: integer, minimum: 0}}}}}}
+      responses: {'200': {description: Monotonic member read cursor}}
+  /v1/management/support/conversations:
+    get:
+      tags: [Support, Authority]
+      operationId: supportConversationQueue
+      security: [{session: []}]
+      description: Requires support.read. Waiting-human, unread and recent conversations are ordered for a mobile queue.
+      parameters: [{name: cursor, in: query, schema: {type: string, maxLength: 512}, description: Opaque role/unread/activity tuple returned by the preceding page}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: Minimal member display projection and cursor queue}, '403': {description: support.read required}}
+  /v1/management/support/conversations/{conversationId}/messages:
+    get:
+      tags: [Support, Authority]
+      operationId: operatorSupportMessages
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}, {name: after, in: query, schema: {type: integer, minimum: 0}}, {name: before, in: query, schema: {type: integer, minimum: 1}}, {$ref: '#/components/parameters/PageLimit'}]
+      responses: {'200': {description: support.read message cursor page}, '403': {description: support.read required}}
+    post:
+      tags: [Support, Authority]
+      operationId: operatorReplySupport
+      security: [{session: []}]
+      description: Requires support.reply and caller ownership of the human_active conversation. AI has no write path here.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupportMessageInput'}}}}
+      responses: {'200': {description: Persisted audited reply or exact retry}, '403': {description: support.reply required}, '409': {description: Claim required or idempotency conflict}}
+  /v1/management/support/conversations/{conversationId}/claim:
+    post:
+      tags: [Support, Authority]
+      operationId: claimSupportConversation
+      security: [{session: []}]
+      description: Requires support.assign. Row lock plus expectedVersion permits only one competing operator to claim.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
+      responses: {'200': {description: Audited human_active assignment}, '403': {description: support.assign required}, '409': {description: Already assigned, resolved, or changed}}
+  /v1/management/support/conversations/{conversationId}/read:
+    post:
+      tags: [Support, Authority]
+      operationId: markOperatorSupportRead
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [lastSeenSequence], properties: {lastSeenSequence: {type: integer, minimum: 0}}}}}}
+      responses: {'200': {description: support.read monotonic shared-team read cursor}}
+  /v1/management/support/conversations/{conversationId}/resolve:
+    post:
+      tags: [Support, Authority]
+      operationId: resolveSupportConversation
+      security: [{session: []}]
+      description: Requires support.reply, current assignment, explicit mobile confirmation and expectedVersion. A later member message reopens into waiting_human.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
+      responses: {'200': {description: Audited resolved state}, '409': {description: Assignment or version conflict}}
+  /v1/management/support/conversations/{conversationId}/member-context:
+    post:
+      tags: [Support, Authority]
+      operationId: supportMemberContext
+      security: [{session: []}]
+      description: Requires member.support_view and records an audit event. Returns only nickname, member state, masked phone and join time; no address or care detail.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      responses: {'200': {description: Audited minimal support context}, '403': {description: member.support_view required}}
+  /v1/management/support/conversations/{conversationId}/retention:
+    get:
+      tags: [Support, Authority]
+      operationId: supportRetentionEligibility
+      security: [{session: []}]
+      description: Requires privacy.request.manage. Evaluates the approved active policy, resolved timestamp, and member/conversation legal holds without exposing message text or member identity.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      responses: {'200': {description: policy_pending, not_resolved, legal_hold, not_due, or eligible state}, '403': {description: privacy.request.manage required}}
+  /v1/management/support/conversations/{conversationId}/purge:
+    post:
+      tags: [Support, Authority]
+      operationId: purgeSupportConversation
+      security: [{session: []}]
+      description: Requires privacy.request.manage, an enforced active retention policy, elapsed duration, no active member or conversation legal hold, expectedVersion, and Idempotency-Key. Deletes exactly one conversation and its messages while preserving a minimal audit tombstone and body-free outbox event.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
+      responses: {'200': {description: Purge receipt or exact idempotent replay}, '409': {description: Policy pending, not resolved, not due, stale version, or idempotency conflict}, '423': {description: Active legal hold}, '403': {description: privacy.request.manage required}}
+  /v1/management/support/ai/status:
+    get:
+      tags: [Support, Authority]
+      operationId: supportAiStatus
+      security: [{session: []}]
+      description: Requires support.read. Runtime remains PROVIDER INTEGRATION PENDING with no approved source, external transfer, business-write tool or auto-send.
+      responses: {'200': {description: Provider, approved knowledge and safety-gate status}, '403': {$ref: '#/components/responses/Problem'}}
+  /v1/management/support/conversations/{conversationId}/suggested-reply:
+    post:
+      tags: [Support, Authority]
+      operationId: supportSuggestedReply
+      security: [{session: []}]
+      description: Requires support.reply and current human ownership. Returns only a cited draft for operator review; never persists or sends it. Currently returns PROVIDER INTEGRATION PENDING.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      responses: {'200': {description: Cited suggested-reply draft when a provider and approved knowledge are separately enabled}, '409': {description: ownership conflict or ungrounded output}, '503': {description: provider, knowledge or timeout pending}}
+
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
     adminToken: {type: apiKey, in: header, name: x-admin-token}
     adminPrincipal: {type: apiKey, in: header, name: x-principal-id}
   parameters:
+    Cursor: {name: cursor, in: query, required: false, schema: {type: string, maxLength: 256}, description: Opaque stable tuple cursor returned by the preceding page.}
+    PageLimit: {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 100}}
     CommunityPostId: {name: postId, in: path, required: true, schema: {type: string, enum: [brand-scalp-ritual, brand-night-routine, brand-care-journal, brand-roots-check, brand-product-ritual]}}
     CommentId: {name: commentId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    SupportConversationId: {name: conversationId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 200}}
     CycleId: {name: cycleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     TaskId: {name: taskId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     SubmissionId: {name: submissionId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     ShareId: {name: shareId, in: path, required: true, schema: {type: string, pattern: '^[0-9a-f]{32}$'}}
+    AddressId: {name: addressId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    OrderId: {name: orderId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
   requestBodies:
     Identity: {required: true, content: {application/json: {schema: {type: object, required: [displayName, consents], properties: {code: {type: string}, externalUserId: {type: string}, displayName: {type: string}, consents: {type: array, minItems: 2, items: {type: object, required: [documentType, version], properties: {documentType: {type: string}, version: {type: string}}}}}}}}}
   responses:
-    CommunityPreview: {description: Persisted local-preview state, content: {application/json: {schema: {type: object, required: [preview, liked, saved, likeCount, saveCount, commentCount, comments, truncated], properties: {preview: {const: true}, liked: {type: boolean}, saved: {type: boolean}, likeCount: {type: integer}, saveCount: {type: integer}, commentCount: {type: integer}, truncated: {type: boolean}, comments: {type: array, maxItems: 500, items: {type: object, required: [id, body, status, authorName, isMine, createdAt, likeCount, liked], properties: {id: {$ref: '#/components/schemas/Uuid'}, body: {type: string}, status: {enum: [pending, published, rejected, deleted]}, authorName: {type: string}, isMine: {type: boolean}, createdAt: {type: string, format: date-time}, parentId: {type: [string, 'null']}, replyToId: {type: [string, 'null']}, replyToName: {type: [string, 'null']}, likeCount: {type: integer}, liked: {type: boolean}}}}}}}}}
+    CommunityPreview: {description: Persisted local-preview state with PostgreSQL-authoritative transactional aggregate version, content: {application/json: {schema: {type: object, required: [preview, liked, saved, likeCount, saveCount, commentCount, aggregateVersion, comments, truncated, nextCursor, asOf], properties: {preview: {const: true}, asOf: {type: string, format: date-time}, liked: {type: boolean}, saved: {type: boolean}, likeCount: {type: integer}, saveCount: {type: integer}, commentCount: {type: integer}, aggregateVersion: {type: integer, minimum: 0}, truncated: {type: boolean}, nextCursor: {type: [string, 'null']}, comments: {type: array, maxItems: 100, items: {type: object, required: [id, body, status, authorName, isMine, createdAt, likeCount, liked], properties: {id: {$ref: '#/components/schemas/Uuid'}, body: {type: string}, status: {enum: [pending, published, rejected, deleted]}, authorName: {type: string}, isMine: {type: boolean}, createdAt: {type: string, format: date-time}, parentId: {type: [string, 'null']}, replyToId: {type: [string, 'null']}, replyToName: {type: [string, 'null']}, likeCount: {type: integer}, liked: {type: boolean}}}}}}}}}
     Identity: {description: Member identity and short-lived signed session, content: {application/json: {schema: {type: object, required: [memberId, identityId, principalId, sessionToken], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, identityId: {$ref: '#/components/schemas/Uuid'}, principalId: {type: string}, sessionToken: {type: string}}}}}}
     Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
     Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
   schemas:
+    CommerceQuoteInput: {type: object, additionalProperties: false, required: [skuId, quantity, addressId, addressVersion], properties: {skuId: {$ref: '#/components/schemas/Uuid'}, quantity: {type: integer, minimum: 1, maximum: 99}, addressId: {$ref: '#/components/schemas/Uuid'}, addressVersion: {type: integer, minimum: 1}}}
+    CommerceOrderCreateInput: {type: object, additionalProperties: false, required: [quoteId], properties: {quoteId: {$ref: '#/components/schemas/Uuid'}}}
+    CommerceOrderCancelInput: {type: object, additionalProperties: false, required: [expectedVersion, reason], properties: {expectedVersion: {type: integer, minimum: 1}, reason: {type: string, minLength: 3, maxLength: 500}}}
+    CatalogSkuInput: {type: object, additionalProperties: false, required: [code, label, priceCents], properties: {code: {type: string, pattern: '^[A-Z0-9][A-Z0-9_-]{2,63}$'}, label: {type: string, minLength: 1, maxLength: 120}, priceCents: {type: integer, minimum: 1, maximum: 100000000}, active: {type: boolean}}}
+    CatalogProductCreate: {type: object, additionalProperties: false, required: [code, name, sku], properties: {code: {type: string, pattern: '^[a-z0-9][a-z0-9-]{2,63}$'}, name: {type: string, minLength: 1, maxLength: 120}, subtitle: {type: string, maxLength: 240}, description: {type: string, maxLength: 4000}, imagePath: {type: [string, 'null'], description: Allowlisted packaged JPG only; media upload is outside R4-A}, sourceKind: {enum: [admin, synthetic_test]}, sku: {$ref: '#/components/schemas/CatalogSkuInput'}}}
+    CatalogProductUpdate: {allOf: [{$ref: '#/components/schemas/CatalogProductCreate'}, {type: object, required: [expectedVersion, sku], properties: {expectedVersion: {type: integer, minimum: 1}, sku: {allOf: [{$ref: '#/components/schemas/CatalogSkuInput'}, {type: object, required: [id, expectedVersion, expectedPriceVersion], properties: {id: {$ref: '#/components/schemas/Uuid'}, expectedVersion: {type: integer, minimum: 1}, expectedPriceVersion: {type: integer, minimum: 1}}}]}}}]}
+    ExpectedVersion: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
+    SupportMessageInput: {type: object, additionalProperties: false, required: [body, clientMessageId], properties: {body: {type: string, minLength: 1, maxLength: 4000}, clientMessageId: {type: string, minLength: 8, maxLength: 200, pattern: '^[A-Za-z0-9._:-]+$'}}}
     CareVersionCommandInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
+    CareMilestoneCommandInput: {type: object, additionalProperties: false, required: [expectedVersion, stepCodes, selfAssessment], properties: {expectedVersion: {type: integer, minimum: 1}, stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}}}
     Uuid: {type: string, format: uuid}
     Id: {type: object, required: [id], properties: {id: {$ref: '#/components/schemas/Uuid'}}}
     Milestone: {type: string, enum: [D1, D7, D14, D28]}
-    CareView: {type: [object, 'null'], properties: {id: {$ref: '#/components/schemas/Uuid'}, phase: {type: string, enum: [planned, active, paused, terminated, completed]}, startedOn: {type: [string, 'null'], format: date}, timezone: {type: string}, protocolVersion: {type: string}, completed: {type: array, items: {$ref: '#/components/schemas/Milestone'}}, due: {oneOf: [{$ref: '#/components/schemas/Milestone'}, {type: 'null'}]}, next: {oneOf: [{$ref: '#/components/schemas/Milestone'}, {type: 'null'}]}, version: {type: integer}, scheduleOffsetDays: {type: integer, minimum: 0}, pausePolicy: {type: object, properties: {enabled: {type: boolean}, maxDays: {type: integer, minimum: 0}, version: {type: [string, 'null']}}}}}
+    CareRecordView: {type: object, required: [milestone, completedAt, protocolVersion, stepCodes, selfAssessment], properties: {milestone: {$ref: '#/components/schemas/Milestone'}, completedAt: {type: string, format: date-time}, protocolVersion: {type: string}, stepCodes: {type: array, items: {type: string, enum: ['00','01','02','03']}}, selfAssessment: {type: [string, 'null'], enum: [comfortable, neutral, attention, null]}}}
+    CareArchiveView: {type: object, required: [id, phase, startedOn, timezone, protocolVersion, completed, due, next, version, scheduleOffsetDays, pausePolicy, records], properties: {id: {$ref: '#/components/schemas/Uuid'}, phase: {type: string, enum: [planned, active, paused, terminated, completed]}, startedOn: {type: [string, 'null'], format: date}, timezone: {type: string}, protocolVersion: {type: string}, completed: {type: array, items: {$ref: '#/components/schemas/Milestone'}}, due: {oneOf: [{$ref: '#/components/schemas/Milestone'}, {type: 'null'}]}, next: {oneOf: [{$ref: '#/components/schemas/Milestone'}, {type: 'null'}]}, version: {type: integer}, scheduleOffsetDays: {type: integer, minimum: 0}, pausePolicy: {type: object, properties: {enabled: {type: boolean}, maxDays: {type: integer, minimum: 0}, version: {type: [string, 'null']}}}, records: {type: array, items: {$ref: '#/components/schemas/CareRecordView'}}}}
+    CareView: {oneOf: [{type: 'null'}, {allOf: [{$ref: '#/components/schemas/CareArchiveView'}, {type: object, properties: {history: {type: array, description: Previous care cycles, newest first. Present on GET /v1/me/care., items: {$ref: '#/components/schemas/CareArchiveView'}}}}]}]}
+    DeliveryAddressInput: {type: object, additionalProperties: false, required: [recipientName, phone, province, city, district, detail, label], properties: {recipientName: {type: string, minLength: 1, maxLength: 40}, phone: {type: string, minLength: 6, maxLength: 24}, province: {type: string, minLength: 1, maxLength: 40}, city: {type: string, minLength: 1, maxLength: 40}, district: {type: string, minLength: 1, maxLength: 40}, detail: {type: string, minLength: 2, maxLength: 120}, postalCode: {type: string, maxLength: 12}, nationalCode: {type: string, maxLength: 12, description: Legacy district-level code alias}, provinceCode: {type: string, maxLength: 12}, cityCode: {type: string, maxLength: 12}, districtCode: {type: string, maxLength: 12}, label: {type: string, enum: [home, company, other]}, isDefault: {type: boolean}}}
+    DeliveryAddressUpdateInput: {allOf: [{$ref: '#/components/schemas/DeliveryAddressInput'}, {type: object, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}]}
+    DeliveryAddress: {allOf: [{$ref: '#/components/schemas/DeliveryAddressInput'}, {type: object, required: [id, isDefault, version, updatedAt], properties: {id: {$ref: '#/components/schemas/Uuid'}, isDefault: {type: boolean}, version: {type: integer, minimum: 1}, updatedAt: {type: string, format: date-time}}}]}
+    DeliveryAddressList: {type: object, required: [enabled, maxAddresses, addresses], properties: {enabled: {type: boolean}, maxAddresses: {type: integer, const: 10}, addresses: {type: array, maxItems: 10, items: {$ref: '#/components/schemas/DeliveryAddress'}}}}
     SubmissionInput: {type: object, required: [postUrl, platformAccount, disclosure, license, expectedVersion], properties: {postUrl: {type: string, maxLength: 500}, platformAccount: {type: string, maxLength: 120}, disclosure: {type: string, maxLength: 300}, license: {type: object, required: [content_storage, human_review, feed_readonly], properties: {content_storage: {const: true}, human_review: {const: true}, feed_readonly: {type: boolean, default: false, description: Optional public read-only publication consent; never required for review or base reward}}}, expectedVersion: {type: integer, minimum: 1}}}
     ReviewInput: {type: object, required: [decision, reasonCode, expectedVersion], properties: {decision: {type: string, enum: [request_changes, reject, approve]}, reasonCode: {type: string}, evidence: {type: object}, expectedVersion: {type: integer, minimum: 1}}}
     PointsActionInput: {type: object, required: [action, expectedGrantVersion, reasonCode, evidence], properties: {action: {type: string, enum: [unfreeze, expire, reverse_remaining]}, expectedGrantVersion: {type: integer, minimum: 1}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}

@@ -1,0 +1,47 @@
+{
+  "sourceSha256": "2debfb01386a7ba605b4ada7d66e65511a14b839cf005f23c2d3401d128047b6",
+  "date": "2026-09-09",
+  "migration": "202609090006_member_identity_display.sql",
+  "cloudFunction": {
+    "name": "cismeApi",
+    "deploymentSuccess": true,
+    "files": 6430,
+    "package": "35.1 MB"
+  },
+  "shanghaiRelease": "20260909-profile",
+  "services": {
+    "api": "active",
+    "worker": "active",
+    "internalReadiness": "ready",
+    "workstationDirectHttps": "TLS connection failed"
+  },
+  "legalReadback": {
+    "ready": true,
+    "documents": [
+      {
+        "type": "privacy",
+        "version": "2026-09-09-v3-profile",
+        "publishedAt": "2026-09-09T10:05:30.002Z"
+      },
+      {
+        "type": "terms",
+        "version": "2026-09-09-v3-profile",
+        "publishedAt": "2026-09-09T10:05:30.002Z"
+      }
+    ]
+  },
+  "nativeUpload": {
+    "version": "0.1.3-dev.20260909",
+    "success": true,
+    "size": 1431951
+  },
+  "previewGenerated": true,
+  "nativeEvidence": "member-profile-native-current-2026-09-09.png",
+  "coverage": "guest account only; real profile selection pending; not full route acceptance",
+  "tests": {
+    "unit": 164,
+    "integration": 63,
+    "typecheck": "passed",
+    "contracts": "passed"
+  }
+}

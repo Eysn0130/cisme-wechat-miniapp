@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-09",
+  "sourceSha256": "2dd74c417c1339448ea23a97731786532c175950b5b10e593fcd388a010788fc",
+  "devtoolsVersion": "Stable 2.02.2608070",
+  "baseLibrary": "3.15.2",
+  "device": "DevTools iPhone X simulator at 64%",
+  "transport": "cloud HTTP cismeApi",
+  "states": [
+    {
+      "route": "pages/home/index",
+      "state": "guest",
+      "observed": [
+        "会员账号 entry visible",
+        "Guest login CTA visible",
+        "Public community browsing copy visible"
+      ],
+      "screenshot": "native-current-home-guest-2026-09-09.png"
+    },
+    {
+      "route": "pages/account/index",
+      "state": "formal legal documents unavailable",
+      "observed": [
+        "Consent checkbox and registration action disabled",
+        "Phone authorization is separate and optional",
+        "Public community browse button available",
+        "Terms and privacy action sheet opens"
+      ],
+      "screenshot": "native-current-account-blocked-2026-09-09.png"
+    }
+  ],
+  "limitations": [
+    "No personal WeChat consent or phone authorization performed",
+    "No device screenshot outside simulator",
+    "Other routes and states not accepted by these images",
+    "Full current-source acceptance remains blocked"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-09-08T17:49:41.966Z",
+  "devtools": "2.02.2608031 RC",
+  "baseLibrary": "3.15.2",
+  "platform": "macOS",
+  "appLaunchMarker": "CISME_SDK_EMPTY_PROBE_COMPLETE",
+  "pageRendered": true,
+  "errors": [
+    {
+      "kind": "appServiceSDKScriptError",
+      "message": "timeout",
+      "source": "WAServiceMainContext.js"
+    }
+  ],
+  "warnings": 2,
+  "businessNetworkRequestsInSource": 0,
+  "sourceHashes": {
+    "project.config.json": "f33e8f2b53ace74516e317cb84f5e49322cfd7445c0f221daaceb560904ecc50",
+    "app.js": "d7d4aa0668dd7f19db06011fc9bea018c2730df2e58638fd762031d8d3cc72bb",
+    "app.json": "bc3dc02a1c98196fad762c2ca6bb6efc57c3ce2820225f2aadb27fc6bdb41b44",
+    "pages/index/index.js": "0895cb310fb18e3f6b35229e90218b9bd57abde1bb8820f33ff98f73fe83a0d5",
+    "pages/index/index.wxml": "ad33ef494ab9aab836e8df6eaf3bd92d8b0ea9861ec0a29ccaeb41d6ec334ae6",
+    "pages/index/index.wxss": "2ea7662f648b09e144bb685b637d4544a71b138ddfd716696593cc8f6b52cf03"
+  },
+  "conclusion": "Same error reproduced without CISME business code; exact platform cause unresolved. Not full application acceptance."
+}

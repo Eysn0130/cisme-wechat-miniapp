@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-08T17:41:09.259Z",
+  "sourceSha256": "326f66260bac017eda78fed4e4594468e7e988caf59d11162f85817bb555c74c",
+  "baseLibrary": "3.15.2",
+  "observed": "DevTools console WeChatLib 3.15.2; Home rendered",
+  "typecheck": true,
+  "packageBudget": true,
+  "nativeCloudCall": {
+    "function": "cismeHttpReadiness",
+    "path": "/health/live",
+    "businessApiNotSwitched": true,
+    "attempts": [
+      {
+        "result": "cloud.callHttpFunction:fail 404"
+      },
+      {
+        "status": 200,
+        "body": {
+          "service": "cismeHttpReadiness",
+          "version": "2026-09-09.3",
+          "runtime": "v24.14.0",
+          "architecture": "x64",
+          "platform": "linux",
+          "glibc": "2.28",
+          "requestPath": "/health/live",
+          "businessDeployment": false
+        }
+      }
+    ]
+  },
+  "scope": "Simulator native wx.cloud.callHTTPFunction to deployed diagnostic succeeded after an initial 404 and diagnostic redeployment. Does not prove business login, storage, full page/state or device acceptance."
+}

@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-09-08T16:28:10.760Z",
+  "scope": "compiled API plus worker, isolated local database",
+  "ready": true,
+  "backgroundCleanupCompleted": true,
+  "exitCode": 0,
+  "exitSignal": null,
+  "stderrEmpty": true,
+  "passed": true
+}

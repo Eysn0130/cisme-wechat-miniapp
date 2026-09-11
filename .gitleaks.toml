@@ -1,0 +1,16 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public SHA-256 artifact digests are identifiers, not credentials"
+regexTarget = "match"
+regexes = [
+  '''(?i)(?:sha-?256|sha256)[^\n]{0,40}["`:\s=]+[a-f0-9]{64}'''
+]
+
+[[allowlists]]
+description = "Named synthetic idempotency keys used only by integration tests"
+regexTarget = "match"
+regexes = [
+  '''idempotency-key["']?\s*:\s*["'](?:r4b-stock-below-reserved|order-cancel-buyer-a-01)["']'''
+]

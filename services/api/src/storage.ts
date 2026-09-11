@@ -12,9 +12,11 @@ import {
   type S3ClientConfig
 } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import COS from "cos-nodejs-sdk-v5";
 import type { UploadAuthorization } from "@cisme/contracts";
 import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
+import { recordMetric } from "./observability.js";
 
 export interface StoredObject {
   bytes: number;
@@ -29,6 +31,22 @@ export interface ObjectStorage {
   delete(objectKey: string): Promise<void>;
   acceptsGatewayUpload: boolean;
   writeGatewayObject?(input: { token: string; mediaId: string; objectKey: string; bytes: Uint8Array; mimeType: string; now: Date }): Promise<StoredObject>;
+}
+
+function observeStorage(storage: ObjectStorage): ObjectStorage {
+  const timed = async <T>(work: () => Promise<T>): Promise<T> => {
+    const started = performance.now();
+    try { return await work(); }
+    finally { recordMetric("storage_ms", performance.now() - started); }
+  };
+  return {
+    acceptsGatewayUpload: storage.acceptsGatewayUpload,
+    ensureReady: () => timed(() => storage.ensureReady()),
+    authorize: (input) => timed(() => storage.authorize(input)),
+    verify: (key) => timed(() => storage.verify(key)),
+    delete: (key) => timed(() => storage.delete(key)),
+    ...(storage.writeGatewayObject ? { writeGatewayObject: (input: Parameters<NonNullable<ObjectStorage["writeGatewayObject"]>>[0]) => timed(() => storage.writeGatewayObject!(input)) } : {})
+  };
 }
 
 function checksum(bytes: Uint8Array): string {
@@ -155,7 +173,7 @@ function validateUploadAuthorization(input: { maxBytes: number; mimeType: string
   }
 }
 
-function validateGatewayUpload(input: GatewayUploadInput, secret: string) {
+export function validateGatewayUpload(input: GatewayUploadInput, secret: string) {
   const [payload, supplied, extra] = input.token.split(".");
   if (!payload || !supplied || extra !== undefined) throw new DomainError("UPLOAD_TOKEN_INVALID", "Upload token is invalid", 401);
   const expected = gatewaySignature(payload, secret);
@@ -196,9 +214,54 @@ export function createS3GatewayStorage(config: AppConfig): ObjectStorage {
 }
 
 export function createObjectStorage(config: AppConfig): ObjectStorage {
-  if (config.objectStorage.driver === "s3_gateway") return createS3GatewayStorage(config);
-  if (config.objectStorage.driver === "api_gateway") return createApiGatewayStorage(config);
-  return createS3Storage(config);
+  if (config.objectStorage.driver === "cos_gateway") return observeStorage(createCosGatewayStorage(config));
+  if (config.objectStorage.driver === "s3_gateway") return observeStorage(createS3GatewayStorage(config));
+  if (config.objectStorage.driver === "api_gateway") return observeStorage(createApiGatewayStorage(config));
+  return observeStorage(createS3Storage(config));
+}
+
+export function createCosGatewayStorage(config: AppConfig): ObjectStorage {
+  const client = new COS({
+    SecretId: config.objectStorage.accessKeyId ?? "",
+    SecretKey: config.objectStorage.secretAccessKey ?? "",
+    Protocol: "https:",
+    Timeout: 30_000
+  });
+  const location = { Bucket: config.objectStorage.bucket, Region: config.objectStorage.region };
+  const authorization = createApiGatewayStorage(config);
+  return {
+    acceptsGatewayUpload: !config.media.directUploadEnabled,
+    async authorize(input) {
+      if (!config.media.directUploadEnabled) return authorization.authorize(input);
+      validateUploadAuthorization(input);
+      const headers = { "Content-Type": input.mimeType, "x-cos-meta-media-id": input.mediaId, "x-cos-forbid-overwrite": "true" };
+      const signature = COS.getAuthorization({ SecretId: config.objectStorage.accessKeyId!, SecretKey: config.objectStorage.secretAccessKey!, ...location, Method: "PUT", Key: input.objectKey, Headers: headers, Expires: 600 });
+      const encodedKey = input.objectKey.split("/").map(encodeURIComponent).join("/");
+      return {
+        mediaId: input.mediaId,
+        method: "PUT",
+        url: `https://${location.Bucket}.cos.${location.Region}.myqcloud.com/${encodedKey}`,
+        fields: {},
+        headers: { ...headers, Authorization: signature },
+        expiresAt: new Date(input.now.getTime() + 600_000).toISOString()
+      };
+    },
+    async ensureReady() { await client.headBucket(location); },
+    async writeGatewayObject(input) {
+      const claims = validateGatewayUpload(input, config.objectStorage.uploadTokenSecret);
+      const detectedMime = detectImageMime(input.bytes);
+      if (detectedMime !== claims.mimeType) throw new DomainError("UPLOAD_CONTENT_MISMATCH", "Image content does not match authorization", 422);
+      await client.putObject({ ...location, Key: claims.objectKey, Body: Buffer.from(input.bytes), ContentType: claims.mimeType, "x-cos-meta-media-id": claims.mediaId });
+      return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
+    },
+    async verify(objectKey) {
+      const result = await client.getObject({ ...location, Key: objectKey });
+      const bytes = result.Body;
+      if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 422);
+      return { bytes: bytes.length, checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
+    },
+    async delete(objectKey) { await client.deleteObject({ ...location, Key: objectKey }); }
+  };
 }
 
 export function objectKey(submissionId: string, kind: string): string {

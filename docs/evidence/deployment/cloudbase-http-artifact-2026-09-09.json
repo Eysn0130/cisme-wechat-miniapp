@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-09-08T17:15:27.730Z",
+  "artifact": "dist/cloudbase-api",
+  "runtime": "v24.14.0",
+  "serverSha256": "3a6c862beaa3694952278d420a5cabeb979a24ef883875f14535c9555383ba7b",
+  "files": 5668,
+  "bytes": 17680902,
+  "bootstrapExecutable": true,
+  "healthLiveStatus": 200,
+  "unauthenticatedMemberStatus": 401,
+  "scope": "Local compiled artifact only. No real database/storage, HTTP cloud deployment or end-user login validated.",
+  "runtimeRequirement": ">=24.14 <25; advertised CloudBase Nodejs24.11 requires actual runtime check or compatible custom image."
+}

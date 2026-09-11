@@ -1,7 +1,7 @@
 import { access, mkdir, readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import { miniProgramApiOrigins } from "../apps/miniprogram/release-config";
+import { miniProgramApiOrigins, miniProgramCloudFunctions } from "../apps/miniprogram/release-config";
 import { evaluateDesignQaEvidence } from "./design-qa-lib";
 import { validateWeChatRelease, type WeChatReleaseTarget } from "./wechat-release-lib";
 
@@ -44,6 +44,8 @@ const errors = validateWeChatRelease({
   projectAppId: projectConfig.appid ?? "",
   ...(process.env.WECHAT_APP_ID ? { expectedAppId: process.env.WECHAT_APP_ID } : {}),
   apiOrigin,
+  ...(miniProgramCloudFunctions[target === "local" ? "devtools" : target] ? { cloudTarget: miniProgramCloudFunctions[target === "local" ? "devtools" : target]! } : {}),
+  cloudTransportVerified: flag("WECHAT_CLOUD_HTTP_TRANSPORT_VERIFIED"),
   privacyCheckEnabled: appConfig.__usePrivacyCheck__ === true,
   devtoolsCliAvailable: await exists(devtoolsCli),
   manualGates: {
@@ -51,7 +53,8 @@ const errors = validateWeChatRelease({
     legalTextsApproved: flag("WECHAT_LEGAL_TEXTS_APPROVED"),
     serverDomainsConfigured: flag("WECHAT_SERVER_DOMAINS_CONFIGURED"),
     demoScopeApproved: flag("WECHAT_DEMO_SCOPE_APPROVED"),
-    experienceMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED")
+    experienceMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED"),
+    miniProgramFilingCompleted: flag("WECHAT_MINIPROGRAM_FILING_COMPLETED")
   }
 });
 if (target !== "local") {

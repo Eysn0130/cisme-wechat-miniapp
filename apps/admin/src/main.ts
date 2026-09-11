@@ -37,6 +37,7 @@ const state = {
   principal: sessionStorage.getItem("cisme.admin.principal") || "admin-reviewer",
   queue: [] as ReviewItem[], selected: null as ReviewItem | null,
   pointsGrants: [] as PointsGrantItem[], pointsActions: [] as PointsActionItem[], selectedFinance: null as { kind: "grant" | "action"; id: string } | null,
+  privacyRequests: [] as Array<{id:string;member_id:string;kind:string;message:string;status:string;version:number;response?:string;execution?:{type:string;status:string;executionMode:string}}>, privacyBusy:false,
   error: "", loading: false, enrollmentMessage: ""
 };
 
@@ -65,6 +66,7 @@ function render() {
       ${state.enrollmentMessage ? `<p class="success">${escapeHtml(state.enrollmentMessage)}</p>` : ""}
     </section>
     ${state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : ""}
+    <section class="panel"><h2>隐私与数据权利受理</h2><p>support / review_lead 可回复；只有 review_lead 能建立不执行数据操作的 dry-run/plan-only 计划。计划、回复、实际完成三者不得混同。</p><button id="privacy-load">刷新受理队列</button>${state.privacyRequests.map(item=>`<article class="panel"><strong>${escapeHtml(item.kind)} · ${escapeHtml(item.status)} · v${item.version}</strong><p>会员 ${escapeHtml(item.member_id)} / 请求 ${escapeHtml(item.id)}</p><p>${escapeHtml(item.message)}</p>${item.response?`<p>上次回复：${escapeHtml(item.response)}</p>`:''}${item.execution?`<p>执行计划：${escapeHtml(item.execution.type)} / ${escapeHtml(item.execution.status)} / ${escapeHtml(item.execution.executionMode)}</p>`:''}<label>处理状态<select id="privacy-status-${item.id}"><option value="reviewing">处理中</option><option value="responded">已回复（不代表执行完成）</option></select></label><label>给会员的回复<textarea id="privacy-response-${item.id}" maxlength="4000" placeholder="说明核验要求、实际处理结果或依法保留的具体理由。"></textarea></label><button data-privacy-id="${item.id}" ${state.privacyBusy?'disabled':''}>保存并向会员展示回复</button>${!item.execution&&['access','delete','close_account','withdraw'].includes(item.kind)?`<label>计划原因码<select id="privacy-plan-reason-${item.id}"><option>USER_RIGHTS_VERIFIED</option><option>SCOPE_REVIEW_REQUIRED</option></select></label><button data-privacy-plan="${item.id}" ${state.privacyBusy?'disabled':''}>仅建立执行计划（不执行）</button>`:''}</article>`).join('') || '<p>尚未读取或暂无受理记录。</p>'}</section>
     <div class="workspace">
       <section class="panel queue"><div class="section-title"><h2>审核 / 发布待办</h2><span>${state.queue.length} 件</span></div>
         ${state.queue.map((item) => `<button class="queue-item ${state.selected?.id === item.id && state.selected?.workflow === item.workflow ? "selected" : ""}" data-id="${item.id}" data-workflow="${item.workflow}"><strong>${escapeHtml(item.platform_account)}</strong><span>${item.workflow === "review" ? "领奖审核" : "公开发布"} · ${escapeHtml(item.status)} · v${item.version}</span><small>${escapeHtml(item.submitted_at ?? item.reviewed_at)}</small></button>`).join("") || `<div class="empty">暂无待办</div>`}
@@ -129,6 +131,9 @@ function publicationTemplate(item: ReviewItem): string {
 }
 
 function bindEvents() {
+  document.querySelector("#privacy-load")?.addEventListener("click",()=>void loadPrivacyRequests());
+  document.querySelectorAll<HTMLButtonElement>("[data-privacy-id]").forEach(button=>button.addEventListener("click",()=>void respondPrivacy(button.dataset.privacyId!)));
+  document.querySelectorAll<HTMLButtonElement>("[data-privacy-plan]").forEach(button=>button.addEventListener("click",()=>void planPrivacy(button.dataset.privacyPlan!)));
   document.querySelector("#load")?.addEventListener("click", () => void loadQueue());
   document.querySelector("#enroll")?.addEventListener("click", () => void enrollExperienceMember());
   document.querySelectorAll<HTMLElement>(".queue-item").forEach((element) => element.addEventListener("click", () => { state.selected = state.queue.find((item) => item.id === element.dataset.id && item.workflow === element.dataset.workflow) ?? null; render(); }));
@@ -149,27 +154,58 @@ function credentials() {
   sessionStorage.setItem("cisme.admin.token", state.token);
 }
 
-async function api(path: string, init?: RequestInit) {
-  const response = await fetch(`${state.api}${path}`, { ...init, headers: { "content-type": "application/json", "x-admin-token": state.token, "x-principal-id": state.principal, ...init?.headers } });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.title || body.code || "请求失败");
-  return body;
+let queueRequestEpoch = 0;
+let queueAbortController: AbortController | null = null;
+
+async function api(path: string, init?: RequestInit, signal?: AbortSignal) {
+  const controller = new AbortController();
+  const abort = () => controller.abort(signal?.reason);
+  if (signal?.aborted) abort(); else signal?.addEventListener("abort", abort, { once: true });
+  const timer = window.setTimeout(() => controller.abort(new DOMException("请求超时", "TimeoutError")), 8_000);
+  try {
+    const response = await fetch(`${state.api}${path}`, { ...init, signal: controller.signal, headers: { "content-type": "application/json", "x-admin-token": state.token, "x-principal-id": state.principal, ...init?.headers } });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.title || body.code || "请求失败");
+    return body;
+  } finally {
+    window.clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
 }
 
 async function loadQueue() {
+  const epoch = ++queueRequestEpoch;
+  queueAbortController?.abort();
+  const controller = new AbortController();
+  queueAbortController = controller;
   credentials(); state.loading = true; state.error = ""; render();
   try {
-    let reviews: ReviewItem[] = []; let publications: ReviewItem[] = []; let authorized = false; let lastError: unknown;
-    try { reviews = (await api("/v1/admin/reviews") as ReviewItem[]).map((item) => ({ ...item, workflow: "review" as const })); authorized = true; } catch (error) { lastError = error; }
-    try { publications = (await api("/v1/admin/publications") as ReviewItem[]).map((item) => ({ ...item, workflow: "publication" as const })); authorized = true; } catch (error) { lastError = error; }
-    try { state.pointsGrants = await api("/v1/admin/points/grants") as PointsGrantItem[]; state.pointsActions = await api("/v1/admin/points/actions") as PointsActionItem[]; authorized = true; } catch (error) { state.pointsGrants = []; state.pointsActions = []; lastError = error; }
-    if (!authorized) throw lastError ?? new Error("当前 Principal 没有任何授权队列");
+    const [reviewResult, publicationResult, grantResult, actionResult] = await Promise.allSettled([
+      api("/v1/admin/reviews", undefined, controller.signal),
+      api("/v1/admin/publications", undefined, controller.signal),
+      api("/v1/admin/points/grants", undefined, controller.signal),
+      api("/v1/admin/points/actions", undefined, controller.signal)
+    ]);
+    if (epoch !== queueRequestEpoch) return;
+    const results = [reviewResult, publicationResult, grantResult, actionResult];
+    const authorized = results.some((result) => result.status === "fulfilled");
+    if (!authorized) throw (results.find((result) => result.status === "rejected") as PromiseRejectedResult | undefined)?.reason ?? new Error("当前 Principal 没有任何授权队列");
+    const reviews = reviewResult.status === "fulfilled" ? (reviewResult.value as ReviewItem[]).map((item) => ({ ...item, workflow: "review" as const })) : [];
+    const publications = publicationResult.status === "fulfilled" ? (publicationResult.value as ReviewItem[]).map((item) => ({ ...item, workflow: "publication" as const })) : [];
+    state.pointsGrants = grantResult.status === "fulfilled" ? grantResult.value as PointsGrantItem[] : [];
+    state.pointsActions = actionResult.status === "fulfilled" ? actionResult.value as PointsActionItem[] : [];
     state.queue = [...reviews, ...publications];
     state.selected = state.selected ? state.queue.find((item) => item.id === state.selected?.id && item.workflow === state.selected?.workflow) ?? null : state.queue[0] ?? null;
     state.selectedFinance = state.selectedFinance && ((state.selectedFinance.kind === "grant" ? state.pointsGrants : state.pointsActions).some((item) => item.id === state.selectedFinance?.id)) ? state.selectedFinance : (state.pointsActions.find((item) => item.state === "pending") ? { kind: "action", id: state.pointsActions.find((item) => item.state === "pending")!.id } : state.pointsGrants[0] ? { kind: "grant", id: state.pointsGrants[0].id } : null);
   }
-  catch (error) { state.error = String((error as Error).message); }
-  finally { state.loading = false; render(); }
+  catch (error) { if (epoch === queueRequestEpoch && !controller.signal.aborted) state.error = String((error as Error).message); }
+  finally {
+    if (epoch === queueRequestEpoch) {
+      if (queueAbortController === controller) queueAbortController = null;
+      state.loading = false;
+      render();
+    }
+  }
 }
 
 async function requestPointsAction() {
@@ -239,3 +275,32 @@ async function review(decision: string) {
 }
 
 render();
+
+async function loadPrivacyRequests(){
+ credentials();state.error='';
+ try{state.privacyRequests=await api('/v1/admin/privacy-requests');}
+ catch(e){state.privacyRequests=[];state.error=(e as Error).message;}
+ render();
+}
+async function respondPrivacy(id:string){
+ if(state.privacyBusy)return;
+ credentials();
+ const status=document.querySelector<HTMLSelectElement>(`#privacy-status-${id}`)!.value;
+ const response=document.querySelector<HTMLTextAreaElement>(`#privacy-response-${id}`)!.value.trim();
+ if(!response){state.error='请填写具体处理回复。';render();return;}
+ const item=state.privacyRequests.find(request=>request.id===id);if(!item){state.error='受理记录已变化，请刷新。';render();return;}
+ state.privacyBusy=true;
+ try{await api(`/v1/admin/privacy-requests/${id}/response`,{method:'POST',body:JSON.stringify({status,response,expectedVersion:item.version})});state.privacyRequests=await api('/v1/admin/privacy-requests');state.error='';}
+ catch(e){state.error=(e as Error).message;}
+ finally{state.privacyBusy=false;render();}
+}
+async function planPrivacy(id:string){
+ if(state.privacyBusy)return;
+ credentials();
+ const item=state.privacyRequests.find(request=>request.id===id);if(!item){state.error='受理记录已变化，请刷新。';render();return;}
+ const reasonCode=document.querySelector<HTMLSelectElement>(`#privacy-plan-reason-${id}`)?.value||'SCOPE_REVIEW_REQUIRED';
+ state.privacyBusy=true;
+ try{await api(`/v1/admin/privacy-requests/${id}/execution-plan`,{method:'POST',headers:{'idempotency-key':`privacy-plan-${id}-v${item.version}`},body:JSON.stringify({expectedVersion:item.version,reasonCode})});state.privacyRequests=await api('/v1/admin/privacy-requests');state.error='';}
+ catch(e){state.error=(e as Error).message;}
+ finally{state.privacyBusy=false;render();}
+}

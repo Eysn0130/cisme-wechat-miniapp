@@ -1,0 +1,1038 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-10T15:23:22.192Z",
+  "mode": "symmetric_linux_arm64_container",
+  "parameters": {
+    "rounds": 5,
+    "samplesPerRouteCandidateRound": 1000,
+    "warmupPerRouteCandidateRound": 200,
+    "concurrency": 50,
+    "cpuLimit": 1,
+    "memoryLimitBytes": 536870912,
+    "poolMax": 10
+  },
+  "environment": {
+    "architecture": "linux/arm64",
+    "dockerNetwork": "same_bridge_and_host_port_path",
+    "database": "same_isolated_cisme_test_database",
+    "candidatesRunOneAtATime": true,
+    "imageBuilds": {
+      "fastify": "cisme-fastify-benchmark:local",
+      "rust": "cisme-rust-poc:local"
+    }
+  },
+  "parity": {
+    "capabilities": true,
+    "settingsBootstrap": true
+  },
+  "startup": [
+    {
+      "target": "fastify",
+      "phase": "fixture",
+      "startupMs": 646.63
+    },
+    {
+      "target": "fastify",
+      "phase": "measured",
+      "round": 1,
+      "startupMs": 333.42,
+      "firstRequestMs": 2.79
+    },
+    {
+      "target": "rust",
+      "phase": "measured",
+      "round": 1,
+      "startupMs": 209.71,
+      "firstRequestMs": 2.53
+    },
+    {
+      "target": "rust",
+      "phase": "measured",
+      "round": 2,
+      "startupMs": 210.84,
+      "firstRequestMs": 1.6
+    },
+    {
+      "target": "fastify",
+      "phase": "measured",
+      "round": 2,
+      "startupMs": 334.35,
+      "firstRequestMs": 1.88
+    },
+    {
+      "target": "fastify",
+      "phase": "measured",
+      "round": 3,
+      "startupMs": 322.26,
+      "firstRequestMs": 3.29
+    },
+    {
+      "target": "rust",
+      "phase": "measured",
+      "round": 3,
+      "startupMs": 209.21,
+      "firstRequestMs": 2.9
+    },
+    {
+      "target": "rust",
+      "phase": "measured",
+      "round": 4,
+      "startupMs": 206.31,
+      "firstRequestMs": 1.55
+    },
+    {
+      "target": "fastify",
+      "phase": "measured",
+      "round": 4,
+      "startupMs": 327.46,
+      "firstRequestMs": 1.79
+    },
+    {
+      "target": "fastify",
+      "phase": "measured",
+      "round": 5,
+      "startupMs": 454.71,
+      "firstRequestMs": 5.52
+    },
+    {
+      "target": "rust",
+      "phase": "measured",
+      "round": 5,
+      "startupMs": 212.4,
+      "firstRequestMs": 3.36
+    }
+  ],
+  "results": [
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:06.397Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 1,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 94.15,
+      "requestsPerSecond": 10621.45,
+      "latencyMs": {
+        "p50": 4.21,
+        "p90": 7.28,
+        "p95": 9.1,
+        "p99": 11.34,
+        "max": 14.31
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 120,
+      "serverCpuMsPerRequest": 0.12,
+      "serverMemoryCurrentBytes": 58281984,
+      "serverPeakRssBytes": 103190528,
+      "serverContainerMemoryPeakBytes": 60092416,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:06.899Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 1,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 428.76,
+      "requestsPerSecond": 2332.29,
+      "latencyMs": {
+        "p50": 20.08,
+        "p90": 29.45,
+        "p95": 31.01,
+        "p99": 35,
+        "max": 39.95
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 970000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 337.99,
+      "serverCpuMsPerRequest": 0.34,
+      "serverMemoryCurrentBytes": 68812800,
+      "serverPeakRssBytes": 113455104,
+      "serverContainerMemoryPeakBytes": 70430720,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:08.036Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 1,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 97.22,
+      "requestsPerSecond": 10285.78,
+      "latencyMs": {
+        "p50": 4.42,
+        "p90": 7.44,
+        "p95": 8.48,
+        "p99": 9.94,
+        "max": 11.65
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 33.49,
+      "serverCpuMsPerRequest": 0.03,
+      "serverMemoryCurrentBytes": 4083712,
+      "serverPeakRssBytes": 7856128,
+      "serverContainerMemoryPeakBytes": 5480448,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:08.555Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 1,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 350.24,
+      "requestsPerSecond": 2855.18,
+      "latencyMs": {
+        "p50": 14.3,
+        "p90": 33.01,
+        "p95": 49.77,
+        "p99": 58.43,
+        "max": 65.11
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 979000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 105.4,
+      "serverCpuMsPerRequest": 0.11,
+      "serverMemoryCurrentBytes": 6012928,
+      "serverPeakRssBytes": 9584640,
+      "serverContainerMemoryPeakBytes": 7639040,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:09.610Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 2,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 73.87,
+      "requestsPerSecond": 13537.52,
+      "latencyMs": {
+        "p50": 3.61,
+        "p90": 5.35,
+        "p95": 6.03,
+        "p99": 6.32,
+        "max": 9.51
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 43.95,
+      "serverCpuMsPerRequest": 0.04,
+      "serverMemoryCurrentBytes": 4087808,
+      "serverPeakRssBytes": 7839744,
+      "serverContainerMemoryPeakBytes": 5832704,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:10.091Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 2,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 177.09,
+      "requestsPerSecond": 5646.9,
+      "latencyMs": {
+        "p50": 8.32,
+        "p90": 11.36,
+        "p95": 12.09,
+        "p99": 13.36,
+        "max": 15.33
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 978997,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 116.98,
+      "serverCpuMsPerRequest": 0.12,
+      "serverMemoryCurrentBytes": 5771264,
+      "serverPeakRssBytes": 9388032,
+      "serverContainerMemoryPeakBytes": 7233536,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:11.100Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 2,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 105.82,
+      "requestsPerSecond": 9449.85,
+      "latencyMs": {
+        "p50": 4.75,
+        "p90": 8.32,
+        "p95": 9.55,
+        "p99": 14.36,
+        "max": 15.75
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 109.39,
+      "serverCpuMsPerRequest": 0.11,
+      "serverMemoryCurrentBytes": 53186560,
+      "serverPeakRssBytes": 98082816,
+      "serverContainerMemoryPeakBytes": 54996992,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:11.845Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 2,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 395.48,
+      "requestsPerSecond": 2528.58,
+      "latencyMs": {
+        "p50": 19.07,
+        "p90": 24.78,
+        "p95": 27,
+        "p99": 29.93,
+        "max": 33.3
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 970000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 318.07,
+      "serverCpuMsPerRequest": 0.32,
+      "serverMemoryCurrentBytes": 64364544,
+      "serverPeakRssBytes": 109285376,
+      "serverContainerMemoryPeakBytes": 65855488,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:13.028Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 3,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 96.16,
+      "requestsPerSecond": 10399.23,
+      "latencyMs": {
+        "p50": 4.21,
+        "p90": 7,
+        "p95": 8.97,
+        "p99": 13.98,
+        "max": 21.11
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 100.13,
+      "serverCpuMsPerRequest": 0.1,
+      "serverMemoryCurrentBytes": 56123392,
+      "serverPeakRssBytes": 101384192,
+      "serverContainerMemoryPeakBytes": 57720832,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:13.562Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 3,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 624.29,
+      "requestsPerSecond": 1601.82,
+      "latencyMs": {
+        "p50": 27.41,
+        "p90": 45.33,
+        "p95": 62.8,
+        "p99": 89.91,
+        "max": 95.88
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 970000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 385.74,
+      "serverCpuMsPerRequest": 0.39,
+      "serverMemoryCurrentBytes": 67710976,
+      "serverPeakRssBytes": 112218112,
+      "serverContainerMemoryPeakBytes": 69275648,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:14.828Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 3,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 90.93,
+      "requestsPerSecond": 10996.99,
+      "latencyMs": {
+        "p50": 4.11,
+        "p90": 6.39,
+        "p95": 7.49,
+        "p99": 9.28,
+        "max": 10.42
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 31.67,
+      "serverCpuMsPerRequest": 0.03,
+      "serverMemoryCurrentBytes": 4050944,
+      "serverPeakRssBytes": 7815168,
+      "serverContainerMemoryPeakBytes": 5726208,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:15.293Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 3,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 156.59,
+      "requestsPerSecond": 6386.13,
+      "latencyMs": {
+        "p50": 7.35,
+        "p90": 9.72,
+        "p95": 10.59,
+        "p99": 11.28,
+        "max": 15.79
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 979000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 100.51,
+      "serverCpuMsPerRequest": 0.1,
+      "serverMemoryCurrentBytes": 5980160,
+      "serverPeakRssBytes": 9506816,
+      "serverContainerMemoryPeakBytes": 7462912,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:16.120Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 4,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 67.91,
+      "requestsPerSecond": 14725.71,
+      "latencyMs": {
+        "p50": 3.13,
+        "p90": 5.54,
+        "p95": 6.31,
+        "p99": 7.08,
+        "max": 7.33
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 36.77,
+      "serverCpuMsPerRequest": 0.04,
+      "serverMemoryCurrentBytes": 4136960,
+      "serverPeakRssBytes": 7860224,
+      "serverContainerMemoryPeakBytes": 5902336,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:16.532Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 4,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 179.2,
+      "requestsPerSecond": 5580.32,
+      "latencyMs": {
+        "p50": 8.66,
+        "p90": 11.32,
+        "p95": 12.04,
+        "p99": 13.64,
+        "max": 15.39
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 978997,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 101.81,
+      "serverCpuMsPerRequest": 0.1,
+      "serverMemoryCurrentBytes": 5787648,
+      "serverPeakRssBytes": 9314304,
+      "serverContainerMemoryPeakBytes": 7401472,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:17.523Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 4,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 166.97,
+      "requestsPerSecond": 5989.21,
+      "latencyMs": {
+        "p50": 5.64,
+        "p90": 18.34,
+        "p95": 19.91,
+        "p99": 31.82,
+        "max": 39.87
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 107.76,
+      "serverCpuMsPerRequest": 0.11,
+      "serverMemoryCurrentBytes": 55103488,
+      "serverPeakRssBytes": 101085184,
+      "serverContainerMemoryPeakBytes": 57192448,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:18.101Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 4,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 566.84,
+      "requestsPerSecond": 1764.15,
+      "latencyMs": {
+        "p50": 24.5,
+        "p90": 48.81,
+        "p95": 52.81,
+        "p99": 64.09,
+        "max": 68.82
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 970000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 381.12,
+      "serverCpuMsPerRequest": 0.38,
+      "serverMemoryCurrentBytes": 66727936,
+      "serverPeakRssBytes": 111886336,
+      "serverContainerMemoryPeakBytes": 68345856,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:19.666Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 5,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 119.16,
+      "requestsPerSecond": 8392.16,
+      "latencyMs": {
+        "p50": 5.48,
+        "p90": 8.72,
+        "p95": 10.85,
+        "p99": 14.52,
+        "max": 22.76
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 136.1,
+      "serverCpuMsPerRequest": 0.14,
+      "serverMemoryCurrentBytes": 56508416,
+      "serverPeakRssBytes": 101408768,
+      "serverContainerMemoryPeakBytes": 58253312,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:20.252Z",
+      "target": "fastify",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 5,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 406.48,
+      "requestsPerSecond": 2460.14,
+      "latencyMs": {
+        "p50": 19.76,
+        "p90": 25.12,
+        "p95": 28.32,
+        "p99": 30.92,
+        "max": 34.62
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 970000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 335.18,
+      "serverCpuMsPerRequest": 0.34,
+      "serverMemoryCurrentBytes": 67534848,
+      "serverPeakRssBytes": 112226304,
+      "serverContainerMemoryPeakBytes": 69058560,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:21.328Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/capabilities",
+      "round": 5,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 64.02,
+      "requestsPerSecond": 15621.31,
+      "latencyMs": {
+        "p50": 2.88,
+        "p90": 4.92,
+        "p95": 5.65,
+        "p99": 6.4,
+        "max": 7.16
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 212000,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 33.25,
+      "serverCpuMsPerRequest": 0.03,
+      "serverMemoryCurrentBytes": 4034560,
+      "serverPeakRssBytes": 7827456,
+      "serverContainerMemoryPeakBytes": 5865472,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "mode": "loopback_tcp_developer_smoke",
+      "startedAt": "2026-09-10T15:23:21.768Z",
+      "target": "rust",
+      "targetUrl": "http://127.0.0.1:3330",
+      "route": "/v1/bootstrap/settings",
+      "round": 5,
+      "samples": 1000,
+      "concurrency": 50,
+      "warmup": 200,
+      "elapsedMs": 178.65,
+      "requestsPerSecond": 5597.44,
+      "latencyMs": {
+        "p50": 8.63,
+        "p90": 11.36,
+        "p95": 12.05,
+        "p99": 13.69,
+        "max": 15.3
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 1000
+      },
+      "responseBytes": 978997,
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "logicalCpus": 10,
+        "node": "v24.14.0"
+      },
+      "serverCpuMs": 105.65,
+      "serverCpuMsPerRequest": 0.11,
+      "serverMemoryCurrentBytes": 6819840,
+      "serverPeakRssBytes": 10162176,
+      "serverContainerMemoryPeakBytes": 8376320,
+      "decisionGrade": true,
+      "unverified": [
+        "broad_route_parity",
+        "soak",
+        "production_topology"
+      ]
+    }
+  ],
+  "medianSummary": {
+    "fastify": {
+      "/v1/capabilities": {
+        "medianP95Ms": 9.55,
+        "medianP99Ms": 14.36,
+        "medianRps": 9449.85,
+        "medianServerCpuMsPerRequest": 0.11,
+        "medianPeakRssBytes": 101384192,
+        "medianContainerMemoryPeakBytes": 57720832,
+        "errors": 0
+      },
+      "/v1/bootstrap/settings": {
+        "medianP95Ms": 31.01,
+        "medianP99Ms": 35,
+        "medianRps": 2332.29,
+        "medianServerCpuMsPerRequest": 0.34,
+        "medianPeakRssBytes": 112218112,
+        "medianContainerMemoryPeakBytes": 69058560,
+        "errors": 0
+      }
+    },
+    "rust": {
+      "/v1/capabilities": {
+        "medianP95Ms": 6.31,
+        "medianP99Ms": 7.08,
+        "medianRps": 13537.52,
+        "medianServerCpuMsPerRequest": 0.03,
+        "medianPeakRssBytes": 7839744,
+        "medianContainerMemoryPeakBytes": 5832704,
+        "errors": 0
+      },
+      "/v1/bootstrap/settings": {
+        "medianP95Ms": 12.05,
+        "medianP99Ms": 13.64,
+        "medianRps": 5597.44,
+        "medianServerCpuMsPerRequest": 0.11,
+        "medianPeakRssBytes": 9506816,
+        "medianContainerMemoryPeakBytes": 7462912,
+        "errors": 0
+      }
+    }
+  },
+  "decisionGradeForImplementedScope": true,
+  "migrationDecisionGrade": false,
+  "limitations": [
+    "only_capabilities_and_settings_bootstrap",
+    "tiny_identity_fixture",
+    "no_feed_comments_writes_worker_or_media_parity",
+    "no_production_network_or_cold_start",
+    "no_long_soak"
+  ]
+}

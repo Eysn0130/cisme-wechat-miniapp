@@ -1,7 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { miniProgramApiOrigins } from "../apps/miniprogram/release-config";
+import { miniProgramApiOrigins, miniProgramCloudFunctions } from "../apps/miniprogram/release-config";
 import { evaluateDesignQaEvidence } from "./design-qa-lib";
 import { validateWeChatCiPreview } from "./wechat-release-lib";
 
@@ -18,6 +18,8 @@ const releaseErrors = validateWeChatCiPreview({
   projectAppId: projectConfig.appid ?? "",
   expectedAppId: appid,
   apiOrigin: miniProgramApiOrigins.preview,
+  ...(miniProgramCloudFunctions.preview ? { cloudTarget: miniProgramCloudFunctions.preview! } : {}),
+  cloudTransportVerified: flag("WECHAT_CLOUD_HTTP_TRANSPORT_VERIFIED"),
   privacyCheckEnabled: appConfig.__usePrivacyCheck__ === true,
   riskAccepted: flag("WECHAT_CI_RISK_ACCEPTED"),
   manualGates: {

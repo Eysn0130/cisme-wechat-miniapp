@@ -1,0 +1,57 @@
+The following is a diff from the previous accessibility tree for Window: "miniprogram" with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 528, 553-554
+~							18 text 17 : 15
++						558 HTML 内容 Webview: pages/community/index, URL: 127.0.0.1:34882/__pageframe__/pages/community/index
++							559 标签组
++								560 标签 (settable, integer) Description: 护理，未选中, Value: 0
++									561 图像
++									562 文本 护理
++								563 标签 (settable, integer) Description: 记录，未选中, Value: 0
++									564 图像
++									565 文本 记录
++								566 标签 (selected) Description: 社区，当前页面, Value: 1
++									567 图像
++									568 文本 社区
++								569 标签 (settable, integer) Description: 我的，未选中, Value: 0
++									570 图像
++									571 文本 我的
++							572 container
++								573 text CISME  社区 品牌精选
++								574 按钮 精选
++								575 按钮 推荐
++								576 按钮 关注
++							577 container
++								578 按钮 阅读护理故事：今晚的三分钟头皮仪式
++									579 图像
++									580 文本 今晚的三分钟头皮仪式
++									581 图像
++									582 文本 CISME 护理编辑部
++								583 按钮 阅读护理故事：洗完不急着下结论，先把真实感受写下来
++									584 图像
++									585 文本 洗完不急着下结论，先把真实感受写下来
++									586 图像
++									587 文本 CISME 护理编辑部
++								588 按钮 阅读护理故事：把护理瓶放在看得见的地方
++									589 图像
++									590 文本 把护理瓶放在看得见的地方
++									591 图像
++									592 文本 CISME 护理编辑部
++							593 container
++								594 按钮 阅读护理故事：不赶时间的夜晚，我这样慢慢按摩头皮
++									595 图像
++									596 文本 不赶时间的夜晚，我这样慢慢按摩头皮
++									597 图像
++									598 文本 CISME 护理编辑部
++								599 按钮 阅读护理故事：护理后如何观察发根与头皮状态
++									600 图像
++									601 文本 护理后如何观察发根与头皮状态
++									602 图像
++									603 文本 CISME 护理编辑部
++							604 图像
++							605 文本 精选由 CISME 护理编辑部整理。会员投稿完成审核发布后，会出现在推荐栏目。
+~									129 标签 (settable, integer) Description: 源代码管理 (⌃⇧G) - 989 个挂起的更改, Value: 0
++										606 文本 
++												607 文本 100
+~										279 标签 (settable, integer) Description: 调试器 - Errors: 0, Warnings: 13, Value: 0
++											608 文本 13
+The focused UI element is 1 HTML 内容 file:///Applications/wechatwebdevtools.app/Contents/Resources/app.asar/html/electron-project.html?projectpath=%2FUsers%2Fmini%2FCISME%2Fcisme-r0-platform%2Fapps%2Fminiprogram&projectname=miniprogram&projectid=%2FUsers%2Fmini%2FCISME%2Fcisme-r0-platform%2Fapps%2Fminiprogram&theme=dark&skeletonPath=%2FUsers%2Fmini%2FLibrary%2FApplication%20Support%2F%E5%BE%AE%E4%BF%A1%E5%BC%80%E5%8F%91%E8%80%85%E5%B7%A5%E5%85%B7%2Fd1e8765721a6c23d43b14c95b1843e6b%2FWeappCache%2FskeletonCache%2F5ddbad2e2f41f6a67c29ac9c0d530664%2Fpageskeleton.html&appid=wx4eac2d4fb11d299b&frame=0&devid=s0&runtimeid=0&devtype=miniprogram&proxyPort=43130&userDataPath=%2FUsers%2Fmini%2FLibrary%2FApplication%2520Support%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%25BC%2580%25E5%258F%2591%25E8%2580%2585%25E5%25B7%25A5%25E5%2585%25B7%2Fd1e8765721a6c23d43b14c95b1843e6b&appVersion=2.02.2608070&appVersionType=0

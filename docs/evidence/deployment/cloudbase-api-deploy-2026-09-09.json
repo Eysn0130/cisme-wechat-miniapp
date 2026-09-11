@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-09-08T17:32:09.159Z",
+  "function": "cismeApi",
+  "environment": "cloud1-d4g0khuk495d48600",
+  "deployment": {
+    "success": true,
+    "files": 5668,
+    "packSize": "33.9 MB",
+    "method": "official WeChat DevTools CLI"
+  },
+  "entrySha256": "69845834621a9ca98b98c036286f1252ffa2aba1573490be90eb99f0deec57e3",
+  "configPreflight": {
+    "valid": true,
+    "appEnv": "staging",
+    "allowDevAdapters": false,
+    "port": 9000,
+    "workerLoop": false,
+    "keyCount": 18
+  },
+  "runtimeSecretsConfigured": false,
+  "businessExecutionVerified": false
+}

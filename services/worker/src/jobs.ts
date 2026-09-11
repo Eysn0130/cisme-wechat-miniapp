@@ -1,7 +1,10 @@
 import { startWorkerLoop } from "./loop.js";
+import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import { transaction } from "../../api/src/db.js";
 import { type ObjectStorage } from "../../api/src/storage.js";
+import { EVENT_DELIVERY_POLICIES, EVENT_TYPES, type EventType } from "@cisme/contracts";
+import { expirePendingOrders } from "../../api/src/commerceOrders.js";
 
 interface EventRow {
   id: string;
@@ -12,12 +15,12 @@ interface EventRow {
 }
 
 interface WorkerGates { ugcGoLiveGate: boolean }
-type DeliveryOutcome = "applied" | "suppressed";
+type DeliveryOutcome = "applied" | "suppressed" | "audit_only";
 
 export const WORKER_MAX_ATTEMPTS = 5;
 const WORKER_BACKOFF_BASE_MS = 5_000;
 const WORKER_BACKOFF_CAP_MS = 5 * 60_000;
-const WORKER_EVENT_TYPES = ["submission.publication.approved.v1"] as const;
+export function workerEventPolicy(eventType: string) { return EVENT_DELIVERY_POLICIES[eventType as EventType] ?? "unsupported"; }
 
 function failureSchedule(now: Date, previousAttempts: number) {
   const attempts = previousAttempts + 1;
@@ -32,6 +35,7 @@ function failureSchedule(now: Date, previousAttempts: number) {
 }
 
 async function applyEvent(client: pg.PoolClient, event: EventRow, now: Date, gates: WorkerGates): Promise<DeliveryOutcome> {
+  if (workerEventPolicy(event.event_type) === "audit_only") return "audit_only";
   if (event.event_type === "submission.publication.approved.v1") {
     if (!gates.ugcGoLiveGate) throw new Error("UGC_GO_LIVE_GATE_CLOSED");
     const submissionId = String(event.payload.submissionId);
@@ -75,7 +79,7 @@ export async function processOutboxBatch(pool: pg.Pool, now = new Date(), limit 
       WHERE processed_at IS NULL AND dead_lettered_at IS NULL AND next_attempt_at <= $1
         AND event_type = ANY($2::text[])
       ORDER BY next_attempt_at, occurred_at, id LIMIT $3 FOR UPDATE SKIP LOCKED
-    `, [now, [...WORKER_EVENT_TYPES], limit]);
+    `, [now, [...EVENT_TYPES], limit]);
     let processed = 0;
     for (const event of events.rows) {
       await client.query("SAVEPOINT worker_event_attempt");
@@ -98,31 +102,27 @@ export async function processOutboxBatch(pool: pg.Pool, now = new Date(), limit 
 }
 
 export async function processMediaCleanup(pool: pg.Pool, storage: ObjectStorage, now = new Date(), limit = 50): Promise<number> {
-  return transaction(pool, async (client) => {
-    const rows = await client.query<{ id: string; object_key: string; attempts: number }>(`
-      SELECT id, object_key, attempts FROM media_cleanup_queue
-      WHERE processed_at IS NULL AND dead_lettered_at IS NULL AND next_attempt_at <= $1
-      ORDER BY next_attempt_at, created_at, id LIMIT $2 FOR UPDATE SKIP LOCKED
-    `, [now, limit]);
-    let processed = 0;
-    for (const row of rows.rows) {
-      await client.query("SAVEPOINT worker_cleanup_attempt");
-      try {
-        await storage.delete(row.object_key);
-        await client.query("UPDATE media_cleanup_queue SET processed_at=$1, attempts=attempts+1, last_error=NULL, dead_letter_reason=NULL WHERE id=$2", [now, row.id]);
-        await client.query("RELEASE SAVEPOINT worker_cleanup_attempt");
-        processed += 1;
-      } catch (error) {
-        await client.query("ROLLBACK TO SAVEPOINT worker_cleanup_attempt");
-        await client.query("RELEASE SAVEPOINT worker_cleanup_attempt");
-        const failure = failureSchedule(now, row.attempts);
-        await client.query(`UPDATE media_cleanup_queue
-          SET attempts=$1, last_error=$2, next_attempt_at=$3, dead_lettered_at=$4, dead_letter_reason=$5
-          WHERE id=$6`, [failure.attempts, String(error), failure.nextAttemptAt, failure.deadLetteredAt, failure.deadLetterReason, row.id]);
-      }
+  const leaseToken = randomUUID();
+  const leasedUntil = new Date(now.getTime() + 60_000);
+  const claimed = await transaction(pool, async (client) => client.query<{ id: string; object_key: string; attempts: number }>(`WITH candidates AS (
+      SELECT id FROM media_cleanup_queue WHERE processed_at IS NULL AND dead_lettered_at IS NULL AND next_attempt_at <= $1
+        AND (leased_until IS NULL OR leased_until <= $1) ORDER BY next_attempt_at, created_at, id LIMIT $2 FOR UPDATE SKIP LOCKED
+    ) UPDATE media_cleanup_queue q SET lease_token=$3,leased_until=$4 FROM candidates c WHERE q.id=c.id
+      RETURNING q.id,q.object_key,q.attempts`, [now, limit, leaseToken, leasedUntil]), "READ COMMITTED", 1);
+  let processed = 0;
+  for (const row of claimed.rows) {
+    try {
+      await storage.delete(row.object_key);
+      const result = await pool.query(`UPDATE media_cleanup_queue SET processed_at=$1,attempts=attempts+1,last_error=NULL,dead_letter_reason=NULL,lease_token=NULL,leased_until=NULL
+        WHERE id=$2 AND lease_token=$3 AND processed_at IS NULL`, [now, row.id, leaseToken]);
+      if (result.rowCount) processed += 1;
+    } catch (error) {
+      const failure = failureSchedule(now, row.attempts);
+      await pool.query(`UPDATE media_cleanup_queue SET attempts=$1,last_error=$2,next_attempt_at=$3,dead_lettered_at=$4,dead_letter_reason=$5,lease_token=NULL,leased_until=NULL
+        WHERE id=$6 AND lease_token=$7 AND processed_at IS NULL`, [failure.attempts, String(error), failure.nextAttemptAt, failure.deadLetteredAt, failure.deadLetterReason, row.id, leaseToken]);
     }
-    return processed;
-  });
+  }
+  return processed;
 }
 
 export async function sweepExpired(pool: pg.Pool, now = new Date()): Promise<void> {
@@ -141,10 +141,18 @@ export async function sweepExpired(pool: pg.Pool, now = new Date()): Promise<voi
   ON CONFLICT DO NOTHING`, [now]);
 }
 
+export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates) {
+  await pool.query("DELETE FROM upload_chunk WHERE expires_at <= $1", [new Date()]);
+  const published = await processOutboxBatch(pool, new Date(), 50, gates);
+  const cleaned = await processMediaCleanup(pool, storage);
+  const expiredOrders = await expirePendingOrders(pool);
+  await sweepExpired(pool);
+  return { published, cleaned, expiredOrders };
+}
+
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates, onError: (error: unknown) => void) {
   return startWorkerLoop(async () => {
-    await processOutboxBatch(pool, new Date(), 50, gates);
-    await processMediaCleanup(pool, storage);
-    await sweepExpired(pool);
+    const result = await runWorkerCycle(pool, storage, gates);
+    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50;
   }, onError);
 }

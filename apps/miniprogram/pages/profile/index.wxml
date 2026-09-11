@@ -1,38 +1,37 @@
 <view class="page profile-page" style="{{chromeStyle}}">
-  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载会员资料…</view>
+  <view wx:if="{{loading && !member}}" class="profile-skeleton" aria-live="polite"><view class="skeleton-line skeleton-line--short"></view><view class="skeleton-block"></view><view class="skeleton-block skeleton-block--list"></view></view>
   <block wx:if="{{member && points && care}}">
-  <view class="profile-identity">
-    <image class="profile-avatar" src="/assets/icons/user-circle-plum.svg" mode="aspectFit" aria-label="默认会员头像"/>
-    <view class="profile-identity__copy"><text class="profile-identity__eyebrow">CISME MEMBER</text><strong class="profile-identity__title">{{member.display_name || 'CISME 会员'}}</strong><small class="profile-identity__meta">护理周期成员 · {{careStatus}}</small></view>
-    <button class="profile-bell {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}" aria-label="设置与许可"><image class="profile-bell__icon" src="/assets/icons/gear-plum.svg" mode="aspectFit"/></button>
-  </view>
-
-  <view class="member-pass">
-    <view class="member-pass__glow"></view>
-    <view class="member-pass__head">MEMBER · {{memberCode}}</view>
-    <view class="member-pass__title">{{careTitle}}</view>
-    <view class="member-pass__copy">{{careCopy}}</view>
-    <view class="member-progress"><view class="member-progress__bar" style="width: {{progressPercent}}%"></view></view>
-    <view class="pass-stats">
-      <view class="pass-stat pass-stat--first pass-stat--balance"><strong class="pass-stat__value {{pointsBalanceClass}}">{{points.projection.available || 0}}</strong><small class="pass-stat__label">可用积分</small></view>
-      <view class="pass-stat pass-stat--milestone"><strong class="pass-stat__value">{{care.due || care.next || '—'}}</strong><small class="pass-stat__label">当前节点</small></view>
-      <view class="pass-stat pass-stat--share"><strong class="pass-stat__value">分享</strong><small class="pass-stat__label">邀请与归因</small></view>
+    <view class="profile-sync-status" aria-live="polite">{{loading ? '正在更新会员状态' : '会员状态已同步'}}</view>
+    <view class="profile-identity">
+      <button class="profile-avatar-button {{navigating ? 'control--disabled' : ''}}" bindtap="openAccount" aria-label="前往设置修改头像与昵称" disabled="{{navigating}}"><image class="profile-avatar" src="{{memberAvatar}}" mode="aspectFill"/></button>
+      <view class="profile-identity__copy"><text class="profile-identity__eyebrow">CISME MEMBER</text><strong class="profile-identity__title">{{member.display_name || 'CISME 会员'}}</strong><small class="profile-identity__meta">{{careStatus}}</small></view>
+      <button class="profile-settings {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}" aria-label="打开设置"><image src="/assets/icons/gear-plum.svg" mode="aspectFit"/></button>
     </view>
-  </view>
 
-  <view class="profile-shortcuts">
-    <button class="profile-shortcut {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" disabled="{{navigating}}" aria-label="查看积分账本"><view class="shortcut-icon"><image class="shortcut-icon__image" src="/assets/icons/wallet-plum.svg" mode="aspectFit"/></view><strong class="profile-shortcut__title">积分</strong><small class="profile-shortcut__meta">查看账本</small></button>
-    <button class="profile-shortcut {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}" aria-label="查看只读商品目录，交易尚未开放"><view class="shortcut-icon"><image class="shortcut-icon__image" src="/assets/icons/storefront-plum.svg" mode="aspectFit"/></view><strong class="profile-shortcut__title">商品目录</strong><small class="profile-shortcut__meta">购买暂未开放</small></button>
-    <button class="profile-shortcut {{navigating ? 'control--disabled' : ''}}" bindtap="openInvite" disabled="{{navigating}}" aria-label="邀请与分享"><view class="shortcut-icon"><image class="shortcut-icon__image" src="/assets/icons/gift-plum.svg" mode="aspectFit"/></view><strong class="profile-shortcut__title">邀请与分享</strong><small class="profile-shortcut__meta">邀请朋友</small></button>
-  </view>
+    <button class="care-status {{navigating ? 'control--disabled' : ''}}" bindtap="openRecords" disabled="{{navigating}}" aria-label="查看护理进度与记录">
+      <view class="care-status__head"><view><text class="care-status__label">当前护理</text><strong class="care-status__title">{{careTitle}}</strong></view><image class="care-status__caret" src="/assets/icons/caret-right-white.svg" mode="aspectFit"/></view>
+      <text class="care-status__copy">{{careCopy}}</text><view class="care-progress"><view class="care-progress__bar" style="width: {{progressPercent}}%"></view></view>
+      <view class="care-status__stats"><view><strong class="{{pointsBalanceClass}}">{{points.projection.available || 0}}</strong><small>可用积分</small></view><view><strong>{{care.due || care.next || '待安排'}}</strong><small>当前节点</small></view><view><strong>{{care.completed.length || 0}} / 4</strong><small>已完成</small></view></view>
+    </button>
 
-  <view class="glass profile-gate"><image class="profile-gate__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><view><strong class="profile-gate__title">交易能力尚未开放</strong><small class="profile-gate__copy">购买服务尚在准备中，目前可以浏览商品，暂不能下单。</small></view></view>
+    <view class="profile-label">常用服务</view>
+    <view class="profile-group">
+      <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openSupport" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>客服</strong><small>{{supportUnread ? supportUnread + ' 条未读回复' : '咨询护理、账号与服务问题'}}</small></view><text wx:if="{{supportUnread}}" style="display:flex;align-items:center;justify-content:center;min-width:34rpx;height:34rpx;padding:0 9rpx;border-radius:999rpx;color:#fff;background:#8d3150;font-size:20rpx">{{supportUnread > 99 ? '99+' : supportUnread}}</text><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/wallet-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>积分账本</strong><small>查看积分来源、冻结和可用状态</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/storefront-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>商品目录</strong><small>浏览商品与隔离订单入口</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openOrders" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>我的订单</strong><small>查看待支付、取消与超时订单</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openInvite" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/gift-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>邀请与分享</strong><small>查看真实邀请入口与归因说明</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+    </view>
 
-  <view class="glass profile-menu">
-    <button class="menu-row {{tasksLoading || navigating ? 'control--disabled' : ''}}" bindtap="openTasks" disabled="{{tasksLoading || navigating}}"><image class="menu-row__icon" src="/assets/icons/gift-plum.svg" mode="aspectFit"/><view class="menu-row__copy"><strong class="menu-row__title">投稿与邀请</strong><small class="menu-row__meta">{{tasksLoading ? '正在核验' : tasksError ? '同步失败 · 点此重试' : tasks.length > 1 ? tasks.length + ' 项待查看' : tasks.length ? tasks[0].actionLabel : '前往社区看活动'}}</small></view><image class="menu-caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
-    <button class="menu-row menu-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}"><image class="menu-row__icon" src="/assets/icons/gear-plum.svg" mode="aspectFit"/><view class="menu-row__copy"><strong class="menu-row__title">设置与隐私</strong><small class="menu-row__meta">公开范围、授权与注销</small></view><image class="menu-caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
-  </view>
+    <block wx:if="{{authority.managementAvailable}}"><view class="profile-label">管理能力</view><view class="profile-group"><button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openManagement" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>管理中心</strong><small>按当前账号权限处理客服与运营事项</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button></view></block>
+
+    <view class="profile-label">账号与活动</view>
+    <view class="profile-group">
+      <button class="profile-row {{tasksLoading || navigating ? 'control--disabled' : ''}}" bindtap="openTasks" disabled="{{tasksLoading || navigating}}"><image class="profile-row__icon" src="/assets/icons/list-checks-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>投稿与活动</strong><small>{{tasksLoading ? '正在核验' : tasksError ? '同步失败 · 点此重试' : tasks.length > 1 ? tasks.length + ' 项待查看' : tasks.length ? tasks[0].actionLabel : '前往社区查看活动'}}</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/gear-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>设置</strong><small>昵称、收货地址、隐私、会员编号</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+    </view>
+    <view class="commerce-note"><image src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>隔离环境可验证待支付订单；微信支付、真实购买与配送仍未开放。</text></view>
   </block>
-  <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试</button></view>
-  <view wx:if="{{tasksError && member}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">有效邀请同步失败，当前页面不会把失败冒充为无邀请。</text><button class="text-button state-error__action" bindtap="retryTasks">重试邀请同步</button></view>
+  <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重试</button></view>
+  <view wx:if="{{tasksError && member}}" class="state state--error" aria-live="assertive"><text>有效邀请同步失败，当前页面不会把失败显示为无邀请。</text><button class="text-button" bindtap="retryTasks">重试邀请同步</button></view>
 </view>

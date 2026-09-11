@@ -1,11 +1,11 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import pg from "pg";
+import { createPool } from "../services/api/src/db.js";
 
 const direction = process.argv[2] ?? "up";
 if (direction !== "up" && direction !== "down") throw new Error("Usage: migrate.ts up|down");
 const connectionString = process.env.DATABASE_URL ?? "postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme";
-const pool = new pg.Pool({ connectionString, max: 1 });
+const pool = createPool(connectionString);
 await pool.query(`CREATE TABLE IF NOT EXISTS schema_migration (
   version text PRIMARY KEY,
   applied_at timestamptz NOT NULL DEFAULT now()

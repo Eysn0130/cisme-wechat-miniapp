@@ -18,6 +18,7 @@ interface DesignQaManifest {
     compileEvidenceFiles: string[];
     consoleEvidenceFiles: string[];
     networkEvidenceFiles: string[];
+    routeRuntimeHealthFiles?: string[];
   };
   routeCoverage: Array<{
     route: string;
@@ -48,6 +49,7 @@ type EvidenceKind =
   | "devtools_compile"
   | "devtools_console"
   | "devtools_network"
+  | "devtools_route_runtime_health"
   | "route_reference"
   | "route_native"
   | "route_comparison"
@@ -220,7 +222,8 @@ function typedDevtoolsEvidenceErrors(manifest: DesignQaManifest, currentSourceSh
   const categories: Array<[string, unknown, RegExp, EvidenceKind]> = [
     ["compile", manifest.devtools.compileEvidenceFiles, /compile/i, "devtools_compile"],
     ["console", manifest.devtools.consoleEvidenceFiles, /console/i, "devtools_console"],
-    ["network", manifest.devtools.networkEvidenceFiles, /(?:network|\.har$)/i, "devtools_network"]
+    ["network", manifest.devtools.networkEvidenceFiles, /(?:network|\.har$)/i, "devtools_network"],
+    ["route-runtime-health", manifest.devtools.routeRuntimeHealthFiles, /route-runtime-health/i, "devtools_route_runtime_health"]
   ];
   return categories.flatMap(([category, files, marker, kind]) => {
     if (files === undefined || files === null) return [];
@@ -308,6 +311,7 @@ export async function evaluateDesignQaEvidence(root = resolve(import.meta.dirnam
     ...(manifest.devtools?.compileEvidenceFiles ?? []),
     ...(manifest.devtools?.consoleEvidenceFiles ?? []),
     ...(manifest.devtools?.networkEvidenceFiles ?? []),
+    ...(manifest.devtools?.routeRuntimeHealthFiles ?? []),
     ...((manifest.routeCoverage ?? []).flatMap((entry) => entry.states?.length
       ? entry.states.flatMap((state) => state.evidenceFiles ?? [])
       : entry.evidenceFiles ?? [])),

@@ -3,7 +3,7 @@
   "projectname": "cisme-r0-miniprogram",
   "miniprogramRoot": "./",
   "compileType": "miniprogram",
-  "libVersion": "2.32.3",
+  "libVersion": "3.15.2",
   "setting": {
     "es6": true,
     "minified": true,

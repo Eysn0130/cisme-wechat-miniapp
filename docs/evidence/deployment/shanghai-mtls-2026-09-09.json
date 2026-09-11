@@ -1,0 +1,13 @@
+{
+  "times": [
+    420,
+    36,
+    35,
+    35,
+    35
+  ],
+  "ssl": true,
+  "version": "TLSv1.3",
+  "clientCertificatePresented": true,
+  "measuredFrom": "developer workstation"
+}

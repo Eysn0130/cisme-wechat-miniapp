@@ -1,0 +1,19 @@
+{
+  "sourceSha256": "da1fac9e17c3a685a2eb1ee7614bcac63fb6278baecc90855f2e96f881637d21",
+  "environment": "DevTools Stable 2.02.2608070 / base library 3.15.2 / iPhone X simulator",
+  "observed": [
+    "Account page shows login / register and first-login automatic registration explanation",
+    "Registration remains unavailable without published legal documents",
+    "Clicked browse public community without login or consent",
+    "Community opened with featured selected and recommend/following visible"
+  ],
+  "screenshots": [
+    "native-login-register-entry-2026-09-09.png",
+    "native-guest-community-entry-2026-09-09.png"
+  ],
+  "notVerified": [
+    "Real WeChat registration consent",
+    "Real device acceptance",
+    "Full route/state acceptance"
+  ]
+}

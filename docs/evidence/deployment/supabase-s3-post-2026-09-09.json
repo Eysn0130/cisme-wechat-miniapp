@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-09-08T16:14:27.531Z",
+  "provider": "Supabase",
+  "method": "CISME Presigned POST",
+  "bucket": "cisme-evidence",
+  "bucketReachable": true,
+  "uploadHttpStatus": 200,
+  "uploadOk": true,
+  "verified": {
+    "bytes": 68,
+    "checksumBase64": "LVvbiJqE44hoMRexbjt5Hj8qoUTzmMBb+KJkir1lGWw=",
+    "detectedMime": "image/png"
+  },
+  "deleted": true
+}

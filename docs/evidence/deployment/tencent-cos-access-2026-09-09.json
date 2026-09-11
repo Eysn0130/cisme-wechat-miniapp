@@ -1,0 +1,6 @@
+{
+  "appBackupReadDenied": true,
+  "maintenanceMediaReadDenied": true,
+  "anonymousMediaReadDenied": true,
+  "anonymousBucketListDenied": true
+}

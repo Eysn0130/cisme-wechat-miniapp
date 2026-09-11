@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "inventoryDate": "2026-09-11",
+  "wechatApis": [
+    "wx.chooseAddress",
+    "wx.chooseMedia",
+    "wx.createIntersectionObserver",
+    "wx.createSelectorQuery",
+    "wx.disableAlertBeforeUnload",
+    "wx.enableAlertBeforeUnload",
+    "wx.env",
+    "wx.getAccountInfoSync",
+    "wx.getClipboardData",
+    "wx.getDeviceInfo",
+    "wx.getFileSystemManager",
+    "wx.getMenuButtonBoundingClientRect",
+    "wx.getStorageSync",
+    "wx.getWindowInfo",
+    "wx.hideKeyboard",
+    "wx.hideShareMenu",
+    "wx.login",
+    "wx.navigateBack",
+    "wx.navigateTo",
+    "wx.nextTick",
+    "wx.offKeyboardHeightChange",
+    "wx.onKeyboardHeightChange",
+    "wx.openPrivacyContract",
+    "wx.openSetting",
+    "wx.pageScrollTo",
+    "wx.previewImage",
+    "wx.reLaunch",
+    "wx.redirectTo",
+    "wx.removeStorageSync",
+    "wx.request",
+    "wx.requirePrivacyAuthorize",
+    "wx.setClipboardData",
+    "wx.setStorageSync",
+    "wx.showActionSheet",
+    "wx.showModal",
+    "wx.showShareMenu",
+    "wx.showToast",
+    "wx.stopPullDownRefresh",
+    "wx.switchTab",
+    "wx.uploadFile",
+    "wx.vibrateShort"
+  ],
+  "wxmlInterfaces": [
+    "input-type:nickname",
+    "open-type:chooseAvatar",
+    "open-type:feedback",
+    "open-type:getPhoneNumber",
+    "open-type:share"
+  ],
+  "requiredPrivateInfos": [
+    "chooseAddress"
+  ],
+  "privacyBoundaries": [
+    {
+      "surface": "wx.login",
+      "informationType": "微信登录标识",
+      "purpose": "用户主动登录、建立会员会话、防止账号冒用",
+      "activation": "用户点击登录后",
+      "serverStorage": "OpenID/可选 UnionID 与会员编号关系",
+      "currentGate": "identity emergency switch"
+    },
+    {
+      "surface": "open-type:chooseAvatar",
+      "informationType": "头像",
+      "purpose": "用户主动设置会员头像",
+      "activation": "用户点击选择头像后",
+      "serverStorage": "规范化 128px JPEG data URL",
+      "currentGate": "authenticated profile action"
+    },
+    {
+      "surface": "input-type:nickname",
+      "informationType": "昵称",
+      "purpose": "用户主动设置会员显示名",
+      "activation": "用户编辑并保存资料后",
+      "serverStorage": "member.display_name",
+      "currentGate": "authenticated profile action"
+    },
+    {
+      "surface": "open-type:getPhoneNumber",
+      "informationType": "手机号",
+      "purpose": "选填会员联系与账号冲突核验",
+      "activation": "用户点击绑定并授权后",
+      "serverStorage": "AES-GCM 密文、HMAC 盲索引、掩码",
+      "currentGate": "phone binding configuration and authenticated action"
+    },
+    {
+      "surface": "wx.chooseAddress",
+      "informationType": "收货地址",
+      "purpose": "用户主动导入并核对地址簿草稿",
+      "activation": "用户点击微信地址导入后",
+      "serverStorage": "仅在用户保存后写入加密地址簿",
+      "currentGate": "authenticated address action"
+    },
+    {
+      "surface": "wx.getClipboardData",
+      "informationType": "剪贴板文本",
+      "purpose": "用户主动粘贴并在本机识别地址",
+      "activation": "用户点击粘贴并识别后",
+      "serverStorage": "不自动上传；仅保存确认后的地址字段",
+      "currentGate": "explicit local action, 500 character cap"
+    },
+    {
+      "surface": "wx.chooseMedia",
+      "informationType": "用户选中的图片/摄像头拍摄图片",
+      "purpose": "旧投稿审核证据",
+      "activation": "服务端 uploads 开关为 true 且用户主动点击后",
+      "serverStorage": "当前 staging 开关关闭且 COS 未启用",
+      "currentGate": "authoritative media_uploads_enabled before privacy or chooser API"
+    },
+    {
+      "surface": "wx.getDeviceInfo",
+      "informationType": "平台与性能等级",
+      "purpose": "本机界面适配",
+      "activation": "页面布局计算",
+      "serverStorage": "不发送完整设备信息",
+      "currentGate": "local-only projection"
+    },
+    {
+      "surface": "wx.request",
+      "informationType": "业务 API 请求",
+      "purpose": "向 CISME 自有 API 读取或提交用户主动操作",
+      "activation": "具体页面业务动作",
+      "serverStorage": "按各业务表与保留规则",
+      "currentGate": "release-config environment allowlist and authenticated route controls"
+    },
+    {
+      "surface": "wx.uploadFile",
+      "informationType": "用户主动选择的审核图片",
+      "purpose": "上传旧投稿审核证据",
+      "activation": "服务端授权成功后",
+      "serverStorage": "当前 staging 上传开关关闭",
+      "currentGate": "media_uploads_enabled plus short-lived server authorization"
+    },
+    {
+      "surface": "support_message.body",
+      "informationType": "用户主动提交的客服咨询文本、发送方类型与发送方标识；attachment_refs 字段保留为空数组，附件能力尚未实现",
+      "purpose": "人工客服处理护理、账号、售后、投诉与服务问题",
+      "activation": "用户在统一客服会话中点击发送后",
+      "serverStorage": "CISME PostgreSQL immutable support_message；Outbox 不包含正文",
+      "currentGate": "authenticated member ownership; text only; 4000 character cap; resolved conversation plus approved active retention policy plus elapsed duration plus no legal hold before targeted purge",
+      "authority": "CISME PostgreSQL support_message",
+      "visibleTo": "会话所属会员；具备 support.read 的客服；回复另需 support.reply 与当前会话归属",
+      "retention": "POLICY PENDING；从会话解决时计算，当前 policy inactive，不允许用未确认天数自动删除",
+      "userDeletionOrClosure": "经核验的权利请求进入范围判断；有效法律保全优先阻止物理删除",
+      "legalHold": "member 或 support_conversation 级 active hold 均阻止 purge",
+      "audit": "正文不进入 audit/outbox；purge 仅留消息数量和策略版本"
+    },
+    {
+      "surface": "support_conversation",
+      "informationType": "关联会员、客服状态、优先级、当前人工处理人、未读与读取游标；linked order 尚未实现且当前不存储",
+      "purpose": "将同一会员的咨询、人工接管、处理和解决状态组织为一个权威会话",
+      "activation": "会员首次发送消息或主动请求人工时",
+      "serverStorage": "CISME PostgreSQL support_conversation；不复制订单或会员详情",
+      "currentGate": "会员只能读取自己的会话；管理读取/接管/回复分别检查服务端 capability",
+      "authority": "CISME PostgreSQL support_conversation",
+      "visibleTo": "会话所属会员；按 capability 授权的客服",
+      "retention": "POLICY PENDING；仅 resolved 会话在批准期限届满后可进入 purge",
+      "userDeletionOrClosure": "纳入权利请求核验；不因退出登录删除",
+      "legalHold": "member 或 conversation 绑定的 active hold 阻止 purge",
+      "audit": "claim、context view、reply、resolve、purge 均记录最小化审计"
+    },
+    {
+      "surface": "support_member_context",
+      "informationType": "昵称、会员状态、脱敏手机号、加入时间",
+      "purpose": "当前人工客服会话的最小必要上下文",
+      "activation": "具备 member.support_view 的客服主动打开后",
+      "serverStorage": "不复制用户对象；每次查看写 audit_log 字段清单",
+      "currentGate": "server-side member.support_view capability; no address or care detail"
+    },
+    {
+      "surface": "support_audit",
+      "informationType": "会话操作人、动作、会话编号、原因、状态差异与时间；purge 墓碑不含咨询正文和会员身份",
+      "purpose": "权限问责、投诉与争议核验、安全及服务质量管理",
+      "activation": "客服接管、回复、查看最小上下文、解决或 retention purge 时",
+      "serverStorage": "CISME PostgreSQL audit_log",
+      "currentGate": "server-side capability and transactional write",
+      "authority": "CISME PostgreSQL audit_log",
+      "visibleTo": "仅经授权的内部审计/隐私处理人员；小程序用户界面不直接展示内部审计",
+      "retention": "POLICY PENDING；与会话正文分离，按经批准的最小问责期限限制保存",
+      "userDeletionOrClosure": "必要问责证据可能限制处理而非随会话一并删除；具体依据在请求回复中说明",
+      "legalHold": "适用法律保全时限制删除",
+      "audit": "purge 后仅保留 policyCode、policyVersion、messageCount、resolvedAt 和 purged=true"
+    },
+    {
+      "surface": "catalog_management_audit",
+      "informationType": "商品操作人标识、商品/SKU 编号、版本、资质证据引用、库存调整理由和状态差异；不包含微信 OpenID、手机号或地址",
+      "purpose": "企业自营商品的权限问责、资质门禁、发布与库存变更审计",
+      "activation": "具备对应 commerce capability 的人员主动保存、判断资质、上下架或调整库存后",
+      "serverStorage": "CISME PostgreSQL catalog_* evidence tables and audit_log",
+      "currentGate": "environment-scoped authority_grant; separate product, qualification and inventory capabilities; immutable evidence",
+      "authority": "CISME PostgreSQL catalog and audit records",
+      "visibleTo": "获授权的商品运营和审计人员；公共目录只展示 eligible + published 商品",
+      "retention": "POLICY PENDING；历史商品关联不得因下架而破坏",
+      "userDeletionOrClosure": "不是消费者资料；员工/操作人权利请求需结合问责依据单独核验",
+      "legalHold": "适用争议或监管保全时限制删除",
+      "audit": "库存理由与资质证据引用保留；Outbox 仅含对象标识和动作，不含证据正文"
+    },
+    {
+      "surface": "commerce_pending_order",
+      "informationType": "订单所属会员、订单号、商品与规格快照、数量、整数分金额、状态、规则版本、时间；订单地址快照以 AES-256-GCM 加密并带 HMAC 完整性校验",
+      "purpose": "在隔离非生产环境验证服务端报价、待支付订单、取消/超时与库存预留释放；当前不处理真实支付或履约",
+      "activation": "登录用户主动确认服务端报价后；仅 COMMERCE_ORDER_FLOW_ENABLED 的非生产环境可新建",
+      "serverStorage": "CISME PostgreSQL commerce_* order tables；地址簿在同一事务按订单专用 AAD 重加密为不可变快照",
+      "currentGate": "authenticated member ownership; synthetic_test product only; non-production config gate; payment unavailable",
+      "authority": "CISME PostgreSQL quote/order/transition/reservation records；客户端金额不是权威",
+      "visibleTo": "所属会员可看完整自有订单快照；commerce.order.read 仅看脱敏收货人、手机号尾号与地区；完整履约地址读取尚未开放",
+      "retention": "POLICY PENDING；订单事实和争议证据不能因商品改名、下架或地址簿编辑而破坏；真实支付/税务/售后接入前另行批准期限",
+      "userDeletionOrClosure": "纳入数据权利请求范围判断；交易争议、法定保存或 active legal hold 可能限制立即删除",
+      "legalHold": "真实交易启用前须把订单对象纳入法律保全绑定范围；当前仅合成测试数据",
+      "audit": "专用 append-only transition ledger；audit/outbox/idempotency response 均不含姓名、电话、详细地址或密文"
+    },
+    {
+      "surface": "support_ai_suggested_reply",
+      "informationType": "未来可能传入的最小客服会话投影与版本化知识来源；当前无批准 Provider、无批准知识源、无外部传输",
+      "purpose": "为已接管会话的人工客服生成可审阅建议回复草稿",
+      "activation": "当前禁用；未来须由具备 support.reply 且当前持有会话的客服主动触发",
+      "serverStorage": "当前不存储 AI 草稿，不创建 AI 消息或 AI job",
+      "currentGate": "PROVIDER INTEGRATION PENDING; approved hashed sources only; readonly allowlist tools; no auto-send",
+      "authority": "人工客服仍是发送 Authority；模型参数不能决定 member scope 或业务权限",
+      "visibleTo": "未来仅当前人工处理人；当前小程序显示 Provider 待接入",
+      "retention": "NOT APPLICABLE while disabled；外部 Provider 启用前须另行批准数据传输与保留规则",
+      "userDeletionOrClosure": "当前无外部推理数据或持久 AI 草稿",
+      "legalHold": "真正接入前随客服会话政策单独评估",
+      "audit": "当前仅状态读取；离线 fixture 不使用真实聊天"
+    }
+  ],
+  "runtimeDataEgress": [
+    {
+      "recipient": "微信接口 api.weixin.qq.com",
+      "data": "登录 code；手机号授权 code；服务端 AppID/Secret",
+      "purpose": "code2Session 与手机号解密",
+      "state": "implemented"
+    },
+    {
+      "recipient": "CISME 自有 HTTPS API",
+      "data": "页面所需的最小业务字段",
+      "purpose": "会员、护理、地址、投稿、权利请求、统一客服会话与自营商品目录",
+      "state": "implemented"
+    },
+    {
+      "recipient": "腾讯云 COS",
+      "data": "未来的私有媒体和加密备份",
+      "purpose": "对象存储与灾备",
+      "state": "staging_media_not_enabled"
+    },
+    {
+      "recipient": "CloudBase readiness health probe",
+      "data": "固定健康检查，无会员数据",
+      "purpose": "历史/未启用传输路径的可用性检查",
+      "state": "not_mapped_for_preview_or_trial"
+    }
+  ],
+  "migrationSetSha256": "128d852852f75227180f86963f9e29b688812f6d3b62ed177a32f36c9d4d0217",
+  "egressSignatureSha256": "d701a12581e0ac98f3337834f583ef5185a117f233c92fe375934ca27de1562e"
+}

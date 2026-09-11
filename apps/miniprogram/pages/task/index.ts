@@ -1,3 +1,4 @@
+import { requireMemberAccess } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, rememberSubmissionReturn, request } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 
@@ -18,7 +19,7 @@ Page({
   },
   onHide() { this.data.loadAttempt += 1; },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; wx.disableAlertBeforeUnload(); },
-  onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); },
+  onShow() { if (!requireMemberAccess()) return; this.setData({ pageAlive: true, leaving: false }); void this.load(); },
   async load(event?: WechatMiniprogram.TouchEvent): Promise<boolean> {
     if (event?.type) clearAuthenticationRedirectSuppression();
     if (!this.data.taskId) { this.setData({ task: null, loading: false, errorAction: "missing", errorTitle: "无法打开邀请详情", error: "链接中缺少邀请编号，请返回品牌精选社区重新进入。" }); return false; }

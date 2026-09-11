@@ -1,21 +1,25 @@
 <view class="records-page" style="{{chromeStyle}}">
+  <view class="records-surface" aria-hidden="{{recordDetailMounted}}">
   <view class="records-hero">
     <view class="records-hero__orb"></view>
     <block wx:if="{{authorityAvailable}}">
     <view class="records-kicker"><text class="records-wordmark">CISME CARE</text><text class="records-archive">护理档案</text></view>
-    <view class="record-streak" aria-label="已完成 {{summary.completed}} 个里程碑"><strong class="record-streak__count">{{summary.completed}}</strong><view class="record-streak__copy"><text class="record-streak__label">里程碑记录</text><small class="record-streak__meta">MILESTONES</small></view></view>
+    <view class="record-streak {{summary.recordCountClass}}" aria-label="共保存 {{summary.totalRecords}} 条护理记录"><strong class="record-streak__count">{{summary.totalRecords}}</strong><view class="record-streak__copy"><text class="record-streak__label">护理记录</text><small class="record-streak__meta">CARE RECORDS</small></view></view>
     <view class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text class="records-headline__line">{{summary.headlineLine2}}</text></view>
-    <view class="records-subline">{{summary.completed}} / 4 个里程碑已完成 · {{summary.phaseLabel}}</view>
+    <view class="records-subline">{{care ? summary.completed + ' / 4 个当前周期里程碑，' + summary.phaseLabel : '护理服务开始后，将在这里保存真实记录'}}<text wx:if="{{lastSyncedLabel}}" class="records-sync-label"> · {{refreshing ? '正在更新' : lastSyncedLabel}}</text></view>
     </block>
+    <view wx:elif="{{accessRequired}}" class="records-hero-status"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">登录后查看护理档案</strong></view>
     <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">正在同步护理档案…</strong></view>
     <view wx:else class="records-hero-status" aria-live="assertive"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">护理档案暂不可用</strong></view>
   </view>
 
   <view class="records-content">
     <view wx:if="{{operationStatus}}" class="records-operation-status" aria-live="polite" aria-atomic="true">{{operationStatus}}</view>
-    <view wx:if="{{error}}" id="records-error-summary" class="state state--error records-error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="retryLoad">重试</button></view>
-    <view wx:if="{{loading}}" class="glass records-loading" aria-live="polite">正在同步护理事实…</view>
-    <view wx:elif="{{authorityAvailable && care}}" class="glass milestone-card">
+    <view wx:if="{{accessRequired}}" class="glass records-access" aria-live="polite"><image class="records-access__icon" src="/assets/icons/user-circle-plum.svg" mode="aspectFit"/><strong class="records-access__title">护理记录属于你的会员档案</strong><text class="records-access__copy">完成微信会员身份确认后，才能读取已保存的护理周期与里程碑。</text><button class="primary records-access__action" bindtap="authenticate" aria-label="登录并返回护理档案">登录并查看档案</button></view>
+    <view wx:if="{{error}}" id="records-error-summary" class="state state--error records-error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="retryLoad" aria-label="重新同步护理档案">重新同步</button></view>
+    <view wx:if="{{loading && !authorityAvailable && !accessRequired}}" class="glass records-loading" aria-live="polite"><view class="records-loading__line records-loading__line--title"></view><view class="records-loading__line"></view><view class="records-loading__line records-loading__line--short"></view><text>正在同步护理事实…</text></view>
+    <view wx:if="{{authorityAvailable && care}}" class="glass care-overview">
+      <view class="milestone-card">
       <view class="milestone-head"><view class="milestone-head__copy"><text class="milestone-kicker">CARE CYCLE</text><strong class="milestone-title">本周期进度</strong></view><text class="milestone-phase">{{summary.phaseLabel}}</text></view>
       <view class="milestone-track">
         <view wx:for="{{timeline}}" wx:key="milestone" class="milestone-node {{item.done ? 'is-done' : ''}} {{item.current ? 'is-current' : ''}}">
@@ -23,32 +27,49 @@
         </view>
       </view>
       <view class="cycle-summary">{{summary.cycleSummary}}</view>
-    </view>
-
-    <view wx:elif="{{authorityAvailable && !care}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">尚无护理周期</view><text class="records-empty__copy">完成体验资格确认后，将在这里生成待开始周期。</text></view>
-
-    <view wx:if="{{authorityAvailable && care && (care.phase === 'planned' || care.phase === 'active' || care.phase === 'paused')}}" class="glass cycle-controls">
-      <view class="cycle-controls__title">周期管理</view>
-      <view class="cycle-controls__copy">暂停会保留已有记录；终止后不会继续生成里程碑。</view>
-      <view class="cycle-controls__actions">
-        <button wx:if="{{care.phase === 'planned'}}" class="cycle-button cycle-button--single {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}">前往确认开始</button>
-        <button wx:elif="{{care.phase === 'active' && care.pausePolicy.enabled}}" class="cycle-button {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="pause" loading="{{workingAction === 'pause'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">暂停周期</button>
-        <view wx:elif="{{care.phase === 'active'}}" class="cycle-policy-note">暂停策略尚未签字</view>
-        <button wx:elif="{{care.phase === 'paused'}}" class="cycle-button {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="resume" loading="{{workingAction === 'resume'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">恢复周期</button>
-        <button wx:if="{{care.phase === 'active' || care.phase === 'paused'}}" class="cycle-button cycle-button--danger {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="terminate" loading="{{workingAction === 'terminate'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">终止周期</button>
       </view>
-    </view>
-
-    <view wx:if="{{authorityAvailable && care}}" class="record-list">
-      <view class="record-list__head"><text class="record-list__title">最近记录</text><text class="record-list__count">{{records.length}} 条记录</text></view>
-      <view wx:if="{{records.length}}">
-        <view wx:for="{{records}}" wx:key="milestone" class="record-row">
-          <text class="record-index">{{item.index}}</text><view class="record-row__copy"><strong class="record-row__title">{{item.milestone}} 护理里程碑</strong><small class="record-row__meta">已保存护理事实</small></view><text class="record-row__time">{{item.completedAt}}</text>
+      <view wx:if="{{care.phase === 'planned' || care.phase === 'active' || care.phase === 'paused'}}" class="cycle-controls">
+        <view class="cycle-controls__head"><view><view class="cycle-controls__title">周期管理</view><view class="cycle-controls__copy">{{care.phase === 'planned' ? '确认后才会记录开始日与 D1。' : care.phase === 'paused' ? '恢复会按暂停天数顺延未完成节点。' : '暂停保留记录，终止后不再生成里程碑。'}}</view></view><text wx:if="{{care.phase === 'active' && !care.pausePolicy.enabled}}" class="cycle-policy-note">暂停暂不可用</text></view>
+        <view class="cycle-controls__actions {{care.phase === 'active' && !care.pausePolicy.enabled ? 'cycle-controls__actions--single' : ''}}">
+          <button wx:if="{{care.phase === 'planned'}}" class="cycle-button cycle-button--single {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}">前往确认开始</button>
+          <button wx:elif="{{care.phase === 'active' && care.pausePolicy.enabled}}" class="cycle-button {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="pause" loading="{{workingAction === 'pause'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">暂停周期</button>
+          <button wx:elif="{{care.phase === 'paused'}}" class="cycle-button {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="resume" loading="{{workingAction === 'resume'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">恢复周期</button>
+          <button wx:if="{{care.phase === 'active' || care.phase === 'paused'}}" class="cycle-button cycle-button--danger {{working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="terminate" loading="{{workingAction === 'terminate'}}" disabled="{{working || confirmingCycleAction}}" bindtap="changeCycle">终止周期</button>
         </view>
       </view>
-      <view wx:else class="record-row record-row--pending"><text class="record-index">01</text><view class="record-row__copy"><strong class="record-row__title">尚无护理记录</strong><small class="record-row__meta">{{care.phase === 'planned' ? '确认开始周期后才会出现 D1' : '当前没有到期里程碑'}}</small></view><text class="record-row__time">—</text></view>
     </view>
 
-    <view wx:if="{{authorityAvailable && care}}" class="records-actions"><button class="records-home {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}"><image class="records-home__icon" src="/assets/icons/drop-active.svg" mode="aspectFit"/>查看护理首页</button></view>
+    <view wx:elif="{{authorityAvailable && !care}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">尚无护理周期</view><text class="records-empty__copy">获得护理服务后，周期记录会显示在这里。会员注册不以开通护理服务为条件。</text><view class="records-empty__facts"><text class="records-empty__fact">里程碑</text><text class="records-empty__fact records-empty__fact--divided">四段步骤</text><text class="records-empty__fact records-empty__fact--divided">护理后感受</text></view><button class="secondary records-empty__action" bindtap="goHome" aria-label="返回护理首页查看服务状态">查看护理首页</button></view>
+
+    <view wx:if="{{authorityAvailable && care}}" class="record-list">
+      <view class="record-list__head"><view><text class="record-list__title">护理记录</text><text class="record-list__subtitle">按周期保存的真实护理事实</text></view><text class="record-list__count">{{records.length}} 条</text></view>
+      <view wx:for="{{visibleRecordGroups}}" wx:key="key" wx:for-item="group" class="record-group">
+        <view class="record-group__head"><view><strong class="record-group__title">{{group.label}}</strong><small class="record-group__meta">{{group.meta}}</small></view><text class="record-group__phase">{{group.phaseLabel}}</text></view>
+        <button wx:for="{{group.records}}" wx:key="recordKey" wx:for-item="record" class="record-row" data-key="{{record.recordKey}}" bindtap="openRecordDetail" aria-label="查看 {{group.label}} {{record.milestone}} 护理记录详情">
+          <text class="record-index">{{record.index}}</text><view class="record-row__copy"><strong class="record-row__title">{{record.milestone}} 护理里程碑</strong><small class="record-row__meta">{{record.hasDetails ? '四段步骤与护理后感受已保存' : '历史记录，部分详细事实缺失'}}</small></view><view class="record-row__time"><text>{{record.completedAt}}</text><image class="record-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></view>
+        </button>
+        <view wx:if="{{!group.records.length}}" class="record-row record-row--pending"><text class="record-index record-index--pending">待</text><view class="record-row__copy"><strong class="record-row__title">尚无护理记录</strong><small class="record-row__meta">{{group.emptyCopy}}</small></view><text class="record-row__time">待记录</text></view>
+      </view>
+      <button wx:if="{{hiddenCycleCount > 0}}" class="records-earlier" bindtap="showEarlierCycles" aria-label="查看更早护理周期，还有 {{hiddenCycleCount}} 个周期">查看更早周期（{{hiddenCycleCount}}）</button>
+    </view>
+
+    <view wx:if="{{authorityAvailable && care && care.phase !== 'planned'}}" class="records-actions {{care.phase === 'completed' || care.phase === 'terminated' ? 'records-actions--two' : ''}}"><button class="records-home {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}"><image class="records-home__icon" src="/assets/icons/drop-active.svg" mode="aspectFit"/>查看护理首页</button><button wx:if="{{care.phase === 'completed' || care.phase === 'terminated'}}" class="records-home records-shop {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goShop" disabled="{{working || confirmingCycleAction}}"><image class="records-home__icon" src="/assets/icons/storefront-plum.svg" mode="aspectFit"/>浏览护理商品</button></view>
+  </view>
+  </view>
+
+  <view wx:if="{{recordDetailMounted && selectedRecord}}" class="record-detail {{recordDetailVisible ? 'record-detail--visible' : ''}} {{recordDetailClosing ? 'record-detail--closing' : ''}} {{reducedMotion ? 'record-detail--reduced' : ''}}" catchtap="closeRecordDetail" aria-role="dialog" aria-modal="true" aria-label="{{selectedRecord.milestone}} 护理记录详情">
+    <view class="record-detail__sheet" catchtap="stopPropagation">
+      <view class="record-detail__handle"></view>
+      <view class="record-detail__head"><view><text class="record-detail__eyebrow">{{selectedRecord.cycleLabel}} · {{selectedRecord.milestone}}</text><strong class="record-detail__title">护理事实详情</strong></view><button class="record-detail__close" bindtap="closeRecordDetail">关闭</button></view>
+      <view class="record-detail__time"><view><small class="record-detail__time-label">完成日期</small><strong class="record-detail__date">{{selectedRecord.completedDate}}</strong></view><text class="record-detail__clock">{{selectedRecord.completedTime}}</text></view>
+      <view class="record-detail__section">
+        <text class="record-detail__label">四段护理</text>
+        <view wx:if="{{selectedRecord.steps.length}}" class="record-detail__steps"><view wx:for="{{selectedRecord.steps}}" wx:key="code" class="record-detail__step"><text class="record-detail__step-code">{{item.code}}</text><view><strong class="record-detail__step-label">{{item.label}}</strong><small class="record-detail__step-title">{{item.title}}</small></view></view></view>
+        <view wx:if="{{selectedRecord.stepSummary}}" class="record-detail__legacy">{{selectedRecord.stepSummary}}</view>
+      </view>
+      <view class="record-detail__section"><text class="record-detail__label">护理后感受</text><view class="record-detail__assessment {{selectedRecord.assessmentAvailable ? '' : 'record-detail__assessment--legacy'}}"><image class="record-detail__assessment-icon" src="{{selectedRecord.assessmentIcon}}" mode="aspectFit"/><view><strong class="record-detail__assessment-label">{{selectedRecord.assessmentLabel}}</strong><small class="record-detail__assessment-note">{{selectedRecord.assessmentNote}}</small></view></view></view>
+      <view class="record-detail__protocol"><text>护理协议</text><text class="record-detail__protocol-value">{{selectedRecord.protocolVersion}}</text></view>
+      <text class="record-detail__footnote">这是你提交的护理事实与自我感受，不构成医学判断。</text>
+    </view>
   </view>
 </view>

@@ -1,3 +1,4 @@
+import { MemberProfile, type MemberProfileInput } from "./memberProfile.js";
 import { startBackgroundWorker } from "../../worker/src/jobs.js";
 import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
@@ -6,12 +7,24 @@ import multipart from "@fastify/multipart";
 import type pg from "pg";
 import { loadConfig, type AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
-import type { CareVersionCommandInput, EmergencySwitchKey, WorkerQueue } from "@cisme/contracts";
+import type { CareMilestoneCommandInput, CareVersionCommandInput, EmergencySwitchKey, WorkerQueue } from "@cisme/contracts";
 import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
 import { createPool } from "./db.js";
+import { PrivacyRights } from "./privacyRights.js";
+import { PhoneBinding } from "./phoneBinding.js";
+import { DeliveryAddressService } from "./deliveryAddress.js";
+import { CloudUpload } from "./cloudUpload.js";
+import { CommunityAccess } from "./communityAccess.js";
 import { CommunityService } from "./communityService.js";
+import { AuthorityService } from "./authority.js";
+import { SupportService } from "./supportService.js";
+import { CommerceCatalogService } from "./commerceCatalog.js";
+import { CommerceOrderService } from "./commerceOrders.js";
+import { ApprovedKnowledgeRegistry, DisabledSupportAiProvider, SupportAiBoundary } from "./supportAiBoundary.js";
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
+import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
+import { recordHttpRequest, runtimeMetrics, safeLoggerOptions } from "./observability.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -46,16 +59,55 @@ function idempotencyKey(request: FastifyRequest): string {
 
 export async function createApp(dependencies: AppDependencies): Promise<FastifyInstance> {
   const { config, pool, storage } = dependencies;
-  const app = Fastify({ logger: false, genReqId: () => randomUUID(), bodyLimit: 12 * 1024 * 1024 });
+  const app = Fastify({ logger: safeLoggerOptions(config.observability.logLevel), genReqId: (request) => {
+    const supplied = request.headers["x-request-id"];
+    return typeof supplied === "string" && /^[A-Za-z0-9._:-]{8,96}$/.test(supplied) ? supplied : randomUUID();
+  }, bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.routeDeadlineMs });
+  let coldStart = true;
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
+  const authority = new AuthorityService(pool, config.env);
+  const support = new SupportService(pool, authority);
+  const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled);
+  const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
+  const access = new CommunityAccess(pool, config, authority);
+  const cloudUpload = new CloudUpload(pool, config, service);
+  const phone = new PhoneBinding(pool, config);
+  const deliveryAddresses = new DeliveryAddressService(pool, config);
+  const orders = new CommerceOrderService(pool, authority, deliveryAddresses, {
+    enabled: config.commerce.orderFlowEnabled,
+    quoteTtlMinutes: config.commerce.quoteTtlMinutes,
+    pendingOrderTtlMinutes: config.commerce.pendingOrderTtlMinutes
+  });
+  const privacyRights = new PrivacyRights(pool);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
+  registerCloudHttpTransport(app);
+
+  app.addHook("onRequest", async (request) => {
+    (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeStartedAt = performance.now();
+    (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeColdStart = coldStart;
+    coldStart = false;
+  });
+  app.addHook("onSend", async (request, reply, payload) => {
+    const started = (request as FastifyRequest & { cismeStartedAt?: number }).cismeStartedAt ?? performance.now();
+    const bytes = typeof payload === "string" ? Buffer.byteLength(payload) : Buffer.isBuffer(payload) ? payload.length : 0;
+    const durationMs = performance.now() - started;
+    const cold = Boolean((request as FastifyRequest & { cismeColdStart?: boolean }).cismeColdStart);
+    recordHttpRequest({ ...(request.routeOptions.url ? { route: request.routeOptions.url } : {}), durationMs, responseBytes: bytes, statusCode: reply.statusCode, coldStart: cold, timedOut: reply.statusCode === 408 || reply.statusCode === 504 });
+    request.log.info({ event: "http_request", request_id: request.id, method: request.method, route: request.routeOptions.url, status_code: reply.statusCode,
+      duration_ms: Math.round(durationMs * 100) / 100, response_bytes: bytes, cold_start: cold });
+    return payload;
+  });
 
   app.setErrorHandler((error, request, reply) => {
     const pgCode = (error as { code?: string }).code;
+    const message = (error as Error).message;
     const databaseDomain = pgCode === "23505" ? new DomainError("DUPLICATE_BUSINESS_FACT", "The same link, hash or business fact already exists", 409)
       : pgCode === "40001" || pgCode === "40P01" ? new DomainError("CONCURRENT_OPERATION_RETRY", "Concurrent operation could not be completed; retry safely", 409)
+      : pgCode === "55P03" ? new DomainError("DATABASE_RESOURCE_BUSY", "Database resource is busy; retry this operation safely", 409)
+      : pgCode === "57014" ? new DomainError("DATABASE_DEADLINE_EXCEEDED", "Database deadline exceeded", 504)
+      : pgCode === "53300" || message === "timeout exceeded when trying to connect" ? new DomainError("DATABASE_SATURATED", "Database capacity is temporarily saturated", 503)
       : null;
     const domain = error instanceof DomainError ? error : databaseDomain;
     const status = domain?.status ?? ((error as { statusCode?: number }).statusCode ?? 500);
@@ -71,42 +123,51 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
 
   app.addHook("preHandler", async (request) => {
-    const publicCommunityRead = request.method === "GET" && /^\/v1\/community\/[^/?]+$/.test(request.url) && !request.headers.authorization;
-    const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(request.url);
-    const publicShareVisit = request.method === "POST" && /^\/v1\/shares\/[0-9a-f]{32}\/visits$/.test(request.url);
-    if (!request.url.startsWith("/v1/") || request.url.startsWith("/v1/identity/") || request.url.startsWith("/v1/admin/") || request.url.startsWith("/v1/uploads/") || request.url === "/v1/feed" || request.url === "/v1/catalog" || publicShareRead || publicShareVisit || publicCommunityRead) return;
+    if (process.env.CISME_MIGRATION_READ_ONLY === "true" && !["GET", "HEAD", "OPTIONS"].includes(request.method)) throw new DomainError("SERVICE_MIGRATING", "会员服务正在迁移，请稍后重试；已保存的数据不受影响", 503);
+    const path = request.url.split("?")[0] ?? request.url;
+    const publicCommunityRead = request.method === "GET" && /^\/v1\/community\/[^/]+$/.test(path) && !request.headers.authorization;
+    const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(path);
+    const publicShareVisit = request.method === "POST" && /^\/v1\/shares\/[0-9a-f]{32}\/visits$/.test(path);
+    const publicFeedRead = request.method === "GET" && (path === "/v1/feed" || path.startsWith("/v1/feed/"));
+    const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path.startsWith("/v1/admin/") || path.startsWith("/v1/uploads/") || publicFeedRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
-    const principal = verifySessionToken(token, config.sessionSecret);
-    if (principal.memberId) {
+    const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
+    if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
       await service.assertActiveMember(principal.memberId);
-      request.memberId = principal.memberId;
     }
+    if (principal.memberId) request.memberId = principal.memberId;
     request.principalId = principal.id;
   });
 
   app.get("/health/live", async () => ({ status: "ok" }));
   app.get("/health/ready", async () => {
     await pool.query("SELECT 1");
-    await storage.ensureReady();
-    return { status: "ready", communityPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile, pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled() };
+    return { status: "ready" };
   });
+
+  app.get("/v1/capabilities", async () => ({ version: 1, communityPreviewEnabled: community.enabled(), socialPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile,
+    pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
 
   app.post("/v1/identity/dev", async (request) => {
     if (!config.allowDevAdapters) throw new DomainError("DEV_ADAPTER_FORBIDDEN", "Development identity adapter is disabled", 503);
     const body = request.body as { externalUserId: string; displayName: string; consents: Array<{ documentType: string; version: string }> };
     const now = service.now(devClock(request));
-    const result = await service.identity({ appId: "dev", openid: `dev:${body.externalUserId}`, displayName: body.displayName, adapter: "dev", consents: body.consents }, now);
-    return { ...result, sessionToken: issueSessionToken({ principalId: result.principalId, memberId: result.memberId, adapter: "dev" }, config.sessionSecret) };
+    const result = await service.identity({ provider: "dev_test", appId: "dev", openid: `dev:${body.externalUserId}`, displayName: body.displayName, adapter: "dev", consents: body.consents }, now);
+    return { ...result, sessionToken: issueSessionToken({ principalId: result.principalId, memberId: result.memberId, adapter: "dev", provider: "dev_test", appId: "dev" }, config.sessionSecret) };
   });
+
+  app.get("/v1/identity/capabilities", async () => ({ phoneBindingEnabled: phone.enabled(), avatarSelection: "chooseAvatar" }));
 
   app.post("/v1/identity/wechat", async (request) => {
     if (!config.wechat.appId || !config.wechat.appSecret) throw new DomainError("WECHAT_NOT_CONFIGURED", "WeChat credentials are not configured", 503);
     const body = request.body as { code: string; displayName: string; consents: Array<{ documentType: string; version: string }> };
-    const response = await fetch(`https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(config.wechat.appId)}&secret=${encodeURIComponent(config.wechat.appSecret)}&js_code=${encodeURIComponent(body.code)}&grant_type=authorization_code`);
+    const response = await fetch(`https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(config.wechat.appId)}&secret=${encodeURIComponent(config.wechat.appSecret)}&js_code=${encodeURIComponent(body.code)}&grant_type=authorization_code`, { signal: AbortSignal.timeout(12_000) });
     const session = await response.json() as { openid?: string; unionid?: string; errcode?: number; errmsg?: string };
     if (!response.ok || !session.openid) throw new DomainError("WECHAT_LOGIN_FAILED", session.errmsg ?? "WeChat login failed", 502);
     const now = service.now();
     const result = await service.identity({
+      provider: "wechat_miniprogram",
       appId: config.wechat.appId,
       openid: session.openid,
       ...(session.unionid ? { unionid: session.unionid } : {}),
@@ -114,7 +175,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       adapter: "wechat",
       consents: body.consents
     }, now);
-    return { ...result, sessionToken: issueSessionToken({ principalId: result.principalId, memberId: result.memberId, adapter: "wechat" }, config.sessionSecret) };
+    return { ...result, phoneBindingEnabled: phone.enabled(), sessionToken: issueSessionToken({ principalId: result.principalId, memberId: result.memberId, adapter: "wechat", provider: "wechat_miniprogram", appId: config.wechat.appId }, config.sessionSecret) };
   });
 
   app.post("/v1/qualifications/dev", async (request) => {
@@ -124,12 +185,97 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
 
   app.post("/v1/care-cycles", async (request) => service.planCycle(request.memberId, request.body as { qualificationFactId: string; timezone: string; protocolVersion: string }, service.now(devClock(request))));
-  app.get("/v1/me/care", async (request) => service.getCare(request.memberId, service.now(devClock(request))));
+  app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/care", async (request) => service.getCare(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
+  for (const scope of ["home", "profile", "settings"] as const) app.get(`/v1/bootstrap/${scope}`, async (request) => service.bootstrap(request.memberId, scope, service.now(devClock(request))));
+  app.get("/v1/legal", async () => {
+    const documents = await pool.query("SELECT document_type,version,title,body,operator_name,contact,published_at FROM legal_document WHERE active=true ORDER BY document_type");
+    return { ready: ["terms", "privacy"].every(type => documents.rows.some(doc => doc.document_type === type)), documents: documents.rows };
+  });
+  app.get("/v1/me/privacy-requests", async request => privacyRights.list(request.memberId));
+  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown}));
+  app.get("/v1/admin/privacy-requests", async request => {
+    await privacyRights.requireOperator(adminPrincipal(request, config));
+    return privacyRights.queue();
+  });
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/response", async request => {
+    const principal = adminPrincipal(request, config);
+    await privacyRights.requireOperator(principal);
+    return privacyRights.respond(principal, request.params.requestId, request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown});
+  });
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/execution-plan", async request => {
+    const principal = adminPrincipal(request, config);
+    return privacyRights.planExecution(principal, request.params.requestId, idempotencyKey(request), request.body as {expectedVersion?:unknown;reasonCode?:unknown});
+  });
+  const memberProfile = new MemberProfile(pool);
+  app.get("/v1/me/authority", async request => authority.projection(request.memberId));
+  app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
+  app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async request => support.messagesForMember(request.memberId, request.query));
+  app.post("/v1/me/support/messages", async request => support.sendMember(request.memberId, request.principalId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown}, request.id));
+  app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId));
+  app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
+  app.get<{Querystring:{cursor?:string;limit?:string}}>("/v1/management/support/conversations", async request => support.queue(request.memberId, request.query));
+  app.get<{Params:{conversationId:string};Querystring:{after?:string;before?:string;limit?:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.operatorMessages(request.memberId, request.principalId, request.params.conversationId, request.query));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/claim", async request => support.claim(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown}, request.id));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/read", async request => support.markTeamRead(request.memberId, request.params.conversationId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/resolve", async request => support.resolve(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/member-context", async request => support.memberContext(request.memberId, request.principalId, request.params.conversationId, request.id));
+  app.get<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/retention", async request => support.retentionEligibility(request.memberId, request.params.conversationId));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/purge", async request => support.purge(request.memberId, request.principalId, request.params.conversationId, idempotencyKey(request), (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
+  app.get("/v1/me/profile", async request => memberProfile.get(request.memberId));
+  app.put("/v1/me/profile", async request => memberProfile.update(request.memberId, request.body as MemberProfileInput));
+  app.get("/v1/team/member-profiles", async request => {
+    await access.teamPrincipal(request.memberId, request.principalId);
+    return memberProfile.queue();
+  });
+  app.post<{Params:{memberId:string}}>("/v1/team/member-profiles/:memberId/review", async request => {
+    const principal = await access.teamPrincipal(request.memberId, request.principalId);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(request.params.memberId)) throw new DomainError("MEMBER_ID_INVALID", "会员编号无效", 422);
+    return memberProfile.review(request.memberId, principal, request.params.memberId, request.body as {decision?:unknown;expectedVersion?:unknown;reason?:unknown});
+  });
+  app.get("/v1/me/phone", async request => phone.status(request.memberId));
+  app.delete("/v1/me/phone", async request => phone.unbind(request.memberId));
+  app.post("/v1/me/phone", async request => phone.bind(request.memberId, (request.body as {code?: unknown}).code));
+  app.get("/v1/me/addresses", async request => deliveryAddresses.list(request.memberId));
+  app.post("/v1/me/addresses", async request => deliveryAddresses.create(request.memberId, idempotencyKey(request), request.body as never));
+  app.put<{Params:{addressId:string}}>("/v1/me/addresses/:addressId", async request => deliveryAddresses.update(request.memberId, request.params.addressId, request.body as never));
+  app.post<{Params:{addressId:string}}>("/v1/me/addresses/:addressId/default", async request => deliveryAddresses.setDefault(request.memberId, request.params.addressId, request.body as never));
+  app.delete<{Params:{addressId:string}}>("/v1/me/addresses/:addressId", async request => deliveryAddresses.remove(request.memberId, request.params.addressId, request.body as never));
+  app.get("/v1/me/community-access", async request => access.capabilities(request.memberId));
+  app.get("/v1/me/following", async request => service.feed(request.memberId));
+  app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/following/page", async request => service.feedPage(request.memberId, { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
+  app.get("/v1/me/follows", async request => access.follows(request.memberId));
+  app.put<{ Params: { authorId: string } }>("/v1/me/follows/:authorId", async request => access.follow(request.memberId, request.params.authorId, (request.body as { active?: unknown }).active));
+  app.get("/v1/team/reviews", async request => service.adminQueue(await access.teamPrincipal(request.memberId, request.principalId), service.now(), "capability"));
+  app.get("/v1/team/publications", async request => service.adminPublicationQueue(await access.teamPrincipal(request.memberId, request.principalId), "capability"));
+  app.post<{ Params: { submissionId: string } }>("/v1/team/submissions/:submissionId/review", async request => service.review(await access.teamPrincipal(request.memberId, request.principalId), request.params.submissionId, idempotencyKey(request), request.body as never, service.now(), "capability"));
+  app.post<{ Params: { submissionId: string } }>("/v1/team/submissions/:submissionId/publish", async request => service.publishSubmission(await access.teamPrincipal(request.memberId, request.principalId), request.params.submissionId, idempotencyKey(request), request.body as never, service.now(), "capability"));
   app.get("/v1/me", async (request) => service.getMember(request.memberId));
   app.get("/v1/me/tasks", async (request) => service.getEligibleTasks(request.memberId, service.now(devClock(request))));
   app.get("/v1/me/consents", async (request) => service.getConsentGrants(request.memberId));
   app.get<{ Querystring: { targetType?: string } }>("/v1/me/shares", async (request) => service.getShareLinks(request.memberId, service.now(devClock(request)), request.query.targetType));
-  app.get("/v1/catalog", async () => service.catalog());
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/catalog", async request => catalog.publicList(request.query));
+  app.get<{Params:{productCode:string}}>("/v1/catalog/:productCode", async request => catalog.publicDetail(request.params.productCode));
+  app.get("/v1/commerce/orders/status", async () => orders.status());
+  app.post("/v1/me/commerce/quotes", async request => orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+  app.post("/v1/me/orders", async request => orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query));
+  app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId", async request => orders.detailMine(request.memberId,request.params.orderId));
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel", async request => orders.cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commerce/orders", async request => orders.managementList(request.memberId,request.query));
+  app.get<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId", async request => orders.managementDetail(request.memberId,request.params.orderId));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/catalog/products", async request => catalog.managementList(request.memberId, request.query));
+  app.get<{Params:{productId:string}}>("/v1/management/catalog/products/:productId", async request => catalog.managementDetail(request.memberId, request.params.productId));
+  app.post("/v1/management/catalog/products", async request => catalog.create(request.memberId, request.principalId, idempotencyKey(request), (request.body ?? {}) as Record<string,unknown>, request.id));
+  app.put<{Params:{productId:string}}>("/v1/management/catalog/products/:productId", async request => catalog.update(request.memberId, request.principalId, request.params.productId, idempotencyKey(request), (request.body ?? {}) as Record<string,unknown>, request.id));
+  app.post<{Params:{productId:string}}>("/v1/management/catalog/products/:productId/qualification", async request => catalog.qualify(request.memberId, request.principalId, request.params.productId, idempotencyKey(request), (request.body ?? {}) as Record<string,unknown>, request.id));
+  app.post<{Params:{productId:string}}>("/v1/management/catalog/products/:productId/publication", async request => catalog.publish(request.memberId, request.principalId, request.params.productId, idempotencyKey(request), (request.body ?? {}) as Record<string,unknown>, request.id));
+  app.post<{Params:{skuId:string}}>("/v1/management/catalog/skus/:skuId/inventory-adjustments", async request => catalog.adjustInventory(request.memberId, request.principalId, request.params.skuId, idempotencyKey(request), (request.body ?? {}) as Record<string,unknown>, request.id));
+  app.get("/v1/management/support/ai/status", async request => { await authority.require(request.memberId,"support.read"); return supportAi.status(); });
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/suggested-reply", async request => {
+    const projection=await support.modelProjectionForAssignedOperator(request.memberId,request.principalId,request.params.conversationId);
+    return supportAi.suggestedReply(projection);
+  });
   app.post("/v1/shares", async (request) => {
     return service.createShare(request.memberId, idempotencyKey(request), request.body as never, service.now(devClock(request)));
   });
@@ -151,7 +297,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     request.params.cycleId,
     request.params.milestone,
     idempotencyKey(request),
-    request.body as CareVersionCommandInput,
+    request.body as CareMilestoneCommandInput,
     service.now(devClock(request))
   ));
 
@@ -167,6 +313,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return service.authorizeMedia(request.memberId, request.params.submissionId, { ...body, maxBytes: Math.min(body.maxBytes ?? 10 * 1024 * 1024, 10 * 1024 * 1024), baseUrl: `${protocol}://${host}` }, new Date());
   });
 
+  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/chunks", { bodyLimit: 710000 }, async request => cloudUpload.chunk(request.params.mediaId, request.body as never));
+  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/assemble", async request => cloudUpload.finish(request.params.mediaId, (request.body as { token: string }).token));
   app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId", async (request) => {
     const upload = await request.file();
     if (!upload) throw new DomainError("UPLOAD_FILE_REQUIRED", "Multipart file is required", 400);
@@ -194,9 +342,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return service.appeal(request.memberId, request.params.submissionId, idempotencyKey(request), body.reason, body.expectedVersion, service.now(devClock(request)));
   });
   app.post<{ Params: { consentGrantId: string } }>("/v1/consents/:consentGrantId/revoke", async (request) => service.revokeConsent(request.memberId, request.params.consentGrantId, idempotencyKey(request), (request.body as { reason: string }).reason, service.now(devClock(request))));
-  app.get("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request))));
+  app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
   app.get("/v1/feed", async () => service.feed());
-  app.get<{ Params: { postId: string } }>("/v1/community/:postId", async request => community.read(request.params.postId, request.memberId));
+  app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/feed/page", async request => service.feedPage(undefined, { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
+  app.get<{ Params: { postId: string } }>("/v1/feed/:postId", async request => service.feedItem(request.params.postId));
+  app.get<{ Params: { postId: string }; Querystring: { limit?: string; cursor?: string } }>("/v1/community/:postId", async request => community.read(request.params.postId, request.memberId, { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
   app.put<{ Params: { postId: string } }>("/v1/community/:postId/reaction", async request => community.reaction(request.params.postId, request.memberId, request.body as never));
   app.post<{ Params: { postId: string } }>("/v1/community/:postId/comments", async request => community.comment(request.params.postId, request.memberId, idempotencyKey(request), request.body as never));
   app.delete<{ Params: { postId: string; commentId: string } }>("/v1/community/:postId/comments/:commentId", async request => community.deleteComment(request.params.postId, request.memberId, request.params.commentId));
@@ -223,6 +373,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/v1/admin/worker-backlog", async (request) => service.listWorkerBacklog(adminPrincipal(request, config)));
   app.put<{ Params: { key: EmergencySwitchKey } }>("/v1/admin/switches/:key", async (request) => service.setEmergencySwitch(adminPrincipal(request, config), request.params.key, idempotencyKey(request), request.body as { enabled: boolean; reason: string; expectedVersion: number }, service.now(devClock(request))));
   app.get("/v1/admin/worker-failures", async (request) => service.listWorkerFailures(adminPrincipal(request, config)));
+  app.get("/v1/admin/runtime-metrics", async (request) => { adminPrincipal(request, config); return runtimeMetrics(pool); });
   app.post<{ Params: { queue: WorkerQueue; itemId: string } }>("/v1/admin/worker-failures/:queue/:itemId/redrive", async (request) => service.redriveWorkerFailure(
     adminPrincipal(request, config),
     request.params.queue,
@@ -237,9 +388,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadConfig();
-  const pool = createPool(config.databaseUrl);
+  const pool = createPool(config.databaseUrl, config.database);
   const storage = createObjectStorage(config);
-  await storage.ensureReady();
   const app = await createApp({ config, pool, storage });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", error))
@@ -248,5 +398,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const stop = () => void app.close().catch((error) => { console.error("CISME_SHUTDOWN_FAILED", error); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
-  await app.listen({ port: config.port, host: "0.0.0.0" });
+  const listenHost = process.env.API_LISTEN_HOST ?? "0.0.0.0";
+  if (listenHost !== "0.0.0.0" && listenHost !== "127.0.0.1") throw new Error("CONFIG_INVALID:API_LISTEN_HOST");
+  await app.listen({ port: config.port, host: listenHost });
 }

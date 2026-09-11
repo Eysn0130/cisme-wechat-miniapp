@@ -1,12 +1,13 @@
+import { defaultMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
 import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
 import { editorialStory } from "../../services/editorial";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 import { prepareShareLink, registerIncomingShare } from "../../services/share";
 
-import { commentThreads, emptyCommunity, type CommunityView } from "../../services/community";
+import { commentThreads, emptyCommunity, prepareCommentAuthors, type CommunityView } from "../../services/community";
 
 Page({
-  data: { socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], mediaIndex: 0, galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { following: false, followBusy: false, followError: "", authorId: "", socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], mediaIndex: 0, galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
@@ -20,24 +21,25 @@ Page({
   async load() {
     const attempt = this.data.loadAttempt + 1;
     wx.hideShareMenu();
-    this.setData({ loadAttempt: attempt, socialBusy: false, socialLoading: false, item: null, media: [], mediaIndex: 0, shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
+    this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followError: "", item: null, media: [], mediaIndex: 0, shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
     try {
       const editorial = editorialStory(this.data.id);
       if (editorial) {
         if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
-        this.setData({ item: editorial, media: editorial.media ?? [editorial.image], mediaIndex: 0, loading: false, errorKind: "none", errorTitle: "", error: "" });
+        this.setData({ authorId: "brand:cisme", item: editorial, media: editorial.media ?? [editorial.image], mediaIndex: 0, loading: false, errorKind: "none", errorTitle: "", error: "" });
         wx.showShareMenu({ menus: ["shareAppMessage"] });
         void this.prepareShare(attempt);
         void this.loadSocial();
         return;
       }
-      const feed = await request<any[]>({ path: "/v1/feed", authMode: "public" });
+      const feed = await prepareFeedAuthors([await request<any>({ path: `/v1/feed/${encodeURIComponent(this.data.id)}`, authMode: "public" })]);
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
       // The feed exposes an object key, not an authorized media URL or avatar.
       // Never attribute bundled brand imagery or a local portrait to a submission.
       const reviewed = feed.find((item: any) => item.id === this.data.id) ?? null;
-      this.setData({ item: reviewed ? { ...reviewed, image: "", avatar: "", author: "CISME 会员", publishedLabel: "经审用户投稿", provenanceLabel: "人工审核通过 · 有效用途许可" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、展示许可已失效，或链接不存在。请安全返回品牌精选社区。" });
+      this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, author: reviewed.author || "CISME 会员", publishedLabel: "经审用户投稿", provenanceLabel: "人工审核通过 · 有效用途许可" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、展示许可已失效，或链接不存在。请安全返回品牌精选社区。" });
       if (reviewed) {
+        void this.loadSocial();
         wx.showShareMenu({ menus: ["shareAppMessage"] });
         void this.prepareShare(attempt);
       }
@@ -46,15 +48,36 @@ Page({
       if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ item: null, shareId: "", loading: false, errorKind: "load", errorTitle: "护理故事暂时未同步", error: "请检查网络后重试。加载失败不会被误显示为内容已撤回。" });
     }
   },
+  async loadFollow() {
+    const attempt = this.data.loadAttempt;
+    this.setData({ following: false, followError: "" });
+    if (!this.data.socialEnabled || !getApp<IAppOption>().globalData.sessionToken) return;
+    try {
+      const follows = await request<string[]>({ path: "/v1/me/follows", authMode: "optional" });
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ following: follows.includes(this.data.authorId) });
+    } catch { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followError: "关注状态暂未同步" }); }
+  },
+  async toggleFollow() {
+    if (!this.data.socialEnabled || this.data.followBusy || !this.data.authorId || this.data.leaving) return;
+    clearAuthenticationRedirectSuppression();
+    const attempt = this.data.loadAttempt;
+    this.setData({ followBusy: true, followError: "" });
+    try {
+      const result = await request<{following:boolean}>({ path: `/v1/me/follows/${encodeURIComponent(this.data.authorId)}`, method: "PUT", data: { active: !this.data.following } });
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ following: result.following });
+    } catch (error) { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followError: (error as {title?:string}).title || "关注未保存，请重试" }); }
+    finally { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followBusy: false }); }
+  },
   async loadSocial() {
     const attempt = this.data.loadAttempt;
     this.setData({ socialLoading: true, socialError: "" });
     try {
-      const health = await request<{ communityPreviewEnabled: boolean }>({ path: "/health/ready", authMode: "public" });
+      const health = await request<{ communityPreviewEnabled: boolean }>({ path: "/v1/capabilities", authMode: "public" });
       if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return;
       this.setData({ socialEnabled: health.communityPreviewEnabled === true });
       if (!health.communityPreviewEnabled) return;
-      const social = await request<CommunityView>({ path: `/v1/community/${encodeURIComponent(this.data.id)}`, authMode: "optional" });
+      void this.loadFollow();
+      const social = await prepareCommentAuthors(await request<CommunityView>({ path: `/v1/community/${encodeURIComponent(this.data.id)}`, authMode: "optional" }));
       if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return;
       this.setData({ social, threads: commentThreads(social.comments, this.data.expandedThreads) });
     } catch {
@@ -69,7 +92,7 @@ Page({
     const attempt = this.data.loadAttempt;
     this.setData({ socialBusy: true, socialError: "" });
     try {
-      const social = await request<CommunityView>({ path: `/v1/community/${encodeURIComponent(this.data.id)}${path}`, method, data, idempotencyKey: operationId });
+      const social = await prepareCommentAuthors(await request<CommunityView>({ path: `/v1/community/${encodeURIComponent(this.data.id)}${path}`, method, data, idempotencyKey: operationId }));
       if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return false;
       this.setData({ social, threads: commentThreads(social.comments, this.data.expandedThreads) });
       return true;

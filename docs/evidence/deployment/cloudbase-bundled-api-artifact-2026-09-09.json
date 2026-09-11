@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-09-08T17:25:18.410Z",
+  "path": "dist/cloudbase-api.zip",
+  "zipBytes": 40782484,
+  "base64Bytes": 54376648,
+  "requestLimitBytes": 52428800,
+  "serverSha256": "69845834621a9ca98b98c036286f1252ffa2aba1573490be90eb99f0deec57e3",
+  "scope": "Bundled business artifact built, not deployed. ZIP size is an estimate for CLI request fit; actual CLI upload pending."
+}

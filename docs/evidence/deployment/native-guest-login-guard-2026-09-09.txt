@@ -1,0 +1,15 @@
+The following is a diff from the previous accessibility tree for Window: "miniprogram" with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 484-486, 607, 609, 634
+~							18 text 17 : 17
+~							625 复选框 我已阅读并同意必选协议 必选 基础服务协议不捆绑公开展示或营销授权, Value: 0
+~								626 复选框 0
+~								629 文本 基础服务协议不捆绑公开展示或营销授权
+~							633 按钮 (disabled) 微信登录 / 注册
++								639 文本 微信登录 / 注册
+~									129 标签 (settable, integer) Description: 源代码管理 (⌃⇧G) - 992 个挂起的更改, Value: 0
++										640 文本 
++												641 文本 100
++									642 container
++										643 container
++											644 text 代码质量 扫描
+The focused UI element is 1 HTML 内容 file:///Applications/wechatwebdevtools.app/Contents/Resources/app.asar/html/electron-project.html?projectpath=%2FUsers%2Fmini%2FCISME%2Fcisme-r0-platform%2Fapps%2Fminiprogram&projectname=miniprogram&projectid=%2FUsers%2Fmini%2FCISME%2Fcisme-r0-platform%2Fapps%2Fminiprogram&theme=dark&skeletonPath=%2FUsers%2Fmini%2FLibrary%2FApplication%20Support%2F%E5%BE%AE%E4%BF%A1%E5%BC%80%E5%8F%91%E8%80%85%E5%B7%A5%E5%85%B7%2Fd1e8765721a6c23d43b14c95b1843e6b%2FWeappCache%2FskeletonCache%2F5ddbad2e2f41f6a67c29ac9c0d530664%2Fpageskeleton.html&appid=wx4eac2d4fb11d299b&frame=0&devid=s0&runtimeid=0&devtype=miniprogram&proxyPort=43130&userDataPath=%2FUsers%2Fmini%2FLibrary%2FApplication%2520Support%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%25BC%2580%25E5%258F%2591%25E8%2580%2585%25E5%25B7%25A5%25E5%2585%25B7%2Fd1e8765721a6c23d43b14c95b1843e6b&appVersion=2.02.2608070&appVersionType=0

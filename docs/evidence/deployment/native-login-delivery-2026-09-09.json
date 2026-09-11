@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-09",
+  "version": "0.1.5-dev.20260909",
+  "sourceSha256": "6b0706ae3a27f2a0db0324d0fd92e2fd0ce761bdb73536d4831a52d08f39a69a",
+  "size": 1440398,
+  "tests": {
+    "unit": 173,
+    "integration": 65
+  },
+  "cloudDeploy": {
+    "success": true,
+    "files": 6430,
+    "package": "35.1 MB",
+    "bundledRuntime": "Node 24.14.0"
+  },
+  "shanghaiRelease": "20260909-native-login",
+  "health": "ready",
+  "phoneBindingEnabled": false,
+  "nativeObserved": "existing authenticated member without avatar reaches choose-avatar stage",
+  "nativePhotoSelection": "awaiting user",
+  "phonePlatformConfig": "awaiting administrator; previous error 112",
+  "fullNativeAcceptance": false
+}

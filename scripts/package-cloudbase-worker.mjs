@@ -1,0 +1,14 @@
+import {mkdir,readFile,writeFile,copyFile,cp} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {build} from 'tsup';
+import {bundleCloudbaseRuntime} from './cloudbase-runtime.mjs';
+const root=resolve('.'),output=resolve('dist/cloudbase-worker');
+await mkdir(output,{recursive:true});
+await build({entry:{worker:resolve('services/worker/src/once.ts')},outDir:output,format:['esm'],outExtension:()=>({js:'.mjs'}),target:'node24',splitting:false,clean:true,sourcemap:false,noExternal:[/^@cisme\//],tsconfig:resolve('tsconfig.json')});
+const manifest=JSON.parse(await readFile('dist/cloudbase-api/package.json','utf8'));manifest.name='cisme-cloudbase-worker';manifest.type='commonjs';
+await writeFile(resolve(output,'package.json'),JSON.stringify(manifest,null,2)+'\n');
+await cp('dist/cloudbase-api/node_modules',resolve(output,'node_modules'),{recursive:true});
+await copyFile('infra/supabase-prod-ca.crt',resolve(output,'supabase-prod-ca.crt'));
+await bundleCloudbaseRuntime(output);
+await copyFile('services/cloudbase/worker/index.cjs',resolve(output,'index.js'));
+console.log('Private worker artifact prepared; requires its own secret, runtime config and timer.');

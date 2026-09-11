@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-09-09T05:26:08.743823+00:00",
+  "environment": "cloud1-d4g0khuk495d48600",
+  "function": "cismeApi",
+  "deploymentSuccess": true,
+  "entrySha256": "a315dcb50f689ca0ad0634212445792867b0fbda5ab3897e01f6e7d1c3629e68",
+  "migration": "202609090004_privacy_requests.sql",
+  "cloudLegalPublication": "docs/evidence/deployment/legal-publication-2026-09-09.json",
+  "privacyOperator": "docs/evidence/deployment/privacy-operator-2026-09-09.json",
+  "validation": {
+    "unitTests": 140,
+    "integrationTests": 54,
+    "typecheck": "passed",
+    "contracts": "passed",
+    "nativePackage": "passed",
+    "adminBuild": "passed"
+  },
+  "realMemberConsentCreated": false
+}

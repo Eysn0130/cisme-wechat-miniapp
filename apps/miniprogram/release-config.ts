@@ -1,5 +1,10 @@
 export type MiniProgramRuntime = "devtools" | "preview" | "trial" | "release";
 
+export interface CloudHttpTarget { env: string; name: string }
+
+// CloudBase stays out of the staging preview/trial path. Production remains fail-closed.
+export const miniProgramCloudFunctions: Partial<Record<MiniProgramRuntime, CloudHttpTarget>> = {};
+
 /**
  * These URLs are public release metadata, not credentials.
  *
@@ -8,13 +13,13 @@ export type MiniProgramRuntime = "devtools" | "preview" | "trial" | "release";
  * - trial: WeChat experience version.
  * - release: audited production version.
  *
- * Preview, trial and release intentionally fail closed until an HTTPS API
- * origin has been selected and registered in the Mini Program console.
+ * Cloud targets take precedence when configured. Otherwise device runtimes
+ * require an HTTPS API origin registered in the Mini Program console.
  */
 export const miniProgramApiOrigins: Record<MiniProgramRuntime, string> = {
-  devtools: "http://127.0.0.1:3100",
-  preview: "",
-  trial: "",
+  devtools: "http://127.0.0.1:18080",
+  preview: "https://staging-api.cisme.cn",
+  trial: "https://staging-api.cisme.cn",
   release: ""
 };
 
@@ -59,15 +64,17 @@ export function remoteDebugApiOrigin(envVersion: string, platform: string, query
 }
 
 export type LegalDocumentVersions = {
+  crossBorder?: string;
   privacy: string;
   terms: string;
   localFixture: boolean;
 };
 
 /**
- * Production legal documents stay fail-closed until Legal signs both texts and
- * the readable in-product entry points are approved. Do not replace this null
- * with a date-shaped placeholder.
+ * Compiled production legal versions stay fail-closed. Account may instead use
+ * the active server-published terms and privacy versions returned by /v1/legal;
+ * publication in the database still does not prove WeChat-console or legal
+ * approval. Do not replace this null with a date-shaped placeholder.
  */
 export const approvedLegalDocumentVersions: LegalDocumentVersions | null = null;
 
@@ -77,10 +84,10 @@ const localLegalFixture: LegalDocumentVersions = {
   localFixture: true
 };
 
-export function shouldUseDevelopmentIdentity(envVersion: string, platform: string, remoteDebugMode = false): boolean {
-  return envVersion === "develop" && (platform === "devtools" || remoteDebugMode);
+export function shouldUseDevelopmentIdentity(envVersion: string, platform: string, remoteDebugMode = false, cloudTransport = false): boolean {
+  return !cloudTransport && envVersion === "develop" && (platform === "devtools" || remoteDebugMode);
 }
 
-export function legalDocumentVersions(envVersion: string, platform: string, remoteDebugMode = false): LegalDocumentVersions | null {
-  return shouldUseDevelopmentIdentity(envVersion, platform, remoteDebugMode) ? localLegalFixture : approvedLegalDocumentVersions;
+export function legalDocumentVersions(envVersion: string, platform: string, remoteDebugMode = false, cloudTransport = false): LegalDocumentVersions | null {
+  return shouldUseDevelopmentIdentity(envVersion, platform, remoteDebugMode, cloudTransport) ? localLegalFixture : approvedLegalDocumentVersions;
 }

@@ -1,0 +1,33 @@
+{
+  "checkedAt": "2026-09-09T07:38:36.528514+00:00",
+  "environment": "staging",
+  "productionCutover": false,
+  "domain": "api.cisme.cn",
+  "httpsValidation": "server-local resolve with normal certificate verification",
+  "healthReady": 200,
+  "unauthenticatedMe": 401,
+  "publicHttpsOpen": false,
+  "firewallPublicAllowedPorts": [
+    22
+  ],
+  "nginxActive": true,
+  "apiActive": true,
+  "certificateRenewalTimerActive": true,
+  "certificateStagingRenewalPassed": true,
+  "encryptedBackupTimerActive": true,
+  "cosAnonymousMountRemoved": true,
+  "maintenancePolicyCurrentVersion": 3,
+  "dkimDnsVerified": true,
+  "dkimHost": "cqrw2609._domainkey.cisme.cn",
+  "dmarcDnsVerified": true,
+  "actualEmailSendReceiveVerified": false,
+  "cloudCorporateIdentityComplete": true,
+  "icpSubmitted": false,
+  "miniProgramCorporateChangeComplete": false,
+  "buildPassed": true,
+  "relatedUnitTestsPassed": 35,
+  "cloudCorporateIdentityVerifiedAt": "2026-09-09T16:19:07+08:00",
+  "cloudCorporateIdentityMethod": "企业充值认证，控制台显示通过",
+  "currentUnitTestsPassed": 155,
+  "currentIntegrationTestsPassed": 55
+}

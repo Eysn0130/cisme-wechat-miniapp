@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-09-09T05:26:08.742807+00:00",
+  "packageSourceSha256": "4c7fc1c2aac8ddb3f58a61901c1eb89293ad5548ddbc2cc86612aa84a54f3da8",
+  "scope": "Published legal account state and cross-border text in native WeChat DevTools; no member registration or real consent performed.",
+  "checks": {
+    "publishedDocumentsVersion": "2026-09-09-v1",
+    "accountLegalReady": true,
+    "baseConsentUnchecked": true,
+    "crossBorderConsentUnchecked": true,
+    "identityButtonDisabledBeforeConsent": true,
+    "crossBorderOperatorAndRegionVisible": true,
+    "nativeErrorsObserved": 0,
+    "nativeWarningsObserved": 7
+  },
+  "screenshots": [
+    {
+      "path": "docs/evidence/visual/native-published-legal-account-2026-09-09.png",
+      "sha256": "eed5e77dfb82a4983a8a5f69530b908473fb5ba9d0fbf1a4b9a89898b25a8882"
+    },
+    {
+      "path": "docs/evidence/visual/native-cross-border-notice-2026-09-09.png",
+      "sha256": "18f7192c1e1ec647601b81e7010745e3009d75036a28318b61435146fb76a65b"
+    }
+  ],
+  "guestRightsEarlierCheck": {
+    "path": "docs/evidence/visual/native-privacy-rights-guest-2026-09-09.png",
+    "packageSourceSha256": "104d025159e15cbbf2bd23a952644e49926039fd52c3078ad28b039bb9d46c86",
+    "scope": "Guest contact entry before back-arrow visual refinement; not final-package full acceptance"
+  },
+  "notClaimed": [
+    "real user acceptance",
+    "real member account creation",
+    "staff processing of a real privacy request",
+    "complete route/device visual acceptance",
+    "WeChat platform privacy configuration",
+    "regulatory approval"
+  ]
+}

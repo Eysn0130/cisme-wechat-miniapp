@@ -1,6 +1,7 @@
 export type AppEnvironment = "development" | "test" | "staging" | "production";
 export type TransactionProfile = "MAKE" | "BUY" | null;
 export const implementedTransactionProfiles: ReadonlySet<Exclude<TransactionProfile, null>> = new Set();
+export const CANONICAL_WECHAT_MINIPROGRAM_APP_ID = "wx4eac2d4fb11d299b";
 
 export interface AppConfig {
   env: AppEnvironment;
@@ -10,10 +11,11 @@ export interface AppConfig {
   devClock: string | null;
   sessionSecret: string;
   adminApiToken: string;
-  wechat: { appId: string | null; appSecret: string | null };
+  contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
+  wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean };
   objectStorage: {
     profile: string | null;
-    driver: "s3" | "api_gateway" | "s3_gateway";
+    driver: "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
     endpoint: string | null;
     region: string;
     bucket: string;
@@ -32,6 +34,21 @@ export interface AppConfig {
   pointsHoldDays: number;
   pointsExpiryDays: number;
   carePausePolicy: { version: string | null; maxDays: number; reasonCodes: string[] };
+  database: {
+    poolMax: number;
+    globalConnectionBudget: number;
+    instanceCount: number;
+    poolAcquireTimeoutMs: number;
+    statementTimeoutMs: number;
+    lockTimeoutMs: number;
+    idleTransactionTimeoutMs: number;
+    transactionDeadlineMs: number;
+    transactionMaxAttempts: number;
+  };
+  api: { routeDeadlineMs: number };
+  observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
+  media: { directUploadEnabled: boolean };
+  commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number };
 }
 
 function bool(value: string | undefined, fallback = false): boolean {
@@ -42,6 +59,12 @@ function bool(value: string | undefined, fallback = false): boolean {
 function required(name: string, value: string | undefined): string {
   if (!value) throw new Error(`CONFIG_MISSING:${name}`);
   return value;
+}
+
+function integer(name: string, value: string | undefined, fallback: number, minimum: number, maximum: number): number {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) throw new Error(`CONFIG_INVALID:${name}`);
+  return parsed;
 }
 
 export function assertPointsRedemptionReady(env: NodeJS.ProcessEnv, selectedTransactionProfile: TransactionProfile): void {
@@ -94,11 +117,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if ((appEnv === "production" || appEnv === "staging") && (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET)) {
     throw new Error("FAIL_CLOSED:WECHAT_CREDENTIALS_REQUIRED");
   }
+  if ((appEnv === "production" || appEnv === "staging") && env.WECHAT_APP_ID !== CANONICAL_WECHAT_MINIPROGRAM_APP_ID) {
+    throw new Error("FAIL_CLOSED:WECHAT_APP_ID_NOT_CANONICAL");
+  }
   if ((appEnv === "production" || appEnv === "staging") && (!env.APP_SESSION_SECRET || !env.ADMIN_API_TOKEN)) {
     throw new Error("FAIL_CLOSED:AUTH_SECRETS_REQUIRED");
   }
-  const storageDriver = (env.OBJECT_STORAGE_DRIVER ?? "s3") as "s3" | "api_gateway" | "s3_gateway";
-  if (!['s3', 'api_gateway', 's3_gateway'].includes(storageDriver)) throw new Error("CONFIG_INVALID:OBJECT_STORAGE_DRIVER");
+  const storageDriver = (env.OBJECT_STORAGE_DRIVER ?? "s3") as "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
+  if (!['s3', 'api_gateway', 's3_gateway', 'cos_gateway'].includes(storageDriver)) throw new Error("CONFIG_INVALID:OBJECT_STORAGE_DRIVER");
+  if (storageDriver === "cos_gateway" && (appEnv === "staging" || appEnv === "production") &&
+      (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY || !env.S3_BUCKET || !env.S3_REGION)) {
+    throw new Error("FAIL_CLOSED:COS_STORAGE_CREDENTIALS_REQUIRED");
+  }
   if ((appEnv === "production" || appEnv === "staging") && storageDriver !== "s3" && !env.UPLOAD_TOKEN_SECRET) {
     throw new Error("FAIL_CLOSED:UPLOAD_SECRET_REQUIRED");
   }
@@ -134,6 +164,27 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if ((carePausePolicyVersion || carePauseMaxDays > 0 || carePauseReasonCodes.length > 0) && (!carePausePolicyVersion || carePauseMaxDays < 1 || carePauseReasonCodes.length < 1)) {
     throw new Error("FAIL_CLOSED:CARE_PAUSE_POLICY_INCOMPLETE");
   }
+  const database = {
+    poolMax: integer("DATABASE_POOL_MAX", env.DATABASE_POOL_MAX, 10, 1, 100),
+    globalConnectionBudget: integer("DATABASE_GLOBAL_CONNECTION_BUDGET", env.DATABASE_GLOBAL_CONNECTION_BUDGET, 40, 1, 1000),
+    instanceCount: integer("SERVICE_INSTANCE_COUNT", env.SERVICE_INSTANCE_COUNT, 1, 1, 100),
+    poolAcquireTimeoutMs: integer("DATABASE_POOL_ACQUIRE_TIMEOUT_MS", env.DATABASE_POOL_ACQUIRE_TIMEOUT_MS, 2_000, 100, 60_000),
+    statementTimeoutMs: integer("DATABASE_STATEMENT_TIMEOUT_MS", env.DATABASE_STATEMENT_TIMEOUT_MS, 2_500, 100, 60_000),
+    lockTimeoutMs: integer("DATABASE_LOCK_TIMEOUT_MS", env.DATABASE_LOCK_TIMEOUT_MS, 750, 50, 30_000),
+    idleTransactionTimeoutMs: integer("DATABASE_IDLE_TRANSACTION_TIMEOUT_MS", env.DATABASE_IDLE_TRANSACTION_TIMEOUT_MS, 5_000, 500, 120_000),
+    transactionDeadlineMs: integer("DATABASE_TRANSACTION_DEADLINE_MS", env.DATABASE_TRANSACTION_DEADLINE_MS, 4_000, 200, 120_000),
+    transactionMaxAttempts: integer("DATABASE_TRANSACTION_MAX_ATTEMPTS", env.DATABASE_TRANSACTION_MAX_ATTEMPTS, 6, 1, 8)
+  };
+  if (database.poolMax * database.instanceCount > database.globalConnectionBudget) {
+    throw new Error("FAIL_CLOSED:DATABASE_CONNECTION_BUDGET_EXCEEDED");
+  }
+  const logLevel = (env.LOG_LEVEL ?? (appEnv === "test" ? "silent" : "info")) as AppConfig["observability"]["logLevel"];
+  if (!["silent", "error", "warn", "info", "debug"].includes(logLevel)) throw new Error("CONFIG_INVALID:LOG_LEVEL");
+  const directUploadEnabled = bool(env.COS_DIRECT_UPLOAD_ENABLED);
+  if (directUploadEnabled && storageDriver !== "cos_gateway") throw new Error("FAIL_CLOSED:COS_DIRECT_UPLOAD_REQUIRES_COS_GATEWAY");
+  if (directUploadEnabled && (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY)) throw new Error("FAIL_CLOSED:COS_DIRECT_UPLOAD_CREDENTIALS_REQUIRED");
+  const orderFlowEnabled = bool(env.COMMERCE_ORDER_FLOW_ENABLED);
+  if (orderFlowEnabled && appEnv === "production") throw new Error("FAIL_CLOSED:COMMERCE_ORDER_FLOW_NONPRODUCTION_ONLY");
 
   return {
     env: appEnv,
@@ -143,7 +194,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     devClock: env.DEV_CLOCK ?? null,
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
     adminApiToken: required("ADMIN_API_TOKEN", env.ADMIN_API_TOKEN),
-    wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null },
+    contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
+    wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null, phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED) },
     objectStorage: {
       profile: env.OBJECT_STORAGE_PROFILE ?? null,
       driver: storageDriver,
@@ -164,6 +216,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pointsFinanceApprovalExpiresAt: pointsApprovalExpiry,
     pointsHoldDays,
     pointsExpiryDays,
-    carePausePolicy: { version: carePausePolicyVersion, maxDays: carePauseMaxDays, reasonCodes: carePauseReasonCodes }
+    carePausePolicy: { version: carePausePolicyVersion, maxDays: carePauseMaxDays, reasonCodes: carePauseReasonCodes },
+    database,
+    api: { routeDeadlineMs: integer("API_ROUTE_DEADLINE_MS", env.API_ROUTE_DEADLINE_MS, 8_000, 250, 120_000) },
+    observability: { logLevel },
+    media: { directUploadEnabled },
+    commerce: {
+      orderFlowEnabled,
+      quoteTtlMinutes: integer("COMMERCE_QUOTE_TTL_MINUTES", env.COMMERCE_QUOTE_TTL_MINUTES, 10, 1, 60),
+      pendingOrderTtlMinutes: integer("COMMERCE_PENDING_ORDER_TTL_MINUTES", env.COMMERCE_PENDING_ORDER_TTL_MINUTES, 30, 5, 120)
+    }
   };
 }

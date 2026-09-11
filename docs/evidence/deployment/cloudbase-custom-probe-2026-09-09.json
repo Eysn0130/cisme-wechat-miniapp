@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-09-08T17:09:24.403Z",
+  "environmentId": "cloud1-d4g0khuk495d48600",
+  "functionName": "cismeReadiness",
+  "invocationSource": "Official WeChat tcb/invokecloudfunction HTTP API (no end-user identity)",
+  "sourceSha256": "c73aade2c2b1c0ed03f4c66be8b5898fa4d1f80cca9ce7cf6309b3f7c45fca50",
+  "runs": [
+    {
+      "input": {},
+      "httpStatus": 200,
+      "errcode": 0,
+      "errmsg": "ok",
+      "result": {
+        "service": "cismeReadiness",
+        "version": "2026-09-09.1",
+        "runtime": "v20.19.3",
+        "businessDeployment": false
+      }
+    },
+    {
+      "input": {
+        "probe": "network"
+      },
+      "httpStatus": 200,
+      "errcode": 0,
+      "errmsg": "ok",
+      "result": {
+        "service": "cismeReadiness",
+        "version": "2026-09-09.1",
+        "runtime": "v20.19.3",
+        "businessDeployment": false,
+        "backend": {
+          "reachable": false,
+          "elapsedMs": 1806,
+          "reason": "NETWORK_OR_TIMEOUT"
+        }
+      }
+    }
+  ],
+  "businessDeployment": false
+}

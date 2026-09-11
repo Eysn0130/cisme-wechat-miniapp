@@ -1,0 +1,42 @@
+{
+  "source": "https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.xz",
+  "sha256": "41cd79bb7877c81605a9e68ec4c91547774f46a40c67a17e34d7179ef11729df",
+  "checksumVerified": true,
+  "binaryBytes": 122466960,
+  "target": {
+    "platform": "linux",
+    "architecture": "x64",
+    "glibc": "2.28"
+  },
+  "deployed": true,
+  "attempts": [
+    {
+      "format": "raw executable inside deployment ZIP",
+      "success": false,
+      "requestBytes": 59622440,
+      "limitBytes": 52428800,
+      "reason": "RequestSizeLimitExceeded"
+    },
+    {
+      "format": "Brotli executable, streaming unpack at cold start",
+      "success": true,
+      "files": 6,
+      "packSize": "33.0 MB"
+    }
+  ],
+  "execution": {
+    "source": "CloudBase console HTTP test, screenshot inspected",
+    "method": "GET",
+    "path": "/health/live",
+    "status": 200,
+    "body": {
+      "service": "cismeHttpReadiness",
+      "version": "2026-09-09.2",
+      "runtime": "v24.14.0",
+      "architecture": "x64",
+      "platform": "linux",
+      "glibc": "2.28",
+      "businessDeployment": false
+    }
+  }
+}

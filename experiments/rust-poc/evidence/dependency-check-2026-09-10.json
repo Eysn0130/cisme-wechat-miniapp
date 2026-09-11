@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-09-10",
+  "policy": "Stable releases only; first-party project sources only",
+  "toolchain": {
+    "rust": "1.98.1",
+    "source": "https://blog.rust-lang.org/releases/latest/"
+  },
+  "crates": [
+    { "name": "axum", "version": "0.8.9", "license": "MIT", "rustVersion": "1.80", "source": "https://crates.io/api/v1/crates/axum" },
+    { "name": "tokio", "version": "1.53.1", "license": "MIT", "rustVersion": "1.71", "source": "https://crates.io/api/v1/crates/tokio" },
+    { "name": "sqlx", "version": "0.9.0", "license": "MIT OR Apache-2.0", "rustVersion": "1.94.0", "source": "https://crates.io/api/v1/crates/sqlx" },
+    { "name": "tracing", "version": "0.1.44", "license": "MIT", "rustVersion": "1.65.0", "source": "https://crates.io/api/v1/crates/tracing" },
+    { "name": "tracing-subscriber", "version": "0.3.23", "license": "MIT", "rustVersion": "1.65.0", "source": "https://crates.io/api/v1/crates/tracing-subscriber" },
+    { "name": "tower-http", "version": "0.7.1", "license": "MIT", "rustVersion": "1.65", "source": "https://crates.io/api/v1/crates/tower-http" }
+  ],
+  "metadataValidation": "cargo metadata --locked --format-version 1 in the official Rust image",
+  "localValidationRuntime": "Official Docker image rust:1.98.1-slim-bookworm (linux/arm64)",
+  "hostRustInstalled": false
+}

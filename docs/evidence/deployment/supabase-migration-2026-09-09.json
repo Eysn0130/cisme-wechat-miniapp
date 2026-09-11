@@ -1,0 +1,21 @@
+{
+  "migrations": 17,
+  "public_tables": 38,
+  "members": 0,
+  "submissions": 0,
+  "data_api_grants": 0,
+  "clientTls": true,
+  "certificateAuthorized": true,
+  "checkedAt": "2026-09-08T16:09:50.601Z",
+  "bucket": {
+    "id": "cisme-evidence",
+    "public": false,
+    "file_size_limit": "10485760",
+    "allowed_mime_types": [
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ]
+  },
+  "permissionsCheckedAt": "2026-09-08T16:10:40.106Z"
+}

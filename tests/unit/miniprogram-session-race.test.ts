@@ -1,0 +1,97 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+let state: { globalData: { apiBaseUrl: string; sessionToken: string } };
+let wxMock: { request: ReturnType<typeof vi.fn>; navigateTo: ReturnType<typeof vi.fn>; setStorageSync: ReturnType<typeof vi.fn> };
+let taskAbort: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  vi.resetModules();
+  state = { globalData: { apiBaseUrl: "https://example.test", sessionToken: "old-session" } };
+  taskAbort = vi.fn();
+  wxMock = { request: vi.fn(() => ({ abort: taskAbort })), navigateTo: vi.fn(), setStorageSync: vi.fn() };
+  Object.assign(globalThis, { wx: wxMock, getApp: () => state, getCurrentPages: () => [{ route: "pages/records/index" }] });
+});
+
+describe("native delayed authentication responses", () => {
+  it("keeps a renewed session when an old authenticated request fails", async () => {
+    const api = await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const result = api.request({ path: "/v1/me" }).catch((error: unknown) => error);
+    expect(wxMock.request.mock.calls[0]![0].timeout).toBe(12_000);
+    api.setSessionToken("new-session");
+    wxMock.request.mock.calls[0]![0].success({ statusCode: 401, data: { code: "SESSION_EXPIRED" } });
+    await result;
+    expect(state.globalData.sessionToken).toBe("new-session");
+    expect(wxMock.navigateTo).not.toHaveBeenCalled();
+  });
+
+  it("does not invalidate a session for a public request without a bearer token", async () => {
+    const api = await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const result = api.request({ path: "/v1/catalog", authMode: "public" }).catch((error: unknown) => error);
+    expect(wxMock.request.mock.calls[0]![0].header.Authorization).toBe("");
+    wxMock.request.mock.calls[0]![0].success({ statusCode: 401, data: { code: "AUTH_REQUIRED" } });
+    await result;
+    expect(state.globalData.sessionToken).toBe("old-session");
+  });
+
+  it("clears a rejected current session and requests authentication once", async () => {
+    const api = await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const results = [api.request({ path: "/v1/me" }), api.request({ path: "/v1/me/consents" })].map((promise) => promise.catch((error: unknown) => error));
+    for (const [request] of wxMock.request.mock.calls) request.success({ statusCode: 401, data: { code: "SESSION_EXPIRED" } });
+    await Promise.all(results);
+    expect(state.globalData.sessionToken).toBe("");
+    expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
+  });
+});
+
+it('rejects old successful member data after an account switch',async()=>{
+ const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+ const result=api.request({path:'/v1/me'}).catch((e:unknown)=>e);
+ api.setSessionToken('new-member');
+ wxMock.request.mock.calls[0]![0].success({statusCode:200,data:{id:'old-member'}});
+ expect(await result).toMatchObject({code:'REQUEST_SESSION_CHANGED'});
+});
+it('sends guests to login and keeps the original destination',async()=>{
+ state.globalData.sessionToken='';
+ const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+ expect(api.requireMemberAccess('/pages/home/index')).toBe(false);
+ expect(wxMock.setStorageSync).toHaveBeenCalledWith('cisme.authReturnUrl','/pages/home/index');
+ expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
+ expect(wxMock.request).not.toHaveBeenCalled();
+});
+it('honours an explicit Account return until the member asks to authenticate again',async()=>{
+ state.globalData.sessionToken='';
+ const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+ api.suppressAuthenticationRedirectOnce('/pages/records/index?from=tab');
+ expect(api.requireMemberAccess('/pages/records/index')).toBe(false);
+ expect(wxMock.navigateTo).not.toHaveBeenCalled();
+ expect(wxMock.setStorageSync).not.toHaveBeenCalled();
+ api.resumeAuthentication('/pages/records/index');
+ expect(wxMock.setStorageSync).toHaveBeenCalledWith('cisme.authReturnUrl','/pages/records/index');
+ expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
+});
+
+it('retries a standard WeChat request:fail error once for an idempotent read',async()=>{
+ vi.useFakeTimers();
+ try {
+  const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+  const result=api.request({path:'/v1/catalog',authMode:'public'});
+  wxMock.request.mock.calls[0]![0].fail({errMsg:'request:fail timeout'});
+  await vi.advanceTimersByTimeAsync(121);
+  expect(wxMock.request).toHaveBeenCalledTimes(2);
+  wxMock.request.mock.calls[1]![0].success({statusCode:200,data:{items:[]}});
+  await expect(result).resolves.toEqual({items:[]});
+ } finally { vi.useRealTimers(); }
+});
+
+it('aborts a cancelable native request and rejects a successful response from an old session',async()=>{
+ const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+ const aborted=api.requestCancelable({path:'/v1/me'});
+ aborted.abort();
+ expect(taskAbort).toHaveBeenCalledTimes(1);
+ await expect(aborted.promise).rejects.toMatchObject({code:'REQUEST_ABORTED'});
+
+ const stale=api.requestCancelable({path:'/v1/me'});
+ api.setSessionToken('new-member');
+ wxMock.request.mock.calls[1]![0].success({statusCode:200,data:{id:'old-member'}});
+ await expect(stale.promise).rejects.toMatchObject({code:'REQUEST_SESSION_CHANGED'});
+});

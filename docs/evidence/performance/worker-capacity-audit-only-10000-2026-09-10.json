@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-10T14:56:49.907Z",
+  "mode": "local_isolated_postgresql_audit_only_outbox",
+  "events": 10000,
+  "host": {
+    "logicalCpuCount": 10,
+    "memoryLimit": "UNVERIFIED_NO_CONTAINER_QUOTA"
+  },
+  "batchSize": 50,
+  "rounds": 3,
+  "results": [
+    {
+      "workers": 1,
+      "round": 1,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        10000
+      ],
+      "elapsedMs": 6019.2,
+      "eventsPerSecond": 1661.35,
+      "eventsPerLogicalCpuSecond": 166.13,
+      "cpuMs": 783.22,
+      "cpuMsPerEvent": 0.08,
+      "eventLoopUtilization": 0.157281,
+      "peakRssBytes": 101351424,
+      "pool": {
+        "total": 1,
+        "idle": 1,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 1,
+      "round": 2,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        10000
+      ],
+      "elapsedMs": 5983.48,
+      "eventsPerSecond": 1671.27,
+      "eventsPerLogicalCpuSecond": 167.13,
+      "cpuMs": 596.72,
+      "cpuMsPerEvent": 0.06,
+      "eventLoopUtilization": 0.144575,
+      "peakRssBytes": 96239616,
+      "pool": {
+        "total": 1,
+        "idle": 1,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 1,
+      "round": 3,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        10000
+      ],
+      "elapsedMs": 5938.86,
+      "eventsPerSecond": 1683.82,
+      "eventsPerLogicalCpuSecond": 168.38,
+      "cpuMs": 588.8,
+      "cpuMsPerEvent": 0.06,
+      "eventLoopUtilization": 0.146134,
+      "peakRssBytes": 96468992,
+      "pool": {
+        "total": 1,
+        "idle": 1,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 2,
+      "round": 1,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        5000,
+        5000
+      ],
+      "elapsedMs": 3496.42,
+      "eventsPerSecond": 2860.06,
+      "eventsPerLogicalCpuSecond": 286.01,
+      "cpuMs": 595.47,
+      "cpuMsPerEvent": 0.06,
+      "eventLoopUtilization": 0.22131599999999998,
+      "peakRssBytes": 132153344,
+      "pool": {
+        "total": 2,
+        "idle": 2,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 2,
+      "round": 2,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        4950,
+        5050
+      ],
+      "elapsedMs": 3548.89,
+      "eventsPerSecond": 2817.78,
+      "eventsPerLogicalCpuSecond": 281.78,
+      "cpuMs": 559.08,
+      "cpuMsPerEvent": 0.06,
+      "eventLoopUtilization": 0.21815700000000002,
+      "peakRssBytes": 133562368,
+      "pool": {
+        "total": 2,
+        "idle": 2,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 2,
+      "round": 3,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        5000,
+        5000
+      ],
+      "elapsedMs": 3685.04,
+      "eventsPerSecond": 2713.67,
+      "eventsPerLogicalCpuSecond": 271.37,
+      "cpuMs": 570.72,
+      "cpuMsPerEvent": 0.06,
+      "eventLoopUtilization": 0.21715500000000001,
+      "peakRssBytes": 133611520,
+      "pool": {
+        "total": 2,
+        "idle": 2,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 4,
+      "round": 1,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        2550,
+        2500,
+        2450,
+        2500
+      ],
+      "elapsedMs": 2704.25,
+      "eventsPerSecond": 3697.89,
+      "eventsPerLogicalCpuSecond": 369.79,
+      "cpuMs": 654.01,
+      "cpuMsPerEvent": 0.07,
+      "eventLoopUtilization": 0.307243,
+      "peakRssBytes": 134463488,
+      "pool": {
+        "total": 4,
+        "idle": 4,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 4,
+      "round": 2,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        2550,
+        2500,
+        2500,
+        2450
+      ],
+      "elapsedMs": 2743.08,
+      "eventsPerSecond": 3645.54,
+      "eventsPerLogicalCpuSecond": 364.55,
+      "cpuMs": 614.58,
+      "cpuMsPerEvent": 0.06,
+      "eventLoopUtilization": 0.296863,
+      "peakRssBytes": 134463488,
+      "pool": {
+        "total": 4,
+        "idle": 4,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 4,
+      "round": 3,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        2500,
+        2550,
+        2450,
+        2500
+      ],
+      "elapsedMs": 3057.94,
+      "eventsPerSecond": 3270.18,
+      "eventsPerLogicalCpuSecond": 327.02,
+      "cpuMs": 685.75,
+      "cpuMsPerEvent": 0.07,
+      "eventLoopUtilization": 0.293033,
+      "peakRssBytes": 128942080,
+      "pool": {
+        "total": 4,
+        "idle": 4,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 8,
+      "round": 1,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        1300,
+        1250,
+        1250,
+        1250,
+        1200,
+        1300,
+        1250,
+        1200
+      ],
+      "elapsedMs": 2116.13,
+      "eventsPerSecond": 4725.61,
+      "eventsPerLogicalCpuSecond": 472.56,
+      "cpuMs": 665.99,
+      "cpuMsPerEvent": 0.07,
+      "eventLoopUtilization": 0.38133,
+      "peakRssBytes": 137576448,
+      "pool": {
+        "total": 8,
+        "idle": 8,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 8,
+      "round": 2,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        1250,
+        1300,
+        1250,
+        1250,
+        1250,
+        1250,
+        1200,
+        1250
+      ],
+      "elapsedMs": 2220.38,
+      "eventsPerSecond": 4503.74,
+      "eventsPerLogicalCpuSecond": 450.37,
+      "cpuMs": 684.87,
+      "cpuMsPerEvent": 0.07,
+      "eventLoopUtilization": 0.373573,
+      "peakRssBytes": 187531264,
+      "pool": {
+        "total": 8,
+        "idle": 8,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    },
+    {
+      "workers": 8,
+      "round": 3,
+      "events": 10000,
+      "processed": 10000,
+      "perWorker": [
+        1200,
+        1250,
+        1250,
+        1300,
+        1250,
+        1250,
+        1250,
+        1250
+      ],
+      "elapsedMs": 2242.8,
+      "eventsPerSecond": 4458.71,
+      "eventsPerLogicalCpuSecond": 445.87,
+      "cpuMs": 676.11,
+      "cpuMsPerEvent": 0.07,
+      "eventLoopUtilization": 0.36743400000000004,
+      "peakRssBytes": 187547648,
+      "pool": {
+        "total": 8,
+        "idle": 8,
+        "waiting": 0
+      },
+      "state": {
+        "total": 10000,
+        "pending": 0,
+        "dead": 0,
+        "oldest_seconds": null
+      }
+    }
+  ],
+  "limitations": [
+    "Audit-only events measure claim/finalize throughput, not publication SQL or external I/O.",
+    "Loopback PostgreSQL and an unconstrained workstation are not staging or production capacity evidence.",
+    "Process-kill recovery is covered by functional tests, not timed by this harness."
+  ]
+}

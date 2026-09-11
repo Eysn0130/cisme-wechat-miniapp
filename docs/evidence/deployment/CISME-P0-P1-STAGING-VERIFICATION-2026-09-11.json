@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-09-11T13:30:27+08:00",
+  "environment": "cisme_staging",
+  "release": "/opt/cisme/releases/20260911T051500Z-p0p1-staging",
+  "releaseSlice": {
+    "id": "p0-p1-staging-slice-20260911T045758Z",
+    "preEvidenceTransportArtifactSha256": "9e6ec094bbc4a3afe70d9a08a782b7d2473d13377f6dd42748ddb97ad96e2ab8",
+    "internalSha256SumsVerified": true,
+    "secretScanClear": true,
+    "baselineApiSha256": "557a190d3f898bd8bfeb67f421d31cb0637988d575f193876670ed72ab3d2bcf",
+    "candidateApiSha256": "7df242062417c1190b5c714ba4a34fb46cf927508989514d9e9aa5c088ed7f8b",
+    "workerSha256": "f55787871193d3533b0066090bb8f3b46aa25964301a39d2d3650c9bc89f0716",
+    "workerOnceSha256": "92991aa4ce0da619ca771216224740b00dcfd479f0fb2861fbdf0d5af3df4696",
+    "packageLockSha256": "a51f71d7721523b9c06cd728857d3c23a3aff3f73e6093ac1c48b60cf63e8293"
+  },
+  "migrationRehearsal": {
+    "sequence": [27, 28, 29, 28, 27, 28, 29],
+    "privacyFoundationTables": 9,
+    "ugcFoundationTables": 8,
+    "existingFactsPreserved": true
+  },
+  "runtimeVerification": {
+    "p0": {
+      "uploadSwitchFalse": true,
+      "authoritativeProjectionFalse": true,
+      "authorizeRejected": true,
+      "mediaRowsCreated": 0,
+      "crossAccountReadRejected": true
+    },
+    "p1": {
+      "repeatedRequestIdempotent": true,
+      "exportPlanOnly": true,
+      "exportArtifactFree": true,
+      "erasureDryRun": true,
+      "memberPreserved": true,
+      "applyBlocked": true,
+      "illegalTransitionBlocked": true,
+      "legalHoldActiveCount": 1,
+      "legalHoldReleasedCount": 0,
+      "consentImmutable": true,
+      "consentWithdrawalOneWay": true,
+      "retentionInactive": true,
+      "processorInactive": true,
+      "auditComplete": true,
+      "auditContainsRequestMessage": false,
+      "crossAccountListEmpty": true
+    },
+    "community": {
+      "switchFalse": true,
+      "apiEnableRejected": true,
+      "dbEnableRejected": true,
+      "routeAbsent": true,
+      "rows": 0
+    },
+    "exactBaselineFactsRestored": true
+  },
+  "finalState": {
+    "migrations": 29,
+    "publicTablesIncludingLedger": 66,
+    "memberRows": 0,
+    "identityRows": 0,
+    "privacyRequestRows": 0,
+    "privacyEventRows": 0,
+    "exportJobRows": 0,
+    "erasureJobRows": 0,
+    "ugcRows": 0,
+    "pendingOutbox": 0,
+    "deadLetterOutbox": 0,
+    "uploadsEnabled": false,
+    "communityEnabled": false,
+    "ready": true,
+    "serviceErrorsSinceDeploy": {
+      "api": 0,
+      "worker": 0
+    }
+  },
+  "transport": {
+    "dnsA": "150.158.39.74",
+    "certificateSan": "staging-api.cisme.cn",
+    "certificateNotAfter": "2026-12-09T17:06:36Z",
+    "tls12Verified": true,
+    "tls11Rejected": true
+  },
+  "localGates": {
+    "unit": { "files": 32, "tests": 232, "passed": true },
+    "integration": { "files": 17, "tests": 84, "passed": true },
+    "typecheck": true,
+    "build": true,
+    "contracts": { "migrations": 29, "requiredTables": 56, "paths": 46, "events": 15, "passed": true },
+    "miniprogramPackage": { "files": 152, "routes": 16, "sourceSha256": "a81edabf9695e99707120b9699b3159bb2d67ebb928629e5ed20e7505cb155e5", "passed": true },
+    "productionDependencyAudit": { "totalVulnerabilities": 0, "passed": true },
+    "licenses": { "dependencies": 624, "unknown": 0, "passed": true }
+  },
+  "notImplemented": [
+    "export_archive",
+    "erasure_apply",
+    "account_closure",
+    "retention_purge",
+    "ugc_runtime"
+  ],
+  "excluded": {
+    "productionTouched": false,
+    "miniprogramUploaded": false,
+    "communityEnabled": false,
+    "cosEnabled": false,
+    "newWechatPermissions": []
+  },
+  "remainingProductReleaseGates": [
+    "current DevTools evidence",
+    "16-route matrix",
+    "iOS device evidence",
+    "Android device evidence",
+    "WeChat privacy backend evidence"
+  ]
+}

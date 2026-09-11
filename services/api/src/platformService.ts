@@ -1,11 +1,13 @@
+import { communityAuthors } from './memberProfile.js';
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
-import type { CareMilestone, CarePhase, CareVersionCommandInput, EmergencySwitchKey, ReviewDecision, ReviewResult, ShareTargetType, TaskClaimView, UploadAuthorization, WorkerQueue } from "@cisme/contracts";
+import { CARE_PROTOCOL_STEPS, CARE_SELF_ASSESSMENTS, type CareMilestone, type CareMilestoneCommandInput, type CarePhase, type CareVersionCommandInput, type EmergencySwitchKey, type ReviewDecision, type ReviewResult, type ShareTargetType, type TaskClaimView, type UploadAuthorization, type WorkerQueue } from "@cisme/contracts";
 import { assertMilestone, assertTimezone, deriveDueMilestone, DomainError, milestoneDueOn } from "@cisme/domain";
 import type { AppConfig } from "@cisme/config";
-import { transaction, type DbClient } from "./db.js";
+import { readSnapshot, transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
 import { objectKey, type ObjectStorage } from "./storage.js";
+import { EVENT_DELIVERY_POLICIES, type EventType } from "@cisme/contracts";
 
 type JsonObject = Record<string, unknown>;
 
@@ -18,6 +20,21 @@ interface CycleRow {
   protocol_version: string;
   version: number;
   schedule_offset_days: number;
+  created_at: Date;
+}
+
+interface CareRecordRow {
+  id: string;
+  cycle_id: string;
+  milestone: CareMilestone;
+  completed_at: Date;
+  protocol_version: string;
+  self_assessment: string | null;
+}
+
+interface CareRecordStepRow {
+  record_id: string;
+  step_code: string;
 }
 
 function localDate(now: Date, timezone: string): string {
@@ -54,8 +71,40 @@ function requireExpectedVersion(input: CareVersionCommandInput | undefined): num
   return input!.expectedVersion;
 }
 
+function requireCareRecordDetails(input: CareMilestoneCommandInput | undefined): Pick<CareMilestoneCommandInput, "stepCodes" | "selfAssessment"> {
+  const stepCodes = input?.stepCodes;
+  if (!Array.isArray(stepCodes) || stepCodes.length !== CARE_PROTOCOL_STEPS.length || stepCodes.some((step, index) => step !== CARE_PROTOCOL_STEPS[index])) {
+    throw new DomainError("CARE_PROTOCOL_STEPS_INCOMPLETE", "All care protocol steps must be completed in order", 422);
+  }
+  if (!CARE_SELF_ASSESSMENTS.includes(input?.selfAssessment as (typeof CARE_SELF_ASSESSMENTS)[number])) {
+    throw new DomainError("CARE_SELF_ASSESSMENT_REQUIRED", "A supported post-care self-assessment is required", 422);
+  }
+  return { stepCodes: [...stepCodes], selfAssessment: input!.selfAssessment };
+}
+
 function requestHash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function pageCursor(value: { at: Date | string; id: string }): string {
+  return Buffer.from(JSON.stringify([new Date(value.at).toISOString(), value.id])).toString("base64url");
+}
+
+function decodeCursor(cursor: string | undefined): { at: Date; id: string } | null {
+  if (!cursor) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as unknown[];
+    const at = new Date(String(parsed[0]));
+    const id = String(parsed[1]);
+    if (!Number.isFinite(at.getTime()) || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error();
+    return { at, id };
+  } catch { throw new DomainError("CURSOR_INVALID", "Pagination cursor is invalid", 422); }
+}
+
+function pageLimit(value: number | undefined, fallback = 20, maximum = 100): number {
+  if (value === undefined) return fallback;
+  if (!Number.isInteger(value) || value < 1 || value > maximum) throw new DomainError("PAGE_LIMIT_INVALID", `Page limit must be between 1 and ${maximum}`, 422);
+  return value;
 }
 
 function taskStoryName(milestone: string): string {
@@ -108,20 +157,25 @@ export class PlatformService {
     if (!result.rows[0]?.enabled) throw new DomainError(`SWITCH_${key.toUpperCase()}_OFF`, `Operation disabled: ${result.rows[0]?.reason ?? "emergency switch"}`, 503);
   }
 
-  async identity(input: { appId: string; openid: string; unionid?: string; displayName: string; adapter: "wechat" | "dev"; consents: Array<{ documentType: string; version: string }> }, now: Date) {
+  async identity(input: { provider: "wechat_miniprogram" | "dev_test"; appId: string; openid: string; unionid?: string; displayName: string; adapter: "wechat" | "dev"; consents: Array<{ documentType: string; version: string }> }, now: Date) {
     if (input.adapter === "dev" && !this.config.allowDevAdapters) throw new DomainError("DEV_ADAPTER_FORBIDDEN", "Development identity adapter is disabled", 503);
     const displayName = input.displayName?.trim();
     if (!displayName || Array.from(displayName).length > 40) throw new DomainError("IDENTITY_DISPLAY_NAME_INVALID", "Display name is required and must not exceed 40 characters", 422);
-    if (!input.consents.some((c) => c.documentType === "privacy") || !input.consents.some((c) => c.documentType === "terms")) {
+    if (!Array.isArray(input.consents) || input.consents.some(c => !c || typeof c.documentType !== "string" || typeof c.version !== "string") || !input.consents.some((c) => c.documentType === "privacy") || !input.consents.some((c) => c.documentType === "terms")) {
       throw new DomainError("CONSENT_REQUIRED", "Privacy and terms acceptance are required", 422);
     }
     return transaction(this.pool, async (client) => {
       await this.assertSwitch(client, "identity");
+      if (input.adapter === "wechat") {
+        const documents = await client.query("SELECT document_type,version FROM legal_document WHERE active=true FOR SHARE");
+        if (!(["terms", "privacy"].every(type => documents.rows.some(doc => doc.document_type === type))) || documents.rows.some(document => !input.consents.some(consent => consent.documentType === document.document_type && consent.version === document.version))) throw new DomainError("LEGAL_VERSION_REQUIRED", "请阅读并同意当前版本的用户协议和隐私指引", 409);
+      }
       // A row lock cannot protect the first login because no identity row exists
       // yet. Serialize the natural identity key before checking/inserting it.
-      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [`wechat-identity:${input.appId}:${input.openid}`]);
+      if ((input.provider === "wechat_miniprogram") !== (input.adapter === "wechat")) throw new DomainError("IDENTITY_PROVIDER_INVALID", "Identity provider and adapter do not match", 422);
+      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [`external-identity:${input.provider}:${input.appId}:${input.openid}`]);
       const existing = await client.query<{ member_id: string; identity_id: string }>(
-        "SELECT member_id, id AS identity_id FROM wechat_identity WHERE app_id=$1 AND openid=$2 FOR UPDATE", [input.appId, input.openid]
+        "SELECT member_id, id AS identity_id FROM wechat_identity WHERE provider=$1 AND app_id=$2 AND openid=$3 FOR UPDATE", [input.provider, input.appId, input.openid]
       );
       let memberId = existing.rows[0]?.member_id;
       let identityId = existing.rows[0]?.identity_id;
@@ -130,19 +184,13 @@ export class PlatformService {
         identityId = randomUUID();
         await client.query("INSERT INTO member(id, display_name) VALUES ($1,$2)", [memberId, displayName]);
         await client.query(
-          "INSERT INTO wechat_identity(id, member_id, app_id, openid, unionid, adapter) VALUES ($1,$2,$3,$4,$5,$6)",
-          [identityId, memberId, input.appId, input.openid, input.unionid ?? null, input.adapter]
+          "INSERT INTO wechat_identity(id, member_id, provider, app_id, openid, unionid, adapter) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+          [identityId, memberId, input.provider, input.appId, input.openid, input.unionid ?? null, input.adapter]
         );
         await client.query("INSERT INTO points_projection(member_id) VALUES ($1) ON CONFLICT DO NOTHING", [memberId]);
-      } else {
-        // The native login screen only has a neutral placeholder until a
-        // member-managed name exists. Re-authentication must not overwrite a
-        // previously chosen display name with that placeholder.
-        await client.query(`UPDATE member SET display_name=$2
-          WHERE id=$1 AND display_name IS DISTINCT FROM $2
-            AND ($2 <> 'CISME 会员' OR display_name = 'CISME 会员')`, [memberId, displayName]);
       }
-      const principalId = `${input.adapter}:${identityId}`;
+      // Re-authentication never overwrites member-managed or reviewed profile data.
+      const principalId = `${input.provider}:${identityId}`;
       for (const consent of input.consents) {
         await client.query(`
           INSERT INTO consent_acceptance(member_id, document_type, document_version, accepted_at, principal_id)
@@ -151,7 +199,7 @@ export class PlatformService {
       }
       await enqueue(client, {
         eventType: "identity.accepted.v1", aggregateType: "member", aggregateId: memberId, aggregateVersion: 1,
-        businessKey: `identity:${identityId}:accepted`, payload: { memberId, adapter: input.adapter }, occurredAt: now
+        businessKey: `identity:${identityId}:accepted`, payload: { memberId, provider: input.provider, appId: input.appId }, occurredAt: now
       });
       return { memberId, identityId, principalId };
     });
@@ -326,11 +374,12 @@ export class PlatformService {
     });
   }
 
-  async completeMilestone(memberId: string | undefined, cycleId: string, milestoneRaw: string, idempotencyKey: string, input: CareVersionCommandInput | undefined, now: Date) {
+  async completeMilestone(memberId: string | undefined, cycleId: string, milestoneRaw: string, idempotencyKey: string, input: CareMilestoneCommandInput | undefined, now: Date) {
     const owner = requireMember(memberId);
     assertMilestone(milestoneRaw);
     const milestone = milestoneRaw;
     const expectedVersion = requireExpectedVersion(input);
+    const details = requireCareRecordDetails(input);
     return transaction(this.pool, async (client) => {
       const idem = {
         principalId: `member:${owner}`,
@@ -356,8 +405,12 @@ export class PlatformService {
       if (due !== milestone) throw new DomainError("CARE_MILESTONE_NOT_DUE", `${milestone} is not the current due milestone`, 409);
       const recordId = randomUUID();
       const dueOn = milestoneDueOn(dateString(cycle.started_on)!, milestone, cycle.schedule_offset_days);
-      await client.query(`INSERT INTO care_record(id, cycle_id, milestone, due_on, completed_at, protocol_version)
-        VALUES ($1,$2,$3,$4,$5,$6)`, [recordId, cycleId, milestone, dueOn, now, cycle.protocol_version]);
+      await client.query(`INSERT INTO care_record(id, cycle_id, milestone, due_on, completed_at, protocol_version, self_assessment)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)`, [recordId, cycleId, milestone, dueOn, now, cycle.protocol_version, details.selfAssessment]);
+      for (const [sequence, stepCode] of details.stepCodes.entries()) {
+        await client.query(`INSERT INTO care_record_step(record_id, step_code, sequence, completed_at, protocol_version)
+          VALUES ($1,$2,$3,$4,$5)`, [recordId, stepCode, sequence, now, cycle.protocol_version]);
+      }
       const updated = await client.query<CycleRow>(`UPDATE care_cycle
         SET phase=CASE WHEN $2='D28' THEN 'completed' ELSE phase END,
           version=version+1, updated_at=$3
@@ -365,28 +418,49 @@ export class PlatformService {
       cycle = updated.rows[0]!;
       await enqueue(client, {
         eventType: "care.milestone.completed.v1", aggregateType: "care_cycle", aggregateId: cycleId, aggregateVersion: cycle.version,
-        businessKey: `care:${cycleId}:${milestone}`, payload: { memberId: owner, milestone, recordId }, occurredAt: now
+        businessKey: `care:${cycleId}:${milestone}`, payload: { memberId: owner, milestone, recordId, stepCodes: details.stepCodes, selfAssessment: details.selfAssessment }, occurredAt: now
       });
       let task = null;
       if (milestone === "D7") task = await this.decideEligibility(client, cycle, recordId, now);
       const record = await client.query("SELECT * FROM care_record WHERE id=$1", [recordId]);
-      const response = { cycle: await this.cycleView(client, cycle, now), record: record.rows[0], task };
+      const response = { cycle: await this.cycleView(client, cycle, now), record: { ...record.rows[0], stepCodes: details.stepCodes, selfAssessment: details.selfAssessment }, task };
       await this.idempotencySave(client, { ...idem, response });
       return response;
     }, "SERIALIZABLE");
   }
 
-  async getCare(memberId: string | undefined, now: Date) {
+  private async careSnapshot(client: DbClient, owner: string, now: Date, options: { limit?: number; cursor?: string } = {}) {
+      const limit = pageLimit(options.limit);
+      const cursor = decodeCursor(options.cursor);
+      const current = await client.query<CycleRow>("SELECT * FROM care_cycle WHERE member_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1", [owner]);
+      if (!current.rows[0]) return null;
+      const history = await client.query<CycleRow>(`SELECT * FROM care_cycle WHERE member_id=$1 AND id<>$2
+        AND ($3::timestamptz IS NULL OR (created_at,id)<($3,$4::uuid)) ORDER BY created_at DESC,id DESC LIMIT $5`,
+        [owner, current.rows[0].id, cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
+      const selected = [current.rows[0], ...history.rows.slice(0, limit)];
+      const cycleIds = selected.map((cycle) => cycle.id);
+      const records = await client.query<CareRecordRow>(`SELECT id, cycle_id, milestone, completed_at, protocol_version, self_assessment
+        FROM care_record WHERE cycle_id = ANY($1::uuid[]) ORDER BY cycle_id, due_on`, [cycleIds]);
+      const recordIds = records.rows.map((record) => record.id);
+      const steps = recordIds.length
+        ? await client.query<CareRecordStepRow>("SELECT record_id, step_code FROM care_record_step WHERE record_id = ANY($1::uuid[]) ORDER BY record_id, sequence", [recordIds])
+        : { rows: [] as CareRecordStepRow[] };
+      const recordsByCycle = new Map<string, CareRecordRow[]>();
+      for (const record of records.rows) recordsByCycle.set(record.cycle_id, [...(recordsByCycle.get(record.cycle_id) ?? []), record]);
+      const stepsByRecord = this.groupCareRecordSteps(steps.rows);
+      const views = selected.map((cycle) => this.cycleViewFromRows(cycle, recordsByCycle.get(cycle.id) ?? [], stepsByRecord, now));
+      const last = history.rows.length > limit ? history.rows[limit - 1] : null;
+      return { ...views[0]!, history: views.slice(1), nextCursor: last ? pageCursor({ at: last.created_at, id: last.id }) : null };
+  }
+
+  async getCare(memberId: string | undefined, now: Date, options: { limit?: number; cursor?: string } = {}) {
     const owner = requireMember(memberId);
-    const result = await this.pool.query<CycleRow>("SELECT * FROM care_cycle WHERE member_id=$1 ORDER BY created_at DESC LIMIT 1", [owner]);
-    if (!result.rows[0]) return null;
-    const client = await this.pool.connect();
-    try { return await this.cycleView(client, result.rows[0], now); } finally { client.release(); }
+    return readSnapshot(this.pool, (client) => this.careSnapshot(client, owner, now, options));
   }
 
   async getMember(memberId: string | undefined) {
     const owner = requireMember(memberId);
-    const member = await this.pool.query("SELECT id, display_name, status, created_at FROM member WHERE id=$1", [owner]);
+    const member = await this.pool.query(`SELECT m.id,m.display_name,m.status,m.created_at,p.avatar_data_url,p.avatar_revision,COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.public_status,'private') AS public_status,c.phone_masked FROM member m LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
     if (!member.rows[0]) throw new DomainError("MEMBER_NOT_FOUND", "Member not found", 404);
     return member.rows[0];
   }
@@ -478,11 +552,13 @@ export class PlatformService {
   async attributeShareIdentity(memberId: string | undefined, shareId: string, visitKey: string, now: Date) {
     const owner = requireMember(memberId);
     return transaction(this.pool, async (client) => {
-      const visit = await client.query<{ visit_id: string; sharer_member_id: string }>(`SELECT sv.id AS visit_id, sl.member_id AS sharer_member_id
+      const visit = await client.query<{ visit_id: string; sharer_member_id: string; visitor_member_id: string | null; first_seen_at: Date; state: string }>(`SELECT sv.id AS visit_id, sl.member_id AS sharer_member_id, sv.visitor_member_id, sv.first_seen_at, sl.state
         FROM share_visit sv JOIN share_link sl ON sl.id=sv.share_link_id
         WHERE sl.share_id=$1 AND sv.visit_key=$2 FOR UPDATE OF sv`, [shareId, visitKey]);
       const row = visit.rows[0];
       if (!row) throw new DomainError("SHARE_VISIT_NOT_FOUND", "Share visit must be recorded before attribution", 404);
+      if (row.visitor_member_id && row.visitor_member_id !== owner) throw new DomainError("SHARE_VISIT_ALREADY_BOUND", "This visit belongs to another member", 409);
+      if (row.state === "revoked" || now.getTime() < row.first_seen_at.getTime() || now.getTime() - row.first_seen_at.getTime() > 30 * 86400_000) return { shareId, credited: false, reason: "ATTRIBUTION_WINDOW_EXPIRED" };
       await client.query("UPDATE share_visit SET visitor_member_id=COALESCE(visitor_member_id,$1), last_seen_at=GREATEST(last_seen_at,$2) WHERE id=$3", [owner, now, row.visit_id]);
       if (row.sharer_member_id === owner) return { shareId, credited: false, reason: "SELF_ATTRIBUTION" };
       const attributionId = randomUUID();
@@ -569,8 +645,22 @@ export class PlatformService {
   }
 
   private async cycleView(client: DbClient, cycle: CycleRow, now: Date) {
-    const records = await client.query<{ milestone: CareMilestone; completed_at: Date }>("SELECT milestone, completed_at FROM care_record WHERE cycle_id=$1 ORDER BY due_on", [cycle.id]);
-    const completed = records.rows.map((row) => row.milestone);
+    const records = await client.query<CareRecordRow>("SELECT id, cycle_id, milestone, completed_at, protocol_version, self_assessment FROM care_record WHERE cycle_id=$1 ORDER BY due_on", [cycle.id]);
+    const recordIds = records.rows.map((row) => row.id);
+    const steps = recordIds.length
+      ? await client.query<CareRecordStepRow>("SELECT record_id, step_code FROM care_record_step WHERE record_id = ANY($1::uuid[]) ORDER BY record_id, sequence", [recordIds])
+      : { rows: [] as CareRecordStepRow[] };
+    return this.cycleViewFromRows(cycle, records.rows, this.groupCareRecordSteps(steps.rows), now);
+  }
+
+  private groupCareRecordSteps(rows: CareRecordStepRow[]): Map<string, string[]> {
+    const byRecord = new Map<string, string[]>();
+    for (const step of rows) byRecord.set(step.record_id, [...(byRecord.get(step.record_id) ?? []), step.step_code]);
+    return byRecord;
+  }
+
+  private cycleViewFromRows(cycle: CycleRow, records: CareRecordRow[], stepsByRecord: Map<string, string[]>, now: Date) {
+    const completed = records.map((row) => row.milestone);
     const startedOn = dateString(cycle.started_on);
     const due = cycle.phase === "active" ? deriveDueMilestone(startedOn, completed, now, cycle.timezone, cycle.schedule_offset_days) : null;
     const all: CareMilestone[] = ["D1", "D7", "D14", "D28"];
@@ -580,7 +670,13 @@ export class PlatformService {
       next: all.find((item) => !completed.includes(item)) ?? null, version: cycle.version,
       scheduleOffsetDays: cycle.schedule_offset_days,
       pausePolicy: { enabled: Boolean(this.config.carePausePolicy.version && this.config.carePausePolicy.maxDays > 0), maxDays: this.config.carePausePolicy.maxDays, version: this.config.carePausePolicy.version },
-      records: records.rows.map((row) => ({ milestone: row.milestone, completedAt: row.completed_at.toISOString() }))
+      records: records.map((row) => ({
+        milestone: row.milestone,
+        completedAt: row.completed_at.toISOString(),
+        protocolVersion: row.protocol_version,
+        selfAssessment: row.self_assessment,
+        stepCodes: stepsByRecord.get(row.id) ?? []
+      }))
     };
   }
 
@@ -674,66 +770,82 @@ export class PlatformService {
       );
       const active = current.rows[0];
       if (active?.upload_state === "authorized") {
+        await client.query("UPDATE media_object SET authorized_max_bytes=$2 WHERE id=$1", [active.id, input.maxBytes]);
         return this.storage.authorize({ mediaId: active.id, objectKey: active.object_key, mimeType: active.mime_type, maxBytes: input.maxBytes, baseUrl: input.baseUrl, now });
       }
       const id = randomUUID();
       const key = objectKey(submissionId, input.kind);
-      await client.query(`INSERT INTO media_object(id, submission_id, kind, object_key, mime_type, is_current)
-        VALUES ($1,$2,$3,$4,$5,$6)`, [id, submissionId, input.kind, key, input.mimeType, !active]);
+      await client.query(`INSERT INTO media_object(id, submission_id, kind, object_key, mime_type, is_current, authorized_max_bytes)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)`, [id, submissionId, input.kind, key, input.mimeType, !active, input.maxBytes]);
       return this.storage.authorize({ mediaId: id, objectKey: key, mimeType: input.mimeType, maxBytes: input.maxBytes, baseUrl: input.baseUrl, now });
     });
   }
 
   async gatewayUpload(mediaId: string, input: { token: string; bytes: Uint8Array; mimeType: string }, now: Date) {
-    if (!this.storage.acceptsGatewayUpload || !this.storage.writeGatewayObject) throw new DomainError("UPLOAD_GATEWAY_DISABLED", "Direct S3 upload is configured", 404);
-    const media = await this.pool.query<{ object_key: string; mime_type: string }>("SELECT object_key, mime_type FROM media_object WHERE id=$1 AND upload_state='authorized'", [mediaId]);
-    const row = media.rows[0];
-    if (!row) throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
-    if (input.mimeType !== "application/octet-stream" && row.mime_type !== input.mimeType) throw new DomainError("UPLOAD_MIME_MISMATCH", "Upload MIME type does not match authorization", 422);
-    return this.storage.writeGatewayObject({ token: input.token, mediaId, objectKey: row.object_key, bytes: input.bytes, mimeType: input.mimeType, now });
+    const write = this.storage.writeGatewayObject?.bind(this.storage);
+    if (!this.storage.acceptsGatewayUpload || !write) throw new DomainError("UPLOAD_GATEWAY_DISABLED", "Direct S3 upload is configured", 404);
+    return transaction(this.pool, async (client) => {
+      await this.assertSwitch(client, "uploads");
+      // Every media mutation locks the parent before touching media or storage.
+      // Keep this lock through the write so completion cannot verify stale bytes.
+      const parent = await client.query<{ submission_id: string }>("SELECT submission_id FROM media_object WHERE id=$1", [mediaId]);
+      const submissionId = parent.rows[0]?.submission_id;
+      if (!submissionId) throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
+      const submission = await client.query<{ status: string }>("SELECT status FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
+      if (!["draft", "needs_changes", "appealed"].includes(submission.rows[0]?.status ?? "")) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
+      const media = await client.query<{ object_key: string; mime_type: string }>("SELECT object_key, mime_type FROM media_object WHERE id=$1 AND upload_state='authorized' FOR UPDATE", [mediaId]);
+      const row = media.rows[0];
+      if (!row) throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
+      if (input.mimeType !== "application/octet-stream" && row.mime_type !== input.mimeType) throw new DomainError("UPLOAD_MIME_MISMATCH", "Upload MIME type does not match authorization", 422);
+      return write({ token: input.token, mediaId, objectKey: row.object_key, bytes: input.bytes, mimeType: input.mimeType, now });
+    });
   }
 
   async completeMedia(memberId: string | undefined, submissionId: string, mediaId: string, now: Date) {
     const owner = requireMember(memberId);
-    const media = await this.pool.query<{ member_id: string; submission_id: string; kind: string; object_key: string; upload_state: string; is_current: boolean }>(`
-      SELECT s.member_id, m.submission_id, m.kind, m.object_key, m.upload_state, m.is_current
-      FROM media_object m JOIN submission s ON s.id=m.submission_id
-      WHERE m.id=$1 AND m.submission_id=$2`, [mediaId, submissionId]);
-    const row = media.rows[0];
-    if (!row || row.member_id !== owner) throw new DomainError("MEDIA_NOT_FOUND", "Media not found", 404);
-    if (row.upload_state === "uploaded" && row.is_current) return this.pool.query("SELECT * FROM media_object WHERE id=$1", [mediaId]).then((result) => result.rows[0]);
-    const stored = await this.storage.verify(row.object_key);
-    const expected = await this.pool.query<{ mime_type: string }>("SELECT mime_type FROM media_object WHERE id=$1", [mediaId]);
-    if (stored.detectedMime !== expected.rows[0]?.mime_type) {
-      await this.storage.delete(row.object_key);
-      await this.pool.query("UPDATE media_object SET upload_state='failed' WHERE id=$1", [mediaId]);
-      throw new DomainError("UPLOAD_CONTENT_MISMATCH", "Uploaded image content does not match the authorized MIME type", 422);
-    }
-    try {
-      return await transaction(this.pool, async (client) => {
-        const locked = await client.query<{ id: string; object_key: string; is_current: boolean }>(
-          "SELECT id, object_key, is_current FROM media_object WHERE submission_id=$1 AND kind=$2 FOR UPDATE",
-          [row.submission_id, row.kind]
-        );
-        const target = locked.rows.find((item) => item.id === mediaId);
-        if (!target) throw new DomainError("MEDIA_NOT_FOUND", "Media not found", 404);
-        const previous = locked.rows.find((item) => item.is_current && item.id !== mediaId);
+    const outcome = await transaction(this.pool, async (client) => {
+      await this.assertSwitch(client, "uploads");
+      const submission = await client.query<{ member_id: string; status: string }>("SELECT member_id, status FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
+      if (submission.rows[0]?.member_id !== owner) throw new DomainError("MEDIA_NOT_FOUND", "Media not found", 404);
+      const media = await client.query<{ id: string; kind: string; object_key: string; mime_type: string; upload_state: string; is_current: boolean; authorized_max_bytes: number }>(
+        "SELECT * FROM media_object WHERE id=$1 AND submission_id=$2 FOR UPDATE", [mediaId, submissionId]);
+      const row = media.rows[0];
+      if (!row) throw new DomainError("MEDIA_NOT_FOUND", "Media not found", 404);
+      if (row.upload_state === "uploaded" && row.is_current) return { media: row };
+      if (row.upload_state !== "authorized") throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
+      if (!["draft", "needs_changes", "appealed"].includes(submission.rows[0].status)) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
+      const stored = await this.storage.verify(row.object_key);
+      const failUpload = async (error: DomainError) => {
+        // Commit the failed state while still holding the lock. Never delete a
+        // verified object in a catch after releasing its transaction lock.
+        await this.storage.delete(row.object_key);
+        await client.query("UPDATE media_object SET upload_state='failed' WHERE id=$1", [mediaId]);
+        return { error };
+      };
+      if (stored.bytes < 1 || stored.bytes > Number(row.authorized_max_bytes)) return failUpload(new DomainError("UPLOAD_SIZE_INVALID", "Uploaded image exceeds the authorized size", 422));
+      if (stored.detectedMime !== row.mime_type) return failUpload(new DomainError("UPLOAD_CONTENT_MISMATCH", "Uploaded image content does not match the authorized MIME type", 422));
+      const current = await client.query<{ id: string; object_key: string }>(
+        "SELECT id, object_key FROM media_object WHERE submission_id=$1 AND kind=$2 AND is_current=true FOR UPDATE", [submissionId, row.kind]);
+      const previous = current.rows.find((item) => item.id !== mediaId);
+      await client.query("SAVEPOINT media_completion");
+      try {
         if (previous) await client.query("UPDATE media_object SET is_current=false WHERE id=$1", [previous.id]);
         const result = await client.query(`UPDATE media_object
           SET upload_state='uploaded', content_hash=$1, size_bytes=$2, uploaded_at=$3, is_current=true
           WHERE id=$4 RETURNING *`, [stored.checksumBase64, stored.bytes, now, mediaId]);
-        if (previous) {
-          await client.query(`INSERT INTO media_cleanup_queue(media_id, object_key, reason)
-            VALUES ($1,$2,'replaced') ON CONFLICT DO NOTHING`, [previous.id, previous.object_key]);
-        }
-        return result.rows[0];
-      });
-    } catch (error) {
-      await this.storage.delete(row.object_key);
-      await this.pool.query("UPDATE media_object SET upload_state='failed' WHERE id=$1", [mediaId]);
-      if ((error as { code?: string }).code === "23505") throw new DomainError("MEDIA_DUPLICATE_HASH", "This media has already been submitted", 409);
-      throw error;
-    }
+        if (previous) await client.query(`INSERT INTO media_cleanup_queue(media_id, object_key, reason)
+          VALUES ($1,$2,'replaced') ON CONFLICT DO NOTHING`, [previous.id, previous.object_key]);
+        await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [mediaId]);
+        await client.query("RELEASE SAVEPOINT media_completion");
+        return { media: result.rows[0] };
+      } catch (error) {
+        if ((error as { code?: string }).code !== "23505") throw error;
+        await client.query("ROLLBACK TO SAVEPOINT media_completion");
+        return failUpload(new DomainError("MEDIA_DUPLICATE_HASH", "This media has already been submitted", 409));
+      }
+    });
+    if ("error" in outcome) throw outcome.error;
+    return outcome.media;
   }
 
   async deleteMedia(memberId: string | undefined, submissionId: string, mediaId: string, now: Date) {
@@ -741,6 +853,7 @@ export class PlatformService {
     return transaction(this.pool, async (client) => {
       await this.assertSwitch(client, "uploads");
       await this.assertSwitch(client, "submissions");
+      await client.query("SELECT id FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
       const result = await client.query<{ object_key: string; member_id: string; status: string; upload_state: string }>(`
         SELECT m.object_key, m.upload_state, s.member_id, s.status
         FROM media_object m JOIN submission s ON s.id=m.submission_id
@@ -753,6 +866,7 @@ export class PlatformService {
       await client.query("UPDATE media_object SET upload_state='deleted', deleted_at=$1, is_current=false WHERE id=$2", [now, mediaId]);
       await client.query(`INSERT INTO media_cleanup_queue(media_id, object_key, reason)
         VALUES ($1,$2,'member_deleted') ON CONFLICT DO NOTHING`, [mediaId, row.object_key]);
+      await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [mediaId]);
       return { deleted: true, cleanupQueued: true };
     });
   }
@@ -839,11 +953,12 @@ export class PlatformService {
     });
   }
 
-  async review(principalId: string, submissionId: string, idempotencyKey: string, input: { decision: ReviewDecision; reasonCode: string; evidence?: JsonObject; expectedVersion: number }, now: Date): Promise<ReviewResult> {
+  async review(principalId: string, submissionId: string, idempotencyKey: string, input: { decision: ReviewDecision; reasonCode: string; evidence?: JsonObject; expectedVersion: number }, now: Date, authorization: "legacy_role" | "capability" = "legacy_role"): Promise<ReviewResult> {
+    if (!["approve", "reject", "request_changes"].includes(input.decision)) throw new DomainError("REVIEW_DECISION_INVALID", "Invalid review decision", 422);
     if (!input.reasonCode?.trim() || !input.evidence || Object.keys(input.evidence).length === 0) throw new DomainError("REVIEW_EVIDENCE_REQUIRED", "Review reason code and evidence are required", 422);
     return transaction(this.pool, async (client) => {
       await this.assertSwitch(client, "reviews");
-      await this.assertAdminRole(client, principalId, ["reviewer", "review_lead"]);
+      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["reviewer", "review_lead"]);
       const idem = { principalId, operation: "submission.review", idempotencyKey, businessKey: `submission:${submissionId}:v${input.expectedVersion}:review`, requestHash: requestHash({ submissionId, ...input }) };
       let replay = await this.idempotencyLookup<ReviewResult>(client, idem);
       if (replay) return replay;
@@ -1108,11 +1223,21 @@ export class PlatformService {
     }, "SERIALIZABLE");
   }
 
-  async getPoints(memberId: string | undefined, now = this.now()) {
+  private async pointsSnapshot(client: DbClient, owner: string, now: Date, options: { limit?: number; cursor?: string } = {}) {
+    const limit = pageLimit(options.limit, 50);
+    const cursor = decodeCursor(options.cursor);
+    const projection = await client.query("SELECT frozen, available, debt, version FROM points_projection WHERE member_id=$1", [owner]);
+    const entries = await client.query(`SELECT id, entry_type, frozen_delta, available_delta, debt_delta, business_key, occurred_at FROM points_entry
+      WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (occurred_at,id)<($2,$3::uuid)) ORDER BY occurred_at DESC,id DESC LIMIT $4`, [owner, cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
+    const page = entries.rows.slice(0, limit);
+    const last = entries.rows.length > limit ? page[page.length - 1] : null;
+    return { rulesEnabled: this.pointsPolicyEnabled(now), projection: projection.rows[0] ?? { frozen: 0, available: 0, debt: 0, version: 1 }, entries: page,
+      nextCursor: last ? pageCursor({ at: last.occurred_at, id: last.id }) : null };
+  }
+
+  async getPoints(memberId: string | undefined, now = this.now(), options: { limit?: number; cursor?: string } = {}) {
     const owner = requireMember(memberId);
-    const projection = await this.pool.query("SELECT frozen, available, debt, version FROM points_projection WHERE member_id=$1", [owner]);
-    const entries = await this.pool.query("SELECT id, entry_type, frozen_delta, available_delta, debt_delta, business_key, occurred_at FROM points_entry WHERE member_id=$1 ORDER BY occurred_at DESC", [owner]);
-    return { rulesEnabled: this.pointsPolicyEnabled(now), projection: projection.rows[0] ?? { frozen: 0, available: 0, debt: 0, version: 1 }, entries: entries.rows };
+    return readSnapshot(this.pool, (client) => this.pointsSnapshot(client, owner, now, options));
   }
 
   pointsPolicyEnabled(now = this.now()): boolean {
@@ -1128,10 +1253,12 @@ export class PlatformService {
 
   async getSubmission(memberId: string | undefined, submissionId: string, now = this.now()) {
     const owner = requireMember(memberId);
-    const result = await this.pool.query("SELECT id, status, post_url, platform_account, disclosure, license_payload, version, submitted_at FROM submission WHERE id=$1 AND member_id=$2", [submissionId, owner]);
+    return readSnapshot(this.pool, async (client, asOf) => {
+    const result = await client.query("SELECT id, status, post_url, platform_account, disclosure, license_payload, version, submitted_at FROM submission WHERE id=$1 AND member_id=$2", [submissionId, owner]);
     if (!result.rows[0]) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-    const media = await this.pool.query("SELECT id, kind, mime_type, size_bytes, upload_state FROM media_object WHERE submission_id=$1 AND is_current=true ORDER BY kind", [submissionId]);
-    const review = await this.pool.query(`SELECT rc.status, rc.version, rc.updated_at,
+    const uploadSwitch = await client.query<{ enabled: boolean }>("SELECT enabled FROM emergency_switch WHERE key='uploads'");
+    const media = await client.query("SELECT id, kind, mime_type, size_bytes, upload_state FROM media_object WHERE submission_id=$1 AND is_current=true ORDER BY kind", [submissionId]);
+    const review = await client.query(`SELECT rc.status, rc.version, rc.updated_at,
       latest.reason_code, latest.evidence
       FROM review_case rc
       LEFT JOIN LATERAL (
@@ -1143,28 +1270,50 @@ export class PlatformService {
     const reviewRow = review.rows[0];
     return {
       ...result.rows[0],
+      asOf: asOf.toISOString(), businessVersion: Math.max(Number(result.rows[0].version), Number(reviewRow?.version ?? 0)),
       reward_enabled: this.pointsPolicyEnabled(now),
+      media_uploads_enabled: uploadSwitch.rows[0]?.enabled === true,
       media: media.rows,
       review: reviewRow ? { ...reviewRow, reason_summary: reviewReasonSummary(reviewRow.reason_code as string | null) } : null
     };
+    });
   }
 
-  async adminQueue(principalId: string, now = this.now()) {
+  async bootstrap(memberId: string | undefined, scope: "home" | "profile" | "settings", now = this.now()) {
+    const owner = requireMember(memberId);
+    return readSnapshot(this.pool, async (client, asOf) => {
+      const member = await client.query(`SELECT m.id,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
+        COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.community_visible,false) AS community_visible,
+        COALESCE(p.public_status,'private') AS public_status,p.public_review_note,c.phone_masked,c.bound_at
+        FROM member m LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
+      const memberRow = member.rows[0];
+      if (!memberRow || memberRow.status !== "active") throw new DomainError("AUTH_REVOKED", "Member session is no longer active", 401);
+      const care = scope === "settings" ? null : await this.careSnapshot(client, owner, now, { limit: scope === "home" ? 5 : 10 });
+      const points = scope === "profile" ? await this.pointsSnapshot(client, owner, now, { limit: 10 }) : null;
+      const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.granted_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
+        FROM consent_grant cg LEFT JOIN revocation_request rr ON rr.consent_grant_id=cg.id WHERE cg.member_id=$1 ORDER BY cg.granted_at DESC,id DESC LIMIT 21`, [owner]) : null;
+      const businessVersion = Math.max(Number(memberRow.profile_revision ?? 0), Number(care?.version ?? 0), Number(points?.projection?.version ?? 0));
+      return { scope, asOf: asOf.toISOString(), businessVersion, member: memberRow, care, points,
+        settings: scope === "settings" ? { profile: memberRow, phone: { enabled: Boolean(this.config.wechat.phoneBindingEnabled), bound: Boolean(memberRow.bound_at), masked: memberRow.phone_masked ?? null }, consents: consents!.rows.slice(0, 20), consentsNextCursor: consents!.rows.length > 20 ? pageCursor({ at: consents!.rows[19].granted_at, id: consents!.rows[19].id }) : null } : null };
+    });
+  }
+
+  async adminQueue(principalId: string, now = this.now(), authorization: "legacy_role" | "capability" = "legacy_role") {
     const client = await this.pool.connect();
     try {
-      await this.assertAdminRole(client, principalId, ["reviewer", "review_lead", "auditor"]);
+      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["reviewer", "review_lead", "auditor"]);
       const result = await client.query(`SELECT s.id, s.status, s.version, s.post_url, s.platform_account, s.disclosure,
         rc.id AS review_case_id, rc.status AS review_status, rc.version AS review_version, s.submitted_at
         FROM submission s JOIN review_case rc ON rc.submission_id=s.id
-        WHERE s.status IN ('submitted','appealed') ORDER BY s.submitted_at ASC`);
+        WHERE s.status IN ('submitted','appealed') ORDER BY s.submitted_at ASC, s.id ASC LIMIT 100`);
       return result.rows.map((row) => ({ ...row, reward_enabled: this.pointsPolicyEnabled(now) }));
     } finally { client.release(); }
   }
 
-  async adminPublicationQueue(principalId: string) {
+  async adminPublicationQueue(principalId: string, authorization: "legacy_role" | "capability" = "legacy_role") {
     const client = await this.pool.connect();
     try {
-      await this.assertAdminRole(client, principalId, ["review_lead", "auditor"]);
+      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["review_lead", "auditor"]);
       const result = await client.query(`SELECT s.id, s.status, s.version, s.post_url, s.platform_account, s.disclosure,
         s.updated_at AS reviewed_at, rc.assigned_to AS reviewed_by, fi.id AS feed_item_id, fi.visible,
         EXISTS (
@@ -1188,7 +1337,7 @@ export class PlatformService {
     } finally { client.release(); }
   }
 
-  async publishSubmission(principalId: string, submissionId: string, idempotencyKey: string, input: { title: string; excerpt: string; aiUsage: "none" | "assisted" | "generated" | "unknown"; reasonCode: string; evidence: JsonObject }, now: Date) {
+  async publishSubmission(principalId: string, submissionId: string, idempotencyKey: string, input: { title: string; excerpt: string; aiUsage: "none" | "assisted" | "generated" | "unknown"; reasonCode: string; evidence: JsonObject }, now: Date, authorization: "legacy_role" | "capability" = "legacy_role") {
     if (!this.config.ugcGoLiveGate) throw new DomainError("UGC_GO_LIVE_GATE_CLOSED", "Public user content is disabled until the UGC go-live gate is approved", 503);
     const title = input.title?.trim();
     const excerpt = input.excerpt?.trim();
@@ -1197,7 +1346,7 @@ export class PlatformService {
     if (!["none", "assisted", "generated", "unknown"].includes(input.aiUsage)) throw new DomainError("AI_USAGE_INVALID", "A structured AI usage declaration is required", 422);
     return transaction(this.pool, async (client) => {
       await this.assertSwitch(client, "submissions");
-      await this.assertAdminRole(client, principalId, ["review_lead"]);
+      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["review_lead"]);
       const idem = { principalId, operation: "submission.publish", idempotencyKey, businessKey: `submission:${submissionId}:publication:v1`, requestHash: requestHash({ submissionId, ...input }) };
       let replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
       if (replay) return replay;
@@ -1241,10 +1390,42 @@ export class PlatformService {
     });
   }
 
-  async feed() {
-    if (!this.config.ugcGoLiveGate) return [];
-    const result = await this.pool.query("SELECT id, submission_id, title, excerpt, cover_object_key, ai_usage, published_at FROM feed_item WHERE visible=true ORDER BY published_at DESC LIMIT 50");
-    return result.rows;
+  async feed(followingMemberId?: string) {
+    const page = await this.feedPage(followingMemberId, { limit: 50 });
+    return page.items.map(row => ({ ...row, author_name: page.authors[row.author_id]?.name || "CISME 会员", author_avatar: page.authors[row.author_id]?.avatar || "", author_avatar_revision: page.authors[row.author_id]?.avatarRevision || null }));
+  }
+
+  async feedPage(followingMemberId: string | undefined, options: { cursor?: string; limit?: number } = {}) {
+    if (!this.config.ugcGoLiveGate) return { items: [], authors: {}, nextCursor: null, asOf: this.now().toISOString() };
+    const limit = pageLimit(options.limit, 20, 50);
+    const cursor = decodeCursor(options.cursor);
+    return readSnapshot(this.pool, async (client, asOf) => {
+      const result = await client.query(`SELECT f.id, f.submission_id, f.title, f.excerpt, f.cover_object_key, f.ai_usage, f.published_at, s.member_id AS author_id
+        FROM feed_item f JOIN submission s ON s.id=f.submission_id JOIN member m ON m.id=s.member_id AND m.status='active'
+        WHERE f.visible=true
+          AND ($1::uuid IS NULL OR EXISTS(SELECT 1 FROM community_follow cf WHERE cf.member_id=$1 AND cf.author_id=s.member_id::text))
+          AND ($2::timestamptz IS NULL OR (f.published_at,f.id) < ($2::timestamptz,$3::uuid))
+        ORDER BY f.published_at DESC,f.id DESC LIMIT $4`, [followingMemberId ?? null, cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
+      const items = result.rows.slice(0, limit);
+      const authors = await communityAuthors(client, items.map(row => row.author_id));
+      const last = result.rows.length > limit ? items[items.length - 1] : null;
+      return { items, authors, nextCursor: last ? pageCursor({ at: last.published_at, id: last.id }) : null, asOf: asOf.toISOString() };
+    });
+  }
+
+  async feedItem(postId: string) {
+    if (!this.config.ugcGoLiveGate) throw new DomainError("FEED_ITEM_NOT_FOUND", "Feed item not found", 404);
+    if (!/^[0-9a-f-]{36}$/i.test(postId)) throw new DomainError("FEED_ITEM_NOT_FOUND", "Feed item not found", 404);
+    return readSnapshot(this.pool, async (client, asOf) => {
+      const result = await client.query(`SELECT f.id, f.submission_id, f.title, f.excerpt, f.cover_object_key, f.ai_usage, f.published_at, s.member_id AS author_id
+        FROM feed_item f JOIN submission s ON s.id=f.submission_id JOIN member m ON m.id=s.member_id AND m.status='active'
+        WHERE f.id=$1 AND f.visible=true`, [postId]);
+      const item = result.rows[0];
+      if (!item) throw new DomainError("FEED_ITEM_NOT_FOUND", "Feed item not found", 404);
+      const authors = await communityAuthors(client, [item.author_id]);
+      const author = authors[item.author_id];
+      return { ...item, author_name: author?.name || "CISME 会员", author_avatar: author?.avatar || "", author_avatar_revision: author?.avatarRevision || null, asOf: asOf.toISOString() };
+    });
   }
 
   async listEmergencySwitches(principalId: string) {
@@ -1311,13 +1492,15 @@ export class PlatformService {
         GROUP BY event_type ORDER BY oldest_occurred_at, event_type`);
       return result.rows.map((row) => ({
         ...row,
-        handler_state: row.event_type === "submission.publication.approved.v1" ? "implemented" : "unimplemented"
+        oldest_age_seconds: Math.max(0, Math.floor((Date.now() - new Date(row.oldest_occurred_at).getTime()) / 1000)),
+        handler_state: EVENT_DELIVERY_POLICIES[row.event_type as EventType] ?? "unsupported"
       }));
     } finally { client.release(); }
   }
 
   async setEmergencySwitch(principalId: string, key: EmergencySwitchKey, idempotencyKey: string, input: { enabled: boolean; reason: string; expectedVersion: number }, now: Date) {
     if (!input.reason?.trim()) throw new DomainError("SWITCH_REASON_REQUIRED", "An emergency-switch reason is required", 422);
+    if (key === "community" && input.enabled) throw new DomainError("COMMUNITY_RELEASE_NOT_IMPLEMENTED", "Formal community routes, moderation and privacy gates are not complete", 409);
     return transaction(this.pool, async (client) => {
       await this.assertAdminRole(client, principalId, ["review_lead"]);
       const idem = { principalId, operation: "emergency_switch.update", idempotencyKey, businessKey: `switch:${key}:v${input.expectedVersion}:update`, requestHash: requestHash({ key, ...input }) };

@@ -1,0 +1,21 @@
+{
+  "date": "2026-09-09",
+  "nativeSourceSha256": "96d8c96e6d2737f85686c9bd8d2999e0ee1a0e8fd9ca27445ccefeb4b21e1914",
+  "version": "0.1.0-dev.20260909",
+  "officialPreviewSucceeded": true,
+  "officialUploadSucceeded": true,
+  "compiledPackageBytes": 1398915,
+  "trialEnabled": false,
+  "productionPublished": false,
+  "observedCurrentSourceStates": [
+    "account reads current cloud member",
+    "phone binding disabled, no phone authorization button",
+    "administrator review tab visible with empty queue",
+    "following list empty state"
+  ],
+  "fullNativeStateMatrixPassed": false,
+  "iosVerified": false,
+  "androidVerified": false,
+  "strictTrialPreflightPassed": false,
+  "note": "Developer upload supplies a build for pending real-device verification; it does not certify trial acceptance or platform release."
+}

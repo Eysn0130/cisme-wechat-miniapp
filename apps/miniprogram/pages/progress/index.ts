@@ -1,3 +1,4 @@
+import { requireMemberAccess } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request, submissionReturnUrl } from "../../services/api";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 
@@ -61,7 +62,7 @@ Page({
   data: { chromeStyle: currentChromeStyle(), submissionId: "", submission: null as any, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), appealReason: "", appealValid: false, appealBlocked: false, loading: true, working: false, navigatingToRevision: false, navigatingAway: false, loadAttempt: 0, pageAlive: true, errorAction: "load" as "load" | "missing" | "appeal" | "revise", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) { this.setData({ submissionId: query.id ?? "", pageAlive: true }); },
-  onShow() { this.data.pageAlive = true; void this.load(); },
+  onShow() { if (!requireMemberAccess()) return; this.data.pageAlive = true; void this.load(); },
   onHide() { this.data.loadAttempt += 1; },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; wx.disableAlertBeforeUnload(); },
   async load(event?: WechatMiniprogram.TouchEvent) {

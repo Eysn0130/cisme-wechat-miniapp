@@ -1,0 +1,12 @@
+{
+  "source": "current CloudBase configured Supabase Mumbai",
+  "measuredFrom": "developer workstation, not mini-program device",
+  "query": "SELECT 1",
+  "milliseconds": [
+    3046,
+    429,
+    440,
+    423,
+    430
+  ]
+}
