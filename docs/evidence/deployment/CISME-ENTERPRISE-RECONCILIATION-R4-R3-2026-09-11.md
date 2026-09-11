@@ -5,7 +5,8 @@
 - canonical Mini Program AppID：`wx4eac2d4fb11d299b`
 - 父候选：`r1-r2-staging-slice-20260911T080300Z`，不可变、未部署
 - 当前小程序源码：`7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d`
-- 本轮边界：本地实现/验证、隔离数据库、独立 follow-up 候选、公开官方资料核验；未执行生产、真实支付、真实 AI、正式小程序上传、真实用户数据处理或 Git commit/push/merge/tag/release
+- GitHub 已验收开发基线：`Eysn0130/cisme_app`，PUBLIC；源码 `d5b0e9b00cec476a42793c68f3826b0d54b36115`，合成视觉证据 `652ca350c5982b97581a1913e1f53f50d9b3a3c6`
+- 本轮边界：本地实现/验证、隔离数据库、独立 follow-up 候选、公开官方资料核验，以及 Owner 明确授权的现有 GitHub 仓库普通 commit/push 与 PUBLIC 切换；未执行生产、真实支付、真实 AI、正式小程序上传、真实用户数据处理、force push、history rewrite、merge、tag 或 release
 
 ## 执行结论
 
@@ -18,6 +19,8 @@ R4-A 已形成同一原生小程序内的本地商品目录闭环：第一方商
 R4-B 现已形成**仅隔离非生产合成环境**的最小订单域闭环：商品详情 → SKU/数量 → 地址 → 服务端报价 → 创建 `pending_payment` → 本人/管理员列表与详情 → 用户取消或 Worker 超时 → 库存预留精确释放。价格、库存、地址版本、快照、幂等和并发由服务端/数据库控制。真实会员价和运费规则没有被虚构；`paymentAvailable=false`，不存在 `paid`、模拟支付成功、履约、退款或售后动作。购物车、收藏、真实支付、商品媒体上传和后续运营处理仍是后续切片。
 
 bounded R3 只交付安全边界：runtime Provider 关闭、批准知识库为空、工具只读且代码 allowlist、member scope 由服务端注入、建议草稿不保存/不发送。状态保持 `PROVIDER INTEGRATION PENDING`。现阶段继续使用既有状态机与 Worker，不引入 LangGraph 第二套 checkpoint/权限面。
+
+Owner 随后明确否决新建仓库方案，指定沿用 `https://github.com/Eysn0130/cisme_app` 并要求开发期 PUBLIC。执行时保留远端原 6 个提交：`d5b0e9b00cec476a42793c68f3826b0d54b36115` 是原 `main` 的普通直接后继，逐文件等于预发布 694-file review-source；`652ca350c5982b97581a1913e1f53f50d9b3a3c6` 只补入 27 张已校验的合成路线截图与 1 张联系表。两次均为非强推。匿名 GitHub API 与 raw 文件读取已核对 PUBLIC、`main` SHA 与 `package.json` SHA；GitHub Actions run `34603405920` 的 secret scan、依赖审计、typecheck、Mini package、Design QA 结构、248 项单元测试、101 项集成测试、build、contracts、SBOM 与 license report 全部通过。该公开动作不改变 production/payment/formal-upload 的关闭状态。
 
 R1/R2 的本地候选与演练仍有效，但远端没有部署。TCP 443 可达；带 `staging-api.cisme.cn` 正确 SNI 的 TLS 握手立即 EOF，而直接 IP、不带正确 SNI 时可见目标证书。当前工作站没有可用 SSH 身份、没有 `tccli`，此前控制台自动化初始化也已在同一根因下失败三次并停止重试。因此只可写 `R1/R2 REMOTE STAGING BLOCKED`，不能写 `STAGING VERIFIED`。
 
@@ -242,7 +245,7 @@ migration 34 在现有目录上增加 `commerce_checkout_quote`、`commerce_orde
 
 Commercial Delivery 候选固定使用新目录 `dist/commercial-delivery-r4b-20260911T125000Z`，是 enterprise follow-up 的独立 child，不覆盖原 R1/R2 或 enterprise slice；`MANIFEST.json` 明确 canonical AppID、parent manifest、81/71 双表数、scope/exclusions、production/formal upload/payment/git false、credentials/real-user-data false。源码来自当前受控工作树快照而非伪造的 clean commit；它由逐文件 SHA 绑定，不能把 dirty worktree 说成已 commit 的 release。最终目录中的 `SHA256SUMS` 是唯一逐文件校验清单。
 
-GitHub 安全准备也没有把“scanner 运行过”夸大成安全保证：Gitleaks 8.30.1 的 Darwin arm64 archive 用官方 checksums 文件逐项核验；现有 2 条 Git 历史为 0 finding。对整个工作目录的扫描在 `.gitleaks.toml` 排除公开 SHA-256 和明确 synthetic idempotency-key 误报后仍发现 50 项，全部位于已经被 `.gitignore` 排除的 `tmp/`（其中包括明确命名的 deployment secret/key 文件）；没有读取、复制或输出其值，也没有删除用户资产。拟同步的 non-ignored 694-file / 约 7.59 MB review-source 经过独立 artifact scan 为 0 finding；最终仍须逐项 staged diff 人工复核，绝不使用 `git add .`。候选同时提供完整源码审阅 ZIP、相对 HEAD 的差异 ZIP、视觉审阅 ZIP 和精确 source/diff manifests；没有执行 commit、push、GitHub Actions 或仓库创建。
+GitHub 外发没有把“scanner 运行过”夸大成安全保证：Gitleaks 8.30.1 的 Darwin arm64 archive 用官方 checksums 文件逐项核验。对整个本地工作目录的扫描在 `.gitleaks.toml` 排除公开 SHA-256 和明确 synthetic idempotency-key 误报后仍发现 50 项，全部位于已经被 `.gitignore` 排除的 `tmp/`（其中包括明确命名的 deployment secret/key 文件）；没有读取、复制、提交或输出其值，也没有删除用户资产。远端原 6 条历史、原工作树、694-file review-source、staged tree、提交后的 7/8 条完整历史均为 0 finding。同步逐文件使用 source manifest allowlist 与精确删除列表，未使用 `git add .`；公开证据补充只包含 27 张合成截图和 1 张联系表。候选仍提供完整源码审阅 ZIP、相对原本地 HEAD 的差异 ZIP、视觉审阅 ZIP 和精确 source/diff manifests；该不可变候选的 `git=false` 描述保留为动作前事实，不回写伪造。
 
 ## 验收状态分层
 
@@ -250,6 +253,7 @@ GitHub 安全准备也没有把“scanner 运行过”夸大成安全保证：Gi
 |---|---|---|
 | CODE | PASS | 企业 identity/authority、R1/R2、R4-A、R4-B 隔离 pending-payment、bounded R3 本地源码与完整测试；不包含真实 Provider、真实支付、履约或退款 |
 | PACKAGE | PASS LOCAL IMMUTABLE CANDIDATE | parent 240 项及旧 follow-up 266 项保持不可变；独立 `commercial-delivery-r4b-20260911T125000Z` 含 1608 项逐项 SHA、3 个可直接上传 ZIP、source/diff manifests；内部 checksum、ZIP integrity、artifact Gitleaks 0 finding；未部署 |
+| GITHUB DEVELOPMENT SOURCE | PASS PUBLIC | 现有 `Eysn0130/cisme_app` 原 6 条历史保留；普通提交 `d5b0e9b` + 合成视觉证据补充 `652ca35`；匿名读取回验通过；Actions run `34603405920` 全绿；不等于部署或发布 |
 | SCHEMA REHEARSAL | PASS | 本地 disposable：R1/R2 指定 29↔31 往返通过；完整 migration lifecycle 到 34 通过；远端 rehearsal 不在此 PASS 内 |
 | REMOTE STAGING | BLOCKED | 无授权 shell/TAT；remote ledger、migration、runtime、Worker、legal publication、SNI 修复均未执行 |
 | WECHAT SUBJECT / CAPABILITIES | PARTIAL / EXTERNAL IN PROGRESS | 企业名/新 AppID 是 OWNER-CONFIRMED；认证与支付 onboarding 为 IN_PROGRESS；备案仍 PENDING；账号后台配置、真实接口、域名/类目/模板/内容安全仍需平台证据 |
@@ -285,15 +289,14 @@ GitHub 安全准备也没有把“scanner 运行过”夸大成安全保证：Gi
 
 ## 下一步最小切片
 
-当前第一批的最小订单闭环已经按 Owner 最新指令命名为 **R4-B**，这明确替代旧文档中把“收藏 + 购物车”称作 R4-B 的排序。当前源码的本地原生健康基线已经取得；下一依赖链是：完成独立 Commercial Delivery 制品与安全外发准备；恢复精确 staging 通道并从真实 ledger 规划 30–34；修复正常 DNS+SNI 公网路径；完成真实 `wx.login`、关键交互录屏、多状态矩阵和 iOS/Android 证据。紧随其后的业务切片仍为收藏 + 认证用户购物车（购物车不长期占库存），没有从正式范围删除；支付、履约、售后退款在 onboarding 完成并获得各自动作授权后再进入。真实 AI 继续等待 Provider/处理者/预算/知识审批。
+当前第一批的最小订单闭环已经按 Owner 最新指令命名为 **R4-B**，这明确替代旧文档中把“收藏 + 购物车”称作 R4-B 的排序。独立 Commercial Delivery 制品、安全外发准备和现有仓库 PUBLIC 开发基线已经完成；下一依赖链是：恢复精确 staging 通道并从真实 ledger 规划 30–34；修复正常 DNS+SNI 公网路径；完成真实 `wx.login`、关键交互录屏、多状态矩阵和 iOS/Android 证据。紧随其后的业务切片仍为收藏 + 认证用户购物车（购物车不长期占库存），没有从正式范围删除；支付、履约、售后退款在 onboarding 完成并获得各自动作授权后再进入。真实 AI 继续等待 Provider/处理者/预算/知识审批。
 
 ## Owner 唯一行动表
 
-以下是本轮唯一需要 Owner 处理的集中清单；Secret、私钥、数据库密码、完整 OpenID/session_key、证件、银行资料和真实聊天均只在官方平台或受控运维环境中使用，不贴回线程。
+以下是本轮唯一仍需要 Owner 处理的集中清单；GitHub 第 0 项已按 Owner 后续明确指令完成，因此从待办表移除。Secret、私钥、数据库密码、完整 OpenID/session_key、证件、银行资料和真实聊天均只在官方平台或受控运维环境中使用，不贴回线程。
 
 | 事项 | 为什么不能自主完成 | 目标平台/资源 | 所需最小权限或非敏感材料 | 操作步骤 | 预期结果 | 影响范围 | 撤销方式 |
 |---|---|---|---|---|---|---|---|
-| 0. 一次性 GitHub 私有基线授权 | 当前 `gh` 已登录但没有创建/写入新正式仓库的授权；已有 private `Eysn0130/cisme_app` 历史与本地不相关，不能覆盖 | 新建 `Eysn0130/cisme-r0-platform`，visibility=`PRIVATE`，branch=`main` | 仅授权：创建该 private repo；对当前 local `main` 做 1 个 reviewed baseline commit 并 push `main`；保留现有 2 条本地历史；首次范围为源码/迁移/测试/CI/文本证据/manifest及一张 280 KB 精选合成页面总览，排除 `dist/tmp/node_modules`、原始截图/录屏/HAR/log、数据库副本、secret/key/cert/私密配置和真实数据 | 批准后先生成逐文件 allowlist/source manifest，复核 status/staged diff/refs/大文件/license/NOTICE/Gitleaks；再创建 private repo、添加 `origin`、commit、push 单一 `main`；push 会触发一次无生产凭据的 `verify`，可能消耗账号 GitHub Actions 分钟；不运行 preview/candidate/release job；最后从 GitHub 读取该 commit 的 README 和至少一个源码文件 | 一个正式私有审阅基线；报告 repo/branch/commit/source manifest/build id/复现命令；读权限通过 GitHub 私有仓库协作者/团队提供，不发临时公开链接 | 仅当前仓库/current main；不含 public visibility、所有分支、tags、releases、force push、history rewrite、license 变更、生产部署、微信上传、secret 配置 | push 前删除 staged entry/remote 可完全撤销；push 后可移除协作者或归档/删除新空仓库，但不擅自 rewrite/force；任一扫描或 staged diff 异常则停止且不 push |
 | 1. 新企业账号证据包 | 需要账号后台身份与企业管理员真实性确认 | 微信公众平台：基本信息、成员管理、开发设置、版本、认证、类目、备案 | AppID、主体全名、原始 ID、未发布/认证/备案状态、管理员/开发者/体验成员人数与角色；个人微信号/证件/secret 遮挡 | 在 `wx4eac2d4fb11d299b` 后台逐页核对；只导出/截图非敏感字段并记录时间 | E0 从 OWNER-CONFIRMED 升级为 PLATFORM-VERIFIED；旧个人 AppID 继续 UNKNOWN 也可接受 | 只读账号核验，不改 runtime | 删除本地临时截图；平台无状态变更可撤销 |
 | 2. 一次性恢复 staging 控制通道 | 当前无 SSH identity/tccli；公网 DNS 显示 `api.cisme.cn→124.223.74.198`、`staging-api.cisme.cn→150.158.39.74`，不能擅自假定同机或猜部署 | 腾讯云 `ap-shanghai`；已知候选 Lighthouse `lhins-61ikz4mi` / `cisme-app-shanghai` / `124.223.74.198`，先只读证明它是否为允许目标；`150.158.39.74` 只作 DNS 事实，未映射前不得操作 | 主账号 UIN、目标实例/域名映射、TAT agent Online、普通 `cisme-deploy` 用户、经 Owner 核验的 ED25519 host fingerprint、固定追加/删除临时 key 的 CommandId；短时 STS 仅允许 Describe + Preview/Invoke 这两个精确 CommandId/单实例 | Owner 在控制台预建不可变非 root 命令；显式拒绝 `RunCommand`、Create/Modify/Delete、多实例、production/COS；第一条只输出 allowlist marker/hostname/env name/database name/service user/fingerprint，确认映射后才追加有限时禁转发/禁 PTY key；本地 pin 指纹 | 恢复可审计 read-only→受控 staging 通道，并先解决两 IP/实例映射；获得 invocation/request/exit 证据 | 仅经 marker 证明的 staging 单实例；若 `lhins-61ikz4mi` 是 production 或映射不符立即停止 | 固定删除命令移除精确公钥；cancel 未完成 invocation；logout/revoke STS；删除专用 profile并复核 key 不存在 |
 | 3. R1/R2 + follow-up staging 验收和 SNI 修复 | 需真实远端数据库/进程/Nginx/证书证据 | staging PostgreSQL、API/Worker、Nginx、`staging-api.cisme.cn` | 父/子 `MANIFEST.json` 与 `SHA256SUMS`、实际 ledger/table list、服务用户/端口、可销毁 rehearsal 库证明；不提供 DATABASE_URL | 先只读核验；只在专用可销毁库跑 29↔31；正式 staging 前向 30–31，再用独立候选前向 32–34；验证 health/worker/outbox/retention/502；修 SNI 并用正常 DNS+SNI 外测 | R1/R2 可从 remote BLOCKED 转为 SERVER STAGING PASS；follow-up 有独立 staging 证据 | staging runtime/schema/TLS；无 production | SHA/基线不符立即停；有真实写入时优先旧应用兼容或 forward fix；应用回滚、DB down、数据恢复分开；删除临时 key |
@@ -304,4 +307,4 @@ GitHub 安全准备也没有把“scanner 运行过”夸大成安全保证：Gi
 | 8. 真实支付（仅未来进入支付切片时） | 需要企业商户关系、密钥材料与资金风险授权 | 微信支付商户平台 + 新 AppID | 已认证状态、商户号/JSAPI 权限/经营场景/绑定状态的脱敏证据；APIv3 key/私钥/证书只进密钥系统 | 申请/选择企业商户号→开通小程序支付→绑定新 AppID→配置回调/技术负责人→用授权 sandbox 做验签、解密、金额/币种/merchant/AppID/order、重放/重复通知、查单/对账 | 才能启动独立 order/payment slice；客户端 success 永不直接写 PAID | 交易/资金；不使用真实资金开发测试 | 关闭支付 capability/业务开关、解绑或撤 API 配置按官方流程；保留订单事实，不能删除账本假装回滚 |
 | 9. 真实 AI（仅未来批准时） | 当前无 Provider、DPA/地域/保留、预算、批准知识和生成内容合规结论 | 选定 Provider + 公司隐私/安全/运营评审 | Provider 决策、处理者/DPA 编号、数据地域/保留、预算、知识版本 SHA、风险分级与 synthetic red-team 摘要；无真实聊天 | 批准后另做 durable AI job/consumer + transaction-outside inference + final CAS；先 synthetic staging，再小流量、明确 AI 标识/转人工 | bounded R3 才进入 provider integration；当前接口继续 pending | 仅低风险建议/答疑；禁止退款/发货/改订单/库存/隐私等写工具 | provider switch off、撤 credentials/processor purpose、停止 consumer；保留人工会话，不发送迟到 AI 回复 |
 
-完成第 0 项授权前不创建仓库、不 commit/push、不触发 GitHub CI；完成第 2–4 项之前不能安全操作或宣布 staging；完成第 6–7 项之前不能正式上传/发布；完成第 8/9 项之前，支付与真实 AI 必须继续关闭。
+GitHub 第 0 项已完成，未新建仓库、未 force push、未改写历史。完成第 2–4 项之前不能安全操作或宣布 staging；完成第 6–7 项之前不能正式上传/发布；完成第 8/9 项之前，支付与真实 AI 必须继续关闭。
