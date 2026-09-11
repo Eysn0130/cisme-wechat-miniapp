@@ -1,6 +1,6 @@
 # Taste Skills / Product Design 原生前端审核
 
-审核时间：2026-09-08。目标：以冻结 Web 为设计依据，审核原生小程序当前可达流程并修复明确问题。冻结 Web 未修改。后续目标仓库：Eysn0130/cisme_app。
+审核时间：2026-09-08。目标：以冻结 Web 为设计依据，审核原生小程序当前可达流程并修复明确问题。冻结 Web 未修改。后续目标仓库：Eysn0130/cisme-wechat-miniapp。
 
 ## 结论
 
@@ -18,61 +18,61 @@
 
 未勾选时主按钮禁用；本地测试勾选后可进入会员页。简化测试协议与手机号说明。
 
-![会员账号](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/08-account-after.jpg)
+![会员账号](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/08-account-after.jpg)
 
 ### 2. 品牌社区
 
 游客可进入；品牌卡片可打开。未测试公开用户投稿。
 
-![品牌社区](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/05-community-stable.jpg)
+![品牌社区](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/05-community-stable.jpg)
 
 ### 3. 护理故事
 
 文章可阅读和返回；修正测试内容标签与不准确的经审分享标签。
 
-![护理故事](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/06-post-before.jpg)
+![护理故事](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/06-post-before.jpg)
 
 ### 4. 我的
 
 固定人物头像已替换为默认图标，三个快捷入口可见。
 
-![我的](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/14-profile-after.jpg)
+![我的](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/14-profile-after.jpg)
 
 ### 5. 积分
 
 零余额和空账本正确呈现；已简化未开放提示。
 
-![积分](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/10-points-before.jpg)
+![积分](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/10-points-before.jpg)
 
 ### 6. 商品目录
 
 修正两条 Web 与原生包格式不同的图片路径；首屏图片恢复。
 
-![商品目录](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/16-shop-after.jpg)
+![商品目录](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/16-shop-after.jpg)
 
 ### 7. 商品详情
 
 图片恢复；滚动后说明位于底部按钮上方。交易按钮保持禁用。
 
-![商品详情](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/18-product-after-bottom.jpg)
+![商品详情](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/18-product-after-bottom.jpg)
 
 ### 8. 护理首页
 
 当前测试会员无体验资格，主动作禁用并说明原因。实际护理提交未验证。
 
-![护理首页](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/12-home-ineligible.jpg)
+![护理首页](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/12-home-ineligible.jpg)
 
 ### 9. 护理记录
 
 无周期时显示空状态，无伪造记录。
 
-![护理记录](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/13-records-empty.jpg)
+![护理记录](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/13-records-empty.jpg)
 
 ### 10. 设置与隐私
 
 无投稿许可时显示空状态；未执行退出、撤回或删除。已简化未开放文案。
 
-![设置与隐私](/Users/mini/CISME/cisme-r0-platform/docs/evidence/visual/taste-product-audit-2026-09-08/15-settings.jpg)
+![设置与隐私](/Users/mini/CISME/docs/evidence/visual/taste-product-audit-2026-09-08/15-settings.jpg)
 
 ## 未完成与证据限制
 

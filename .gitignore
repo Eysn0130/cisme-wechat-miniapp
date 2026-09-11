@@ -37,3 +37,15 @@ docs/evidence/wechat/
 apps/miniprogram/project.private.config.json
 infra/supabase-prod-ca.crt
 *.local
+
+# Local Codex/review workspaces and recoverable backups
+.work/
+.docx-review/
+.codex-doc-work/
+.private-backups/
+.tmp-*.png
+
+# Local-only sibling prototype and generated business deliverables
+cisme-home-prototype/
+deliverables/
+output/

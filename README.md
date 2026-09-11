@@ -1,13 +1,13 @@
-# CISME
+# Cisme 熹丝密小程序
 
 CISME 是一套原生微信小程序与 Node.js/Fastify、PostgreSQL 后端的开发基线。当前仓库公开用于开发协作与审阅；公开源码不等于生产部署、微信体验版或正式发布。
 
 ## 当前基线
 
-- GitHub：`Eysn0130/cisme_app`，`main`，PUBLIC。
+- GitHub：`Eysn0130/cisme-wechat-miniapp`，`main`，PUBLIC。
 - 源码基线提交：`d5b0e9b00cec476a42793c68f3826b0d54b36115`。
 - 合成视觉证据补充提交：`652ca350c5982b97581a1913e1f53f50d9b3a3c6`。
-- GitHub Actions：[`CISME R0 gates` 34603405920](https://github.com/Eysn0130/cisme_app/actions/runs/34603405920) 已通过。
+- GitHub Actions：[`CISME R0 gates` 34603405920](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/34603405920) 已通过。
 - 小程序：27 条原生路由；当前源码哈希 `7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d`。
 - 本地验收：单元测试 248 项、隔离数据库集成测试 101 项、34 个 migration、75 条 OpenAPI path、27 个事件契约均通过。
 
@@ -33,6 +33,8 @@ npm run lint:contracts
 
 ## 审阅入口
 
+- [完整产品需求文档（PRD V2.1-R4）](docs/product/CISME-产品需求文档-PRD-V2.1-R4.md)
+- [产品文档索引与生效规则](docs/product/README.md)
 - [统一交付台账](docs/evidence/deployment/CISME-ENTERPRISE-RECONCILIATION-R4-R3-2026-09-11.md)
 - [Design QA](design-qa.md)
 - [Release Audit](RELEASE-AUDIT.md)
