@@ -104,8 +104,63 @@ describe("R4-B isolated pending-payment order flow", () => {
     const cancelReplay = await app.inject({ method: "POST", url: `/v1/me/orders/${created.json().id}/cancel`, headers: { ...auth(buyerA.sessionToken), "idempotency-key": "order-cancel-buyer-a-01" },
       payload: { expectedVersion: created.json().version, reason: "合成测试取消" } });
     expect(cancelReplay.json()).toMatchObject({ status: "cancelled", version: 2 });
+
+    const otherQuote = (await quote(buyerA, target, "quote-cancel-target-b-01", 1)).json();
+    const otherOrder = await createOrder(buyerA, otherQuote.id, "order-cancel-target-b-01");
+    expect(otherOrder.statusCode).toBe(200);
+    const wrongTargetReplay = await app.inject({ method: "POST", url: `/v1/me/orders/${otherOrder.json().id}/cancel`, headers: { ...auth(buyerA.sessionToken), "idempotency-key": "order-cancel-buyer-a-01" },
+      payload: { expectedVersion: created.json().version, reason: "合成测试取消" } });
+    expect(wrongTargetReplay.statusCode).toBe(409);
+    expect(wrongTargetReplay.json().code).toBe("IDEMPOTENCY_CONFLICT");
+    expect((await app.inject({ method: "GET", url: `/v1/me/orders/${otherOrder.json().id}`, headers: auth(buyerA.sessionToken) })).json().status).toBe("pending_payment");
+    const otherCancelled = await app.inject({ method: "POST", url: `/v1/me/orders/${otherOrder.json().id}/cancel`, headers: { ...auth(buyerA.sessionToken), "idempotency-key": "order-cancel-target-b-02" },
+      payload: { expectedVersion: otherOrder.json().version, reason: "合成测试清理" } });
+    expect(otherCancelled.statusCode).toBe(200);
     expect((await pool.query("SELECT reserved_quantity FROM catalog_inventory_level WHERE sku_id=$1", [product.variants[0].id])).rows[0].reserved_quantity).toBe(0);
     expect((await pool.query("SELECT count(*)::int count FROM commerce_order_transition WHERE order_id=$1", [created.json().id])).rows[0].count).toBe(2);
+  });
+
+  it("builds member and management list summaries with a fixed SQL bound and no address decryption", async () => {
+    let commerceReadQueries = 0;
+    let addressReads = 0;
+    const onAcquire = (client: any) => {
+      if (client.__commerceQueryCounter) return;
+      const originalClientQuery = client.query.bind(client);
+      const originalRelease = client.release.bind(client);
+      client.__commerceQueryCounter = true;
+      client.query = (...queryArgs: unknown[]) => {
+        const sql = String(queryArgs[0]);
+        if (/^\s*SELECT/i.test(sql) && /commerce_order(?:\s|_|\b)/.test(sql)) commerceReadQueries += 1;
+        if (/commerce_order_address/i.test(sql)) addressReads += 1;
+        return originalClientQuery(...queryArgs);
+      };
+      client.release = (...releaseArgs: unknown[]) => {
+        client.query = originalClientQuery;
+        client.release = originalRelease;
+        delete client.__commerceQueryCounter;
+        return originalRelease(...releaseArgs);
+      };
+    };
+    pool.on("acquire", onAcquire);
+    try {
+      const mine = await app.inject({ method: "GET", url: "/v1/me/orders?limit=20", headers: auth(buyerA.sessionToken) });
+      expect(mine.statusCode).toBe(200);
+      expect(mine.json().items.length).toBeGreaterThan(0);
+      expect(mine.json().items.every((item: any) => item.address === null)).toBe(true);
+      expect(commerceReadQueries).toBe(2);
+      expect(addressReads).toBe(0);
+
+      commerceReadQueries = 0;
+      addressReads = 0;
+      const management = await app.inject({ method: "GET", url: "/v1/management/commerce/orders?limit=20", headers: auth(operator.sessionToken) });
+      expect(management.statusCode).toBe(200);
+      expect(management.json().items.length).toBeGreaterThan(0);
+      expect(management.json().items.every((item: any) => item.address === null)).toBe(true);
+      expect(commerceReadQueries).toBe(2);
+      expect(addressReads).toBe(0);
+    } finally {
+      pool.off("acquire", onAcquire);
+    }
   });
 
   it("rejects stale address and price facts before reserving inventory", async () => {

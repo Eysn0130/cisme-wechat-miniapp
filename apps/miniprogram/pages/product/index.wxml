@@ -3,13 +3,12 @@
 <view class="page page--stack product-page">
   <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载商品资料…</view>
   <view wx:if="{{item}}" class="product-gallery">
-    <swiper class="product-cover" current="{{galleryIndex}}" autoplay="{{galleryVisible && galleryInView && !galleryStopped}}" interval="5000" duration="500" circular bindchange="galleryChange" bindtouchstart="stopGallery">
+    <swiper class="product-cover" current="{{galleryIndex}}" autoplay="{{false}}" duration="220" circular="{{gallery.length>1}}" bindchange="galleryChange">
       <swiper-item wx:for="{{gallery}}" wx:for-item="imageSrc" wx:key="*this"><image class="product-cover" src="{{imageSrc}}" mode="aspectFill" aria-label="{{item.name}} 图片 {{index + 1}}" /></swiper-item>
     </swiper>
-    <button class="gallery-arrow gallery-arrow--left" bindtap="galleryPrevious" aria-label="上一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
-    <button class="gallery-arrow gallery-arrow--right" bindtap="galleryNext" aria-label="下一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
-    <button wx:if="{{!galleryStopped}}" class="gallery-pause" bindtap="stopGallery" aria-label="暂停商品图片自动轮播">暂停</button>
-    <text class="gallery-count">{{galleryIndex + 1}} / {{gallery.length}}</text>
+    <button wx:if="{{gallery.length>1}}" class="gallery-arrow gallery-arrow--left" bindtap="galleryPrevious" aria-label="上一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
+    <button wx:if="{{gallery.length>1}}" class="gallery-arrow gallery-arrow--right" bindtap="galleryNext" aria-label="下一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
+    <text wx:if="{{gallery.length>1}}" class="gallery-count">{{galleryIndex + 1}} / {{gallery.length}}</text>
   </view>
   <view wx:if="{{item}}" class="product-content">
     <text class="product-eyebrow">CISME DAILY RITUAL</text>
@@ -26,7 +25,7 @@
     </view>
     <view class="product-note">{{item.purchaseCopy}}</view>
   </view>
-  <view wx:if="{{item}}" class="product-action"><button class="primary product-action__button {{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating?'primary--disabled':''}}" bindtap="openCheckout" disabled="{{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating}}"><text class="action-label">{{item.purchaseEnabled&&selectedSku.purchaseEnabled?'立即购买 · 创建待支付订单':'购买尚未开放'}}</text></button></view>
-  <view wx:if="{{!item && error}}" class="glass error-scene product-error-scene" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/package-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">PRODUCT UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary product-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载商品资料</text></button><button class="{{leaving ? 'control--disabled' : ''}} product-error-action {{errorKind === 'missing' ? 'primary' : 'secondary'}}" disabled="{{leaving}}" bindtap="back"><text class="action-label">返回商品目录</text></button></view></view>
+  <view wx:if="{{item}}" class="product-action"><button class="primary product-action__button {{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating?'primary--disabled':''}}" bindtap="openCheckout" disabled="{{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating}}"><text class="action-label">{{item.purchaseEnabled&&selectedSku.purchaseEnabled?'立即购买':'购买尚未开放'}}</text></button></view>
+  <view wx:if="{{!item && error}}" class="glass error-scene product-error-scene" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/package-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">商品状态</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary product-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载商品资料</text></button><button class="{{leaving ? 'control--disabled' : ''}} product-error-action {{errorKind === 'missing' ? 'primary' : 'secondary'}}" disabled="{{leaving}}" bindtap="back"><text class="action-label">返回商品目录</text></button></view></view>
 </view>
 </view>

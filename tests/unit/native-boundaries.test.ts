@@ -47,6 +47,12 @@ function attributeValue(tag: string, name: string): string | null | undefined {
 }
 
 describe("native mini program boundary", () => {
+  it("keeps internal pricing rule identifiers out of the buyer checkout surface", async () => {
+    const checkout = await readFile(resolve("apps/miniprogram/pages/checkout/index.wxml"), "utf8");
+    expect(checkout).not.toContain("quote.pricingRuleVersion");
+    expect(checkout).toContain("价格会在提交前再次确认");
+  });
+
   it("contains no React DOM, browser globals or deferred social routes", async () => {
     const source = await sources(resolve("apps/miniprogram"));
     for (const forbidden of ["react-dom", "window.", "document.", "localStorage", "pages/growth", "pages/messages", "pages/comments", "pages/search", "pages/cart", "pages/coupons"]) expect(source).not.toContain(forbidden);
@@ -113,7 +119,7 @@ describe("native mini program boundary", () => {
 
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
-      "checkout/index.wxml": 2,
+      "checkout/index.wxml": 3,
       "settings/index.wxml": 1,
       "post/index.wxml": 1,
       "privacy-rights/index.wxml": 1,
@@ -188,16 +194,16 @@ describe("native mini program boundary", () => {
       legal: ["back", "load", "privacyRights"],
       management: ["back", "retry", "openSupport", "openCatalog", "openOrders"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
-      "management-product": ["back", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
+      "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
       "management-order-detail": ["back", "load"],
       "management-support": ["back", "open", "retry"],
-      "management-support-chat": ["back", "openContext", "loadOlder", "retry", "claim", "suggest", "send", "resolve", "closeContext"],
+      "management-support-chat": ["back", "openContext", "loadOlder", "retry", "jumpToLatest", "claim", "suggest", "send", "resolve", "closeContext"],
       points: ["back", "openShop", "load"],
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
       "privacy-rights": ["back", "submit", "load", "login", "@feedback"],
-      product: ["back", "galleryPrevious", "galleryNext", "stopGallery", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
-      checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "confirmOrder"],
+      product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
+      checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "load", "cancel"],
       profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openManagement", "openTasks", "openSettings", "load", "retryTasks"],
@@ -206,7 +212,7 @@ describe("native mini program boundary", () => {
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
       submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
-      support: ["back", "loadOlder", "retry", "@disabled", "send", "requestHuman"],
+      support: ["back", "loadOlder", "retry", "jumpToLatest", "@disabled", "send", "requestHuman"],
       task: ["back", "continueSubmission", "load", "back", "goCommunity", "claim", "@disabled", "continueSubmission"]
     };
 

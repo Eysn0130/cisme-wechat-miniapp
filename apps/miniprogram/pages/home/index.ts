@@ -3,9 +3,10 @@ import { requireMemberAccess, retainMemberSnapshot, request } from "../../servic
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { registerIncomingShare } from "../../services/share";
 import { careDaypart, careGreeting, careProtocolSteps, careSelfAssessments, type CareProtocolStepView, type CareSelfAssessmentValue } from "../../services/care-protocol";
+import { careHomeSchedule } from "../../services/care-home-state";
 
 interface CareRecord { milestone: string; completedAt: string; stepCodes?: string[]; selfAssessment?: CareSelfAssessmentValue | null }
-interface CareView { id: string; version: number; phase: string; startedOn: string | null; timezone: string; due: string | null; next: string | null; completed: string[]; records: CareRecord[] }
+interface CareView { id: string; version: number; phase: string; startedOn: string | null; timezone: string; due: string | null; next: string | null; completed: string[]; records: CareRecord[]; scheduleOffsetDays: number }
 interface MemberView { id?: string; profile_revision?: number; display_name: string }
 interface CareCompletionResponse { task?: { id: string; reward_enabled?: boolean; reward_points?: number | null } | null }
 
@@ -59,12 +60,26 @@ function homeView(care: CareView | null, displayName = "CISME 会员", selectedI
   if (phase === "paused") return { greeting, greetingClass, schedule: "护理周期已暂停", action: "查看周期管理", actionable: true, signalTitle: "已保存记录不会丢失", signalMeta: "恢复后再继续安排后续护理节点", signalIcon: "/assets/icons/clock-plum.svg", steps, ...protocol };
   if (phase === "terminated") return { greeting, greetingClass, schedule: "护理周期已终止", action: "查看护理记录", actionable: true, signalTitle: "历史护理事实已归档", signalMeta: "你仍可随时回看已完成记录", signalIcon: "/assets/icons/clipboard-text-muted.svg", steps, ...protocol };
   if (phase === "completed") return { greeting, greetingClass, schedule: "D28 · 周期完成", action: "查看护理记录", actionable: true, signalTitle: "4 条里程碑记录已点亮", signalMeta: "时间、步骤与自我感受均已保存", signalIcon: "/assets/icons/star-active.svg", steps, ...protocol };
+  const scheduleFact = careHomeSchedule(care, now);
   const milestone = care.due ?? care.next ?? "日常";
   const completedMilestoneCount = Math.max(care.records?.length ?? 0, care.completed?.length ?? 0);
   const nextRecordNumber = Math.min(4, completedMilestoneCount + 1);
-  return care.due
-    ? { greeting, greetingClass, schedule: `${milestone} · 今日护理`, action: daypart.careAction, actionable: true, signalTitle: `完成后点亮第 ${nextRecordNumber} 条记录`, signalMeta: "四个步骤与护理后感受会一起保存", signalIcon: "/assets/icons/star-active.svg", steps, ...protocol }
-    : { greeting, greetingClass, schedule: "今天已完成", action: "查看护理进度", actionable: true, signalTitle: "今天无需重复打卡", signalMeta: `下一护理节点为 ${care.next ?? "待新周期"}`, signalIcon: "/assets/icons/check-circle-plum.svg", steps, ...protocol };
+  if (care.due) return {
+    greeting, greetingClass, schedule: scheduleFact.state === "overdue" ? `${milestone} · 待补做` : `${milestone} · 今日护理`,
+    action: daypart.careAction, actionable: true,
+    signalTitle: scheduleFact.state === "overdue" ? `完成逾期的 ${milestone} 护理` : `完成后点亮第 ${nextRecordNumber} 条记录`,
+    signalMeta: "四个步骤与护理后感受会一起保存", signalIcon: "/assets/icons/star-active.svg", steps, ...protocol
+  };
+  if (scheduleFact.completedToday) return {
+    greeting, greetingClass, schedule: scheduleFact.schedule, action: "查看护理进度", actionable: true,
+    signalTitle: "今天的护理事实已保存", signalMeta: care.next ? `下一护理节点为 ${care.next}` : "本周期已没有后续节点",
+    signalIcon: "/assets/icons/check-circle-plum.svg", steps, ...protocol
+  };
+  return {
+    greeting, greetingClass, schedule: scheduleFact.schedule, action: "查看护理进度", actionable: true,
+    signalTitle: "今天没有待完成节点", signalMeta: care.next ? `到 ${scheduleFact.nextDueOn ?? "计划日期"} 再完成 ${care.next}` : "等待新周期安排",
+    signalIcon: "/assets/icons/clock-plum.svg", steps, ...protocol
+  };
 }
 
 function visitorView() {

@@ -2,7 +2,7 @@
 
 - 执行日期：2026-08-13（Asia/Shanghai）
 - 唯一开发基线：[`CISME-产品需求文档-PRD-V2.1-R4.md`](../CISME-产品需求文档-PRD-V2.1-R4.md)
-- 基线 SHA-256：`e0fc938854e0530ae819a632e43ffaff79bf82da84dca91492b05a6b05a438ac`
+- 当前基线 SHA-256：`849123637638730129e899f9877f8c2f052afec8928077143fa6dd22a890e0f7`（V2.1-R4.1，2026-09-12）
 - 退役原则：活动项目只保留 Markdown 开发基线；DOC、DOCX、PDF 不再作为实现或验收依据。
 - DOC/DOCX 恢复位置：`/Users/mini/.Trash/CISME-docx-retired-20260813`。
 - PDF 恢复位置：`/Users/mini/.Trash/CISME-pdf-retired-20260813`，按原项目相对路径保存。在系统废纸篓被清空前，可按本清单恢复。

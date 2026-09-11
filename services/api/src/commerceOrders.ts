@@ -27,7 +27,7 @@ type OrderRow = {
   terminal_reason: string | null; created_at: Date; updated_at: Date;
 };
 type OrderLineRow = {
-  id: string; line_number: number; product_code: string; product_name: string; sku_code: string; sku_label: string;
+  id: string; order_id: string; line_number: number; product_code: string; product_name: string; sku_code: string; sku_label: string;
   image_path: string | null; quantity: number; unit_price_cents: number; line_subtotal_cents: string;
   line_discount_cents: string; line_total_cents: string;
 };
@@ -179,6 +179,42 @@ export class CommerceOrderService {
       address: addressView };
   }
 
+  private orderSummaryView(row: OrderRow, lines: OrderLineRow[]) {
+    return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
+      memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
+      pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
+      cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
+      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      lines: lines.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
+        skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
+        unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents), totalCents: money(line.line_total_cents) })),
+      // List endpoints deliberately omit delivery snapshots. Full or redacted
+      // addresses are loaded only by the corresponding detail endpoint.
+      address: null };
+  }
+
+  private async listPage(client: DbClient, owner: string | null, limit: number, cursor: { at: string; id: string } | null) {
+    const page = owner
+      ? await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
+          ORDER BY created_at DESC,id DESC LIMIT $4`, [owner,cursor?.at??null,cursor?.id??null,limit+1])
+      : await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
+          ORDER BY created_at DESC,id DESC LIMIT $3`, [cursor?.at??null,cursor?.id??null,limit+1]);
+    const hasMore = page.rows.length > limit;
+    const rows = page.rows.slice(0, limit);
+    const ids = rows.map(row => row.id);
+    const linePage = ids.length
+      ? await client.query<OrderLineRow>("SELECT * FROM commerce_order_line WHERE order_id=ANY($1::uuid[]) ORDER BY order_id,line_number", [ids])
+      : { rows: [] as OrderLineRow[] };
+    const byOrder = new Map<string, OrderLineRow[]>();
+    for (const line of linePage.rows) {
+      const orderId = line.order_id;
+      const existing = byOrder.get(orderId) ?? [];
+      existing.push(line);
+      byOrder.set(orderId, existing);
+    }
+    return { items: rows.map(row => this.orderSummaryView(row, byOrder.get(row.id) ?? [])), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null };
+  }
+
   async create(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {
     this.requireEnabled(); const owner = member(memberId); const actor = principal(principalId); const idempotencyKey = key(keyInput);
     const normalized = { quoteId: uuid(input.quoteId, "QUOTE_ID_INVALID") }; const requestHash = hash(normalized);
@@ -251,16 +287,22 @@ export class CommerceOrderService {
 
   async cancel(memberId: string | undefined, principalId: string | undefined, orderIdInput: string, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {
     const owner=member(memberId); const actor=principal(principalId); const orderId=uuid(orderIdInput,"ORDER_ID_INVALID"); const idempotencyKey=key(keyInput);
-    const normalized={expectedVersion:version(input.expectedVersion),reason:typeof input.reason==="string"?input.reason.trim():""};
+    const normalized={operation:"commerce.order.cancel",actor,memberId:owner,orderId,expectedVersion:version(input.expectedVersion),reason:typeof input.reason==="string"?input.reason.trim():""};
     if (Array.from(normalized.reason).length<3 || Array.from(normalized.reason).length>500) throw new DomainError("ORDER_CANCEL_REASON_INVALID","请填写取消原因",422);
     const requestHash=hash(normalized);
     return transaction(this.pool,async client=>{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`commerce-order-cancel:${actor}:${idempotencyKey}`]);
-      const replay=await client.query<{request_hash:string}>("SELECT request_hash FROM idempotency_operation WHERE principal_id=$1 AND operation='commerce.order.cancel' AND idempotency_key=$2",[actor,idempotencyKey]);
+      const replay=await client.query<{request_hash:string;business_key:string;response_body:{orderId?:string;orderVersion?:number;status?:string}}>("SELECT request_hash,business_key,response_body FROM idempotency_operation WHERE principal_id=$1 AND operation='commerce.order.cancel' AND idempotency_key=$2",[actor,idempotencyKey]);
       if(replay.rows[0]&&replay.rows[0].request_hash!==requestHash)throw new DomainError("IDEMPOTENCY_CONFLICT","同一请求键不能用于不同取消请求",409);
+      if(replay.rows[0]){
+        const replayId=replay.rows[0].response_body.orderId;
+        if(!replayId||replayId!==orderId||!replay.rows[0].business_key.startsWith(`${replayId}:`))throw new DomainError("IDEMPOTENCY_CONFLICT","同一请求键不能用于不同取消目标",409);
+        const recorded=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2",[replayId,owner])).rows[0];
+        if(!recorded||recorded.status!=="cancelled"||recorded.version!==replay.rows[0].response_body.orderVersion)throw new DomainError("IDEMPOTENCY_RECORD_INVALID","订单取消重试记录不完整，请联系客服",500);
+        return this.orderView(client,recorded);
+      }
       const current=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2 FOR UPDATE",[orderId,owner])).rows[0];
       if(!current)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
-      if(replay.rows[0])return this.orderView(client,current);
       if(current.status!=="pending_payment")throw new DomainError("ORDER_NOT_CANCELLABLE","当前订单状态不可取消",409);
       if(current.version!==normalized.expectedVersion)throw new DomainError("ORDER_VERSION_CONFLICT","订单状态已变化，请刷新后重试",409);
       await this.release(client,orderId,"USER_CANCELLED",now,actor);
@@ -272,17 +314,14 @@ export class CommerceOrderService {
       await enqueue(client,{eventType:"commerce.order.cancelled.v1",aggregateType:"commerce_order",aggregateId:orderId,aggregateVersion:updated.version,
         businessKey:`commerce-order:${orderId}:v${updated.version}`,payload:{orderId,status:"cancelled",reasonCode:"USER_CANCELLED"},occurredAt:now});
       await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
-        VALUES($1,'commerce.order.cancel',$2,$3,$4,200,$5)`,[actor,idempotencyKey,`${orderId}:v${current.version}`,requestHash,{orderId}]);
+        VALUES($1,'commerce.order.cancel',$2,$3,$4,200,$5)`,[actor,idempotencyKey,`${orderId}:v${current.version}`,requestHash,{orderId,orderVersion:updated.version,status:updated.status}]);
       return this.orderView(client,updated);
     },"SERIALIZABLE");
   }
 
   async listMine(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown}) {
     const owner=member(memberId),limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor);
-    const page=await this.pool.query<OrderRow>(`SELECT * FROM commerce_order WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
-      ORDER BY created_at DESC,id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
-    const hasMore=page.rows.length>limit,rows=page.rows.slice(0,limit);
-    return {items:await Promise.all(rows.map(row=>this.orderView(this.pool,row))),nextCursor:hasMore?encodeCursor(rows[rows.length-1]!):null};
+    return transaction(this.pool, client => this.listPage(client, owner, limit, cursor), "REPEATABLE READ");
   }
 
   async detailMine(memberId: string | undefined, orderIdInput: string) {
@@ -294,10 +333,7 @@ export class CommerceOrderService {
 
   async managementList(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown}) {
     await this.authority.require(memberId,"commerce.order.read");const limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor);
-    const page=await this.pool.query<OrderRow>(`SELECT * FROM commerce_order WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
-      ORDER BY created_at DESC,id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1]);
-    const hasMore=page.rows.length>limit,rows=page.rows.slice(0,limit);
-    return {items:await Promise.all(rows.map(row=>this.orderView(this.pool,row,"management"))),nextCursor:hasMore?encodeCursor(rows[rows.length-1]!):null};
+    return transaction(this.pool, client => this.listPage(client, null, limit, cursor), "REPEATABLE READ");
   }
 
   async managementDetail(memberId: string | undefined, orderIdInput: string) {

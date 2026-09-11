@@ -1,379 +1,379 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+  "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
   "finalResult": "blocked",
   "evidenceIndex": {
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__home__index.png": {
-      "sha256": "3a1f29d037ec29c492232e426191ac197f854162e3a39231d65b0b8f9c18cace",
-      "bytes": 450877,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__home__index.png": {
+      "sha256": "f7946114ae458dd865e2274f7ed7efd44bd5771ccf19e1de03b4b2524372e445",
+      "bytes": 447314,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/home/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__records__index.png": {
-      "sha256": "0231b01064273968646337b5cc50d05b57e3fd153f97644d936ec7b5e4dc44a5",
-      "bytes": 212123,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__records__index.png": {
+      "sha256": "dbdb5cb1a8751ec4fba597248e6c6b4dc9308355d5659266fcf947a731400ca7",
+      "bytes": 213690,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/records/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__community__index.png": {
-      "sha256": "0ecb92189ab3b9b89f359ca5a89ae959d98731f3b926f3ea691b3b12a7512f90",
-      "bytes": 379965,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__community__index.png": {
+      "sha256": "63b210f1021de178e2353d578e5338568efd28ed0da59419c08cd3111bb5e628",
+      "bytes": 375058,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/community/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__profile__index.png": {
-      "sha256": "35ef9938a9526b7a63067381dbbf00d05ab573e815219d1c0cb255f6283342de",
-      "bytes": 201332,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__profile__index.png": {
+      "sha256": "73c36e64855b745d90efb688c66add0231950f4f44deb17c52e2638743c112b9",
+      "bytes": 180198,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/profile/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__account__index.png": {
-      "sha256": "ddce04b6438d6a27c512bf4bc23ce6724518d95d0e72ea64b86268588ac11721",
-      "bytes": 123175,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__account__index.png": {
+      "sha256": "5b35ecf197d85cc899459df559e0be7d16532a6ba8bc19970b97e6d14b491599",
+      "bytes": 132014,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/account/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__task__index.png": {
-      "sha256": "bb221e6342b384dc2dddccdddd6cbe7074cc681af2e31dfabddcb86a75b12627",
-      "bytes": 182337,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__task__index.png": {
+      "sha256": "cf7cb6940ab736dbc67de2dc1db1c52ca800f6eb0e9aadac5c6a447ca9d88bba",
+      "bytes": 183051,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/task/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__submit__index.png": {
-      "sha256": "7e7648ec97dcaa7c6b2825aeb971289ba26559d35fed9e2e540386b385e5943e",
-      "bytes": 148958,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__submit__index.png": {
+      "sha256": "4a0c8b1c6a41866445f986747a403a52151538c62e4f3bc32ca2f932a18ec812",
+      "bytes": 153183,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/submit/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__progress__index.png": {
-      "sha256": "ea9ff2456ee43e7ade2898b8c008c673c71839d6257bf479720b5841c4e7d7b5",
-      "bytes": 96302,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__progress__index.png": {
+      "sha256": "7dcdce4bb98352f5fd0defbac8d725ffcc83b179b11203eacb667156729ea17f",
+      "bytes": 104998,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/progress/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__points__index.png": {
-      "sha256": "facaeb4abfadf7c2dfb764e1b94ab1e447a8903bdab53ec8dcf7b55f773a1886",
-      "bytes": 146139,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__points__index.png": {
+      "sha256": "568794f7e216901e724de7a52716accc5b04d5b15e6ff09daa5928c7c6221829",
+      "bytes": 161122,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/points/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__post__index.png": {
-      "sha256": "eb0c7cfde899dad48b7558d903ed8360d185514c249a1fab8f92b568efb139b2",
-      "bytes": 202812,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__post__index.png": {
+      "sha256": "5b82d3bbf49bb263dea0c9dcc7c315629bb043e02c152a2b858598cdce0b7fb3",
+      "bytes": 206471,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/post/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__shop__index.png": {
-      "sha256": "f586a3ad44d842314ecb3022d298d1fec488fdae71e25e7f00df22102e99038b",
-      "bytes": 274025,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__shop__index.png": {
+      "sha256": "775e7a041802191b163099e528a09942e9837c8d0d11adf0ab20b243a2b1ee61",
+      "bytes": 279864,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/shop/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__product__index.png": {
-      "sha256": "019ae91cf2246a72f9fb71a989d1367bb38580e7c29b3aef470b33fe85e3af19",
-      "bytes": 315758,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__product__index.png": {
+      "sha256": "bb8c8cda1a84b1175f6f84fda4a8c59921435c955bb46186a7184242432dce8c",
+      "bytes": 303192,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/product/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__checkout__index.png": {
-      "sha256": "30db4c370381c5fd53db735f0dcfaf80714aad2501e7e1c62a842f195a664cd1",
-      "bytes": 122042,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__checkout__index.png": {
+      "sha256": "7172f727a1035948b9ac1b6aa7da790097509e15fe5c70e22fbcfedb7ec21e47",
+      "bytes": 116648,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/checkout/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__orders__index.png": {
-      "sha256": "aad8a41483527db6fcd9a310918493009e1687fb4c94f6a0e5cf9e36599bc21e",
-      "bytes": 67702,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__orders__index.png": {
+      "sha256": "e00a447d77314c4f7ba70dd17f742ed4ba851b0f0ed1e3c780f356546acb4e9e",
+      "bytes": 66330,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/orders/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__order-detail__index.png": {
-      "sha256": "22d624c5432e98a59265e5b9e6a7230ec1c7e72fc8863287c7c7194194bd98c9",
-      "bytes": 143875,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__order-detail__index.png": {
+      "sha256": "79e974031378676775f33b7619b685490fd7e1e954074e2cb40c00633632e630",
+      "bytes": 147756,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/order-detail/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__settings__index.png": {
-      "sha256": "cf592327fee914053a33735e889acf3ae1602762c9ea0c9dffe6d2e37f655baa",
-      "bytes": 95458,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__settings__index.png": {
+      "sha256": "2213c8e17d5a3a81f063d557ce9aa6396097017d88b0b770f99de3ab9cb3fa81",
+      "bytes": 94837,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/settings/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__invite__index.png": {
-      "sha256": "c96461f4c93b8d98bc0d9e5ceb9366237588b01f629f5a212930e0239f9f477e",
-      "bytes": 136326,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__invite__index.png": {
+      "sha256": "4e10af08c946e092e758bdb4aa159e40a2e9b7d6b1442a9e4f897c6f8e89253b",
+      "bytes": 138965,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/invite/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__legal__index.png": {
-      "sha256": "b4fb47f53e3427084bef3c85b95eeb210f99d8bd2c5b85fb157d6521a1d9ce5f",
-      "bytes": 56136,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__legal__index.png": {
+      "sha256": "9108d247022da8e1597610b5785243d21e92b8c04a76727984a017143d4bcab9",
+      "bytes": 59311,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/legal/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__privacy-rights__index.png": {
-      "sha256": "797a470cb84e301c95197b77d83ed857c7f76994589bcb29834be7261001522b",
-      "bytes": 114099,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__privacy-rights__index.png": {
+      "sha256": "20b77c4c903a0ff6f99da1184548a0541a7f1a2c536b609dc7d8d6a56e8ed382",
+      "bytes": 109167,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/privacy-rights/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__support__index.png": {
-      "sha256": "0675599d6767f2dceb8f9b6a8fd433212dc1146599fcba3779f181b80b9da726",
-      "bytes": 43900,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__support__index.png": {
+      "sha256": "cb153744eed917fee9ed48cefaa7bea8c9d6af9f256e959cb04c33200f6710c6",
+      "bytes": 46900,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/support/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management__index.png": {
-      "sha256": "3653633237f1e51b80df09db117feca829d0b0b07aa3fad8e495e70f850c5e14",
-      "bytes": 101492,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management__index.png": {
+      "sha256": "aac641f3037ad44739fd84783372e83d3c546374e9a8d2170840b3304253cd6d",
+      "bytes": 104712,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/management/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-catalog__index.png": {
-      "sha256": "eaa14c25ee01d27e7bf792696796c55aa7e1fbf0a20cfa29841139257645835d",
-      "bytes": 155345,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-catalog__index.png": {
+      "sha256": "c897b0fce5f1adf1d556d820d33d835a772945a0a640b7b6d5cf0b1f8bb6ee03",
+      "bytes": 157126,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/management-catalog/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-product__index.png": {
-      "sha256": "02722f55f5236ee8e7f83b93ca63cb81355de12b1e89d5a26339706d9232c96b",
-      "bytes": 178485,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-product__index.png": {
+      "sha256": "dc22522eacbc9504e37f33adf5fe4668d1297a4e9f7fe5084b693cf032ae8ad3",
+      "bytes": 182948,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/management-product/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-orders__index.png": {
-      "sha256": "6aa1a198261e54821389d26e32cbd7bc07399c6dd7fdb8eaac37020d52d8eef9",
-      "bytes": 76740,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-orders__index.png": {
+      "sha256": "5139aaa3ea2d75564f9a756ddffdc90f0f683aa91bcd8273bb786643bb56c4bd",
+      "bytes": 77183,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/management-orders/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-order-detail__index.png": {
-      "sha256": "b357baf2b10477f54f3a2eb2a53a9b237eab17c8154149fbd13357712e348c70",
-      "bytes": 57563,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-order-detail__index.png": {
+      "sha256": "5701172db307e4b057b8f3b4bb798ddee6f43ab97fbcb26ebd2f23d2c698bb1c",
+      "bytes": 59202,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/management-order-detail/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-support__index.png": {
-      "sha256": "dd9c1e2ff7f5bfc759a861853b2abad5a8e22e29f4303d9e02e551c403b9777a",
-      "bytes": 44669,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-support__index.png": {
+      "sha256": "5fcb0fd0f7b299e32de49d82871e06bc2dd480edc6329397cd032560a063db80",
+      "bytes": 46185,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/management-support/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-support-chat__index.png": {
-      "sha256": "5a2565da3ef5441b777b73cc5b14cd46036e392fd61ead265203573e7c217ab7",
-      "bytes": 56938,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-support-chat__index.png": {
+      "sha256": "35773050d8d646d3ee3012129d6e5b5819a9a82c4f4e87450381b63bea674c3e",
+      "bytes": 60160,
       "mimeType": "image/png",
-      "widthPx": 482,
-      "heightPx": 1044,
+      "widthPx": 484,
+      "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
       "route": "pages/management-support-chat/index",
       "state": "authenticated-route-success",
-      "viewport": "482x1044"
+      "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/devtools-7f5fad5f-compile-open.json": {
-      "sha256": "5bf52ad5420d89a0dab5933b85db5024549aa93650e655d1a4980c97ebe790e7",
-      "bytes": 3620,
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/devtools-949fcf9d-compile-open.json": {
+      "sha256": "ea64045ca6092f8c3bf005d2d9a7446480749eb48a742839411de03c9c5486b3",
+      "bytes": 3602,
       "mimeType": "application/json",
       "kind": "devtools_compile",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d"
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/devtools-7f5fad5f-console-filter.json": {
-      "sha256": "ee812d5e38506445eebcae0278d5faefc6f4bd7e3c41138e6e3b7651bc1062b6",
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/devtools-949fcf9d-console-filter.json": {
+      "sha256": "13fe3d026d836c0207f5bb53aafd74b6842f5f93c57d4e9b79911c51870c8f37",
       "bytes": 464,
       "mimeType": "application/json",
       "kind": "devtools_console",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d"
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/devtools-7f5fad5f-network-filter.json": {
-      "sha256": "b0aa68f358a0b9d1618544cffdf753ffff737ed227f3813d39511f1e1648586f",
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/devtools-949fcf9d-network-filter.json": {
+      "sha256": "6a42a7c4cf702af22f6db5f52b10be6198e57ee76d95ce92b40491dd9c2db960",
       "bytes": 479,
       "mimeType": "application/json",
       "kind": "devtools_network",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d"
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99"
     },
-    "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/route-runtime-health.json": {
-      "sha256": "f9f345aba883160395c06d3ae9d33dd836f26c91e6cbaeaf348075f0f2996079",
+    "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/route-runtime-health.json": {
+      "sha256": "b95b967e5d9e4632770317470e452128271ee207567c07329e8277d79458f90a",
       "bytes": 8475,
       "mimeType": "application/json",
       "kind": "devtools_route_runtime_health",
-      "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d"
+      "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99"
     }
   },
   "devtools": {
-    "packageSourceSha256": "7f5fad5fe84c122a28a9c54234690515a64c09cf86a666daced4ba635672957d",
+    "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
     "compileErrors": 0,
     "consoleErrors": 0,
     "networkFailures": 0,
     "healthyRuntimeRoutes": 27,
     "environment": "local_devtools_synthetic_nonproduction",
     "compileEvidenceFiles": [
-      "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/devtools-7f5fad5f-compile-open.json"
+      "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/devtools-949fcf9d-compile-open.json"
     ],
     "consoleEvidenceFiles": [
-      "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/devtools-7f5fad5f-console-filter.json"
+      "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/devtools-949fcf9d-console-filter.json"
     ],
     "networkEvidenceFiles": [
-      "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/devtools-7f5fad5f-network-filter.json"
+      "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/devtools-949fcf9d-network-filter.json"
     ],
     "routeRuntimeHealthFiles": [
-      "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/route-runtime-health.json"
+      "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/route-runtime-health.json"
     ]
   },
   "routeCoverage": [
@@ -382,7 +382,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__home__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__home__index.png"
       ]
     },
     {
@@ -390,7 +390,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__records__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__records__index.png"
       ]
     },
     {
@@ -398,7 +398,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__community__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__community__index.png"
       ]
     },
     {
@@ -406,7 +406,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__profile__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__profile__index.png"
       ]
     },
     {
@@ -414,7 +414,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__account__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__account__index.png"
       ]
     },
     {
@@ -422,7 +422,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__task__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__task__index.png"
       ]
     },
     {
@@ -430,7 +430,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__submit__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__submit__index.png"
       ]
     },
     {
@@ -438,7 +438,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__progress__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__progress__index.png"
       ]
     },
     {
@@ -446,7 +446,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__points__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__points__index.png"
       ]
     },
     {
@@ -454,7 +454,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__post__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__post__index.png"
       ]
     },
     {
@@ -462,7 +462,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__shop__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__shop__index.png"
       ]
     },
     {
@@ -470,7 +470,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__product__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__product__index.png"
       ]
     },
     {
@@ -478,7 +478,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__checkout__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__checkout__index.png"
       ]
     },
     {
@@ -486,7 +486,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__orders__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__orders__index.png"
       ]
     },
     {
@@ -494,7 +494,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__order-detail__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__order-detail__index.png"
       ]
     },
     {
@@ -502,7 +502,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__settings__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__settings__index.png"
       ]
     },
     {
@@ -510,7 +510,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__invite__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__invite__index.png"
       ]
     },
     {
@@ -518,7 +518,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__legal__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__legal__index.png"
       ]
     },
     {
@@ -526,7 +526,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__privacy-rights__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__privacy-rights__index.png"
       ]
     },
     {
@@ -534,7 +534,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__support__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__support__index.png"
       ]
     },
     {
@@ -542,7 +542,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management__index.png"
       ]
     },
     {
@@ -550,7 +550,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-catalog__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-catalog__index.png"
       ]
     },
     {
@@ -558,7 +558,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-product__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-product__index.png"
       ]
     },
     {
@@ -566,7 +566,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-orders__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-orders__index.png"
       ]
     },
     {
@@ -574,7 +574,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-order-detail__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-order-detail__index.png"
       ]
     },
     {
@@ -582,7 +582,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-support__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-support__index.png"
       ]
     },
     {
@@ -590,7 +590,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-commercial-r4b-healthy-7f5fad5f-20260911T202609+0800/screenshots/raw/pages__management-support-chat__index.png"
+        "docs/evidence/visual/review-u0-u1-949fcf9d-20260912T0220Z/screenshots/raw/pages__management-support-chat__index.png"
       ]
     }
   ],
@@ -719,7 +719,7 @@
     {
       "id": "CURRENT_NON_ACCOUNT_ROUTE_RECAPTURE_REQUIRED",
       "severity": "P1",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "id": "ACCOUNT_COMPACT_VIEWPORT_SECONDARY_ACTION_VISIBILITY",
@@ -824,7 +824,7 @@
     {
       "id": "NIGHTLY_ISOLATED_RUNTIME_REQUIRES_LOGIN",
       "severity": "P1",
-      "status": "blocked"
+      "status": "fixed"
     }
   ]
 }

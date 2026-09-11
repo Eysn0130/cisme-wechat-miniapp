@@ -15,13 +15,14 @@ describe("role-aware native support UX",()=>{
   expect(logic).toContain("authorityProjection()");expect(authority).toContain('/v1/me/authority');expect(authority).not.toContain("isAdmin");
   expect(logic).toMatch(/!requireMemberAccess\(\).*authority:null,supportUnread:0/);
  });
- it("uses cursor polling, incremental setData and explicit AI/human labels",async()=>{
-  const [userLogic,userView,operatorLogic,operatorView]=await Promise.all([read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml")]);
-  for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toMatch(/messages\[\$\{/);}
+ it("uses a shared cursor state machine, bounded non-overlapping polling and explicit AI/human labels",async()=>{
+  const [userLogic,userView,operatorLogic,operatorView,state]=await Promise.all([read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml"),read("apps/miniprogram/services/support-thread-state.ts")]);
+  for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
+  expect(state).toContain("Only a response from the synchronization endpoint may advance");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("retainMemberSnapshot(this)");
  expect(userLogic).toContain("AI 助手");expect(userView).toContain("人工");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
   expect(operatorLogic).toContain("wx.showModal");expect(operatorLogic).toContain("member.support_view");
-  for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("sendAttempt?.body===body");expect(logic).toContain("sendAttempt.id");}
+  for(const logic of [userLogic,operatorLogic]){expect(logic).toMatch(/sendAttempt\?\.body\s*===\s*body/);expect(logic).toContain("sendAttempt.id");}
  });
  it("keeps the first chat version text-only and does not add WebSocket or AI dependencies",async()=>{
   const [app,user,operator,lock]=await Promise.all([read("apps/miniprogram/app.json"),read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("package-lock.json")]);

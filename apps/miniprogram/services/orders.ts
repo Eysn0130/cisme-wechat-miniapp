@@ -26,8 +26,9 @@ export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAd
   cancelledAt: string | null; expiredAt: string | null; terminalReason: string | null; createdAt: string; updatedAt: string;
   paymentAvailable: false; lines: OrderLine[]; address: TAddress | null;
 }
-export interface CommerceOrderPage<TAddress = MemberOrderAddress | ManagementOrderAddress> {
-  items: Array<CommerceOrder<TAddress>>; nextCursor: string | null;
+export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null };
+export interface CommerceOrderPage {
+  items: CommerceOrderSummary[]; nextCursor: string | null;
 }
 export interface CommerceOrderRuntimeStatus {
   version: 1; orderFlowEnabled: boolean; paymentAvailable: false; paymentOnboarding: "IN_PROGRESS"; currency: "CNY";
@@ -50,7 +51,7 @@ export function createCheckoutQuote(input: { skuId: string; quantity: number; ad
 export function createPendingOrder(quoteId: string, idempotencyKey: string): Promise<CommerceOrder<MemberOrderAddress>> {
   return request({ path: "/v1/me/orders", method: "POST", data: { quoteId }, idempotencyKey, cacheTags: ["orders", "catalog"] });
 }
-export function myOrders(cursor?: string): Promise<CommerceOrderPage<MemberOrderAddress>> {
+export function myOrders(cursor?: string): Promise<CommerceOrderPage> {
   return request({ path: `/v1/me/orders?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, cacheTags: ["orders"] });
 }
 export function myOrder(id: string): Promise<CommerceOrder<MemberOrderAddress>> {
@@ -59,7 +60,7 @@ export function myOrder(id: string): Promise<CommerceOrder<MemberOrderAddress>> 
 export function cancelMyOrder(id: string, expectedVersion: number, reason: string, idempotencyKey: string): Promise<CommerceOrder<MemberOrderAddress>> {
   return request({ path: `/v1/me/orders/${encodeURIComponent(id)}/cancel`, method: "POST", data: { expectedVersion, reason }, idempotencyKey, cacheTags: ["orders", "catalog"] });
 }
-export function managementOrders(cursor?: string): Promise<CommerceOrderPage<ManagementOrderAddress>> {
+export function managementOrders(cursor?: string): Promise<CommerceOrderPage> {
   return request({ path: `/v1/management/commerce/orders?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, cacheTags: ["orders", "authority"] });
 }
 export function managementOrder(id: string): Promise<CommerceOrder<ManagementOrderAddress>> {

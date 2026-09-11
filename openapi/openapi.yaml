@@ -526,7 +526,7 @@ paths:
       operationId: myCommerceOrders
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
-      responses: {'200': {description: Owner-only pending-payment, cancelled and expired order history}}
+      responses: {'200': {description: Owner-only pending-payment, cancelled and expired order summary page; address is always null and no delivery snapshot is read}}
     post:
       tags: [Commerce]
       operationId: createPendingCommerceOrder
@@ -550,15 +550,15 @@ paths:
       description: Cancels an owned pending-payment order and releases active inventory reservations exactly once. Remains available when the create gate is closed.
       parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCancelInput'}}}}
-      responses: {'200': {description: Cancelled order or exact replay}, '409': {description: stale or terminal order state}}
+      responses: {'200': {description: Cancelled order or exact same-target replay}, '409': {description: stale or terminal order state, or an idempotency key reused for a different actor, member, order target, version or reason}}
   /v1/management/commerce/orders:
     get:
       tags: [Commerce, Authority]
       operationId: managementCommerceOrders
       security: [{session: []}]
-      description: Requires commerce.order.read; address fields are redacted and full delivery detail is not exposed by this slice.
+      description: Requires commerce.order.read; the list does not read delivery snapshots and always returns address as null. Masked delivery detail is available only from the authorized detail endpoint.
       parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
-      responses: {'200': {description: Cursor-paged redacted order list}, '403': {$ref: '#/components/responses/Problem'}}
+      responses: {'200': {description: Cursor-paged order summary list with address always null}, '403': {$ref: '#/components/responses/Problem'}}
   /v1/management/commerce/orders/{orderId}:
     get:
       tags: [Commerce, Authority]

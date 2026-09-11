@@ -190,6 +190,7 @@ describe("mini program submission flow safety", () => {
     const tabView = await source("apps/miniprogram/custom-tab-bar/index.wxml");
     const post = await source("apps/miniprogram/pages/post/index.ts");
     const product = await source("apps/miniprogram/pages/product/index.ts");
+    const productView = await source("apps/miniprogram/pages/product/index.wxml");
 
     expect(account).toContain("if (this.data.loading && this.data.identityCommitStarted)");
     expect(account).toContain("身份请求已发送");
@@ -240,7 +241,8 @@ describe("mini program submission flow safety", () => {
       expect(route).toContain("wx.hideShareMenu()");
       expect(route).toContain("wx.showShareMenu");
     }
-    expect(product).toContain("nativeMode: true");
+    expect(productView).toContain("autoplay=\"{{false}}\"");
+    expect(product).not.toContain("createIntersectionObserver");
   });
 
   it("serializes draft loads and drops async work after page unload", async () => {

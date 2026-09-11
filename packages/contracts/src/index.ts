@@ -126,6 +126,7 @@ export interface CommerceOrderView {
   lines: CommerceOrderLineView[];
   address: Record<string, string> | null;
 }
+export type CommerceOrderSummaryView = Omit<CommerceOrderView, "address"> & { address: null };
 
 export interface SupportMessageView {
   id: string;

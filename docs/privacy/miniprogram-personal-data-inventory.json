@@ -4,7 +4,6 @@
   "wechatApis": [
     "wx.chooseAddress",
     "wx.chooseMedia",
-    "wx.createIntersectionObserver",
     "wx.createSelectorQuery",
     "wx.disableAlertBeforeUnload",
     "wx.enableAlertBeforeUnload",
