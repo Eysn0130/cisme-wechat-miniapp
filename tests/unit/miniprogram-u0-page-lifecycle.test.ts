@@ -5,11 +5,15 @@ import { productEditableRevision } from "../../apps/miniprogram/services/product
 const requestMock = vi.hoisted(() => vi.fn());
 const requireMemberAccessMock = vi.hoisted(() => vi.fn(() => true));
 const retainMemberSnapshotMock = vi.hoisted(() => vi.fn(() => true));
+const uploadAuthorizedMock = vi.hoisted(() => vi.fn());
+const downloadPrivateMediaMock = vi.hoisted(() => vi.fn(() => ({ promise: Promise.resolve("/tmp/support-image.jpg"), abort: vi.fn() })));
 
 vi.mock("../../apps/miniprogram/services/api", () => ({
   request: requestMock,
   requireMemberAccess: requireMemberAccessMock,
-  retainMemberSnapshot: retainMemberSnapshotMock
+  retainMemberSnapshot: retainMemberSnapshotMock,
+  uploadAuthorized: uploadAuthorizedMock,
+  downloadPrivateMedia: downloadPrivateMediaMock
 }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "" }));
 
@@ -34,6 +38,8 @@ beforeEach(() => {
   requireMemberAccessMock.mockReturnValue(true);
   retainMemberSnapshotMock.mockReset();
   retainMemberSnapshotMock.mockReturnValue(true);
+  uploadAuthorizedMock.mockReset();
+  downloadPrivateMediaMock.mockClear();
   session = "member-a";
   capturedPage = null;
   (globalThis as any).getApp = () => ({ globalData: { sessionToken: session } });
@@ -185,7 +191,12 @@ describe("U0 native page lifecycle regressions", () => {
     await pending;
 
     expect(page.data.messages.map((item: any) => item.sequence)).toEqual([100]);
-    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(requestMock).toHaveBeenCalledTimes(2);
+    expect(requestMock).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      path: "/v1/me/support/presence",
+      method: "POST",
+      data: { online: false, typing: false }
+    }));
     expect(page.pollTimer).toBeNull();
   });
 
@@ -204,10 +215,12 @@ describe("U0 native page lifecycle regressions", () => {
 
     await page.poll();
     expect(page.data.newMessagesBelow).toBe(true);
+    expect(page.data.newMessagesBelowCount).toBe(1);
     const renderedMessages = page.data.messages;
     await page.poll();
 
     expect(page.data.newMessagesBelow).toBe(true);
+    expect(page.data.newMessagesBelowCount).toBe(1);
     expect(page.data.anchor).toBe("");
     expect(page.data.messages).toBe(renderedMessages);
   });
@@ -280,19 +293,164 @@ describe("U0 native page lifecycle regressions", () => {
     const page = mountedPage(capturedPage!, {
       id: "conversation-1", pageAlive: true, visible: true, loading: false, busy: false, conversation,
       messages: [{ id: "m-7", sequence: 7, senderType: "user", body: "old" }], syncCursor: 7, maxSeenSequence: 7,
-      readCursor: 7, atBottom: false, newMessagesBelow: false, anchor: ""
+      readCursor: 7, atBottom: false, newMessagesBelow: false, newMessagesBelowCount: 0, anchor: ""
     }, { lifecycleEpoch: 2, pollInFlight: false, pollFailures: 0, pollTimer: null, inputRevision: 0, lastScrollTop: 50 });
     page.schedulePoll = vi.fn();
     page.markRead = vi.fn();
 
     await page.poll();
     expect(page.data.newMessagesBelow).toBe(true);
+    expect(page.data.newMessagesBelowCount).toBe(1);
     const renderedMessages = page.data.messages;
     await page.poll();
 
     expect(page.data.newMessagesBelow).toBe(true);
+    expect(page.data.newMessagesBelowCount).toBe(1);
     expect(page.data.anchor).toBe("");
     expect(page.data.messages).toBe(renderedMessages);
+  });
+
+  it("throttles member typing heartbeats and publishes an explicit stop on hide", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-12T03:00:00.000Z"));
+    requestMock.mockResolvedValue({ accepted: true });
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = mountedPage(capturedPage!, {
+      pageAlive: true, visible: true, conversation: { id: "conversation-1", status: "human_active", version: 2 },
+      presence: { agentDisplayName: "小熹", operatorOnline: true, operatorTyping: false, memberOnline: true, memberTyping: false }, input: ""
+    }, { lifecycleEpoch: 2, lastPresenceSentAt: 0, presenceTimer: null, pollTimer: null, mediaDownloads: [], uploadAttempt: 0, inputRevision: 0 });
+
+    page.updateInput({ detail: { value: "第一字" } });
+    page.updateInput({ detail: { value: "第一句话" } });
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(requestMock).toHaveBeenLastCalledWith(expect.objectContaining({ data: { online: true, typing: true } }));
+
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(requestMock).toHaveBeenCalledTimes(2);
+    expect(requestMock).toHaveBeenLastCalledWith(expect.objectContaining({ data: { online: true, typing: true } }));
+
+    page.onHide();
+    expect(requestMock).toHaveBeenCalledTimes(3);
+    expect(requestMock).toHaveBeenLastCalledWith(expect.objectContaining({ data: { online: false, typing: false } }));
+    vi.useRealTimers();
+  });
+
+  it("does not claim that an empty member support thread is already waiting for a human", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = mountedPage(capturedPage!);
+
+    expect(page.headerPatch(null, page.data.presence)).toMatchObject({ statusLabel: "随时为你提供帮助", statusTone: "neutral" });
+  });
+
+  it("allows an image or owned order to reopen a resolved member conversation", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = mountedPage(capturedPage!, { conversation: { id: "conversation-1", status: "resolved", version: 4 }, attachmentSheetOpen: false, sending: false, uploadBusy: false });
+
+    page.openAttachmentSheet();
+
+    expect(page.data.attachmentSheetOpen).toBe(true);
+  });
+
+  it("keeps the member text and image preview when a secure upload fails", async () => {
+    requestMock.mockResolvedValueOnce({ mediaId: "00000000-0000-4000-8000-000000000001", url: "http://127.0.0.1/upload", method: "POST", fields: {} });
+    uploadAuthorizedMock.mockRejectedValueOnce({ code: "NETWORK_ERROR" });
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const image = { localPath: "/tmp/member-photo.jpg", size: 1024, mimeType: "image/jpeg", status: "ready", progress: 100, mediaId: "", error: "" };
+    const page = mountedPage(capturedPage!, {
+      pageAlive: true, visible: true, input: "请看这张图片", uploadBusy: false, selectedImage: image,
+      conversation: { id: "conversation-1", status: "human_active", version: 2 }
+    }, { lifecycleEpoch: 3, uploadAttempt: 0, uploadAbort: null, mediaDownloads: [] });
+
+    await page.uploadImage(image);
+
+    expect(page.data.input).toBe("请看这张图片");
+    expect(page.data.selectedImage).toMatchObject({ localPath: "/tmp/member-photo.jpg", status: "failed", mediaId: "00000000-0000-4000-8000-000000000001" });
+    expect(page.data.uploadBusy).toBe(false);
+    expect(page.data.error).toContain("正文仍保留");
+  });
+
+  it("aborts an in-flight member image upload on hide and leaves a retryable draft", async () => {
+    let rejectUpload!: (error: unknown) => void;
+    const abort = vi.fn(() => rejectUpload({ code: "UPLOAD_CANCELLED" }));
+    requestMock.mockResolvedValue({ mediaId: "00000000-0000-4000-8000-000000000002", url: "http://127.0.0.1/upload", method: "POST", fields: {} });
+    uploadAuthorizedMock.mockImplementationOnce((_path, _authorization, options) => {
+      options.registerAbort(abort);
+      return new Promise((_resolve, reject) => { rejectUpload = reject; });
+    });
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const image = { localPath: "/tmp/member-photo.jpg", size: 1024, mimeType: "image/jpeg", status: "ready", progress: 100, mediaId: "", error: "" };
+    const page = mountedPage(capturedPage!, {
+      pageAlive: true, visible: true, input: "正文继续保留", uploadBusy: false, selectedImage: image,
+      conversation: { id: "conversation-1", status: "human_active", version: 2 }
+    }, { lifecycleEpoch: 3, uploadAttempt: 0, uploadAbort: null, mediaDownloads: [], pollTimer: null, presenceTimer: null, lastPresenceSentAt: 0 });
+
+    const pending = page.uploadImage(image);
+    await vi.waitFor(() => expect(page.data.uploadBusy).toBe(true));
+    page.onHide();
+    await pending;
+
+    expect(abort).toHaveBeenCalledTimes(1);
+    expect(page.data).toMatchObject({ uploadBusy: false, input: "正文继续保留" });
+    expect(page.data.selectedImage).toMatchObject({ localPath: "/tmp/member-photo.jpg", status: "failed" });
+    expect(page.data.error).toContain("页面离开时上传已中断");
+  });
+
+  it("publishes operator offline and stops typing when the assigned chat hides", async () => {
+    requestMock.mockResolvedValue({ accepted: true });
+    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
+    const page = mountedPage(capturedPage!, {
+      id: "conversation-1", pageAlive: true, visible: true, assignedToMe: true, input: "未发送草稿",
+      conversation: { id: "conversation-1", status: "human_active", version: 2 }
+    }, { lifecycleEpoch: 3, lastPresenceSentAt: 0, presenceTimer: null, pollTimer: null, mediaDownloads: [] });
+
+    page.onHide();
+
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
+      path: "/v1/management/support/conversations/conversation-1/presence",
+      data: { online: false, typing: false }
+    }));
+    expect(page.data.visible).toBe(false);
+    expect(page.pollTimer).toBeNull();
+  });
+
+  it("publishes an operator stop before scrubbing a conversation lost to another assignee", async () => {
+    const oldConversation = { id: "conversation-1", status: "human_active", version: 2 };
+    const newConversation = { ...oldConversation, version: 3 };
+    requestMock
+      .mockResolvedValueOnce({ conversation: newConversation, assignedToMe: false, messages: [], latestCursor: 8, presence: {} })
+      .mockResolvedValueOnce({ accepted: true });
+    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
+    const page = mountedPage(capturedPage!, {
+      id: "conversation-1", pageAlive: true, visible: true, loading: false, busy: false, assignedToMe: true,
+      conversation: oldConversation, messages: [], syncCursor: 8, maxSeenSequence: 8, readCursor: 8, atBottom: true
+    }, { lifecycleEpoch: 2, pollInFlight: false, pollFailures: 0, pollTimer: null, lastPresenceSentAt: 0, presenceTimer: null, mediaDownloads: [], inputRevision: 0 });
+    page.schedulePoll = vi.fn();
+    page.markRead = vi.fn();
+
+    await page.poll();
+
+    expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
+      path: "/v1/management/support/conversations/conversation-1/presence",
+      data: { online: false, typing: false }
+    }));
+    expect(page.data.assignedToMe).toBe(false);
+  });
+
+  it("keeps an operator draft and exposes retry when the server does not accept the reply", async () => {
+    requestMock.mockRejectedValue({ code: "NETWORK_ERROR" });
+    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
+    const page = mountedPage(capturedPage!, {
+      id: "conversation-1", pageAlive: true, visible: true, assignedToMe: true, canReply: true, busy: false,
+      input: "我来帮你核对", conversation: { id: "conversation-1", status: "human_active", version: 2 }, messages: [], maxSeenSequence: 0
+    }, { lifecycleEpoch: 4, inputRevision: 0, lastPresenceSentAt: 0 });
+
+    await page.send();
+
+    expect(page.data.input).toBe("我来帮你核对");
+    expect(page.data.pendingMessage).toMatchObject({ body: "我来帮你核对", deliveryLabel: "发送失败" });
+    expect(page.data.error).toContain("服务端确认");
+    expect(page.data.busy).toBe(false);
   });
 
   it("keeps product fields on background refresh and blocks save on a remote revision conflict", async () => {

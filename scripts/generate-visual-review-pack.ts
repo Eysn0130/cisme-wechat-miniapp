@@ -36,7 +36,7 @@ const acceptanceFixture = fixtureSource
 if (acceptanceFixture) {
   if (acceptanceFixture.scope !== "local_devtools_synthetic_nonproduction") throw new Error("Acceptance fixture scope is not local synthetic");
   if (acceptanceFixture.origin !== "http://127.0.0.1:18080") throw new Error("Acceptance fixture origin mismatch");
-  if (!/(^|_)test(_|$)/.test(acceptanceFixture.database.name) || acceptanceFixture.database.migrationCount !== 34) throw new Error("Acceptance fixture database is not current test schema");
+  if (!/(^|_)test(_|$)/.test(acceptanceFixture.database.name) || acceptanceFixture.database.migrationCount !== 35 || acceptanceFixture.database.latestMigration !== "202609120001_support_commercial_chat.sql") throw new Error("Acceptance fixture database is not current test schema");
   if (!acceptanceFixture.assertions.orderFlowEnabled || acceptanceFixture.assertions.paymentAvailable || acceptanceFixture.assertions.credentialsOrTokensPersisted) {
     throw new Error("Acceptance fixture boundary assertions failed");
   }

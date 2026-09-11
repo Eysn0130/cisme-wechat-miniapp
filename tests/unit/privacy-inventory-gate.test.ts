@@ -51,8 +51,8 @@ describe('personal-data inventory gate',()=>{
     expect([...(app.requiredPrivateInfos??[])].sort()).toEqual([...manifest.requiredPrivateInfos].sort());
 
     const boundaries=new Set(manifest.privacyBoundaries.map(entry=>entry.surface));
-    for(const surface of ['wx.login','open-type:chooseAvatar','input-type:nickname','open-type:getPhoneNumber','wx.chooseAddress','wx.getClipboardData','wx.chooseMedia','wx.getDeviceInfo','wx.request','wx.uploadFile'])expect(boundaries.has(surface),surface).toBe(true);
-    for(const surface of ['support_conversation','support_message.body','support_member_context','support_audit'])expect(boundaries.has(surface),surface).toBe(true);
+    for(const surface of ['wx.login','open-type:chooseAvatar','input-type:nickname','open-type:getPhoneNumber','wx.chooseAddress','wx.getClipboardData','wx.chooseMedia','wx.compressImage','wx.downloadFile','wx.getDeviceInfo','wx.request','wx.uploadFile'])expect(boundaries.has(surface),surface).toBe(true);
+    for(const surface of ['support_conversation','support_presence','support_message.body','support_message.attachments','support_message.order_snapshot','support_member_context','support_audit'])expect(boundaries.has(surface),surface).toBe(true);
     for(const surface of ['catalog_management_audit','support_ai_suggested_reply'])expect(boundaries.has(surface),surface).toBe(true);
   });
 

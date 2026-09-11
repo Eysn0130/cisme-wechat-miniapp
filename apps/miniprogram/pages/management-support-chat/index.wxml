@@ -1,5 +1,92 @@
-<view class="operator-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><view class="operator-title"><text class="topbar__title">{{memberDisplayName}}</text><small>{{statusLabel}}</small></view><button wx:if="{{canViewContext}}" class="operator-more {{busy ? 'control--disabled' : ''}}" bindtap="openContext" disabled="{{busy}}" aria-label="查看必要用户信息">···</button></view>
-<scroll-view class="operator-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="false" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36"><view wx:if="{{loading}}" class="state">正在同步会话…</view><button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button><view wx:if="{{!loading}}" wx:for="{{messages}}" wx:key="id" id="operator-{{item.sequence}}" class="operator-message operator-message--{{item.senderType}}"><text>{{item.senderLabel}}</text><view>{{item.body}}</view></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button class="text-button" bindtap="retry">刷新</button></view><view class="operator-end"></view></scroll-view>
-<button wx:if="{{newMessagesBelow}}" class="operator-new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看新消息">有新消息</button>
-<view wx:if="{{!loading}}" class="operator-actions"><button wx:if="{{conversation && conversation.status === 'waiting_human' && canAssign}}" class="operator-claim {{busy ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{busy}}">接管会话</button><view wx:elif="{{conversation && conversation.status === 'human_active' && !assignedToMe}}" class="operator-owned">这次会话正由其他客服处理</view><view wx:elif="{{conversation && conversation.status === 'resolved'}}" class="operator-owned">已解决 · 等待用户再次发起</view><block wx:if="{{assignedToMe && conversation.status === 'human_active'}}"><view class="operator-ai-row"><button class="{{!aiProviderAvailable || busy ? 'control--disabled' : ''}}" bindtap="suggest" disabled="{{!aiProviderAvailable || busy}}">{{aiProviderAvailable ? '生成建议回复' : '建议回复尚未接入'}}</button><text>建议仅进入草稿，由人工确认发送</text></view><view class="operator-compose"><textarea value="{{input}}" bindinput="updateInput" bindlinechange="onComposerLineChange" maxlength="4000" auto-height confirm-type="send" bindconfirm="send" placeholder="以人工客服身份回复"/><button class="{{!input || busy ? 'control--disabled' : ''}}" bindtap="send" disabled="{{!input || busy}}" loading="{{busy}}">发送</button></view><button class="operator-resolve {{busy ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{busy}}">标记已解决</button></block></view>
-<view wx:if="{{contextOpen && !loading}}" class="context-mask" catchtap="closeContext"><view class="context-sheet" catchtap="stopPropagation"><view class="context-handle"></view><strong>必要用户信息</strong><text>仅用于当前客服处理，本次查看已审计。</text><view class="context-row"><small>昵称</small><text>{{memberContext.displayName}}</text></view><view class="context-row"><small>会员状态</small><text>{{memberContext.memberStatus === 'active' ? '正常' : memberContext.memberStatus}}</text></view><view class="context-row"><small>手机号</small><text>{{memberContext.maskedPhone || '未绑定'}}</text></view><view class="context-row"><small>加入时间</small><text>{{memberContext.memberSince}}</text></view><button bindtap="closeContext">完成</button></view></view></view>
+<view class="operator-shell" style="{{chromeStyle}}">
+  <view class="topbar operator-topbar">
+    <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
+    <view class="operator-title">
+      <text class="topbar__title">{{memberDisplayName}}</text>
+      <view class="operator-status operator-status--{{statusTone}}" aria-label="{{statusLabel}}">
+        <text class="operator-status__dot">●</text><text class="operator-status__label">{{statusLabel}}</text>
+      </view>
+    </view>
+    <button wx:if="{{canViewContext}}" class="operator-more {{busy ? 'control--disabled' : ''}}" bindtap="openContext" disabled="{{busy}}" aria-label="查看必要用户信息">···</button>
+  </view>
+
+  <scroll-view class="operator-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="false" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
+    <view wx:if="{{loading}}" class="operator-state" aria-live="polite">正在同步会话…</view>
+    <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
+
+    <block wx:for="{{messages}}" wx:key="id">
+      <view wx:if="{{item.timeSeparatorLabel}}" class="operator-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
+      <view wx:if="{{item.senderType === 'system'}}" id="operator-{{item.sequence}}" class="operator-system"><text>{{item.body}}</text></view>
+      <view wx:else id="operator-{{item.sequence}}" class="operator-message operator-message--{{item.senderType}} {{item.groupStart ? 'operator-message--group-start' : 'operator-message--grouped'}}">
+        <view wx:if="{{item.senderType !== 'admin'}}" class="operator-avatar-slot">
+          <view wx:if="{{item.groupStart}}" class="operator-avatar operator-avatar--{{item.avatarKind}}"><image src="{{item.senderType === 'ai' ? '/assets/icons/star-active.svg' : '/assets/icons/user-circle-plum.svg'}}"/></view>
+        </view>
+        <view class="operator-message__content">
+          <text wx:if="{{item.groupStart && item.senderType !== 'admin'}}" class="operator-message__sender">{{item.senderLabel}}</text>
+          <view wx:if="{{item.body}}" class="operator-bubble">{{item.body}}</view>
+          <view wx:if="{{item.attachments.length}}" class="operator-media-grid">
+            <button wx:for="{{item.attachments}}" wx:for-item="media" wx:key="id" class="operator-media" data-media-id="{{media.id}}" bindtap="previewImage" aria-label="预览会员图片">
+              <image src="{{media.localPath || '/assets/icons/images-plum.svg'}}" mode="aspectFill" lazy-load="true"/>
+              <text wx:if="{{!media.localPath}}">安全加载中</text>
+            </button>
+          </view>
+          <button wx:if="{{item.orderCard}}" class="operator-order-card" data-id="{{item.orderCard.orderId}}" bindtap="openOrder" aria-label="打开订单尾号 {{item.orderCard.orderNumberTail}}">
+            <image class="operator-order-card__image" src="{{item.orderCard.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/>
+            <view class="operator-order-card__content"><small>订单 · 尾号 {{item.orderCard.orderNumberTail}}</small><strong>{{item.orderCard.productName}}</strong><text>{{item.orderCard.statusLabel}} · ¥{{item.orderCard.totalYuan}}</text></view>
+            <image class="operator-order-card__arrow" src="/assets/icons/caret-right-muted.svg"/>
+          </button>
+          <view wx:if="{{item.groupEnd}}" class="operator-message__meta"><text>{{item.timeLabel}}</text><text wx:if="{{item.senderType === 'admin' && item.deliveryLabel}}"> · {{item.deliveryLabel}}</text></view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:if="{{pendingMessage}}" class="operator-message operator-message--admin operator-message--pending">
+      <view class="operator-message__content">
+        <view class="operator-bubble">{{pendingMessage.body}}</view>
+        <view class="operator-message__meta operator-message__meta--{{pendingMessage.deliveryLabel === '发送失败' ? 'failed' : 'pending'}}">
+          <text>{{pendingMessage.timeLabel}} · {{pendingMessage.deliveryLabel}}</text>
+          <button wx:if="{{pendingMessage.deliveryLabel === '发送失败'}}" bindtap="retrySend">重试</button>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{presence.memberTyping}}" class="operator-typing" aria-live="polite">
+      <view class="operator-avatar operator-avatar--member"><image src="/assets/icons/user-circle-plum.svg"/></view>
+      <view class="operator-typing__body"><view class="operator-typing__dots"><view class="operator-typing__dot"></view><view class="operator-typing__dot operator-typing__dot--two"></view><view class="operator-typing__dot operator-typing__dot--three"></view></view><text class="operator-typing__copy">{{memberDisplayName}}正在输入…</text></view>
+    </view>
+    <view wx:if="{{error}}" class="operator-error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">刷新</button></view>
+    <view class="operator-end"></view>
+  </scroll-view>
+
+  <button wx:if="{{newMessagesBelowCount > 0}}" class="operator-new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
+
+  <view wx:if="{{!loading}}" class="operator-actions {{composerFocused ? 'operator-actions--focused' : ''}}">
+    <button wx:if="{{conversation && conversation.status === 'waiting_human' && canAssign}}" class="operator-claim {{busy ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{busy}}">接管会话</button>
+    <view wx:elif="{{conversation && conversation.status === 'human_active' && !assignedToMe}}" class="operator-owned">这次会话正由其他客服处理</view>
+    <view wx:elif="{{conversation && conversation.status === 'resolved'}}" class="operator-owned">本次服务已结束，等待会员再次发起</view>
+    <block wx:if="{{assignedToMe && conversation.status === 'human_active'}}">
+      <view class="operator-ai-row">
+        <button class="{{!aiProviderAvailable || busy ? 'control--disabled' : ''}}" bindtap="suggest" disabled="{{!aiProviderAvailable || busy}}">{{aiProviderAvailable ? 'AI 建议' : 'AI 建议未接入'}}</button>
+        <text>只写入草稿，必须由人工确认发送</text>
+      </view>
+      <view class="operator-compose">
+        <textarea class="operator-input" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" maxlength="4000" auto-height confirm-type="send" confirm-hold="true" bindconfirm="send" cursor-spacing="16" placeholder="以人工客服身份回复"/>
+        <button class="operator-send {{!input || busy ? 'control--disabled' : ''}}" bindtap="send" disabled="{{!input || busy}}" loading="{{busy}}">发送</button>
+      </view>
+      <button class="operator-resolve {{busy ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{busy}}">标记已解决</button>
+    </block>
+  </view>
+
+  <view wx:if="{{contextOpen && !loading}}" class="context-mask" catchtap="closeContext" catchtouchmove="stopPropagation">
+    <view class="context-sheet" catchtap="stopPropagation">
+      <view class="context-handle"></view>
+      <strong class="context-title">必要用户信息</strong>
+      <text class="context-note">仅用于当前客服处理，本次查看已审计。</text>
+      <view class="context-row"><small>昵称</small><text>{{memberContext.displayName}}</text></view>
+      <view class="context-row"><small>会员状态</small><text>{{memberContext.memberStatus === 'active' ? '正常' : memberContext.memberStatus}}</text></view>
+      <view class="context-row"><small>手机号</small><text>{{memberContext.maskedPhone || '未绑定'}}</text></view>
+      <view class="context-row"><small>加入时间</small><text>{{memberContext.memberSince}}</text></view>
+      <button class="context-done" bindtap="closeContext">完成</button>
+    </view>
+  </view>
+</view>

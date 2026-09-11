@@ -4,7 +4,9 @@ import {
   mergeAcknowledgement,
   mergeHistoryPage,
   mergeSyncPage,
+  presentSupportMessages,
   readableSequence,
+  supportHeaderPresentation,
   supportPollDelay
 } from "../../apps/miniprogram/services/support-thread-state";
 
@@ -55,6 +57,33 @@ describe("support thread state", () => {
   });
 
   it("uses bounded retry delays", () => {
-    expect([0, 1, 2, 3, 8].map(supportPollDelay)).toEqual([5_000, 10_000, 20_000, 30_000, 30_000]);
+    expect(supportPollDelay(0, true)).toBe(2_000);
+    expect(supportPollDelay(0, false)).toBe(5_000);
+    expect([1, 2, 3, 8].map((failures) => supportPollDelay(failures, true))).toEqual([5_000, 10_000, 20_000, 30_000]);
+  });
+
+  it("groups only the same identity within five minutes and uses sparse server-time separators", () => {
+    const presented = presentSupportMessages([
+      { ...message(1, "admin"), createdAt: "2026-09-12T02:00:00.000Z" },
+      { ...message(2, "admin"), createdAt: "2026-09-12T02:02:00.000Z" },
+      { ...message(3, "user"), createdAt: "2026-09-12T02:03:00.000Z" },
+      { ...message(4, "user"), createdAt: "2026-09-12T02:09:01.000Z" }
+    ], { ownSenderType: "user", counterpartyReadSequence: 3, now: new Date("2026-09-12T03:00:00.000Z"), timezoneOffsetMinutes: -480 });
+
+    expect(presented.map((item) => ({ start: item.groupStart, end: item.groupEnd, separator: item.timeSeparatorLabel }))).toEqual([
+      { start: true, end: false, separator: "今天 10:00" },
+      { start: false, end: true, separator: "" },
+      { start: true, end: true, separator: "" },
+      { start: true, end: true, separator: "今天 10:09" }
+    ]);
+    expect(presented[2]!.deliveryLabel).toBe("已读");
+    expect(presented[3]!.deliveryLabel).toBe("已发送");
+    expect(presented[0]!.senderLabel).toBe("CISME 客服 · 人工客服");
+  });
+
+  it("never turns an assignment into a green online claim without an unexpired heartbeat", () => {
+    expect(supportHeaderPresentation({ status: "human_active", agentDisplayName: "小熹", operatorOnline: false })).toEqual({ tone: "neutral", label: "人工客服处理中" });
+    expect(supportHeaderPresentation({ status: "human_active", agentDisplayName: "小熹", operatorOnline: true })).toEqual({ tone: "online", label: "小熹 · 人工客服已接入" });
+    expect(supportHeaderPresentation({ status: "waiting_human", agentDisplayName: null, operatorOnline: false })).toEqual({ tone: "waiting", label: "等待人工客服" });
   });
 });

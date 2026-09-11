@@ -25,6 +25,7 @@ export const CAPABILITIES = [
 export type Capability = (typeof CAPABILITIES)[number];
 export type SupportConversationStatus = "ai_active" | "waiting_human" | "human_active" | "resolved";
 export type SupportSenderType = "user" | "ai" | "admin" | "system";
+export type SupportMessageContentType = "text" | "image" | "order" | "mixed" | "system";
 
 export interface AuthorityProjection {
   version: 1;
@@ -133,8 +134,10 @@ export interface SupportMessageView {
   sequence: number;
   senderType: SupportSenderType;
   body: string;
-  attachmentRefs: string[];
-  deliveryState: "persisted" | "read";
+  contentType: SupportMessageContentType;
+  attachments: Array<{ id: string; mimeType: "image/jpeg" | "image/png" | "image/webp"; sizeBytes: number; previewPath: string }>;
+  orderCard: null | { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
+  deliveryState: "server_accepted" | "read";
   createdAt: string;
 }
 
@@ -144,8 +147,18 @@ export interface SupportConversationView {
   priority: "normal" | "high" | "urgent";
   memberUnreadCount: number;
   teamUnreadCount: number;
+  memberReadSequence: number;
+  teamReadSequence: number;
   version: number;
   updatedAt: string;
+}
+export interface SupportPresenceView {
+  serverTime: string;
+  agentDisplayName: string;
+  operatorOnline: boolean;
+  operatorTyping: boolean;
+  memberOnline: boolean;
+  memberTyping: boolean;
 }
 export type SupportRetentionReason = "policy_pending" | "not_resolved" | "legal_hold" | "not_due" | "eligible";
 export interface SupportRetentionEligibility {

@@ -20,7 +20,7 @@ The executable lifecycle is:
 5. a versioned and idempotent command deletes exactly that conversation and its messages in one transaction;
 6. a body-free outbox fact and a minimal audit tombstone remain.
 
-The tombstone retains only conversation UUID, policy code/version, resolved timestamp, message count, actor/action/time, and `purged=true`. It does not retain message text, attachment data, member ID, display name, phone, order data, or handler context. The support-audit retention duration remains separately pending and must be approved before any later audit-purge implementation is activated.
+The tombstone retains only conversation UUID, policy code/version, resolved timestamp, message count, actor/action/time, and `purged=true`. It does not retain message text, attachment data, member ID, display name, phone, order data, or handler context. Bound support media objects are queued for durable object deletion inside the purge workflow; unbound support drafts expire after 24 hours. The support-audit retention duration remains separately pending and must be approved before any later audit-purge implementation is activated.
 
 ## Authority and safety
 
@@ -37,4 +37,4 @@ Staging may temporarily activate a one-day synthetic-only duration solely to pro
 
 ## Consequences
 
-The mechanism is executable without inventing a production duration, and a failed/held/not-due attempt cannot partially delete a conversation. Scheduled scanning, automatic bulk purge, attachment deletion, backup erasure propagation, and support-audit purge are not part of R1/R2 and remain future bounded work after their policies and storage surfaces are approved.
+The mechanism is executable without inventing a production duration, and a failed/held/not-due attempt cannot partially delete a conversation. ADR 0010 adds transactional attachment cleanup queuing and short-lived orphan cleanup; scheduled scanning, automatic bulk purge, proof of deletion from a production object store and backups, and support-audit purge remain future bounded work after their policies and storage surfaces are approved.

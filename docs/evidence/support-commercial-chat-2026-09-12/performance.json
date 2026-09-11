@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-11T21:15:28Z",
+  "sourceState": "working tree based on 4994dabe10a7; final Mini Program package source SHA-256 005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+  "command": "npx vitest run tests/integration/support-commercial-chat-performance.test.ts --exclude 'dist/**' --pool=forks --maxWorkers=1 --reporter=verbose --disableConsoleIntercept",
+  "scope": "local Fastify inject + PostgreSQL; excludes network, client rendering and poll scheduling",
+  "sampleCounts": {
+    "standard": 30,
+    "attachment": 20
+  },
+  "metrics": {
+    "firstLoadLatest50": { "samples": 30, "p50Ms": 2.63, "p95Ms": 6.63, "p99Ms": 9.43, "maxMs": 9.43 },
+    "sendToServerAck": { "samples": 30, "p50Ms": 5.66, "p95Ms": 10.27, "p99Ms": 10.86, "maxMs": 10.86 },
+    "incrementalSyncAfterRemoteMessage": { "samples": 30, "p50Ms": 1.73, "p95Ms": 3.29, "p99Ms": 4.2, "maxMs": 4.2 },
+    "typingPublishAndProjection": { "samples": 30, "p50Ms": 3.7, "p95Ms": 5.79, "p99Ms": 6.11, "maxMs": 6.11 },
+    "historyPage50": { "samples": 30, "p50Ms": 2.08, "p95Ms": 3.77, "p99Ms": 4.49, "maxMs": 4.49 },
+    "attachmentAuthorizeUploadVerify256KiB": { "samples": 20, "p50Ms": 20.54, "p95Ms": 28.58, "p99Ms": 29.26, "maxMs": 29.26 }
+  },
+  "clientDetectionBounds": {
+    "activePollMs": 2000,
+    "idlePollMs": 5000,
+    "hiddenPollMs": null,
+    "qualification": "These are configured schedule bounds, not measured end-user detection latency. A successful active poll can add up to approximately two seconds before request and render time."
+  },
+  "attachmentQualification": "The 256 KiB sample exercises authorize, API-gateway upload, assembly, object verification and authenticated completion in local test infrastructure. It is not a public-network throughput measurement."
+}

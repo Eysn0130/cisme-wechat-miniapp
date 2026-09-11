@@ -81,7 +81,7 @@ describe("R2 support authority",()=>{
     expect(reply.statusCode).toBe(200);expect(reply.json().message.senderType).toBe("admin");
     const reply2=await app.inject({method:"POST",url:`/v1/management/support/conversations/${conversation.id}/messages`,headers:auth(winner.sessionToken),payload:{body:"我再补充一条处理说明。",clientMessageId:"operator-reply-2"}});
     expect(reply2.statusCode).toBe(200);
-    const userSummary=(await app.inject({method:"GET",url:"/v1/me/support/summary",headers:auth(user.sessionToken)})).json();expect(userSummary.unreadCount).toBe(2);
+    const userSummary=(await app.inject({method:"GET",url:"/v1/me/support/summary",headers:auth(user.sessionToken)})).json();expect(userSummary.unreadCount).toBe(3);
     await app.inject({method:"POST",url:"/v1/me/support/read",headers:auth(user.sessionToken),payload:{lastSeenSequence:reply.json().message.sequence}});
     expect((await app.inject({method:"GET",url:"/v1/me/support/summary",headers:auth(user.sessionToken)})).json().unreadCount).toBe(1);
     await app.inject({method:"POST",url:"/v1/me/support/read",headers:auth(user.sessionToken),payload:{lastSeenSequence:reply2.json().message.sequence}});

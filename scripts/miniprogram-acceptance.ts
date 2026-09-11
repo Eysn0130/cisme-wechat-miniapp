@@ -309,7 +309,7 @@ async function seedFixtures() {
     count(*)::int AS migration_count,
     max(version) AS latest_migration
     FROM schema_migration`)).rows[0];
-  if (databaseState.migration_count !== 34) fail("SCHEMA_VERSION_INVALID");
+  if (databaseState.migration_count !== 35 || databaseState.latest_migration !== "202609120001_support_commercial_chat.sql") fail("SCHEMA_VERSION_INVALID");
 
   const fixture = {
     schemaVersion: 1,

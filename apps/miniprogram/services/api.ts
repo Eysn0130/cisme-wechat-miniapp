@@ -255,14 +255,28 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
   return { promise, abort() { handle?.abort(); } };
 }
 
-export async function uploadAuthorized(filePath: string, authorization: { url: string; method?: "POST" | "PUT"; fields: Record<string, string>; headers?: Record<string,string>; mediaId?: string }): Promise<void> {
+export async function uploadAuthorized(filePath: string, authorization: { url: string; method?: "POST" | "PUT"; fields: Record<string, string>; headers?: Record<string,string>; mediaId?: string }, options: {
+  onProgress?: (percent: number) => void;
+  registerAbort?: (abort: () => void) => void;
+} = {}): Promise<void> {
+  let cancelled = false;
+  let abortTransport = () => {};
+  options.registerAbort?.(() => { cancelled = true; abortTransport(); });
+  const assertActive = () => { if (cancelled) throw { code: "UPLOAD_CANCELLED", errMsg: "upload:fail abort" }; };
+  options.onProgress?.(0);
   if (authorization.method === "PUT") {
     const data = await new Promise<ArrayBuffer>((resolve, reject) => wx.getFileSystemManager().readFile({ filePath, success: result => resolve(result.data as ArrayBuffer), fail: reject }));
     if (!data.byteLength || data.byteLength > 10 * 1024 * 1024) throw new Error("文件须在 10 MiB 以内");
-    await new Promise<void>((resolve, reject) => wx.request({
+    assertActive();
+    await new Promise<void>((resolve, reject) => {
+      const task = wx.request({
       url: authorization.url, method: "PUT", data, header: authorization.headers ?? {}, timeout: 60_000,
       success: response => response.statusCode >= 200 && response.statusCode < 300 ? resolve() : reject(response), fail: reject
-    }));
+      });
+      abortTransport = () => task.abort();
+    });
+    assertActive();
+    options.onProgress?.(100);
     return;
   }
   if (app.globalData.cloudFunction && authorization.fields.token) {
@@ -272,21 +286,46 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
     const info = await new Promise<WechatMiniprogram.GetFileInfoSuccessCallbackResult>((resolve,reject) => fs.getFileInfo({ filePath, success:resolve, fail:reject }));
     if (!info.size || info.size > 10*1024*1024) throw new Error("文件须在 10 MiB 以内");
     const chunkSize = 512*1024;
-    for (let index=0; index<Math.ceil(info.size/chunkSize); index++) {
+    const chunkCount = Math.ceil(info.size/chunkSize);
+    for (let index=0; index<chunkCount; index++) {
+      assertActive();
       const base64 = await new Promise<string>((resolve,reject) => fs.readFile({ filePath, encoding:"base64", position:index*chunkSize, length:Math.min(chunkSize,info.size-index*chunkSize), success: result => resolve(String(result.data)), fail:reject }));
       await request({ path:`/v1/uploads/${mediaId}/chunks`, method:"POST", authMode:"public", data:{ token:authorization.fields.token, index, totalBytes:info.size, base64 } });
+      options.onProgress?.(Math.min(90, Math.round((index + 1) / chunkCount * 90)));
     }
+    assertActive();
     await request({ path:`/v1/uploads/${mediaId}/assemble`, method:"POST", authMode:"public", data:{token:authorization.fields.token} });
+    assertActive();
+    options.onProgress?.(100);
     return;
   }
   return new Promise((resolve, reject) => {
-    wx.uploadFile({
+    const task = wx.uploadFile({
       url: authorization.url,
       filePath,
       name: "file",
       formData: authorization.fields,
-      success: (response) => response.statusCode >= 200 && response.statusCode < 300 ? resolve() : reject(response),
+      success: (response) => response.statusCode >= 200 && response.statusCode < 300 ? (options.onProgress?.(100), resolve()) : reject(response),
       fail: reject
     });
+    abortTransport = () => task.abort();
+    task.onProgressUpdate?.((event) => options.onProgress?.(Math.max(0, Math.min(99, event.progress))));
   });
+}
+
+export function downloadPrivateMedia(path: string): { promise: Promise<string>; abort(): void } {
+  const token = app.globalData.sessionToken;
+  const origin = app.globalData.apiBaseUrl.replace(/\/$/, "");
+  let task: WechatMiniprogram.DownloadTask | null = null;
+  const promise = new Promise<string>((resolve, reject) => {
+    if (!token) { reject({ code: "AUTHENTICATION_REQUIRED" }); return; }
+    if (app.globalData.cloudFunction) { reject({ code: "SUPPORT_MEDIA_PREVIEW_TRANSPORT_UNAVAILABLE" }); return; }
+    task = wx.downloadFile({ url: `${origin}${path}`, header: { Authorization: `Bearer ${token}` }, timeout: 30_000,
+      success: (response) => {
+        if (app.globalData.sessionToken !== token) { reject({ code: "REQUEST_SESSION_CHANGED" }); return; }
+        if (response.statusCode >= 200 && response.statusCode < 300) resolve(response.tempFilePath);
+        else reject({ status: response.statusCode, code: "SUPPORT_MEDIA_PREVIEW_FAILED" });
+      }, fail: reject });
+  });
+  return { promise, abort() { task?.abort(); } };
 }

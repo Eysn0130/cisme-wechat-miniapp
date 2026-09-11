@@ -20,12 +20,15 @@ describe("role-aware native support UX",()=>{
   for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
   expect(state).toContain("Only a response from the synchronization endpoint may advance");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("retainMemberSnapshot(this)");
- expect(userLogic).toContain("AI 助手");expect(userView).toContain("人工");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
+ expect(state).toContain("CISME AI 助手");expect(userView).toContain("人工");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
   expect(operatorLogic).toContain("wx.showModal");expect(operatorLogic).toContain("member.support_view");
-  for(const logic of [userLogic,operatorLogic]){expect(logic).toMatch(/sendAttempt\?\.body\s*===\s*body/);expect(logic).toContain("sendAttempt.id");}
+  expect(userLogic).toContain("sendAttempt?.signature === signature");expect(operatorLogic).toMatch(/sendAttempt\?\.body\s*===\s*body/);
+  for(const logic of [userLogic,operatorLogic])expect(logic).toContain("sendAttempt.id");
  });
- it("keeps the first chat version text-only and does not add WebSocket or AI dependencies",async()=>{
-  const [app,user,operator,lock]=await Promise.all([read("apps/miniprogram/app.json"),read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("package-lock.json")]);
-  expect(app).not.toContain("connectSocket");expect(user).not.toContain("chooseMedia");expect(operator).not.toContain("chooseMedia");expect(lock).not.toContain("@langchain/langgraph");
+ it("uses owned secure image and order references without adding WebSocket or AI framework dependencies",async()=>{
+  const [app,user,userView,operator,operatorView,lock]=await Promise.all([read("apps/miniprogram/app.json"),read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml"),read("package-lock.json")]);
+  expect(app).not.toContain("connectSocket");expect(user).toContain("wx.chooseMedia");expect(user).toContain("/v1/me/support/media/authorize");expect(user).toContain("linkedOrderId");
+  expect(userView).toContain("图片");expect(userView).toContain("拍照");expect(userView).toContain("选择订单");expect(operator).toContain("downloadPrivateMedia");expect(operatorView).toContain("operator-order-card");
+  expect(lock).not.toContain("@langchain/langgraph");
  });
 });

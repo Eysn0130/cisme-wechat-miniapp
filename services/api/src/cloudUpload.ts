@@ -15,9 +15,15 @@ export class CloudUpload {
   if (!Number.isInteger(input.totalBytes) || input.totalBytes < 1 || input.totalBytes > 10*1024*1024 || !Number.isInteger(input.index) || input.index < 0 || input.index >= count || bytes.length !== (input.index === count-1 ? input.totalBytes-input.index*CHUNK_BYTES : CHUNK_BYTES)) throw new DomainError('CHUNK_SIZE_INVALID','文件分块大小或顺序无效',422);
   return transaction(this.pool, async client => {
    await this.service.assertSwitch(client,'uploads');
-   const parent = await client.query('SELECT submission_id FROM media_object WHERE id=$1',[mediaId]);
-   const submission = await client.query('SELECT status FROM submission WHERE id=$1 FOR UPDATE',[parent.rows[0]?.submission_id]);
-   if (!['draft','needs_changes','appealed'].includes(submission.rows[0]?.status)) throw new DomainError('UPLOAD_UNAVAILABLE','该投稿不再接受上传',409);
+   const parent = await client.query('SELECT submission_id,support_conversation_id,support_expires_at FROM media_object WHERE id=$1',[mediaId]);
+   const parentRow=parent.rows[0];
+   if(parentRow?.submission_id){
+    const submission = await client.query('SELECT status FROM submission WHERE id=$1 FOR UPDATE',[parentRow.submission_id]);
+    if (!['draft','needs_changes','appealed'].includes(submission.rows[0]?.status)) throw new DomainError('UPLOAD_UNAVAILABLE','该投稿不再接受上传',409);
+   }else if(parentRow?.support_conversation_id){
+    const conversation=await client.query('SELECT status FROM support_conversation WHERE id=$1 FOR UPDATE',[parentRow.support_conversation_id]);
+    if(!conversation.rows[0]||!parentRow.support_expires_at||new Date(parentRow.support_expires_at)<=now)throw new DomainError('UPLOAD_UNAVAILABLE','客服图片授权已失效',409);
+   }else throw new DomainError('MEDIA_NOT_FOUND','上传授权已失效',404);
    const media = await client.query("SELECT object_key,mime_type FROM media_object WHERE id=$1 AND upload_state='authorized' FOR UPDATE",[mediaId]);
    const row = media.rows[0];
    if (!row) throw new DomainError('MEDIA_NOT_FOUND','上传授权已失效',404);

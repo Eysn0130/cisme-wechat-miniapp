@@ -1,11 +1,13 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-11",
+  "inventoryDate": "2026-09-12",
   "wechatApis": [
     "wx.chooseAddress",
     "wx.chooseMedia",
+    "wx.compressImage",
     "wx.createSelectorQuery",
     "wx.disableAlertBeforeUnload",
+    "wx.downloadFile",
     "wx.enableAlertBeforeUnload",
     "wx.env",
     "wx.getAccountInfoSync",
@@ -105,10 +107,26 @@
     {
       "surface": "wx.chooseMedia",
       "informationType": "用户选中的图片/摄像头拍摄图片",
-      "purpose": "旧投稿审核证据",
-      "activation": "服务端 uploads 开关为 true 且用户主动点击后",
-      "serverStorage": "当前 staging 开关关闭且 COS 未启用",
-      "currentGate": "authoritative media_uploads_enabled before privacy or chooser API"
+      "purpose": "旧投稿审核证据，或用户主动加入本人客服会话的售前/售后图片",
+      "activation": "服务端 uploads 开关为 true、用户打开对应附件入口并完成微信隐私授权后",
+      "serverStorage": "本地验收由受控上传网关保存；正式/当前 staging COS 尚未启用；客服草稿对象 24 小时到期且未绑定对象进入清理队列",
+      "currentGate": "authoritative uploads switch before privacy or chooser API; authenticated support-conversation ownership"
+    },
+    {
+      "surface": "wx.compressImage",
+      "informationType": "用户主动选择的客服图片在本机生成的压缩副本",
+      "purpose": "在上传前降低客服图片大小与网络开销，不改变原图或写入系统相册",
+      "activation": "客服附件选择成功且图片超过本机压缩阈值后",
+      "serverStorage": "仅上传经用户确认的压缩结果；本机临时路径不写入数据库",
+      "currentGate": "member-initiated support attachment; image only; maximum three images and 5 MiB each"
+    },
+    {
+      "surface": "wx.downloadFile",
+      "informationType": "当前会话内、已验证并绑定到客服消息的私有图片",
+      "purpose": "下载到微信临时文件后供会话所属会员或具备 support.read 的客服预览",
+      "activation": "用户或客服主动点击消息图片后",
+      "serverStorage": "不新增服务端副本；临时本地文件由微信管理，响应 private, no-store",
+      "currentGate": "authenticated owner/capability check plus conversation/message binding; object key never exposed"
     },
     {
       "surface": "wx.getDeviceInfo",
@@ -128,19 +146,19 @@
     },
     {
       "surface": "wx.uploadFile",
-      "informationType": "用户主动选择的审核图片",
-      "purpose": "上传旧投稿审核证据",
+      "informationType": "用户主动选择的投稿审核图片或客服会话图片",
+      "purpose": "上传旧投稿审核证据，或上传本人客服消息图片",
       "activation": "服务端授权成功后",
-      "serverStorage": "当前 staging 上传开关关闭",
-      "currentGate": "media_uploads_enabled plus short-lived server authorization"
+      "serverStorage": "本地验收可走受控网关；当前 staging 上传开关关闭且正式 COS 未启用",
+      "currentGate": "uploads switch plus short-lived server authorization, server-controlled object key, MIME/byte verification and owner binding"
     },
     {
       "surface": "support_message.body",
-      "informationType": "用户主动提交的客服咨询文本、发送方类型与发送方标识；attachment_refs 字段保留为空数组，附件能力尚未实现",
+      "informationType": "用户主动提交的客服咨询文本、发送方类型与发送方标识，以及内容类型；系统接管事件为非用户正文",
       "purpose": "人工客服处理护理、账号、售后、投诉与服务问题",
       "activation": "用户在统一客服会话中点击发送后",
       "serverStorage": "CISME PostgreSQL immutable support_message；Outbox 不包含正文",
-      "currentGate": "authenticated member ownership; text only; 4000 character cap; resolved conversation plus approved active retention policy plus elapsed duration plus no legal hold before targeted purge",
+      "currentGate": "authenticated member ownership; 4000 character cap; immutable sequence/content shape; resolved conversation plus approved active retention policy plus elapsed duration plus no legal hold before targeted purge",
       "authority": "CISME PostgreSQL support_message",
       "visibleTo": "会话所属会员；具备 support.read 的客服；回复另需 support.reply 与当前会话归属",
       "retention": "POLICY PENDING；从会话解决时计算，当前 policy inactive，不允许用未确认天数自动删除",
@@ -150,7 +168,7 @@
     },
     {
       "surface": "support_conversation",
-      "informationType": "关联会员、客服状态、优先级、当前人工处理人、未读与读取游标；linked order 尚未实现且当前不存储",
+      "informationType": "关联会员、客服状态、优先级、当前人工处理人、未读与双方读取游标",
       "purpose": "将同一会员的咨询、人工接管、处理和解决状态组织为一个权威会话",
       "activation": "会员首次发送消息或主动请求人工时",
       "serverStorage": "CISME PostgreSQL support_conversation；不复制订单或会员详情",
@@ -161,6 +179,48 @@
       "userDeletionOrClosure": "纳入权利请求核验；不因退出登录删除",
       "legalHold": "member 或 conversation 绑定的 active hold 阻止 purge",
       "audit": "claim、context view、reply、resolve、purge 均记录最小化审计"
+    },
+    {
+      "surface": "support_presence",
+      "informationType": "会话参与方类型与内部主体标识、最近 online/typing 短租约到期时间；客服显示名来自独立运营别名",
+      "purpose": "仅在聊天前台显示真实的近期在线与正在输入状态，避免以 assignment 冒充在线",
+      "activation": "聊天页前台心跳、输入节流心跳、发送/失焦/隐藏时显式停止",
+      "serverStorage": "CISME PostgreSQL 独立 ephemeral support_presence；不写入消息正文或 outbox；在线 10 秒、typing 9 秒自动失效",
+      "currentGate": "会员仅写本人会话；客服需 support.read，且 online/typing 仅当前 assigned operator 可发布",
+      "authority": "服务端 expires_at 与 serverTime；客户端动画或 human_active 状态均不是在线 Authority",
+      "visibleTo": "会话双方只看 online/typing 布尔投影和运营别名，不暴露内部 principal",
+      "retention": "短 TTL 事实；会话 purge 级联删除；不作为正式消息历史",
+      "userDeletionOrClosure": "页面隐藏立即发布离线，TTL 仍保证断网后自动失效",
+      "legalHold": "不作为业务正文或长期证据；会话级保全不把已失效 presence 转为永久状态",
+      "audit": "心跳不逐条写 audit，claim/reply/resolve 仍保留正式审计"
+    },
+    {
+      "surface": "support_message.attachments",
+      "informationType": "最多三张客服图片的媒体标识、MIME、字节数与会话内鉴权预览路径；数据库内部另存受控对象键",
+      "purpose": "会员向客服提供解决当前咨询所需的图片证据",
+      "activation": "会员主动选择、预览、上传验证并点击发送后",
+      "serverStorage": "media_object 绑定 member、support_conversation 与不可变 support_message；未绑定草稿 24 小时到期并进入清理队列",
+      "currentGate": "JPG/PNG/WEBP, 5 MiB each, maximum three; server verifies ownership/state/MIME/bytes; private authenticated preview only",
+      "authority": "CISME PostgreSQL media binding plus configured private object storage",
+      "visibleTo": "会话所属会员；具备 support.read 的客服；不向 AI 或公共 feed 暴露",
+      "retention": "跟随客服会话 POLICY PENDING；未发送对象按 24 小时孤儿清理",
+      "userDeletionOrClosure": "未绑定图片可主动删除；已发送图片随经核验的数据权利/retention 流程处理",
+      "legalHold": "已绑定附件在适用会话法律保全下与正文一致受限",
+      "audit": "audit/outbox 不携图片内容或对象键；purge 将对象加入 cleanup queue"
+    },
+    {
+      "surface": "support_message.order_snapshot",
+      "informationType": "本人订单标识与发送时最小展示快照：订单尾号、状态、整数分金额、币种、商品名/图和件数摘要；不含姓名、电话或收货地址",
+      "purpose": "让客服在会话中准确定位会员主动选择的订单，而无需截图或发送订单号",
+      "activation": "会员从本人订单列表主动选择并发送后",
+      "serverStorage": "support_message 保存 linked_order_id 与最小不可变 order_snapshot；不复制完整订单对象",
+      "currentGate": "服务端再次验证 commerce_order.member_id 等于当前会员；管理端订单详情仍独立检查 commerce.order.read",
+      "authority": "订单归属来自 commerce_order；消息 snapshot 只用于历史显示",
+      "visibleTo": "会话所属会员与 support.read 客服；进入订单详情需额外 commerce.order.read",
+      "retention": "跟随客服会话 POLICY PENDING；订单自身保留政策独立裁决",
+      "userDeletionOrClosure": "纳入客服/交易数据权利范围判断，争议或法定保存可能限制删除",
+      "legalHold": "适用会话或订单争议保全时限制删除",
+      "audit": "客服消息事件不携完整 snapshot；管理订单详情访问遵循独立能力与审计"
     },
     {
       "surface": "support_member_context",
@@ -242,8 +302,8 @@
     },
     {
       "recipient": "腾讯云 COS",
-      "data": "未来的私有媒体和加密备份",
-      "purpose": "对象存储与灾备",
+      "data": "未来的私有投稿/客服媒体和加密备份",
+      "purpose": "私有对象存储与灾备；客服预览只经 CISME 鉴权 API",
       "state": "staging_media_not_enabled"
     },
     {
@@ -253,6 +313,6 @@
       "state": "not_mapped_for_preview_or_trial"
     }
   ],
-  "migrationSetSha256": "128d852852f75227180f86963f9e29b688812f6d3b62ed177a32f36c9d4d0217",
-  "egressSignatureSha256": "d701a12581e0ac98f3337834f583ef5185a117f233c92fe375934ca27de1562e"
+  "migrationSetSha256": "f08f919006fd9dad58784c92a0037d9bcb7b5de089c2cde5670224910d0e5454",
+  "egressSignatureSha256": "29fe533f20c532da5bdbb01ea58d8177590c05b4d8a13457d0675e27dbb09881"
 }

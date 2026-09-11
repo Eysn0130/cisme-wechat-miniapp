@@ -67,7 +67,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
-  const support = new SupportService(pool, authority);
+  const support = new SupportService(pool, authority, service, storage);
   const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled);
   const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
   const access = new CommunityAccess(pool, config, authority);
@@ -210,14 +210,32 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
   app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
   app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async request => support.messagesForMember(request.memberId, request.query));
-  app.post("/v1/me/support/messages", async request => support.sendMember(request.memberId, request.principalId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown}, request.id));
+  app.post("/v1/me/support/messages", async request => support.sendMember(request.memberId, request.principalId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown}, request.id));
   app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId));
   app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
+  app.post("/v1/me/support/presence", async request => support.touchMemberPresence(request.memberId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
+  app.post("/v1/me/support/media/authorize", async request => {
+    const body = (request.body ?? {}) as {mimeType?:unknown;maxBytes?:unknown};
+    const protocol = request.headers["x-forwarded-proto"] ?? "http";
+    const host = request.headers.host ?? `127.0.0.1:${config.port}`;
+    return support.authorizeSupportMedia(request.memberId, {...body,baseUrl:`${protocol}://${host}`});
+  });
+  app.post<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId/complete", async request => support.completeSupportMedia(request.memberId, request.params.mediaId));
+  app.delete<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async request => support.deleteSupportMedia(request.memberId, request.params.mediaId));
+  app.get<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async (request, reply) => {
+    const media = await support.memberSupportMedia(request.memberId, request.params.mediaId);
+    return reply.header("Cache-Control", "private, no-store").type(media.mimeType).send(Buffer.from(media.bytes));
+  });
   app.get<{Querystring:{cursor?:string;limit?:string}}>("/v1/management/support/conversations", async request => support.queue(request.memberId, request.query));
   app.get<{Params:{conversationId:string};Querystring:{after?:string;before?:string;limit?:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.operatorMessages(request.memberId, request.principalId, request.params.conversationId, request.query));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/claim", async request => support.claim(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/read", async request => support.markTeamRead(request.memberId, request.params.conversationId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/presence", async request => support.touchOperatorPresence(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
+  app.get<{Params:{conversationId:string;mediaId:string}}>("/v1/management/support/conversations/:conversationId/media/:mediaId", async (request, reply) => {
+    const media = await support.operatorSupportMedia(request.memberId, request.params.conversationId, request.params.mediaId);
+    return reply.header("Cache-Control", "private, no-store").type(media.mimeType).send(Buffer.from(media.bytes));
+  });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/resolve", async request => support.resolve(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/member-context", async request => support.memberContext(request.memberId, request.principalId, request.params.conversationId, request.id));
   app.get<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/retention", async request => support.retentionEligibility(request.memberId, request.params.conversationId));

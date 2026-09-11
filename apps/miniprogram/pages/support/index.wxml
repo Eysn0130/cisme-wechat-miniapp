@@ -1,10 +1,96 @@
-<view class="support-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><view class="support-title"><text class="topbar__title">CISME 客服</text><small>{{statusLabel}}</small></view></view>
-<scroll-view class="support-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="false" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
- <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在同步会话…</view>
- <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
- <view wx:if="{{!loading && !messages.length}}" class="support-welcome"><image src="/assets/icons/chat-circle-plum.svg"/><strong>你好，这里是 CISME 客服</strong><text>可以直接描述护理、账号或服务问题。当前默认由人工处理；AI 回复未接入时不会冒充真人。</text></view>
- <view wx:for="{{messages}}" wx:key="id" id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}}"><text class="support-message__sender">{{item.senderLabel}}</text><view class="support-bubble">{{item.body}}</view></view>
- <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">重试同步</button></view><view class="support-thread__end"></view>
-</scroll-view>
-<button wx:if="{{newMessagesBelow}}" class="new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看新消息">有新消息</button>
-<view class="support-composer"><button class="support-plus control--disabled" disabled aria-label="附件将在后续版本开放">＋</button><textarea value="{{input}}" bindinput="updateInput" bindlinechange="onComposerLineChange" maxlength="4000" auto-height confirm-type="send" bindconfirm="send" placeholder="输入你的问题"/><button class="support-send {{!input || sending ? 'control--disabled' : ''}}" bindtap="send" disabled="{{!input || sending}}" loading="{{sending}}">发送</button><button wx:if="{{conversation && conversation.status !== 'human_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">转人工</button></view></view>
+<view class="support-shell" style="{{chromeStyle}}">
+  <view class="topbar support-topbar">
+    <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
+    <view class="support-title">
+      <text class="topbar__title">CISME 客服</text>
+      <view class="support-presence support-presence--{{statusTone}}" aria-label="{{statusLabel}}"><text class="support-presence__dot">●</text><text class="support-presence__label">{{statusLabel}}</text></view>
+    </view>
+  </view>
+
+  <scroll-view class="support-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="false" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
+    <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在同步会话…</view>
+    <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
+    <view wx:if="{{!loading && !messages.length && !pendingMessage}}" class="support-welcome">
+      <image src="/assets/icons/chat-circle-plum.svg"/>
+      <strong>你好，这里是 CISME 客服</strong>
+      <text>可以描述护理、账号或订单问题。AI 与人工身份会明确标示；没有在线心跳时不会显示绿色在线状态。</text>
+    </view>
+
+    <block wx:for="{{messages}}" wx:key="id">
+      <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
+      <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system"><text>{{item.body}}</text></view>
+      <view wx:else id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}} {{item.groupStart ? 'support-message--group-start' : 'support-message--grouped'}}">
+        <view wx:if="{{item.senderType !== 'user'}}" class="support-avatar-slot">
+          <view wx:if="{{item.groupStart}}" class="support-avatar support-avatar--{{item.avatarKind}}"><image src="{{item.avatarKind === 'ai' ? '/assets/icons/star-active.svg' : '/assets/icons/chat-circle-plum.svg'}}"/></view>
+        </view>
+        <view class="support-message__content">
+          <text wx:if="{{item.groupStart && item.senderType !== 'user'}}" class="support-message__sender">{{item.senderLabel}}</text>
+          <view wx:if="{{item.body}}" class="support-bubble">{{item.body}}</view>
+          <view wx:if="{{item.attachments.length}}" class="support-media-grid">
+            <button wx:for="{{item.attachments}}" wx:for-item="media" wx:key="id" class="support-media" data-media-id="{{media.id}}" bindtap="previewImage" aria-label="预览客服图片">
+              <image src="{{media.localPath || '/assets/icons/images-plum.svg'}}" mode="aspectFill" lazy-load="true"/>
+              <text wx:if="{{!media.localPath}}">安全加载中</text>
+            </button>
+          </view>
+          <button wx:if="{{item.orderCard}}" class="support-order-card" data-id="{{item.orderCard.orderId}}" bindtap="openOrder" aria-label="查看订单尾号 {{item.orderCard.orderNumberTail}}">
+            <image class="support-order-card__image" src="{{item.orderCard.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/>
+            <view class="support-order-card__content"><small>订单 · 尾号 {{item.orderCard.orderNumberTail}}</small><strong>{{item.orderCard.productName}}</strong><text>{{item.orderCard.statusLabel}} · ¥{{item.orderCard.totalYuan}}</text></view>
+            <image class="support-order-card__arrow" src="/assets/icons/caret-right-muted.svg"/>
+          </button>
+          <view wx:if="{{item.groupEnd}}" class="support-message__meta"><text>{{item.timeLabel}}</text><text wx:if="{{item.senderType === 'user' && item.deliveryLabel}}"> · {{item.deliveryLabel}}</text></view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:if="{{pendingMessage}}" class="support-message support-message--user support-message--pending">
+      <view class="support-message__content">
+        <view wx:if="{{pendingMessage.body}}" class="support-bubble">{{pendingMessage.body}}</view>
+        <view wx:if="{{pendingMessage.attachments.length}}" class="support-media-grid"><view class="support-media"><image src="{{pendingMessage.attachments[0].localPath}}" mode="aspectFill"/></view></view>
+        <view wx:if="{{pendingMessage.orderCard}}" class="support-order-card support-order-card--static"><image class="support-order-card__image" src="{{pendingMessage.orderCard.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-order-card__content"><small>订单 · 尾号 {{pendingMessage.orderCard.orderNumberTail}}</small><strong>{{pendingMessage.orderCard.productName}}</strong><text>{{pendingMessage.orderCard.statusLabel}} · ¥{{pendingMessage.orderCard.totalYuan}}</text></view></view>
+        <view class="support-message__meta support-message__meta--{{pendingMessage.deliveryLabel === '发送失败' ? 'failed' : 'pending'}}"><text>{{pendingMessage.timeLabel}} · {{pendingMessage.deliveryLabel}}</text><button wx:if="{{pendingMessage.deliveryLabel === '发送失败'}}" bindtap="retrySend">重试</button></view>
+      </view>
+    </view>
+
+    <view wx:if="{{presence.operatorTyping}}" class="support-typing" aria-live="polite">
+      <view class="support-avatar support-avatar--human"><image src="/assets/icons/chat-circle-plum.svg"/></view>
+      <view class="support-typing__body"><view class="support-typing__dots"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{presence.agentDisplayName}}正在输入…</text></view>
+    </view>
+    <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重新同步</button><button wx:elif="{{errorAction === 'handoff'}}" bindtap="retryHandoff">重新提交</button></view>
+    <view class="support-thread__end"></view>
+  </scroll-view>
+
+  <button wx:if="{{newMessagesBelowCount > 0}}" class="new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
+
+  <view class="support-composer {{composerFocused ? 'support-composer--focused' : ''}}">
+    <view wx:if="{{selectedImage || selectedOrder}}" class="support-draft-attachments">
+      <view wx:if="{{selectedImage}}" class="support-draft-media">
+        <image class="support-draft__image" src="{{selectedImage.localPath}}" mode="aspectFill"/>
+        <view class="support-draft__content"><strong wx:if="{{selectedImage.status === 'ready'}}">图片已安全校验</strong><strong wx:elif="{{selectedImage.status === 'failed'}}">图片上传失败</strong><strong wx:else>正在上传 {{selectedImage.progress}}%</strong><text>{{selectedImage.status === 'failed' ? selectedImage.error : '发送前可以移除'}}</text></view>
+        <button wx:if="{{selectedImage.status === 'failed'}}" bindtap="retryImageUpload">重传</button><button bindtap="removeImage" aria-label="移除图片">×</button>
+      </view>
+      <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button bindtap="removeOrder" aria-label="移除订单">×</button></view>
+    </view>
+    <view class="support-compose-row">
+      <button class="support-plus {{sending || uploadBusy ? 'control--disabled' : ''}}" bindtap="openAttachmentSheet" disabled="{{sending || uploadBusy}}" aria-label="添加图片、拍照或订单">＋</button>
+      <textarea class="support-input" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height confirm-type="send" confirm-hold="true" bindconfirm="send" cursor-spacing="16" placeholder="输入你的问题…"/>
+      <button class="support-send {{((!input && !selectedImage && !selectedOrder) || sending || uploadBusy || (selectedImage && selectedImage.status !== 'ready')) ? 'control--disabled' : ''}}" bindtap="send" disabled="{{((!input && !selectedImage && !selectedOrder) || sending || uploadBusy || (selectedImage && selectedImage.status !== 'ready'))}}" loading="{{sending}}">发送</button>
+    </view>
+    <button wx:if="{{conversation && conversation.status === 'ai_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">需要真人帮助</button>
+  </view>
+
+  <view wx:if="{{attachmentSheetOpen}}" class="support-sheet-mask" catchtap="closeAttachmentSheet" catchtouchmove="stopPropagation">
+    <view class="support-sheet" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">添加到对话</strong><text class="support-sheet__note">图片会先在本机预览，上传后由服务端校验。</text><view class="support-sheet__options">
+      <button data-source="album" bindtap="chooseImage"><image src="/assets/icons/images-plum.svg"/><text>图片</text></button>
+      <button data-source="camera" bindtap="chooseImage"><image src="/assets/icons/camera-plum.svg"/><text>拍照</text></button>
+      <button bindtap="openOrderPicker"><image src="/assets/icons/package-plum.svg"/><text>选择订单</text></button>
+    </view><button class="support-sheet__cancel" bindtap="closeAttachmentSheet">取消</button></view>
+  </view>
+
+  <view wx:if="{{orderPickerOpen}}" class="support-sheet-mask" catchtap="closeOrderPicker" catchtouchmove="stopPropagation">
+    <view class="support-sheet support-order-picker" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">选择订单</strong><text class="support-sheet__note">仅显示当前会员自己的订单，发送时服务端会再次核验。</text>
+      <view wx:if="{{orderPickerLoading}}" class="support-picker-state">正在同步订单…</view><view wx:elif="{{orderPickerError}}" class="support-picker-state support-picker-state--error">{{orderPickerError}}</view><view wx:elif="{{!orderChoices.length}}" class="support-picker-state">还没有可选择的订单</view>
+      <scroll-view wx:else class="support-order-list" scroll-y><button wx:for="{{orderChoices}}" wx:key="id" class="support-order-choice" data-id="{{item.id}}" bindtap="selectOrder"><image class="support-order-choice__image" src="{{item.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-order-choice__content"><small>订单尾号 {{item.orderNumberTail}}</small><strong>{{item.productName}}</strong><text>{{item.statusLabel}} · ¥{{item.totalYuan}}</text></view><image class="support-order-choice__arrow" src="/assets/icons/caret-right-muted.svg"/></button></scroll-view>
+      <button class="support-sheet__cancel" bindtap="closeOrderPicker">取消</button>
+    </view>
+  </view>
+</view>
