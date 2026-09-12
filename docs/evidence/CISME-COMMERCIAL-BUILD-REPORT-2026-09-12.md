@@ -8,11 +8,13 @@
 |---|---|
 | 长期项目 / 本次工作树 | `/Users/mini/CISME` / `/Users/mini/.codex/worktrees/f745/CISME`；没有新建项目目录 |
 | 施工分支 / 接管 HEAD | `codex/commercial-closure-20260912` / `6495101e27b26944ded2435605cc1835b76d51dd` |
+| 代码提交 / 审阅入口 | `68bec61`；[stacked Draft PR #2](https://github.com/Eysn0130/cisme-wechat-miniapp/pull/2)，基于仍开放的 [U0/U1 PR #1](https://github.com/Eysn0130/cisme-wechat-miniapp/pull/1)。本报告补记所在提交及后续更新以 PR 的最新 HEAD 为准。 |
 | 接管包 | `72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8`；它和 Git SHA、截图 SHA 是不同对象 |
 | 当前包源码 SHA-256 | `1b61f85a37dd7ee893421d98239061e4feced888dc4bd836de761ebfcdd58420`；后续小程序源码修改需重新计算 |
 | 小程序范围 | 原生 WXML/WXSS/TypeScript，33 条真实路由；新增会员列表、会员详情、推荐确认、社区创作、帖子详情、社区审核共 6 条 |
 | 数据库 | 新增前向迁移 `202609120002`–`202609120006`，只在独立本地测试库运行，未迁移生产 |
 | 旧视觉证据 | 原始 `72a6…` 的来源清单保存在 `docs/evidence/visual/source-acceptance-72a6a61d3ad3.json`；当前 `current-source-acceptance.json` 单独标记 33 路由 blocked，没有继承旧截图结论 |
+| 工作树 | 本轮变更已提交；仍有其他线程留下的未跟踪历史视觉证据目录和清单，未纳入 PR、未删除或改名 |
 
 接管时确认的可复用部分是护理周期与记录、品牌精选/旧邀请内容、既有权限与 Outbox/Inbox、合成待付款订单和已有正式 UGC 基础表。确定的缺陷是社区发帖被邀请任务阻断、正式 UGC 不能呈现用户图片、分享短码不具备稳定商业推荐码语义、`member` 账户语义混同商业资格，以及前端会误把合成待付款订单当成可计佣入口。本轮新增的是分离的商业资格/一级关系/费率快照、正式创作与审核服务、可信支付事实的内部接收切片；外部仍未验证的是真实平台回调、真机与正式经营规则。
 
