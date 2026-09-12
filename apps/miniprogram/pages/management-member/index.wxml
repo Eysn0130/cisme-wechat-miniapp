@@ -1,11 +1,65 @@
-<view class="member-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">成员详情</text></view>
-  <view class="page page--stack member-page"><view wx:if="{{loading}}" class="state" aria-live="polite">正在加载成员详情…</view><view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
-    <block wx:if="{{detail && !loading}}"><view class="member-hero"><text class="eyebrow">CISME MEMBER</text><text class="ux-strong">{{detail.member.displayName}}</text><text class="ux-small">{{detail.member.commercialEligible?'商业会员':detail.member.membershipState==='active'?'资格未生效或不可用':detail.member.membershipState==='suspended'?'资格暂停':detail.member.membershipState==='expired'?'资格到期':'普通用户'}} · {{detail.member.accountStatus==='active'?'账号正常':'账号受限'}}</text></view>
+<view class="member-shell" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">成员详情</text></view>
+  <view class="page page--stack member-page">
+    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载成员详情…</view>
+    <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
+    <block wx:if="{{detail && !loading}}">
+      <view class="member-hero">
+        <text class="eyebrow">{{detail.member.commercialEligible?'CISME MEMBER':'成员资料'}}</text>
+        <text class="ux-strong">{{detail.member.displayName}}</text>
+        <text class="ux-small">{{detail.member.commercialEligible?'商业会员':detail.member.membershipState==='active'?'资格未生效或不可用':detail.member.membershipState==='suspended'?'资格暂停':detail.member.membershipState==='expired'?'资格到期':'普通用户'}} · {{detail.member.accountStatus==='active'?'账号正常':'账号受限'}}</text>
+      </view>
       <view class="member-tabs" aria-role="tablist" aria-label="成员详情分类"><button wx:for="{{sections}}" wx:key="id" data-section="{{item.id}}" bindtap="selectSection" class="{{section===item.id?'is-active':''}}" aria-role="tab" aria-selected="{{section===item.id}}">{{item.label}}</button></view>
-      <view wx:if="{{section==='overview'}}" class="member-panel"><view class="member-fact"><text>商业资格</text><text class="ux-strong">{{detail.member.commercialEligible?'有效':detail.member.membershipState==='none'?'未开通':detail.member.membershipState==='suspended'?'已暂停':'未生效或已到期'}}</text></view><view wx:if="{{detail.scope.referrals}}" class="member-fact"><text>推荐码</text><text class="ux-strong">{{detail.member.referralCode||'尚未生成'}}</text></view><view wx:if="{{detail.rate}}" class="member-fact"><text>当前费率</text><text class="ux-strong">{{detail.rate.basisPoints/100}}%</text></view><text wx:if="{{detail.rate}}" class="member-caveat">费率在订单创建时快照；历史订单不会随调整重算。</text><view wx:if="{{canManageMembership || canManageRate}}" class="member-actions"><button wx:if="{{canManageMembership}}" data-state="active" class="{{busy ? 'control--disabled' : ''}}" bindtap="changeMembership" disabled="{{busy}}">授予／续期一年</button><button wx:if="{{canManageMembership}}" data-state="suspended" class="{{busy || detail.member.membershipState!=='active' ? 'control--disabled' : ''}}" bindtap="changeMembership" disabled="{{busy || detail.member.membershipState!=='active'}}">暂停资格</button><button wx:if="{{canManageRate}}" class="{{busy ? 'control--disabled' : ''}}" bindtap="proposeRate" disabled="{{busy}}">提议调整费率</button></view></view>
-      <view wx:elif="{{section==='referrals'}}" class="member-panel"><text class="member-panel__title ux-strong">直接推荐 · {{referrals.length}}</text><text wx:if="{{!referrals.length}}" class="member-empty">尚无已确认的直接推荐关系。</text><view wx:for="{{referrals}}" wx:key="id" class="member-list-row"><text class="ux-strong">{{item.displayName}}</text><text class="ux-small">{{item.orderCount}} 笔归因订单 · 不展示电话、地址和私聊</text></view></view>
-      <view wx:elif="{{section==='orders'}}" class="member-panel"><text class="member-panel__title ux-strong">归因订单</text><text class="member-caveat">待支付、取消和合成订单均不形成可结算佣金。</text><text wx:if="{{!orders.length}}" class="member-empty">暂无归因订单。</text><view wx:for="{{orders}}" wx:key="id" class="member-list-row"><text class="ux-strong">{{item.productName||'商品'}} · {{item.amount}}</text><text class="ux-small">{{item.orderNumber}} · {{item.status==='pending_payment'?'待支付':item.status==='cancelled'?'已取消':item.status==='paid'?'已支付，待履约':'已超时'}}</text></view></view>
-      <view wx:else class="member-panel"><text class="member-panel__title ux-strong">公开内容</text><text wx:if="{{!posts.length}}" class="member-empty">暂无公开护理故事。</text><view wx:for="{{posts}}" wx:key="id" class="member-list-row"><text class="ux-strong">{{item.title}}</text><text class="ux-small">已公开 · 审核内容需另行授权查看</text></view></view>
+      <view wx:if="{{section==='overview'}}" class="member-panel">
+        <view class="member-fact"><text>商业资格</text><text class="ux-strong">{{detail.member.commercialEligible?'有效':detail.member.membershipState==='none'?'未开通':detail.member.membershipState==='suspended'?'已暂停':'未生效或已到期'}}</text></view>
+        <view class="member-fact"><text>资格生效</text><text class="ux-strong">{{effectiveLabel}}</text></view>
+        <view class="member-fact"><text>资格到期</text><text class="ux-strong">{{expiresLabel}}</text></view>
+        <view wx:if="{{detail.scope.referrals}}" class="member-fact"><text>推荐码</text><text class="ux-strong">{{detail.member.referralCode||'尚未生成'}}</text></view>
+        <view wx:if="{{detail.rate}}" class="member-fact"><text>当前费率</text><text class="ux-strong">{{rateLabel}}</text></view>
+        <text wx:if="{{detail.rate}}" class="member-caveat">调整仅影响生效后的新订单，已有订单保留原费率。</text>
+        <view wx:if="{{detail.commission}}" class="member-fact"><text>可用佣金</text><text class="ux-strong">{{detail.commission.availableCents}} 分 · 当前不可结算</text></view>
+        <view wx:if="{{canManageMembership || canManageRate}}" class="member-actions">
+          <button wx:if="{{canManageMembership}}" data-state="active" class="{{busy ? 'control--disabled' : ''}}" bindtap="changeMembership" disabled="{{busy}}">变更／续期资格</button>
+          <button wx:if="{{canManageMembership}}" data-state="suspended" class="{{busy || detail.member.membershipState!=='active' ? 'control--disabled' : ''}}" bindtap="changeMembership" disabled="{{busy || detail.member.membershipState!=='active'}}">暂停资格</button>
+          <button wx:if="{{canManageRate}}" class="{{busy ? 'control--disabled' : ''}}" bindtap="openRateForm" disabled="{{busy}}">设置会员费率</button>
+        </view>
+      </view>
+      <view wx:else class="member-panel">
+        <view wx:if="{{section==='orders'}}" class="member-order-modes">
+          <button wx:if="{{detail.scope.ownOrders}}" data-mode="own-orders" class="{{orderMode==='own-orders'?'is-active':''}}" bindtap="selectOrderMode">本人购买</button>
+          <button wx:if="{{detail.scope.orders}}" data-mode="attributed-orders" class="{{orderMode==='attributed-orders'?'is-active':''}}" bindtap="selectOrderMode">推荐归因</button>
+        </view>
+        <text class="member-panel__title ux-strong">{{section==='referrals'?'直接推荐':section==='posts'?'公开内容':orderMode==='own-orders'?'本人订单':'推荐归因订单'}} · {{visibleTotal}} 项（已加载 {{visibleRows.length}}）</text>
+        <text wx:if="{{section==='orders'}}" class="member-caveat">待支付、取消和合成订单不计入真实成交或可结算佣金。</text>
+        <text wx:if="{{sectionLoading}}" class="member-empty">正在加载…</text>
+        <text wx:if="{{!sectionLoading && !visibleRows.length && !sectionError}}" class="member-empty">此分类暂无内容。</text>
+        <button wx:for="{{visibleRows}}" wx:key="id" class="member-list-row member-list-button" data-id="{{item.id}}" bindtap="openRow">
+          <text class="ux-strong">{{section==='referrals'?item.displayName:section==='posts'?item.title:item.productName||'商品'}}</text>
+          <text class="ux-small">{{section==='referrals'?'已确认直接关系 · 已核实付款 '+item.verifiedOrderCount+' 笔':section==='posts'?'查看公开故事':item.orderNumber+' · '+item.statusLabel+(item.transactionSourceKind==='synthetic_nonproduction'?' · 合成测试':'')}}</text>
+          <text wx:if="{{section==='orders'}}" class="ux-small">{{item.totalLabel}}{{orderMode==='attributed-orders'&&item.rateLabel?' · 订单费率 '+item.rateLabel:''}}{{orderMode==='attributed-orders'&&item.commissionLabel?' · 佣金净流水 '+item.commissionLabel:''}}</text>
+        </button>
+        <button wx:if="{{visibleCursor}}" class="text-button {{sectionLoadingMore?'control--disabled':''}}" bindtap="loadMoreSection" disabled="{{sectionLoadingMore}}" loading="{{sectionLoadingMore}}">加载更多</button>
+        <text wx:if="{{sectionError}}" class="state state--error">{{sectionError}}</text><button wx:if="{{sectionError}}" class="text-button" bindtap="retrySection">重试</button>
+      </view>
       <view wx:if="{{actionStatus}}" class="state" aria-live="polite">{{actionStatus}}</view><view wx:if="{{actionError}}" class="state state--error" aria-live="assertive">{{actionError}}</view>
     </block>
-  </view></view>
+  </view>
+  <block wx:if="{{rateFormVisible && detail}}">
+    <view class="rate-form-backdrop" bindtap="closeRateForm" aria-label="关闭费率表单"></view>
+    <view class="rate-form-sheet" aria-role="dialog" aria-label="会员费率提议">
+      <view class="rate-form-heading"><text>费率提议</text><button bindtap="closeRateForm" aria-label="关闭费率表单">关闭</button></view>
+      <scroll-view scroll-y class="rate-form-scroll">
+        <text class="rate-form-member">{{detail.member.displayName}}</text>
+        <text class="rate-form-current">当前 {{rateLabel}} · 仅影响生效后的新订单</text>
+        <text class="rate-form-label">处理方式</text>
+        <view class="rate-form-modes"><button data-mode="override" bindtap="selectRateMode" class="{{rateForm.mode==='override'?'is-active':''}}" aria-pressed="{{rateForm.mode==='override'}}">单独设置</button><button data-mode="inherit" bindtap="selectRateMode" class="{{rateForm.mode==='inherit'?'is-active':''}}" aria-pressed="{{rateForm.mode==='inherit'}}">继承全局</button></view>
+        <view wx:if="{{rateForm.mode==='override'}}"><text class="rate-form-label">新费率（20%–35%）</text><view class="rate-form-input"><input type="digit" value="{{rateForm.percent}}" bindinput="editRatePercent" placeholder="例如 25.5" aria-label="新的会员费率"/><text>%</text></view></view>
+        <text wx:else class="rate-form-hint">生效后改用当时的全局费率。历史单独设置和旧订单记录仍保留。</text>
+        <text class="rate-form-label">计划生效</text><view class="rate-form-time"><picker mode="date" value="{{rateForm.date}}" bindchange="changeRateDate"><view class="rate-form-picker">{{rateForm.date}}</view></picker><picker mode="time" value="{{rateForm.time}}" bindchange="changeRateTime"><view class="rate-form-picker">{{rateForm.time}}</view></picker></view>
+        <text class="rate-form-label">变更依据</text><textarea value="{{rateForm.reason}}" bindinput="editRateReason" maxlength="300" auto-height placeholder="填写供另一名管理者复核的依据" aria-label="费率变更依据"/>
+        <text class="rate-form-hint">提交后进入待复核；提议人和受益人不能自行批准。</text>
+      </scroll-view>
+      <view class="rate-form-footer"><button class="rate-form-cancel {{busy?'control--disabled':''}}" bindtap="closeRateForm" disabled="{{busy}}">取消</button><button class="rate-form-submit {{busy?'control--disabled':''}}" bindtap="submitRateForm" disabled="{{busy}}" loading="{{busy}}">提交复核</button></view>
+    </view>
+  </block>
+</view>

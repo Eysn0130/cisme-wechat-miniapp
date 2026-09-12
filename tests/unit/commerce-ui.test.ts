@@ -11,12 +11,15 @@ describe("R4-A native commerce boundary",()=>{
     expect(parseYuanToCents("269")).toBe(26900);expect(parseYuanToCents("269.0")).toBe(26900);expect(parseYuanToCents("0.01")).toBe(1);expect(centsToYuan(26901)).toBe("269.01");
     for(const invalid of ["","0","01.00","1.001","1e2","NaN","-1","1000000.01","1,000.00"])expect(()=>parseYuanToCents(invalid)).toThrow("PRICE_YUAN_INVALID");
   });
-  it("registers native catalog and isolated order routes without a client payment-success path",async()=>{
+  it("registers native catalog and isolated order routes without client-authoritative payment success",async()=>{
     const app=JSON.parse(await readFile(resolve(root,"apps/miniprogram/app.json"),"utf8"));const routes=[...(app.pages??[]),...(app.subPackages??[]).flatMap((item:{root:string;pages:string[]})=>item.pages.map(page=>`${item.root}/${page}`))];
     for(const route of ["pages/management-catalog/index","pages/management-product/index","pages/checkout/index","pages/orders/index","pages/order-detail/index","pages/management-orders/index","pages/management-order-detail/index"])expect(routes).toContain(route);
     const detail=await readFile(resolve(root,"apps/miniprogram/pages/product/index.ts"),"utf8");expect(detail).toContain("catalogDetail(this.data.id)");expect(detail).not.toContain("catalog.items.find");
     const orderSources=await Promise.all(["services/orders.ts","pages/checkout/index.ts","pages/order-detail/index.ts"].map(path=>readFile(resolve(root,"apps/miniprogram",path),"utf8")));
-    expect(orderSources.join("\n")).not.toContain("requestPayment");expect(orderSources.join("\n")).not.toContain("payment-success");
+    expect(orderSources.join("\n")).not.toContain("payment-success");
+    expect(orderSources[2]).toContain('else if(result.requestPayment){try{await wx.requestPayment(result.requestPayment);}')
+    expect(orderSources[2]).toContain('if(current()){this.setData({busy:false});void this.recheckPayment();}')
+    expect(orderSources[2]).not.toMatch(/requestPayment[\s\S]*?setData\(\{[^}]*status:\s*["']paid/);
   });
   it("keeps qualification, publication and inventory as separate mobile commands",async()=>{
     const page=await readFile(resolve(root,"apps/miniprogram/pages/management-product/index.ts"),"utf8");for(const command of ["qualifyProduct","publishProduct","adjustInventory","expectedPriceVersion","expectedVersion"])expect(page).toContain(command);

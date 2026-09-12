@@ -4,6 +4,7 @@ import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
 import type { ObjectStorage } from "./storage.js";
+import { pendingReviewRevisionSql } from "./ugcVisibility.js";
 
 type WechatResult={errcode?:number;errmsg?:string;trace_id?:string;result?:{suggest?:string;label?:number};detail?:unknown};
 type ScanCallback=WechatResult&{Event?:string;appid?:string;version?:number};
@@ -50,24 +51,27 @@ export class UgcSafetyService{
     if(!response.ok||result.errcode!==0)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
     return result;
   }
-  private signedRawUrl(mediaId:string,baseUrl:string){
+  private signedRawUrl(mediaId:string,postId:string,revision:number,sha256:string,baseUrl:string){
     const expires=Date.now()+45*60_000;
-    const signature=createHmac("sha256",this.config.sessionSecret).update(`ugc-scan:${mediaId}:${expires}`).digest("base64url");
-    return `${baseUrl}/v1/ugc/scan-source/${mediaId}?token=${expires}.${signature}`;
+    const claims=`${postId}.${revision}.${sha256}.${expires}`;
+    const signature=createHmac("sha256",this.config.sessionSecret).update(`ugc-scan:${mediaId}:${claims}`).digest("base64url");
+    return `${baseUrl}/v1/ugc/scan-source/${mediaId}?token=${claims}.${signature}`;
   }
   async scanSource(mediaId:string,token:unknown){
-    const id=validId(mediaId),parts=typeof token==="string"?token.split("."):[],expires=Number(parts[0]);
-    if(parts.length!==2||!Number.isSafeInteger(expires)||expires<Date.now()||expires>Date.now()+45*60_000)
+    const id=validId(mediaId),parts=typeof token==="string"?token.split("."):[];
+    const postId=parts[0],revision=Number(parts[1]),sha256=parts[2],expires=Number(parts[3]);
+    if(parts.length!==5||!uuid.test(postId??"")||!Number.isSafeInteger(revision)||revision<1||
+      !/^[0-9a-f]{64}$/.test(sha256??"")||!Number.isSafeInteger(expires)||expires<Date.now()||expires>Date.now()+45*60_000)
       throw new DomainError("UGC_SCAN_SOURCE_INVALID","扫描图片链接已失效",403);
-    const expected=createHmac("sha256",this.config.sessionSecret).update(`ugc-scan:${id}:${expires}`).digest("base64url");
-    const a=Buffer.from(parts[1]??""),b=Buffer.from(expected);
+    const claims=`${postId}.${revision}.${sha256}.${expires}`;
+    const expected=createHmac("sha256",this.config.sessionSecret).update(`ugc-scan:${id}:${claims}`).digest("base64url");
+    const a=Buffer.from(parts[4]??""),b=Buffer.from(expected);
     if(a.length!==b.length||!timingSafeEqual(a,b))throw new DomainError("UGC_SCAN_SOURCE_INVALID","扫描图片链接无效",403);
     const row=(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a
-      WHERE a.id=$1 AND a.state IN ('uploaded','scanning')
-        AND EXISTS(SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
-          JOIN ugc_post_revision r ON r.post_id=b.post_id AND r.revision=b.revision
-          WHERE b.media_asset_id=a.id AND p.current_revision=b.revision AND r.moderation_state='pending'
-            AND p.state IN ('pending_review','published'))`,[id])).rows[0];
+      JOIN ugc_post_media b ON b.media_asset_id=a.id JOIN ugc_post p ON p.id=b.post_id
+      JOIN ugc_post_revision r ON r.post_id=b.post_id AND r.revision=b.revision
+      WHERE a.id=$1 AND b.post_id=$2 AND b.revision=$3 AND a.sha256=$4 AND a.state IN ('uploaded','scanning')
+        AND ${pendingReviewRevisionSql}`,[id,postId,revision,sha256])).rows[0];
     if(!row)throw new DomainError("UGC_SCAN_SOURCE_INVALID","待审图片已失效",404);
     return this.storage.read(row.object_key);
   }
@@ -79,8 +83,8 @@ export class UgcSafetyService{
       i.openid FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
       LEFT JOIN LATERAL (SELECT openid FROM wechat_identity WHERE member_id=p.author_member_id AND provider='wechat_miniprogram'
         AND app_id=$3 ORDER BY created_at DESC LIMIT 1) i ON true
-      WHERE p.id=$1 AND p.author_member_id=$2 AND p.state IN ('pending_review','published')`,[id,owner,this.config.wechat.appId??""])).rows[0];
-    if(!post||post.moderation_state!=="pending")throw new DomainError("UGC_SCAN_CONFLICT","内容已变化，请刷新后重试",409);
+      WHERE p.id=$1 AND p.author_member_id=$2 AND ${pendingReviewRevisionSql}`,[id,owner,this.config.wechat.appId??""])).rows[0];
+    if(!post)throw new DomainError("UGC_SCAN_CONFLICT","内容已变化，请刷新后重试",409);
     if(!post.openid)throw new DomainError("UGC_SCAN_UNAVAILABLE","请用微信登录后再提交内容",409);
     const content=[post.title,post.body].filter(Boolean).join("\n").trim();
     const media=await this.pool.query(`SELECT a.id,a.sha256,a.state,a.scan_result FROM ugc_post_media b
@@ -129,7 +133,7 @@ export class UgcSafetyService{
       const scanId=(await this.pool.query(`INSERT INTO ugc_safety_scan(post_id,revision,media_asset_id,kind,content_sha256,provider)
         VALUES($1,$2,$3,'image',$4,'wechat_v2') RETURNING id`,[id,post.current_revision,asset.id,asset.sha256])).rows[0].id;
       try{
-        const response=await this.request("media_check_async",{media_url:this.signedRawUrl(asset.id,baseUrl),media_type:2,version:2,scene:3,openid:post.openid});
+        const response=await this.request("media_check_async",{media_url:this.signedRawUrl(asset.id,id,post.current_revision,asset.sha256,baseUrl),media_type:2,version:2,scene:3,openid:post.openid});
         if(!response.trace_id)throw new Error("WECHAT_TRACE_MISSING");
         await transaction(this.pool,async client=>{
           await client.query("UPDATE ugc_safety_scan SET trace_id=$2 WHERE id=$1",[scanId,response.trace_id]);
@@ -149,7 +153,7 @@ export class UgcSafetyService{
   async scanPendingBatch(baseUrl:string,limit=2){
     const candidates=await this.pool.query(`SELECT p.id,p.author_member_id FROM ugc_post p
       JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
-      WHERE p.state IN ('pending_review','published') AND r.moderation_state='pending'
+      WHERE ${pendingReviewRevisionSql}
         AND NOT EXISTS(SELECT 1 FROM ugc_safety_scan s WHERE s.post_id=p.id AND s.revision=p.current_revision
           AND s.requested_at>now()-interval '2 minutes')
       ORDER BY p.updated_at,p.id LIMIT $1`,[limit]);
@@ -219,9 +223,9 @@ export class UgcSafetyService{
           WHERE a.id=$1 AND a.sha256=$3 AND a.state IN ('uploaded','scanning')
           AND $6=(SELECT id FROM ugc_safety_scan WHERE media_asset_id=a.id AND kind='image'
             ORDER BY requested_at DESC,id DESC LIMIT 1)
-          AND EXISTS(SELECT 1 FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
-            WHERE p.id=$4 AND p.current_revision=$5 AND r.moderation_state='pending'
-              AND p.state IN ('pending_review','published'))`,
+          AND EXISTS(SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
+            JOIN ugc_post_revision r ON r.post_id=b.post_id AND r.revision=b.revision
+            WHERE b.media_asset_id=a.id AND p.id=$4 AND b.revision=$5 AND ${pendingReviewRevisionSql})`,
           [scan.media_asset_id,{verdict:state,provider:"wechat_v2",checkedAt:new Date().toISOString(),traceId},
             scan.content_sha256,scan.post_id,scan.revision,scan.id]);
       }

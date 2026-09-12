@@ -26,6 +26,7 @@ type OrderRow = {
   subtotal_cents: string; member_discount_cents: string; shipping_cents: string; total_cents: string;
   pricing_rule_version: string; version: number; expires_at: Date; cancelled_at: Date | null; expired_at: Date | null;
   terminal_reason: string | null; created_at: Date; updated_at: Date;
+  transaction_source_kind:"synthetic_nonproduction"|"verified_commerce";
 };
 type OrderLineRow = {
   id: string; order_id: string; line_number: number; product_code: string; product_name: string; sku_code: string; sku_label: string;
@@ -88,12 +89,15 @@ export class CommerceOrderService {
     private readonly authority: AuthorityService,
     private readonly addresses: DeliveryAddressService,
     private readonly commercial: CommercialMembershipService,
-    private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number }
+    private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
+      simulatedPayment?: { appId: string; merchantId: string; transferSceneId?: string } }
   ) {}
 
   status() {
     return { version: 1, orderFlowEnabled: this.options.enabled, paymentAvailable: false, paymentOnboarding: "IN_PROGRESS", currency: "CNY" as const,
-      scope: this.options.enabled ? "synthetic_nonproduction" : "disabled" };
+      scope: this.options.simulatedPayment?"verified_isolated_test":this.options.enabled?"synthetic_nonproduction":"disabled",
+      isolatedMoneyOperationsAvailable:Boolean(this.options.simulatedPayment),
+      isolatedTransferAvailable:Boolean(this.options.simulatedPayment?.transferSceneId) };
   }
 
   private requireEnabled(): void {
@@ -175,6 +179,7 @@ export class CommerceOrderService {
       pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
       terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      transactionSourceKind:row.transaction_source_kind,
       lines: lines.rows.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
         unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents), totalCents: money(line.line_total_cents) })),
@@ -187,6 +192,7 @@ export class CommerceOrderService {
       pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
       terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      transactionSourceKind:row.transaction_source_kind,
       lines: lines.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
         unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents), totalCents: money(line.line_total_cents) })),
@@ -251,15 +257,27 @@ export class CommerceOrderService {
       if (available < quote.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
       const orderId = randomUUID(); const expiresAt = new Date(now.getTime() + this.options.pendingOrderTtlMinutes * 60_000);
       const number = orderNumber(now); const sealed = this.addresses.sealOrderSnapshot(owner,orderId,address.payload);
+      const transactionSource=this.options.simulatedPayment?"verified_commerce":"synthetic_nonproduction";
       const order = (await client.query<OrderRow>(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,subtotal_cents,
-        member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at,created_at,updated_at)
-        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$12) RETURNING *`,
-        [orderId,number,owner,quote.id,quote.currency,quote.subtotal_cents,quote.member_discount_cents,quote.shipping_cents,quote.total_cents,quote.pricing_rule_version,expiresAt,now])).rows[0]!;
+        member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at,created_at,updated_at,transaction_source_kind)
+        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$12,$13) RETURNING *`,
+        [orderId,number,owner,quote.id,quote.currency,quote.subtotal_cents,quote.member_discount_cents,quote.shipping_cents,quote.total_cents,quote.pricing_rule_version,expiresAt,now,transactionSource])).rows[0]!;
+      if(this.options.simulatedPayment){
+        const identity=(await client.query<{openid:string}>(`SELECT openid FROM wechat_identity
+          WHERE member_id=$1 AND provider='wechat_miniprogram' AND app_id=$2
+          ORDER BY created_at DESC,id DESC LIMIT 1`,[owner,this.options.simulatedPayment.appId])).rows[0];
+        if(!identity)throw new DomainError("PAYMENT_PAYER_IDENTITY_REQUIRED","当前微信身份不可用于支付测试",409);
+        await client.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,
+          app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
+          VALUES($1,$2,$3,$4,$5,$6,$7,'CNY',$8,$9,$10,$11)`,
+          [orderId,number,owner,identity.openid,this.options.simulatedPayment.appId,
+            this.options.simulatedPayment.merchantId,money(quote.total_cents),quote.id,quote.pricing_rule_version,quote.price_version,expiresAt]);
+      }
       await client.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,image_path,
         quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents) VALUES($1,1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [orderId,item.product_id,item.sku_id,item.product_code,item.product_name,item.sku_code,item.sku_label,item.product_image,quote.quantity,quote.unit_price_cents,
           quote.subtotal_cents,quote.member_discount_cents,money(quote.subtotal_cents)-money(quote.member_discount_cents)]);
-      await this.commercial.snapshotOrder(client,orderId,owner,"synthetic_nonproduction",
+      await this.commercial.snapshotOrder(client,orderId,owner,transactionSource,
         money(quote.subtotal_cents)-money(quote.member_discount_cents),now);
       await client.query(`INSERT INTO commerce_order_address(order_id,encrypted_payload,payload_hmac,key_version,source_address_id,source_address_version)
         VALUES($1,$2,$3,$4,$5,$6)`, [orderId,sealed.encryptedPayload,sealed.payloadHmac,sealed.keyVersion,address.id,address.version]);
@@ -289,7 +307,7 @@ export class CommerceOrderService {
     }
   }
 
-  async cancel(memberId: string | undefined, principalId: string | undefined, orderIdInput: string, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {
+  async cancel(memberId: string | undefined, principalId: string | undefined, orderIdInput: string, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date(), verifiedCloseAttemptId?: string) {
     const owner=member(memberId); const actor=principal(principalId); const orderId=uuid(orderIdInput,"ORDER_ID_INVALID"); const idempotencyKey=key(keyInput);
     const normalized={operation:"commerce.order.cancel",actor,memberId:owner,orderId,expectedVersion:version(input.expectedVersion),reason:typeof input.reason==="string"?input.reason.trim():""};
     if (Array.from(normalized.reason).length<3 || Array.from(normalized.reason).length>500) throw new DomainError("ORDER_CANCEL_REASON_INVALID","请填写取消原因",422);
@@ -308,7 +326,19 @@ export class CommerceOrderService {
       const current=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2 FOR UPDATE",[orderId,owner])).rows[0];
       if(!current)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
       if(current.status!=="pending_payment")throw new DomainError("ORDER_NOT_CANCELLABLE","当前订单状态不可取消",409);
+      const source=(await client.query<{transaction_source_kind:string}>(
+        "SELECT transaction_source_kind FROM commerce_order WHERE id=$1",[orderId])).rows[0]?.transaction_source_kind;
+      if(source==="verified_commerce"){
+        const attempt=(await client.query<{id:string;state:string}>(
+          "SELECT id,state FROM commerce_payment_attempt WHERE order_id=$1 FOR UPDATE",[orderId])).rows[0];
+        if(attempt?.state!=="closed"&&(!verifiedCloseAttemptId||attempt?.id!==verifiedCloseAttemptId||attempt.state==="paid"))
+          throw new DomainError("PAYMENT_CLOSE_REQUIRED","须先核对并关闭渠道原订单，才能取消",409);
+      }
       if(current.version!==normalized.expectedVersion)throw new DomainError("ORDER_VERSION_CONFLICT","订单状态已变化，请刷新后重试",409);
+      if(source==="verified_commerce"&&verifiedCloseAttemptId){
+        await client.query(`UPDATE commerce_payment_attempt SET state='closed',request_lease_until=NULL,
+          updated_at=clock_timestamp() WHERE id=$1 AND order_id=$2 AND state<>'closed'`,[verifiedCloseAttemptId,orderId]);
+      }
       await this.release(client,orderId,"USER_CANCELLED",now,actor);
       const updated=(await client.query<OrderRow>(`UPDATE commerce_order SET status='cancelled',cancelled_at=$2,terminal_reason=$3,version=version+1,updated_at=$2 WHERE id=$1 RETURNING *`,[orderId,now,normalized.reason])).rows[0]!;
       await client.query(`INSERT INTO commerce_order_transition(order_id,from_status,to_status,reason_code,actor_principal_id,order_version,occurred_at)

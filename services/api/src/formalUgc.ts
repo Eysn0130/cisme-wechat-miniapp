@@ -7,6 +7,8 @@ import { transaction, type DbClient } from "./db.js";
 import { AuthorityService } from "./authority.js";
 import { communityAuthors } from "./memberProfile.js";
 import { validateGatewayUpload, type ObjectStorage } from "./storage.js";
+import { pendingReviewRevisionSql, reviewableRevisionSql } from "./ugcVisibility.js";
+import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keyPattern=/^[A-Za-z0-9._:-]{8,200}$/;
@@ -74,7 +76,8 @@ export class FormalUgcService{
       if(!["draft","rejected","published"].includes(post.state))throw new DomainError("UGC_POST_LOCKED","当前审核状态不能编辑",409);
       if(post.version!==expected)throw new DomainError("UGC_VERSION_CONFLICT","草稿已更新，请重新加载后核对",409);
       if(images.length){const owned=await client.query(`SELECT id FROM ugc_media_asset WHERE id=ANY($1::uuid[]) AND owner_member_id=$2
-        AND state IN ('uploaded','scanning','approved') AND (bound_post_id IS NULL OR bound_post_id=$3) FOR UPDATE`,[images,owner,id]);
+        AND source_post_id=$3 AND state IN ('uploaded','scanning','approved')
+        AND (bound_post_id IS NULL OR bound_post_id=$3) FOR UPDATE`,[images,owner,id]);
         if(owned.rowCount!==images.length)throw new DomainError("UGC_MEDIA_NOT_READY","有图片尚未上传完成或不属于这篇内容",409);}
       const revision=post.current_revision+1;
       await client.query(`INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body,ai_usage,rights_confirmed,public_consent_confirmed)
@@ -123,8 +126,8 @@ export class FormalUgcService{
       const switchRow=await client.query("SELECT 1 FROM emergency_switch WHERE key='uploads' AND enabled");
       if(!switchRow.rowCount)throw new DomainError("UPLOADS_PAUSED","图片上传暂时不可用，请稍后重试",503);
       const mediaId=randomUUID(),objectKey=`ugc/${owner}/${id}/${mediaId}`;
-      await client.query(`INSERT INTO ugc_media_asset(id,owner_member_id,kind,object_key,mime_type,authorization_expires_at,authorized_max_bytes)
-        VALUES($1,$2,'image',$3,$4,$5,$6)`,[mediaId,owner,objectKey,mimeType,new Date(Date.now()+10*60_000),size]);
+      await client.query(`INSERT INTO ugc_media_asset(id,owner_member_id,source_post_id,kind,object_key,mime_type,authorization_expires_at,authorized_max_bytes)
+        VALUES($1,$2,$3,'image',$4,$5,$6,$7)`,[mediaId,owner,id,objectKey,mimeType,new Date(Date.now()+10*60_000),size]);
       return this.storage.authorize({mediaId,objectKey,mimeType,maxBytes:size,baseUrl:input.baseUrl,now:new Date()});
     });
   }
@@ -198,7 +201,7 @@ export class FormalUgcService{
       const post=await client.query("SELECT 1 FROM ugc_post WHERE id=$1 AND author_member_id=$2 AND state IN ('draft','rejected','published') FOR SHARE",[id,owner]);
       if(!post.rowCount)throw new DomainError("UGC_POST_LOCKED","当前内容不能完成图片上传",409);
       const asset=(await client.query(`SELECT * FROM ugc_media_asset WHERE id=$1 AND owner_member_id=$2
-        AND (bound_post_id IS NULL OR bound_post_id=$3) FOR UPDATE`,[assetId,owner,id])).rows[0];
+        AND source_post_id=$3 AND (bound_post_id IS NULL OR bound_post_id=$3) FOR UPDATE`,[assetId,owner,id])).rows[0];
       if(!asset)throw new DomainError("UGC_MEDIA_NOT_FOUND","图片不存在或不属于当前内容",404);
       if(["uploaded","scanning","approved"].includes(asset.state))return {id:assetId,state:asset.state};
       if(asset.state!=="authorized"||new Date(asset.authorization_expires_at)<=new Date())throw new DomainError("UGC_MEDIA_EXPIRED","图片上传授权已过期，请重新选择",409);
@@ -222,26 +225,42 @@ export class FormalUgcService{
       WHERE b.post_id=$1 AND b.revision=$2 ORDER BY b.position`,[id,post.current_revision]);
     const review=await client.query(`SELECT decision,reason,created_at FROM ugc_post_review_action
       WHERE post_id=$1 AND revision=$2 ORDER BY created_at DESC LIMIT 1`,[id,post.current_revision]);
-    const workflowState=post.published_revision && post.current_revision!==post.published_revision
+    const hidden=post.state==="hidden"?(await client.query(`SELECT reason,created_at FROM ugc_post_review_action
+      WHERE post_id=$1 AND decision='hide' ORDER BY created_at DESC LIMIT 1`,[id])).rows[0]:null;
+    const hiddenPublished=post.state==="hidden"?(await client.query(`SELECT title,body FROM ugc_post_revision
+      WHERE post_id=$1 AND revision=$2`,[id,post.published_revision])).rows[0]:null;
+    const appeal=post.state==="hidden"?(await client.query(`SELECT id,state,reason,decision_code,decision_reason,created_at,decided_at
+      FROM ugc_post_appeal WHERE post_id=$1 AND post_version=$2`,[id,post.version])).rows[0]:null;
+    const workflowState=post.state==="hidden"?"hidden":post.published_revision && post.current_revision!==post.published_revision
       ? post.moderation_state==="unreviewed"?"draft":post.moderation_state==="pending"?"pending_review":post.moderation_state==="rejected"?"rejected":post.state
       : post.state;
-    return {id:post.id,state:workflowState,publicVersionActive:post.state==="published"&&Boolean(post.published_revision),
+    return {id:post.id,ownerId:owner,state:workflowState,publicVersionActive:post.state==="published"&&Boolean(post.published_revision),
       visibility:post.visibility,revision:post.current_revision,publishedRevision:post.published_revision,version:post.version,
       title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,rightsConfirmed:post.rights_confirmed,
       publicConsentConfirmed:post.public_consent_confirmed,moderationState:post.moderation_state,updatedAt:post.updated_at,
-      media:media.rows.map(row=>({id:row.id,state:row.state,position:row.position})),reviewNote:review.rows[0]?.reason??null};
+      media:media.rows.map(row=>({id:row.id,state:row.state,position:row.position})),
+      reviewNote:review.rows[0]?.reason??null,reviewedAt:review.rows[0]?.created_at??null,
+      hiddenReason:hidden?.reason??null,hiddenAt:hidden?.created_at??null,
+      hiddenPublished:hiddenPublished?{title:hiddenPublished.title??"",body:hiddenPublished.body??""}:null,
+      appeal:appeal?{id:appeal.id,state:appeal.state,reason:appeal.reason,decisionCode:appeal.decision_code,
+        decisionReason:appeal.decision_reason,createdAt:appeal.created_at,decidedAt:appeal.decided_at}:null};
   }
   async readOwn(memberId:string|undefined,postId:string){const owner=member(memberId),id=uuid(postId);
     return transaction(this.pool,client=>this.readOwnWithClient(client,owner,id),"REPEATABLE READ");}
-  async myPosts(memberId:string|undefined){const owner=member(memberId);
-    const result=await this.pool.query(`SELECT p.id,p.state,p.published_revision,p.current_revision,p.version,p.updated_at,r.title,r.body,r.moderation_state,
+  async myPosts(memberId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}){const owner=member(memberId);
+    const limit=pageLimit(input.limit,30,50),scope=pageScope(["my-ugc",owner]),cursor=readPageCursor(input.cursor,scope);
+    const result=await this.pool.query(`SELECT p.id,p.state,p.published_revision,p.current_revision,p.version,p.updated_at,p.updated_at::text AS cursor_at,r.title,r.body,r.moderation_state,
       (SELECT count(*)::int FROM ugc_post_media b WHERE b.post_id=p.id AND b.revision=p.current_revision) AS image_count
       FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
-      WHERE p.author_member_id=$1 AND p.state<>'deleted' ORDER BY p.updated_at DESC,p.id DESC LIMIT 50`,[owner]);
-    return {items:result.rows.map(row=>({id:row.id,state:row.published_revision&&row.current_revision!==row.published_revision
+      WHERE p.author_member_id=$1 AND p.state<>'deleted'
+        AND ($2::timestamptz IS NULL OR (p.updated_at,p.id)<($2::timestamptz,$3::uuid))
+      ORDER BY p.updated_at DESC,p.id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
+    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,state:row.state==="hidden"?"hidden":row.published_revision&&row.current_revision!==row.published_revision
       ? row.moderation_state==="unreviewed"?"draft":row.moderation_state==="pending"?"pending_review":row.moderation_state==="rejected"?"rejected":row.state
       : row.state,publicVersionActive:row.state==="published"&&Boolean(row.published_revision),version:row.version,updatedAt:row.updated_at,
-      title:row.title||row.body?.slice(0,30)||"图片护理故事",imageCount:row.image_count}))};}
+      title:row.title||row.body?.slice(0,30)||"图片护理故事",imageCount:row.image_count})),limit,scope);
+    const total=(await this.pool.query(`SELECT count(*)::int AS total FROM ugc_post WHERE author_member_id=$1 AND state<>'deleted'`,[owner])).rows[0]?.total??0;
+    return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};}
 
   async feed(memberId:string|undefined,input:{q?:unknown;authorId?:unknown;limit?:unknown;cursor?:unknown;following?:unknown}={}){
     if(!await this.publicEnabled())return {items:[],total:0,nextCursor:null,publicEnabled:false};
@@ -315,24 +334,118 @@ export class FormalUgcService{
       this.pool.query(`SELECT b.media_asset_id AS id,b.position FROM ugc_post_media b JOIN ugc_media_asset a ON a.id=b.media_asset_id
         WHERE b.post_id=$1 AND b.revision=$2 AND a.state='approved' ORDER BY b.position`,[id,post.published_revision]),
       this.pool.query(`SELECT kind,count(*)::int AS count,bool_or(member_id=$2) AS mine FROM ugc_post_reaction WHERE post_id=$1 GROUP BY kind`,[id,memberId??null]),
-      this.pool.query(`SELECT c.id,c.body,c.created_at,c.author_member_id,c.parent_id,c.reply_to_id,c.state
-        FROM ugc_comment c JOIN member commenter ON commenter.id=c.author_member_id AND commenter.status='active'
-        WHERE c.post_id=$1 AND c.state='published' AND
-        (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment parent WHERE parent.id=c.parent_id AND parent.state='published'))
-        ORDER BY c.created_at,c.id LIMIT 100`,[id]),
+      this.publicComments(memberId,id,{limit:30}),
       communityAuthors(this.pool,[post.author_member_id]),
       memberId?this.pool.query(`SELECT EXISTS(SELECT 1 FROM ugc_author_follow
         WHERE follower_member_id=$1 AND followed_member_id=$2) AS following`,[memberId,post.author_member_id])
         :Promise.resolve({rows:[{following:false}]})
     ]);
-    const commentAuthors=await communityAuthors(this.pool,comments.rows.map(row=>row.author_member_id));
     return {id,version:post.version,authorId:post.author_member_id,author:authors[post.author_member_id]?.name??"CISME 会员",
       avatar:authors[post.author_member_id]?.avatar??"",title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,
       publishedAt:post.published_at,isMine:memberId===post.author_member_id,following:follow.rows[0]?.following===true,media:media.rows,
       likeCount:reactions.rows.find(row=>row.kind==="like")?.count??0,saveCount:reactions.rows.find(row=>row.kind==="save")?.count??0,
       liked:reactions.rows.find(row=>row.kind==="like")?.mine??false,saved:reactions.rows.find(row=>row.kind==="save")?.mine??false,
-      comments:comments.rows.map(row=>({id:row.id,body:row.body,createdAt:row.created_at,authorId:row.author_member_id,
-        author:commentAuthors[row.author_member_id]?.name??"CISME 会员",parentId:row.parent_id,replyToId:row.reply_to_id}))};
+      comments:comments.items,commentsTotal:comments.matchingTotal,commentsNextCursor:comments.nextCursor};
+  }
+
+  async publicComments(memberId:string|undefined,postId:string,input:{limit?:unknown;cursor?:unknown}={}){
+    if(!await this.publicEnabled())throw new DomainError("UGC_POST_NOT_FOUND","护理故事暂不可见",404);
+    const id=uuid(postId),limit=pageLimit(input.limit,30,50),scope=pageScope(["ugc-comments",id,memberId??"guest"]),
+      cursor=readPageCursor(input.cursor,scope);
+    const visible=(await this.pool.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id AND author.status='active'
+      WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
+        AND ($2::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b
+          WHERE b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id))`,[id,memberId??null])).rowCount;
+    if(!visible)throw new DomainError("UGC_POST_NOT_FOUND","护理故事已下架或不可见",404);
+    const condition=`c.post_id=$1 AND c.state='published' AND commenter.status='active'
+      AND ($2::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b
+        WHERE b.blocker_member_id=$2 AND b.blocked_member_id=c.author_member_id))
+      AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment parent WHERE parent.id=c.parent_id AND parent.state='published'))`;
+    const result=await this.pool.query(`SELECT c.id,c.body,c.created_at,c.created_at::text AS cursor_at,c.author_member_id,c.parent_id,c.reply_to_id
+      FROM ugc_comment c JOIN member commenter ON commenter.id=c.author_member_id
+      WHERE ${condition} AND ($3::timestamptz IS NULL OR (c.created_at,c.id)>($3::timestamptz,$4::uuid))
+      ORDER BY c.created_at,c.id LIMIT $5`,[id,memberId??null,cursor?.at??null,cursor?.id??null,limit+1]);
+    const total=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_comment c JOIN member commenter ON commenter.id=c.author_member_id
+      WHERE ${condition}`,[id,memberId??null])).rows[0]?.n??0;
+    const authors=await communityAuthors(this.pool,result.rows.map(row=>row.author_member_id));
+    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,body:row.body,createdAt:row.created_at,
+      authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",parentId:row.parent_id,
+      replyToId:row.reply_to_id})),limit,scope);
+    return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};
+  }
+
+  async myActivity(memberId:string|undefined,section:string,input:{limit?:unknown;cursor?:unknown;postId?:unknown}={}){
+    const owner=member(memberId);
+    if(!["comments","saves","reports","blocks","appeals"].includes(section))
+      throw new DomainError("UGC_ACTIVITY_SECTION_INVALID","内容分类无效",422);
+    const postFilter=section==="comments"&&input.postId!=null?uuid(input.postId):null;
+    const limit=pageLimit(input.limit,30,50),scope=pageScope(["ugc-activity",owner,section,postFilter??""]);
+    const cursor=readPageCursor(input.cursor,scope),publicEnabled=await this.publicEnabled();
+    let rows:Array<Record<string,unknown>>=[],matchingTotal=0;
+    if(section==="comments"){
+      const condition=`c.author_member_id=$1 AND ($2::uuid IS NULL OR c.post_id=$2)`;
+      const result=await this.pool.query(`SELECT c.id,c.post_id,c.body,c.state,c.parent_id,c.reply_to_id,c.created_at,
+        c.created_at::text AS cursor_at,CASE WHEN $6::boolean AND p.state='published' AND p.visibility='public'
+          AND author.status='active' THEN COALESCE(r.title,'图片护理故事') ELSE NULL END AS post_title
+        FROM ugc_comment c LEFT JOIN ugc_post p ON p.id=c.post_id
+        LEFT JOIN member author ON author.id=p.author_member_id
+        LEFT JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision
+        WHERE ${condition} AND ($3::timestamptz IS NULL OR (c.created_at,c.id)<($3::timestamptz,$4::uuid))
+        ORDER BY c.created_at DESC,c.id DESC LIMIT $5`,[owner,postFilter,cursor?.at??null,cursor?.id??null,limit+1,publicEnabled]);
+      rows=result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,postId:row.post_id,postTitle:row.post_title,
+        body:row.body,state:row.state,parentId:row.parent_id,replyToId:row.reply_to_id,createdAt:row.created_at}));
+      matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_comment c WHERE ${condition}`,
+        [owner,postFilter])).rows[0]?.n??0;
+    }else if(section==="saves"){
+      const result=await this.pool.query(`SELECT reaction.post_id AS id,reaction.created_at,reaction.created_at::text AS cursor_at,
+        CASE WHEN $4::boolean AND post.state='published' AND post.visibility='public' AND author.status='active'
+          AND NOT EXISTS(SELECT 1 FROM ugc_block_relation block WHERE block.blocker_member_id=$1
+            AND block.blocked_member_id=post.author_member_id)
+          THEN COALESCE(revision.title,'图片护理故事') ELSE NULL END AS title
+        FROM ugc_post_reaction reaction JOIN ugc_post post ON post.id=reaction.post_id
+        LEFT JOIN member author ON author.id=post.author_member_id
+        LEFT JOIN ugc_post_revision revision ON revision.post_id=post.id AND revision.revision=post.published_revision
+        WHERE reaction.member_id=$1 AND reaction.kind='save'
+          AND ($2::timestamptz IS NULL OR (reaction.created_at,reaction.post_id)<($2::timestamptz,$3::uuid))
+        ORDER BY reaction.created_at DESC,reaction.post_id DESC LIMIT $5`,
+        [owner,cursor?.at??null,cursor?.id??null,publicEnabled,limit+1]);
+      rows=result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,postId:row.id,title:row.title,
+        available:row.title!==null,createdAt:row.created_at}));
+      matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_post_reaction
+        WHERE member_id=$1 AND kind='save'`,[owner])).rows[0]?.n??0;
+    }else if(section==="reports"){
+      const result=await this.pool.query(`SELECT id,target_type,target_id,category,description,state,decision_code,
+        decision_reason,created_at,decided_at,created_at::text AS cursor_at FROM ugc_report
+        WHERE reporter_member_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
+        ORDER BY created_at DESC,id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
+      rows=result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,targetType:row.target_type,targetId:row.target_id,
+        category:row.category,description:row.description,state:row.state,decisionCode:row.decision_code,
+        decisionReason:row.decision_reason,createdAt:row.created_at,decidedAt:row.decided_at}));
+      matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_report WHERE reporter_member_id=$1`,
+        [owner])).rows[0]?.n??0;
+    }else if(section==="appeals"){
+      const result=await this.pool.query(`SELECT id,post_id,reason,state,decision_code,decision_reason,created_at,
+        decided_at,created_at::text AS cursor_at FROM ugc_post_appeal WHERE author_member_id=$1
+          AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
+        ORDER BY created_at DESC,id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
+      rows=result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,postId:row.post_id,reason:row.reason,
+        state:row.state,decisionCode:row.decision_code,decisionReason:row.decision_reason,
+        createdAt:row.created_at,decidedAt:row.decided_at}));
+      matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_post_appeal WHERE author_member_id=$1`,
+        [owner])).rows[0]?.n??0;
+    }else{
+      const result=await this.pool.query(`SELECT blocked_member_id AS id,created_at,created_at::text AS cursor_at
+        FROM ugc_block_relation WHERE blocker_member_id=$1
+          AND ($2::timestamptz IS NULL OR (created_at,blocked_member_id)<($2::timestamptz,$3::uuid))
+        ORDER BY created_at DESC,blocked_member_id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
+      const names=await communityAuthors(this.pool,result.rows.map(row=>row.id));
+      rows=result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,memberId:row.id,
+        displayName:names[row.id]?.name??"已屏蔽用户",createdAt:row.created_at}));
+      matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_block_relation
+        WHERE blocker_member_id=$1`,[owner])).rows[0]?.n??0;
+    }
+    const page=finishPage(rows as Array<{id:string;cursorAt:string}>,limit,scope);
+    return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal,section};
   }
 
   async publicMedia(mediaId:string,variant:"thumbnail"|"detail"="detail"){
@@ -367,20 +480,40 @@ export class FormalUgcService{
     return {url:`${baseUrl}/v1/ugc/own-preview/${owner}/${id}?token=${expires}.${signature}`,expiresAt:new Date(expires).toISOString()};
   }
 
+  async ownPostMediaPreviewUrl(memberId:string|undefined,postId:string,mediaId:string,baseUrl:string){
+    const owner=member(memberId),post=uuid(postId),id=uuid(mediaId);
+    const row=(await this.pool.query(`SELECT 1 FROM ugc_media_asset a JOIN ugc_post p ON p.id=a.source_post_id
+      WHERE a.id=$1 AND a.owner_member_id=$2 AND a.source_post_id=$3 AND p.author_member_id=$2
+        AND p.state<>'deleted' AND a.state IN ('uploaded','scanning','approved')`,[id,owner,post])).rows[0];
+    if(!row)throw new DomainError("UGC_MEDIA_NOT_FOUND","图片不存在或不属于这篇内容",404);
+    const expires=Date.now()+5*60_000;
+    const signature=createHmac("sha256",this.config.sessionSecret)
+      .update(`ugc-own-post-preview:${owner}:${post}:${id}:${expires}`).digest("base64url");
+    return {url:`${baseUrl}/v1/ugc/own-preview/${owner}/${id}?token=${expires}.${post}.${signature}`,
+      expiresAt:new Date(expires).toISOString()};
+  }
+
   async ownMediaPreview(ownerId:string,mediaId:string,token:unknown){
     const owner=uuid(ownerId),id=uuid(mediaId),parts=typeof token==="string"?token.split("."):[];
     const expires=Number(parts[0]);
-    if(parts.length!==2||!Number.isSafeInteger(expires)||expires<Date.now()||expires>Date.now()+5*60_000)
+    if(![2,3].includes(parts.length)||!Number.isSafeInteger(expires)||expires<Date.now()||expires>Date.now()+5*60_000)
       throw new DomainError("UGC_PREVIEW_EXPIRED","草稿图片预览已过期",403);
-    const expected=createHmac("sha256",this.config.sessionSecret).update(`ugc-own-preview:${owner}:${id}:${expires}`).digest("base64url");
-    const supplied=Buffer.from(parts[1]??""),expectedBytes=Buffer.from(expected);
+    const sourcePost=parts.length===3?uuid(parts[1]):null;
+    const expected=createHmac("sha256",this.config.sessionSecret)
+      .update(sourcePost?`ugc-own-post-preview:${owner}:${sourcePost}:${id}:${expires}`:`ugc-own-preview:${owner}:${id}:${expires}`)
+      .digest("base64url");
+    const supplied=Buffer.from(parts.at(-1)??""),expectedBytes=Buffer.from(expected);
     if(supplied.length!==expectedBytes.length||!timingSafeEqual(supplied,expectedBytes))
       throw new DomainError("UGC_PREVIEW_INVALID","草稿图片预览无效",403);
-    const row=(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a WHERE a.id=$1 AND a.owner_member_id=$2
-      AND a.state IN ('uploaded','scanning','approved')
-      AND EXISTS(SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
-        WHERE b.media_asset_id=a.id AND p.author_member_id=$2 AND p.current_revision=b.revision
-          AND p.state<>'deleted')`,[id,owner])).rows[0];
+    const row=sourcePost
+      ?(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a JOIN ugc_post p ON p.id=a.source_post_id
+        WHERE a.id=$1 AND a.owner_member_id=$2 AND a.source_post_id=$3 AND p.author_member_id=$2
+          AND p.state<>'deleted' AND a.state IN ('uploaded','scanning','approved')`,[id,owner,sourcePost])).rows[0]
+      :(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a WHERE a.id=$1 AND a.owner_member_id=$2
+        AND a.state IN ('uploaded','scanning','approved')
+        AND EXISTS(SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
+          WHERE b.media_asset_id=a.id AND p.author_member_id=$2 AND p.current_revision=b.revision
+            AND p.state<>'deleted')`,[id,owner])).rows[0];
     if(!row)throw new DomainError("UGC_MEDIA_NOT_FOUND","图片已撤回",404);
     return this.storage.read(row.object_key);
   }
@@ -390,8 +523,7 @@ export class FormalUgcService{
     const result=await this.pool.query(`SELECT p.id,p.author_member_id,p.current_revision,p.published_revision,p.version,p.updated_at,r.title,r.body,r.ai_usage,r.moderation_state,
       (SELECT count(*)::int FROM ugc_post_media b WHERE b.post_id=p.id AND b.revision=p.current_revision) AS image_count
       FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
-      WHERE p.state IN ('pending_review','published') AND r.moderation_state IN ('pending','approved')
-        AND (p.published_revision IS NULL OR p.current_revision<>p.published_revision)
+      WHERE ${reviewableRevisionSql}
       ORDER BY p.updated_at,p.id LIMIT 50`);
     return {items:result.rows};
   }
@@ -402,8 +534,7 @@ export class FormalUgcService{
     const post=(await this.pool.query(`SELECT p.id,p.author_member_id,p.state,p.current_revision,p.published_revision,p.version,p.updated_at,
       r.title,r.body,r.ai_usage,r.rights_confirmed,r.public_consent_confirmed,r.moderation_state
       FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
-      WHERE p.id=$1 AND p.state IN ('pending_review','published') AND r.moderation_state IN ('pending','approved')
-        AND (p.published_revision IS NULL OR p.current_revision<>p.published_revision)`,[id])).rows[0];
+      WHERE p.id=$1 AND ${reviewableRevisionSql}`,[id])).rows[0];
     if(!post)throw new DomainError("UGC_POST_NOT_FOUND","内容不存在",404);
     const [media,approval]=await Promise.all([
       this.pool.query(`SELECT a.id,a.state,a.scan_result->>'verdict' AS scan_verdict,
@@ -419,32 +550,36 @@ export class FormalUgcService{
       lastAction:approval.rows[0]??null};
   }
   async reviewPreviewUrl(memberId:string|undefined,mediaId:string,baseUrl:string){
-    await this.authority.require(memberId,"community.moderate");
+    const reviewer=await this.authority.require(memberId,"community.moderate");
     const id=uuid(mediaId);
-    const row=(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a
-      WHERE a.id=$1 AND a.state IN ('uploaded','scanning','approved','rejected')
-      AND EXISTS(SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
-        WHERE b.media_asset_id=a.id AND p.current_revision=b.revision AND p.state IN ('pending_review','published')
-          AND (p.published_revision IS NULL OR p.current_revision<>p.published_revision))`,[id])).rows[0];
+    const row=(await this.pool.query(`SELECT a.object_key,b.post_id,b.revision FROM ugc_media_asset a
+      JOIN ugc_post_media b ON b.media_asset_id=a.id JOIN ugc_post p ON p.id=b.post_id
+      JOIN ugc_post_revision r ON r.post_id=b.post_id AND r.revision=b.revision
+      WHERE a.id=$1 AND a.state IN ('uploaded','scanning','approved','rejected') AND ${reviewableRevisionSql}
+      ORDER BY b.revision DESC LIMIT 1`,[id])).rows[0];
     if(!row)throw new DomainError("UGC_MEDIA_NOT_FOUND","审核图片不存在",404);
     const expires=Date.now()+5*60_000;
-    const signature=createHmac("sha256",this.config.sessionSecret).update(`ugc-preview:${id}:${expires}`).digest("base64url");
-    return {url:`${baseUrl}/v1/ugc/review-preview/${id}?token=${expires}.${signature}`,expiresAt:new Date(expires).toISOString()};
+    const claims=`${reviewer}.${row.post_id}.${row.revision}.${expires}`;
+    const signature=createHmac("sha256",this.config.sessionSecret).update(`ugc-review-preview:${id}:${claims}`).digest("base64url");
+    return {url:`${baseUrl}/v1/ugc/review-preview/${id}?token=${claims}.${signature}`,expiresAt:new Date(expires).toISOString()};
   }
   async reviewMediaPreview(mediaId:string,token:unknown){
     const id=uuid(mediaId),parts=typeof token==="string"?token.split("."):[];
-    const expires=Number(parts[0]);
-    if(parts.length!==2||!Number.isSafeInteger(expires)||expires<Date.now()||expires>Date.now()+5*60_000)
+    const reviewer=parts[0],postId=parts[1],revision=Number(parts[2]),expires=Number(parts[3]);
+    if(parts.length!==5||!uuidPattern.test(reviewer??"")||!uuidPattern.test(postId??"")||
+      !Number.isSafeInteger(revision)||revision<1||!Number.isSafeInteger(expires)||expires<Date.now()||expires>Date.now()+5*60_000)
       throw new DomainError("UGC_PREVIEW_EXPIRED","审核图片预览已过期",403);
-    const expected=createHmac("sha256",this.config.sessionSecret).update(`ugc-preview:${id}:${expires}`).digest("base64url");
-    const supplied=Buffer.from(parts[1]??""),expectedBytes=Buffer.from(expected);
+    const claims=`${reviewer}.${postId}.${revision}.${expires}`;
+    const expected=createHmac("sha256",this.config.sessionSecret).update(`ugc-review-preview:${id}:${claims}`).digest("base64url");
+    const supplied=Buffer.from(parts[4]??""),expectedBytes=Buffer.from(expected);
     if(supplied.length!==expectedBytes.length||!timingSafeEqual(supplied,expectedBytes))
       throw new DomainError("UGC_PREVIEW_INVALID","审核图片预览无效",403);
+    await this.authority.require(reviewer,"community.moderate");
     const row=(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a
-      WHERE a.id=$1 AND a.state IN ('uploaded','scanning','approved','rejected')
-      AND EXISTS(SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
-        WHERE b.media_asset_id=a.id AND p.current_revision=b.revision AND p.state IN ('pending_review','published')
-          AND (p.published_revision IS NULL OR p.current_revision<>p.published_revision))`,[id])).rows[0];
+      JOIN ugc_post_media b ON b.media_asset_id=a.id JOIN ugc_post p ON p.id=b.post_id
+      JOIN ugc_post_revision r ON r.post_id=b.post_id AND r.revision=b.revision
+      WHERE a.id=$1 AND b.post_id=$2 AND b.revision=$3 AND a.state IN ('uploaded','scanning','approved','rejected')
+        AND ${reviewableRevisionSql}`,[id,postId,revision])).rows[0];
     if(!row)throw new DomainError("UGC_MEDIA_NOT_FOUND","审核图片不存在",404);
     return this.storage.read(row.object_key);
   }
@@ -462,8 +597,7 @@ export class FormalUgcService{
       if(!["uploaded","scanning"].includes(asset.state))throw new DomainError("UGC_MEDIA_REVIEW_CONFLICT","图片审核状态已变化",409);
       const submitted=await client.query(`SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
         JOIN ugc_post_revision r ON r.post_id=b.post_id AND r.revision=b.revision
-        WHERE b.media_asset_id=$1 AND p.current_revision=b.revision AND r.moderation_state='pending'
-          AND p.state IN ('pending_review','published')`,[id]);
+        WHERE b.media_asset_id=$1 AND ${pendingReviewRevisionSql}`,[id]);
       if(!submitted.rowCount)throw new DomainError("UGC_MEDIA_REVIEW_CONFLICT","图片所属内容尚未提交或已变化",409);
       if(decision==="approve" && (asset.scan_result?.verdict!=="safe"||!asset.scan_result?.provider||!asset.scan_result?.checkedAt||
         (this.config.env!=="test"&&asset.scan_result.provider==="test_fixture")))
@@ -570,12 +704,16 @@ export class FormalUgcService{
     const owner=member(memberId),id=uuid(postId),kind=input.kind;
     if(kind!=="like"&&kind!=="save"||typeof input.active!=="boolean")throw new DomainError("UGC_REACTION_INVALID","操作无效",422);
     return transaction(this.pool,async client=>{
-      await this.requirePublicGate(client);
-      const post=await client.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id
-        AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public' FOR SHARE OF p`,[id]);
-      if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架",404);
-      if(input.active)await client.query(`INSERT INTO ugc_post_reaction(post_id,member_id,kind) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[id,owner,kind]);
-      else await client.query("DELETE FROM ugc_post_reaction WHERE post_id=$1 AND member_id=$2 AND kind=$3",[id,owner,kind]);
+      if(input.active){
+        await this.requirePublicGate(client);
+        const post=await client.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id
+          AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
+          AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
+            (b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id) OR
+            (b.blocker_member_id=p.author_member_id AND b.blocked_member_id=$2)) FOR SHARE OF p`,[id,owner]);
+        if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架",404);
+        await client.query(`INSERT INTO ugc_post_reaction(post_id,member_id,kind) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[id,owner,kind]);
+      }else await client.query("DELETE FROM ugc_post_reaction WHERE post_id=$1 AND member_id=$2 AND kind=$3",[id,owner,kind]);
       const count=await client.query("SELECT count(*)::int AS value FROM ugc_post_reaction WHERE post_id=$1 AND kind=$2",[id,kind]);
       return {kind,active:input.active,count:count.rows[0].value};
     });
@@ -615,7 +753,10 @@ export class FormalUgcService{
         return {id:previous.id,state:previous.state};
       }
       const post=await client.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id
-        AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public' FOR SHARE OF p`,[id]);
+        AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
+        AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
+          (b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id) OR
+          (b.blocker_member_id=p.author_member_id AND b.blocked_member_id=$2)) FOR SHARE OF p`,[id,owner]);
       if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架",404);
       if(parentId){const parent=(await client.query("SELECT post_id,state FROM ugc_comment WHERE id=$1",[parentId])).rows[0];
         if(!parent||parent.post_id!==id||parent.state!=="published")throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);}
@@ -650,9 +791,11 @@ export class FormalUgcService{
       if(decision==="approve"){
         if(this.config.env!=="test"){
           const fingerprint=createHash("sha256").update(comment.body).digest("hex");
-          const safe=await client.query(`SELECT 1 FROM ugc_comment_safety_scan WHERE comment_id=$1 AND body_sha256=$2
-            AND provider='wechat_v2' AND state='safe' LIMIT 1`,[id,fingerprint]);
-          if(!safe.rowCount)throw new DomainError("UGC_TEXT_SCAN_REQUIRED","评论安全检测尚未通过",409);
+          const latest=(await client.query<{body_sha256:string;provider:string;state:string}>(
+            `SELECT body_sha256,provider,state FROM ugc_comment_safety_scan WHERE comment_id=$1
+             ORDER BY created_at DESC,id DESC LIMIT 1`,[id])).rows[0];
+          if(latest?.body_sha256!==fingerprint||latest.provider!=="wechat_v2"||latest.state!=="safe")
+            throw new DomainError("UGC_TEXT_SCAN_REQUIRED","评论最近一次安全检测尚未通过",409);
         }
         const post=await client.query("SELECT 1 FROM ugc_post WHERE id=$1 AND state='published' AND visibility='public'",[comment.post_id]);
         if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架，评论不能公开",409);
@@ -677,7 +820,7 @@ export class FormalUgcService{
       if(post.state!=="published"||post.version!==expected)throw new DomainError("UGC_REVIEW_CONFLICT","内容已变化，请刷新后重试",409);
       await client.query("UPDATE ugc_post SET state='hidden',visibility='private',version=version+1,updated_at=now() WHERE id=$1",[id]);
       await client.query(`INSERT INTO ugc_post_review_action(post_id,revision,reviewer_member_id,decision,reason,rule_version,evidence)
-        VALUES($1,$2,$3,'hide',$4,'UGC-R1',$5)`,[id,post.current_revision,reviewer,why,{hiddenAt:new Date().toISOString()}]);
+        VALUES($1,$2,$3,'hide',$4,'UGC-R1',$5)`,[id,post.published_revision,reviewer,why,{hiddenAt:new Date().toISOString()}]);
       return {id,state:"hidden",version:post.version+1};
     });
   }
@@ -703,16 +846,213 @@ export class FormalUgcService{
       throw new DomainError("UGC_REPORT_INVALID","请选择举报原因",422);
     const description=cleanText(input.description,1000,"补充说明");
     return transaction(this.pool,async client=>{
-      const targetTable=type==="post"?"ugc_post":type==="comment"?"ugc_comment":"member";
-      const target=await client.query(`SELECT 1 FROM ${targetTable} WHERE id=$1`,[id]);
+      await this.requirePublicGate(client);
+      const target=type==="post"?await client.query(`SELECT p.published_revision AS revision FROM ugc_post p JOIN member author ON author.id=p.author_member_id
+        WHERE p.id=$1 AND p.state='published' AND p.visibility='public' AND author.status='active'
+          AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id)`,[id,reporter])
+        :type==="comment"?await client.query(`SELECT c.version AS revision FROM ugc_comment c JOIN ugc_post p ON p.id=c.post_id
+          JOIN member author ON author.id=p.author_member_id
+          WHERE c.id=$1 AND c.state='published' AND p.state='published' AND p.visibility='public' AND author.status='active'
+            AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id)`,[id,reporter])
+        :await client.query(`SELECT 1 FROM member m WHERE m.id=$1 AND m.status='active' AND
+          EXISTS(SELECT 1 FROM ugc_post p WHERE p.author_member_id=m.id AND p.state='published' AND p.visibility='public')`,[id]);
       if(!target.rowCount)throw new DomainError("UGC_REPORT_INVALID","举报对象不存在",404);
-      const created=await client.query(`INSERT INTO ugc_report(reporter_member_id,target_type,target_id,category,description)
-        VALUES($1,$2,$3,$4,$5) ON CONFLICT (reporter_member_id,target_type,target_id,category)
-        WHERE state IN ('received','triaged') DO UPDATE SET updated_at=ugc_report.updated_at RETURNING id,state`,[reporter,type,id,input.category,description]);
+      const created=await client.query(`INSERT INTO ugc_report(reporter_member_id,target_type,target_id,category,description,reported_revision)
+        VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT (reporter_member_id,target_type,target_id,category)
+        WHERE state IN ('received','triaged') DO UPDATE SET updated_at=ugc_report.updated_at RETURNING id,state`,
+        [reporter,type,id,input.category,description,target.rows[0]?.revision??null]);
       await client.query(`INSERT INTO moderation_case(source_report_id,target_type,target_id,severity,policy_version)
         VALUES($1,$2,$3,'medium','UGC-R1') ON CONFLICT (target_type,target_id)
         WHERE state IN ('open','reviewing','appealed') DO NOTHING`,[created.rows[0].id,type,id]);
       return created.rows[0];
+    });
+  }
+
+  async reportQueue(memberId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}){
+    await this.authority.require(memberId,"community.moderate");
+    const limit=pageLimit(input.limit,30,50),scope=pageScope(["ugc-report-queue"]),cursor=readPageCursor(input.cursor,scope);
+    const result=await this.pool.query(`SELECT r.id,r.target_type,r.target_id,r.category,r.description,r.state,r.version,
+      r.reported_revision,
+      r.created_at,r.created_at::text AS cursor_at,r.reporter_member_id,
+      CASE WHEN r.target_type='post' THEN p.id WHEN r.target_type='comment' THEN c.post_id ELSE NULL END AS post_id,
+      CASE WHEN r.target_type='post' THEN p.version WHEN r.target_type='comment' THEN c.version ELSE NULL END AS target_version,
+      CASE WHEN r.target_type='post' AND p.state='published' THEN COALESCE(revision.title,revision.body,'图片护理故事')
+        WHEN r.target_type='comment' THEN c.body ELSE NULL END AS target_summary
+      FROM ugc_report r LEFT JOIN ugc_post p ON r.target_type='post' AND p.id=r.target_id
+      LEFT JOIN ugc_post_revision revision ON revision.post_id=p.id AND revision.revision=r.reported_revision
+      LEFT JOIN ugc_comment c ON r.target_type='comment' AND c.id=r.target_id
+      WHERE r.state IN ('received','triaged') AND r.reporter_member_id<>$4::uuid
+        AND CASE r.target_type WHEN 'post' THEN p.author_member_id<>$4::uuid
+          WHEN 'comment' THEN c.author_member_id<>$4::uuid
+          WHEN 'member' THEN r.target_id<>$4::uuid ELSE false END
+        AND ($1::timestamptz IS NULL OR (r.created_at,r.id)<($1::timestamptz,$2::uuid))
+      ORDER BY r.created_at DESC,r.id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1,memberId]);
+    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,targetType:row.target_type,
+      targetId:row.target_id,category:row.category,description:row.description,state:row.state,
+      version:row.version,createdAt:row.created_at,reporterId:row.reporter_member_id,
+      reportedRevision:row.reported_revision,
+      postId:row.post_id,targetVersion:row.target_version,targetSummary:row.target_summary})),limit,scope);
+    const total=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_report r
+      LEFT JOIN ugc_post p ON r.target_type='post' AND p.id=r.target_id
+      LEFT JOIN ugc_comment c ON r.target_type='comment' AND c.id=r.target_id
+      WHERE r.state IN ('received','triaged') AND r.reporter_member_id<>$1::uuid
+        AND CASE r.target_type WHEN 'post' THEN p.author_member_id<>$1::uuid
+          WHEN 'comment' THEN c.author_member_id<>$1::uuid
+          WHEN 'member' THEN r.target_id<>$1::uuid ELSE false END`,[memberId])).rows[0]?.n??0;
+    return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};
+  }
+
+  async decideReport(memberId:string|undefined,reportId:string,input:{decision?:unknown;reason?:unknown;expectedVersion?:unknown;expectedTargetVersion?:unknown}){
+    const reviewer=member(memberId),id=uuid(reportId),decision=input.decision,why=reason(input.reason),
+      expected=positiveVersion(input.expectedVersion);
+    if(!["hide_post","remove_comment","dismiss"].includes(String(decision)))
+      throw new DomainError("UGC_REPORT_DECISION_INVALID","请选择处理方式",422);
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,reviewer,"community.moderate");
+      const report=(await client.query("SELECT * FROM ugc_report WHERE id=$1 FOR UPDATE",[id])).rows[0];
+      if(!report)throw new DomainError("UGC_REPORT_NOT_FOUND","举报不存在",404);
+      if(!["received","triaged"].includes(report.state)||report.version!==expected)
+        throw new DomainError("UGC_REPORT_CHANGED","举报已由他人处理，请刷新",409);
+      if(report.reporter_member_id===reviewer)throw new DomainError("UGC_REPORT_SELF_DECISION_FORBIDDEN","不能处理自己的举报",403);
+      const targetOwner=report.target_type==="post"?(await client.query<{author_member_id:string}>(
+        "SELECT author_member_id FROM ugc_post WHERE id=$1",[report.target_id])).rows[0]?.author_member_id
+        :report.target_type==="comment"?(await client.query<{author_member_id:string}>(
+          "SELECT author_member_id FROM ugc_comment WHERE id=$1",[report.target_id])).rows[0]?.author_member_id
+          :report.target_id;
+      if(targetOwner===reviewer)throw new DomainError("UGC_SELF_REVIEW_FORBIDDEN","不能处理针对自己的举报",403);
+      if(report.target_type==="post"){
+        const current=(await client.query<{published_revision:number}>(
+          "SELECT published_revision FROM ugc_post WHERE id=$1",[report.target_id])).rows[0];
+        if(!report.reported_revision||!current||
+          decision!=="dismiss"&&current.published_revision!==report.reported_revision)
+          throw new DomainError("UGC_REPORT_TARGET_CHANGED","举报所指公开版本已变化，请先核对原版本",409);
+      }
+      if(decision==="hide_post"){
+        if(report.target_type!=="post")throw new DomainError("UGC_REPORT_DECISION_INVALID","此处理方式只适用于帖子",422);
+        const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 FOR UPDATE",[report.target_id])).rows[0];
+        if(!post||post.state!=="published"||post.visibility!=="public"||post.version!==positiveVersion(input.expectedTargetVersion))
+          throw new DomainError("UGC_REPORT_TARGET_CHANGED","帖子已不公开，请重新核对",409);
+        if(post.author_member_id===reviewer)throw new DomainError("UGC_SELF_REVIEW_FORBIDDEN","不能处理自己的内容",403);
+        await client.query("UPDATE ugc_post SET state='hidden',visibility='private',version=version+1,updated_at=now() WHERE id=$1",
+          [report.target_id]);
+        await client.query(`INSERT INTO ugc_post_review_action(post_id,revision,reviewer_member_id,decision,reason,rule_version,evidence)
+          VALUES($1,$2,$3,'hide',$4,'UGC-R1',$5)`,[report.target_id,post.published_revision,reviewer,why,
+            {reportId:id,source:"report_decision"}]);
+      }else if(decision==="remove_comment"){
+        if(report.target_type!=="comment")throw new DomainError("UGC_REPORT_DECISION_INVALID","此处理方式只适用于评论",422);
+        const comment=(await client.query("SELECT * FROM ugc_comment WHERE id=$1 FOR UPDATE",[report.target_id])).rows[0];
+        if(!comment||comment.state!=="published"||comment.version!==positiveVersion(input.expectedTargetVersion))
+          throw new DomainError("UGC_REPORT_TARGET_CHANGED","评论已变化，请重新核对",409);
+        if(comment.author_member_id===reviewer)throw new DomainError("UGC_SELF_REVIEW_FORBIDDEN","不能处理自己的评论",403);
+        await client.query("UPDATE ugc_comment SET state='deleted',body=NULL,deleted_at=now(),version=version+1,updated_at=now() WHERE id=$1",
+          [report.target_id]);
+      }
+      const finalState=decision==="dismiss"?"rejected":"resolved";
+      await client.query(`UPDATE ugc_report SET state=$2,decision_code=$3,decision_reason=$4,
+        decided_by_member_id=$5,decided_at=now(),version=version+1,updated_at=now() WHERE id=$1`,
+        [id,finalState,decision,why,reviewer]);
+      const otherOpen=(await client.query(`SELECT 1 FROM ugc_report WHERE target_type=$1 AND target_id=$2
+        AND state IN ('received','triaged') LIMIT 1`,[report.target_type,report.target_id])).rowCount;
+      if(!otherOpen)await client.query(`UPDATE moderation_case SET state='resolved',decision_code=$3,
+        resolved_at=now(),version=version+1,updated_at=now()
+        WHERE target_type=$1 AND target_id=$2 AND state IN ('open','reviewing','appealed')`,
+        [report.target_type,report.target_id,decision]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES($1,'ugc.report_decision','ugc_report',$2,$3,$4,$5,$6)`,[`member:${reviewer}`,id,why,
+          {state:report.state,version:report.version},{state:finalState,decision},randomUUID()]);
+      return {id,state:finalState,decisionCode:decision,version:expected+1};
+    });
+  }
+
+  async submitAppeal(memberId:string|undefined,postId:string,input:{reason?:unknown;expectedVersion?:unknown}){
+    const author=member(memberId),id=uuid(postId),expected=positiveVersion(input.expectedVersion),
+      appealReason=cleanText(input.reason,1000,"申诉理由")??"";
+    if(appealReason.length<4)throw new DomainError("UGC_APPEAL_REASON_REQUIRED","请填写至少4字的申诉理由",422);
+    return transaction(this.pool,async client=>{
+      const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 AND author_member_id=$2 FOR UPDATE",[id,author])).rows[0];
+      if(!post)throw new DomainError("UGC_POST_NOT_FOUND","内容不存在或不属于当前账号",404);
+      if(post.state!=="hidden"||post.version!==expected||!post.published_revision)
+        throw new DomainError("UGC_APPEAL_TARGET_CHANGED","下架状态已变化，请刷新后核对",409);
+      const prior=(await client.query(`SELECT id,state,reason,version FROM ugc_post_appeal
+        WHERE post_id=$1 AND post_version=$2`,[id,post.version])).rows[0];
+      if(prior){if(prior.reason!==appealReason)throw new DomainError("UGC_APPEAL_ALREADY_EXISTS","这次下架已有申诉，请查看原记录",409);
+        return {id:prior.id,state:prior.state,version:prior.version,alreadyCreated:true};}
+      const result=(await client.query(`INSERT INTO ugc_post_appeal(post_id,author_member_id,post_version,published_revision,reason)
+        VALUES($1,$2,$3,$4,$5) RETURNING id,state,version`,[id,author,post.version,post.published_revision,appealReason])).rows[0];
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES($1,'ugc.content_appeal_submitted','ugc_post_appeal',$2,'AUTHOR_APPEAL',$3,$4)`,
+        [`member:${author}`,result.id,{postId:id,postVersion:post.version},randomUUID()]);
+      return {...result,alreadyCreated:false};
+    });
+  }
+
+  async appealQueue(memberId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}){
+    await this.authority.require(memberId,"community.moderate");
+    const limit=pageLimit(input.limit,30,50),scope=pageScope(["ugc-appeal-queue"]),cursor=readPageCursor(input.cursor,scope);
+    const result=await this.pool.query(`SELECT a.id,a.post_id,a.author_member_id,a.post_version,a.published_revision,
+      a.reason,a.state,a.version,a.created_at,a.created_at::text AS cursor_at,
+      p.state AS post_state,p.version AS current_post_version,r.title,r.body,
+      hidden.reason AS hidden_reason,hidden.reviewer_member_id AS hidden_by_member_id,
+      hide_report.reporter_member_id AS hide_reporter_member_id
+      FROM ugc_post_appeal a JOIN ugc_post p ON p.id=a.post_id
+      JOIN ugc_post_revision r ON r.post_id=a.post_id AND r.revision=a.published_revision
+      LEFT JOIN LATERAL(SELECT reason,reviewer_member_id,evidence FROM ugc_post_review_action
+        WHERE post_id=a.post_id AND decision='hide' ORDER BY created_at DESC LIMIT 1) hidden ON true
+      LEFT JOIN ugc_report hide_report ON hide_report.id=(hidden.evidence->>'reportId')::uuid
+      WHERE a.state='received' AND a.author_member_id<>$4::uuid
+        AND hidden.reviewer_member_id IS DISTINCT FROM $4::uuid
+        AND hide_report.reporter_member_id IS DISTINCT FROM $4::uuid
+        AND ($1::timestamptz IS NULL OR (a.created_at,a.id)<($1::timestamptz,$2::uuid))
+      ORDER BY a.created_at DESC,a.id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1,memberId]);
+    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,postId:row.post_id,
+      authorId:row.author_member_id,postVersion:row.post_version,publishedRevision:row.published_revision,
+      reason:row.reason,state:row.state,version:row.version,createdAt:row.created_at,
+      postState:row.post_state,currentPostVersion:row.current_post_version,title:row.title,body:row.body,
+      hiddenReason:row.hidden_reason,hiddenByMemberId:row.hidden_by_member_id,
+      hideReporterMemberId:row.hide_reporter_member_id})),limit,scope);
+    const total=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM ugc_post_appeal a
+      LEFT JOIN LATERAL(SELECT reviewer_member_id,evidence FROM ugc_post_review_action
+        WHERE post_id=a.post_id AND decision='hide' ORDER BY created_at DESC LIMIT 1) hidden ON true
+      LEFT JOIN ugc_report hide_report ON hide_report.id=(hidden.evidence->>'reportId')::uuid
+      WHERE a.state='received' AND a.author_member_id<>$1::uuid
+        AND hidden.reviewer_member_id IS DISTINCT FROM $1::uuid
+        AND hide_report.reporter_member_id IS DISTINCT FROM $1::uuid`,[memberId])).rows[0]?.n??0;
+    return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};
+  }
+
+  async decideAppeal(memberId:string|undefined,appealId:string,input:{decision?:unknown;reason?:unknown;expectedVersion?:unknown}){
+    const reviewer=member(memberId),id=uuid(appealId),decision=input.decision,why=reason(input.reason),
+      expected=positiveVersion(input.expectedVersion);
+    if(decision!=="restore"&&decision!=="uphold")throw new DomainError("UGC_APPEAL_DECISION_INVALID","请选择申诉处理方式",422);
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,reviewer,"community.moderate");
+      const appeal=(await client.query("SELECT * FROM ugc_post_appeal WHERE id=$1 FOR UPDATE",[id])).rows[0];
+      if(!appeal)throw new DomainError("UGC_APPEAL_NOT_FOUND","申诉不存在",404);
+      if(appeal.state!=="received"||appeal.version!==expected)
+        throw new DomainError("UGC_APPEAL_CHANGED","申诉已由他人处理，请刷新",409);
+      if(appeal.author_member_id===reviewer)throw new DomainError("UGC_SELF_REVIEW_FORBIDDEN","不能处理自己的申诉",403);
+      const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 FOR UPDATE",[appeal.post_id])).rows[0];
+      if(!post||post.state!=="hidden"||post.version!==appeal.post_version||post.published_revision!==appeal.published_revision)
+        throw new DomainError("UGC_APPEAL_TARGET_CHANGED","内容状态已变化，请重新核对",409);
+      const hidden=(await client.query(`SELECT reviewer_member_id,evidence FROM ugc_post_review_action
+        WHERE post_id=$1 AND decision='hide' ORDER BY created_at DESC LIMIT 1`,[appeal.post_id])).rows[0];
+      const hideReporter=hidden?.evidence?.reportId?(await client.query("SELECT reporter_member_id FROM ugc_report WHERE id=$1",
+        [hidden.evidence.reportId])).rows[0]?.reporter_member_id:null;
+      if(hidden?.reviewer_member_id===reviewer||hideReporter===reviewer)
+        throw new DomainError("UGC_APPEAL_INDEPENDENT_REVIEW_REQUIRED","下架处理人及该次举报人不能复核申诉",403);
+      if(decision==="restore"){
+        await this.requirePublicGate(client);
+        await client.query(`UPDATE ugc_post SET state='published',visibility='public',version=version+1,updated_at=now()
+          WHERE id=$1`,[appeal.post_id]);
+      }
+      const state=decision==="restore"?"resolved":"rejected";
+      await client.query(`UPDATE ugc_post_appeal SET state=$2,decision_code=$3,decision_reason=$4,
+        decided_by_member_id=$5,decided_at=now(),version=version+1,updated_at=now() WHERE id=$1`,
+        [id,state,decision,why,reviewer]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES($1,'ugc.content_appeal_decided','ugc_post_appeal',$2,$3,$4,$5,$6)`,[`member:${reviewer}`,id,why,
+          {state:appeal.state,postVersion:appeal.post_version},{state,decision,postId:appeal.post_id},randomUUID()]);
+      return {id,state,decisionCode:decision,version:expected+1,postId:appeal.post_id};
     });
   }
 

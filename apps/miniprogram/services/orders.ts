@@ -1,6 +1,6 @@
 import { request } from "./api";
 
-export type PendingOrderStatus = "pending_payment" | "cancelled" | "expired";
+export type PendingOrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 export interface CheckoutAddress {
   id: string; recipientName: string; phone: string; province: string; city: string; district: string; detail: string;
   postalCode: string; nationalCode: string; provinceCode?: string; cityCode?: string; districtCode?: string;
@@ -24,7 +24,7 @@ export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAd
   id: string; orderNumber: string; status: PendingOrderStatus; currency: "CNY"; subtotalCents: number; memberDiscountCents: number;
   shippingCents: number; totalCents: number; pricingRuleVersion: string; version: number; expiresAt: string;
   cancelledAt: string | null; expiredAt: string | null; terminalReason: string | null; createdAt: string; updatedAt: string;
-  paymentAvailable: false; lines: OrderLine[]; address: TAddress | null;
+  paymentAvailable: false; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
 }
 export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null };
 export interface CommerceOrderPage {
@@ -32,7 +32,8 @@ export interface CommerceOrderPage {
 }
 export interface CommerceOrderRuntimeStatus {
   version: 1; orderFlowEnabled: boolean; paymentAvailable: false; paymentOnboarding: "IN_PROGRESS"; currency: "CNY";
-  scope: "synthetic_nonproduction" | "disabled";
+  scope: "synthetic_nonproduction" | "verified_isolated_test" | "disabled";
+  isolatedMoneyOperationsAvailable: boolean; isolatedTransferAvailable: boolean;
 }
 
 export function clientOperationKey(prefix: string): string {

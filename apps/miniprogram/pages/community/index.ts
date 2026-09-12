@@ -2,6 +2,7 @@ import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors, prepareFeed
 import { request, resumeAuthentication } from "../../services/api";
 import { editorialStories } from "../../services/editorial";
 import { currentChromeStyle } from "../../services/layout";
+import { memberIdentity } from "../../services/member-identity";
 import { consumerTaskEntries } from "../../services/task-entry";
 
 const feedColumns = (items: any[]) => items.reduce<[any[], any[]]>((columns, item, index) => {
@@ -18,7 +19,7 @@ let scrollDirection: -1 | 0 | 1 = 0;
 let scrollTravel = 0;
 
 Page({
-  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], followingFeed: [] as any[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], reviewBusy: false, teamError: "", feed: [] as any[], formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, searchInput:"", appliedSearch:"", displayFeedCount: editorialStories.length, feedColumns: feedColumns(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], followingFeed: [] as any[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",feed: [] as any[], formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, searchInput:"", appliedSearch:"", displayFeedCount: editorialStories.length, feedColumns: feedColumns(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.resetChromeMotion();
@@ -37,7 +38,7 @@ Page({
     const tab = this.getTabBar?.();
     tab?.setPresentation?.("community-scroll", false);
     tab?.leaveCommunityFab?.();
-    this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [] });
+    this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [],formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:"",reviewNotice:"" });
   },
   onUnload() {
     this.data.feedAttempt += 1;
@@ -123,6 +124,7 @@ Page({
     void this.load();
   },
   async onReachBottom(){
+    if(this.data.mode==="review"){if(this.data.reportNextCursor)await this.loadMoreReports();else await this.loadMoreAppeals();return;}
     const mode=this.data.mode,cursor=mode==="following"?this.data.followingNextCursor:this.data.formalNextCursor,
       attempt=this.data.feedAttempt;
     if(!cursor||this.data.formalLoadingMore||this.data.loading||!["recommend","following"].includes(mode)||!this.data.ugcFeedEnabled)return;
@@ -191,14 +193,109 @@ Page({
     if (!this.data.canReview) return;
     const token = getApp<IAppOption>().globalData.sessionToken;
     const attempt = this.data.feedAttempt;
-    this.setData({ reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [], teamError: "", reviewBusy: true });
+    this.setData({ reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [],formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:memberIdentity()?.id||"", teamError: "", reviewBusy: true });
     try {
-      const [reviewQueue, publicationQueue, profiles, formal] = await Promise.all([request<any[]>({ path: "/v1/team/reviews" }), request<any[]>({ path: "/v1/team/publications" }), request<any[]>({ path: "/v1/team/member-profiles" }), request<{items:any[]}>({path:"/v1/management/ugc/review-queue"})]);
+      const [reviewQueue, publicationQueue, profiles, formal,reports,appeals] = await Promise.all([request<any[]>({ path: "/v1/team/reviews" }), request<any[]>({ path: "/v1/team/publications" }), request<any[]>({ path: "/v1/team/member-profiles" }), request<{items:any[]}>({path:"/v1/management/ugc/review-queue"}),request<{items:any[];nextCursor:string|null;matchingTotal:number}>({path:"/v1/management/ugc/reports?limit=30"}),request<{items:any[];nextCursor:string|null;matchingTotal:number}>({path:"/v1/management/ugc/appeals?limit=30"})]);
       const profileReviewQueue=await Promise.all(profiles.map(async row=>{const {avatar_data_url,...safe}=row;return {...safe,avatar:await localMemberAvatar(avatar_data_url,row.avatar_revision)};}));
       if (attempt !== this.data.feedAttempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      this.setData({ reviewQueue, publicationQueue, profileReviewQueue, formalReviewQueue: formal.items });
+      this.setData({ reviewQueue, publicationQueue, profileReviewQueue, formalReviewQueue: formal.items,
+        formalReportQueue:reports.items,reportNextCursor:reports.nextCursor,reportTotal:reports.matchingTotal,
+        formalAppealQueue:appeals.items,appealNextCursor:appeals.nextCursor,appealTotal:appeals.matchingTotal });
     } catch (error) { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ teamError: (error as {title?:string}).title || "审核列表未同步，请重试" }); }
     finally { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ reviewBusy: false }); }
+  },
+  async loadMoreReports(){
+    const cursor=this.data.reportNextCursor;
+    if(this.data.mode!=="review"||!cursor||this.data.reviewBusy||this.data.reportLoadingMore)return;
+    const token=getApp<IAppOption>().globalData.sessionToken,attempt=this.data.feedAttempt;
+    this.setData({reportLoadingMore:true,teamError:""});
+    try{const page=await request<{items:any[];nextCursor:string|null;matchingTotal:number}>({
+      path:`/v1/management/ugc/reports?limit=30&cursor=${encodeURIComponent(cursor)}`});
+      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||
+        this.data.mode!=="review"||cursor!==this.data.reportNextCursor)return;
+      const seen=new Set(this.data.formalReportQueue.map(row=>row.id));
+      this.setData({formalReportQueue:[...this.data.formalReportQueue,...page.items.filter(row=>!seen.has(row.id))],
+        reportNextCursor:page.nextCursor,reportTotal:page.matchingTotal});
+    }catch(error){if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken)
+      this.setData({teamError:(error as {title?:string}).title||"更多举报未加载，请重试。"});}
+    finally{if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken)
+      this.setData({reportLoadingMore:false});}
+  },
+  async loadMoreAppeals(){
+    const cursor=this.data.appealNextCursor;
+    if(this.data.mode!=="review"||!cursor||this.data.reviewBusy||this.data.appealLoadingMore)return;
+    const token=getApp<IAppOption>().globalData.sessionToken,attempt=this.data.feedAttempt;
+    this.setData({appealLoadingMore:true,teamError:""});
+    try{const page=await request<{items:any[];nextCursor:string|null;matchingTotal:number}>({
+      path:`/v1/management/ugc/appeals?limit=30&cursor=${encodeURIComponent(cursor)}`});
+      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||
+        this.data.mode!=="review"||cursor!==this.data.appealNextCursor)return;
+      const seen=new Set(this.data.formalAppealQueue.map(row=>row.id));
+      this.setData({formalAppealQueue:[...this.data.formalAppealQueue,...page.items.filter(row=>!seen.has(row.id))],
+        appealNextCursor:page.nextCursor,appealTotal:page.matchingTotal});
+    }catch(error){if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken)
+      this.setData({teamError:(error as {title?:string}).title||"更多申诉未加载，请重试。"});}
+    finally{if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken)
+      this.setData({appealLoadingMore:false});}
+  },
+  async decideFormalAppeal(event:WechatMiniprogram.TouchEvent){
+    if(this.data.reviewBusy||this.data.mode!=="review"||!this.data.canReview)return;
+    const id=String(event.currentTarget.dataset.id||""),decision=String(event.currentTarget.dataset.decision||""),
+      row=this.data.formalAppealQueue.find(item=>item.id===id);
+    if(!row||!["restore","uphold"].includes(decision)||decision==="restore"&&
+      (!this.data.ugcFeedEnabled||row.postState!=="hidden"))return;
+    if(row.hiddenByMemberId===this.data.reviewActorId||row.hideReporterMemberId===this.data.reviewActorId||
+      row.authorId===this.data.reviewActorId)return;
+    const token=getApp<IAppOption>().globalData.sessionToken,attempt=this.data.feedAttempt,version=row.version;
+    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&attempt===this.data.feedAttempt&&
+      this.data.mode==="review"&&this.data.formalAppealQueue.some(item=>item.id===id&&item.version===version);
+    const answer=await wx.showModal({title:decision==="restore"?"复核并恢复公开？":"维持下架决定？",editable:true,
+      placeholderText:"填写核查依据（至少4字）",confirmText:"确认处理"});
+    if(!answer.confirm||!current())return;
+    const why=(answer.content||"").trim();if(why.length<4){this.setData({teamError:"请填写至少4字的处理依据。"});return;}
+    this.setData({reviewBusy:true,teamError:""});
+    try{if(!current())return;
+      await request({path:`/v1/management/ugc/appeals/${id}/decision`,method:"POST",
+        data:{decision,reason:why,expectedVersion:version}});
+      if(!current())return;
+      this.setData({reviewNotice:decision==="restore"?"内容已恢复公开，作者可查看申诉结果。":"已维持下架，作者可查看申诉结果。"});
+      await this.loadReview();
+    }catch(error){if(current())this.setData({teamError:(error as {status?:number}).status===409?
+      "这条申诉或内容状态已变化，请刷新队列。":(error as {title?:string}).title||"申诉未处理，请重试。"});}
+    finally{if(current())this.setData({reviewBusy:false});}
+  },
+  openReportTarget(event:WechatMiniprogram.TouchEvent){
+    const id=String(event.currentTarget.dataset.id||"");
+    const row=this.data.formalReportQueue.find(item=>item.id===id);
+    if(!row?.postId||this.data.navigating)return;
+    this.setData({navigating:true});
+    wx.navigateTo({url:`/pages/community-post/index?id=${encodeURIComponent(row.postId)}`,
+      fail:()=>{this.setData({navigating:false});wx.showToast({title:"对象当前不可见，请核对举报摘要",icon:"none"});}});
+  },
+  async decideFormalReport(event:WechatMiniprogram.TouchEvent){
+    if(this.data.reviewBusy||this.data.mode!=="review"||!this.data.canReview)return;
+    const id=String(event.currentTarget.dataset.id||""),decision=String(event.currentTarget.dataset.decision||""),
+      row=this.data.formalReportQueue.find(item=>item.id===id);
+    if(!row||!(["dismiss",row.targetType==="post"?"hide_post":row.targetType==="comment"?"remove_comment":""].includes(decision)))return;
+    const token=getApp<IAppOption>().globalData.sessionToken,attempt=this.data.feedAttempt,version=row.version;
+    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&attempt===this.data.feedAttempt&&
+      this.data.mode==="review"&&this.data.formalReportQueue.some(item=>item.id===id&&item.version===version);
+    const answer=await wx.showModal({title:decision==="hide_post"?"下架被举报内容？":decision==="remove_comment"?"移除被举报评论？":"驳回这条举报？",
+      editable:true,placeholderText:"填写核查依据（至少4字），决定会通知举报人",confirmText:"确认处理"});
+    if(!answer.confirm||!current())return;
+    const why=(answer.content||"").trim();
+    if(why.length<4){this.setData({teamError:"请填写至少4字的处理依据。"});return;}
+    this.setData({reviewBusy:true,teamError:""});
+    try{if(!current())return;
+      await request({path:`/v1/management/ugc/reports/${id}/decision`,method:"POST",
+        data:{decision,reason:why,expectedVersion:version,
+          ...(decision!=="dismiss"?{expectedTargetVersion:row.targetVersion}:{})}});
+      if(!current())return;
+      this.setData({reviewNotice:"举报已处理，结果可由举报人查看。"});
+      await this.loadReview();
+    }catch(error){if(current())this.setData({teamError:(error as {status?:number}).status===409?
+      "这条举报已被处理，请刷新队列核对。":(error as {title?:string}).title||"举报未处理，请重试。"});}
+    finally{if(current())this.setData({reviewBusy:false});}
   },
   openFormalReview(event: WechatMiniprogram.TouchEvent) {
     if (this.data.navigating || !this.data.canReview) return;

@@ -1,25 +1,13 @@
 import { request, resumeAuthentication, uploadAuthorized } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
+import { clearUgcBackup, readUgcBackup, writeUgcBackup, type UgcLocalBackup } from "../../services/ugc-local-backup";
 
 type MediaItem = { id: string; localPath: string; previewUrl: string; size: number; state: "uploading" | "uploaded" | "failed"; progress: number; error: string };
-type Draft = { id: string; state: string; version: number; title: string; body: string; aiUsage: string;
-  rightsConfirmed: boolean; publicConsentConfirmed: boolean; publicVersionActive: boolean; media: Array<{ id: string; state: string }> };
+type Draft = { id: string; ownerId:string; state: string; version: number; title: string; body: string; aiUsage: string;
+  rightsConfirmed: boolean; publicConsentConfirmed: boolean; publicVersionActive: boolean; media: Array<{ id: string; state: string }>;
+  reviewNote:string|null;reviewedAt:string|null;hiddenReason:string|null;hiddenAt:string|null;
+  hiddenPublished:{title:string;body:string}|null;appeal:{id:string;state:string;reason:string;decisionReason:string|null}|null };
 const operationKey = () => `ugc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-const localBackupKey="cisme.ugcComposerBackup.v1";
-type LocalBackup={ownerSession:string;postId:string;baseVersion:number;title:string;body:string;aiUsage:string;
-  rightsConfirmed:boolean;publicConsentConfirmed:boolean;mediaIds:string[];savedAt:number};
-function readLocalBackup(token:string,postId:string,version:number):LocalBackup|null{
-  try{const value=wx.getStorageSync<LocalBackup|null>(localBackupKey);
-    if(value?.ownerSession===token&&value.postId===postId&&value.baseVersion===version&&
-      Date.now()-value.savedAt<7*24*60*60_000)return value;
-  }catch{/* Server draft remains authoritative when local storage is unavailable. */}
-  return null;
-}
-function clearLocalBackup(token:string,postId:string){
-  try{const value=wx.getStorageSync<LocalBackup|null>(localBackupKey);
-    if(value?.ownerSession===token&&value.postId===postId)wx.removeStorageSync(localBackupKey);
-  }catch{/* No local backup to clear. */}
-}
 const stateLabel = (state: string) => ({ draft: "草稿", pending_review: "审核中", rejected: "待修改", published: "已发布", hidden: "已下架" }[state] || state);
 const message = (error: unknown, fallback: string) => (error as { title?: string })?.title || fallback;
 
@@ -36,14 +24,19 @@ async function mimeOf(path: string): Promise<string> {
 
 Page({
   lastSessionToken: "",
+  shown:false,
   backupTimer: null as ReturnType<typeof setTimeout>|null,
-  data: { chromeStyle: currentChromeStyle(), postId: "", state: "draft", publicVersionActive: false, version: 0, title: "", body: "", aiUsage: "none",
+  data: { chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "", aiUsage: "none",
     aiOptions: ["未使用 AI", "AI 辅助", "AI 生成", "尚不明确"], aiIndex: 0, rightsConfirmed: false, publicConsentConfirmed: false,
-    files: [] as MediaItem[], drafts: [] as Array<{ id: string; title: string; status: string; imageCount: number }>,
-    listMode: false, busy: false, uploadBusy: false, loading: true, error: "", notice: "", dirty: false, epoch: 0, createKey: operationKey(),
+    files: [] as MediaItem[],sorting:false,drafts: [] as Array<{ id: string; title: string; status: string; state:string;version:number;imageCount: number }>,
+    listMode: false, busy: false,operation:"idle", uploadBusy: false, loading: true, error: "", notice: "", dirty: false, epoch: 0, createKey: operationKey(),
+    reviewNote:"",reviewedLabel:"",hiddenReason:"",hiddenPublished:null as {title:string;body:string}|null,
+    appeal:null as Draft["appeal"],publicGateEnabled:false,
+    listTotal:0,listCursor:null as string|null,listLoadingMore:false,listMoreError:"",
     requestedDraftId: "", requestedNew: false },
   onLoad(query: Record<string, string | undefined>) {
     this.lastSessionToken=getApp<IAppOption>().globalData.sessionToken;
+    void this.refreshPublicGate();
     this.setData({ listMode: !query.id && query.new !== "1", requestedDraftId: query.id || "", requestedNew: query.new === "1" });
     if (!getApp<IAppOption>().globalData.sessionToken) {
       this.setData({ loading: false, error: "登录后可写自己的护理故事。" });
@@ -57,16 +50,26 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token===this.lastSessionToken)return;
+    void this.refreshPublicGate();
+    if(token===this.lastSessionToken){if(this.shown&&this.data.state==="hidden"&&this.data.postId)void this.loadDraft(this.data.postId);
+      this.shown=true;return;}
+    this.shown=true;
+    const priorPostId=this.data.postId;
     const wasGuest=!this.lastSessionToken;
-    if(this.lastSessionToken&&this.data.postId)clearLocalBackup(this.lastSessionToken,this.data.postId);
     this.lastSessionToken=token;
     this.data.epoch+=1;
-    this.setData({postId:"",files:[],drafts:[],title:"",body:"",notice:"",error:"",busy:false,uploadBusy:false,dirty:false,loading:true});
+    this.setData({postId:"",ownerId:"",files:[],drafts:[],listTotal:0,listCursor:null,listLoadingMore:false,listMoreError:"",
+      title:"",body:"",notice:"",error:"",busy:false,uploadBusy:false,dirty:false,loading:true});
     if(!token){this.setData({loading:false,error:"登录后可写自己的护理故事。"});return;}
     if(wasGuest&&this.data.requestedDraftId)void this.loadDraft(this.data.requestedDraftId);
     else if(wasGuest&&this.data.requestedNew)void this.createDraft();
+    else if(priorPostId)void this.loadDraft(priorPostId);
     else void this.loadList();
+  },
+  async refreshPublicGate(){
+    try{const status=await request<{publicEnabled:boolean}>({path:"/v1/ugc/status",authMode:"public"});
+      this.setData({publicGateEnabled:status.publicEnabled===true});}
+    catch{this.setData({publicGateEnabled:false});}
   },
   onHide(){this.flushLocalBackup();},
   onUnload() { this.flushLocalBackup();this.data.epoch += 1; },
@@ -77,31 +80,46 @@ Page({
   flushLocalBackup(){
     if(this.backupTimer){clearTimeout(this.backupTimer);this.backupTimer=null;}
     const token=getApp<IAppOption>().globalData.sessionToken;
-    if(!this.data.dirty||!this.data.postId||!token||token!==this.lastSessionToken)return;
-    const backup:LocalBackup={ownerSession:token,postId:this.data.postId,baseVersion:this.data.version,
+    if(!this.data.dirty||!this.data.postId||!this.data.ownerId||!token||token!==this.lastSessionToken)return;
+    const backup:UgcLocalBackup={ownerId:this.data.ownerId,postId:this.data.postId,baseVersion:this.data.version,
       title:this.data.title,body:this.data.body,aiUsage:this.data.aiUsage,rightsConfirmed:this.data.rightsConfirmed,
       publicConsentConfirmed:this.data.publicConsentConfirmed,
       mediaIds:this.data.files.filter(file=>file.state==="uploaded"&&!file.id.startsWith("local-")).map(file=>file.id),savedAt:Date.now()};
-    try{wx.setStorageSync(localBackupKey,backup);}catch{this.setData({notice:"本机暂时无法保存未提交的修改，请先点“保存草稿”。"});}
+    try{writeUgcBackup(backup);}catch{this.setData({notice:"本机暂时无法保存未提交的修改，请先点“保存草稿”。"});}
   },
   async loadList() {
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
-    this.setData({ listMode: true, loading: true, error: "" });
+    this.setData({ listMode: true, loading: true, error: "",drafts:[],listTotal:0,listCursor:null,listLoadingMore:false,listMoreError:"" });
     try {
-      const result = await request<{ items: Array<{ id: string; title: string; state: string; imageCount: number }> }>({ path: "/v1/me/ugc/posts" });
+      const result = await request<{ items: Array<{ id: string; title: string; state: string;version:number; imageCount: number }>;matchingTotal:number;nextCursor:string|null }>({ path: "/v1/me/ugc/posts?limit=30" });
       if (epoch !== this.data.epoch || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      this.setData({ drafts: result.items.map(item => ({ ...item, status: stateLabel(item.state) })), loading: false });
+      this.setData({ drafts: result.items.map(item => ({ ...item, status: stateLabel(item.state) })),
+        listTotal:result.matchingTotal,listCursor:result.nextCursor,loading: false });
     } catch (error) { if (epoch === this.data.epoch) this.setData({ loading: false, error: message(error, "我的内容暂时无法加载，请重试。") }); }
+  },
+  onReachBottom(){if(this.data.listMode)void this.loadMoreList();},
+  async loadMoreList(){
+    const cursor=this.data.listCursor;if(!this.data.listMode||!cursor||this.data.listLoadingMore||this.data.loading)return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    this.setData({listLoadingMore:true,listMoreError:""});
+    try{const page=await request<{items:Array<{id:string;title:string;state:string;version:number;imageCount:number}>;matchingTotal:number;nextCursor:string|null}>({
+      path:`/v1/me/ugc/posts?limit=30&cursor=${encodeURIComponent(cursor)}`});
+      if(epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||cursor!==this.data.listCursor)return;
+      const seen=new Set(this.data.drafts.map(item=>item.id));
+      this.setData({drafts:[...this.data.drafts,...page.items.filter(item=>!seen.has(item.id)).map(item=>({...item,status:stateLabel(item.state)}))],
+        listTotal:page.matchingTotal,listCursor:page.nextCursor,listLoadingMore:false});
+    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+      this.setData({listLoadingMore:false,listMoreError:message(error,"更多内容暂未加载，请重试。")});}
   },
   async createDraft() {
     if (this.data.busy) return;
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
-    this.setData({ busy: true, loading: true, error: "", listMode: false });
+    this.setData({ busy: true,operation:"creating", loading: true, error: "", listMode: false });
     try {
       const draft = await request<Draft>({ path: "/v1/me/ugc/posts", method: "POST", idempotencyKey: this.data.createKey, data: {} });
       if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken) this.applyDraft(draft);
     } catch (error) { if (epoch === this.data.epoch) this.setData({ error: message(error, "新建草稿失败，请重试。"), loading: false }); }
-    finally { if (epoch === this.data.epoch) this.setData({ busy: false }); }
+    finally { if (epoch === this.data.epoch) this.setData({ busy: false,operation:"idle" }); }
   },
   startNew() { this.setData({ createKey: operationKey() }); void this.createDraft(); },
   async loadDraft(id: string) {
@@ -115,28 +133,78 @@ Page({
   applyDraft(draft: Draft) {
     const options = ["none", "assisted", "generated", "unknown"];
     const token=getApp<IAppOption>().globalData.sessionToken;
-    const backup=["draft","rejected","published"].includes(draft.state)?readLocalBackup(token,draft.id,draft.version):null;
+    const backup=["draft","rejected","published"].includes(draft.state)?readUgcBackup(draft.ownerId,draft.id,draft.version):null;
     const mediaIds=backup?.mediaIds??draft.media.map(media=>media.id);
     const aiUsage=backup?.aiUsage??draft.aiUsage;
-    this.setData({ postId: draft.id, state: draft.state, publicVersionActive: draft.publicVersionActive, version: draft.version,
+    this.setData({ postId: draft.id,ownerId:draft.ownerId, state: draft.state, publicVersionActive: draft.publicVersionActive, version: draft.version,
+      reviewNote:draft.reviewNote??"",reviewedLabel:draft.reviewedAt?new Date(draft.reviewedAt).toLocaleDateString("zh-CN"):"",
+      hiddenReason:draft.hiddenReason??"",hiddenPublished:draft.hiddenPublished??null,appeal:draft.appeal??null,
       title: backup?.title??draft.title, body: backup?.body??draft.body,
       aiUsage, aiIndex: Math.max(0, options.indexOf(aiUsage)), rightsConfirmed: backup?.rightsConfirmed??draft.rightsConfirmed,
       publicConsentConfirmed: backup?.publicConsentConfirmed??draft.publicConsentConfirmed,
-      files: mediaIds.map(id => ({ id, localPath: "", previewUrl: "", size: 0, state: "uploaded" as const, progress: 100, error: "" })),
+      files: mediaIds.map(id => ({ id, localPath: "", previewUrl: "", size: 0, state: "uploaded" as const, progress: 100, error: "" })),sorting:false,
       loading: false, error: "", dirty: Boolean(backup), notice: backup?"已恢复本机未提交的修改；图片若未显示，请确认后保存草稿。":
         draft.state === "rejected" ? "审核已退回。修改后可以再次提交。" : "" });
-    void this.loadMediaPreviews(mediaIds,this.data.epoch,token);
+    void this.loadMediaPreviews(mediaIds,this.data.epoch,token,draft.id);
   },
-  async loadMediaPreviews(ids: string[], epoch: number, token: string) {
+  async submitAppeal(){
+    if(this.data.state!=="hidden"||this.data.appeal||this.data.busy||!this.data.postId)return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,
+      postId=this.data.postId,version=this.data.version;
+    const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&
+      this.data.postId===postId&&this.data.version===version&&this.data.state==="hidden"&&!this.data.appeal;
+    const answer=await wx.showModal({title:"申请复核下架内容",editable:true,
+      placeholderText:"说明你希望复核的事实（至少4字）",confirmText:"提交申诉"});
+    if(!answer.confirm||!current())return;
+    const appealReason=(answer.content||"").trim();
+    if(appealReason.length<4){this.setData({error:"请填写至少4字的申诉理由。"});return;}
+    this.setData({busy:true,operation:"appealing",error:""});
+    try{if(!current())return;
+      await request({path:`/v1/me/ugc/posts/${postId}/appeals`,method:"POST",
+        data:{reason:appealReason,expectedVersion:version}});
+      if(current()){this.setData({busy:false,operation:"idle",notice:"申诉已提交，等待复核。"});void this.loadDraft(postId);}
+    }catch(error){if(current())this.setData({error:message(error,"申诉结果暂未确认，请刷新内容核对。")});}
+    finally{if(current())this.setData({busy:false,operation:"idle"});}
+  },
+  async loadMediaPreviews(ids: string[], epoch: number, token: string,postId:string) {
     await Promise.all(ids.map(async id => {
       try {
-        const preview = await request<{ url: string }>({ path: `/v1/me/ugc/media/${id}/preview-url` });
+        const preview = await request<{ url: string }>({ path: `/v1/me/ugc/posts/${postId}/media/${id}/preview-url` });
         if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
           this.updateMedia(id, { previewUrl: preview.url });
-      } catch { /* The per-image placeholder remains honest if preview expires or fails. */ }
+      } catch { if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+        this.updateMedia(id,{error:"图片预览已失效，点此重试。"}); }
     }));
   },
+  retryPreview(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id||"");
+    if(!id||!this.data.postId)return;
+    this.updateMedia(id,{error:""});void this.loadMediaPreviews([id],this.data.epoch,getApp<IAppOption>().globalData.sessionToken,this.data.postId);
+  },
+  previewFailed(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id||"");
+    if(id)this.updateMedia(id,{localPath:"",previewUrl:"",error:"图片预览已失效，点此重试。"});
+  },
+  previewImage(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id||"");
+    const file=this.data.files.find(item=>item.id===id),current=file?.localPath||file?.previewUrl;
+    const urls=this.data.files.map(item=>item.localPath||item.previewUrl).filter(Boolean);
+    if(current&&urls.length)wx.previewImage({current,urls});
+    else if(file?.state==="uploaded")this.retryPreview(event);
+  },
   openDraft(event: WechatMiniprogram.TouchEvent) { const id = String(event.currentTarget.dataset.id || ""); if (id) void this.loadDraft(id); },
+  async deleteListDraft(event:WechatMiniprogram.TouchEvent){
+    const id=String(event.currentTarget.dataset.id||""),item=this.data.drafts.find(row=>row.id===id);
+    if(!item||!["draft","rejected"].includes(item.state)||this.data.busy)return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&
+      this.data.drafts.some(row=>row.id===id&&row.version===item.version);
+    const decision=await wx.showModal({title:"删除这篇未公开内容？",content:"服务器上的草稿会删除，无法在小程序内恢复。",confirmText:"删除",confirmColor:"#8c354e"});
+    if(!decision.confirm||!current())return;
+    this.setData({busy:true,error:""});
+    try{if(!current())return;
+      await request({path:`/v1/me/ugc/posts/${id}`,method:"DELETE",data:{expectedVersion:item.version}});
+      if(current()){this.setData({busy:false});void this.loadList();}}
+    catch(error){if(current())this.setData({error:message(error,"删除结果暂未确认，请刷新核对。")});}
+    finally{if(current())this.setData({busy:false});}
+  },
   retryLoad(){if(this.data.requestedDraftId)void this.loadDraft(this.data.requestedDraftId);
     else if(this.data.requestedNew)void this.createDraft();else void this.loadList();},
   editTitle(event: WechatMiniprogram.Input) { this.setData({ title: event.detail.value, dirty: true, notice: "" });this.queueLocalBackup(); },
@@ -168,6 +236,7 @@ Page({
       if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId){
         this.updateMedia(id, { state: "uploaded", progress: 100, error: "" });
         this.setData({dirty:true});this.queueLocalBackup();
+        void this.loadMediaPreviews([id],epoch,token,postId);
       }
     } catch (error) {
       if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId)
@@ -208,8 +277,11 @@ Page({
   removeImage(event: WechatMiniprogram.TouchEvent) {
     if(this.data.busy||this.data.uploadBusy)return;
     const id = String(event.currentTarget.dataset.id || "");
-    this.setData({ files: this.data.files.filter(file => file.id !== id), dirty: true });this.queueLocalBackup();
+    const files=this.data.files.filter(file => file.id !== id);
+    this.setData({ files,sorting:files.length>1&&this.data.sorting, dirty: true });this.queueLocalBackup();
   },
+  toggleSorting(){if(this.data.busy||this.data.uploadBusy||this.data.files.length<2)return;
+    this.setData({sorting:!this.data.sorting});},
   moveImage(event: WechatMiniprogram.TouchEvent) {
     if(this.data.busy||this.data.uploadBusy)return;
     const id = String(event.currentTarget.dataset.id || ""), direction = Number(event.currentTarget.dataset.direction);
@@ -222,41 +294,46 @@ Page({
     if (!this.data.postId || this.data.busy || this.data.uploadBusy) return null;
     if (this.data.files.some(item => item.state !== "uploaded")) { this.setData({ error: "有图片还没上传完成，请移除失败图片或稍后重试。" }); return null; }
     const epoch = this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
-    const postId=this.data.postId;
-    this.setData({ busy: true, error: "", notice: "" });
+    const postId=this.data.postId,baseVersion=this.data.version,ownerId=this.data.ownerId;
+    this.setData({ busy: true,operation:"saving", error: "", notice: "" });
     try {
       const draft = await request<Draft>({ path: `/v1/me/ugc/posts/${postId}/draft`, method: "PUT", data: {
         title: this.data.title, body: this.data.body, mediaIds: this.data.files.map(item => item.id), aiUsage: this.data.aiUsage,
-        rightsConfirmed: this.data.rightsConfirmed, publicConsentConfirmed: this.data.publicConsentConfirmed, expectedVersion: this.data.version } });
+        rightsConfirmed: this.data.rightsConfirmed, publicConsentConfirmed: this.data.publicConsentConfirmed, expectedVersion: baseVersion } });
       if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId){
         this.setData({ version: draft.version, state: draft.state, publicVersionActive: draft.publicVersionActive, dirty: false, notice: "草稿已保存。" });
-        clearLocalBackup(token,postId);
+        clearUgcBackup(ownerId,postId,baseVersion);
       }
       return draft;
     } catch (error) { if (epoch === this.data.epoch) this.setData({ error: message(error, "草稿未保存，请重试。") }); return null; }
-    finally { if (epoch === this.data.epoch) this.setData({ busy: false }); }
+    finally { if (epoch === this.data.epoch) this.setData({ busy: false,operation:"idle" }); }
   },
   async submit() {
     if (this.data.busy || this.data.uploadBusy || !this.data.postId) return;
+    if(!this.data.publicGateEnabled){this.setData({error:"公开投稿暂未开放；你仍可保存私人草稿。"});return;}
     if (!this.data.body.trim() && !this.data.files.length) { this.setData({ error: "请写一点内容，或添加至少一张图片。" }); return; }
     if (!this.data.rightsConfirmed || !this.data.publicConsentConfirmed) { this.setData({ error: "请先确认内容权利和公开展示范围。" }); return; }
     const draft = await this.saveDraft(); if (!draft) return;
     const epoch = this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
-    this.setData({ busy: true, error: "", notice: "" });
+    this.setData({ busy: true,operation:"submitting", error: "", notice: "" });
     try {
       const sent = await request<Draft>({ path: `/v1/me/ugc/posts/${draft.id}/submit`, method: "POST", data: { expectedVersion: draft.version } });
       if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
         this.setData({ state: sent.state, publicVersionActive: sent.publicVersionActive, version: sent.version,
           notice: sent.publicVersionActive ? "新版已提交审核。通过前，公开页面仍显示上一版。" : "已提交审核。通过并完成发布复核后，其他人才能看到。" });
     } catch (error) { if (epoch === this.data.epoch) this.setData({ error: message(error, "提交未完成。草稿已保存，可稍后重试。") }); }
-    finally { if (epoch === this.data.epoch) this.setData({ busy: false }); }
+    finally { if (epoch === this.data.epoch) this.setData({ busy: false,operation:"idle" }); }
   },
   async back() {
     if(this.data.busy||this.data.uploadBusy)return;
     if (this.data.dirty && this.data.postId) {
-      const decision = await wx.showModal({ title: "保存刚才的修改？", content: "保存后可以从“我的内容”继续编辑。", confirmText: "保存草稿", cancelText: "继续编辑" });
-      if (!decision.confirm) return;
-      if (!await this.saveDraft()) return;
+      const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+      const options=await wx.showActionSheet({itemList:["保存草稿后离开","继续编辑","不保存本机修改并离开"]}).catch(()=>null);
+      if(!options||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(options.tapIndex===1)return;
+      if(options.tapIndex===0){if(!await this.saveDraft())return;}
+      else if(options.tapIndex===2){clearUgcBackup(this.data.ownerId,this.data.postId,this.data.version);this.setData({dirty:false});}
+      else return;
     }
     wx.navigateBack({ fail: () => wx.switchTab({ url: "/pages/community/index" }) });
   }

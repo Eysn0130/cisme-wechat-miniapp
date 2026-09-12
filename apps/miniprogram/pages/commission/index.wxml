@@ -1,0 +1,34 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">商业资格与佣金</text></view>
+  <view class="page page--stack commission-page">
+    <view wx:if="{{loading}}" class="state">正在核对资格和佣金事实…</view>
+    <view wx:if="{{error}}" class="state state--error"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试</button></view>
+    <block wx:if="{{status}}">
+      <view class="commission-hero"><text>可用佣金</text><strong>¥{{availableLabel}}</strong><small>状态由已核验支付、退款、履约和结算事实重建；不是积分。</small></view>
+      <view class="commission-grid">
+        <view><text>待释放</text><strong>¥{{pendingLabel}}</strong></view>
+        <view><text>在途预占</text><strong>¥{{heldLabel}}</strong></view>
+        <view><text>已结算</text><strong>¥{{settledLabel}}</strong></view>
+        <view><text>待追偿</text><strong>¥{{recoveryLabel}}</strong></view>
+      </view>
+      <view class="commission-facts"><text>商业资格：{{status.eligible?'有效':status.membershipState==='suspended'?'暂停':status.membershipState==='expired'?'到期':'未开通'}}</text><text>直接推荐 {{status.directReferralCount}} 人 · 核验成交 {{status.verifiedOrderCount}} 单</text></view>
+      <view class="commission-note">正式结算、商户转账、税务与售后规则尚未批准。页面中的隔离测试操作仅供开发者验证协议，不代表可申请真实提现。</view>
+      <view wx:if="{{isolatedTransfer}}" class="commission-section">
+        <view class="commission-section__heading"><strong>隔离结算申请</strong><text>测试渠道</text></view>
+        <button wx:if="{{!formVisible&&status.commission.availableCents>0}}" class="primary" bindtap="showForm">申请结算可用金额</button>
+        <text wx:if="{{!formVisible&&status.commission.availableCents===0}}" class="commission-muted">当前没有可申请的已释放金额。</text>
+        <view wx:if="{{formVisible}}" class="commission-form">
+          <text>申请金额（元）</text><input type="digit" value="{{amount}}" placeholder="例如 20.00" maxlength="11" bindinput="editAmount"/>
+          <text>申请依据</text><textarea value="{{reason}}" placeholder="说明这笔隔离测试申请" maxlength="300" auto-height bindinput="editReason"/>
+          <view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submit" disabled="{{busy}}" loading="{{busy}}">提交复核</button></view>
+        </view>
+        <view wx:if="{{actionStatus}}" class="state">{{actionStatus}}</view>
+        <view wx:if="{{actionError}}" class="state state--error">{{actionError}}</view>
+        <view class="commission-history"><strong>申请记录</strong><text>共 {{totalCount}} 项</text></view>
+        <view wx:for="{{requests}}" wx:key="id" class="commission-request"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.stateLabel}}</text></view><small>{{item.createdLabel}}</small></view>
+        <view wx:if="{{listError}}" class="state state--error"><text class="state-error__copy">{{listError}}</text><button class="text-button state-error__action" bindtap="retryList">重试</button></view>
+        <button wx:if="{{nextCursor}}" class="secondary {{loadingMore?'secondary--disabled':''}}" bindtap="more" disabled="{{loadingMore}}" loading="{{loadingMore}}">加载更多</button>
+      </view>
+    </block>
+  </view>
+</view>

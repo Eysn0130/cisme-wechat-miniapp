@@ -2,7 +2,7 @@
   <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回上一页"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">社区作者</text></view>
   <view class="page page--stack author-page">
     <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载作者资料…</view>
-    <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
+    <view wx:if="{{error}}" class="state state--error author-error" aria-live="assertive"><text class="author-error__copy">{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回社区</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
     <block wx:if="{{author}}">
       <view class="author-head">
         <image wx:if="{{author.avatar}}" class="author-avatar" src="{{author.avatar}}" mode="aspectFill"/>

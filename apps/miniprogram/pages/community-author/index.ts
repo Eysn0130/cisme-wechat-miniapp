@@ -9,7 +9,7 @@ const message = (error:unknown,fallback:string)=>(error as {title?:string})?.tit
 Page({
   lastSessionToken:"",
   data:{chromeStyle:currentChromeStyle(),authorId:"",author:null as Author|null,items:[] as Story[],nextCursor:null as string|null,
-    loading:true,loadingMore:false,busy:false,navigating:false,error:"",epoch:0},
+    loading:true,loadingMore:false,busy:false,navigating:false,error:"",invalidId:false,epoch:0},
   onLoad(query:Record<string,string|undefined>){
     this.lastSessionToken=getApp<IAppOption>().globalData.sessionToken;
     this.setData({authorId:String(query.id||"")});
@@ -25,9 +25,9 @@ Page({
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   async load(){
     const id=this.data.authorId;
-    if(!/^[0-9a-f-]{36}$/i.test(id)){this.setData({loading:false,error:"作者编号无效，请返回社区。"});return;}
+    if(!/^[0-9a-f-]{36}$/i.test(id)){this.setData({loading:false,invalidId:true,error:"作者编号无效，请返回社区。"});return;}
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    this.setData({loading:true,error:"",items:[],nextCursor:null});
+    this.setData({loading:true,invalidId:false,error:"",items:[],nextCursor:null});
     try{
       const [author,page]=await Promise.all([
         request<Author>({path:`/v1/ugc/authors/${id}`,authMode:"optional"}),

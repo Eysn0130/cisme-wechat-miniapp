@@ -44,17 +44,23 @@ beforeAll(async()=>{
 afterAll(async()=>pool.end());
 
 it("correlates signed async media results, ignores replay, and never revives deleted posts",async()=>{
-  let trace=0;
-  const fetcher=(async(url:string|URL|Request)=>{
+  let trace=0,scanSourceUrl="";
+  const fetcher=(async(url:string|URL|Request,options?:RequestInit)=>{
     const target=String(url);
     if(target.includes("/cgi-bin/token"))return new Response(JSON.stringify({access_token:"synthetic-token",expires_in:7200}),{status:200});
     if(target.includes("/msg_sec_check"))return new Response(JSON.stringify({errcode:0,trace_id:"text-trace",result:{suggest:"pass"}}),{status:200});
-    if(target.includes("/media_check_async"))return new Response(JSON.stringify({errcode:0,trace_id:`image-trace-${++trace}`}),{status:200});
+    if(target.includes("/media_check_async")){
+      scanSourceUrl=String(JSON.parse(String(options?.body)).media_url);
+      return new Response(JSON.stringify({errcode:0,trace_id:`image-trace-${++trace}`}),{status:200});
+    }
     throw new Error("Unexpected URL");
   }) as typeof fetch;
   const service=new UgcSafetyService(pool,config,createApiGatewayStorage(config),fetcher);
   const started=await service.scanPost(owner,post,"https://scan.example.test");
   expect(started.results).toEqual([{kind:"text",state:"safe"},{kind:"image",id:media,state:"pending"}]);
+  expect(scanSourceUrl).toContain(`/v1/ugc/scan-source/${media}`);
+  await expect(service.scanSource("00000000-0000-4000-8000-000000000001",new URL(scanSourceUrl).searchParams.get("token")))
+    .rejects.toMatchObject({code:"UGC_SCAN_SOURCE_INVALID",status:403});
   expect((await pool.query("SELECT scan_result FROM ugc_media_asset WHERE id=$1",[media])).rows[0].scan_result).toEqual({});
   const callback={Event:"wxa_media_check",appid:"wx-test-app",version:2,trace_id:"image-trace-1",errcode:0,
     result:{suggest:"pass",label:100}};
@@ -71,6 +77,8 @@ it("correlates signed async media results, ignores replay, and never revives del
   await pool.query(`INSERT INTO ugc_safety_scan(post_id,revision,media_asset_id,kind,content_sha256,provider,trace_id)
     VALUES($1,1,$2,'image',$3,'wechat_v2','image-trace-late')`,[post,media,"a".repeat(64)]);
   await pool.query("UPDATE ugc_post SET state='deleted',visibility='private',deleted_at=now() WHERE id=$1",[post]);
+  await expect(service.scanSource(media,new URL(scanSourceUrl).searchParams.get("token")))
+    .rejects.toMatchObject({code:"UGC_SCAN_SOURCE_INVALID",status:404});
   await service.receiveCallback(query,{...callback,trace_id:"image-trace-late"});
   expect((await pool.query("SELECT scan_result FROM ugc_media_asset WHERE id=$1",[media])).rows[0].scan_result).toEqual({});
 });

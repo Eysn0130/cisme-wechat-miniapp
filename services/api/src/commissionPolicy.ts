@@ -79,7 +79,11 @@ export function commissionBuckets(input:{accruedCents:number;reversedCents:numbe
   const net=accrued-reversed;
   const pending=Math.max(0,net-released);
   const availableBeforeHold=Math.max(0,Math.min(net,released)-paid);
-  if(held>availableBeforeHold)throw new DomainError("COMMISSION_HOLD_EXCEEDS_AVAILABLE","付款预占超过可结算金额",409);
-  return {pendingCents:pending,availableCents:availableBeforeHold-held,paymentHeldCents:held,
-    settledCents:paid,recoveryCents:Math.max(0,paid-net),netEarnedCents:net};
+  if(held>released-paid)throw new DomainError("COMMISSION_HOLD_EXCEEDS_RELEASED","付款预占超过已释放金额",409);
+  // A trusted refund can arrive after reservation. Preserve the in-flight
+  // transfer and surface exposure; never manufacture a negative cash balance.
+  const reservedRecovery=Math.max(0,held-availableBeforeHold);
+  return {pendingCents:pending,availableCents:Math.max(0,availableBeforeHold-held),paymentHeldCents:held,
+    settledCents:paid,recoveryCents:Math.max(0,paid-net),reservedRecoveryCents:reservedRecovery,
+    netEarnedCents:net};
 }

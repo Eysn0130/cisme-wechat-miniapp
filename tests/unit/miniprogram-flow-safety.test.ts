@@ -331,7 +331,7 @@ describe("mini program submission flow safety", () => {
     expect(profile).toContain("loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, pageAlive: true");
     expect(profile).toContain("this.data.loadAttempt !== attempt");
     expect(profile).toContain("this.data.tasksAttempt !== attempt");
-    expect(profile).toContain("member: null, points: null, care: null, authority:null, commercialEligible:false, supportUnread:0, tasks: []");
+    expect(profile).toContain("member: null, points: null, care: null, authority:null, commercialEligible:false,commercialAccessible:false, supportUnread:0, tasks: []");
     expect(post).toContain("onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
     expect(post).not.toContain("allowPublicBrowsing");
     expect(post).toContain("this.data.loadAttempt !== attempt");

@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises";
 import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { assertFinalSchemaContract } from "../../scripts/final-schema-contract";
 
 const exec = promisify(execFile);
 const adminUrl = "postgres://cisme:cisme-dev-only@127.0.0.1:55432/postgres";
@@ -38,6 +39,13 @@ describe("empty and N-1 database lifecycle", () => {
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
     let pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
+    expect(await assertFinalSchemaContract(pool)).toEqual({tables:32,constraints:29,indexes:28,triggers:24});
+    const damaged=await pool.connect();
+    try{
+      await damaged.query("BEGIN");
+      await damaged.query("ALTER TABLE commission_rate_rule DROP CONSTRAINT commission_rate_request_pair_check");
+      await expect(assertFinalSchemaContract(damaged)).rejects.toThrow("FINAL_SCHEMA_CONSTRAINT_MISSING:commission_rate_rule.commission_rate_request_pair_check");
+    }finally{await damaged.query("ROLLBACK");damaged.release();}
     expect((await pool.query("SELECT to_regclass('public.community_comment') name")).rows[0].name).toBe("community_comment");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_target_type_check'")).rows[0].definition).toContain("invite");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_invite_target_check'")).rows[0].definition).toContain("home");

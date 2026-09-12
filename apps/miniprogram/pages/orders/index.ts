@@ -3,7 +3,7 @@ import { centsToYuan } from "../../services/commerce";
 import { myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 
-const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时"};
+const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付，待履约"};
 Page({
   data:{chromeStyle:currentChromeStyle(),items:[] as any[],nextCursor:null as string|null,loading:true,loadingMore:false,navigating:false,error:"",pageAlive:true},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},onShow(){this.data.pageAlive=true;this.setData({navigating:false});if(!requireMemberAccess())return;void this.load();},onUnload(){this.data.pageAlive=false;},

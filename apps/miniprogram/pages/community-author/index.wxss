@@ -1,4 +1,7 @@
 .author-page{padding-bottom:calc(40rpx + env(safe-area-inset-bottom))}
+.author-error{display:flex;align-items:center;gap:16rpx}
+.author-error__copy{display:block;min-width:0;flex:1;overflow-wrap:anywhere}
+.author-error .text-button{flex:none}
 .author-head{display:flex;align-items:center;gap:20rpx;padding:26rpx 0 36rpx;border-bottom:1rpx solid rgba(86,48,111,.15)}
 .author-avatar{width:104rpx;height:104rpx;flex:none;border-radius:52rpx;background:#eee5f0}
 .author-avatar--empty{display:flex;align-items:center;justify-content:center;color:#56306f;font-size:38rpx;font-weight:600}

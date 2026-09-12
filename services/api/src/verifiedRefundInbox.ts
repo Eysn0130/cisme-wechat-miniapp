@@ -3,7 +3,8 @@ import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
 import { cumulativeCommission } from "./commissionPolicy.js";
-import { assertRefundBinding, decodeRefundNotification } from "./wechatPayV3.js";
+import { assertRefundBinding, decodeRefundNotification, type RefundTransaction, WechatPayV3Client } from "./wechatPayV3.js";
+import { claimDueMoneyInbox, recordMoneyInboxFailure } from "./moneyInboxRetry.js";
 
 type LineAllocation={lineId:string;eligibleCashRefundCents:number;otherCashRefundCents:number};
 const refundPattern=/^[A-Za-z0-9_-]{8,64}$/;
@@ -36,7 +37,29 @@ export class VerifiedRefundInbox{
   async receive(rawBody:Uint8Array,headers:Record<string,string|undefined>,now=new Date()){
     const decoded=decodeRefundNotification({rawBody,headers,apiV3Key:this.binding.apiV3Key,
       publicKeys:this.binding.platformKeys,now});
-    const source=decoded.refund;
+    return this.persistRefund(decoded.refund,decoded.status,decoded.eventId,
+      createHash("sha256").update(rawBody).digest("hex"));
+  }
+
+  async receiveQueried(channel:WechatPayV3Client,intentId:string){
+    const intent=(await this.pool.query(`SELECT i.out_refund_no,i.refund_cents,i.payer_refund_cents,
+      o.order_number,o.total_cents,p.amount_cents,p.provider_transaction_id,p.merchant_id
+      FROM commission_refund_intent i JOIN commerce_order o ON o.id=i.order_id
+      JOIN commission_payment_inbox p ON p.id=i.payment_inbox_id WHERE i.id=$1`,[intentId])).rows[0];
+    if(!intent||intent.merchant_id!==this.binding.merchantId)
+      throw new DomainError("REFUND_INTENT_UNMATCHED","退款意图与原支付事实未匹配",422);
+    const binding={merchantId:this.binding.merchantId,outTradeNo:intent.order_number,
+      providerTransactionId:intent.provider_transaction_id,outRefundNo:intent.out_refund_no,
+      totalCents:cents(intent.total_cents),refundCents:cents(intent.refund_cents),
+      payerTotalCents:cents(intent.amount_cents),payerRefundCents:cents(intent.payer_refund_cents)};
+    const {result,fact,rawSha256}=await channel.queryRefundByMerchantRefundNumberWithEvidence(binding);
+    if(fact.status==="PROCESSING")
+      throw new DomainError("REFUND_QUERY_PROCESSING","渠道退款仍在处理中",409);
+    return this.persistRefund({...result,mchid:this.binding.merchantId,
+      refund_status:fact.status},fact.status,`query:${fact.providerRefundId}:${fact.status}`,rawSha256);
+  }
+
+  private async persistRefund(source:RefundTransaction,status:"SUCCESS"|"CLOSED"|"ABNORMAL",eventId:string,rawHash:string){
     if(typeof source.out_refund_no!=="string"||!refundPattern.test(source.out_refund_no))
       throw new DomainError("REFUND_INTENT_UNMATCHED","商户退款单号未匹配",422);
     const row=(await this.pool.query(`SELECT i.id AS intent_id,i.order_id,i.out_refund_no,i.refund_cents,
@@ -51,17 +74,26 @@ export class VerifiedRefundInbox{
       outTradeNo:row.order_number,providerTransactionId:row.provider_transaction_id,
       outRefundNo:row.out_refund_no,totalCents:cents(row.total_cents),
       refundCents:cents(row.refund_cents),payerTotalCents:cents(row.paid_cents),
-      payerRefundCents:cents(row.payer_refund_cents)},decoded.status);
-    const rawHash=createHash("sha256").update(rawBody).digest("hex");
+      payerRefundCents:cents(row.payer_refund_cents)},status);
+    const equivalent=(await this.pool.query(`SELECT * FROM commission_refund_inbox
+      WHERE refund_intent_id=$1 AND provider_refund_id=$2 AND refund_status=$3
+      ORDER BY received_at,id LIMIT 1`,[row.intent_id,fact.providerRefundId,fact.status])).rows[0];
+    if(equivalent){
+      if(cents(equivalent.refund_cents)!==fact.refundCents||
+        cents(equivalent.payer_refund_cents)!==fact.payerRefundCents||
+        new Date(equivalent.succeeded_at??0).toISOString()!==new Date(fact.succeededAt??0).toISOString())
+        throw new DomainError("REFUND_EVENT_CONFLICT","退款事实与已收事实冲突",409);
+      return {persisted:true,inboxId:equivalent.id,state:equivalent.state};
+    }
     const inserted=await this.pool.query<{id:string}>(`INSERT INTO commission_refund_inbox(
       notification_id,refund_intent_id,provider_refund_id,refund_status,merchant_id,out_trade_no,
       provider_transaction_id,refund_cents,payer_refund_cents,succeeded_at,raw_sha256)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (notification_id) DO NOTHING RETURNING id`,
-      [decoded.eventId,row.intent_id,fact.providerRefundId,fact.status,this.binding.merchantId,row.order_number,
+      [eventId,row.intent_id,fact.providerRefundId,fact.status,this.binding.merchantId,row.order_number,
         row.provider_transaction_id,fact.refundCents,fact.payerRefundCents,fact.succeededAt,rawHash]);
     let id=inserted.rows[0]?.id;
     if(!id){
-      const prior=(await this.pool.query(`SELECT * FROM commission_refund_inbox WHERE notification_id=$1`,[decoded.eventId])).rows[0];
+      const prior=(await this.pool.query(`SELECT * FROM commission_refund_inbox WHERE notification_id=$1`,[eventId])).rows[0];
       if(!prior||prior.refund_intent_id!==row.intent_id||prior.provider_refund_id!==fact.providerRefundId||
         prior.refund_status!==fact.status||prior.raw_sha256!==rawHash)
         throw new DomainError("REFUND_EVENT_CONFLICT","退款通知与已收事实冲突",409);
@@ -72,12 +104,11 @@ export class VerifiedRefundInbox{
   }
 
   async processPending(limit=20){
-    const rows=await this.pool.query<{id:string}>(`SELECT id FROM commission_refund_inbox WHERE state='pending'
-      ORDER BY received_at,id LIMIT $1`,[Math.max(1,Math.min(limit,100))]);
+    const ids=await claimDueMoneyInbox(this.pool,"refund",limit);
     const results=[];
-    for(const row of rows.rows){
-      try{results.push({id:row.id,state:await this.processOne(row.id)});}
-      catch{results.push({id:row.id,state:"pending" as const});}
+    for(const id of ids){
+      try{results.push({id,state:await this.processOne(id)});}
+      catch(error){results.push({id,state:await recordMoneyInboxFailure(this.pool,"refund",id,error)});}
     }
     return results;
   }
@@ -91,7 +122,7 @@ export class VerifiedRefundInbox{
       if(!intent)throw new DomainError("REFUND_INTENT_NOT_FOUND","退款单不存在",404);
       const order=(await client.query(`SELECT * FROM commerce_order WHERE id=$1 FOR UPDATE`,[intent.order_id])).rows[0];
       const except=async(code:string)=>{
-        await client.query(`UPDATE commission_refund_inbox SET state='exception',exception_code=$2 WHERE id=$1`,[inboxId,code]);
+        await client.query(`UPDATE commission_refund_inbox SET state='exception',exception_code=$2,lease_until=NULL WHERE id=$1`,[inboxId,code]);
         await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
           VALUES('worker:refund-inbox','commerce.refund_exception','commerce_order',$1,$2,$3)`,
           [intent.order_id,code,`refund-inbox:${inboxId}`]);
@@ -110,9 +141,10 @@ export class VerifiedRefundInbox{
       if(intent.state==="succeeded"||intent.state==="closed")return except("REFUND_ALREADY_TERMINAL");
       if(fact.refund_status==="CLOSED"||fact.refund_status==="ABNORMAL"){
         const nextState=fact.refund_status==="CLOSED"?"closed":"abnormal";
-        if(intent.state!==nextState)await client.query(`UPDATE commission_refund_intent SET state=$2,finalized_at=now() WHERE id=$1`,
+        if(intent.state!==nextState)await client.query(`UPDATE commission_refund_intent SET state=$2,
+          finalized_at=now(),reconcile_lease_until=NULL WHERE id=$1`,
           [intent.id,nextState]);
-        await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now() WHERE id=$1`,[inboxId]);
+        await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now(),lease_until=NULL WHERE id=$1`,[inboxId]);
         return "applied";
       }
       if(fact.refund_status!=="SUCCESS"||!fact.succeeded_at||
@@ -166,13 +198,14 @@ export class VerifiedRefundInbox{
         allocatedDiscountCents:0,pointsTenderCents:0,cumulativeRefundCents:eligibleTotal}],snapshot.basis_points).commissionCents:0;
       if(!Number.isSafeInteger(currentCommission)||currentCommission<0||target>currentCommission)
         return except("REFUND_LEDGER_MISMATCH");
-      await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now() WHERE id=$1`,[inboxId]);
+      await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now(),lease_until=NULL WHERE id=$1`,[inboxId]);
       if(target<currentCommission&&snapshot&&accrual)await client.query(`INSERT INTO commission_ledger_entry(order_id,referrer_member_id,
         event_key,kind,amount_cents,reverse_of,source_fact_id,actor_principal_id)
         VALUES($1,$2,$3,'refund_reversal',$4,$5,$6,'worker:refund-inbox')`,
         [order.id,snapshot.referrer_member_id,`wechat-refund:${fact.provider_refund_id}`,
           target-currentCommission,accrual.id,inboxId]);
-      await client.query(`UPDATE commission_refund_intent SET state='succeeded',finalized_at=$2 WHERE id=$1`,
+      await client.query(`UPDATE commission_refund_intent SET state='succeeded',finalized_at=$2,
+        reconcile_lease_until=NULL WHERE id=$1`,
         [intent.id,fact.succeeded_at]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
         after_state,trace_id) VALUES('worker:refund-inbox','commerce.refund_applied','commerce_order',

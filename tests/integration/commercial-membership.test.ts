@@ -34,6 +34,7 @@ it("separates ordinary accounts, commercial qualification, management scope and 
   expect(ordinary.json()).toMatchObject({eligible:false,membershipState:"none",commission:{pendingCents:0,availableCents:0}});
   expect((await app.inject({method:"POST",url:"/v1/me/commercial-membership/code",headers:auth(a)})).statusCode).toBe(403);
   expect((await app.inject({method:"GET",url:"/v1/management/members",headers:auth(a)})).statusCode).toBe(403);
+  expect((await app.inject({method:"GET",url:"/v1/management/commission-rates/current",headers:auth(a)})).statusCode).toBe(403);
   await grant(manager,"member.manage");
   expect((await app.inject({method:"GET",url:"/v1/management/members",headers:auth(manager)})).statusCode).toBe(403);
   await grant(manager,"member.profile.read");
@@ -49,11 +50,16 @@ it("separates ordinary accounts, commercial qualification, management scope and 
   const codeA=issued.json().code;
   expect(codeA).toMatch(/^CM[A-HJ-NP-Z2-9]{10}$/);
   expect((await app.inject({method:"POST",url:"/v1/me/commercial-membership/code",headers:auth(a)})).json().code).toBe(codeA);
+  const preview=await app.inject({method:"GET",url:`/v1/me/referral/preview?code=${codeA}`,headers:auth(b)});
+  expect(preview.statusCode).toBe(200);expect(preview.json()).toMatchObject({code:codeA,relationState:"unbound",attributionLevel:1,confirmationRequired:true});
+  expect(preview.json().sponsorLabel).toMatch(/CISME 商业会员/);
+  expect((await app.inject({method:"GET",url:`/v1/me/referral/preview?code=${codeA}`,headers:auth(a)})).statusCode).toBe(422);
   expect((await app.inject({method:"POST",url:"/v1/me/referral/confirm",headers:auth(a),
     payload:{code:codeA,confirmationKey:"self-referral-0001"}})).statusCode).toBe(422);
   const confirm=await app.inject({method:"POST",url:"/v1/me/referral/confirm",headers:auth(b),
     payload:{code:codeA,confirmationKey:"direct-a-b-0001"}});
   expect(confirm.json()).toMatchObject({confirmed:true,alreadyConfirmed:false});
+  expect((await app.inject({method:"GET",url:`/v1/me/referral/preview?code=${codeA}`,headers:auth(b)})).json().relationState).toBe("already_bound_same");
   expect((await app.inject({method:"POST",url:"/v1/me/referral/confirm",headers:auth(b),
     payload:{code:codeA,confirmationKey:"direct-a-b-replay"}})).json()).toMatchObject({alreadyConfirmed:true});
   const codeB=(await app.inject({method:"POST",url:"/v1/me/commercial-membership/code",headers:auth(b)})).json().code;
@@ -67,13 +73,17 @@ it("separates ordinary accounts, commercial qualification, management scope and 
   expect(relations.rowCount).toBe(2);
   expect((await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(a)})).statusCode).toBe(403);
   const restricted=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
-  expect(restricted.scope).toEqual({referrals:false,orders:false});
-  expect(restricted.member.referralCode).toBeNull();expect(restricted.referrals).toHaveLength(0);
+  expect(restricted.scope).toEqual({referrals:false,orders:false,ownOrders:false});
+  expect(restricted.member.referralCode).toBeNull();expect(restricted.referrals).toBeUndefined();
   expect(restricted.rate).toBeNull();
+  expect((await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}/sections/referrals`,headers:auth(manager)})).statusCode).toBe(403);
   await grant(manager,"commission.read");
+  expect((await app.inject({method:"GET",url:"/v1/management/commission-rates/current",headers:auth(manager)})).json())
+    .toMatchObject({basisPoints:2000,policyKind:"engineering_fixture",paymentAvailable:false});
   const broader=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
-  expect(broader.scope).toEqual({referrals:true,orders:false});
-  expect(broader.referrals).toHaveLength(1);
+  expect(broader.scope).toEqual({referrals:true,orders:false,ownOrders:false});
+  const direct=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}/sections/referrals`,headers:auth(manager)})).json();
+  expect(direct.matchingTotal).toBe(1);expect(direct.items).toHaveLength(1);
   expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry")).rows[0].n).toBe(0);
 });
 
@@ -84,8 +94,13 @@ it("rejects invalid rates and enforces a separate approver",async()=>{
   await grant(manager,"commission.rate.manage");
   for(const invalid of [1999,3501,20.5,"3500",null])expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",
     headers:auth(manager),payload:payload(invalid)})).statusCode).toBe(422);
-  const proposal=await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:auth(manager),payload:payload(3500)});
+  const rateHeaders={...auth(manager),"idempotency-key":"commercial-rate-proposal-0001"};
+  const proposal=await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:rateHeaders,payload:payload(3500)});
   expect(proposal.statusCode).toBe(200);
+  const replay=await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:rateHeaders,payload:payload(3500)});
+  expect(replay.statusCode).toBe(200);expect(replay.json()).toMatchObject({id:proposal.json().id,alreadyCreated:true});
+  expect((await app.inject({method:"GET",url:"/v1/management/commission-rates/by-request/commercial-rate-proposal-0001",headers:auth(manager)})).json().id).toBe(proposal.json().id);
+  expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:rateHeaders,payload:payload(3400)})).statusCode).toBe(409);
   expect((await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
     headers:auth(manager),payload:{decision:"active"}})).statusCode).toBe(403);
   await grant(checker,"commission.rate.approve");
@@ -94,6 +109,60 @@ it("rejects invalid rates and enforces a separate approver",async()=>{
   expect(approval.json()).toMatchObject({basis_points:3500,state:"active"});
   expect((await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
     headers:auth(checker),payload:{decision:"active"}})).statusCode).toBe(409);
+  const lapsed=(await pool.query(`INSERT INTO commission_rate_rule(member_id,basis_points,state,effective_at,created_by,reason)
+    VALUES($1,2500,'proposed',now()-interval '1 hour',$2,'过期费率不能追溯批准') RETURNING id`,[a.memberId,manager.principalId])).rows[0].id;
+  const late=await app.inject({method:"POST",url:`/v1/management/commission-rates/${lapsed}/decision`,
+    headers:auth(checker),payload:{decision:"active"}});
+  expect(late.statusCode).toBe(409);expect(late.json().code).toBe("RATE_EFFECTIVE_LAPSED");
+});
+
+it("proposes global rates and member inheritance as audited separate approvals",async()=>{
+  const effectiveAt=new Date(Date.now()+2*3600_000).toISOString();
+  const global=await app.inject({method:"POST",url:"/v1/management/commission-rates",
+    headers:{...auth(manager),"idempotency-key":"global-rate-proposal-0001"},
+    payload:{action:"override",basisPoints:2700,effectiveAt,reason:"调整工程全局默认费率"}});
+  expect(global.statusCode).toBe(200);
+  expect(global.json()).toMatchObject({action:"override",basis_points:2700,state:"proposed"});
+  const restored=await app.inject({method:"POST",url:"/v1/management/commission-rates",
+    headers:{...auth(manager),"idempotency-key":"member-inherit-proposal-0001"},
+    payload:{action:"inherit",memberId:a.memberId,effectiveAt,reason:"恢复会员继承全局费率"}});
+  expect(restored.statusCode).toBe(200);
+  expect(restored.json()).toMatchObject({action:"inherit",basis_points:null,state:"proposed"});
+  expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",
+    headers:{...auth(manager),"idempotency-key":"member-inherit-proposal-0001"},
+    payload:{action:"inherit",memberId:a.memberId,effectiveAt,reason:"恢复会员继承全局费率"}})).json())
+    .toMatchObject({id:restored.json().id,alreadyCreated:true});
+  expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",
+    headers:{...auth(manager),"idempotency-key":"invalid-inherit-proposal-01"},
+    payload:{action:"inherit",basisPoints:2300,effectiveAt,reason:"无目标的继承操作无效"}})).statusCode).toBe(422);
+  for(const proposal of [global,restored]){
+    const self=await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
+      headers:auth(manager),payload:{decision:"active"}});
+    expect(self.statusCode).toBe(403);
+    const approval=await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
+      headers:auth(checker),payload:{decision:"active"}});
+    expect(approval.statusCode).toBe(200);
+    expect(approval.json().action).toBe(proposal.json().action);
+  }
+});
+
+it("uses the database clock for fixture renewal and never shortens an existing term",async()=>{
+  const before=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
+  expect(before.membershipPolicy).toMatchObject({kind:"engineering_fixture",termDays:365});
+  const renewed=await app.inject({method:"POST",url:`/v1/management/members/${a.memberId}/membership`,headers:auth(manager),
+    payload:{state:"active",term:"engineering_365_day",expectedVersion:before.member.version,reason:"工程资格续期测试"}});
+  expect(renewed.statusCode).toBe(200);
+  expect(new Date(renewed.json().expiresAt).getTime()).toBeGreaterThan(new Date(before.member.expiresAt).getTime());
+  const shortened=await app.inject({method:"POST",url:`/v1/management/members/${a.memberId}/membership`,headers:auth(manager),
+    payload:{state:"active",expiresAt:before.member.expiresAt,expectedVersion:renewed.json().version,reason:"尝试缩短现有资格"}});
+  expect(shortened.statusCode).toBe(409);expect(shortened.json().code).toBe("MEMBERSHIP_EXPIRY_SHORTEN");
+  const suspended=await app.inject({method:"POST",url:`/v1/management/members/${a.memberId}/membership`,headers:auth(manager),
+    payload:{state:"suspended",expectedVersion:renewed.json().version,reason:"暂停保留原到期日期"}});
+  expect(suspended.statusCode).toBe(200);expect(suspended.json().expiresAt).toBe(renewed.json().expiresAt);
+  expect((await app.inject({method:"GET",url:"/v1/me/commercial-membership",headers:auth(a)})).json().eligible).toBe(false);
+  const resumed=await app.inject({method:"POST",url:`/v1/management/members/${a.memberId}/membership`,headers:auth(manager),
+    payload:{state:"active",term:"engineering_365_day",expectedVersion:suspended.json().version,reason:"恢复工程资格供后续测试"}});
+  expect(resumed.statusCode).toBe(200);
 });
 
 it("does not present expired or blocked accounts as eligible commercial members",async()=>{

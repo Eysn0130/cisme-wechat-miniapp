@@ -48,7 +48,9 @@ export interface AppConfig {
   api: { routeDeadlineMs: number };
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
   media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
-  commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number };
+  commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
+    simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
+      transferSceneId?: string } };
 }
 
 function bool(value: string | undefined, fallback = false): boolean {
@@ -191,6 +193,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (directUploadEnabled && (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY)) throw new Error("FAIL_CLOSED:COS_DIRECT_UPLOAD_CREDENTIALS_REQUIRED");
   const orderFlowEnabled = bool(env.COMMERCE_ORDER_FLOW_ENABLED);
   if (orderFlowEnabled && appEnv === "production") throw new Error("FAIL_CLOSED:COMMERCE_ORDER_FLOW_NONPRODUCTION_ONLY");
+  const simulatedPaymentEnabled=bool(env.COMMERCE_SIMULATED_PAYMENT_ENABLED);
+  if(simulatedPaymentEnabled && (appEnv!=="test"||!orderFlowEnabled))
+    throw new Error("FAIL_CLOSED:COMMERCE_SIMULATED_PAYMENT_TEST_ONLY");
+  const simulatedChannelUrl=env.COMMERCE_SIMULATED_CHANNEL_URL?.replace(/\/$/,"")??"";
+  if(simulatedPaymentEnabled && !/^http:\/\/(127\.0\.0\.1|\[::1\]):[0-9]{2,5}$/.test(simulatedChannelUrl))
+    throw new Error("FAIL_CLOSED:COMMERCE_SIMULATED_CHANNEL_LOOPBACK_REQUIRED");
+  const simulatedTransferEnabled=bool(env.COMMERCE_SIMULATED_TRANSFER_ENABLED);
+  if(simulatedTransferEnabled && (!simulatedPaymentEnabled||appEnv!=="test"))
+    throw new Error("FAIL_CLOSED:COMMERCE_SIMULATED_TRANSFER_TEST_ONLY");
+  const transferSceneId=simulatedTransferEnabled
+    ?required("COMMERCE_SIMULATED_TRANSFER_SCENE_ID",env.COMMERCE_SIMULATED_TRANSFER_SCENE_ID):undefined;
+  if(transferSceneId&&!/^[-A-Za-z0-9_]{2,36}$/.test(transferSceneId))
+    throw new Error("CONFIG_INVALID:COMMERCE_SIMULATED_TRANSFER_SCENE_ID");
 
   return {
     env: appEnv,
@@ -230,7 +245,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     commerce: {
       orderFlowEnabled,
       quoteTtlMinutes: integer("COMMERCE_QUOTE_TTL_MINUTES", env.COMMERCE_QUOTE_TTL_MINUTES, 10, 1, 60),
-      pendingOrderTtlMinutes: integer("COMMERCE_PENDING_ORDER_TTL_MINUTES", env.COMMERCE_PENDING_ORDER_TTL_MINUTES, 30, 5, 120)
+      pendingOrderTtlMinutes: integer("COMMERCE_PENDING_ORDER_TTL_MINUTES", env.COMMERCE_PENDING_ORDER_TTL_MINUTES, 30, 5, 120),
+      ...(simulatedPaymentEnabled?{simulatedPayment:{appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),
+        merchantId:required("COMMERCE_SIMULATED_MERCHANT_ID",env.COMMERCE_SIMULATED_MERCHANT_ID),
+        channelUrl:simulatedChannelUrl,...(transferSceneId?{transferSceneId}:{})}}:{})
     }
   };
 }

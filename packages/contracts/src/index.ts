@@ -19,9 +19,10 @@ export type AdminRole = "reviewer" | "review_lead" | "auditor" | "support" | "fi
 export const CAPABILITIES = [
   "support.read", "support.reply", "support.assign",
   "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read",
-  "commerce.fulfillment.manage", "commerce.refund.approve",
+  "commerce.fulfillment.manage", "commerce.refund.approve", "commerce.money.reconcile",
   "community.moderate", "member.support_view", "member.profile.read", "member.manage",
-  "commission.read", "commission.rate.manage", "commission.rate.approve", "privacy.request.manage"
+  "commission.read", "commission.rate.manage", "commission.rate.approve",
+  "commission.settlement.approve", "privacy.request.manage"
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 export type SupportConversationStatus = "ai_active" | "waiting_human" | "human_active" | "resolved";

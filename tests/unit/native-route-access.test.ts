@@ -24,10 +24,12 @@ const memberRoutes = [
   "/pages/submit/index",
   "/pages/progress/index",
   "/pages/points/index",
+  "/pages/commission/index",
   "/pages/settings/index",
   "/pages/invite/index",
   "/pages/referral/index",
   "/pages/community-compose/index",
+  "/pages/community-activity/index",
   "/pages/community-review/index",
   "/pages/support/index",
   "/pages/management/index",
@@ -42,6 +44,7 @@ const memberRoutes = [
   ,"/pages/order-detail/index"
   ,"/pages/management-orders/index"
   ,"/pages/management-order-detail/index"
+  ,"/pages/management-finance/index"
 ];
 
 async function source(path: string): Promise<string> {

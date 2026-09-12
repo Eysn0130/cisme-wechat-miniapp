@@ -1,0 +1,36 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回我的"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">我的社区</text></view>
+  <view class="page page--stack activity-page">
+    <view class="activity-tabs" role="tablist">
+      <button wx:for="{{tabs}}" wx:key="key" data-section="{{item.key}}" bindtap="selectSection"
+        class="activity-tab {{section===item.key?'activity-tab--active':''}}" aria-label="查看我的{{item.label}}" aria-selected="{{section===item.key}}">{{item.label}}</button>
+    </view>
+    <view wx:if="{{notice}}" class="activity-notice" aria-live="polite">{{notice}}</view>
+    <view wx:if="{{loading}}" class="activity-state" aria-live="polite">正在加载…</view>
+    <view wx:if="{{error}}" class="activity-state activity-state--error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">重试</button></view>
+    <view wx:if="{{!loading}}" class="activity-count">共 {{matchingTotal}} 条 · 已加载 {{items.length}} 条</view>
+    <view wx:if="{{!loading && !items.length && !error}}" class="activity-state">{{section==='comments'?'还没有评论':section==='saves'?'还没有收藏':section==='reports'?'还没有举报记录':section==='appeals'?'还没有内容申诉':'还没有屏蔽的用户'}}</view>
+    <block wx:if="{{section==='comments'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
+      <view class="activity-row__top"><text class="activity-row__title">{{item.postTitle || '内容暂不可见'}}</text><text class="activity-status">{{item.stateLabel}}</text></view>
+      <text class="activity-row__body">{{item.body || '评论正文已删除'}}</text><text class="activity-row__time">{{item.createdLabel}}</text>
+      <view class="activity-row__actions"><button wx:if="{{item.postTitle}}" data-id="{{item.postId}}" bindtap="openPost">查看帖子</button><button wx:if="{{item.state!=='deleted'}}" data-id="{{item.id}}" bindtap="deleteComment" class="{{busy?'control--disabled':''}}" disabled="{{busy}}">删除评论</button></view>
+    </view></block>
+    <block wx:if="{{section==='saves'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
+      <view class="activity-row__top"><text class="activity-row__title">{{item.available?item.title:'内容已下架或暂不可见'}}</text></view>
+      <view class="activity-row__actions"><button wx:if="{{item.available}}" data-id="{{item.postId}}" bindtap="openPost">查看内容</button><button data-id="{{item.postId}}" bindtap="removeSaved" class="{{busy?'control--disabled':''}}" disabled="{{busy}}">移除收藏</button></view>
+    </view></block>
+    <block wx:if="{{section==='reports'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
+      <view class="activity-row__top"><text class="activity-row__title">{{item.categoryLabel}} · {{item.targetType==='post'?'帖子':item.targetType==='comment'?'评论':'用户'}}</text><text class="activity-status">{{item.stateLabel}}</text></view>
+      <text wx:if="{{item.description}}" class="activity-row__body">{{item.description}}</text><text wx:if="{{item.decisionLabel}}" class="activity-row__body">{{item.decisionLabel}}</text><text wx:if="{{item.decisionReason}}" class="activity-row__time">{{item.decisionReason}}</text><text class="activity-row__time">{{item.createdLabel}}</text>
+    </view></block>
+    <block wx:if="{{section==='appeals'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
+      <view class="activity-row__top"><text class="activity-row__title">下架内容复核</text><text class="activity-status">{{item.stateLabel}}</text></view>
+      <text class="activity-row__body">我的说明：{{item.reason}}</text><text wx:if="{{item.decisionLabel}}" class="activity-row__body">处理结果：{{item.decisionLabel}}</text><text wx:if="{{item.decisionReason}}" class="activity-row__time">处理依据：{{item.decisionReason}}</text>
+      <text class="activity-row__time">{{item.createdLabel}}</text><view class="activity-row__actions"><button data-id="{{item.postId}}" bindtap="openAppealedPost">查看内容记录</button></view>
+    </view></block>
+    <block wx:if="{{section==='blocks'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row activity-row--inline">
+      <text class="activity-row__title">{{item.displayName}}</text><button data-id="{{item.memberId}}" bindtap="unblock" class="{{busy?'control--disabled':''}}" disabled="{{busy}}">解除屏蔽</button>
+    </view></block>
+    <button wx:if="{{nextCursor}}" class="activity-more {{loadingMore?'control--disabled':''}}" bindtap="loadMore" disabled="{{loadingMore}}" loading="{{loadingMore}}">加载更多</button>
+  </view>
+</view>

@@ -36,6 +36,9 @@
     ,{ "root": "pages/community-post", "pages": ["index"] }
     ,{ "root": "pages/community-author", "pages": ["index"] }
     ,{ "root": "pages/community-review", "pages": ["index"] }
+    ,{ "root": "pages/community-activity", "pages": ["index"] }
+    ,{ "root": "pages/management-finance", "pages": ["index"] }
+    ,{ "root": "pages/commission", "pages": ["index"] }
   ],
   "window": {
     "navigationStyle": "custom",

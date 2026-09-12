@@ -15,6 +15,7 @@ export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/community-author/index": "public",
   "/pages/community-compose/index": "member",
   "/pages/community-review/index": "member",
+  "/pages/community-activity/index": "member",
   "/pages/profile/index": "member",
   "/pages/task/index": "member",
   "/pages/submit/index": "member",
@@ -28,6 +29,7 @@ export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/order-detail/index": "member",
   "/pages/settings/index": "member",
   "/pages/invite/index": "member",
+  "/pages/commission/index": "member",
   "/pages/referral/index": "member",
   "/pages/legal/index": "public",
   "/pages/privacy-rights/index": "public",
@@ -39,6 +41,7 @@ export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/management-product/index": "member",
   "/pages/management-orders/index": "member",
   "/pages/management-order-detail/index": "member",
+  "/pages/management-finance/index": "member",
   "/pages/management-support/index": "member",
   "/pages/management-support-chat/index": "member"
 };

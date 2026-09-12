@@ -3,7 +3,8 @@ import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
 import { enqueue } from "./outbox.js";
-import { assertPaymentBinding, decodePaymentNotification } from "./wechatPayV3.js";
+import { assertPaymentBinding, decodePaymentNotification, type PaymentTransaction, WechatPayV3Client } from "./wechatPayV3.js";
+import { claimDueMoneyInbox, recordMoneyInboxFailure } from "./moneyInboxRetry.js";
 
 const orderPattern=/^CM[0-9]{8}[A-Z0-9]{12}$/;
 const safeMoney=(value:unknown)=>{
@@ -13,8 +14,9 @@ const safeMoney=(value:unknown)=>{
   return amount;
 };
 
-/** Internal PAY-MAKE inbox. It is deliberately not mounted as a public route:
- * the current synthetic-only checkout cannot obtain a WeChat prepay order. */
+/** A signed callback or a separately signed original-order query may create a
+ * durable payment fact. Neither the client result nor a current identity read
+ * can do so. */
 export class VerifiedPaymentInbox {
   constructor(private readonly pool:pg.Pool,private readonly binding:{appId:string;merchantId:string;apiV3Key:string;
     platformKeys:ReadonlyMap<string,string>}){}
@@ -22,34 +24,55 @@ export class VerifiedPaymentInbox {
   async receive(rawBody:Uint8Array,headers:Record<string,string|undefined>,now=new Date()){
     const decoded=decodePaymentNotification({rawBody,headers,publicKeys:this.binding.platformKeys,
       apiV3Key:this.binding.apiV3Key,now});
-    const orderNumber=decoded.transaction.out_trade_no;
+    return this.persistTransaction(decoded.transaction,decoded.eventId,
+      createHash("sha256").update(rawBody).digest("hex"));
+  }
+
+  async receiveQueried(client:WechatPayV3Client,outTradeNo:string){
+    const {transaction,rawSha256}=await client.queryByMerchantOrderNumberWithEvidence(outTradeNo);
+    if(transaction.out_trade_no!==outTradeNo)
+      throw new DomainError("PAYMENT_QUERY_ORDER_MISMATCH","查单结果与原商户订单号不一致",409);
+    if(typeof transaction.transaction_id!=="string"||!transaction.transaction_id)
+      throw new DomainError("PAYMENT_QUERY_UNPAID","原商户订单尚未确认支付",409);
+    return this.persistTransaction(transaction,`query:${transaction.transaction_id}`,rawSha256);
+  }
+
+  private async persistTransaction(transaction:PaymentTransaction,eventId:string,rawHash:string){
+    const orderNumber=transaction.out_trade_no;
     if(typeof orderNumber!=="string"||!orderPattern.test(orderNumber))
       throw new DomainError("PAYMENT_ORDER_UNMATCHED","微信支付订单号未匹配",422);
-    const row=(await this.pool.query(`SELECT o.id,o.order_number,o.total_cents,o.member_id,i.openid
-      FROM commerce_order o LEFT JOIN LATERAL (
-        SELECT openid FROM wechat_identity WHERE member_id=o.member_id AND provider='wechat_miniprogram'
-          AND app_id=$2 ORDER BY created_at DESC LIMIT 1) i ON true
-      WHERE o.order_number=$1`,[orderNumber,this.binding.appId])).rows[0];
-    if(!row||!row.openid)throw new DomainError("PAYMENT_ORDER_UNMATCHED","微信支付订单或付款身份未匹配",422);
-    const verified=assertPaymentBinding(decoded.transaction,{appId:this.binding.appId,
-      merchantId:this.binding.merchantId,outTradeNo:row.order_number,totalCents:safeMoney(row.total_cents),
-      currency:"CNY",payerOpenid:row.openid});
-    const rawHash=createHash("sha256").update(rawBody).digest("hex");
+    const row=(await this.pool.query(`SELECT o.id,o.order_number,o.total_cents,o.member_id,
+      o.source_quote_id,o.pricing_rule_version AS order_pricing_rule_version,
+      a.payer_openid,a.app_id,a.merchant_id,a.amount_cents,a.currency,a.expires_at,
+      a.quote_id,a.pricing_rule_version,a.quote_price_version,q.price_version AS current_quote_price_version
+      FROM commerce_order o JOIN commerce_payment_attempt a ON a.order_id=o.id
+      JOIN commerce_checkout_quote q ON q.id=a.quote_id
+      WHERE o.order_number=$1 AND o.transaction_source_kind='verified_commerce'`,[orderNumber])).rows[0];
+    if(!row||row.app_id!==this.binding.appId||row.merchant_id!==this.binding.merchantId||
+      row.amount_cents===null||row.quote_id===null||row.payer_openid===null)
+      throw new DomainError("PAYMENT_ORDER_UNMATCHED","微信支付订单或支付意图未匹配",422);
+    if(row.quote_id!==row.source_quote_id||row.pricing_rule_version!==row.order_pricing_rule_version||
+      row.quote_price_version!==row.current_quote_price_version||row.currency!=="CNY"||
+      safeMoney(row.amount_cents)!==safeMoney(row.total_cents))
+      throw new DomainError("PAYMENT_INTENT_DRIFT","支付意图与订单快照不一致",409);
+    const verified=assertPaymentBinding(transaction,{appId:this.binding.appId,
+      merchantId:this.binding.merchantId,outTradeNo:row.order_number,totalCents:safeMoney(row.amount_cents),
+      currency:"CNY",payerOpenid:row.payer_openid});
     const inserted=await this.pool.query<{id:string}>(`INSERT INTO commission_payment_inbox(
       notification_id,provider_transaction_id,order_id,app_id,merchant_id,amount_cents,currency,verified_paid_at,raw_sha256)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING RETURNING id`,
-      [decoded.eventId,verified.providerTransactionId,row.id,verified.appId,verified.merchantId,
+      [eventId,verified.providerTransactionId,row.id,verified.appId,verified.merchantId,
         verified.totalCents,verified.currency,verified.paidAt,rawHash]);
     let id=inserted.rows[0]?.id;
     if(!id){
       const existing=(await this.pool.query(`SELECT id,notification_id,provider_transaction_id,order_id,app_id,
         merchant_id,amount_cents,currency,verified_paid_at,raw_sha256 FROM commission_payment_inbox
-        WHERE notification_id=$1 OR provider_transaction_id=$2`,[decoded.eventId,verified.providerTransactionId])).rows[0];
+        WHERE notification_id=$1 OR provider_transaction_id=$2`,[eventId,verified.providerTransactionId])).rows[0];
       if(!existing||existing.provider_transaction_id!==verified.providerTransactionId||existing.order_id!==row.id||
         existing.app_id!==verified.appId||existing.merchant_id!==verified.merchantId||
         safeMoney(existing.amount_cents)!==verified.totalCents||existing.currency!==verified.currency||
         new Date(existing.verified_paid_at).toISOString()!==verified.paidAt||
-        (existing.notification_id===decoded.eventId&&existing.raw_sha256!==rawHash))
+        (existing.notification_id===eventId&&existing.raw_sha256!==rawHash))
         throw new DomainError("PAYMENT_EVENT_CONFLICT","微信支付通知与已收事实冲突",409);
       id=existing.id;
     }
@@ -62,12 +85,11 @@ export class VerifiedPaymentInbox {
   }
 
   async processPending(limit=20){
-    const rows=await this.pool.query<{id:string}>(`SELECT id FROM commission_payment_inbox WHERE state='pending'
-      ORDER BY received_at,id LIMIT $1`,[Math.max(1,Math.min(limit,100))]);
+    const ids=await claimDueMoneyInbox(this.pool,"payment",limit);
     const results=[];
-    for(const row of rows.rows){
-      try{results.push({id:row.id,state:await this.processOne(row.id)});}
-      catch{results.push({id:row.id,state:"pending" as const});}
+    for(const id of ids){
+      try{results.push({id,state:await this.processOne(id)});}
+      catch(error){results.push({id,state:await recordMoneyInboxFailure(this.pool,"payment",id,error)});}
     }
     return results;
   }
@@ -79,16 +101,25 @@ export class VerifiedPaymentInbox {
       if(fact.state!=="pending")return fact.state;
       const order=(await client.query(`SELECT * FROM commerce_order WHERE id=$1 FOR UPDATE`,[fact.order_id])).rows[0];
       const exception=async(code:string)=>{
-        await client.query(`UPDATE commission_payment_inbox SET state='exception',exception_code=$2 WHERE id=$1`,[inboxId,code]);
+        await client.query(`UPDATE commission_payment_inbox SET state='exception',exception_code=$2,lease_until=NULL WHERE id=$1`,[inboxId,code]);
         await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
           VALUES('worker:payment-inbox','commerce.payment_exception','commerce_order',$1,$2,$3)`,
           [fact.order_id,code,`payment-inbox:${inboxId}`]);
         return "exception" as const;
       };
       if(!order||order.transaction_source_kind!=="verified_commerce")return exception("ORDER_SOURCE_NOT_PAYABLE");
+      const attempt=(await client.query(`SELECT * FROM commerce_payment_attempt WHERE order_id=$1 FOR UPDATE`,[order.id])).rows[0];
+      if(!attempt||attempt.out_trade_no!==order.order_number||attempt.member_id!==order.member_id||
+        attempt.app_id!==fact.app_id||attempt.merchant_id!==fact.merchant_id||
+        safeMoney(attempt.amount_cents)!==safeMoney(fact.amount_cents)||
+        attempt.quote_id!==order.source_quote_id||attempt.pricing_rule_version!==order.pricing_rule_version)
+        return exception("PAYMENT_ATTEMPT_MISMATCH");
+      if(attempt.state==="closed")return exception("PAYMENT_CLOSED_CHANNEL_CONFLICT");
       if(order.status!=="pending_payment")return exception("ORDER_ALREADY_TERMINAL");
       const paidAt=new Date(fact.verified_paid_at);
-      if(paidAt<new Date(order.created_at)||paidAt>new Date(order.expires_at))return exception("PAYMENT_OUTSIDE_ORDER_WINDOW");
+      // WeChat timestamps are seconds; the DB order timestamp has milliseconds.
+      if(paidAt.getTime()<Math.floor(new Date(order.created_at).getTime()/1000)*1000||
+        paidAt>new Date(order.expires_at))return exception("PAYMENT_OUTSIDE_ORDER_WINDOW");
       const reservations=await client.query(`SELECT * FROM commerce_inventory_reservation WHERE order_id=$1 FOR UPDATE`,[order.id]);
       if(!reservations.rowCount||reservations.rows.some(row=>row.status!=="active"))return exception("RESERVATION_NOT_ACTIVE");
       const snapshot=(await client.query(`SELECT * FROM commission_order_snapshot WHERE order_id=$1`,[order.id])).rows[0];
@@ -118,7 +149,9 @@ export class VerifiedPaymentInbox {
       await client.query(`INSERT INTO commerce_order_transition(order_id,from_status,to_status,reason_code,
         actor_principal_id,order_version,occurred_at) VALUES($1,'pending_payment','paid','WECHAT_PAY_VERIFIED',
         'worker:payment-inbox',$2,now())`,[order.id,updated.version]);
-      await client.query(`UPDATE commission_payment_inbox SET state='applied',applied_at=now() WHERE id=$1`,[inboxId]);
+      await client.query(`UPDATE commission_payment_inbox SET state='applied',applied_at=now(),lease_until=NULL WHERE id=$1`,[inboxId]);
+      await client.query(`UPDATE commerce_payment_attempt SET state='paid',request_lease_until=NULL,
+        updated_at=now() WHERE id=$1`,[attempt.id]);
       if(snapshot){
         const base=BigInt(snapshot.cash_merchandise_cents),rate=BigInt(snapshot.basis_points);
         const commission=(base*rate+5000n)/10000n;

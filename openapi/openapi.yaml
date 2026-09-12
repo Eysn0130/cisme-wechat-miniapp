@@ -86,6 +86,7 @@ paths:
   /v1/legal:
     get:
       operationId: currentLegalDocuments
+      security: []
       description: Public full text and versions of active terms/privacy and optional separate cross_border notice; ready only when both exist. Never records acceptance.
       responses: {'200': {description: Current published documents and ready flag}}
   /v1/me/profile:
@@ -208,6 +209,7 @@ paths:
     parameters: [{name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}]
     post:
       operationId: cloudUploadChunk
+      security: []
       description: Signed short-lived upload token required in body. Sequential 512 KiB base64 chunks, total at most 10 MiB. Replays must contain identical bytes. No final object is exposed to client writes.
       requestBody:
         required: true
@@ -217,19 +219,21 @@ paths:
     parameters: [{name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}]
     post:
       operationId: assembleCloudUpload
+      security: []
       description: Requires all chunks and same signed token; reuses submission/media locks and gateway validation. Member must still call existing media completion to verify and commit current evidence.
       requestBody:
         required: true
         content: {application/json: {schema: {type: object, required: [token], properties: {token: {type: string}}}}}
       responses: {'200': {description: Object written awaiting completion}, '409': {description: Incomplete or locked upload}}
   /health/live:
-    get: {operationId: live, responses: {'200': {description: Process live}}}
+    get: {operationId: live, security: [], responses: {'200': {description: Process live}}}
   /health/ready:
-    get: {operationId: ready, responses: {'200': {description: Database and object storage ready}}}
+    get: {operationId: ready, security: [], responses: {'200': {description: Database and object storage ready}}}
   /v1/identity/dev:
     post:
       tags: [Identity]
       operationId: devIdentity
+      security: []
       description: Development adapter only; forbidden in staging and production.
       requestBody: {$ref: '#/components/requestBodies/Identity'}
       responses: {'200': {$ref: '#/components/responses/Identity'}, '503': {$ref: '#/components/responses/Problem'}}
@@ -237,6 +241,7 @@ paths:
     post:
       tags: [Identity]
       operationId: wechatIdentity
+      security: []
       requestBody: {$ref: '#/components/requestBodies/Identity'}
       responses: {'200': {$ref: '#/components/responses/Identity'}, '502': {$ref: '#/components/responses/Problem'}}
   /v1/qualifications/dev:
@@ -298,14 +303,12 @@ paths:
       parameters: [{$ref: '#/components/parameters/CycleId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CareVersionCommandInput'}}}}
       responses: {'200': {description: Versioned activation or exact command replay, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
-  /v1/care-cycles/{cycleId}/{action}:
-    post:
-      tags: [Care]
-      operationId: changeCarePhase
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/CycleId'}, {name: action, in: path, required: true, schema: {type: string, enum: [pause, resume, terminate]}}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}}}}
-      responses: {'200': {description: Versioned state transition or exact replay}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/care-cycles/{cycleId}/pause:
+    post: {tags: [Care], operationId: pauseCareCycle, security: [{session: []}], parameters: [{$ref: '#/components/parameters/CycleId'}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CarePhaseCommandInput'}}}}, responses: {'200': {description: Versioned pause or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/care-cycles/{cycleId}/resume:
+    post: {tags: [Care], operationId: resumeCareCycle, security: [{session: []}], parameters: [{$ref: '#/components/parameters/CycleId'}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CarePhaseCommandInput'}}}}, responses: {'200': {description: Versioned resume or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/care-cycles/{cycleId}/terminate:
+    post: {tags: [Care], operationId: terminateCareCycle, security: [{session: []}], parameters: [{$ref: '#/components/parameters/CycleId'}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CarePhaseCommandInput'}}}}, responses: {'200': {description: Versioned termination or exact replay; never implies refund}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/care-cycles/{cycleId}/milestones/{milestone}/complete:
     post:
       tags: [Care]
@@ -337,6 +340,7 @@ paths:
     post:
       tags: [Submission]
       operationId: gatewayUpload
+      security: []
       description: Local fallback adapter; production storage remains supplier-dependent.
       parameters: [{name: mediaId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
       requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, required: [token, file], properties: {token: {type: string}, file: {type: string, format: binary}}}}}}
@@ -476,7 +480,7 @@ paths:
   /v1/consents/{consentGrantId}/revoke:
     post: {tags: [Submission], operationId: revokeConsent, security: [{session: []}], parameters: [{name: consentGrantId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: New use blocked; historical evidence retained; exact replay returned}}}
   /v1/feed:
-    get: {tags: [Read models], operationId: curatedFeed, responses: {'200': {description: Explicitly publication-approved, licensed, non-revoked read-only feed; fail-closed empty while the UGC go-live gate is off}}}
+    get: {tags: [Read models], operationId: curatedFeed, security: [], responses: {'200': {description: Explicitly publication-approved, licensed, non-revoked read-only feed; fail-closed empty while the UGC go-live gate is off}}}
   /v1/feed/page:
     get:
       tags: [Read models]
@@ -547,10 +551,81 @@ paths:
       tags: [Commerce]
       operationId: cancelPendingCommerceOrder
       security: [{session: []}]
-      description: Cancels an owned pending-payment order and releases active inventory reservations exactly once. Remains available when the create gate is closed.
+      description: Cancels an owned synthetic pending order and releases inventory exactly once. A verified-commerce order requires the separate signed-query-and-channel-close command first.
       parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCancelInput'}}}}
       responses: {'200': {description: Cancelled order or exact same-target replay}, '409': {description: stale or terminal order state, or an idempotency key reused for a different actor, member, order target, version or reason}}
+  /v1/me/orders/{orderId}/payment-intent:
+    post:
+      tags: [Commerce]
+      operationId: prepareIsolatedPaymentIntent
+      security: [{session: []}]
+      description: Test-only. Uses the immutable payer and quote snapshot captured in the order transaction, signs a JSAPI prepay request to an isolated loopback channel, and retries with the same merchant order number after signed original-order query. Production always returns 503.
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Signed mini-program requestPayment parameters marked simulation}, '409': {description: expired, conflicting or unresolved channel state}, '503': {description: isolated channel disabled}}
+    get:
+      tags: [Commerce]
+      operationId: reconcileIsolatedPaymentIntent
+      security: [{session: []}]
+      description: Test-only signed channel query by original merchant order number. A signed SUCCESS result persists an Inbox fact, never directly marks paid.
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Channel state or durable verified pending fact}, '503': {description: isolated channel disabled}}
+  /v1/me/orders/{orderId}/cancel-verified:
+    post:
+      tags: [Commerce]
+      operationId: cancelIsolatedVerifiedOrder
+      security: [{session: []}]
+      description: Test-only. Queries the original channel order, closes only NOTPAY, confirms CLOSED, then releases inventory through the versioned order cancellation command. Unknown or successful payment remains unreleased.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCancelInput'}}}}
+      responses: {'200': {description: Cancelled order after confirmed channel close}, '409': {description: channel result unresolved, paid or version conflict}, '503': {description: isolated channel disabled}}
+  /v1/payments/wechat/callback:
+    post:
+      tags: [Commerce]
+      operationId: receiveIsolatedWechatPaymentNotification
+      security: []
+      description: Test-only raw-byte WeChat APIv3 signature/decryption boundary. Acknowledges 204 only after the immutable payer/quote-bound fact is durable. Production always returns 503 until independently authorized configuration exists.
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses: {'204': {description: Signed, bound and durable notification}, '422': {description: invalid signature, resource or binding}, '503': {description: isolated channel disabled}}
+  /v1/me/orders/{orderId}/refund-requests:
+    post:
+      tags: [Commerce]
+      operationId: requestIsolatedOrderRefund
+      security: [{session: []}]
+      description: Test-only owner request against an applied signed payment. Reserves the requested integer cents across pending and approved requests and rejects unsupported discount or freight allocation.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [amountCents, reason], properties: {amountCents: {type: integer, minimum: 1}, reason: {type: string}}}}}}
+      responses: {'200': {description: Stable refund request or exact replay}, '409': {description: not paid, unsupported allocation or overdraw}, '503': {description: isolated channel disabled}}
+  /v1/me/refund-requests:
+    get: {tags: [Commerce], operationId: myIsolatedRefundRequests, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}, {name: orderId, in: query, schema: {$ref: '#/components/schemas/Uuid'}}], responses: {'200': {description: Cursor-paged owner-only requests with exact totalCount and optional order filter; channel-confirmed state, never a client-declared success}, '503': {description: isolated channel disabled}}}
+  /v1/management/refund-requests/pending:
+    get: {tags: [Commerce, Authority], operationId: pendingIsolatedRefundRequests, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Test-only commerce.refund.approve queue; applicant identity is visible only to an authorized approver., responses: {'200': {description: Cursor-paged pending requests with exact totalCount}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: isolated channel disabled}}}
+  /v1/management/refund-requests/{requestId}/decision:
+    post:
+      tags: [Commerce, Authority]
+      operationId: decideIsolatedRefundRequest
+      security: [{session: []}]
+      description: Test-only independent commerce.refund.approve decision. Approval creates one immutable merchant refund number and a line-level cash allocation before any channel request. The worker queries the original number after unknown results.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}, {name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, expectedVersion, reason], properties: {decision: {type: string, enum: [approve, reject]}, expectedVersion: {type: integer, minimum: 1}, reason: {type: string}}}}}}
+      responses: {'200': {description: Approved intent or rejected request; stable decision replay}, '403': {description: capability required or self-approval forbidden}, '409': {description: stale request, unsupported cash allocation or overdraw}}
+  /v1/management/refund-submissions/{intentId}/redrive:
+    post:
+      tags: [Commerce, Authority]
+      operationId: redriveIsolatedRefundSubmission
+      security: [{session: []}]
+      description: Requires commerce.money.reconcile. An authorized operator requeues only a quarantined prepared refund using its immutable original merchant refund number; the worker queries that number before any retry. This never marks a refund successful.
+      parameters: [{name: intentId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reason, expectedAttempts], properties: {reason: {type: string, minLength: 8}, expectedAttempts: {type: integer, minimum: 1, maximum: 8}}}}}}
+      responses: {'200': {description: Original-number requery queued}, '403': {description: capability required}, '409': {description: task state or attempt count changed}, '503': {description: isolated channel disabled}}
+  /v1/payments/wechat/refund-callback:
+    post:
+      tags: [Commerce]
+      operationId: receiveIsolatedWechatRefundNotification
+      security: []
+      description: Test-only signed raw refund callback. Acknowledges after the bound fact is durable. Accepted or processing states never mean customer funds returned.
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses: {'204': {description: Signed and durable refund fact}, '422': {description: invalid signature or binding}, '503': {description: isolated channel disabled}}
   /v1/management/commerce/orders:
     get:
       tags: [Commerce, Authority]
@@ -567,6 +642,93 @@ paths:
       description: Requires commerce.order.read and returns only masked recipient and phone plus broad region.
       parameters: [{$ref: '#/components/parameters/OrderId'}]
       responses: {'200': {description: Redacted order detail}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/management/commerce/orders/{orderId}/fulfillment:
+    post:
+      tags: [Commerce, Authority]
+      operationId: submitIsolatedFulfillmentEvidence
+      security: [{session: []}]
+      description: Test-only commerce.fulfillment.manage attestation proposal. Requires applied verified payment and a stable evidence digest. It cannot mark customer receipt or release commission by itself.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [sourceReference, evidenceSha256, deliveredAt], properties: {sourceReference: {type: string}, evidenceSha256: {type: string}, deliveredAt: {type: string, format: date-time}}}}}}
+      responses: {'200': {description: Durable proposal or exact replay}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: formal fulfillment policy not approved}}
+  /v1/management/fulfillment/pending:
+    get: {tags: [Commerce, Authority], operationId: pendingIsolatedFulfillment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Test-only independent fulfillment review queue., responses: {'200': {description: Cursor-paged pending proposals with totalCount}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: formal fulfillment policy not approved}}}
+  /v1/management/fulfillment/{attestationId}/decision:
+    post:
+      tags: [Commerce, Authority]
+      operationId: decideIsolatedFulfillment
+      security: [{session: []}]
+      description: Test-only independent reviewer. A verified attestation releases the currently earned commission only after refund requests and channel refunds are resolved. No real settlement or transfer is enabled.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}, {name: attestationId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, expectedVersion, reason], properties: {decision: {type: string, enum: [verify, reject]}, expectedVersion: {type: integer, minimum: 1}, reason: {type: string}}}}}}
+      responses: {'200': {description: Terminal attestation and released integer cents}, '403': {description: capability required or self-review forbidden}, '409': {description: stale version or unresolved refund}, '503': {description: formal fulfillment policy not approved}}
+  /v1/me/commission/settlement-requests:
+    post:
+      tags: [Commerce]
+      operationId: requestIsolatedCommissionSettlement
+      security: [{session: []}]
+      description: Test-only request; no reservation or payment until independent approval. Formal settlement remains disabled.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [amountCents, reason], properties: {amountCents: {type: integer, minimum: 1}, reason: {type: string}}}}}}
+      responses: {'200': {description: Durable request or exact replay}, '409': {description: verified payee identity missing}, '503': {description: isolated transfer disabled}}
+    get: {tags: [Commerce], operationId: myIsolatedCommissionSettlements, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], responses: {'200': {description: Paged owner-only settlement states; only signed SUCCESS is paid}, '503': {description: isolated transfer disabled}}}
+  /v1/management/commission/settlement-requests/pending:
+    get: {tags: [Commerce, Authority], operationId: pendingIsolatedCommissionSettlements, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Test-only commission.settlement.approve queue., responses: {'200': {description: Paged pending requests and exact count}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: isolated transfer disabled}}}
+  /v1/management/commission/settlement-requests/{requestId}/decision:
+    post:
+      tags: [Commerce, Authority]
+      operationId: decideIsolatedCommissionSettlement
+      security: [{session: []}]
+      description: Independent test-only approval atomically allocates released commission and reserves it by a stable merchant bill number. It does not initiate a real transfer when the isolated gate is off.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}, {name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, expectedVersion, reason], properties: {decision: {type: string, enum: [approve, reject]}, expectedVersion: {type: integer, minimum: 1}, reason: {type: string}}}}}}
+      responses: {'200': {description: Reserved or rejected request}, '403': {description: capability required or self-approval forbidden}, '409': {description: stale version or insufficient released amount}, '503': {description: isolated transfer disabled}}
+  /v1/management/commission/settlement-requests/{requestId}/redrive:
+    post:
+      tags: [Commerce, Authority]
+      operationId: redriveIsolatedCommissionTransfer
+      security: [{session: []}]
+      description: Authorized requery of a quarantined original merchant bill number. No manual success mutation or new bill number.
+      parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reason, expectedAttempts], properties: {reason: {type: string}, expectedAttempts: {type: integer, minimum: 0}}}}}}
+      responses: {'200': {description: Original-bill requery scheduled}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: state changed}, '503': {description: isolated transfer disabled}}
+  /v1/payments/wechat/transfer-callback:
+    post:
+      tags: [Commerce]
+      operationId: receiveIsolatedWechatTransferNotification
+      security: []
+      description: Test-only raw signed and encrypted terminal transfer callback. Binds merchant bill number, recipient and integer cents before durable 204. A separate signed original-bill query confirms the terminal state before settlement ledger entry.
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses: {'204': {description: Signed, bound and durable transfer notification}, '422': {description: invalid signature or binding}, '503': {description: isolated transfer disabled}}
+  /v1/management/money/issues:
+    get: {tags: [Commerce, Authority], operationId: isolatedMoneyIssues, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Requires commerce.money.reconcile; redacted cursor-paged exception summary and exact count across payment, refund and transfer workers., responses: {'200': {description: Exception queue}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: isolated money operations disabled}}}
+  /v1/management/money/inboxes/{kind}/{inboxId}/redrive:
+    post:
+      tags: [Commerce, Authority]
+      operationId: redriveIsolatedMoneyInbox
+      security: [{session: []}]
+      description: Requires commerce.money.reconcile; requeues a quarantined verified payment or refund fact with an audit reason. Does not edit terminal money facts.
+      parameters: [{name: kind, in: path, required: true, schema: {type: string, enum: [payment, refund]}}, {name: inboxId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reason], properties: {reason: {type: string}}}}}}
+      responses: {'200': {description: Original fact scheduled for worker recheck}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: state changed}, '503': {description: isolated money operations disabled}}
+  /v1/management/money/recheck/{kind}/{objectId}:
+    post:
+      tags: [Commerce, Authority]
+      operationId: recheckIsolatedMoneyOriginalNumber
+      security: [{session: []}]
+      description: Requires commerce.money.reconcile; signed original-number query for payment order ID, refund intent ID or transfer request ID. Any success effect remains bound to the original command and durable inbox.
+      parameters: [{name: kind, in: path, required: true, schema: {type: string, enum: [payment, refund, transfer]}}, {name: objectId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses: {'200': {description: Original channel status or durable fact}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: channel not terminal}, '503': {description: isolated money operations disabled}}
+  /v1/management/money/trade-bills/import:
+    post:
+      tags: [Commerce, Authority]
+      operationId: importIsolatedWechatTradeBill
+      security: [{session: []}]
+      description: Test-only signed WeChat Pay v3 SUCCESS or REFUND trade bill application and hash-verified download. Import is immutable and idempotent per date/type/merchant; matched rows and exceptions never create payment, refund success, or commission ledger entries. REFUND bills describe accepted refund requests, not terminal refund completion.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [billDate, billType], properties: {billDate: {type: string, format: date}, billType: {type: string, enum: [SUCCESS, REFUND]}}}}}}
+      responses: {'200': {description: Bill import summary}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: changed bill for same date and type}, '422': {description: invalid or unsupported bill}, '503': {description: isolated channel disabled}}
+  /v1/management/money/trade-bills:
+    get: {tags: [Commerce, Authority], operationId: isolatedWechatTradeBillHistory, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Requires commerce.money.reconcile; redacted keyset-paged imported bill summaries and exact count., responses: {'200': {description: Bill import history}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: isolated channel disabled}}}
   /v1/management/catalog/products:
     get:
       tags: [Commerce, Authority]
@@ -885,6 +1047,120 @@ paths:
       parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
       responses: {'200': {description: Cited suggested-reply draft when a provider and approved knowledge are separately enabled}, '409': {description: ownership conflict or ungrounded output}, '503': {description: provider, knowledge or timeout pending}}
 
+  /v1/ugc/status:
+    get: {operationId: formalUgcStatus, security: [], responses: {'200': {description: Public publication gate and private draft capability}}}
+  /v1/ugc/posts:
+    get: {operationId: formalUgcFeed, security: [], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}, {name: q, in: query, schema: {type: string}}, {name: authorId, in: query, schema: {$ref: '#/components/schemas/Uuid'}}], responses: {'200': {description: Gate-checked published revision page with nextCursor}, '503': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/posts/{postId}:
+    parameters: [{$ref: '#/components/parameters/FormalPostId'}]
+    get: {operationId: formalUgcPost, security: [], responses: {'200': {description: Published revision only; an unsubmitted newer revision is never returned}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/posts/{postId}/reaction:
+    put: {operationId: formalUgcReaction, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], requestBody: {$ref: '#/components/requestBodies/UgcReaction'}, responses: {'200': {description: Idempotent active like or saved state}, '401': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/posts/{postId}/comments:
+    parameters: [{$ref: '#/components/parameters/FormalPostId'}]
+    get: {operationId: formalUgcComments, security: [], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], responses: {'200': {description: Published comments keyset page and nextCursor; own pending comments require a separate member view}}}
+    post: {operationId: formalUgcComment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {$ref: '#/components/requestBodies/UgcComment'}, responses: {'200': {description: Persisted pending comment awaiting safety and human review}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/posts/{postId}/comments/{commentId}:
+    delete: {operationId: deleteOwnFormalUgcComment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}, {$ref: '#/components/parameters/CommentId'}], responses: {'200': {description: Own comment deleted; review history remains}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/authors/{authorId}:
+    get: {operationId: formalUgcAuthor, security: [], parameters: [{name: authorId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], responses: {'200': {description: Approved public author projection only}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/media/{mediaId}:
+    get: {operationId: formalUgcPublicMedia, security: [], parameters: [{$ref: '#/components/parameters/MediaId'}, {name: variant, in: query, schema: {type: string, enum: [thumbnail, detail]}}], responses: {'200': {description: Published derived WebP image only with no-store cache policy}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/review-preview/{mediaId}:
+    get: {operationId: formalUgcReviewPreview, security: [], parameters: [{$ref: '#/components/parameters/MediaId'}, {$ref: '#/components/parameters/MediaPreviewToken'}], description: Five-minute signed token binds reviewer, eligible submitted revision and media; capability and revision are rechecked on read., responses: {'200': {description: Private submitted candidate image}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/own-preview/{ownerId}/{mediaId}:
+    get: {operationId: formalUgcOwnerPreview, security: [], parameters: [{name: ownerId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/MediaId'}, {$ref: '#/components/parameters/MediaPreviewToken'}], description: Short-lived signed owner and media-bound private image URL; ownership and current binding are rechecked., responses: {'200': {description: Owner-only private image}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/scan-source/{mediaId}:
+    get: {operationId: formalUgcScanSource, security: [], parameters: [{$ref: '#/components/parameters/MediaId'}, {$ref: '#/components/parameters/MediaPreviewToken'}], description: WeChat scanner-only 45-minute HMAC URL tied to pending revision, image SHA-256 and media ID; read rechecks pending state., responses: {'200': {description: Private image bytes for safety scanning}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/safety-callback:
+    get: {operationId: verifyUgcSafetyCallback, security: [], description: WeChat plaintext callback challenge verified using configured callback token., parameters: [{$ref: '#/components/parameters/WechatSignature'}, {$ref: '#/components/parameters/WechatTimestamp'}, {$ref: '#/components/parameters/WechatNonce'}, {name: echostr, in: query, required: true, schema: {type: string}}], responses: {'200': {description: Verified challenge echo}, '403': {$ref: '#/components/responses/Problem'}}}
+    post: {operationId: receiveUgcSafetyCallback, security: [], description: WeChat plaintext signed callback stored by trace ID before acknowledgment; encrypted callback mode is not yet supported and publication gate remains closed., parameters: [{$ref: '#/components/parameters/WechatSignature'}, {$ref: '#/components/parameters/WechatTimestamp'}, {$ref: '#/components/parameters/WechatNonce'}], requestBody: {required: true, content: {application/json: {schema: {type: object}}}}, responses: {'200': {description: Callback accepted after signature and trace validation}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts:
+    get: {operationId: myFormalUgcPosts, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], responses: {'200': {description: Own draft, pending, rejected and published content keyset page with exact total}}}
+    post: {operationId: createFormalUgcDraft, security: [{session: []}], parameters: [{$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: Stable private draft; exact request-key replay returns the same draft}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/activity/{section}:
+    get: {operationId: myFormalUgcActivity, security: [{session: []}], parameters: [{name: section, in: path, required: true, schema: {type: string, enum: [comments, saves, reports, blocks, appeals]}}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}, {name: postId, in: query, required: false, schema: {$ref: '#/components/schemas/Uuid'}, description: Applies only to own comments.}], description: Owner-scoped comments include private review status; saved posts mark unavailable content; reports and appeals include decisions; blocks can be undone., responses: {'200': {description: Owner-only keyset page and exact total}, '401': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}:
+    parameters: [{$ref: '#/components/parameters/FormalPostId'}]
+    get: {operationId: readOwnFormalUgcPost, security: [{session: []}], responses: {'200': {description: Own current revision, review note and media bindings}, '404': {$ref: '#/components/responses/Problem'}}}
+    delete: {operationId: deleteOwnFormalUgcPost, security: [{session: []}], requestBody: {$ref: '#/components/requestBodies/UgcExpectedVersion'}, responses: {'200': {description: Unpublished own draft deleted or public post withdrawn with audit}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}/appeals:
+    post: {operationId: submitFormalUgcAppeal, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Author-only appeal for a hidden published version, independent of privacy-rights requests; same reason replays by post version., requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reason, expectedVersion], properties: {reason: {type: string, minLength: 4, maxLength: 1000}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Appeal received or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}/draft:
+    put: {operationId: saveFormalUgcDraft, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], requestBody: {$ref: '#/components/requestBodies/UgcDraft'}, responses: {'200': {description: Version-guarded private revision; previously published revision stays public}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}/submit:
+    post: {operationId: submitFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], requestBody: {$ref: '#/components/requestBodies/UgcExpectedVersion'}, responses: {'200': {description: Submitted current revision and scan availability; never publishes}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}/scan:
+    post: {operationId: requestFormalUgcScan, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], responses: {'200': {description: Text and image safety scan status for submitted revision}, '503': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}/media/authorize:
+    post: {operationId: authorizeFormalUgcMedia, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], requestBody: {$ref: '#/components/requestBodies/UgcMediaAuthorize'}, responses: {'200': {description: Private upload authorization bound to owner and source post}, '422': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}/media/{mediaId}/complete:
+    post: {operationId: completeFormalUgcMedia, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}, {$ref: '#/components/parameters/MediaId'}], responses: {'200': {description: Verified private upload complete and available for draft binding}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/posts/{postId}/media/{mediaId}/preview-url:
+    get: {operationId: ownPostUgcMediaPreviewUrl, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}, {$ref: '#/components/parameters/MediaId'}], responses: {'200': {description: Signed owner-only preview for uploaded media before draft binding}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/media/{mediaId}:
+    parameters: [{$ref: '#/components/parameters/MediaId'}]
+    get: {operationId: ownFormalUgcMedia, security: [{session: []}], responses: {'200': {description: Private image bytes for current owner}, '403': {$ref: '#/components/responses/Problem'}}}
+    delete: {operationId: deleteOwnFormalUgcMedia, security: [{session: []}], responses: {'200': {description: Unbound own private media deleted; referenced images cannot be deleted}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/media/{mediaId}/preview-url:
+    get: {operationId: ownFormalUgcMediaPreviewUrl, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MediaId'}], responses: {'200': {description: Signed owner-only preview for bound private media}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/follows/{memberId}:
+    put: {operationId: followFormalUgcAuthor, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], requestBody: {$ref: '#/components/requestBodies/ActiveState'}, responses: {'200': {description: Idempotent follow state; public eligible author only}, '422': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/ugc/blocks/{memberId}:
+    put: {operationId: blockFormalUgcMember, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], requestBody: {$ref: '#/components/requestBodies/ActiveState'}, responses: {'200': {description: Idempotent own block state}, '422': {$ref: '#/components/responses/Problem'}}}
+  /v1/ugc/reports/{targetType}/{targetId}:
+    post: {operationId: reportFormalUgcTarget, security: [{session: []}], parameters: [{name: targetType, in: path, required: true, schema: {type: string, enum: [post, comment, member]}}, {name: targetId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], requestBody: {$ref: '#/components/requestBodies/UgcReport'}, responses: {'200': {description: Audited own report receipt; no automatic takedown}, '422': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/review-queue:
+    get: {operationId: formalUgcReviewQueue, security: [{session: []}], description: Requires community.moderate and returns only submitted pending or approved candidate revisions., responses: {'200': {description: Reviewer queue}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/reports:
+    get: {operationId: formalUgcReportQueue, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Requires community.moderate; received and triaged reports only., responses: {'200': {description: Pending report keyset page with exact total}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/reports/{reportId}/decision:
+    post: {operationId: decideFormalUgcReport, security: [{session: []}], parameters: [{name: reportId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], description: Requires community.moderate; versioned non-self decision atomically hides a public post, removes a public comment, or dismisses the report with audit evidence. Content actions also require current target version., requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason, expectedVersion], properties: {decision: {type: string, enum: [hide_post, remove_comment, dismiss]}, reason: {type: string, minLength: 4, maxLength: 500}, expectedVersion: {type: integer, minimum: 1}, expectedTargetVersion: {type: integer, minimum: 1, description: Required for hide_post and remove_comment.}}}}}}, responses: {'200': {description: Terminal report decision and content action}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/appeals:
+    get: {operationId: formalUgcAppealQueue, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Requires community.moderate; only received hidden-post appeals, showing the previously published revision and hide reason, never an unsubmitted draft., responses: {'200': {description: Appeal keyset page with exact total}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/appeals/{appealId}/decision:
+    post: {operationId: decideFormalUgcAppeal, security: [{session: []}], parameters: [{name: appealId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], description: Requires community.moderate; restore also requires a different reviewer from the hiding actor and the public UGC gate. Only the last published approved revision may be restored., requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason, expectedVersion], properties: {decision: {type: string, enum: [restore, uphold]}, reason: {type: string, minLength: 4, maxLength: 500}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Audited appeal outcome}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/posts/{postId}:
+    get: {operationId: formalUgcReviewCandidate, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; unsubmitted newer revisions are excluded even if an older revision is public., responses: {'200': {description: Eligible private review candidate with version}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/posts/{postId}/review:
+    post: {operationId: reviewFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; author cannot self-review; text and image safety evidence required before approval., requestBody: {$ref: '#/components/requestBodies/UgcReview'}, responses: {'200': {description: Audited approval or rejection for changes}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/posts/{postId}/publish:
+    post: {operationId: publishFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires independent publisher, explicit gate and current approved revision; old public revision remains until this succeeds., requestBody: {$ref: '#/components/requestBodies/UgcExpectedVersion'}, responses: {'200': {description: Current approved revision publicly selected}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/posts/{postId}/hide:
+    post: {operationId: hideFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; audit reason and expected version are mandatory., requestBody: {$ref: '#/components/requestBodies/UgcHide'}, responses: {'200': {description: Public post hidden with retained facts}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/media/{mediaId}/preview-url:
+    get: {operationId: formalUgcReviewPreviewUrl, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MediaId'}], description: Requires community.moderate and eligible submitted revision; token is bound to reviewer, post, revision and media., responses: {'200': {description: Five-minute signed private preview URL}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/media/{mediaId}/review:
+    post: {operationId: reviewFormalUgcMedia, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MediaId'}], description: Requires community.moderate and safe WeChat scan result for approved media., requestBody: {$ref: '#/components/requestBodies/UgcMediaReview'}, responses: {'200': {description: Audited media review result}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/ugc/comments/{commentId}/review:
+    post: {operationId: reviewFormalUgcComment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/CommentId'}], description: Requires community.moderate and safe text scan before approval., requestBody: {$ref: '#/components/requestBodies/UgcCommentReview'}, responses: {'200': {description: Audited pending comment decision}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/commercial-membership:
+    get: {operationId: myCommercialMembership, security: [{session: []}], responses: {'200': {description: Own member eligibility, expiry, approved rate and code; ordinary account has no automatic member status}}}
+  /v1/me/commercial-membership/code:
+    post: {operationId: ensureCommercialReferralCode, security: [{session: []}], description: Only an effective active commercial member can obtain a stable referral code., responses: {'200': {description: Own stable code or prior code replay}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/referral/preview:
+    get: {operationId: previewDirectReferral, security: [{session: []}], parameters: [{name: code, in: query, required: true, schema: {type: string}}], description: Checks own binding and referrer eligibility without creating a relation; only approved public identity is disclosed., responses: {'200': {description: Eligible direct referrer preview}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/me/referral/confirm:
+    post: {operationId: confirmDirectReferral, security: [{session: []}], requestBody: {$ref: '#/components/requestBodies/ReferralConfirm'}, description: Requires an explicit member action; one direct referrer only, no self or second-level binding., responses: {'200': {description: Immutable direct relation or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/members:
+    get: {operationId: managementMembers, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}, {name: q, in: query, schema: {type: string}}, {name: filter, in: query, schema: {type: string, enum: [all, members, ordinary]}}], description: Requires member.profile.read; commission counts only with commission.read., responses: {'200': {description: Keyset page with loadedCount, matchingTotal, global summary and nextCursor}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/members/{memberId}:
+    get: {operationId: managementMemberDetail, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], description: Role-filtered member summary; list data is only served through separately authorized cursor sections., responses: {'200': {description: Member facts and policy projection without capped preview arrays}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/members/{memberId}/sections/{section}:
+    get: {operationId: managementMemberSection, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}, {name: section, in: path, required: true, schema: {type: string, enum: [referrals, own-orders, attributed-orders, posts]}}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Section-specific capability checks keep profile, commission, orders and content separate., responses: {'200': {description: Keyset page with exact total, loadedCount and nextCursor}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/members/{memberId}/membership:
+    post: {operationId: setCommercialMembership, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], description: Requires member.manage; engineering_365_day extension starts after current expiry and never shortens it., requestBody: {$ref: '#/components/requestBodies/MembershipChange'}, responses: {'200': {description: Versioned auditable membership decision}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/commission-rates:
+    post: {operationId: proposeCommissionRate, security: [{session: []}], parameters: [{$ref: '#/components/parameters/IdempotencyKey'}], description: Requires commission.rate.manage and a future effective time; override can target global or one member while inherit targets one member and preserves all old rules and order snapshots. Request key is stable with payload fingerprint., requestBody: {$ref: '#/components/requestBodies/CommissionRateProposal'}, responses: {'200': {description: Pending proposal or exact idempotent replay}, '409': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/commission-rates/current:
+    get: {operationId: currentGlobalCommissionRate, security: [{session: []}], description: Requires commission.read or commission.rate.manage and exposes only the effective global fixture rate, server time and suggested future time., responses: {'200': {description: Current global rate and engineering policy state}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/commission-rates/by-request/{requestKey}:
+    get: {operationId: commissionProposalByRequest, security: [{session: []}], parameters: [{name: requestKey, in: path, required: true, schema: {type: string}}], description: Requires commission.rate.manage; finds a previously submitted proposal after an uncertain network result., responses: {'200': {description: Matching proposal for the same actor}, '404': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/commission-rates/pending:
+    get: {operationId: pendingCommissionRates, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Requires commission.rate.approve., responses: {'200': {description: Pending proposals keyset page with exact total and nextCursor}, '403': {$ref: '#/components/responses/Problem'}}}
+  /v1/management/commission-rates/{ruleId}/decision:
+    post: {operationId: decideCommissionRate, security: [{session: []}], parameters: [{name: ruleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], description: Requires different approver with commission.rate.approve; lapsed effective time cannot be retroactively approved., requestBody: {$ref: '#/components/requestBodies/CommissionRateDecision'}, responses: {'200': {description: Audited approval or rejection}, '409': {$ref: '#/components/responses/Problem'}}}
+
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
@@ -897,6 +1173,12 @@ components:
     CommentId: {name: commentId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     SupportConversationId: {name: conversationId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     MediaId: {name: mediaId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    FormalPostId: {name: postId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    MemberId: {name: memberId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    MediaPreviewToken: {name: token, in: query, required: true, schema: {type: string, minLength: 32}, description: Short-lived signed bearer URL token; never log or persist.}
+    WechatSignature: {name: signature, in: query, required: true, schema: {type: string}}
+    WechatTimestamp: {name: timestamp, in: query, required: true, schema: {type: string}}
+    WechatNonce: {name: nonce, in: query, required: true, schema: {type: string}}
     IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 200}}
     CycleId: {name: cycleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     TaskId: {name: taskId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
@@ -906,6 +1188,21 @@ components:
     OrderId: {name: orderId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
   requestBodies:
     Identity: {required: true, content: {application/json: {schema: {type: object, required: [displayName, consents], properties: {code: {type: string}, externalUserId: {type: string}, displayName: {type: string}, consents: {type: array, minItems: 2, items: {type: object, required: [documentType, version], properties: {documentType: {type: string}, version: {type: string}}}}}}}}}
+    UgcReaction: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [kind, active], properties: {kind: {type: string, enum: [like, save]}, active: {type: boolean}}}}}}
+    UgcComment: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [body], properties: {body: {type: string, minLength: 1, maxLength: 1000}, parentId: {$ref: '#/components/schemas/Uuid'}, replyToId: {$ref: '#/components/schemas/Uuid'}}}}}}
+    UgcExpectedVersion: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}
+    UgcDraft: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [title, body, mediaIds, expectedVersion, aiUsage, rightsConfirmed, publicConsentConfirmed], properties: {title: {type: string, maxLength: 120}, body: {type: string, maxLength: 5000}, mediaIds: {type: array, maxItems: 9, items: {$ref: '#/components/schemas/Uuid'}}, expectedVersion: {type: integer, minimum: 1}, aiUsage: {type: string, enum: [none, assisted, generated, unknown]}, rightsConfirmed: {type: boolean}, publicConsentConfirmed: {type: boolean}}}}}}
+    UgcMediaAuthorize: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [mimeType, maxBytes], properties: {mimeType: {type: string, enum: [image/jpeg, image/png, image/webp]}, maxBytes: {type: integer, minimum: 1, maximum: 10485760}}}}}}
+    UgcReport: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [category], properties: {category: {type: string, enum: [spam, harassment, unsafe_advice, illegal, intellectual_property, privacy, other]}, description: {type: string, maxLength: 1000}}}}}}
+    UgcReview: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [decision, reason, ruleVersion, expectedVersion], properties: {decision: {type: string, enum: [approve, reject]}, reason: {type: string}, ruleVersion: {type: string}, expectedVersion: {type: integer, minimum: 1}}}}}}
+    UgcMediaReview: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [decision, reason, ruleVersion], properties: {decision: {type: string, enum: [approve, reject]}, reason: {type: string}, ruleVersion: {type: string}}}}}}
+    UgcCommentReview: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [decision, reason], properties: {decision: {type: string, enum: [approve, reject]}, reason: {type: string}}}}}}
+    UgcHide: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [reason, expectedVersion], properties: {reason: {type: string}, expectedVersion: {type: integer, minimum: 1}}}}}}
+    ActiveState: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [active], properties: {active: {type: boolean}}}}}}
+    ReferralConfirm: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [code, confirmationKey], properties: {code: {type: string}, confirmationKey: {type: string}}}}}}
+    MembershipChange: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [state, expectedVersion, reason], properties: {state: {type: string, enum: [active, suspended, expired]}, expiresAt: {type: string, format: date-time}, term: {type: string, enum: [engineering_365_day]}, expectedVersion: {type: integer, minimum: 0}, reason: {type: string}}}}}}
+    CommissionRateProposal: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [action, effectiveAt, reason], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, action: {type: string, enum: [override, inherit]}, basisPoints: {type: integer, minimum: 2000, maximum: 3500, description: Required for override and omitted for inherit.}, effectiveAt: {type: string, format: date-time}, reason: {type: string, minLength: 4, maxLength: 300}}}}}}
+    CommissionRateDecision: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [decision], properties: {decision: {type: string, enum: [active, rejected]}}}}}}
   responses:
     CommunityPreview: {description: Persisted local-preview state with PostgreSQL-authoritative transactional aggregate version, content: {application/json: {schema: {type: object, required: [preview, liked, saved, likeCount, saveCount, commentCount, aggregateVersion, comments, truncated, nextCursor, asOf], properties: {preview: {const: true}, asOf: {type: string, format: date-time}, liked: {type: boolean}, saved: {type: boolean}, likeCount: {type: integer}, saveCount: {type: integer}, commentCount: {type: integer}, aggregateVersion: {type: integer, minimum: 0}, truncated: {type: boolean}, nextCursor: {type: [string, 'null']}, comments: {type: array, maxItems: 100, items: {type: object, required: [id, body, status, authorName, isMine, createdAt, likeCount, liked], properties: {id: {$ref: '#/components/schemas/Uuid'}, body: {type: string}, status: {enum: [pending, published, rejected, deleted]}, authorName: {type: string}, isMine: {type: boolean}, createdAt: {type: string, format: date-time}, parentId: {type: [string, 'null']}, replyToId: {type: [string, 'null']}, replyToName: {type: [string, 'null']}, likeCount: {type: integer}, liked: {type: boolean}}}}}}}}}
     Identity: {description: Member identity and short-lived signed session, content: {application/json: {schema: {type: object, required: [memberId, identityId, principalId, sessionToken], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, identityId: {$ref: '#/components/schemas/Uuid'}, principalId: {type: string}, sessionToken: {type: string}}}}}}
@@ -941,6 +1238,7 @@ components:
     SupportOrderCard: {type: object, additionalProperties: false, required: [orderId, orderNumberTail, status, currency, totalCents, productName, itemSummary], properties: {orderId: {$ref: '#/components/schemas/Uuid'}, orderNumberTail: {type: string, pattern: '^[A-Z0-9]{4}$'}, status: {type: string, enum: [pending_payment, cancelled, expired]}, currency: {const: CNY}, totalCents: {type: integer, minimum: 0}, productName: {type: string}, productImage: {type: [string, 'null']}, itemSummary: {type: string}}}
     SupportMessageView: {type: object, additionalProperties: false, required: [id, sequence, senderType, body, contentType, attachments, orderCard, deliveryState, createdAt], properties: {id: {$ref: '#/components/schemas/Uuid'}, sequence: {type: integer, minimum: 1}, senderType: {type: string, enum: [user, ai, admin, system]}, body: {type: string}, contentType: {type: string, enum: [text, image, order, mixed, system]}, attachments: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/SupportMessageAttachment'}}, orderCard: {oneOf: [{$ref: '#/components/schemas/SupportOrderCard'}, {type: 'null'}]}, deliveryState: {type: string, enum: [server_accepted, read], description: server_accepted never claims transport delivery or recipient reading; read is derived from the opposite authoritative read cursor.}, createdAt: {type: string, format: date-time}}}
     CareVersionCommandInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
+    CarePhaseCommandInput: {type: object, additionalProperties: false, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}
     CareMilestoneCommandInput: {type: object, additionalProperties: false, required: [expectedVersion, stepCodes, selfAssessment], properties: {expectedVersion: {type: integer, minimum: 1}, stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}}}
     Uuid: {type: string, format: uuid}
     Id: {type: object, required: [id], properties: {id: {$ref: '#/components/schemas/Uuid'}}}

@@ -4,6 +4,7 @@ import { resetDatabase, testPool } from "@cisme/testkit";
 import { VerifiedPaymentInbox } from "../../services/api/src/verifiedPaymentInbox";
 import { VerifiedRefundInbox } from "../../services/api/src/verifiedRefundInbox";
 import { expirePendingOrders } from "../../services/api/src/commerceOrders";
+import { recordMoneyInboxFailure, redriveQuarantinedMoneyInbox } from "../../services/api/src/moneyInboxRetry";
 
 const pool=testPool();
 const platform=generateKeyPairSync("rsa",{modulusLength:2048});
@@ -28,6 +29,10 @@ async function seedOrder(suffix:string,commissionBasis:number|null=10000){
     subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at,
     created_at,updated_at,transaction_source_kind) VALUES($1,$2,$3,$4,'pending_payment','CNY',10000,0,0,10000,
     'fixture-r1',$5,$6,$6,'verified_commerce')`,[orderId,number,buyer,quoteId,expires,now]);
+  await pool.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,
+    app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
+    VALUES($1,$2,$3,'verified-buyer-openid',$4,$5,10000,'CNY',$6,'fixture-r1',1,$7)`,
+    [orderId,number,buyer,appId,merchantId,quoteId,expires]);
   await pool.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,
     product_name,sku_code,sku_label,quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,
     line_total_cents) VALUES($1,1,$2,$3,'verified-product','Verified fixture','VERIFIED_SKU','One',1,10000,10000,0,10000)`,
@@ -271,4 +276,59 @@ it("records an ordinary order refund without a commission ledger and rejects exc
   expect(await refunds.processOne(freightReceipt.inboxId)).toBe("exception");
   expect((await pool.query(`SELECT exception_code FROM commission_refund_inbox WHERE id=$1`,[freightReceipt.inboxId])).rows[0].exception_code)
     .toBe("REFUND_CUMULATIVE_OVERDRAW");
+});
+
+it("delays twenty failed payment facts so a later fact is processed, then isolates and safely redrives one",async()=>{
+  const order=await seedOrder("7"),ids:string[]=[];
+  for(let n=1;n<=21;n++){
+    const event=notification(order.number,`42000000000000000007${String(n).padStart(4,"0")}`,
+      `EV-PAGED-PAY-${String(n).padStart(4,"0")}`,new Date(order.createdAt.getTime()+1000).toISOString());
+    ids.push((await processor.receive(event.rawBody,event.headers)).inboxId);
+  }
+  for(const id of ids.slice(0,20))expect(await recordMoneyInboxFailure(pool,"payment",id,new Error("synthetic transient"))).toBe("pending");
+  const restarted=new VerifiedPaymentInbox(pool,{appId,merchantId,apiV3Key,
+    platformKeys:new Map([["PUB_KEY_ID_3000000001",publicPem]])});
+  expect(await restarted.processPending(20)).toEqual([{id:ids[20],state:"applied"}]);
+  expect(await processor.processPending(20)).toEqual([]);
+  expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1 AND kind='accrual'",[order.id])).rows[0].n).toBe(1);
+  await pool.query("UPDATE commission_payment_inbox SET next_attempt_at=now()-interval '1 second' WHERE id=ANY($1::uuid[])",[ids.slice(0,20)]);
+  const concurrent=await Promise.all([processor.processPending(20),restarted.processPending(20)]);
+  expect(new Set(concurrent.flat().map(row=>row.id)).size).toBe(20);
+  expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1 AND kind='accrual'",[order.id])).rows[0].n).toBe(1);
+
+  const redriveOrder=await seedOrder("8");
+  const signed=notification(redriveOrder.number,"420000000000000000000108","EV-RETRY-PAY-0108",
+    new Date(redriveOrder.createdAt.getTime()+1000).toISOString());
+  const received=await processor.receive(signed.rawBody,signed.headers);
+  for(let n=0;n<8;n++)await recordMoneyInboxFailure(pool,"payment",received.inboxId,new Error("synthetic transient"));
+  expect((await pool.query("SELECT state,attempt_count,exception_code FROM commission_payment_inbox WHERE id=$1",[received.inboxId])).rows[0])
+    .toMatchObject({state:"exception",attempt_count:8,exception_code:"RETRY_EXHAUSTED"});
+  expect(await redriveQuarantinedMoneyInbox(pool,"payment",received.inboxId,`member:${referrer}`,"核对通道恢复后重驱")).toMatchObject({state:"pending"});
+  expect(await restarted.processPending(20)).toContainEqual({id:received.inboxId,state:"applied"});
+  await expect(redriveQuarantinedMoneyInbox(pool,"payment",received.inboxId,`member:${referrer}`,"不能再次重驱已应用事实")).rejects.toThrow();
+  expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1 AND kind='accrual'",[redriveOrder.id])).rows[0].n).toBe(1);
+});
+
+it("also skips twenty delayed refund facts and applies a later signed refund once",async()=>{
+  const order=await seedOrder("9"),transactionId="420000000000000000000109";
+  const paid=notification(order.number,transactionId,"EV-RETRY-PAY-0109",
+    new Date(order.createdAt.getTime()+1000).toISOString());
+  const payment=await processor.receive(paid.rawBody,paid.headers);
+  expect(await processor.processOne(payment.inboxId)).toBe("applied");
+  const ids:string[]=[];
+  for(let n=1;n<=21;n++){
+    const refundNumber=`RF-PAGED-${String(n).padStart(4,"0")}`;
+    await refundIntent({orderId:order.id,paymentId:payment.inboxId,refundNumber,refundCents:1});
+    const event=refundNotification({orderNumber:order.number,transactionId,refundNumber,
+      providerRefundId:`50000000000000000009${String(n).padStart(4,"0")}`,
+      eventId:`EV-PAGED-REFUND-${String(n).padStart(4,"0")}`,refundCents:1,status:"SUCCESS",
+      successTime:new Date(order.createdAt.getTime()+2000).toISOString()});
+    ids.push((await refunds.receive(event.rawBody,event.headers)).inboxId);
+  }
+  for(const id of ids.slice(0,20))expect(await recordMoneyInboxFailure(pool,"refund",id,new Error("synthetic transient"))).toBe("pending");
+  const restarted=new VerifiedRefundInbox(pool,{merchantId,apiV3Key,
+    platformKeys:new Map([["PUB_KEY_ID_3000000001",publicPem]])});
+  expect(await restarted.processPending(20)).toEqual([{id:ids[20],state:"applied"}]);
+  expect(await refunds.processPending(20)).toEqual([]);
+  expect((await pool.query("SELECT count(*)::int AS n FROM commission_refund_inbox WHERE refund_intent_id=(SELECT id FROM commission_refund_intent WHERE out_refund_no='RF-PAGED-0021') AND state='applied'")).rows[0].n).toBe(1);
 });

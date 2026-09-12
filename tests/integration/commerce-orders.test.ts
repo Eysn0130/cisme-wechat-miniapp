@@ -132,6 +132,34 @@ describe("R4-B isolated pending-payment order flow", () => {
     expect((await pool.query("SELECT count(*)::int count FROM commerce_order_transition WHERE order_id=$1", [created.json().id])).rows[0].count).toBe(2);
   });
 
+  it("returns a member to the current global rate without rewriting earlier order snapshots",async()=>{
+    const target=(await app.inject({method:"GET",url:"/v1/me/addresses",headers:auth(buyerA.sessionToken)})).json().addresses[0];
+    const override=(await pool.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,
+      created_by,approved_by,reason,decided_at) VALUES($1,'override',3000,'active',now()-interval '2 hours',
+      'fixture','fixture-reviewer','独立测试会员费率',now()-interval '3 hours') RETURNING id`,[buyerB.memberId])).rows[0].id;
+    const beforeQuote=(await quote(buyerA,target,"rate-override-quote-01")).json();
+    const before=await createOrder(buyerA,beforeQuote.id,"rate-override-order-01");
+    expect(before.statusCode).toBe(200);
+    expect((await pool.query("SELECT rate_rule_id,basis_points FROM commission_order_snapshot WHERE order_id=$1",[before.json().id])).rows[0])
+      .toMatchObject({rate_rule_id:override,basis_points:3000});
+
+    await pool.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,
+      created_by,approved_by,reason,decided_at) VALUES($1,'inherit',NULL,'active',now()-interval '1 hour',
+      'fixture','fixture-reviewer','恢复继承全局费率',now()-interval '2 hours')`,[buyerB.memberId]);
+    const afterQuote=(await quote(buyerA,target,"rate-inherit-quote-01")).json();
+    const after=await createOrder(buyerA,afterQuote.id,"rate-inherit-order-01");
+    expect(after.statusCode).toBe(200);
+    const inherited=(await pool.query("SELECT rate_rule_id,basis_points FROM commission_order_snapshot WHERE order_id=$1",[after.json().id])).rows[0];
+    expect(inherited.basis_points).toBe(2000);expect(inherited.rate_rule_id).not.toBe(override);
+    expect((await pool.query("SELECT basis_points FROM commission_order_snapshot WHERE order_id=$1",[before.json().id])).rows[0].basis_points).toBe(3000);
+    for(const [order,key] of [[before,"rate-override-cancel-01"],[after,"rate-inherit-cancel-01"]] as const){
+      const cancelled=await app.inject({method:"POST",url:`/v1/me/orders/${order.json().id}/cancel`,
+        headers:{...auth(buyerA.sessionToken),"idempotency-key":key},
+        payload:{expectedVersion:order.json().version,reason:"Synthetic rate fixture cleanup"}});
+      expect(cancelled.statusCode).toBe(200);
+    }
+  });
+
   it("builds member and management list summaries with a fixed SQL bound and no address decryption", async () => {
     let commerceReadQueries = 0;
     let addressReads = 0;
