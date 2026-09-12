@@ -42,7 +42,7 @@ beforeAll(async () => {
   await resetDatabase(pool);
   app = await createApp({ config, pool, storage: createApiGatewayStorage(config) });
   operator = await identity("order-operator"); buyerA = await identity("order-buyer-a"); buyerB = await identity("order-buyer-b");
-  for (const capability of ["commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read"]) {
+  for (const capability of ["commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read", "member.manage"]) {
     await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
       VALUES($1,$2,'fixture','R4-B order integration','test','integration_fixture')`, [operator.memberId, capability]);
   }
@@ -57,6 +57,13 @@ beforeAll(async () => {
   await app.inject({ method: "POST", url: `/v1/management/catalog/skus/${sku.id}/inventory-adjustments`, headers: { ...auth(operator.sessionToken), "idempotency-key": "r4b-stock-add-001" },
     payload: { expectedVersion: sku.inventoryVersion, delta: 4, reason: "Synthetic order inventory" } });
   product = (await app.inject({ method: "GET", url: `/v1/catalog/${created.code}` })).json();
+  const qualification=await app.inject({method:"POST",url:`/v1/management/members/${buyerB.memberId}/membership`,
+    headers:auth(operator.sessionToken),payload:{state:"active",expiresAt:"2027-09-12T00:00:00Z",expectedVersion:0,reason:"合成订单推荐关系测试"}});
+  expect(qualification.statusCode).toBe(200);
+  const code=(await app.inject({method:"POST",url:"/v1/me/commercial-membership/code",headers:auth(buyerB.sessionToken)})).json().code;
+  const referral=await app.inject({method:"POST",url:"/v1/me/referral/confirm",headers:auth(buyerA.sessionToken),
+    payload:{code,confirmationKey:"synthetic-order-referral-0001"}});
+  expect(referral.statusCode).toBe(200);
 });
 
 afterAll(async () => { await app.close(); await pool.end(); });
@@ -81,6 +88,10 @@ describe("R4-B isolated pending-payment order flow", () => {
     const created = await createOrder(buyerA, quoted.id, "order-create-buyer-a-01");
     expect(created.statusCode).toBe(200);
     expect(created.json()).toMatchObject({ status: "pending_payment", currency: "CNY", totalCents: 12345, paymentAvailable: false, address: { recipientName: "合成收货人1001", phone: "13800001001" } });
+    const snapshot=(await pool.query("SELECT buyer_member_id,referrer_member_id,basis_points,cash_merchandise_cents,source_kind FROM commission_order_snapshot WHERE order_id=$1",[created.json().id])).rows[0];
+    expect(snapshot).toMatchObject({buyer_member_id:buyerA.memberId,referrer_member_id:buyerB.memberId,basis_points:2000,
+      cash_merchandise_cents:"12345",source_kind:"synthetic_nonproduction"});
+    expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1",[created.json().id])).rows[0].n).toBe(0);
     const replay = await createOrder(buyerA, quoted.id, "order-create-buyer-a-01");
     expect(replay.json().id).toBe(created.json().id);
     const secondKey = await createOrder(buyerA, quoted.id, "order-create-buyer-a-02");
@@ -101,6 +112,7 @@ describe("R4-B isolated pending-payment order flow", () => {
     const cancelled = await app.inject({ method: "POST", url: `/v1/me/orders/${created.json().id}/cancel`, headers: { ...auth(buyerA.sessionToken), "idempotency-key": "order-cancel-buyer-a-01" },
       payload: { expectedVersion: created.json().version, reason: "合成测试取消" } });
     expect(cancelled.statusCode).toBe(200); expect(cancelled.json()).toMatchObject({ status: "cancelled", version: 2 });
+    expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1",[created.json().id])).rows[0].n).toBe(0);
     const cancelReplay = await app.inject({ method: "POST", url: `/v1/me/orders/${created.json().id}/cancel`, headers: { ...auth(buyerA.sessionToken), "idempotency-key": "order-cancel-buyer-a-01" },
       payload: { expectedVersion: created.json().version, reason: "合成测试取消" } });
     expect(cancelReplay.json()).toMatchObject({ status: "cancelled", version: 2 });

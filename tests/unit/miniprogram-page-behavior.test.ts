@@ -214,6 +214,8 @@ describe("mini-program page behavior", () => {
     const item = { id: "real-submission", title: "Submitted story", excerpt: "Submitted text", cover_object_key: "private/object.jpg" };
     requestMock.mockImplementation(async ({ path }: { path: string }) => {
       if (path === "/v1/capabilities") return { ugcGoLiveGate: true, communityPreviewEnabled: false };
+      if (path === "/v1/ugc/status") return { publicEnabled: false };
+      if (path.startsWith("/v1/ugc/posts")) return { items: [], nextCursor: null };
       if (path.startsWith("/v1/feed/page")) return { items: [item], authors: {} };
       if (path.startsWith("/v1/feed/")) return item;
       return [];
@@ -221,7 +223,7 @@ describe("mini-program page behavior", () => {
     await vi.importActual("../../apps/miniprogram/pages/community/index");
     const community = mountedPage(capturedPage!);
     await community.load();
-    community.setData({ mode: "recommend" });
+    community.setData({ mode: "recommend", feed: [item] });
     community.renderFeed();
     const card = community.data.feedColumns.flat().find((item: any) => item.id === "real-submission");
     expect(card).toMatchObject({ title: "Submitted story", image: "", avatar: "/assets/icons/user-circle-plum.svg" });

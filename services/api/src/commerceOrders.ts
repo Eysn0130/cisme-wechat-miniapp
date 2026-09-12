@@ -5,8 +5,9 @@ import { transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
 import { AuthorityService } from "./authority.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
+import { CommercialMembershipService } from "./commercialMembership.js";
 
-type OrderStatus = "pending_payment" | "cancelled" | "expired";
+type OrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 type QuoteRow = {
   id: string; member_id: string; product_id: string; sku_id: string; address_id: string; address_version: number;
   quantity: number; currency: "CNY"; unit_price_cents: number; subtotal_cents: string; member_discount_cents: string;
@@ -86,6 +87,7 @@ export class CommerceOrderService {
     private readonly pool: pg.Pool,
     private readonly authority: AuthorityService,
     private readonly addresses: DeliveryAddressService,
+    private readonly commercial: CommercialMembershipService,
     private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number }
   ) {}
 
@@ -256,7 +258,9 @@ export class CommerceOrderService {
       await client.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,image_path,
         quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents) VALUES($1,1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [orderId,item.product_id,item.sku_id,item.product_code,item.product_name,item.sku_code,item.sku_label,item.product_image,quote.quantity,quote.unit_price_cents,
-          quote.subtotal_cents,quote.member_discount_cents,quote.total_cents]);
+          quote.subtotal_cents,quote.member_discount_cents,money(quote.subtotal_cents)-money(quote.member_discount_cents)]);
+      await this.commercial.snapshotOrder(client,orderId,owner,"synthetic_nonproduction",
+        money(quote.subtotal_cents)-money(quote.member_discount_cents),now);
       await client.query(`INSERT INTO commerce_order_address(order_id,encrypted_payload,payload_hmac,key_version,source_address_id,source_address_version)
         VALUES($1,$2,$3,$4,$5,$6)`, [orderId,sealed.encryptedPayload,sealed.payloadHmac,sealed.keyVersion,address.id,address.version]);
       await client.query(`INSERT INTO commerce_inventory_reservation(order_id,sku_id,quantity,expires_at) VALUES($1,$2,$3,$4)`, [orderId,item.sku_id,quote.quantity,expiresAt]);
@@ -346,7 +350,8 @@ export class CommerceOrderService {
 
 export async function expirePendingOrders(pool: pg.Pool, now = new Date(), limit = 50): Promise<number> {
   return transaction(pool,async client=>{
-    const orders=await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE status='pending_payment' AND expires_at<=$1
+    const orders=await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE status='pending_payment'
+      AND transaction_source_kind='synthetic_nonproduction' AND expires_at<=$1
       ORDER BY expires_at,id LIMIT $2 FOR UPDATE SKIP LOCKED`,[now,limit]);
     for(const order of orders.rows){
       const reservations=await client.query<{id:string;sku_id:string;quantity:number}>("SELECT id,sku_id,quantity FROM commerce_inventory_reservation WHERE order_id=$1 AND status='active' FOR UPDATE",[order.id]);

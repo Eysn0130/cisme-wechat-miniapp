@@ -12,7 +12,7 @@ export interface AppConfig {
   sessionSecret: string;
   adminApiToken: string;
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
-  wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean };
+  wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean; messageToken: string | null };
   objectStorage: {
     profile: string | null;
     driver: "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
@@ -47,7 +47,7 @@ export interface AppConfig {
   };
   api: { routeDeadlineMs: number };
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
-  media: { directUploadEnabled: boolean };
+  media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
   commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number };
 }
 
@@ -139,6 +139,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (ugcGoLiveGate && (!env.UGC_LEGAL_APPROVAL_ID || ["UGC_PROVENANCE_READY", "UGC_CONTENT_SAFETY_READY", "UGC_MODERATION_READY"].some((name) => !bool(env[name])))) {
     throw new Error("FAIL_CLOSED:UGC_GATE_INCOMPLETE");
   }
+  if (ugcGoLiveGate && (appEnv === "production" || appEnv === "staging") &&
+      (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET || !env.WECHAT_MESSAGE_TOKEN ||
+        !env.UGC_SCAN_BASE_URL || !/^https:\/\/[^/?#]+$/.test(env.UGC_SCAN_BASE_URL) ||
+        env.RUN_BACKGROUND_WORKER!=="true")) {
+    throw new Error("FAIL_CLOSED:UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED");
+  }
   const pointsRuleIds = (env.POINTS_RULE_IDS ?? "").split(",").map((value) => value.trim()).filter(Boolean);
   const pointsApprovalExpiry = env.POINTS_FINANCE_APPROVAL_EXPIRES_AT ?? null;
   const pointsApprovalExpiryTime = pointsApprovalExpiry ? Date.parse(pointsApprovalExpiry) : Number.NaN;
@@ -195,7 +201,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
     adminApiToken: required("ADMIN_API_TOKEN", env.ADMIN_API_TOKEN),
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
-    wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null, phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED) },
+    wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null, phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null },
     objectStorage: {
       profile: env.OBJECT_STORAGE_PROFILE ?? null,
       driver: storageDriver,
@@ -220,7 +226,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     database,
     api: { routeDeadlineMs: integer("API_ROUTE_DEADLINE_MS", env.API_ROUTE_DEADLINE_MS, 8_000, 250, 120_000) },
     observability: { logLevel },
-    media: { directUploadEnabled },
+    media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null },
     commerce: {
       orderFlowEnabled,
       quoteTtlMinutes: integer("COMMERCE_QUOTE_TTL_MINUTES", env.COMMERCE_QUOTE_TTL_MINUTES, 10, 1, 60),

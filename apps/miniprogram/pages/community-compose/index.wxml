@@ -1,0 +1,44 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back {{busy || uploadBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{busy || uploadBusy}}" aria-label="返回社区"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">{{listMode ? '我的社区内容' : '创作护理故事'}}</text></view>
+  <view class="page page--stack composer-page">
+    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载…</view>
+    <view wx:if="{{error}}" class="state state--error" aria-live="assertive">{{error}}</view>
+    <view wx:if="{{notice}}" class="state composer-notice" aria-live="polite">{{notice}}</view>
+    <button wx:if="{{error && !loading && !postId}}" class="secondary composer-retry" bindtap="retryLoad">重试加载</button>
+    <block wx:if="{{listMode && !loading}}">
+      <text class="composer-eyebrow">MY STORIES</text><view class="page-title">留下你的护理故事</view>
+      <text class="composer-intro">图片、图文或文字都可以。内容由你决定是否提交公开审核。</text>
+      <button class="primary composer-new {{busy ? 'primary--disabled' : ''}}" bindtap="startNew" disabled="{{busy}}" loading="{{busy}}">写一篇新故事</button>
+      <view class="composer-list-title">我的内容</view>
+      <view wx:if="{{!drafts.length}}" class="state">还没有保存的内容。写下第一篇护理故事吧。</view>
+      <button wx:for="{{drafts}}" wx:key="id" class="composer-list-row" data-id="{{item.id}}" bindtap="openDraft">
+        <view class="composer-list-row__copy"><text class="composer-list-row__title">{{item.title}}</text><text>{{item.imageCount}} 张图片</text></view><text class="composer-list-row__status">{{item.status}}</text>
+      </button>
+    </block>
+    <block wx:if="{{!listMode && !loading && postId}}">
+      <text class="composer-eyebrow">YOUR STORY</text><view class="page-title">你的护理故事</view>
+      <text class="composer-intro">分享真实体验，不必先参加邀请活动。审核中的内容仅自己可见。</text>
+      <view wx:if="{{publicVersionActive}}" class="composer-status">已有版本公开。修改中的版本仅自己可见，审核发布后才会替换公开内容。</view>
+      <view wx:elif="{{state === 'pending_review'}}" class="composer-status">正在审核中。若需修改，请等待审核结果。</view>
+      <view wx:elif="{{state === 'hidden'}}" class="composer-status">这篇内容已下架。如需申诉，可在设置页提交隐私与内容请求。</view>
+      <block wx:if="{{state === 'draft' || state === 'rejected' || state === 'published'}}">
+        <view class="composer-field"><text class="composer-label">标题 <text class="composer-optional">选填</text></text><input value="{{title}}" bindinput="editTitle" disabled="{{busy || uploadBusy}}" maxlength="120" placeholder="为你的故事起个名字" aria-label="标题，选填"/></view>
+        <view class="composer-field"><text class="composer-label">内容 <text class="composer-optional">可只发图片</text></text><textarea value="{{body}}" bindinput="editBody" disabled="{{busy || uploadBusy}}" maxlength="5000" auto-height="{{true}}" show-confirm-bar="{{false}}" placeholder="记录使用感受、护理过程，或你想分享的日常…" aria-label="护理故事内容"/></view>
+        <view class="composer-media-head"><text class="composer-label">图片 <text class="composer-optional">{{files.length}}/9</text></text><button class="composer-add {{files.length >= 9 || uploadBusy || busy ? 'control--disabled' : ''}}" bindtap="chooseImages" disabled="{{files.length >= 9 || uploadBusy || busy}}">添加图片</button></view>
+        <view class="composer-media-grid"><view wx:for="{{files}}" wx:key="id" class="composer-media">
+          <image wx:if="{{item.localPath || item.previewUrl}}" src="{{item.localPath || item.previewUrl}}" mode="aspectFill" class="composer-media__image"/>
+          <view wx:else class="composer-media__placeholder">已上传图片 {{index + 1}}</view>
+          <text class="composer-media__state">{{item.state === 'uploading' ? '上传中 ' + item.progress + '%' : item.state === 'failed' ? item.error : '已添加'}}</text>
+          <button wx:if="{{item.state === 'failed'}}" class="composer-media__retry {{uploadBusy || busy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="retryImage" disabled="{{uploadBusy || busy}}">重试上传</button>
+          <view class="composer-media__actions"><button class="{{index === 0 || uploadBusy || busy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-direction="-1" bindtap="moveImage" disabled="{{index === 0 || uploadBusy || busy}}" aria-label="向前移动图片 {{index + 1}}">前移</button><button data-id="{{item.id}}" data-direction="1" class="{{index === files.length - 1 || uploadBusy || busy ? 'control--disabled' : ''}}" bindtap="moveImage" disabled="{{index === files.length - 1 || uploadBusy || busy}}" aria-label="向后移动图片 {{index + 1}}">后移</button><button data-id="{{item.id}}" class="{{uploadBusy || busy ? 'control--disabled' : ''}}" bindtap="removeImage" disabled="{{uploadBusy || busy}}" aria-label="移除图片 {{index + 1}}">移除</button></view>
+        </view></view>
+        <view class="composer-declaration"><text class="composer-label">内容说明</text><picker range="{{aiOptions}}" value="{{aiIndex}}" disabled="{{busy || uploadBusy}}" bindchange="changeAi"><view class="composer-picker">AI 使用：{{aiOptions[aiIndex]}} <text>选择 ›</text></view></picker>
+          <view class="composer-switch-row"><text>我拥有发布这些文字和图片的权利</text><switch checked="{{rightsConfirmed}}" disabled="{{busy || uploadBusy}}" color="#6b417b" bindchange="changeRights" aria-label="确认内容权利"/></view>
+          <view class="composer-switch-row"><text>我同意审核通过后公开展示</text><switch checked="{{publicConsentConfirmed}}" disabled="{{busy || uploadBusy}}" color="#6b417b" bindchange="changeConsent" aria-label="确认公开展示"/></view>
+          <text class="composer-hint">涉及他人肖像、隐私或品牌素材时，请先取得必要许可。不要上传联系方式或订单截图。</text>
+        </view>
+        <view class="composer-actions"><button class="secondary {{busy || uploadBusy ? 'secondary--disabled' : ''}}" bindtap="saveDraft" disabled="{{busy || uploadBusy}}" loading="{{busy}}">保存草稿</button><button class="primary {{busy || uploadBusy ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || uploadBusy}}" loading="{{busy}}">提交审核</button></view>
+      </block>
+    </block>
+  </view>
+</view>

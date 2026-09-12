@@ -30,6 +30,7 @@ export interface ObjectStorage {
   verify(objectKey: string): Promise<StoredObject>;
   read(objectKey: string): Promise<{ bytes: Uint8Array; mimeType: StoredObject["detectedMime"] }>;
   delete(objectKey: string): Promise<void>;
+  writeDerivedImage(objectKey: string, bytes: Uint8Array): Promise<void>;
   acceptsGatewayUpload: boolean;
   writeGatewayObject?(input: { token: string; mediaId: string; objectKey: string; bytes: Uint8Array; mimeType: string; now: Date }): Promise<StoredObject>;
 }
@@ -47,6 +48,7 @@ function observeStorage(storage: ObjectStorage): ObjectStorage {
     verify: (key) => timed(() => storage.verify(key)),
     read: (key) => timed(() => storage.read(key)),
     delete: (key) => timed(() => storage.delete(key)),
+    writeDerivedImage: (key, bytes) => timed(() => storage.writeDerivedImage(key, bytes)),
     ...(storage.writeGatewayObject ? { writeGatewayObject: (input: Parameters<NonNullable<ObjectStorage["writeGatewayObject"]>>[0]) => timed(() => storage.writeGatewayObject!(input)) } : {})
   };
 }
@@ -125,6 +127,11 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
     },
     async delete(objectKey) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }));
+    },
+    async writeDerivedImage(objectKey, bytes) {
+      if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
+        throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
+      await client.send(new PutObjectCommand({ Bucket: bucket, Key: objectKey, Body: bytes, ContentType: "image/webp" }));
     }
   };
 }
@@ -168,6 +175,12 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")));
       if (!bytes.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectImageMime(bytes) };
+    },
+    async writeDerivedImage(objectKey, bytes) {
+      if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
+        throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
+      await mkdir(directory, { recursive: true });
+      await writeFile(resolve(directory, objectKey.replaceAll("/", "__")), bytes, { flag: "w" });
     },
     async delete(objectKey) {
       try { await unlink(resolve(directory, objectKey.replaceAll("/", "__"))); } catch { /* idempotent */ }
@@ -279,7 +292,12 @@ export function createCosGatewayStorage(config: AppConfig): ObjectStorage {
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectImageMime(bytes) };
     },
-    async delete(objectKey) { await client.deleteObject({ ...location, Key: objectKey }); }
+    async delete(objectKey) { await client.deleteObject({ ...location, Key: objectKey }); },
+    async writeDerivedImage(objectKey, bytes) {
+      if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
+        throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
+      await client.putObject({ ...location, Key: objectKey, Body: Buffer.from(bytes), ContentType: "image/webp" });
+    }
   };
 }
 

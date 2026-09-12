@@ -1,0 +1,6 @@
+<view class="referral-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">确认推荐码</text></view><view class="page page--stack referral-page">
+  <text class="eyebrow">DIRECT REFERRAL</text><view class="page-title">由你确认推荐关系</view><text class="subtitle">输入朋友提供的 CISME 会员推荐码。确认只建立一层直接关系，不代表已经发生购买或获得收益。</text>
+  <view class="referral-card"><text>会员推荐码</text><input value="{{code}}" bindinput="editCode" maxlength="12" placeholder="CM 开头的 12 位代码" aria-label="会员推荐码"/><text class="referral-help">你的推荐人无法查看你的电话、地址、私聊或完整订单。</text><button class="primary {{busy||confirmed?'primary--disabled':''}}" bindtap="confirm" disabled="{{busy||confirmed}}" loading="{{busy}}">{{confirmed?'已确认':'确认推荐关系'}}</button></view>
+  <view wx:if="{{status}}" class="state" aria-live="polite">{{status}}</view><view wx:if="{{error}}" class="state state--error" aria-live="assertive">{{error}}</view>
+  <view class="referral-note">真实支付和佣金结算尚未开放。推荐资格、费率、退款和结算以正式公布且生效的规则为准。</view>
+</view></view>

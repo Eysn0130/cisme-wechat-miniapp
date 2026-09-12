@@ -68,7 +68,7 @@
       <view wx:if="{{selectedImage || selectedOrder}}" class="support-draft-attachments">
         <view wx:if="{{selectedImage}}" class="support-draft-media">
           <image class="support-draft__image" src="{{selectedImage.localPath}}" mode="aspectFill"/>
-          <view class="support-draft__content"><strong wx:if="{{selectedImage.status === 'ready'}}">图片已安全校验</strong><strong wx:elif="{{selectedImage.status === 'failed'}}">图片上传失败</strong><strong wx:else>正在上传 {{selectedImage.progress}}%</strong><text>{{selectedImage.status === 'failed' ? selectedImage.error : '发送前可以移除'}}</text></view>
+          <view class="support-draft__content"><strong wx:if="{{selectedImage.status === 'ready'}}">图片已添加</strong><strong wx:elif="{{selectedImage.status === 'failed'}}">图片上传失败</strong><strong wx:else>正在上传 {{selectedImage.progress}}%</strong><text>{{selectedImage.status === 'failed' ? selectedImage.error : '发送前可以移除'}}</text></view>
           <button wx:if="{{selectedImage.status === 'failed'}}" bindtap="retryImageUpload">重传</button><button bindtap="removeImage" aria-label="移除图片">×</button>
         </view>
         <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button bindtap="removeOrder" aria-label="移除订单">×</button></view>
@@ -84,14 +84,14 @@
   </view>
 
   <view wx:if="{{attachmentSheetOpen}}" class="support-sheet-mask" catchtap="closeAttachmentSheet" catchtouchmove="stopPropagation">
-    <view class="support-sheet" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">{{attachmentSheetMode === 'image' ? '添加图片' : '关联附件'}}</strong><text class="support-sheet__note">{{attachmentSheetMode === 'image' ? '图片会先在本机预览，上传后由服务端校验。' : '当前仅支持关联你自己的订单，发送时服务端会再次核验。'}}</text><view class="support-sheet__options {{attachmentSheetMode === 'attachment' ? 'support-sheet__options--single' : ''}}">
+    <view class="support-sheet" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">{{attachmentSheetMode === 'image' ? '添加图片' : '关联附件'}}</strong><text class="support-sheet__note">{{attachmentSheetMode === 'image' ? '选择图片后可先预览，再决定是否发送。' : '选择要咨询的订单。'}}</text><view class="support-sheet__options {{attachmentSheetMode === 'attachment' ? 'support-sheet__options--single' : ''}}">
       <block wx:if="{{attachmentSheetMode === 'image'}}"><button data-source="album" bindtap="chooseImage"><image src="/assets/icons/composer-image-plum.svg"/><text>从相册选择</text></button><button data-source="camera" bindtap="chooseImage"><image src="/assets/icons/camera-plum.svg"/><text>拍照</text></button></block>
       <button wx:else bindtap="openOrderPicker"><image src="/assets/icons/package-plum.svg"/><text>选择订单</text></button>
     </view><button class="support-sheet__cancel" bindtap="closeAttachmentSheet">取消</button></view>
   </view>
 
   <view wx:if="{{orderPickerOpen}}" class="support-sheet-mask" catchtap="closeOrderPicker" catchtouchmove="stopPropagation">
-    <view class="support-sheet support-order-picker" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">选择订单</strong><text class="support-sheet__note">仅显示当前会员自己的订单，发送时服务端会再次核验。</text>
+    <view class="support-sheet support-order-picker" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">选择订单</strong><text class="support-sheet__note">请选择要咨询的订单。</text>
       <view wx:if="{{orderPickerLoading}}" class="support-picker-state">正在同步订单…</view><view wx:elif="{{orderPickerError}}" class="support-picker-state support-picker-state--error">{{orderPickerError}}</view><view wx:elif="{{!orderChoices.length}}" class="support-picker-state">还没有可选择的订单</view>
       <scroll-view wx:else class="support-order-list" scroll-y><button wx:for="{{orderChoices}}" wx:key="id" class="support-order-choice" data-id="{{item.id}}" bindtap="selectOrder"><image class="support-order-choice__image" src="{{item.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-order-choice__content"><small class="support-order-choice__tail">订单尾号 {{item.orderNumberTail}}</small><strong class="support-order-choice__name">{{item.productName}}</strong><text class="support-order-choice__status">{{item.statusLabel}} · ¥{{item.totalYuan}}</text></view><image class="support-order-choice__arrow" src="/assets/icons/caret-right-muted.svg"/></button></scroll-view>
       <button class="support-sheet__cancel" bindtap="closeOrderPicker">取消</button>

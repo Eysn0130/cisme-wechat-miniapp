@@ -1,0 +1,21 @@
+<view class="chrome-root" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回社区"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">社区内容审核</text></view>
+  <view class="page page--stack review-page">
+    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载待审核内容…</view>
+    <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
+    <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
+    <block wx:if="{{candidate}}"><text class="review-eyebrow">REVISION {{candidate.revision}}</text><view class="page-title">内容与公开复核</view>
+      <view class="review-status">{{candidate.moderationState === 'approved' ? '内容已通过，待另一名审核员发布' : candidate.state === 'pending_review' ? '等待审核' : '当前状态：' + candidate.state}}</view>
+      <view wx:if="{{candidate.title}}" class="review-title">{{candidate.title}}</view><view wx:if="{{candidate.body}}" class="review-body">{{candidate.body}}</view>
+      <view wx:if="{{!candidate.body && !media.length}}" class="state state--error">内容为空，不能通过审核。</view>
+      <view wx:for="{{media}}" wx:key="id" class="review-media"><image wx:if="{{item.src}}" src="{{item.src}}" mode="widthFix" data-src="{{item.src}}" bindtap="preview" aria-label="查看待审核图片 {{index + 1}}"/><view wx:else class="review-media__missing">图片预览失败，请重试。</view>
+        <text class="review-media__state">上传状态：{{item.state}} · 安全检测：{{item.scanVerdict === 'safe' ? '已通过' : item.scanVerdict === 'pending' ? '待完成' : '未通过'}}</text>
+        <view wx:if="{{item.state === 'uploaded' || item.state === 'scanning'}}" class="review-media__actions"><button data-id="{{item.id}}" data-decision="approve" class="{{busy || item.scanVerdict !== 'safe' ? 'control--disabled' : ''}}" bindtap="reviewMedia" disabled="{{busy || item.scanVerdict !== 'safe'}}">通过图片</button><button data-id="{{item.id}}" data-decision="reject" class="{{busy ? 'control--disabled' : ''}}" bindtap="reviewMedia" disabled="{{busy}}">退回图片</button></view>
+      </view>
+      <view class="review-declarations"><text>AI 使用：{{candidate.aiUsage === 'none' ? '未使用' : candidate.aiUsage === 'assisted' ? '辅助' : candidate.aiUsage === 'generated' ? '生成' : '尚不明确'}}</text><text>内容权利：{{candidate.rightsConfirmed ? '作者已确认' : '未确认'}}</text><text>公开许可：{{candidate.publicConsentConfirmed ? '作者已确认' : '未确认'}}</text></view>
+      <view wx:if="{{candidate.lastAction}}" class="review-last">最近处理：{{candidate.lastAction.decision}} · {{candidate.lastAction.reason}}</view>
+      <view wx:if="{{candidate.moderationState === 'pending'}}" class="review-actions"><button data-decision="reject" class="{{busy ? 'control--disabled' : ''}}" bindtap="reviewPost" disabled="{{busy}}">退回修改</button><button class="primary {{busy ? 'primary--disabled' : ''}}" data-decision="approve" bindtap="reviewPost" disabled="{{busy}}">通过内容</button></view>
+      <button wx:if="{{candidate.moderationState === 'approved' && candidate.revision !== candidate.publishedRevision}}" class="primary review-publish {{busy ? 'primary--disabled' : ''}}" bindtap="publish" disabled="{{busy}}">复核并公开</button>
+      <text class="review-hint">图片须完成安全检测和人工审核。公开版本由另一名审核员复核；未完成前不会进入推荐列表。</text>
+    </block>
+  </view>
+</view>

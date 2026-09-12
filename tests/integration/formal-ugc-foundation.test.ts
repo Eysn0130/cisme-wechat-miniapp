@@ -20,13 +20,14 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app.close();await pool.end();});
 
-it('keeps formal UGC structurally separate and impossible to enable',async()=>{
+it('keeps formal UGC structurally separate and public publication closed without approval',async()=>{
   const current=(await pool.query("SELECT enabled,version FROM emergency_switch WHERE key='community'")).rows[0];
   expect(current).toMatchObject({enabled:false,version:1});
   const response=await app.inject({method:'PUT',url:'/v1/admin/switches/community',headers:{'x-admin-token':'ugc-foundation-admin','x-principal-id':'ugc-review-lead','idempotency-key':'formal-community-enable-v1'},payload:{enabled:true,reason:'premature test',expectedVersion:1}});
   expect(response.statusCode).toBe(409);expect(response.json().code).toBe('COMMUNITY_RELEASE_NOT_IMPLEMENTED');
   await expect(pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'")).rejects.toMatchObject({code:'23514'});
-  expect((await app.inject({method:'GET',url:'/v1/ugc/posts',headers:{authorization:`Bearer ${firstSessionToken}`}})).statusCode).toBe(404);
+  const feed=await app.inject({method:'GET',url:'/v1/ugc/posts',headers:{authorization:`Bearer ${firstSessionToken}`}});
+  expect(feed.statusCode).toBe(200);expect(feed.json()).toMatchObject({publicEnabled:false,items:[]});
 });
 
 it('requires an owned revision and rejects cross-member media attachment',async()=>{
@@ -43,7 +44,7 @@ it('requires an owned revision and rejects cross-member media attachment',async(
   await expect(pool.query("UPDATE ugc_post SET state='published',visibility='public',published_at=now() WHERE id=$1",[postId])).rejects.toMatchObject({code:'23514'});
   await pool.query("UPDATE ugc_post_revision SET moderation_state='pending' WHERE post_id=$1 AND revision=1",[postId]);
   await pool.query("UPDATE ugc_post_revision SET moderation_state='approved' WHERE post_id=$1 AND revision=1",[postId]);
-  await pool.query("UPDATE ugc_post SET state='published',visibility='public',published_at=now() WHERE id=$1",[postId]);
+  await expect(pool.query("UPDATE ugc_post SET state='published',visibility='public',published_at=now() WHERE id=$1",[postId])).rejects.toMatchObject({code:'23514'});
   await expect(pool.query("UPDATE ugc_post SET author_member_id=$2 WHERE id=$1",[postId,secondMember])).rejects.toMatchObject({code:'55000'});
   const media=(await pool.query(`INSERT INTO ugc_media_asset(owner_member_id,kind,object_key,mime_type,authorization_expires_at)
     VALUES($1,'image','ugc/test/cross-owner.jpg','image/jpeg',now()+interval '10 minutes') RETURNING id`,[secondMember])).rows[0];

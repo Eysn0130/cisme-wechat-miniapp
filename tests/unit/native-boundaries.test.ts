@@ -119,6 +119,8 @@ describe("native mini program boundary", () => {
 
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
+      "community-compose/index.wxml": 2,
+      "community-review/index.wxml": 2,
       "checkout/index.wxml": 3,
       "management-catalog/index.wxml": 1,
       "management-product/index.wxml": 1,
@@ -127,6 +129,7 @@ describe("native mini program boundary", () => {
       "privacy-rights/index.wxml": 1,
       "product/index.wxml": 2,
       "progress/index.wxml": 3,
+      "referral/index.wxml": 1,
       "submit/index.wxml": 3,
       "task/index.wxml": 5
     });
@@ -190,11 +193,16 @@ describe("native mini program boundary", () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
       account: ["back", "openLegalDocuments", "openCrossBorder", "loginTap", "browseCommunity"],
-      community: ["selectMode", "selectMode", "selectMode", "selectMode", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "load", "loadTasks", "openInvite", "openPost"],
+      "community-compose": ["back", "retryLoad", "startNew", "openDraft", "chooseImages", "retryImage", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],
+      "community-post": ["back", "load", "toggleReaction", "toggleReaction", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
+      "community-review": ["back", "load", "reviewMedia", "reviewMedia", "reviewPost", "reviewPost", "publish"],
+      community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "openMyPosts", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "openFormalReview", "load", "loadTasks", "openInvite", "openPost"],
       home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "closeCareSession", "advanceCareStep", "selectAssessment", "submitCareSession"],
-      invite: ["back", "prepare", "@share", "load"],
+      invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
-      management: ["back", "retry", "openSupport", "openCatalog", "openOrders"],
+      "management-member": ["back", "load", "selectSection", "changeMembership", "changeMembership", "proposeRate"],
+      "management-members": ["back", "search", "selectFilter", "load", "openMember", "reviewRate", "reviewRate"],
+      management: ["back", "retry", "openSupport", "openCatalog", "openOrders", "openMembers"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
@@ -211,7 +219,8 @@ describe("native mini program boundary", () => {
       profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openManagement", "openTasks", "openSettings", "load", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
       records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],
-      settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
+      referral: ["back", "confirm"],
+      settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
       submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
       support: ["back", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],

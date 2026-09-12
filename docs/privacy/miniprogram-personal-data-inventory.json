@@ -107,10 +107,10 @@
     {
       "surface": "wx.chooseMedia",
       "informationType": "用户选中的图片/摄像头拍摄图片",
-      "purpose": "旧投稿审核证据，或用户主动加入本人客服会话的售前/售后图片",
-      "activation": "服务端 uploads 开关为 true、用户打开对应附件入口并完成微信隐私授权后",
+      "purpose": "用户主动选择护理故事、旧投稿审核证据或客服会话图片",
+      "activation": "本人进入相应入口并完成微信隐私授权后；正式护理故事还须有私有上传能力",
       "serverStorage": "本地验收由受控上传网关保存；正式/当前 staging COS 尚未启用；客服草稿对象 24 小时到期且未绑定对象进入清理队列",
-      "currentGate": "authoritative uploads switch before privacy or chooser API; authenticated support-conversation ownership"
+      "currentGate": "CISME API 授权与所属会员绑定；故事最多 9 张，客服最多 3 张；公开前需内容安全检测和人工审核"
     },
     {
       "surface": "wx.compressImage",
@@ -146,11 +146,11 @@
     },
     {
       "surface": "wx.uploadFile",
-      "informationType": "用户主动选择的投稿审核图片或客服会话图片",
-      "purpose": "上传旧投稿审核证据，或上传本人客服消息图片",
+      "informationType": "用户主动选择的护理故事、旧投稿审核或客服会话图片",
+      "purpose": "上传用户自己选择的内容；护理故事原图仅私有存储，公开展示由服务端产生去元数据派生图",
       "activation": "服务端授权成功后",
       "serverStorage": "本地验收可走受控网关；当前 staging 上传开关关闭且正式 COS 未启用",
-      "currentGate": "uploads switch plus short-lived server authorization, server-controlled object key, MIME/byte verification and owner binding"
+      "currentGate": "短期上传授权、所有权/MIME/字节校验；正式故事原图不得作为公共响应"
     },
     {
       "surface": "support_message.body",
@@ -285,25 +285,69 @@
       "userDeletionOrClosure": "当前无外部推理数据或持久 AI 草稿",
       "legalHold": "真正接入前随客服会话政策单独评估",
       "audit": "当前仅状态读取；离线 fixture 不使用真实聊天"
+    },
+    {
+      "surface": "ugc_post_revision",
+      "informationType": "作者文字、图片引用、AI 使用声明、内容权利和公开许可",
+      "purpose": "保存本人社区草稿、版本和审核历史",
+      "activation": "登录用户主动保存或提交",
+      "serverStorage": "CISME PostgreSQL 版本事实；原图为私有对象，审核后生成去元数据 WebP 派生图",
+      "currentGate": "本人写入；恢复图片仅发放 5 分钟签名预览链接；内容安全扫描与双人复核前不可公开",
+      "retention": "POLICY PENDING；删除公开内容不等于立即销毁依法需保留的治理事实"
+    },
+    {
+      "surface": "ugc_safety_scan",
+      "informationType": "待审文字或图片的临时访问 URL、作者 OpenID、微信检测 trace_id 与结果",
+      "purpose": "在人工审核前识别违规内容并防止未审内容公开",
+      "activation": "作者提交待审内容后，由后台任务发起",
+      "serverStorage": "CISME PostgreSQL 扫描任务与最小结果；图片原图私有，临时 URL 有签名和时限",
+      "currentGate": "生产须配置真实微信内容安全 API；结果未确认或有风险时闭合公开门禁",
+      "retention": "POLICY PENDING；原始扫描事实供申诉与问责，最小化保存"
+    },
+    {
+      "surface": "ugc_public_profile",
+      "informationType": "经本人开启且审核通过的社区头像、昵称及作者标识",
+      "purpose": "在社区内容与评论中展示发布者",
+      "activation": "用户主动开启社区展示，资料审核通过后",
+      "serverStorage": "CISME PostgreSQL 资料版本/审核状态",
+      "currentGate": "公开投影白名单；电话、地址、微信号与 OpenID 不公开"
+    },
+    {
+      "surface": "commercial_membership_referral",
+      "informationType": "会员资格、稳定推荐码、直接推荐关系和关联订单标识",
+      "purpose": "限定一级推荐资格、归属与可审计订单快照",
+      "activation": "授权管理员授予商业资格；被推荐人首次主动确认有效关系",
+      "serverStorage": "CISME PostgreSQL 资格、码、关系、规则和审计事实",
+      "currentGate": "服务端 capability 分离；推荐会员只看本人必要聚合，管理员读订单另需 commerce.order.read",
+      "retention": "POLICY PENDING；现金事实启用前另定争议及法定保存期限"
+    },
+    {
+      "surface": "commission_payment_facts",
+      "informationType": "内部隔离协议测试中经签名、解密及订单绑定的微信支付通知编号、交易号、金额、时间与最小校验哈希；尚无真实退款或结算事实",
+      "purpose": "为未来真实购买的一级佣金建立可幂等处理的支付证据边界",
+      "activation": "仅隔离合成协议测试；生产支付入站路由与下单支付意图均未启用",
+      "serverStorage": "CISME PostgreSQL commission_payment_inbox 与不可变佣金分录；当前仅测试环境内部直接调用，真实资金尚未接入",
+      "currentGate": "MAKE/真实转账禁用；合成订单 source_kind 不可变且不能计提；已验证事实处理也拒绝取消或超时订单",
+      "retention": "POLICY PENDING；真实资金启用前需正式批准"
     }
   ],
   "runtimeDataEgress": [
     {
       "recipient": "微信接口 api.weixin.qq.com",
-      "data": "登录 code；手机号授权 code；服务端 AppID/Secret",
-      "purpose": "code2Session 与手机号解密",
-      "state": "implemented"
+      "data": "登录/手机号授权 code、服务端 AppID/Secret；正式 UGC 启用后待审文字、带签名的私有图片临时 URL、作者 OpenID",
+      "purpose": "code2Session、手机号解密；生产配置齐备后调用微信内容安全文字/图片检测",
+      "state": "identity_implemented_ugc_scan_config_gated"
     },
     {
       "recipient": "CISME 自有 HTTPS API",
       "data": "页面所需的最小业务字段",
-      "purpose": "会员、护理、地址、投稿、权利请求、统一客服会话与自营商品目录",
+      "purpose": "会员、护理、地址、正式社区草稿/审核、商业资格/推荐、权利请求、客服与目录",
       "state": "implemented"
     },
     {
       "recipient": "腾讯云 COS",
-      "data": "未来的私有投稿/客服媒体和加密备份",
-      "purpose": "私有对象存储与灾备；客服预览只经 CISME 鉴权 API",
+      "data": "未来的私有投稿/客服原图及去元数据公开派生图、加密备份",
+      "purpose": "私有原图存储、授权预览与审核后派生图；当前仍取决于配置与审批",
       "state": "staging_media_not_enabled"
     },
     {
@@ -311,8 +355,14 @@
       "data": "固定健康检查，无会员数据",
       "purpose": "历史/未启用传输路径的可用性检查",
       "state": "not_mapped_for_preview_or_trial"
+    },
+    {
+      "recipient": "微信支付 API v3",
+      "data": "协议适配器可按原商户订单号查询交易状态；当前仅合成契约测试，不发起支付或转账",
+      "purpose": "核验未知支付结果；支付通知的内部签名/解密/绑定逻辑不代表真实商户接入",
+      "state": "adapter_and_internal_inbox_only_disabled_not_live"
     }
   ],
-  "migrationSetSha256": "f08f919006fd9dad58784c92a0037d9bcb7b5de089c2cde5670224910d0e5454",
-  "egressSignatureSha256": "29fe533f20c532da5bdbb01ea58d8177590c05b4d8a13457d0675e27dbb09881"
+  "migrationSetSha256": "c45c5fa8437059126b0128b5431dbee40458756c49d8f560c340a4e599d5735b",
+  "egressSignatureSha256": "519f2f3b6647368d59842c3a0b162691be791b7d0630c9ea70f78cc38c35c849"
 }

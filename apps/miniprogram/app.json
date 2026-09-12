@@ -29,6 +29,12 @@
     { "root": "pages/management-order-detail", "pages": ["index"] },
     { "root": "pages/management-support", "pages": ["index"] },
     { "root": "pages/management-support-chat", "pages": ["index"] }
+    ,{ "root": "pages/management-members", "pages": ["index"] }
+    ,{ "root": "pages/management-member", "pages": ["index"] }
+    ,{ "root": "pages/referral", "pages": ["index"] }
+    ,{ "root": "pages/community-compose", "pages": ["index"] }
+    ,{ "root": "pages/community-post", "pages": ["index"] }
+    ,{ "root": "pages/community-review", "pages": ["index"] }
   ],
   "window": {
     "navigationStyle": "custom",

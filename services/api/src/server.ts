@@ -20,6 +20,9 @@ import { AuthorityService } from "./authority.js";
 import { SupportService } from "./supportService.js";
 import { CommerceCatalogService } from "./commerceCatalog.js";
 import { CommerceOrderService } from "./commerceOrders.js";
+import { CommercialMembershipService } from "./commercialMembership.js";
+import { FormalUgcService } from "./formalUgc.js";
+import { UgcSafetyService, startUgcSafetyLoop } from "./ugcSafety.js";
 import { ApprovedKnowledgeRegistry, DisabledSupportAiProvider, SupportAiBoundary } from "./supportAiBoundary.js";
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
@@ -67,6 +70,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
+  const commercial = new CommercialMembershipService(pool, authority,config.env);
+  const formalUgc = new FormalUgcService(pool, config, storage, authority);
+  const ugcSafety = new UgcSafetyService(pool, config, storage);
   const support = new SupportService(pool, authority, service, storage);
   const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled);
   const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
@@ -74,7 +80,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config);
   const deliveryAddresses = new DeliveryAddressService(pool, config);
-  const orders = new CommerceOrderService(pool, authority, deliveryAddresses, {
+  const orders = new CommerceOrderService(pool, authority, deliveryAddresses, commercial, {
     enabled: config.commerce.orderFlowEnabled,
     quoteTtlMinutes: config.commerce.quoteTtlMinutes,
     pendingOrderTtlMinutes: config.commerce.pendingOrderTtlMinutes
@@ -129,8 +135,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(path);
     const publicShareVisit = request.method === "POST" && /^\/v1\/shares\/[0-9a-f]{32}\/visits$/.test(path);
     const publicFeedRead = request.method === "GET" && (path === "/v1/feed" || path.startsWith("/v1/feed/"));
+    const publicUgcRead = request.method === "GET" && !request.headers.authorization &&
+      (path === "/v1/ugc/status" || path === "/v1/ugc/posts" || /^\/v1\/ugc\/posts\/[0-9a-f-]+$/i.test(path) ||
+        /^\/v1\/ugc\/media\/[0-9a-f-]+$/i.test(path) || /^\/v1\/ugc\/review-preview\/[0-9a-f-]+$/i.test(path) ||
+        /^\/v1\/ugc\/scan-source\/[0-9a-f-]+$/i.test(path) ||
+        /^\/v1\/ugc\/own-preview\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path.startsWith("/v1/admin/") || path.startsWith("/v1/uploads/") || publicFeedRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path.startsWith("/v1/admin/") || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
@@ -148,6 +159,77 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 
   app.get("/v1/capabilities", async () => ({ version: 1, communityPreviewEnabled: community.enabled(), socialPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile,
     pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
+
+  app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
+  app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
+  app.get<{Params:{postId:string}}>("/v1/ugc/posts/:postId", async request => formalUgc.publicPost(request.memberId,request.params.postId));
+  app.get<{Params:{mediaId:string};Querystring:{variant?:string}}>("/v1/ugc/media/:mediaId", async (request,reply) => {
+    const object=await formalUgc.publicMedia(request.params.mediaId,request.query.variant==="thumbnail"?"thumbnail":"detail");
+    return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{mediaId:string};Querystring:{token?:string}}>("/v1/ugc/review-preview/:mediaId", async (request,reply) => {
+    const object=await formalUgc.reviewMediaPreview(request.params.mediaId,request.query.token);
+    return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{ownerId:string;mediaId:string};Querystring:{token?:string}}>("/v1/ugc/own-preview/:ownerId/:mediaId", async (request,reply) => {
+    const object=await formalUgc.ownMediaPreview(request.params.ownerId,request.params.mediaId,request.query.token);
+    return reply.header("Cache-Control","private, no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{mediaId:string};Querystring:{token?:string}}>("/v1/ugc/scan-source/:mediaId", async (request,reply) => {
+    const object=await ugcSafety.scanSource(request.params.mediaId,request.query.token);
+    return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Querystring:{signature?:string;timestamp?:string;nonce?:string;echostr?:string}}>("/v1/ugc/safety-callback", async (request,reply) => {
+    ugcSafety.verifyCallback(request.query);
+    return reply.type("text/plain").send(request.query.echostr??"");
+  });
+  app.post<{Querystring:{signature?:string;timestamp?:string;nonce?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
+    reply.type("text/plain").send(await ugcSafety.receiveCallback(request.query,(request.body??{}) as never)));
+  app.get("/v1/me/ugc/posts", async request => formalUgc.myPosts(request.memberId));
+  app.post("/v1/me/ugc/posts", async request => formalUgc.createDraft(request.memberId,idempotencyKey(request)));
+  app.get<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId", async request => formalUgc.readOwn(request.memberId,request.params.postId));
+  app.put<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/draft", async request => formalUgc.saveDraft(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/submit", async request => {
+    const saved=await formalUgc.submit(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion);
+    return {...saved,scan:{state:config.media.ugcScanBaseUrl?"queued":"unavailable",retryRequired:!config.media.ugcScanBaseUrl}};
+  });
+  app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/scan", async request => {
+    const scanBase=config.media.ugcScanBaseUrl;
+    if(!scanBase)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
+    return ugcSafety.scanPost(request.memberId,request.params.postId,scanBase);
+  });
+  app.delete<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId", async request => formalUgc.deleteOwn(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion));
+  app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/media/authorize", async request => {
+    const input=(request.body??{}) as {mimeType?:unknown;maxBytes?:unknown};
+    const protocol=request.headers["x-forwarded-proto"]??"http",host=request.headers.host??`127.0.0.1:${config.port}`;
+    return formalUgc.authorizeMedia(request.memberId,request.params.postId,{...input,baseUrl:`${protocol}://${host}`});
+  });
+  app.post<{Params:{postId:string;mediaId:string}}>("/v1/me/ugc/posts/:postId/media/:mediaId/complete", async request => formalUgc.completeMedia(request.memberId,request.params.postId,request.params.mediaId));
+  app.get<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId", async (request,reply) => {
+    const object=await formalUgc.ownMedia(request.memberId,request.params.mediaId);
+    return reply.header("Cache-Control","private, no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId/preview-url", async request => {
+    const protocol=request.headers["x-forwarded-proto"]??"http",host=request.headers.host??`127.0.0.1:${config.port}`;
+    return formalUgc.ownMediaPreviewUrl(request.memberId,request.params.mediaId,`${protocol}://${host}`);
+  });
+  app.delete<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId", async request => formalUgc.deleteOwnMedia(request.memberId,request.params.mediaId));
+  app.put<{Params:{postId:string}}>("/v1/ugc/posts/:postId/reaction", async request => formalUgc.react(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/ugc/posts/:postId/comments", async request => formalUgc.comment(request.memberId,request.params.postId,idempotencyKey(request),(request.body??{}) as never));
+  app.delete<{Params:{postId:string;commentId:string}}>("/v1/ugc/posts/:postId/comments/:commentId", async request => formalUgc.deleteComment(request.memberId,request.params.postId,request.params.commentId));
+  app.post<{Params:{targetType:string;targetId:string}}>("/v1/ugc/reports/:targetType/:targetId", async request => formalUgc.report(request.memberId,request.params.targetType,request.params.targetId,(request.body??{}) as never));
+  app.put<{Params:{memberId:string}}>("/v1/me/ugc/blocks/:memberId", async request => formalUgc.block(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
+  app.get("/v1/management/ugc/review-queue", async request => formalUgc.reviewQueue(request.memberId));
+  app.post<{Params:{mediaId:string}}>("/v1/management/ugc/media/:mediaId/review", async request => formalUgc.reviewMedia(request.memberId,request.params.mediaId,(request.body??{}) as never));
+  app.get<{Params:{mediaId:string}}>("/v1/management/ugc/media/:mediaId/preview-url", async request => {
+    const protocol=request.headers["x-forwarded-proto"]??"http",host=request.headers.host??`127.0.0.1:${config.port}`;
+    return formalUgc.reviewPreviewUrl(request.memberId,request.params.mediaId,`${protocol}://${host}`);
+  });
+  app.get<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId", async request => formalUgc.reviewCandidate(request.memberId,request.params.postId));
+  app.post<{Params:{commentId:string}}>("/v1/management/ugc/comments/:commentId/review", async request => formalUgc.reviewComment(request.memberId,request.params.commentId,(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId/review", async request => formalUgc.reviewPost(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId/publish", async request => formalUgc.publish(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion));
+  app.post<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId/hide", async request => formalUgc.hidePost(request.memberId,request.params.postId,(request.body??{}) as never));
 
   app.post("/v1/identity/dev", async (request) => {
     if (!config.allowDevAdapters) throw new DomainError("DEV_ADAPTER_FORBIDDEN", "Development identity adapter is disabled", 503);
@@ -208,6 +290,21 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   const memberProfile = new MemberProfile(pool);
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
+  app.get("/v1/me/commercial-membership", async request => commercial.myStatus(request.memberId));
+  app.post("/v1/me/commercial-membership/code", async request => commercial.ensureCode(request.memberId));
+  app.post("/v1/me/referral/confirm", async request => {
+    const input=(request.body ?? {}) as {code?:unknown;confirmationKey?:unknown};
+    return commercial.confirmReferral(request.memberId,request.principalId,input.code,input.confirmationKey);
+  });
+  app.get<{Querystring:{q?:string;filter?:string;limit?:string}}>("/v1/management/members", async request => commercial.listMembers(request.memberId,request.query));
+  app.get<{Params:{memberId:string}}>("/v1/management/members/:memberId", async request => commercial.memberDetail(request.memberId,request.params.memberId));
+  app.post<{Params:{memberId:string}}>("/v1/management/members/:memberId/membership", async request => commercial.setMembership(
+    request.memberId,request.principalId,request.params.memberId,(request.body ?? {}) as {state?:unknown;expiresAt?:unknown;expectedVersion?:unknown;reason?:unknown}));
+  app.post("/v1/management/commission-rates", async request => commercial.proposeRate(request.memberId,request.principalId,
+    (request.body ?? {}) as {memberId?:unknown;basisPoints?:unknown;effectiveAt?:unknown;reason?:unknown}));
+  app.get("/v1/management/commission-rates/pending", async request => commercial.pendingRates(request.memberId));
+  app.post<{Params:{ruleId:string}}>("/v1/management/commission-rates/:ruleId/decision", async request => commercial.approveRate(
+    request.memberId,request.principalId,request.params.ruleId,(request.body ?? {}) as {decision?:unknown}));
   app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
   app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async request => support.messagesForMember(request.memberId, request.query));
   app.post("/v1/me/support/messages", async request => support.sendMember(request.memberId, request.principalId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown}, request.id));
@@ -331,8 +428,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return service.authorizeMedia(request.memberId, request.params.submissionId, { ...body, maxBytes: Math.min(body.maxBytes ?? 10 * 1024 * 1024, 10 * 1024 * 1024), baseUrl: `${protocol}://${host}` }, new Date());
   });
 
-  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/chunks", { bodyLimit: 710000 }, async request => cloudUpload.chunk(request.params.mediaId, request.body as never));
-  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/assemble", async request => cloudUpload.finish(request.params.mediaId, (request.body as { token: string }).token));
+  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/chunks", { bodyLimit: 710000 }, async request =>
+    await formalUgc.ownsAuthorizedUpload(request.params.mediaId)
+      ? formalUgc.chunkMedia(request.params.mediaId,request.body as never)
+      : cloudUpload.chunk(request.params.mediaId, request.body as never));
+  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/assemble", async request =>
+    await formalUgc.ownsAuthorizedUpload(request.params.mediaId)
+      ? formalUgc.finishMedia(request.params.mediaId,(request.body as {token?:unknown})?.token)
+      : cloudUpload.finish(request.params.mediaId, (request.body as { token: string }).token));
   app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId", async (request) => {
     const upload = await request.file();
     if (!upload) throw new DomainError("UPLOAD_FILE_REQUIRED", "Multipart file is required", 400);
@@ -340,6 +443,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const token = fields.token?.value;
     if (typeof token !== "string") throw new DomainError("UPLOAD_TOKEN_REQUIRED", "Upload token is required", 401);
     const bytes = await upload.toBuffer();
+    if(await formalUgc.ownsAuthorizedUpload(request.params.mediaId))
+      return formalUgc.gatewayUpload(request.params.mediaId,{token,bytes,mimeType:upload.mimetype});
     return service.gatewayUpload(request.params.mediaId, { token, bytes, mimeType: upload.mimetype }, new Date());
   });
 
@@ -412,7 +517,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", error))
     : null;
-  app.addHook("onClose", async () => { await worker?.stop(); await pool.end(); });
+  const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl
+    ? startUgcSafetyLoop(new UgcSafetyService(pool,config,storage),config.media.ugcScanBaseUrl,
+      error=>console.error("CISME_UGC_SAFETY_TICK_FAILED",error)) : null;
+  app.addHook("onClose", async () => { safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
   const stop = () => void app.close().catch((error) => { console.error("CISME_SHUTDOWN_FAILED", error); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);

@@ -4,6 +4,14 @@
     <view class="community-mode" aria-role="tablist" aria-label="社区内容分类"><button class="community-mode__tab {{mode === 'featured' ? 'community-mode__active' : ''}}" data-mode="featured" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'featured'}}" aria-label="精选，{{mode === 'featured' ? '当前分类' : '未选中'}}">精选</button><button wx:if="{{ugcFeedEnabled || socialPreviewEnabled}}" class="community-mode__tab {{mode === 'recommend' ? 'community-mode__active' : ''}}" data-mode="recommend" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'recommend'}}" aria-label="推荐，{{mode === 'recommend' ? '当前分类' : '未选中'}}">推荐</button><button wx:if="{{socialPreviewEnabled}}" class="community-mode__tab {{mode === 'following' ? 'community-mode__active' : ''}}" data-mode="following" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'following'}}" aria-label="关注，{{mode === 'following' ? '当前分类' : '未选中'}}">关注</button><button wx:if="{{canReview}}" class="community-mode__tab {{mode === 'review' ? 'community-mode__active' : ''}}" data-mode="review" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'review'}}" aria-label="审核，{{mode === 'review' ? '当前分类' : '未选中'}}">审核</button></view>
   </view>
 
+  <view wx:if="{{ugcFeedEnabled && mode !== 'review'}}" class="community-search" aria-role="search">
+    <input class="community-search__input" value="{{searchInput}}" bindinput="onSearchInput" bindconfirm="submitSearch" confirm-type="search" maxlength="80" placeholder="搜索护理故事或作者" aria-label="搜索护理故事或作者" />
+    <button class="community-search__action {{loading ? 'control--disabled' : ''}}" bindtap="submitSearch" disabled="{{loading}}">搜索</button>
+    <button wx:if="{{appliedSearch}}" class="community-search__clear" bindtap="clearSearch" aria-label="清除搜索并查看全部内容">清除</button>
+  </view>
+
+  <view wx:if="{{signedIn && mode !== 'review'}}" class="community-my-content"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openMyPosts" disabled="{{navigating}}">我的内容与草稿 <text>查看 ›</text></button></view>
+
   <view wx:if="{{mode === 'review'}}" class="review-panel">
     <text wx:if="{{reviewBusy}}">正在同步审核状态…</text>
     <view wx:if="{{teamError}}" class="state state--error">{{teamError}}</view>
@@ -11,17 +19,18 @@
     <view wx:for="{{profileReviewQueue}}" wx:key="member_id" class="glass review-card"><view class="review-profile"><image class="review-profile-avatar" src="{{item.avatar}}" mode="aspectFill"/><view><text>社区头像昵称待审核</text><text class="review-detail">{{item.display_name}}</text></view></view><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.member_id}}" data-decision="approve" bindtap="reviewMemberProfile" disabled="{{reviewBusy}}">资料审核通过</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.member_id}}" data-decision="reject" bindtap="reviewMemberProfile" disabled="{{reviewBusy}}">退回修改资料</button></view>
     <view wx:for="{{reviewQueue}}" wx:key="id" class="glass review-card"><text>待审核投稿 · {{item.platform_account}}</text><text class="review-detail">{{item.disclosure}}</text><button data-url="{{item.post_url}}" bindtap="copyPostUrl">复制原文链接核验</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="approve" bindtap="reviewSubmission" disabled="{{reviewBusy}}">审核通过</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="request_changes" bindtap="reviewSubmission" disabled="{{reviewBusy}}">要求补充</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="reject" bindtap="reviewSubmission" disabled="{{reviewBusy}}">拒绝</button></view>
     <view wx:for="{{publicationQueue}}" wx:key="id" class="glass review-card"><text>投稿已通过 · {{item.platform_account}}</text><text class="review-detail">{{item.visible ? '已进入推荐流' : item.publication_queued ? '正在发布' : !item.publication_enabled ? '公开发布尚未开放' : '待另一名审核员完成发布复核'}}</text><button data-url="{{item.post_url}}" bindtap="copyPostUrl">复制原文链接核验</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" wx:if="{{item.publication_enabled && !item.visible && !item.publication_queued}}" data-id="{{item.id}}" bindtap="publishSubmission" disabled="{{reviewBusy}}">复核并发布到推荐</button></view>
-    <text wx:if="{{!reviewBusy && !teamError && !reviewQueue.length && !publicationQueue.length && !profileReviewQueue.length}}">当前没有待处理的资料或投稿</text>
+    <view wx:for="{{formalReviewQueue}}" wx:key="id" class="glass review-card"><text>社区故事待处理 · {{item.image_count}} 张图片</text><text class="review-detail">{{item.title || item.body || '图片故事'}}</text><button data-id="{{item.id}}" bindtap="openFormalReview">查看并审核</button></view>
+    <text wx:if="{{!reviewBusy && !teamError && !reviewQueue.length && !publicationQueue.length && !profileReviewQueue.length && !formalReviewQueue.length}}">当前没有待处理的资料或内容</text>
   </view>
   <block wx:if="{{mode !== 'review'}}">
   <view wx:if="{{mode === 'recommend' && !loading && !feed.length && !error}}" class="state">暂无审核发布的会员内容，可先浏览精选护理故事。</view>
   <view wx:if="{{mode === 'following' && !loading && !displayFeedCount}}" class="state">关注作者后，这里会显示他们的经审内容。可在护理故事中关注 CISME。</view>
-  <view wx:if="{{loading}}" class="community-loading" aria-live="polite">正在同步人工精选与有效邀请…</view>
-  <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试经审内容同步</button></view>
+  <view wx:if="{{loading}}" class="community-loading" aria-live="polite">正在加载护理故事…</view>
+  <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重新加载</button></view>
 
-  <view wx:if="{{tasksLoading}}" class="community-loading" aria-live="polite">正在核验有效邀请…</view>
-  <view wx:elif="{{tasksError}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">有效邀请暂时无法同步，不能据此判断为无邀请。</text><button class="text-button state-error__action" bindtap="loadTasks">重试邀请同步</button></view>
-  <view wx:elif="{{tasks.length}}" class="glass community-task-list"><view class="community-task-list__head"><strong class="community-task-list__title">我的投稿与邀请</strong><small class="community-task-list__count">{{tasks.length}} 项</small></view><button wx:for="{{tasks}}" wx:key="id" class="community-task-row {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openInvite" disabled="{{navigating}}" aria-label="{{item.name || '投稿任务'}}，{{item.statusLabel}}，{{item.actionLabel}}"><view class="community-task-row__copy"><strong class="community-task-row__title">{{item.name || '护理故事投稿'}}</strong><small class="community-task-row__status">{{item.statusLabel}}</small></view><text class="community-task-row__action">{{item.actionLabel}}</text></button></view>
+  <view wx:if="{{tasksLoading}}" class="community-loading" aria-live="polite">正在加载我的活动…</view>
+  <view wx:elif="{{tasksError}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">活动暂未加载，请重试。</text><button class="text-button state-error__action" bindtap="loadTasks">重新加载</button></view>
+  <view wx:elif="{{tasks.length}}" class="glass community-task-list"><view class="community-task-list__head"><strong class="community-task-list__title">邀请活动</strong><small class="community-task-list__count">{{tasks.length}} 项</small></view><button wx:for="{{tasks}}" wx:key="id" class="community-task-row {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openInvite" disabled="{{navigating}}" aria-label="{{item.name || '邀请活动'}}，{{item.statusLabel}}，{{item.actionLabel}}"><view class="community-task-row__copy"><strong class="community-task-row__title">{{item.name || '护理邀请活动'}}</strong><small class="community-task-row__status">{{item.statusLabel}}</small></view><text class="community-task-row__action">{{item.actionLabel}}</text></button></view>
   <view class="feed-grid">
     <view wx:for="{{feedColumns}}" wx:for-item="column" wx:key="index" class="feed-column">
     <button wx:for="{{column}}" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}">
@@ -30,6 +39,8 @@
     </button>
     </view>
   </view>
-  <view wx:if="{{mode === 'featured' && !loading}}" class="community-notice"><image class="community-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>精选由 CISME 护理编辑部整理。会员投稿完成审核发布后，会出现在推荐栏目。</text></view>
+  <view wx:if="{{formalLoadingMore}}" class="community-loading" aria-live="polite">正在加载更多内容…</view>
+  <view wx:if="{{mode === 'recommend' && appliedSearch && !loading && !displayFeedCount}}" class="state">没有找到相关护理故事或作者。试试其他关键词。</view>
+  <view wx:if="{{mode === 'featured' && !loading}}" class="community-notice"><image class="community-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>精选由 CISME 护理编辑部整理。大家分享的护理故事审核发布后，会出现在推荐栏目。</text></view>
   </block>
 </view>

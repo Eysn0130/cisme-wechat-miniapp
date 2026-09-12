@@ -1,0 +1,21 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回社区"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">护理故事</text></view>
+  <view class="page page--stack story-page">
+    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载护理故事…</view>
+    <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
+    <view wx:if="{{notice}}" class="state story-notice" aria-live="polite">{{notice}}</view>
+    <block wx:if="{{post}}">
+      <view class="story-author"><image wx:if="{{post.avatar}}" src="{{post.avatar}}" class="story-author__avatar" mode="aspectFill"/><view wx:else class="story-author__avatar story-author__avatar--empty">C</view><view class="story-author__copy"><text class="story-author__name">{{post.author}}</text><text class="story-author__date">护理故事</text></view></view>
+      <view wx:if="{{post.title}}" class="story-title">{{post.title}}</view>
+      <view wx:if="{{post.body}}" class="story-body">{{post.body}}</view>
+      <view wx:for="{{images}}" wx:key="id" class="story-media"><image wx:if="{{item.src}}" src="{{item.src}}" mode="widthFix" data-src="{{item.src}}" bindtap="previewImage" aria-label="查看第 {{item.index}} 张故事图片"/><view wx:else class="story-media__fallback">图片暂时无法加载</view></view>
+      <view wx:if="{{post.aiUsage === 'assisted' || post.aiUsage === 'generated'}}" class="story-ai">{{post.aiUsage === 'generated' ? '含 AI 生成内容' : '含 AI 辅助内容'}}</view>
+      <view class="story-actions"><button data-kind="like" class="{{busy ? 'control--disabled' : ''}}" bindtap="toggleReaction" disabled="{{busy}}" aria-label="{{post.liked ? '取消点赞' : '点赞'}}">{{post.liked ? '已赞' : '点赞'}} · {{post.likeCount}}</button><button data-kind="save" class="{{busy ? 'control--disabled' : ''}}" bindtap="toggleReaction" disabled="{{busy}}" aria-label="{{post.saved ? '取消收藏' : '收藏'}}">{{post.saved ? '已收藏' : '收藏'}} · {{post.saveCount}}</button></view>
+      <view class="story-section-title">评论</view>
+      <view wx:if="{{!post.comments.length}}" class="story-empty">还没有公开评论，写下你的想法吧。</view>
+      <view wx:for="{{post.comments}}" wx:key="id" class="story-comment"><text class="story-comment__author">{{item.author}}</text><text class="story-comment__body">{{item.body}}</text></view>
+      <view class="story-comment-box"><input value="{{comment}}" bindinput="editComment" maxlength="1000" disabled="{{busy}}" placeholder="写下你的想法" aria-label="评论内容"/><button class="{{busy || !comment.length ? 'control--disabled' : ''}}" bindtap="sendComment" disabled="{{busy || !comment.length}}">发送</button></view>
+      <view class="story-tools"><button wx:if="{{post.isMine}}" bindtap="editOwn">编辑</button><button wx:if="{{post.isMine}}" bindtap="deleteOwn">删除</button><button wx:else bindtap="blockAuthor">屏蔽作者</button><button bindtap="report">举报内容</button></view>
+    </block>
+  </view>
+</view>

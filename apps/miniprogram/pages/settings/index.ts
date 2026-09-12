@@ -3,6 +3,7 @@ import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../
 import { requireMemberAccess } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication, setSessionToken } from "../../services/api";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
+import { authorityProjection, hasCapability } from "../../services/authority";
 import { emptyAddressDraft, makeStoredAddressDraft, mergeAddressDraft, parseQuickAddress, recoverStoredAddressDraft, touchAddressField, validateAddressDraft, type AddressDraft, type AddressField, type AddressLabel, type StoredAddressDraft } from "../../services/address-draft";
 
 function scrollToSettingsError() {
@@ -37,10 +38,11 @@ function runtimeLabel(): string {
 Page({
   profileSessionToken: "",
   addressRecoverySnapshot: null as StoredAddressDraft | null,
-  data: { avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
+  data: { avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
   onLoad(query:Record<string,string|undefined>) { this.data.pageAlive = true; if(query.section==="addresses")this.setData({editingAddresses:true}); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { this.data.pageAlive = true; if (!requireMemberAccess()) return; this.setData({ leaving: false }); void this.loadSettingsBootstrap(); void this.loadAddresses(); },
+  onShow() { this.data.pageAlive = true; if (!requireMemberAccess()) return; this.setData({ leaving: false, canManageMembers:false }); void this.loadSettingsBootstrap(); void this.loadAddresses(); void this.loadManagementAccess(); },
+  async loadManagementAccess() { const token=getApp<IAppOption>().globalData.sessionToken; try { const projection=await authorityProjection(); if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({canManageMembers:hasCapability(projection,"member.profile.read")}); } catch { if(this.data.pageAlive)this.setData({canManageMembers:false}); } },
   onUnload() {
     this.data.pageAlive = false;
     this.data.loadAttempt += 1;
@@ -446,6 +448,7 @@ Page({
   },
   openLegal() { void this.openSettingsRoute("/pages/legal/index?type=privacy","隐私政策暂时无法打开"); },
   openPrivacyRights() { void this.openSettingsRoute("/pages/privacy-rights/index","数据权利页面暂时无法打开"); },
+  openMemberManagement() { if(this.data.canManageMembers)void this.openSettingsRoute("/pages/management-members/index","会员管理暂时无法打开"); },
   async back() {
     if (!this.data.pageAlive || this.data.leaving) return;
     if (this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) { wx.showToast({ title: this.data.loggingOut ? "正在退出当前账号" : this.data.confirmingLogout ? "请先完成退出确认" : "设置操作确认中，请稍候", icon: "none" }); return; }

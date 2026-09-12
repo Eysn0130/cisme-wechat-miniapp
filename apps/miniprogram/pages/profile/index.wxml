@@ -1,9 +1,9 @@
 <view class="page profile-page" style="{{chromeStyle}}">
   <view wx:if="{{loading && !member}}" class="profile-skeleton" aria-live="polite"><view class="skeleton-line skeleton-line--short"></view><view class="skeleton-block"></view><view class="skeleton-block skeleton-block--list"></view></view>
   <block wx:if="{{member && points && care}}">
-    <view class="profile-sync-status" aria-live="polite">{{loading ? '正在更新会员状态' : '会员状态已同步'}}</view>
+    <view wx:if="{{loading}}" class="profile-sync-status" aria-live="polite">正在更新资料…</view>
     <view class="profile-identity">
-      <button class="profile-avatar-button {{navigating ? 'control--disabled' : ''}}" bindtap="openAccount" aria-label="前往设置修改头像与昵称" disabled="{{navigating}}"><image class="profile-avatar" src="{{memberAvatar}}" mode="aspectFill"/></button>
+      <view class="profile-avatar-wrap"><button class="profile-avatar-button {{navigating ? 'control--disabled' : ''}}" bindtap="openAccount" aria-label="前往设置修改头像与昵称{{commercialEligible ? '，CISME 商业会员' : ''}}" disabled="{{navigating}}"><image class="profile-avatar" src="{{memberAvatar}}" mode="aspectFill"/></button><image wx:if="{{commercialEligible}}" class="profile-member-seal" src="/assets/icons/member-seal-plum.svg" mode="aspectFit" aria-hidden="true"/></view>
       <view class="profile-identity__copy"><text class="profile-identity__eyebrow">CISME MEMBER</text><strong class="profile-identity__title">{{member.display_name || 'CISME 会员'}}</strong><small class="profile-identity__meta">{{careStatus}}</small></view>
       <button class="profile-settings {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}" aria-label="打开设置"><image src="/assets/icons/gear-plum.svg" mode="aspectFit"/></button>
     </view>
@@ -20,7 +20,7 @@
       <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/wallet-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>积分账本</strong><small>查看积分来源、冻结和可用状态</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
       <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/storefront-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>商品目录</strong><small>查看上架商品与规格</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
       <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openOrders" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>我的订单</strong><small>查看待支付、取消与超时订单</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
-      <button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openInvite" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/gift-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>邀请与分享</strong><small>查看真实邀请入口与归因说明</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openInvite" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/gift-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>邀请与分享</strong><small>分享给朋友，查看邀请记录</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
     </view>
 
     <block wx:if="{{authority.managementAvailable}}"><view class="profile-label">管理能力</view><view class="profile-group"><button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openManagement" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>管理中心</strong><small>按当前账号权限处理客服与运营事项</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button></view></block>
@@ -33,5 +33,5 @@
     <view class="commerce-note"><image src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>商品可以浏览；微信支付与真实配送尚未开放。</text></view>
   </block>
   <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重试</button></view>
-  <view wx:if="{{tasksError && member}}" class="state state--error" aria-live="assertive"><text>有效邀请同步失败，当前页面不会把失败显示为无邀请。</text><button class="text-button" bindtap="retryTasks">重试邀请同步</button></view>
+  <view wx:if="{{tasksError && member}}" class="state state--error" aria-live="assertive"><text>活动暂未加载，请重试。</text><button class="text-button" bindtap="retryTasks">重新加载</button></view>
 </view>

@@ -18,11 +18,11 @@ let scrollDirection: -1 | 0 | 1 = 0;
 let scrollTravel = 0;
 
 Page({
-  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, follows: [] as string[], followingFeed: [] as any[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], reviewBusy: false, teamError: "", feed: [] as any[], displayFeedCount: editorialStories.length, feedColumns: feedColumns(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], followingFeed: [] as any[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], reviewBusy: false, teamError: "", feed: [] as any[], formalNextCursor: null as string|null, formalLoadingMore:false, searchInput:"", appliedSearch:"", displayFeedCount: editorialStories.length, feedColumns: feedColumns(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.resetChromeMotion();
-    this.setData({ navigating: false, chromeHidden: false });
+    this.setData({ navigating: false, chromeHidden: false, signedIn: Boolean(getApp<IAppOption>().globalData.sessionToken) });
     const tab = this.getTabBar?.();
     if (tab) tab.setData({ active: 2, externalBusy: false });
     tab?.syncActive?.(2);
@@ -37,7 +37,7 @@ Page({
     const tab = this.getTabBar?.();
     tab?.setPresentation?.("community-scroll", false);
     tab?.leaveCommunityFab?.();
-    this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [] });
+    this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [] });
   },
   onUnload() {
     this.data.feedAttempt += 1;
@@ -100,11 +100,45 @@ Page({
     }
   },
   openPublisher() {
-    if (this.data.navigating || this.data.tasksLoading) return;
+    if (this.data.navigating) return;
     if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication("/pages/community/index"); return; }
-    const task = this.data.tasks[0];
-    if (!task?.id) { wx.showToast({ title: "当前没有可发布的护理邀请", icon: "none" }); return; }
-    this.openInvite({ currentTarget: { dataset: { id: task.id } } } as unknown as WechatMiniprogram.TouchEvent);
+    this.setData({ navigating: true });
+    wx.navigateTo({ url: "/pages/community-compose/index?new=1", fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "创作页暂时无法打开", icon: "none" }); } });
+  },
+  openMyPosts() {
+    if (this.data.navigating) return;
+    if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication("/pages/community/index"); return; }
+    this.setData({ navigating: true });
+    wx.navigateTo({ url: "/pages/community-compose/index", fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "我的内容暂时无法打开", icon: "none" }); } });
+  },
+  onSearchInput(event:{detail:{value:string}}){this.setData({searchInput:event.detail.value});},
+  submitSearch(){
+    const next=this.data.searchInput.trim();
+    if(this.data.loading)return;
+    this.setData({appliedSearch:next,mode:"recommend"});
+    void this.load();
+  },
+  clearSearch(){
+    this.setData({searchInput:"",appliedSearch:"",mode:"recommend"});
+    void this.load();
+  },
+  async onReachBottom(){
+    const cursor=this.data.formalNextCursor,attempt=this.data.feedAttempt;
+    if(!cursor||this.data.formalLoadingMore||this.data.loading||this.data.mode!=="recommend"||!this.data.ugcFeedEnabled)return;
+    const token=getApp<IAppOption>().globalData.sessionToken;
+    this.setData({formalLoadingMore:true});
+    try{
+      const q=this.data.appliedSearch?`&q=${encodeURIComponent(this.data.appliedSearch)}`:"";
+      const page=await request<{items:any[];nextCursor:string|null}>({path:`/v1/ugc/posts?limit=30&cursor=${encodeURIComponent(cursor)}${q}`,
+        authMode:token?"optional":"public"});
+      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken)return;
+      const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,"");
+      const more=page.items.map(item=>({...item,kind:"formal",author_id:item.authorId,
+        image:item.coverId&&origin?`${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail`:""}));
+      this.setData({feed:[...this.data.feed,...more],formalNextCursor:page.nextCursor});
+      this.renderFeed();
+    }catch{if(attempt===this.data.feedAttempt)this.setData({error:"更多内容暂时无法加载，请重试。"});}
+    finally{if(attempt===this.data.feedAttempt)this.setData({formalLoadingMore:false});}
   },
   async selectMode(event: WechatMiniprogram.TouchEvent) {
     const mode = String(event.currentTarget.dataset.mode);
@@ -118,7 +152,9 @@ Page({
     else this.renderFeed();
   },
   renderFeed() {
-    const reviewed = (this.data.mode === "following" ? this.data.followingFeed : this.data.feed).map((item: any) => ({ ...item, kind: "ugc", image: "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "人工审核" }));
+    const reviewed = (this.data.mode === "following" ? this.data.followingFeed : this.data.feed).map((item: any) => item.kind === "formal"
+      ? { ...item, avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: `${item.likeCount || 0} 赞` }
+      : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
     const featured = editorialStories.map(item => ({ ...item, author_id: "brand:cisme" }));
     let items = this.data.mode === "featured" ? featured : this.data.mode === "recommend" ? reviewed : reviewed.concat(featured);
     if (this.data.mode === "following") items = items.filter(item => this.data.follows.includes(item.author_id));
@@ -140,14 +176,21 @@ Page({
     if (!this.data.canReview) return;
     const token = getApp<IAppOption>().globalData.sessionToken;
     const attempt = this.data.feedAttempt;
-    this.setData({ reviewQueue: [], publicationQueue: [], profileReviewQueue: [], teamError: "", reviewBusy: true });
+    this.setData({ reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [], teamError: "", reviewBusy: true });
     try {
-      const [reviewQueue, publicationQueue, profiles] = await Promise.all([request<any[]>({ path: "/v1/team/reviews" }), request<any[]>({ path: "/v1/team/publications" }), request<any[]>({ path: "/v1/team/member-profiles" })]);
+      const [reviewQueue, publicationQueue, profiles, formal] = await Promise.all([request<any[]>({ path: "/v1/team/reviews" }), request<any[]>({ path: "/v1/team/publications" }), request<any[]>({ path: "/v1/team/member-profiles" }), request<{items:any[]}>({path:"/v1/management/ugc/review-queue"})]);
       const profileReviewQueue=await Promise.all(profiles.map(async row=>{const {avatar_data_url,...safe}=row;return {...safe,avatar:await localMemberAvatar(avatar_data_url,row.avatar_revision)};}));
       if (attempt !== this.data.feedAttempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      this.setData({ reviewQueue, publicationQueue, profileReviewQueue });
+      this.setData({ reviewQueue, publicationQueue, profileReviewQueue, formalReviewQueue: formal.items });
     } catch (error) { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ teamError: (error as {title?:string}).title || "审核列表未同步，请重试" }); }
     finally { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ reviewBusy: false }); }
+  },
+  openFormalReview(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.navigating || !this.data.canReview) return;
+    const id = String(event.currentTarget.dataset.id || ""); if (!id) return;
+    this.setData({ navigating: true });
+    wx.navigateTo({ url: `/pages/community-review/index?id=${encodeURIComponent(id)}`,
+      fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "审核页暂时无法打开", icon: "none" }); } });
   },
   async reviewMemberProfile(event:WechatMiniprogram.TouchEvent) {
     if(this.data.reviewBusy || !this.data.canReview)return;
@@ -208,13 +251,17 @@ Page({
   },
   async load() {
     const attempt = this.data.feedAttempt + 1;
-    this.setData({ feedAttempt: attempt, loading: true, reviewBusy: false, teamError: "", error: "" });
+    this.setData({ feedAttempt: attempt, loading: true, formalNextCursor:null, formalLoadingMore:false, reviewBusy: false, teamError: "", error: "" });
     const tasksPromise = this.loadTasks();
-    const capabilityPromise = request<{ ugcGoLiveGate?: boolean; communityPreviewEnabled?: boolean }>({ path: "/v1/capabilities", authMode: "public" })
-      .then((health) => ({ ugcFeedEnabled: health.ugcGoLiveGate === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
+    const capabilityPromise = Promise.all([request<{ communityPreviewEnabled?: boolean }>({ path: "/v1/capabilities", authMode: "public" }),
+      request<{ publicEnabled?: boolean }>({ path: "/v1/ugc/status", authMode: "public" })])
+      .then(([health,ugc]) => ({ ugcFeedEnabled: ugc.publicEnabled === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
       .catch(() => ({ ugcFeedEnabled: false, socialPreviewEnabled: false }));
     const feedPromise = request<{items:any[];authors?:Record<string,any>}>({ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), error => ({ error }));
-    this.setData({ canReview: false, follows: [], reviewQueue: [], publicationQueue: [], profileReviewQueue: [] });
+    const formalQuery=this.data.appliedSearch?`&q=${encodeURIComponent(this.data.appliedSearch)}`:"";
+    const formalPromise = request<{items:any[];nextCursor:string|null}>({ path: `/v1/ugc/posts?limit=30${formalQuery}`, authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
+      .then(feed => ({ feed }), error => ({ error }));
+    this.setData({ canReview: false, follows: [], reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [] });
     const capabilities = await capabilityPromise;
     if (this.data.feedAttempt !== attempt) return;
     const availableMode = this.data.mode === "recommend" && !capabilities.ugcFeedEnabled && !capabilities.socialPreviewEnabled
@@ -234,18 +281,22 @@ Page({
       } catch { if (this.data.feedAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ canReview: false, mode: "featured" }); }
     } else this.setData({ mode: "featured" });
     try {
-      const outcome = await feedPromise;
-      if ("error" in outcome) throw outcome.error;
-      const feed = await prepareFeedPage(outcome.feed);
+      const [outcome,formalOutcome] = await Promise.all([feedPromise,formalPromise]);
+      if ("error" in outcome && "error" in formalOutcome) throw outcome.error;
+      const preview = !this.data.appliedSearch && "feed" in outcome ? await prepareFeedPage(outcome.feed) : [];
+      const origin = getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/, "");
+      const formal = "feed" in formalOutcome ? formalOutcome.feed.items.map(item => ({ ...item, kind: "formal", author_id: item.authorId,
+        image: item.coverId && origin ? `${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail` : "" })) : [];
+      const feed = [...formal, ...preview];
       if (this.data.feedAttempt !== attempt) return;
       // Post covers still require their own authorized media path; author
       // identities come only from the server public-profile allowlist.
-      this.setData({ feed, error: "" });
+      this.setData({ feed, formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: "" });
       this.renderFeed();
       if (this.data.mode === "review") await this.loadReview();
       else if (this.data.mode === "following") await this.loadFollowing();
     } catch (error) {
-      if (this.data.feedAttempt === attempt) { this.setData({ feed: [], error: "会员内容暂时无法同步，请重试；精选护理故事仍可浏览。" }); this.renderFeed(); }
+      if (this.data.feedAttempt === attempt) { this.setData({ feed: [], error: "社区内容暂时无法加载，请重试；精选护理故事仍可浏览。" }); this.renderFeed(); }
     } finally {
       if (this.data.feedAttempt === attempt) this.setData({ loading: false });
       await tasksPromise;
@@ -266,7 +317,7 @@ Page({
       const tasks = consumerTaskEntries(taskHistory);
       this.setData({ tasks, tasksError: "" });
     } catch (error) {
-      if (this.data.tasksAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ tasks: [], tasksError: "有效邀请暂时无法同步" });
+      if (this.data.tasksAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ tasks: [], tasksError: "活动暂未加载，请重试" });
     } finally {
       if (this.data.tasksAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ tasksLoading: false });
     }
@@ -277,7 +328,9 @@ Page({
     if (!id) { wx.showToast({ title: "内容编号缺失，请刷新后重试", icon: "none" }); return; }
     this.setData({ navigating: true });
     const tab = this.getTabBar?.(); if (tab) tab.setData({ externalBusy: true });
-    wx.navigateTo({ url: `/pages/post/index?id=${encodeURIComponent(id)}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "护理故事暂时无法打开", icon: "none" }); } });
+    const item = this.data.feedColumns.flat().find((entry: any) => entry.id === id);
+    const route = item?.kind === "formal" ? "/pages/community-post/index" : "/pages/post/index";
+    wx.navigateTo({ url: `${route}?id=${encodeURIComponent(id)}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "护理故事暂时无法打开", icon: "none" }); } });
   },
   openInvite(event: WechatMiniprogram.TouchEvent) {
     if (this.data.tasksLoading || this.data.navigating) return;
