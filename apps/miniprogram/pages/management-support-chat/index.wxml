@@ -10,7 +10,8 @@
     <button wx:if="{{canViewContext}}" class="operator-more {{busy ? 'control--disabled' : ''}}" bindtap="openContext" disabled="{{busy}}" aria-label="查看必要用户信息">···</button>
   </view>
 
-  <scroll-view class="operator-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="false" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
+  <scroll-view class="operator-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="true" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
+    <view class="operator-thread__content">
     <view wx:if="{{loading}}" class="operator-state" aria-live="polite">正在同步会话…</view>
     <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
 
@@ -55,7 +56,8 @@
       <view class="operator-typing__body"><view class="operator-typing__dots"><view class="operator-typing__dot"></view><view class="operator-typing__dot operator-typing__dot--two"></view><view class="operator-typing__dot operator-typing__dot--three"></view></view><text class="operator-typing__copy">{{memberDisplayName}}正在输入…</text></view>
     </view>
     <view wx:if="{{error}}" class="operator-error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">刷新</button></view>
-    <view class="operator-end"></view>
+      <view class="operator-end"></view>
+    </view>
   </scroll-view>
 
   <button wx:if="{{newMessagesBelowCount > 0}}" class="operator-new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
@@ -69,9 +71,11 @@
         <button class="{{!aiProviderAvailable || busy ? 'control--disabled' : ''}}" bindtap="suggest" disabled="{{!aiProviderAvailable || busy}}">{{aiProviderAvailable ? 'AI 建议' : 'AI 建议未接入'}}</button>
         <text>只写入草稿，必须由人工确认发送</text>
       </view>
-      <view class="operator-compose">
-        <textarea class="operator-input" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" maxlength="4000" auto-height confirm-type="send" confirm-hold="true" bindconfirm="send" cursor-spacing="16" placeholder="以人工客服身份回复"/>
-        <button class="operator-send {{!input || busy ? 'control--disabled' : ''}}" bindtap="send" disabled="{{!input || busy}}" loading="{{busy}}">发送</button>
+      <view class="operator-compose {{composerFocused ? 'operator-compose--focused' : ''}}">
+        <textarea class="operator-input {{composerCapped ? 'operator-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="true" hold-keyboard="true" disable-default-padding="true" confirm-type="send" confirm-hold="true" bindconfirm="send" cursor-spacing="16" placeholder="以人工客服身份回复" placeholder-class="operator-input__placeholder"/>
+        <view class="operator-compose__tools">
+          <button class="operator-send {{!composerSendEnabled || busy ? 'control--disabled' : ''}} {{composerSendEnabled && !busy ? 'operator-send--active' : 'operator-send--disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || busy}}" aria-label="{{busy ? '正在发送回复' : '发送回复'}}"><image src="{{composerSendEnabled && !busy ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
+        </view>
       </view>
       <button class="operator-resolve {{busy ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{busy}}">标记已解决</button>
     </block>

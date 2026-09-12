@@ -31,6 +31,10 @@ const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnli
 const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", cancelled: "已取消", expired: "已超时" };
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 function isCancellation(error: unknown): boolean { return /cancel|abort/i.test(String((error as {errMsg?:string})?.errMsg ?? (error as {code?:string})?.code ?? error)); }
+function memberComposerCanSend(input: string, image: SelectedImage | null, order: OrderChoice | null): boolean {
+  if (image && (image.status !== "ready" || !image.mediaId)) return false;
+  return Boolean(input.trim() || image?.mediaId || order);
+}
 
 Page({
   pollTimer: null as ReturnType<typeof setTimeout> | null,
@@ -49,9 +53,9 @@ Page({
     chromeStyle: currentChromeStyle(), conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, presence: emptyPresence, statusLabel: "等待人工客服", statusTone: "waiting", input: "", sendAttempt: null as SendAttempt | null,
     pendingMessage: null as Message | null, loading: true, loadingOlder: false, sending: false, handoffBusy: false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
-    atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 132rpx)",
-    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 154rpx)", composerFocused: false, keyboardHeight: 0,
-    attachmentSheetOpen: false, orderPickerOpen: false, orderPickerLoading: false, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
+    atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
+    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
+    attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
     selectedImage: null as SelectedImage | null, uploadBusy: false
   },
   onLoad() { this.data.pageAlive = true; },
@@ -69,7 +73,8 @@ Page({
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
-        attachmentSheetOpen: false, orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false });
+        attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
+        composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
     if (!requireMemberAccess("/pages/support/index")) { this.data.visible = false; return; }
     void this.load();
@@ -85,7 +90,8 @@ Page({
     this.stopPolling();
     this.clearPresenceTimer();
     this.abortTransientWork();
-    if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, error: interruptedUpload.error, errorAction: "" });
+    this.setData({ composerFocused: false, keyboardHeight: 0 });
+    if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
   onUnload() { void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken; },
@@ -124,12 +130,22 @@ Page({
     if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
     wx.createSelectorQuery().select(".support-composer").boundingClientRect((rect) => {
       if (!this.data.pageAlive || !rect || typeof rect.height !== "number") return;
-      const height = Math.max(66, Math.ceil(rect.height));
+      const height = Math.max(112, Math.ceil(rect.height));
       this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
     }).exec();
   },
-  onComposerLineChange() { wx.nextTick(() => this.measureComposer()); },
-  onKeyboardHeightChange(event: WechatMiniprogram.CustomEvent<{height:number}>) { this.setData({ keyboardHeight: Number(event.detail.height) || 0 }); wx.nextTick(() => this.measureComposer()); },
+  onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
+    const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
+    const composerCapped = lineCount > 6;
+    if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
+    wx.nextTick(() => this.measureComposer());
+  },
+  onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
+    const keyboardHeight = Number(event.detail.height) || 0;
+    if (keyboardHeight === this.data.keyboardHeight) return;
+    this.setData({ keyboardHeight });
+    wx.nextTick(() => this.measureComposer());
+  },
   onComposerFocus() { this.lastActivityAt = Date.now(); this.setData({ composerFocused: true }); },
   onComposerBlur() { this.setData({ composerFocused: false }); void this.publishPresence(true, false, true); },
   activePolling() { return this.data.presence.operatorTyping || Date.now() - this.lastActivityAt < 30_000; },
@@ -244,7 +260,7 @@ Page({
     this.inputRevision += 1;
     this.lastActivityAt = Date.now();
     const input = event.detail.value;
-    this.setData({ input, sendAttempt: null, pendingMessage: this.data.pendingMessage?.deliveryLabel === "发送失败" ? null : this.data.pendingMessage });
+    this.setData({ input, composerSendEnabled: memberComposerCanSend(input, this.data.selectedImage, this.data.selectedOrder), sendAttempt: null, pendingMessage: this.data.pendingMessage?.deliveryLabel === "发送失败" ? null : this.data.pendingMessage });
     void this.publishPresence(true, Boolean(input.trim()), !input.trim());
   },
   async publishPresence(online: boolean, typing: boolean, force = false) {
@@ -273,7 +289,7 @@ Page({
     const body = this.data.input.trim();
     const mediaIds = this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : [];
     const linkedOrderId = this.data.selectedOrder?.id ?? null;
-    if ((!body && !mediaIds.length && !linkedOrderId) || this.data.sending || this.data.uploadBusy) return;
+    if (!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder) || this.data.sending || this.data.uploadBusy) return;
     const signature = this.sendSignature(body, mediaIds, linkedOrderId);
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
@@ -288,7 +304,7 @@ Page({
       const normalized = this.normalize([result.message], this.data.selectedImage);
       if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       const clearDraft = this.inputRevision === draftRevision && this.sendSignature(this.data.input.trim(), mediaIds, linkedOrderId) === signature;
-      this.setData({ ...(clearDraft ? { input: "", selectedImage: null, selectedOrder: null, sendAttempt: null } : {}), pendingMessage: null,
+      this.setData({ ...(clearDraft ? { input: "", selectedImage: null, selectedOrder: null, sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}), pendingMessage: null,
         conversation: result.conversation, ...this.headerPatch(result.conversation, this.data.presence) });
       if (clearDraft) this.inputRevision += 1;
       this.uploadAbort = null;
@@ -300,7 +316,13 @@ Page({
     } finally { if (this.owns(epoch, ownerToken)) this.setData({ sending: false }); }
   },
   retrySend() { void this.send(); },
-  openAttachmentSheet() { if (this.data.sending || this.data.uploadBusy) return; this.setData({ attachmentSheetOpen: true }); },
+  prepareAttachmentSheet(attachmentSheetMode: "image" | "attachment") {
+    if (this.data.sending || this.data.uploadBusy) return;
+    if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
+    this.setData({ attachmentSheetOpen: true, attachmentSheetMode, composerFocused: false });
+  },
+  openImageSheet() { this.prepareAttachmentSheet("image"); },
+  openAttachmentSheet() { this.prepareAttachmentSheet("attachment"); },
   closeAttachmentSheet() { this.setData({ attachmentSheetOpen: false }); },
   stopPropagation() {},
   mimeForPath(path: string): string | null { const lower = path.toLowerCase(); return /\.(jpg|jpeg)$/.test(lower) ? "image/jpeg" : lower.endsWith(".png") ? "image/png" : lower.endsWith(".webp") ? "image/webp" : null; },
@@ -328,7 +350,7 @@ Page({
       if (replacedMediaId) void request({ path: `/v1/me/support/media/${replacedMediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
       this.inputRevision += 1;
       const candidate: SelectedImage = { localPath, size, mimeType, status: "uploading", progress: 0, mediaId: "", error: "" };
-      this.setData({ selectedImage: candidate });
+      this.setData({ selectedImage: candidate, composerSendEnabled: false });
       wx.nextTick(() => this.measureComposer());
       await this.uploadImage(candidate);
     } catch (error) { if (!isCancellation(error)) this.setData({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
@@ -341,7 +363,7 @@ Page({
     const ownerToken = sessionToken();
     const current = () => this.owns(epoch, ownerToken) && attempt === this.uploadAttempt;
     if (selected.mediaId) void request({ path: `/v1/me/support/media/${selected.mediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
-    this.setData({ uploadBusy: true, selectedImage: { ...selected, status: "uploading", progress: 0, mediaId: "", error: "" }, error: "", errorAction: "" });
+    this.setData({ uploadBusy: true, selectedImage: { ...selected, status: "uploading", progress: 0, mediaId: "", error: "" }, composerSendEnabled: false, error: "", errorAction: "" });
     try {
       const authorization = await request<any>({ path: "/v1/me/support/media/authorize", method: "POST", data: { mimeType: selected.mimeType, maxBytes: selected.size }, cacheTags: ["support"] });
       if (!current()) return;
@@ -356,13 +378,13 @@ Page({
       await request({ path: `/v1/me/support/media/${mediaId}/complete`, method: "POST", data: {}, cacheTags: ["support"] });
       if (!current()) return;
       const ready = { ...selected, status: "ready" as const, progress: 100, mediaId, error: "" };
-      this.setData({ selectedImage: ready });
+      this.setData({ selectedImage: ready, composerSendEnabled: memberComposerCanSend(this.data.input, ready, this.data.selectedOrder) });
       this.data.selectedImage = ready;
       if (!this.data.conversation) await this.load();
     } catch (error) {
       if (current() && !isCancellation(error)) {
         const failed = { ...(this.data.selectedImage ?? selected), status: "failed" as const, error: "上传未完成，图片和正文仍保留。" };
-        this.setData({ selectedImage: failed, error: failed.error, errorAction: "" });
+        this.setData({ selectedImage: failed, composerSendEnabled: false, error: failed.error, errorAction: "" });
       }
     } finally {
       if (current()) { this.uploadAbort = null; this.setData({ uploadBusy: false }); wx.nextTick(() => this.measureComposer()); }
@@ -375,7 +397,7 @@ Page({
     this.uploadAbort?.(); this.uploadAbort = null;
     if (mediaId) void request({ path: `/v1/me/support/media/${mediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
     this.inputRevision += 1;
-    this.setData({ selectedImage: null, uploadBusy: false });
+    this.setData({ selectedImage: null, uploadBusy: false, composerSendEnabled: memberComposerCanSend(this.data.input, null, this.data.selectedOrder) });
     wx.nextTick(() => this.measureComposer());
   },
   async openOrderPicker() {
@@ -395,10 +417,10 @@ Page({
     const selected = this.data.orderChoices.find((order) => order.id === String(event.currentTarget.dataset.id ?? ""));
     if (!selected) return;
     this.inputRevision += 1;
-    this.setData({ selectedOrder: selected, orderPickerOpen: false });
+    this.setData({ selectedOrder: selected, orderPickerOpen: false, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, selected) });
     wx.nextTick(() => this.measureComposer());
   },
-  removeOrder() { this.inputRevision += 1; this.setData({ selectedOrder: null }); wx.nextTick(() => this.measureComposer()); },
+  removeOrder() { this.inputRevision += 1; this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) }); wx.nextTick(() => this.measureComposer()); },
   openOrder(event: WechatMiniprogram.TouchEvent) { const id = String(event.currentTarget.dataset.id ?? ""); if (id) wx.navigateTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(id)}` }); },
   downloadMedia(messages: readonly RawMessage[]) {
     const epoch = this.lifecycleEpoch;

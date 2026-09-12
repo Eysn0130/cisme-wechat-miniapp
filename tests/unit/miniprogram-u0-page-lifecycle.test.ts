@@ -351,6 +351,77 @@ describe("U0 native page lifecycle regressions", () => {
     expect(page.data.attachmentSheetOpen).toBe(true);
   });
 
+  it("keeps the member composer at three-line minimum and caps growth after six lines", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = mountedPage(capturedPage!, { composerLineCount: 1, composerCapped: false });
+
+    page.onComposerLineChange({ detail: { lineCount: 3 } });
+    expect(page.data).toMatchObject({ composerLineCount: 3, composerCapped: false });
+
+    page.onComposerLineChange({ detail: { lineCount: 6 } });
+    expect(page.data).toMatchObject({ composerLineCount: 6, composerCapped: false });
+
+    page.onComposerLineChange({ detail: { lineCount: 7 } });
+    expect(page.data).toMatchObject({ composerLineCount: 7, composerCapped: true });
+
+    page.onComposerLineChange({ detail: { lineCount: 2 } });
+    expect(page.data).toMatchObject({ composerLineCount: 2, composerCapped: false });
+  });
+
+  it("activates member send only for trimmed, fully ready content", async () => {
+    requestMock.mockResolvedValue({ accepted: true });
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = mountedPage(capturedPage!, { input: "", selectedImage: null, selectedOrder: null, composerSendEnabled: false });
+
+    page.updateInput({ detail: { value: "   " } });
+    expect(page.data.composerSendEnabled).toBe(false);
+
+    page.updateInput({ detail: { value: "请帮我看看" } });
+    expect(page.data.composerSendEnabled).toBe(true);
+
+    page.setData({ selectedImage: { localPath: "/tmp/image.jpg", size: 12, mimeType: "image/jpeg", status: "failed", progress: 0, mediaId: "media", error: "失败" } });
+    page.updateInput({ detail: { value: "正文仍保留" } });
+    expect(page.data.composerSendEnabled).toBe(false);
+
+    page.removeImage();
+    expect(page.data.composerSendEnabled).toBe(true);
+  });
+
+  it("does not let the keyboard confirm bypass a failed-image draft", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = mountedPage(capturedPage!, {
+      input: "保留正文", sending: false, uploadBusy: false,
+      selectedImage: { localPath: "/tmp/image.jpg", size: 12, mimeType: "image/jpeg", status: "failed", progress: 0, mediaId: "media-1", error: "上传失败" },
+      selectedOrder: null
+    });
+
+    await page.send();
+
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(page.data.input).toBe("保留正文");
+  });
+
+  it("returns the member composer to its default height after server-accepted send", async () => {
+    requestMock.mockResolvedValueOnce({
+      message: { id: "message-1", sequence: 1, senderType: "user", body: "发送后复位", contentType: "text", createdAt: "2026-09-12T03:00:00.000Z", attachments: [], orderCard: null, deliveryState: "server_accepted" },
+      conversation: { id: "conversation-1", status: "human_active", version: 3 }
+    });
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = mountedPage(capturedPage!, {
+      pageAlive: true, visible: true, input: "发送后复位", composerSendEnabled: true, composerCapped: true, composerLineCount: 8,
+      conversation: { id: "conversation-1", status: "human_active", version: 2 }, presence: {}, messages: [], maxSeenSequence: 0,
+      selectedImage: null, selectedOrder: null, sending: false, uploadBusy: false
+    }, { lifecycleEpoch: 1, inputRevision: 0, lastPresenceSentAt: 0 });
+    page.publishPresence = vi.fn();
+    page.append = vi.fn();
+    page.markRead = vi.fn();
+    page.startPolling = vi.fn();
+
+    await page.send();
+
+    expect(page.data).toMatchObject({ input: "", selectedImage: null, selectedOrder: null, composerSendEnabled: false, composerCapped: false, composerLineCount: 1, sending: false });
+  });
+
   it("keeps the member text and image preview when a secure upload fails", async () => {
     requestMock.mockResolvedValueOnce({ mediaId: "00000000-0000-4000-8000-000000000001", url: "http://127.0.0.1/upload", method: "POST", fields: {} });
     uploadAuthorizedMock.mockRejectedValueOnce({ code: "NETWORK_ERROR" });
@@ -412,6 +483,20 @@ describe("U0 native page lifecycle regressions", () => {
     }));
     expect(page.data.visible).toBe(false);
     expect(page.pollTimer).toBeNull();
+  });
+
+  it("caps and resets the operator text-only composer with the same native rules", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
+    const page = mountedPage(capturedPage!, { input: "", composerSendEnabled: false, composerLineCount: 1, composerCapped: false });
+
+    page.updateInput({ detail: { value: "  " } });
+    expect(page.data.composerSendEnabled).toBe(false);
+    page.updateInput({ detail: { value: "人工回复" } });
+    expect(page.data.composerSendEnabled).toBe(true);
+    page.onComposerLineChange({ detail: { lineCount: 7 } });
+    expect(page.data).toMatchObject({ composerLineCount: 7, composerCapped: true });
+    page.onComposerLineChange({ detail: { lineCount: 1 } });
+    expect(page.data).toMatchObject({ composerLineCount: 1, composerCapped: false });
   });
 
   it("publishes an operator stop before scrubbing a conversation lost to another assignee", async () => {

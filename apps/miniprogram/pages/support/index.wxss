@@ -59,11 +59,14 @@
 .support-thread {
   position: fixed;
   top: var(--cisme-topbar-height, calc(env(safe-area-inset-top) + 44px));
-  right: 0;
+  right: 3rpx;
   bottom: calc(env(safe-area-inset-bottom) + 132rpx);
   left: 0;
-  width: 100%;
-  padding: 24rpx 26rpx 10rpx;
+  width: auto;
+}
+
+.support-thread__content {
+  padding: 24rpx 23rpx 10rpx 26rpx;
 }
 
 .support-thread__end {
@@ -497,51 +500,96 @@
   background: rgba(255, 252, 255, .985);
 }
 
-.support-compose-row {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 12rpx;
+.support-composer__surface {
+  position: relative;
+  overflow: hidden;
+  border: 1rpx solid rgba(78, 47, 91, .13);
+  border-radius: 30rpx;
+  background: #fff;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.support-composer__surface--focused {
+  border-color: rgba(86, 48, 111, .44);
+  box-shadow: 0 0 0 4rpx rgba(86, 48, 111, .075);
 }
 
 .support-input {
+  display: block;
   width: 100%;
-  min-height: 44px;
-  max-height: 220rpx;
-  padding: 18rpx 21rpx;
-  border: 1rpx solid rgba(78, 47, 91, .08);
-  border-radius: 24rpx;
+  min-height: 224rpx;
+  max-height: 344rpx;
+  padding: 22rpx 22rpx 104rpx;
+  overflow-y: auto;
+  border: 0;
   color: #352a3a;
-  background: #fff;
+  background: transparent;
   font-size: 28rpx;
-  line-height: 1.5;
+  line-height: 40rpx;
 }
 
-.support-composer--focused .support-input {
-  border-color: rgba(86, 48, 111, .38);
-  box-shadow: 0 0 0 4rpx rgba(86, 48, 111, .07);
+.support-input--capped {
+  height: 344rpx;
 }
 
-.support-plus,
-.support-send {
+.support-input__placeholder {
+  color: #918596;
+  font-size: 28rpx;
+  font-weight: 400;
+}
+
+.support-composer__tools {
+  position: absolute;
+  right: 10rpx;
+  bottom: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.support-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
-  border-radius: 22px;
+  border-radius: 50%;
+  background: transparent;
+  transition: opacity 120ms ease, transform 120ms ease, background-color 160ms ease;
 }
 
-.support-plus {
-  color: #56306f;
-  background: #eee4f2;
-  font-size: 35rpx;
-  font-weight: 300;
+.support-tool image {
+  width: 22px;
+  height: 22px;
 }
 
-.support-send {
-  min-width: 100rpx;
-  padding: 0 20rpx;
-  color: #fff;
+.support-tool:active {
+  background: #f1e9f3;
+  transform: scale(.96);
+}
+
+.support-tool--disabled {
+  opacity: .38;
+}
+
+.support-tool--send {
+  margin-left: 4rpx;
+}
+
+.support-tool--send-active {
   background: #56306f;
-  font-size: 25rpx;
+  box-shadow: 0 6rpx 16rpx rgba(70, 38, 91, .18);
+}
+
+.support-tool--send-active:active {
+  background: #432458;
+}
+
+.support-tool--send-disabled {
+  background: #eee8f0;
 }
 
 .control--disabled {
@@ -553,7 +601,7 @@
   align-items: center;
   justify-content: flex-start;
   min-height: 44px;
-  margin: 3rpx 0 -8rpx 54px;
+  margin: 3rpx 8rpx -8rpx;
   padding: 0;
   color: #72557f;
   background: transparent;
@@ -563,7 +611,7 @@
 .support-draft-attachments {
   display: grid;
   gap: 10rpx;
-  margin-bottom: 12rpx;
+  margin: 12rpx 12rpx 0;
 }
 
 .support-draft-media,
@@ -575,7 +623,7 @@
   padding: 11rpx 12rpx;
   border: 1rpx solid rgba(78, 47, 91, .09);
   border-radius: 22rpx;
-  background: #fffafd;
+  background: #fbf7fc;
 }
 
 .support-draft-order {
@@ -683,6 +731,10 @@
   margin-top: 26rpx;
 }
 
+.support-sheet__options--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .support-sheet__options button {
   display: flex;
   align-items: center;
@@ -745,12 +797,12 @@
   flex-direction: column;
 }
 
-.support-order-choice small {
+.support-order-choice__tail {
   color: #75697a;
   font-size: 20rpx;
 }
 
-.support-order-choice strong {
+.support-order-choice__name {
   margin-top: 4rpx;
   overflow: hidden;
   font-size: 24rpx;
@@ -759,7 +811,7 @@
   white-space: nowrap;
 }
 
-.support-order-choice text {
+.support-order-choice__status {
   margin-top: 4rpx;
   color: #75697a;
   font-size: 20rpx;

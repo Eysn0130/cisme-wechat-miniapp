@@ -74,8 +74,12 @@ Page({
     newMessagesBelow: false,
     newMessagesBelowCount: 0,
     composerFocused: false,
-    threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 150rpx)",
-    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 172rpx)"
+    keyboardHeight: 0,
+    composerCapped: false,
+    composerLineCount: 1,
+    composerSendEnabled: false,
+    threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
+    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)"
   },
 
   onLoad(query: Record<string, string | undefined>) {
@@ -113,7 +117,7 @@ Page({
     const canViewContext = hasCapability(authority, "member.support_view");
     if (!canReply) {
       this.inputRevision += 1;
-      this.setData({ input: "", sendAttempt: null, pendingMessage: null });
+      this.setData({ input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
     this.setData({ canAssign, canReply, canViewContext, ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}) });
     await Promise.all([this.load(), this.loadAiStatus()]);
@@ -127,6 +131,7 @@ Page({
     this.stopPolling();
     this.clearPresenceTimer();
     this.abortDownloads();
+    this.setData({ composerFocused: false, keyboardHeight: 0 });
   },
   onUnload() {
     void this.publishPresence(false, false, true);
@@ -174,7 +179,12 @@ Page({
       atBottom: true,
       newMessagesBelow: false,
       newMessagesBelowCount: 0,
-      busy: false
+      busy: false,
+      composerFocused: false,
+      keyboardHeight: 0,
+      composerCapped: false,
+      composerLineCount: 1,
+      composerSendEnabled: false
     });
   },
   threadState(): SupportThreadState<Message> {
@@ -213,11 +223,22 @@ Page({
     if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
     wx.createSelectorQuery().select(".operator-actions").boundingClientRect((rect) => {
       if (!this.data.pageAlive || !rect || typeof rect.height !== "number") return;
-      const height = Math.max(66, Math.ceil(rect.height));
+      const height = Math.max(112, Math.ceil(rect.height));
       this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
     }).exec();
   },
-  onComposerLineChange() { wx.nextTick(() => this.measureActions()); },
+  onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
+    const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
+    const composerCapped = lineCount > 6;
+    if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
+    wx.nextTick(() => this.measureActions());
+  },
+  onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
+    const keyboardHeight = Number(event.detail.height) || 0;
+    if (keyboardHeight === this.data.keyboardHeight) return;
+    this.setData({ keyboardHeight });
+    wx.nextTick(() => this.measureActions());
+  },
   onComposerFocus() {
     this.lastActivityAt = Date.now();
     this.setData({ composerFocused: true });
@@ -333,7 +354,7 @@ Page({
       this.applyThreadState(state, {
         conversation,
         assignedToMe,
-        ...(lostAssignment ? { input: "", sendAttempt: null, pendingMessage: null } : {}),
+        ...(lostAssignment ? { input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
         ...this.headerPatch(conversation, presence, assignedToMe),
         anchor: freshCount && shouldFollow && newest ? `operator-${newest.sequence}` : this.data.anchor,
         newMessagesBelowCount: shouldFollow ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
@@ -447,6 +468,7 @@ Page({
     const input = event.detail.value;
     this.setData({
       input,
+      composerSendEnabled: Boolean(input.trim()),
       sendAttempt: this.data.sendAttempt?.body === input.trim() ? this.data.sendAttempt : null,
       pendingMessage: this.data.pendingMessage?.deliveryLabel === "发送失败" ? null : this.data.pendingMessage
     });
@@ -462,7 +484,8 @@ Page({
       const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: {}, cacheTags: ["support"] });
       if (this.owns(epoch, ownerToken) && this.inputRevision === draftRevision) {
         this.inputRevision += 1;
-        this.setData({ input: String(draft.text || ""), sendAttempt: null });
+        const input = String(draft.text || "");
+        this.setData({ input, composerSendEnabled: Boolean(input.trim()), sendAttempt: null });
       }
     } catch {
       if (this.owns(epoch, ownerToken)) this.setData({ error: "AI 建议回复不可用，请继续人工处理。草稿不会自动发送。" });
@@ -502,7 +525,7 @@ Page({
       if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       const clearDraft = this.inputRevision === draftRevision && this.data.input.trim() === body;
       this.setData({
-        ...(clearDraft ? { input: "", sendAttempt: null } : {}),
+        ...(clearDraft ? { input: "", sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
         pendingMessage: null,
         conversation: result.conversation,
         ...this.headerPatch(result.conversation, this.data.presence, true)
@@ -529,7 +552,7 @@ Page({
       if (!this.owns(epoch, ownerToken)) return;
       this.clearPresenceTimer();
       this.inputRevision += 1;
-      this.setData({ conversation, assignedToMe: false, input: "", sendAttempt: null, pendingMessage: null, ...this.headerPatch(conversation, emptyPresence, false) });
+      this.setData({ conversation, assignedToMe: false, input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false, ...this.headerPatch(conversation, emptyPresence, false) });
     } catch {
       if (this.owns(epoch, ownerToken)) this.setData({ error: "状态已变化，请刷新后再确认。" });
     } finally {

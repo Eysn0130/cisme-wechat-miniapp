@@ -212,7 +212,7 @@ describe("native mini program boundary", () => {
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
       submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
-      support: ["back", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],
+      support: ["back", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],
       task: ["back", "continueSubmission", "load", "back", "goCommunity", "claim", "@disabled", "continueSubmission"]
     };
 
@@ -237,6 +237,31 @@ describe("native mini program boundary", () => {
         expect(logic, `${route}.${handler}`).toMatch(new RegExp(`(?:async\\s+)?${handler}\\s*\\(`));
       }
     }
+  });
+
+  it("keeps both chat composers native, height-bounded, and honest about attachment capability", async () => {
+    const memberMarkup = await readFile(resolve("apps/miniprogram/pages/support/index.wxml"), "utf8");
+    const memberStyles = await readFile(resolve("apps/miniprogram/pages/support/index.wxss"), "utf8");
+    const operatorMarkup = await readFile(resolve("apps/miniprogram/pages/management-support-chat/index.wxml"), "utf8");
+    const operatorStyles = await readFile(resolve("apps/miniprogram/pages/management-support-chat/index.wxss"), "utf8");
+
+    expect(memberMarkup).not.toContain("support-plus");
+    expect(memberMarkup).not.toContain(">＋<");
+    expect(memberMarkup).toContain('bindtap="openImageSheet"');
+    expect(memberMarkup).toContain('bindtap="openAttachmentSheet"');
+    expect(memberMarkup).toContain('/assets/icons/composer-image-plum.svg');
+    expect(memberMarkup).toContain('/assets/icons/composer-paperclip-plum.svg');
+    expect(memberMarkup).toContain('/assets/icons/composer-send-white.svg');
+    expect(memberMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="true"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
+    expect(memberMarkup).toContain('bindkeyboardheightchange="onKeyboardHeightChange"');
+    expect(memberStyles).toMatch(/\.support-input\s*\{[^}]*min-height:\s*224rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*22rpx 22rpx 104rpx;/s);
+    expect(memberStyles).toMatch(/\.support-composer__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
+
+    expect(operatorMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="true"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
+    expect(operatorMarkup).not.toContain('bindtap="openImageSheet"');
+    expect(operatorMarkup).not.toContain('bindtap="openAttachmentSheet"');
+    expect(operatorStyles).toMatch(/\.operator-input\s*\{[^}]*min-height:\s*224rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*22rpx 22rpx 104rpx;/s);
+    expect(operatorStyles).toMatch(/\.operator-compose__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
   });
 
   it("pins the Web-truth button baselines and fixed action geometry", async () => {
