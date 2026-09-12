@@ -70,6 +70,9 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.authority_grant') name")).rows[0].name).toBe("authority_grant");
     expect((await pool.query("SELECT to_regclass('public.support_conversation') name")).rows[0].name).toBe("support_conversation");
     expect((await pool.query("SELECT to_regclass('public.support_message') name")).rows[0].name).toBe("support_message");
+    expect((await pool.query("SELECT to_regclass('public.support_presence') name")).rows[0].name).toBe("support_presence");
+    expect((await pool.query("SELECT to_regclass('public.support_operator_profile') name")).rows[0].name).toBe("support_operator_profile");
+    expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='support_message' AND column_name='content_type'")).rowCount).toBe(1);
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='wechat_identity' AND column_name='provider'")).rowCount).toBe(1);
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='authority_grant' AND column_name='environment'")).rowCount).toBe(1);
     expect((await pool.query("SELECT indexdef FROM pg_indexes WHERE indexname='authority_grant_one_active_capability'")).rows[0].indexdef).toContain("environment");
@@ -89,6 +92,16 @@ describe("empty and N-1 database lifecycle", () => {
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 1);
+    expect((await pool.query("SELECT to_regclass('public.support_presence') name")).rows[0].name).toBeNull();
+    expect((await pool.query("SELECT to_regclass('public.support_operator_profile') name")).rows[0].name).toBeNull();
+    expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='support_message' AND column_name='content_type'")).rowCount).toBe(0);
+    expect((await pool.query("SELECT to_regclass('public.commerce_order') name")).rows[0].name).toBe("commerce_order");
+    expect((await pool.query("SELECT indexdef FROM pg_indexes WHERE indexname='media_hash_unique'")).rows[0].indexdef).toContain("is_current");
+    await closePool(pool);
+
+    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    pool = migrationPool();
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 2);
     expect((await pool.query("SELECT to_regclass('public.commerce_order') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(0);
     expect((await pool.query("SELECT to_regclass('public.catalog_product') name")).rows[0].name).toBe("catalog_product");
@@ -96,7 +109,7 @@ describe("empty and N-1 database lifecycle", () => {
 
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 2);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 3);
     expect((await pool.query("SELECT to_regclass('public.catalog_product') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='wechat_identity' AND column_name='provider'")).rowCount).toBe(1);
     expect((await pool.query("SELECT to_regclass('public.support_conversation') name")).rows[0].name).toBe("support_conversation");
@@ -104,7 +117,7 @@ describe("empty and N-1 database lifecycle", () => {
 
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 3);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 4);
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='wechat_identity' AND column_name='provider'")).rowCount).toBe(0);
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='authority_grant' AND column_name='environment'")).rowCount).toBe(0);
     expect((await pool.query("SELECT to_regclass('public.support_conversation') name")).rows[0].name).toBe("support_conversation");
@@ -113,7 +126,7 @@ describe("empty and N-1 database lifecycle", () => {
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
     pool = migrationPool();
     expect((await pool.query("SELECT to_regclass('public.member') name")).rows[0].name).toBe("member");
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 4);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 5);
     expect((await pool.query("SELECT count(*)::int count FROM emergency_switch")).rows[0].count).toBe(8);
     expect((await pool.query("SELECT indexdef FROM pg_indexes WHERE indexname='media_hash_unique'")).rows[0].indexdef).toContain("is_current");
     expect((await pool.query("SELECT to_regclass('public.share_attribution') name")).rows[0].name).toBe("share_attribution");
@@ -144,14 +157,14 @@ describe("empty and N-1 database lifecycle", () => {
 
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 5);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 6);
     expect((await pool.query("SELECT to_regclass('public.authority_grant') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT to_regclass('public.ugc_post') name")).rows[0].name).toBe("ugc_post");
     await closePool(pool);
 
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 6);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 7);
     expect((await pool.query("SELECT to_regclass('public.ugc_post') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT 1 FROM emergency_switch WHERE key='community'")).rowCount).toBe(0);
     await pool.query(`INSERT INTO data_retention_policy(code,data_class,trigger_event,duration_days,disposition,legal_basis)
@@ -159,13 +172,13 @@ describe("empty and N-1 database lifecycle", () => {
     await expect(exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env })).rejects.toMatchObject({
       stderr: expect.stringContaining("PRIVACY_LIFECYCLE_ROLLBACK_REQUIRES_DATA_PRESERVATION")
     });
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 6);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 7);
     await pool.query("DELETE FROM data_retention_policy WHERE code='rollback_guard'");
     await closePool(pool);
 
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 7);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - 8);
     expect((await pool.query("SELECT to_regclass('public.data_retention_policy') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='privacy_request' AND column_name='version'")).rowCount).toBe(0);
     expect((await pool.query("SELECT to_regclass('public.member') name")).rows[0].name).toBe("member");

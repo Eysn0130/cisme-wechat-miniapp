@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "u0-u1-949fcf9d-20260912T0220Z",
+  "capturedAt": "2026-09-12T02:20:00+08:00",
+  "packageSourceSha256": "949fcf9da6d4777d17eab31ba42b46394d9268fed3c30bbab09fc5533759ad99",
+  "gitBaseline": "8e843a6b0a28628544202889217deda255e86c81",
+  "runtime": {
+    "surface": "native WeChat DevTools simulator",
+    "viewport": "484x1048",
+    "wechatide": "0.3.9",
+    "baseLibrary": "3.15.2",
+    "api": "loopback-only isolated acceptance API",
+    "database": "disposable cisme_test at schema 34",
+    "identity": "synthetic local fixture authenticated through the visible Account consent/login UI",
+    "tokenInjection": false,
+    "productionData": false
+  },
+  "summary": {
+    "sequences": 6,
+    "keyframes": 25,
+    "videos": 0,
+    "iosSessions": 0,
+    "androidSessions": 0,
+    "result": "LOCAL_REPRESENTATIVE_PASS_RELEASE_BLOCKED"
+  },
+  "sequences": [
+    {
+      "id": "01-message-retry",
+      "route": "pages/support/index",
+      "role": "authenticated synthetic member",
+      "purpose": "A failed send retains exact user text and a retry produces one authoritative server message.",
+      "steps": [
+        "Enter the message through the native textarea.",
+        "Redirect the local API origin to the unused loopback port 9 and submit.",
+        "Verify the draft and visible failure remain.",
+        "Restore the loopback acceptance API and trigger retry.",
+        "Verify the draft/error clear only after the server acknowledgement."
+      ],
+      "injectedCondition": "Loopback port 9 network fault only; labelled synthetic and restored before retry.",
+      "assertions": {
+        "draftRetainedOnFailure": true,
+        "errorVisibleOnFailure": true,
+        "draftClearedAfterAck": true,
+        "uiBodyCount": 1,
+        "databaseBodyCount": 1,
+        "databaseDistinctClientKeyCount": 1
+      },
+      "frames": [
+        "keyframes/01-message-retry/01-ready-to-send.png",
+        "keyframes/01-message-retry/02-failed-draft-retained.png",
+        "keyframes/01-message-retry/03-retry-server-ack.png"
+      ],
+      "result": "PASS_LOCAL_SIMULATOR"
+    },
+    {
+      "id": "02-reading-history",
+      "route": "pages/support/index",
+      "role": "authenticated synthetic member plus synthetic authorized operator",
+      "purpose": "Polling must not pull a member away from history; the new-message notice survives later empty polls.",
+      "steps": [
+        "Load 18 real acceptance-API history messages and start at the latest message.",
+        "Scroll the native thread upward so atBottom is false.",
+        "Send an operator reply through the real local API.",
+        "Wait for the incremental poll and capture the new-message notice.",
+        "Wait through another empty poll and verify the notice persists.",
+        "Tap the notice and verify the thread reaches the latest message."
+      ],
+      "injectedCondition": null,
+      "assertions": {
+        "atBottomWhileReadingHistory": false,
+        "noticeAfterNewMessage": true,
+        "noticeAfterEmptyPoll": true,
+        "noticeAfterTap": false,
+        "atBottomAfterTap": true,
+        "latestMessageIsOperatorReply": true
+      },
+      "frames": [
+        "keyframes/02-reading-history/01-at-latest.png",
+        "keyframes/02-reading-history/02-user-reading-history.png",
+        "keyframes/02-reading-history/03-new-message-notice.png",
+        "keyframes/02-reading-history/04-notice-survives-empty-poll.png",
+        "keyframes/02-reading-history/05-user-opens-new-message.png"
+      ],
+      "result": "PASS_LOCAL_SIMULATOR"
+    },
+    {
+      "id": "03-checkout-return-expiry",
+      "route": "pages/checkout/index -> pages/settings/index -> pages/checkout/index",
+      "role": "authenticated synthetic member",
+      "purpose": "A valid quote survives ordinary navigation, becomes recoverable after expiry, and can be requoted without losing the selected address.",
+      "steps": [
+        "Create a quote through the real local API.",
+        "Navigate to address management and return.",
+        "Verify quote, countdown and selected address are retained.",
+        "Advance only the fixture clock beyond quote expiry.",
+        "Verify the native action becomes 重新确认价格 rather than a disabled dead end.",
+        "Request a new server quote and verify the same address remains selected."
+      ],
+      "injectedCondition": "Synthetic clock advance only; quote creation and requote are real local API operations.",
+      "assertions": {
+        "quoteRetainedAfterReturn": true,
+        "selectedAddressRetainedAfterReturn": true,
+        "expiredActionRecoverable": true,
+        "requoteSucceeded": true,
+        "addressCountAfterRequote": 1,
+        "selectedAddressMatchesQuoteAddress": true,
+        "engineeringPricingVersionHiddenFromBuyer": true
+      },
+      "frames": [
+        "keyframes/03-checkout-return-expiry/01-ready-for-quote.png",
+        "keyframes/03-checkout-return-expiry/02-server-quote-active.png",
+        "keyframes/03-checkout-return-expiry/03-address-page.png",
+        "keyframes/03-checkout-return-expiry/04-returned-quote-retained.png",
+        "keyframes/03-checkout-return-expiry/05-clock-advanced-expired-recoverable.png",
+        "keyframes/03-checkout-return-expiry/06-server-requoted.png"
+      ],
+      "result": "PASS_LOCAL_SIMULATOR"
+    },
+    {
+      "id": "04-product-draft-return",
+      "route": "pages/management-product/index",
+      "role": "synthetic capability-authorized product operator",
+      "purpose": "Background return and a remote revision cannot silently overwrite unsaved product edits.",
+      "steps": [
+        "Enter a local product-name edit through the native input.",
+        "Background the editor with dirty=true.",
+        "Update the server product revision through the real local API.",
+        "Return and verify conflict=true, save disabled and the local draft unchanged.",
+        "Choose the keep-local resolution and verify the draft is rebased onto the latest server revision."
+      ],
+      "injectedCondition": null,
+      "assertions": {
+        "draftRetainedAfterBackground": true,
+        "remoteConflictVisible": true,
+        "saveBlockedUntilResolution": true,
+        "keepLocalPreservesDraft": true,
+        "saveEnabledAfterRebase": true
+      },
+      "frames": [
+        "keyframes/04-product-draft-return/01-server-version.png",
+        "keyframes/04-product-draft-return/02-local-draft.png",
+        "keyframes/04-product-draft-return/03-editor-backgrounded.png",
+        "keyframes/04-product-draft-return/04-conflict-draft-preserved.png",
+        "keyframes/04-product-draft-return/05-local-draft-rebased.png"
+      ],
+      "result": "PASS_LOCAL_SIMULATOR"
+    },
+    {
+      "id": "05-keyboard-multiline",
+      "route": "pages/support/index",
+      "role": "authenticated synthetic member",
+      "purpose": "Composer height, thread inset and new-message control track multiline input without overlap.",
+      "steps": [
+        "Capture the resting one-line composer.",
+        "Enter three lines through native input and dispatch the line-change measurement.",
+        "Measure the composer, scroll thread and new-message inset."
+      ],
+      "injectedCondition": null,
+      "assertions": {
+        "inputDataMatchesThreeLines": true,
+        "composerRectPx": "390x144",
+        "threadRectPx": "390x609",
+        "threadBottomInsetPx": 144,
+        "newMessageBottomInsetPx": 156,
+        "physicalKeyboardVerified": false
+      },
+      "frames": [
+        "keyframes/05-keyboard-multiline/01-single-line-resting.png",
+        "keyframes/05-keyboard-multiline/02-three-line-expanded.png"
+      ],
+      "result": "PASS_GEOMETRY_LOCAL_SIMULATOR_DEVICE_KEYBOARD_UNVERIFIED"
+    },
+    {
+      "id": "06-permission-revocation",
+      "route": "pages/management-product/index -> pages/profile/index",
+      "role": "synthetic product operator whose three product capabilities are revoked",
+      "purpose": "A hidden editor must fail closed and scrub its private draft after capability loss.",
+      "steps": [
+        "Create a dirty product draft through the native input.",
+        "Hide the editor.",
+        "Revoke product, qualification and inventory capabilities in the disposable local database.",
+        "Return and capture the permission-loss transition.",
+        "Verify redirect to profile and absence of product or draft data."
+      ],
+      "injectedCondition": "Three capability rows were revoked in the disposable local database; this is an authoritative local permission change, not page setData state fabrication.",
+      "assertions": {
+        "capabilitiesRevoked": 3,
+        "editorRedirected": true,
+        "finalRoute": "pages/profile/index",
+        "privateDraftAbsent": true,
+        "productDataAbsent": true
+      },
+      "frames": [
+        "keyframes/06-permission-revocation/01-authorized-dirty-draft.png",
+        "keyframes/06-permission-revocation/02-editor-hidden.png",
+        "keyframes/06-permission-revocation/03-permission-loss-redirect.png",
+        "keyframes/06-permission-revocation/04-private-draft-scrubbed-profile.png"
+      ],
+      "result": "PASS_LOCAL_SIMULATOR"
+    }
+  ],
+  "openBoundaries": [
+    "No video recording was produced by the available DevTools bridge.",
+    "No physical iOS or Android session was run.",
+    "The simulator does not prove the physical keyboard, platform font scaling, safe-area variants, weak 4G behavior or device frame time.",
+    "The loopback acceptance API and disposable database do not prove staging, public HTTPS or production behavior."
+  ]
+}

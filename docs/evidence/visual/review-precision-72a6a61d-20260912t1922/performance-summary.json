@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "precision-72a6a61d-20260912t1922",
+  "sourceRevision": "local-worktree:2d1104d0f88c+72a6a61d3ad3",
+  "targets": {
+    "coreContentP95Ms": 2500,
+    "hotApiP95Ms": 400,
+    "hotApiP99Ms": 800,
+    "poolWaitP95Ms": 50,
+    "clickFeedbackTargetMs": 100
+  },
+  "inheritedLocalR1R2Evidence": {
+    "supportFirstMessageP95Ms": 11.76,
+    "supportPollP95Ms": 3.16,
+    "supportSqlP95Ms": 1.24,
+    "scope": "older local parent candidate only"
+  },
+  "currentR4B": {
+    "integrationBehavior": "PASS",
+    "latencyProfile": "UNVERIFIED",
+    "remoteStaging": "BLOCKED",
+    "deviceE2E": "BLOCKED"
+  },
+  "methodologyWarning": "Local HTTP or integration-test latency is not a device or public-network result. No current-source device metric is claimed."
+}

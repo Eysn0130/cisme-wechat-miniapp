@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "4e551cc6c41528a052af595e4ae48d569b9b17345a30db5a40bf2f1aec69175b",
+  "capturedAt": "2026-09-12T09:43:56.484517+00:00",
+  "environment": "WeChat DevTools simulator / local synthetic API",
+  "actions": [
+    "会员客服通过原生 textarea 输入长消息并发送，input 清空且 sending=false",
+    "打开客服工作台，长预览在单行内省略且未撑高卡片",
+    "点击会话卡，原生导航进入人工客服详情，消息全文保留",
+    "商品详情点击「前往核对订单」，原生导航进入 pages/checkout/index"
+  ],
+  "evidence": [
+    {
+      "path": "screenshots/queue-long-preview-interaction.png",
+      "sha256": "8dbba56c458d58f72bfaffd80fa1103bb93b8897f1cc956236c58cb4ac6fad0d",
+      "bytes": 45939
+    },
+    {
+      "path": "screenshots/queue-open-full-message-interaction.png",
+      "sha256": "d99a0c8f1db0825d204024bea345671b98f7e7bc3ad23db8b069facd3cfbbe7b",
+      "bytes": 160236
+    },
+    {
+      "path": "screenshots/product-to-checkout-interaction.png",
+      "sha256": "da77240902a82b7af3a171666bb04b26984248c78076c9e06a848ca916257275",
+      "bytes": 116822
+    },
+    {
+      "path": "contact-sheets/before-after-key-routes.png",
+      "sha256": "8fbfe56d6065c1e075a4d9786fa627a260cf31f86aa8febb6a8add263e0285b3",
+      "bytes": 2675361
+    },
+    {
+      "path": "composer-current/contact-sheet.png",
+      "sha256": "da2a2f40abe3961fd68a82ecdf0e44452e1d64733e4ab22fb277e36d3bc1f770",
+      "bytes": 1176007
+    }
+  ],
+  "limitations": [
+    "静态帧不证明按压动效全过程",
+    "输入事件来自开发者工具自动化，未验证实体键盘",
+    "本地合成数据不代表生产网络"
+  ]
+}

@@ -22,6 +22,7 @@ const storage: ObjectStorage = {
   async ensureReady() {},
   async authorize() { throw new Error("NOT_USED"); },
   async verify() { throw new Error("NOT_USED"); },
+  async read() { throw new Error("NOT_USED"); },
   async delete() { if (deleteShouldFail) throw new Error("DELETE_TEMPORARILY_UNAVAILABLE"); }
 };
 let app: FastifyInstance;

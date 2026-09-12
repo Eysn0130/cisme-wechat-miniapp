@@ -33,7 +33,8 @@
   "window": {
     "navigationStyle": "custom",
     "backgroundColor": "#f7f1f8",
-    "backgroundTextStyle": "dark"
+    "backgroundTextStyle": "dark",
+    "navigationBarTextStyle": "black"
   },
   "__usePrivacyCheck__": true,
   "requiredPrivateInfos": ["chooseAddress"],

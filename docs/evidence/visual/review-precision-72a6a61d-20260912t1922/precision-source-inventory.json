@@ -1,0 +1,485 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
+  "generatedAt": "2026-09-12T11:31:25.616108+00:00",
+  "wxssFiles": 30,
+  "properties": {
+    "font-size": {
+      "declarations": 445,
+      "unique": 40,
+      "topValues": [
+        {
+          "value": "var(--cisme-text-small)",
+          "count": 95
+        },
+        {
+          "value": "24rpx",
+          "count": 50
+        },
+        {
+          "value": "22rpx",
+          "count": 36
+        },
+        {
+          "value": "20rpx",
+          "count": 32
+        },
+        {
+          "value": "23rpx",
+          "count": 30
+        },
+        {
+          "value": "28rpx",
+          "count": 25
+        },
+        {
+          "value": "var(--cisme-text-body)",
+          "count": 18
+        },
+        {
+          "value": "21rpx",
+          "count": 18
+        },
+        {
+          "value": "25rpx",
+          "count": 16
+        },
+        {
+          "value": "var(--cisme-text-micro)",
+          "count": 14
+        },
+        {
+          "value": "30rpx",
+          "count": 12
+        },
+        {
+          "value": "26rpx",
+          "count": 11
+        },
+        {
+          "value": "27rpx",
+          "count": 10
+        },
+        {
+          "value": "29rpx",
+          "count": 9
+        },
+        {
+          "value": "32rpx",
+          "count": 9
+        }
+      ]
+    },
+    "font-weight": {
+      "declarations": 97,
+      "unique": 3,
+      "topValues": [
+        {
+          "value": "500",
+          "count": 47
+        },
+        {
+          "value": "400",
+          "count": 40
+        },
+        {
+          "value": "600",
+          "count": 10
+        }
+      ]
+    },
+    "line-height": {
+      "declarations": 251,
+      "unique": 26,
+      "topValues": [
+        {
+          "value": "1.5",
+          "count": 79
+        },
+        {
+          "value": "1.55",
+          "count": 26
+        },
+        {
+          "value": "1.4",
+          "count": 25
+        },
+        {
+          "value": "1.25",
+          "count": 20
+        },
+        {
+          "value": "1.45",
+          "count": 17
+        },
+        {
+          "value": "1",
+          "count": 16
+        },
+        {
+          "value": "1.6",
+          "count": 15
+        },
+        {
+          "value": "20px",
+          "count": 10
+        },
+        {
+          "value": "1.35",
+          "count": 8
+        },
+        {
+          "value": "1.3",
+          "count": 6
+        },
+        {
+          "value": "1.65",
+          "count": 5
+        },
+        {
+          "value": "1.15",
+          "count": 3
+        },
+        {
+          "value": "1.2",
+          "count": 3
+        },
+        {
+          "value": "1.7",
+          "count": 3
+        },
+        {
+          "value": "1.22",
+          "count": 2
+        }
+      ]
+    },
+    "letter-spacing": {
+      "declarations": 35,
+      "unique": 12,
+      "topValues": [
+        {
+          "value": "1rpx",
+          "count": 9
+        },
+        {
+          "value": "4rpx",
+          "count": 7
+        },
+        {
+          "value": "2rpx",
+          "count": 7
+        },
+        {
+          "value": "5rpx",
+          "count": 3
+        },
+        {
+          "value": "7rpx",
+          "count": 2
+        },
+        {
+          "value": "1.5rpx",
+          "count": 1
+        },
+        {
+          "value": "-3rpx",
+          "count": 1
+        },
+        {
+          "value": "0",
+          "count": 1
+        },
+        {
+          "value": ".08em",
+          "count": 1
+        },
+        {
+          "value": ".04em",
+          "count": 1
+        },
+        {
+          "value": "3rpx",
+          "count": 1
+        },
+        {
+          "value": "6rpx",
+          "count": 1
+        }
+      ]
+    },
+    "color": {
+      "declarations": 476,
+      "unique": 235,
+      "topValues": [
+        {
+          "value": "#fff",
+          "count": 32
+        },
+        {
+          "value": "#75697a",
+          "count": 30
+        },
+        {
+          "value": "var(--cisme-muted)",
+          "count": 19
+        },
+        {
+          "value": "#56306f",
+          "count": 17
+        },
+        {
+          "value": "#8d3150",
+          "count": 14
+        },
+        {
+          "value": "#352a3a",
+          "count": 10
+        },
+        {
+          "value": "#817687",
+          "count": 9
+        },
+        {
+          "value": "rgba(255,255,255,.82)",
+          "count": 9
+        },
+        {
+          "value": "#756a79",
+          "count": 8
+        },
+        {
+          "value": "var(--cisme-ink)",
+          "count": 8
+        },
+        {
+          "value": "#403545",
+          "count": 7
+        },
+        {
+          "value": "inherit",
+          "count": 6
+        },
+        {
+          "value": "rgba(255,255,255,.72)",
+          "count": 6
+        },
+        {
+          "value": "#817788",
+          "count": 5
+        },
+        {
+          "value": "#6f6573",
+          "count": 5
+        }
+      ]
+    },
+    "padding": {
+      "declarations": 247,
+      "unique": 133,
+      "topValues": [
+        {
+          "value": "0",
+          "count": 29
+        },
+        {
+          "value": "24rpx",
+          "count": 9
+        },
+        {
+          "value": "0 24rpx",
+          "count": 8
+        },
+        {
+          "value": "20rpx",
+          "count": 8
+        },
+        {
+          "value": "18rpx 20rpx",
+          "count": 7
+        },
+        {
+          "value": "22rpx",
+          "count": 7
+        },
+        {
+          "value": "20rpx 22rpx",
+          "count": 5
+        },
+        {
+          "value": "0 20rpx",
+          "count": 5
+        },
+        {
+          "value": "22rpx 0",
+          "count": 4
+        },
+        {
+          "value": "0 12px",
+          "count": 4
+        },
+        {
+          "value": "28rpx",
+          "count": 3
+        },
+        {
+          "value": "0 16rpx",
+          "count": 3
+        },
+        {
+          "value": "0 18rpx",
+          "count": 3
+        },
+        {
+          "value": "7rpx 14rpx",
+          "count": 3
+        },
+        {
+          "value": "17rpx 19rpx",
+          "count": 3
+        }
+      ]
+    },
+    "gap": {
+      "declarations": 139,
+      "unique": 25,
+      "topValues": [
+        {
+          "value": "14rpx",
+          "count": 24
+        },
+        {
+          "value": "12rpx",
+          "count": 17
+        },
+        {
+          "value": "16rpx",
+          "count": 16
+        },
+        {
+          "value": "20rpx",
+          "count": 15
+        },
+        {
+          "value": "18rpx",
+          "count": 13
+        },
+        {
+          "value": "10rpx",
+          "count": 11
+        },
+        {
+          "value": "22rpx",
+          "count": 6
+        },
+        {
+          "value": "8rpx",
+          "count": 6
+        },
+        {
+          "value": "24rpx",
+          "count": 3
+        },
+        {
+          "value": "6rpx",
+          "count": 3
+        },
+        {
+          "value": "17rpx",
+          "count": 3
+        },
+        {
+          "value": "7rpx",
+          "count": 3
+        },
+        {
+          "value": "13rpx",
+          "count": 3
+        },
+        {
+          "value": "4px",
+          "count": 2
+        },
+        {
+          "value": "15rpx",
+          "count": 2
+        }
+      ]
+    },
+    "border-radius": {
+      "declarations": 244,
+      "unique": 52,
+      "topValues": [
+        {
+          "value": "50%",
+          "count": 44
+        },
+        {
+          "value": "999rpx",
+          "count": 37
+        },
+        {
+          "value": "22rpx",
+          "count": 22
+        },
+        {
+          "value": "24rpx",
+          "count": 17
+        },
+        {
+          "value": "18rpx",
+          "count": 9
+        },
+        {
+          "value": "32rpx",
+          "count": 8
+        },
+        {
+          "value": "28rpx",
+          "count": 8
+        },
+        {
+          "value": "26rpx",
+          "count": 6
+        },
+        {
+          "value": "16rpx",
+          "count": 6
+        },
+        {
+          "value": "20rpx",
+          "count": 6
+        },
+        {
+          "value": "0",
+          "count": 5
+        },
+        {
+          "value": "30rpx",
+          "count": 5
+        },
+        {
+          "value": "8rpx",
+          "count": 4
+        },
+        {
+          "value": "24px",
+          "count": 4
+        },
+        {
+          "value": "42rpx",
+          "count": 4
+        }
+      ]
+    }
+  },
+  "icons": {
+    "count": 47,
+    "viewBoxes": {
+      "0 0 256 256": 42,
+      "0 0 24 24": 5
+    },
+    "missingViewBox": []
+  },
+  "method": "Regex count of WXSS declarations after comment removal; not computed cascade or device pixels."
+}

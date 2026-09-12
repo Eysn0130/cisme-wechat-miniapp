@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "4e551cc6c41528a052af595e4ae48d569b9b17345a30db5a40bf2f1aec69175b",
+  "tool": "wechatide 0.3.9 runtime.get_simulator_network",
+  "filter": "grep -Ein 'fail|error|ECONN|ERR_|status[^0-9]*(0|4[0-9]{2}|5[0-9]{2})'",
+  "matches": 0,
+  "verifiedAt": "2026-09-12T09:39:34.646Z",
+  "result": "PASS_BOUNDED_FILTER",
+  "qualification": "The bounded post-route-open filter had no matches; this is not a structured HAR or staging-network proof."
+}

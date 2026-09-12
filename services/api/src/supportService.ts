@@ -1,10 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
-import type { Capability, SupportConversationStatus, SupportMessageView } from "@cisme/contracts";
+import type { Capability, CommerceOrderStatus, SupportConversationStatus, SupportMessageContentType, SupportMessageView, SupportPresenceView, UploadAuthorization } from "@cisme/contracts";
 import { DomainError } from "@cisme/domain";
 import { AuthorityService } from "./authority.js";
 import { transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
+import type { PlatformService } from "./platformService.js";
+import type { ObjectStorage } from "./storage.js";
 
 type ConversationRow = {
   id: string; member_id: string; status: SupportConversationStatus; priority: "normal" | "high" | "urgent";
@@ -12,16 +14,20 @@ type ConversationRow = {
   team_unread_count: number; member_last_read_sequence:string; team_last_read_sequence:string; version: number; updated_at: Date;
   resolved_at?: Date | null;
 };
-type MessageRow = { id: string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; body: string; attachment_refs: string[]; delivery_state: "persisted" | "read"; created_at: Date };
+type OrderCard = { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
+type MessageRow = { id: string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; body: string; attachment_refs: string[];
+  content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null; created_at: Date };
+type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
 
 function required(value: string | undefined, code: string): string {
   if (!value) throw new DomainError(code, "Authenticated principal required", 401);
   return value;
 }
-function textBody(input: unknown): string {
+function textBody(input: unknown, optional = false): string {
+  if (input === undefined && optional) return "";
   if (typeof input !== "string") throw new DomainError("SUPPORT_MESSAGE_INVALID", "Message text is required", 422);
   const value = input.trim();
-  if (!value || Array.from(value).length > 4000) throw new DomainError("SUPPORT_MESSAGE_INVALID", "Message must contain 1 to 4000 characters", 422);
+  if ((!optional && !value) || Array.from(value).length > 4000) throw new DomainError("SUPPORT_MESSAGE_INVALID", "Message must contain no more than 4000 characters", 422);
   return value;
 }
 function clientMessageId(input: unknown): string {
@@ -53,24 +59,52 @@ function queueCursor(input: unknown): {rank:number;unreadRank:number;at:string;i
   }catch{throw new DomainError("CURSOR_INVALID","Support queue cursor is invalid",422);}
 }
 function encodeQueueCursor(row:{rank:number;unread_rank:number;updated_at:Date;id:string}):string{return Buffer.from(JSON.stringify({rank:row.rank,unreadRank:row.unread_rank,at:row.updated_at.toISOString(),id:row.id})).toString("base64url");}
-function view(row: MessageRow): SupportMessageView {
-  return { id: row.id, sequence: Number(row.sequence), senderType: row.sender_type, body: row.body, attachmentRefs: row.attachment_refs, deliveryState: row.delivery_state, createdAt: row.created_at.toISOString() };
+function uuid(value: unknown, code: string): string {
+  if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new DomainError(code, "Identifier is invalid", 422);
+  return value;
+}
+function mediaIds(input: unknown): string[] {
+  if (input === undefined) return [];
+  if (!Array.isArray(input) || input.length > 3) throw new DomainError("SUPPORT_MEDIA_INVALID", "Up to three support images are allowed", 422);
+  const ids = input.map((item) => uuid(item, "SUPPORT_MEDIA_INVALID"));
+  if (new Set(ids).size !== ids.length) throw new DomainError("SUPPORT_MEDIA_INVALID", "Support image references must be unique", 422);
+  return ids;
+}
+function contentType(body: string, images: readonly string[], orderId: string | null): SupportMessageContentType {
+  if (!body && !images.length && !orderId) throw new DomainError("SUPPORT_MESSAGE_INVALID", "Text, an image, or an order is required", 422);
+  if (images.length && !body && !orderId) return "image";
+  if (orderId && !body && !images.length) return "order";
+  if (images.length || orderId) return "mixed";
+  return "text";
+}
+function messageColumns(): string {
+  return "id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,created_at";
+}
+function view(row: MessageRow, input: { counterpartyReadSequence: number; previewPrefix: string; media: ReadonlyMap<string, MediaRow> }): SupportMessageView {
+  const attachments = (Array.isArray(row.attachment_refs) ? row.attachment_refs : []).flatMap((id) => {
+    const media = input.media.get(id);
+    return media ? [{ id, mimeType: media.mime_type, sizeBytes: Number(media.size_bytes), previewPath: `${input.previewPrefix}/${id}` }] : [];
+  });
+  return { id: row.id, sequence: Number(row.sequence), senderType: row.sender_type, body: row.body, contentType: row.content_type,
+    attachments, orderCard: row.order_snapshot ?? null, deliveryState: Number(row.sequence) <= input.counterpartyReadSequence ? "read" : "server_accepted", createdAt: row.created_at.toISOString() };
 }
 function conversation(row: ConversationRow) {
   return { id: row.id, status: row.status, priority: row.priority,
-    memberUnreadCount: row.member_unread_count, teamUnreadCount: row.team_unread_count, version: row.version, updatedAt: row.updated_at.toISOString() };
+    memberUnreadCount: row.member_unread_count, teamUnreadCount: row.team_unread_count,
+    memberReadSequence: Number(row.member_last_read_sequence), teamReadSequence: Number(row.team_last_read_sequence),
+    version: row.version, updatedAt: row.updated_at.toISOString() };
 }
 function requestHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 
-export function modelSafeSupportProjection(input: { conversation: ConversationRow; messages: MessageRow[] }) {
+export function modelSafeSupportProjection(input: { conversation: ConversationRow; messages: Array<{sequence:string;sender_type:"user"|"ai"|"admin"|"system";body:string;[key:string]:unknown}> }) {
   return { conversationId: input.conversation.id, status: input.conversation.status,
     messages: input.messages.map((row) => ({ sequence: Number(row.sequence), senderType: row.sender_type, body: row.body })) };
 }
 
 export class SupportService {
-  constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService) {}
+  constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService, private readonly platform: PlatformService, private readonly storage: ObjectStorage) {}
 
   private async findForMember(client: DbClient | pg.Pool, memberId: string, lock = false): Promise<ConversationRow | null> {
     const result = await client.query<ConversationRow>(`SELECT * FROM support_conversation WHERE member_id=$1${lock ? " FOR UPDATE" : ""}`, [memberId]);
@@ -81,6 +115,60 @@ export class SupportService {
     const result = await client.query<ConversationRow>(`SELECT * FROM support_conversation WHERE id=$1${lock ? " FOR UPDATE" : ""}`, [id]);
     if (!result.rows[0]) throw new DomainError("SUPPORT_CONVERSATION_NOT_FOUND", "Support conversation was not found", 404);
     return result.rows[0];
+  }
+
+  private async mediaMap(client: DbClient | pg.Pool, messages: readonly MessageRow[]): Promise<Map<string, MediaRow>> {
+    const ids = [...new Set(messages.flatMap((row) => Array.isArray(row.attachment_refs) ? row.attachment_refs : []))];
+    if (!ids.length) return new Map();
+    const messageIds = messages.map((row) => row.id);
+    const result = await client.query<MediaRow>(`SELECT id,mime_type,size_bytes FROM media_object
+      WHERE id=ANY($1::uuid[]) AND bound_support_message_id=ANY($2::uuid[])
+        AND upload_state='uploaded' AND support_conversation_id IS NOT NULL`, [ids, messageIds]);
+    return new Map(result.rows.map((row) => [row.id, row]));
+  }
+
+  private async orderCard(client: DbClient, memberId: string, orderId: string | null): Promise<OrderCard | null> {
+    if (!orderId) return null;
+    const result = await client.query<{id:string;order_number:string;status:CommerceOrderStatus;currency:"CNY";total_cents:string;product_name:string;image_path:string|null;item_summary:string}>(`
+      SELECT o.id,o.order_number,o.status,o.currency,o.total_cents,
+        (array_agg(line.product_name ORDER BY line.line_number))[1] AS product_name,
+        (array_agg(line.image_path ORDER BY line.line_number))[1] AS image_path,
+        string_agg(line.product_name || ' · ' || line.sku_label || ' × ' || line.quantity, '；' ORDER BY line.line_number) AS item_summary
+      FROM commerce_order o JOIN commerce_order_line line ON line.order_id=o.id
+      WHERE o.id=$1 AND o.member_id=$2
+      GROUP BY o.id`, [orderId, memberId]);
+    const row = result.rows[0];
+    if (!row) throw new DomainError("SUPPORT_ORDER_NOT_FOUND", "Order was not found for this member", 404);
+    return { orderId: row.id, orderNumberTail: row.order_number.slice(-4), status: row.status, currency: row.currency,
+      totalCents: Number(row.total_cents), productName: row.product_name, productImage: row.image_path, itemSummary: row.item_summary };
+  }
+
+  private async presence(row: ConversationRow, now = new Date()): Promise<SupportPresenceView> {
+    const result = await this.pool.query<{agent_display_name:string;operator_online:boolean;operator_typing:boolean;member_online:boolean;member_typing:boolean}>(`
+      SELECT COALESCE(profile.display_name,'CISME 客服') AS agent_display_name,
+        COALESCE(operator.online_expires_at>$2,false) AS operator_online,
+        COALESCE(operator.typing_expires_at>$2,false) AS operator_typing,
+        COALESCE(member_presence.online_expires_at>$2,false) AS member_online,
+        COALESCE(member_presence.typing_expires_at>$2,false) AS member_typing
+      FROM support_conversation conversation
+      LEFT JOIN support_operator_profile profile ON profile.principal_id=conversation.current_handler_principal_id
+      LEFT JOIN support_presence operator ON operator.conversation_id=conversation.id AND operator.actor_type='operator'
+        AND operator.actor_principal_id=conversation.current_handler_principal_id
+      LEFT JOIN support_presence member_presence ON member_presence.conversation_id=conversation.id AND member_presence.actor_type='member'
+      WHERE conversation.id=$1`, [row.id, now]);
+    const state = result.rows[0];
+    return { serverTime: now.toISOString(), agentDisplayName: state?.agent_display_name ?? "CISME 客服",
+      operatorOnline: state?.operator_online === true, operatorTyping: state?.operator_typing === true,
+      memberOnline: state?.member_online === true, memberTyping: state?.member_typing === true };
+  }
+
+  private async messageView(row: MessageRow, conversationRow: ConversationRow, perspective: "member" | "operator", media?: ReadonlyMap<string, MediaRow>) {
+    const mediaRows = media ?? await this.mediaMap(this.pool, [row]);
+    return view(row, {
+      counterpartyReadSequence: Number(perspective === "member" ? conversationRow.team_last_read_sequence : conversationRow.member_last_read_sequence),
+      previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${conversationRow.id}/media`,
+      media: mediaRows
+    });
   }
 
   async modelProjectionForAssignedOperator(memberId:string|undefined,principalId:string|undefined,id:string) {
@@ -128,32 +216,40 @@ export class SupportService {
     const owner = required(memberId, "AUTH_REQUIRED");
     const row = await this.findForMember(this.pool, owner);
     if (!row) return { conversation: null, messages: [], latestCursor: 0, olderCursor: null };
-    return this.messagePage(row, query);
+    return this.messagePage(row, query, "member");
   }
 
-  private async messagePage(row: ConversationRow, query: { after?: unknown; before?: unknown; limit?: unknown }) {
+  private async messagePage(row: ConversationRow, query: { after?: unknown; before?: unknown; limit?: unknown }, perspective: "member" | "operator") {
     const pageLimit = limit(query.limit);
     const after = cursor(query.after);
     const before = cursor(query.before);
     if (after !== null && before !== null) throw new DomainError("CURSOR_INVALID", "Use either after or before, not both", 422);
     let result: pg.QueryResult<MessageRow>;
-    if (after !== null) result = await this.pool.query<MessageRow>(`SELECT id,sequence,sender_type,body,attachment_refs,delivery_state,created_at FROM support_message
+    if (after !== null) result = await this.pool.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
       WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence ASC LIMIT $3`, [row.id, after, pageLimit]);
-    else if (before !== null) result = await this.pool.query<MessageRow>(`SELECT * FROM (SELECT id,sequence,sender_type,body,attachment_refs,delivery_state,created_at FROM support_message
+    else if (before !== null) result = await this.pool.query<MessageRow>(`SELECT * FROM (SELECT ${messageColumns()} FROM support_message
       WHERE conversation_id=$1 AND sequence<$2 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id, before, pageLimit + 1]);
-    else result = await this.pool.query<MessageRow>(`SELECT * FROM (SELECT id,sequence,sender_type,body,attachment_refs,delivery_state,created_at FROM support_message
+    else result = await this.pool.query<MessageRow>(`SELECT * FROM (SELECT ${messageColumns()} FROM support_message
       WHERE conversation_id=$1 ORDER BY sequence DESC LIMIT $2) recent ORDER BY sequence ASC`, [row.id, pageLimit + 1]);
     const hasOlder = after === null && result.rows.length > pageLimit;
     const pageRows = hasOlder ? result.rows.slice(result.rows.length - pageLimit) : result.rows;
-    const messages = pageRows.map(view);
-    return { conversation: conversation(row), messages, latestCursor: messages.at(-1)?.sequence ?? Number(row.next_sequence) - 1,
-      olderCursor: hasOlder ? messages[0]!.sequence : null };
+    const media = await this.mediaMap(this.pool, pageRows);
+    const messages = pageRows.map((messageRow) => view(messageRow, {
+      counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
+      previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
+      media
+    }));
+    return { conversation: conversation(row), presence: await this.presence(row), messages,
+      latestCursor: messages.at(-1)?.sequence ?? Number(row.next_sequence) - 1, olderCursor: hasOlder ? messages[0]!.sequence : null };
   }
 
-  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown }, traceId: string) {
+  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown }, traceId: string) {
     const owner = required(memberId, "AUTH_REQUIRED");
     const principal = required(principalId, "AUTH_REQUIRED");
-    const body = textBody(input.body); const messageKey = clientMessageId(input.clientMessageId);
+    const body = textBody(input.body, true); const messageKey = clientMessageId(input.clientMessageId);
+    const images = mediaIds(input.mediaIds);
+    const linkedOrderId = input.linkedOrderId === undefined || input.linkedOrderId === null || input.linkedOrderId === "" ? null : uuid(input.linkedOrderId, "SUPPORT_ORDER_INVALID");
+    const messageContentType = contentType(body, images, linkedOrderId);
     return transaction(this.pool, async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
       let row = await this.findForMember(client, owner, true);
@@ -161,24 +257,38 @@ export class SupportService {
         const created = await client.query<ConversationRow>(`INSERT INTO support_conversation(member_id,status)
           VALUES($1,'waiting_human') RETURNING *`, [owner]); row = created.rows[0]!;
       }
-      const duplicate = await client.query<MessageRow>(`SELECT id,sequence,sender_type,body,attachment_refs,delivery_state,created_at FROM support_message
+      const duplicate = await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='user' AND sender_principal_id=$2 AND client_message_id=$3`, [row.id, principal, messageKey]);
       if (duplicate.rows[0]) {
-        if (duplicate.rows[0].body !== body) throw new DomainError("IDEMPOTENCY_CONFLICT", "clientMessageId was reused with different text", 409);
-        return { conversation: conversation(row), message: view(duplicate.rows[0]), replayed: true };
+        const prior = duplicate.rows[0];
+        if (prior.body !== body || JSON.stringify(prior.attachment_refs ?? []) !== JSON.stringify(images) || prior.linked_order_id !== linkedOrderId) {
+          throw new DomainError("IDEMPOTENCY_CONFLICT", "clientMessageId was reused with different support content", 409);
+        }
+        return { conversation: conversation(row), message: await this.messageView(prior, row, "member", await this.mediaMap(client, [prior])), replayed: true };
+      }
+      const order = await this.orderCard(client, owner, linkedOrderId);
+      if (images.length) {
+        const media = await client.query<{id:string}>(`SELECT id FROM media_object WHERE id=ANY($1::uuid[])
+          AND support_conversation_id=$2 AND support_member_id=$3 AND upload_state='uploaded'
+          AND bound_support_message_id IS NULL AND support_expires_at>clock_timestamp() FOR UPDATE`, [images, row.id, owner]);
+        if (media.rowCount !== images.length) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "A support image is unavailable or belongs to another conversation", 404);
       }
       const sequence = Number(row.next_sequence); const messageId = randomUUID();
       const reopened = row.status === "resolved";
       const nextStatus: SupportConversationStatus = reopened ? "waiting_human" : row.status;
-      const inserted = await client.query<MessageRow>(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id)
-        VALUES($1,$2,$3,'user',$4,$5,$6) RETURNING id,sequence,sender_type,body,attachment_refs,delivery_state,created_at`, [messageId, row.id, sequence, principal, body, messageKey]);
+      const inserted = await client.query<MessageRow>(`INSERT INTO support_message
+        (id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,client_message_id)
+        VALUES($1,$2,$3,'user',$4,$5,$6,$7,$8,$9,$10) RETURNING ${messageColumns()}`,
+      [messageId, row.id, sequence, principal, body, JSON.stringify(images), messageContentType, linkedOrderId, order, messageKey]);
+      if (images.length) await client.query("UPDATE media_object SET bound_support_message_id=$1,support_expires_at='infinity' WHERE id=ANY($2::uuid[])", [messageId, images]);
       const updated = await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,team_unread_count=team_unread_count+1,
         status=$2,current_handler_principal_id=CASE WHEN $3 THEN NULL ELSE current_handler_principal_id END,resolved_at=NULL,version=version+1,updated_at=clock_timestamp()
         WHERE id=$1 RETURNING *`, [row.id, nextStatus, reopened]);
       row = updated.rows[0]!;
+      await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='member'", [row.id]);
       await enqueue(client, { eventType: "support.message.created.v1", aggregateType: "support_conversation", aggregateId: row.id,
         aggregateVersion: row.version, businessKey: `support-message:${messageId}`, payload: { conversationId: row.id, messageId, senderType: "user", sequence }, occurredAt: inserted.rows[0]!.created_at });
-      return { conversation: conversation(row), message: view(inserted.rows[0]!), replayed: false };
+      return { conversation: conversation(row), message: await this.messageView(inserted.rows[0]!, row, "member", await this.mediaMap(client, inserted.rows)), replayed: false };
     });
   }
 
@@ -212,6 +322,139 @@ export class SupportService {
     });
   }
 
+  private presenceInput(input: { online?: unknown; typing?: unknown }): { online: boolean; typing: boolean } {
+    if (typeof input.online !== "boolean" || typeof input.typing !== "boolean") throw new DomainError("SUPPORT_PRESENCE_INVALID", "online and typing flags are required", 422);
+    return { online: input.online, typing: input.online && input.typing };
+  }
+
+  async touchMemberPresence(memberId: string | undefined, input: { online?: unknown; typing?: unknown }, now = new Date()) {
+    const owner = required(memberId, "AUTH_REQUIRED");
+    const state = this.presenceInput(input);
+    const row = await this.findForMember(this.pool, owner);
+    if (!row) return { accepted: false, serverTime: now.toISOString() };
+    const onlineUntil = state.online ? new Date(now.getTime() + 10_000) : now;
+    const typingUntil = state.typing ? new Date(now.getTime() + 9_000) : now;
+    await this.pool.query(`INSERT INTO support_presence(conversation_id,actor_type,actor_principal_id,online_expires_at,typing_expires_at,updated_at)
+      VALUES($1,'member',$2,$3,$4,$5)
+      ON CONFLICT(conversation_id,actor_type) DO UPDATE SET actor_principal_id=EXCLUDED.actor_principal_id,
+        online_expires_at=EXCLUDED.online_expires_at,typing_expires_at=EXCLUDED.typing_expires_at,updated_at=EXCLUDED.updated_at`,
+    [row.id, owner, onlineUntil, typingUntil, now]);
+    return { accepted: true, onlineExpiresAt: onlineUntil.toISOString(), typingExpiresAt: typingUntil.toISOString(), serverTime: now.toISOString() };
+  }
+
+  async touchOperatorPresence(memberId: string | undefined, principalId: string | undefined, id: string, input: { online?: unknown; typing?: unknown }, now = new Date()) {
+    await this.operator(memberId, "support.read");
+    const principal = required(principalId, "AUTH_REQUIRED");
+    const state = this.presenceInput(input);
+    const row = await this.findById(this.pool, id);
+    if (!state.online) {
+      const stopped = await this.pool.query(`UPDATE support_presence SET online_expires_at=$3,typing_expires_at=$3,updated_at=$3
+        WHERE conversation_id=$1 AND actor_type='operator' AND actor_principal_id=$2`, [row.id, principal, now]);
+      return { accepted: Boolean(stopped.rowCount), onlineExpiresAt: now.toISOString(), typingExpiresAt: now.toISOString(), serverTime: now.toISOString() };
+    }
+    if (row.status !== "human_active" || row.current_handler_principal_id !== principal) {
+      throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED", "Only the assigned operator can publish presence", 409);
+    }
+    const onlineUntil = new Date(now.getTime() + 10_000);
+    const typingUntil = state.typing ? new Date(now.getTime() + 9_000) : now;
+    await this.pool.query(`INSERT INTO support_presence(conversation_id,actor_type,actor_principal_id,online_expires_at,typing_expires_at,updated_at)
+      VALUES($1,'operator',$2,$3,$4,$5)
+      ON CONFLICT(conversation_id,actor_type) DO UPDATE SET actor_principal_id=EXCLUDED.actor_principal_id,
+        online_expires_at=EXCLUDED.online_expires_at,typing_expires_at=EXCLUDED.typing_expires_at,updated_at=EXCLUDED.updated_at`,
+    [row.id, principal, onlineUntil, typingUntil, now]);
+    return { accepted: true, onlineExpiresAt: onlineUntil.toISOString(), typingExpiresAt: typingUntil.toISOString(), serverTime: now.toISOString() };
+  }
+
+  async authorizeSupportMedia(memberId: string | undefined, input: { mimeType?: unknown; maxBytes?: unknown; baseUrl: string }, now = new Date()): Promise<UploadAuthorization> {
+    const owner = required(memberId, "AUTH_REQUIRED");
+    const mimeType = input.mimeType;
+    const maxBytes = Number(input.maxBytes);
+    if (!(["image/jpeg", "image/png", "image/webp"] as unknown[]).includes(mimeType) || !Number.isInteger(maxBytes) || maxBytes < 1 || maxBytes > 5 * 1024 * 1024) {
+      throw new DomainError("SUPPORT_MEDIA_INVALID", "Support images must be JPG, PNG or WEBP and no larger than 5 MiB", 422);
+    }
+    return transaction(this.pool, async (client) => {
+      await this.platform.assertSwitch(client, "uploads");
+      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
+      let row = await this.findForMember(client, owner, true);
+      if (!row) row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING *", [owner])).rows[0]!;
+      const id = randomUUID();
+      const objectKey = `support/${row.id}/images/${id}`;
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      await client.query(`INSERT INTO media_object
+        (id,submission_id,kind,object_key,mime_type,is_current,authorized_max_bytes,support_conversation_id,support_member_id,support_expires_at,authorized_at)
+        VALUES($1,NULL,'chat_image',$2,$3,true,$4,$5,$6,$7,$8)`, [id, objectKey, mimeType, maxBytes, row.id, owner, expiresAt, now]);
+      return this.storage.authorize({ mediaId:id,objectKey,mimeType: mimeType as string,maxBytes,baseUrl:input.baseUrl,now });
+    });
+  }
+
+  async completeSupportMedia(memberId: string | undefined, mediaId: string, now = new Date()) {
+    const owner = required(memberId, "AUTH_REQUIRED");
+    const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
+    const outcome = await transaction(this.pool, async (client) => {
+      await this.platform.assertSwitch(client, "uploads");
+      const result = await client.query<{id:string;object_key:string;mime_type:string;upload_state:string;authorized_max_bytes:number;support_expires_at:Date}>(`
+        SELECT media.id,media.object_key,media.mime_type,media.upload_state,media.authorized_max_bytes,media.support_expires_at
+        FROM media_object media JOIN support_conversation conversation ON conversation.id=media.support_conversation_id
+        WHERE media.id=$1 AND media.support_member_id=$2 AND conversation.member_id=$2 FOR UPDATE OF media,conversation`, [targetMediaId, owner]);
+      const row = result.rows[0];
+      if (!row) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
+      if (row.upload_state === "uploaded") return { media: row };
+      if (row.upload_state !== "authorized" || row.support_expires_at <= now) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image authorization has expired", 404);
+      const stored = await this.storage.verify(row.object_key);
+      const fail = async (error: DomainError) => {
+        await this.storage.delete(row.object_key);
+        await client.query("UPDATE media_object SET upload_state='failed' WHERE id=$1", [targetMediaId]);
+        return { error };
+      };
+      if (stored.bytes < 1 || stored.bytes > row.authorized_max_bytes) return fail(new DomainError("UPLOAD_SIZE_INVALID", "Uploaded support image exceeds its authorization", 422));
+      if (stored.detectedMime !== row.mime_type) return fail(new DomainError("UPLOAD_CONTENT_MISMATCH", "Uploaded support image content does not match its MIME type", 422));
+      const media = (await client.query(`UPDATE media_object SET upload_state='uploaded',content_hash=$1,size_bytes=$2,uploaded_at=$3
+        WHERE id=$4 RETURNING id,mime_type,size_bytes,upload_state`, [stored.checksumBase64, stored.bytes, now, targetMediaId])).rows[0];
+      await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [targetMediaId]);
+      return { media };
+    });
+    if ("error" in outcome) throw outcome.error;
+    return outcome.media;
+  }
+
+  async deleteSupportMedia(memberId: string | undefined, mediaId: string, now = new Date()) {
+    const owner = required(memberId, "AUTH_REQUIRED");
+    const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
+    return transaction(this.pool, async (client) => {
+      const media = await client.query<{object_key:string;upload_state:string;bound_support_message_id:string|null}>(`SELECT object_key,upload_state,bound_support_message_id
+        FROM media_object WHERE id=$1 AND support_member_id=$2 FOR UPDATE`, [targetMediaId, owner]);
+      const row = media.rows[0];
+      if (!row || row.upload_state === "deleted") throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
+      if (row.bound_support_message_id) throw new DomainError("SUPPORT_MEDIA_BOUND", "A sent support image is immutable", 409);
+      await client.query("UPDATE media_object SET upload_state='deleted',deleted_at=$2,is_current=false WHERE id=$1", [targetMediaId, now]);
+      await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
+        VALUES($1,$2,'support_deleted',$3) ON CONFLICT DO NOTHING`, [targetMediaId, row.object_key, now]);
+      await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [targetMediaId]);
+      return { deleted:true,cleanupQueued:true };
+    });
+  }
+
+  async memberSupportMedia(memberId: string | undefined, mediaId: string) {
+    const owner = required(memberId, "AUTH_REQUIRED");
+    const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
+    const result = await this.pool.query<{object_key:string}>(`SELECT media.object_key FROM media_object media
+      JOIN support_conversation conversation ON conversation.id=media.support_conversation_id
+      WHERE media.id=$1 AND conversation.member_id=$2 AND media.support_member_id=$2
+        AND media.upload_state='uploaded' AND media.bound_support_message_id IS NOT NULL`, [targetMediaId, owner]);
+    if (!result.rows[0]) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
+    return this.storage.read(result.rows[0].object_key);
+  }
+
+  async operatorSupportMedia(memberId: string | undefined, id: string, mediaId: string) {
+    await this.operator(memberId, "support.read");
+    const conversationId = uuid(id, "SUPPORT_CONVERSATION_INVALID");
+    const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
+    const result = await this.pool.query<{object_key:string}>(`SELECT object_key FROM media_object
+      WHERE id=$1 AND support_conversation_id=$2 AND upload_state='uploaded' AND bound_support_message_id IS NOT NULL`, [targetMediaId, conversationId]);
+    if (!result.rows[0]) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
+    return this.storage.read(result.rows[0].object_key);
+  }
+
   private async operator(memberId: string | undefined, capability: Capability): Promise<string> {
     return this.authority.require(memberId, capability);
   }
@@ -233,7 +476,7 @@ export class SupportService {
   }
   async operatorMessages(memberId: string | undefined, principalId: string | undefined, id: string, query: { after?: unknown; before?: unknown; limit?: unknown }) {
     await this.operator(memberId, "support.read"); const principal=required(principalId,"AUTH_REQUIRED");const row=await this.findById(this.pool,id);
-    const page=await this.messagePage(row,query);const member=await this.pool.query<{display_name:string}>("SELECT display_name FROM member WHERE id=$1",[row.member_id]);
+    const page=await this.messagePage(row,query,"operator");const member=await this.pool.query<{display_name:string}>("SELECT display_name FROM member WHERE id=$1",[row.member_id]);
     return {...page,memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
   }
   async claim(memberId: string | undefined, principalId: string | undefined, id: string, input: { expectedVersion?: unknown }, traceId: string) {
@@ -244,9 +487,17 @@ export class SupportService {
       if (row.version !== expected) throw new DomainError("VERSION_CONFLICT", "Conversation changed; reload before claiming", 409);
       if (row.status === "resolved") throw new DomainError("SUPPORT_CONVERSATION_RESOLVED", "Resolved conversation must be reopened by the member", 409);
       if (row.status === "human_active") throw new DomainError("SUPPORT_ALREADY_ASSIGNED", "Conversation is already assigned", 409);
+      const systemMessageId = randomUUID();
+      const systemSequence = Number(row.next_sequence);
+      const systemMessage = (await client.query<MessageRow>(`INSERT INTO support_message
+        (id,conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id)
+        VALUES($1,$2,$3,'system','system:support','已为你接入人工客服','system',$4) RETURNING ${messageColumns()}`,
+      [systemMessageId,id,systemSequence,`support-claim-${id}-v${row.version+1}`])).rows[0]!;
       const updated = (await client.query<ConversationRow>(`UPDATE support_conversation SET status='human_active',current_handler_principal_id=$2,
-        resolved_at=NULL,version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [id, principal])).rows[0]!;
+        next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,resolved_at=NULL,version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [id, principal])).rows[0]!;
       await this.audit(client, principal, "support.conversation.claim", id, conversation(row), conversation(updated), traceId);
+      await enqueue(client, { eventType: "support.message.created.v1", aggregateType: "support_conversation", aggregateId: id,
+        aggregateVersion: updated.version, businessKey: `support-message:${systemMessageId}`, payload: { conversationId:id,messageId:systemMessageId,senderType:"system",sequence:systemSequence }, occurredAt:systemMessage.created_at });
       await enqueue(client, { eventType: "support.conversation.claimed.v1", aggregateType: "support_conversation", aggregateId: id,
         aggregateVersion: updated.version, businessKey: `support-claim:${id}:v${updated.version}`, payload: { conversationId:id,claimedBy:principal }, occurredAt:updated.updated_at });
       return conversation(updated);
@@ -257,19 +508,20 @@ export class SupportService {
     const body=textBody(input.body); const messageKey=clientMessageId(input.clientMessageId);
     return transaction(this.pool, async (client) => {
       let row=await this.findById(client,id,true);
-      const duplicate=await client.query<MessageRow>(`SELECT id,sequence,sender_type,body,attachment_refs,delivery_state,created_at FROM support_message
+      const duplicate=await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='admin' AND sender_principal_id=$2 AND client_message_id=$3`,[id,principal,messageKey]);
-      if(duplicate.rows[0]){if(duplicate.rows[0].body!==body)throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different text",409);return {conversation:conversation(row),message:view(duplicate.rows[0]),replayed:true};}
+      if(duplicate.rows[0]){if(duplicate.rows[0].body!==body)throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different text",409);return {conversation:conversation(row),message:await this.messageView(duplicate.rows[0],row,"operator"),replayed:true};}
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Claim this conversation before replying",409);
       const sequence=Number(row.next_sequence);const messageId=randomUUID();
       const inserted=(await client.query<MessageRow>(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id)
-        VALUES($1,$2,$3,'admin',$4,$5,$6) RETURNING id,sequence,sender_type,body,attachment_refs,delivery_state,created_at`,[messageId,id,sequence,principal,body,messageKey])).rows[0]!;
+        VALUES($1,$2,$3,'admin',$4,$5,$6) RETURNING ${messageColumns()}`,[messageId,id,sequence,principal,body,messageKey])).rows[0]!;
       row=(await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
         version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
+      await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),online_expires_at=GREATEST(online_expires_at,clock_timestamp()+interval '10 seconds'),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='operator' AND actor_principal_id=$2", [id, principal]);
       await this.audit(client,principal,"support.message.reply",id,null,{messageId,sequence},traceId);
       await enqueue(client,{eventType:"support.message.created.v1",aggregateType:"support_conversation",aggregateId:id,aggregateVersion:row.version,
         businessKey:`support-message:${messageId}`,payload:{conversationId:id,messageId,senderType:"admin",sequence},occurredAt:inserted.created_at});
-      return {conversation:conversation(row),message:view(inserted),replayed:false};
+      return {conversation:conversation(row),message:await this.messageView(inserted,row,"operator"),replayed:false};
     });
   }
   async markTeamRead(memberId:string|undefined,id:string,input:{lastSeenSequence?:unknown}){
@@ -286,6 +538,7 @@ export class SupportService {
       if(row.version!==expected)throw new DomainError("VERSION_CONFLICT","Conversation changed; reload before resolving",409);
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Only the assigned operator can resolve",409);
       const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET status='resolved',current_handler_principal_id=NULL,resolved_at=clock_timestamp(),version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
+      await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),online_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='operator'", [id]);
       await this.audit(client,principal,"support.conversation.resolve",id,conversation(row),conversation(updated),traceId);
       await enqueue(client,{eventType:"support.conversation.resolved.v1",aggregateType:"support_conversation",aggregateId:id,aggregateVersion:updated.version,
         businessKey:`support-resolve:${id}:v${updated.version}`,payload:{conversationId:id,resolvedBy:principal},occurredAt:updated.updated_at});return conversation(updated);});
@@ -325,6 +578,10 @@ export class SupportService {
       if(state.reason==="legal_hold")throw new DomainError("SUPPORT_RETENTION_LEGAL_HOLD","An active legal hold blocks this purge",423);
       if(state.reason!=="eligible")throw new DomainError("SUPPORT_RETENTION_NOT_DUE","The approved retention period has not elapsed",409);
       const messageCount=(await client.query<{count:number}>("SELECT count(*)::int AS count FROM support_message WHERE conversation_id=$1",[id])).rows[0]!.count;
+      await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
+        SELECT id,object_key,'support_purged',clock_timestamp() FROM media_object
+        WHERE support_conversation_id=$1 AND upload_state IN ('authorized','uploaded')
+        ON CONFLICT DO NOTHING`, [id]);
       await client.query("SELECT set_config('cisme.support_purge_conversation_id',$1,true)",[id]);
       await client.query("DELETE FROM support_message WHERE conversation_id=$1",[id]);
       await client.query("DELETE FROM support_conversation WHERE id=$1",[id]);

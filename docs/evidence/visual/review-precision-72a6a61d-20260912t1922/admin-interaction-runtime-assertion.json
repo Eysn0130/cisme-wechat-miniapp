@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
+  "environment": "WeChat DevTools simulator, 393 CSS px viewport, local synthetic API",
+  "headerSafeLane": {
+    "back": { "left": 12, "right": 56, "width": 44 },
+    "title": { "left": 84.6328125, "right": 217.3671875, "width": 132.734375 },
+    "more": { "left": 246, "right": 290, "width": 44 },
+    "capsule": { "left": 296, "right": 383 },
+    "titleToMoreGapPx": 28.6328125,
+    "moreToCapsuleGapPx": 6
+  },
+  "resolveCancel": {
+    "method": "Temporarily wrapped wx.showModal to capture options and return cancel, then restored the original method after each check.",
+    "draftPresent": {
+      "content": "当前未发送的回复草稿会清除。会话历史会保留。用户再次发送消息时会重新进入待人工队列。",
+      "inputAfterCancel": "未发送草稿",
+      "statusAfterCancel": "human_active"
+    },
+    "draftEmpty": {
+      "content": "会话历史会保留。用户再次发送消息时会重新进入待人工队列。",
+      "inputAfterCancel": "",
+      "statusAfterCancel": "human_active"
+    }
+  },
+  "qualification": "Header geometry and resolve cancel branch were asserted in the simulator. The screenshot bridge did not paint the system Modal; this does not certify its visual appearance or a physical device."
+}

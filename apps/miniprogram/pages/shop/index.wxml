@@ -1,5 +1,5 @@
 <view class="chrome-root" style="{{chromeStyle}}">
-<view class="topbar shop-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="shop-topbar__copy"><text class="topbar__title">商品目录</text><small class="shop-topbar__subtitle">{{purchaseAvailable?'隔离订单验证':'商品浏览 · 购买关闭'}}</small></view></view>
+<view class="topbar shop-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="shop-topbar__copy"><text class="topbar__title">商品目录</text><small class="shop-topbar__subtitle">{{purchaseAvailable?'可提交待支付订单':'商品浏览 · 暂不能下单'}}</small></view></view>
 <view class="page page--stack shop-page">
   <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载商品目录…</view>
   <button wx:if="{{featured}}" class="shop-hero {{navigating ? 'control--disabled' : ''}}" data-id="{{featured.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看商品详情：{{featured.name}}，价格 {{featured.displayPrice}} 元，交易尚未开放">
@@ -7,8 +7,8 @@
     <view class="shop-hero__shade"></view>
     <view class="shop-hero__copy"><text class="shop-hero__eyebrow">MEMBER EDIT</text><strong class="shop-hero__title"><text class="shop-hero__line">让护理</text><text class="shop-hero__line">融入日常</text></strong><small class="shop-hero__meta">{{featured.name}} · ¥{{featured.displayPrice}}</small><view class="shop-hero__cta">查看详情</view></view>
   </button>
-  <view wx:if="{{catalog}}" class="shop-catalog-label"><text class="shop-catalog-label__title">可浏览商品</text><small class="shop-catalog-label__meta">已通过资质门禁并上架</small></view>
-  <view wx:if="{{catalog}}" class="shop-gate"><image class="shop-gate__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>{{purchaseAvailable?'隔离环境可创建待支付订单；微信支付尚未开放。':'目录可浏览，结算与支付尚未开放。'}}</text></view>
+  <view wx:if="{{catalog}}" class="shop-catalog-label"><text class="shop-catalog-label__title">可浏览商品</text><small class="shop-catalog-label__meta">已完成资质确认并上架</small></view>
+  <view wx:if="{{catalog}}" class="shop-gate"><image class="shop-gate__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><text>{{purchaseAvailable?'可提交待支付订单；微信支付尚未开放。':'目录可浏览，结算与支付尚未开放。'}}</text></view>
   <view wx:if="{{catalog}}" class="product-grid">
     <button wx:for="{{catalog.items}}" wx:key="id" class="product-card {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看商品详情：{{item.name}}，价格 {{item.displayPrice}} 元，交易尚未开放">
       <image class="product-card__image" src="{{item.image}}" mode="aspectFill"/>

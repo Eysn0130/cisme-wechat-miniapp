@@ -28,6 +28,7 @@ export interface ObjectStorage {
   ensureReady(): Promise<void>;
   authorize(input: { mediaId: string; objectKey: string; mimeType: string; maxBytes: number; baseUrl: string; now: Date }): Promise<UploadAuthorization>;
   verify(objectKey: string): Promise<StoredObject>;
+  read(objectKey: string): Promise<{ bytes: Uint8Array; mimeType: StoredObject["detectedMime"] }>;
   delete(objectKey: string): Promise<void>;
   acceptsGatewayUpload: boolean;
   writeGatewayObject?(input: { token: string; mediaId: string; objectKey: string; bytes: Uint8Array; mimeType: string; now: Date }): Promise<StoredObject>;
@@ -44,6 +45,7 @@ function observeStorage(storage: ObjectStorage): ObjectStorage {
     ensureReady: () => timed(() => storage.ensureReady()),
     authorize: (input) => timed(() => storage.authorize(input)),
     verify: (key) => timed(() => storage.verify(key)),
+    read: (key) => timed(() => storage.read(key)),
     delete: (key) => timed(() => storage.delete(key)),
     ...(storage.writeGatewayObject ? { writeGatewayObject: (input: Parameters<NonNullable<ObjectStorage["writeGatewayObject"]>>[0]) => timed(() => storage.writeGatewayObject!(input)) } : {})
   };
@@ -115,6 +117,12 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       if (!bytes) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 422);
       return { bytes: Number(head.ContentLength ?? bytes.length), checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
     },
+    async read(objectKey) {
+      const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey }));
+      const bytes = await object.Body?.transformToByteArray();
+      if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
+      return { bytes, mimeType: detectImageMime(bytes) };
+    },
     async delete(objectKey) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }));
     }
@@ -155,6 +163,11 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
     async verify(objectKey) {
       const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")));
       return { bytes: bytes.length, checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
+    },
+    async read(objectKey) {
+      const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")));
+      if (!bytes.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
+      return { bytes, mimeType: detectImageMime(bytes) };
     },
     async delete(objectKey) {
       try { await unlink(resolve(directory, objectKey.replaceAll("/", "__"))); } catch { /* idempotent */ }
@@ -259,6 +272,12 @@ export function createCosGatewayStorage(config: AppConfig): ObjectStorage {
       const bytes = result.Body;
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 422);
       return { bytes: bytes.length, checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
+    },
+    async read(objectKey) {
+      const result = await client.getObject({ ...location, Key: objectKey });
+      const bytes = result.Body;
+      if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
+      return { bytes, mimeType: detectImageMime(bytes) };
     },
     async delete(objectKey) { await client.deleteObject({ ...location, Key: objectKey }); }
   };

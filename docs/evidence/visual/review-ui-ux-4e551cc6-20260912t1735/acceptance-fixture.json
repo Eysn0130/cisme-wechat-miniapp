@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-12T09:33:33.329Z",
+  "scope": "local_devtools_synthetic_nonproduction",
+  "origin": "http://127.0.0.1:18080",
+  "database": {
+    "name": "cisme_test",
+    "migrationCount": 35,
+    "latestMigration": "202609120001_support_commercial_chat.sql"
+  },
+  "developmentIdentity": {
+    "externalUserId": "cisme-mini-acceptance-member"
+  },
+  "routes": {
+    "product": {
+      "path": "pages/product/index",
+      "query": "id=synthetic-acceptance-serum"
+    },
+    "checkout": {
+      "path": "pages/checkout/index",
+      "query": "product=synthetic-acceptance-serum&sku=595c21be-b7e6-4bc9-bcf6-afad3987b68f&quantity=1"
+    },
+    "task": {
+      "path": "pages/task/index",
+      "query": "id=3fdd83b1-3d0b-4434-be14-12880c1f02fb"
+    },
+    "submit": {
+      "path": "pages/submit/index",
+      "query": "id=55504a90-95cc-48ca-8f1c-5b1e3bab4e4a"
+    },
+    "progress": {
+      "path": "pages/progress/index",
+      "query": "id=55504a90-95cc-48ca-8f1c-5b1e3bab4e4a"
+    },
+    "orderDetail": {
+      "path": "pages/order-detail/index",
+      "query": "id=a8d33f87-4afe-45d0-8467-30fc88e5b16f"
+    },
+    "managementProduct": {
+      "path": "pages/management-product/index",
+      "query": "id=1cb90c81-3f46-430d-ab17-823c1d621000"
+    },
+    "managementOrderDetail": {
+      "path": "pages/management-order-detail/index",
+      "query": "id=a8d33f87-4afe-45d0-8467-30fc88e5b16f"
+    },
+    "managementSupportChat": {
+      "path": "pages/management-support-chat/index",
+      "query": "id=7737a4cf-067f-4c46-b661-e0b371501094"
+    },
+    "post": {
+      "path": "pages/post/index",
+      "query": "id=brand-scalp-ritual"
+    },
+    "legal": {
+      "path": "pages/legal/index",
+      "query": "type=privacy"
+    }
+  },
+  "facts": {
+    "pendingOrderId": "a8d33f87-4afe-45d0-8467-30fc88e5b16f",
+    "cancelledOrderId": "be199d23-8494-4d80-b02f-5d3c52c6e09e",
+    "productId": "1cb90c81-3f46-430d-ab17-823c1d621000",
+    "productCode": "synthetic-acceptance-serum",
+    "skuId": "595c21be-b7e6-4bc9-bcf6-afad3987b68f",
+    "addressId": "49fb07b6-6471-4122-887c-97316347df14",
+    "supportConversationId": "7737a4cf-067f-4c46-b661-e0b371501094",
+    "careCycleId": "a8faf575-6458-47d9-a037-f90640955a08",
+    "taskId": "3fdd83b1-3d0b-4434-be14-12880c1f02fb",
+    "submissionId": "55504a90-95cc-48ca-8f1c-5b1e3bab4e4a",
+    "shareId": "e6192e76a4404ecc8e76e5965829141a"
+  },
+  "assertions": {
+    "protectedReadCount": 7,
+    "orderFlowEnabled": true,
+    "paymentAvailable": false,
+    "credentialsOrTokensPersisted": false
+  }
+}

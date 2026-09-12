@@ -1,13 +1,13 @@
 page {
   --cisme-ink: #352a3a;
   --cisme-ink-deep: #2f2149;
-  --cisme-muted: #817788;
+  --cisme-muted: #75697a;
   --cisme-plum: #56306f;
   --cisme-plum-deep: #321d48;
   --cisme-lilac: #eee4f2;
   --cisme-line: rgba(78, 47, 91, .12);
   --cisme-surface: rgba(255, 252, 255, .78);
-  --cisme-text-micro: 10px;
+  --cisme-text-micro: 11px;
   --cisme-text-small: 12px;
   --cisme-text-body: 14px;
   --cisme-text-action: 16px;
@@ -24,7 +24,8 @@ text,
 image,
 button,
 input,
-textarea {
+textarea,
+scroll-view {
   box-sizing: border-box;
 }
 
@@ -59,7 +60,7 @@ image {
 }
 
 .eyebrow {
-  color: #817788;
+  color: #75697a;
   font-family: Georgia, "Times New Roman", serif;
   font-size: var(--cisme-text-small);
   letter-spacing: 5rpx;
@@ -77,7 +78,7 @@ image {
 }
 
 .subtitle {
-  color: #817788;
+  color: #75697a;
   font-size: var(--cisme-text-small);
   line-height: 1.65;
 }
@@ -213,7 +214,7 @@ image {
 
 .error-scene__eyebrow {
   margin-top: 24rpx;
-  color: #806c8a;
+  color: #75697a;
   font: 600 var(--cisme-text-small)/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
   letter-spacing: 4rpx;
 }
@@ -355,7 +356,7 @@ image {
 .list-item__meta {
   display: block;
   margin-top: 4rpx;
-  color: #817788;
+  color: #75697a;
   font-size: var(--cisme-text-small);
   line-height: 1.45;
 }
@@ -384,7 +385,7 @@ image {
 .field__label {
   display: block;
   margin-bottom: 10rpx;
-  color: #817788;
+  color: #75697a;
   font-size: var(--cisme-text-small);
 }
 

@@ -47,6 +47,12 @@ function attributeValue(tag: string, name: string): string | null | undefined {
 }
 
 describe("native mini program boundary", () => {
+  it("keeps internal pricing rule identifiers out of the buyer checkout surface", async () => {
+    const checkout = await readFile(resolve("apps/miniprogram/pages/checkout/index.wxml"), "utf8");
+    expect(checkout).not.toContain("quote.pricingRuleVersion");
+    expect(checkout).toContain("价格会在提交前再次确认");
+  });
+
   it("contains no React DOM, browser globals or deferred social routes", async () => {
     const source = await sources(resolve("apps/miniprogram"));
     for (const forbidden of ["react-dom", "window.", "document.", "localStorage", "pages/growth", "pages/messages", "pages/comments", "pages/search", "pages/cart", "pages/coupons"]) expect(source).not.toContain(forbidden);
@@ -77,7 +83,7 @@ describe("native mini program boundary", () => {
   it("keeps native typography and hit targets on the frozen legibility tokens", async () => {
     const appStyle = await readFile(resolve("apps/miniprogram/app.wxss"), "utf8");
     for (const token of [
-      "--cisme-text-micro: 10px",
+      "--cisme-text-micro: 11px",
       "--cisme-text-small: 12px",
       "--cisme-text-body: 14px",
       "--cisme-text-action: 16px",
@@ -113,7 +119,9 @@ describe("native mini program boundary", () => {
 
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
-      "checkout/index.wxml": 2,
+      "checkout/index.wxml": 3,
+      "management-catalog/index.wxml": 1,
+      "management-product/index.wxml": 1,
       "settings/index.wxml": 1,
       "post/index.wxml": 1,
       "privacy-rights/index.wxml": 1,
@@ -188,16 +196,16 @@ describe("native mini program boundary", () => {
       legal: ["back", "load", "privacyRights"],
       management: ["back", "retry", "openSupport", "openCatalog", "openOrders"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
-      "management-product": ["back", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
+      "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
       "management-order-detail": ["back", "load"],
       "management-support": ["back", "open", "retry"],
-      "management-support-chat": ["back", "openContext", "loadOlder", "retry", "claim", "suggest", "send", "resolve", "closeContext"],
+      "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "claim", "suggest", "send", "resolve", "closeContext"],
       points: ["back", "openShop", "load"],
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
       "privacy-rights": ["back", "submit", "load", "login", "@feedback"],
-      product: ["back", "galleryPrevious", "galleryNext", "stopGallery", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
-      checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "confirmOrder"],
+      product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
+      checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "load", "cancel"],
       profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openManagement", "openTasks", "openSettings", "load", "retryTasks"],
@@ -206,7 +214,7 @@ describe("native mini program boundary", () => {
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
       submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
-      support: ["back", "loadOlder", "retry", "@disabled", "send", "requestHuman"],
+      support: ["back", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],
       task: ["back", "continueSubmission", "load", "back", "goCommunity", "claim", "@disabled", "continueSubmission"]
     };
 
@@ -231,6 +239,31 @@ describe("native mini program boundary", () => {
         expect(logic, `${route}.${handler}`).toMatch(new RegExp(`(?:async\\s+)?${handler}\\s*\\(`));
       }
     }
+  });
+
+  it("keeps both chat composers native, height-bounded, and honest about attachment capability", async () => {
+    const memberMarkup = await readFile(resolve("apps/miniprogram/pages/support/index.wxml"), "utf8");
+    const memberStyles = await readFile(resolve("apps/miniprogram/pages/support/index.wxss"), "utf8");
+    const operatorMarkup = await readFile(resolve("apps/miniprogram/pages/management-support-chat/index.wxml"), "utf8");
+    const operatorStyles = await readFile(resolve("apps/miniprogram/pages/management-support-chat/index.wxss"), "utf8");
+
+    expect(memberMarkup).not.toContain("support-plus");
+    expect(memberMarkup).not.toContain(">＋<");
+    expect(memberMarkup).toContain('bindtap="openImageSheet"');
+    expect(memberMarkup).toContain('bindtap="openAttachmentSheet"');
+    expect(memberMarkup).toContain('/assets/icons/composer-image-plum.svg');
+    expect(memberMarkup).toContain('/assets/icons/composer-paperclip-plum.svg');
+    expect(memberMarkup).toContain('/assets/icons/composer-send-white.svg');
+    expect(memberMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="true"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
+    expect(memberMarkup).toContain('bindkeyboardheightchange="onKeyboardHeightChange"');
+    expect(memberStyles).toMatch(/\.support-input\s*\{[^}]*min-height:\s*224rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*22rpx 22rpx 104rpx;/s);
+    expect(memberStyles).toMatch(/\.support-composer__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
+
+    expect(operatorMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="true"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
+    expect(operatorMarkup).not.toContain('bindtap="openImageSheet"');
+    expect(operatorMarkup).not.toContain('bindtap="openAttachmentSheet"');
+    expect(operatorStyles).toMatch(/\.operator-input\s*\{[^}]*min-height:\s*224rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*22rpx 22rpx 104rpx;/s);
+    expect(operatorStyles).toMatch(/\.operator-compose__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
   });
 
   it("pins the Web-truth button baselines and fixed action geometry", async () => {

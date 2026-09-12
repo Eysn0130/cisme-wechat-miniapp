@@ -20,6 +20,6 @@ CISME has one WeChat member identity, one PostgreSQL database and one Fastify AP
 
 ## Consequences
 
-The mobile flow is reliable on the existing Fastify/PostgreSQL footprint and adds no Redis, queue, WebSocket server, Chatwoot, Dify or LangGraph dependency. Shared-team unread is sufficient for R2; per-agent read state, attachments, SLA, notifications and AI suggested replies are future bounded slices.
+The mobile flow is reliable on the existing Fastify/PostgreSQL footprint and adds no Redis, queue, WebSocket server, Chatwoot, Dify or LangGraph dependency. This foundation originally deferred presence, attachments and order links; ADR 0010 now specifies and implements their bounded local successor without changing the single-conversation authority. Per-agent read state, SLA, notifications and real AI suggested replies remain future bounded slices.
 
 References: [WeChat `wx.connectSocket`](https://developers.weixin.qq.com/miniprogram/dev/api/network/websocket/wx.connectSocket.html), [Chatwoot inbox/conversation model](https://www.chatwoot.com/hc/user-guide/articles/1677492191-adding-inboxes), [Chatwoot conversation controller](https://github.com/chatwoot/chatwoot/blob/develop/app/controllers/api/v1/accounts/conversations_controller.rb).

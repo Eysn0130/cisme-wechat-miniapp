@@ -1,0 +1,431 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-11T21:07:51.741Z",
+  "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+  "environment": {
+    "tool": "WeChat DevTools Stable 2.02.2608070 + wechatide 0.3.9",
+    "scope": "local_devtools_synthetic_nonproduction",
+    "origin": "http://127.0.0.1:18080",
+    "database": {
+      "name": "cisme_test",
+      "migrationCount": 35,
+      "latestMigration": "202609120001_support_commercial_chat.sql"
+    }
+  },
+  "screenshots": [
+    {
+      "id": "01-member-empty",
+      "title": "空会话",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/01-member-empty.png",
+      "sha256": "1f4c636d4caa48789ce6617816d06bda442e7e0bc6a2eca80a480aa98b0c9c88",
+      "bytes": 77621,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "02-member-user-only",
+      "title": "仅用户消息",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/02-member-user-only.png",
+      "sha256": "8dfe42b43cd174944d4c10cf803b32c4f4e5088fde2aedf238ceaaee37092976",
+      "bytes": 66502,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "03-member-ai-conversation",
+      "title": "AI 身份明确的会话",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/03-member-ai-conversation.png",
+      "sha256": "fee26fba7d72cd95e718f9be41e6f1953e9d46b5e5b475b4a4256c6ddedbdcdb",
+      "bytes": 99342,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "04-member-waiting-human",
+      "title": "等待人工",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/04-member-waiting-human.png",
+      "sha256": "2139557cee347a3602079c6fc6805b024972fa4b0869b4a655fac24f707d0828",
+      "bytes": 97188,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "05-member-human-assigned-neutral",
+      "title": "已分配但无在线心跳",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/05-member-human-assigned-neutral.png",
+      "sha256": "32c6d40e00853ac66afa932ae7de5ebaa4d5e14d1455e94182231eb99e79a710",
+      "bytes": 120372,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "06-member-human-online",
+      "title": "真实心跳在线语义",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/06-member-human-online.png",
+      "sha256": "236e731d9091945599054484eaef3f2c0bc79a6a4e530726196dc42dce8a3c28",
+      "bytes": 121053,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "07-member-human-typing",
+      "title": "人工正在输入",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/07-member-human-typing.png",
+      "sha256": "44c808607db0764a0e02071320d21e6e7a09ea15664fc93c4726fc26bfeaef41",
+      "bytes": 126198,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "08-member-mixed-handoff",
+      "title": "AI 到人工交接与系统事件",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/08-member-mixed-handoff.png",
+      "sha256": "b0a94d023fd1b0c6d22dfd7a7070f38e156ab60669411f7067ff239b3f17e68a",
+      "bytes": 131840,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "09-member-image-message",
+      "title": "安全图片消息",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/09-member-image-message.png",
+      "sha256": "8e108edee557b36bd26788f2952dc61d088ad89a0faa6f042dc75d4c3a225f5c",
+      "bytes": 164775,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "10-member-order-card",
+      "title": "本人订单卡片",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/10-member-order-card.png",
+      "sha256": "0006b8a048f7d66cc120ceb1b01fb7b0d11f4e0815df62de218a1eabcaf6692e",
+      "bytes": 144300,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "11-member-send-failed",
+      "title": "发送失败且草稿保留",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/11-member-send-failed.png",
+      "sha256": "30773d4dc087d3e68596964bb7e4328e29d62740d176eddb6c72b3f0fd162d59",
+      "bytes": 148297,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "12-member-unread-history",
+      "title": "读历史时两条新消息",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/12-member-unread-history.png",
+      "sha256": "a1daffeb60a5a84e60a2113537e04cabf70ab92e45dc62e8639aaa6e3726b871",
+      "bytes": 137825,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "13-member-resolved",
+      "title": "已结束会话",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/13-member-resolved.png",
+      "sha256": "f37e4dd2b9af10512b7b161b75cbecf8c2c65662566bc04258f5ad67b7ae1afe",
+      "bytes": 137299,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "14-member-multiline-composer",
+      "title": "多行输入与聚焦输入区",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/14-member-multiline-composer.png",
+      "sha256": "bfb7d2e488e306b2b9eb2d500e98aae62490b4c56e2e80f0f62b654d18b28444",
+      "bytes": 134918,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "15-member-long-message",
+      "title": "长消息排版",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/15-member-long-message.png",
+      "sha256": "601d73d697c2ff8b31cc54a55ad5945a0bdfd996787ad1851ec48ad6f609d014",
+      "bytes": 169558,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "16-member-attachment-sheet",
+      "title": "附件 Bottom Sheet",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/16-member-attachment-sheet.png",
+      "sha256": "213600fbd3078c82ad6a4fd21f89228cde9f442f1aeb7a1d3f7bec4e69ecc246",
+      "bytes": 128587,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "17-member-image-upload-failed",
+      "title": "图片失败独立重传",
+      "route": "pages/support/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/17-member-image-upload-failed.png",
+      "sha256": "d9381b37438bbdef1d38c1cebcf4c5ef63a94ae4bc485a8c76b726d022e2c984",
+      "bytes": 145276,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "18-admin-member-typing",
+      "title": "管理员端会员正在输入",
+      "route": "pages/management-support-chat/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/18-admin-member-typing.png",
+      "sha256": "8aa87244a86d48bd2276724bf1c7bbc80fa2f819c7910a90272dc98e2b61e85c",
+      "bytes": 142344,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "19-admin-image-order",
+      "title": "管理员端图片与订单卡片",
+      "route": "pages/management-support-chat/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/19-admin-image-order.png",
+      "sha256": "9ae3b6159e8ab76adc5915de1578158944bda34472f07aa0750b6dccd6ad5e28",
+      "bytes": 150941,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "20-admin-context-audited",
+      "title": "管理员必要信息面板",
+      "route": "pages/management-support-chat/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/20-admin-context-audited.png",
+      "sha256": "e7eab6656961c5800ece9a5ca3657761b1a754b2f9b8a50766d483e1d380b0ab",
+      "bytes": 128264,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    },
+    {
+      "id": "21-admin-resolved",
+      "title": "管理员已结束状态",
+      "route": "pages/management-support-chat/index",
+      "authority": "runtime_presentation_fixture",
+      "file": "screenshots/21-admin-resolved.png",
+      "sha256": "e4827d9f7e3ca33df3f3405f55d84e124f9e3bfc105fcc793920971bf219a0b0",
+      "bytes": 134181,
+      "widthPx": 484,
+      "heightPx": 1048,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION"
+    }
+  ],
+  "supplementalEvidence": [
+    {
+      "file": "member-human-assigned-neutral.png",
+      "sha256": "374d8ff4ef8536f765a636987d9cf3011b622fad2c6d67e1ba938d7d89e4e8a7",
+      "bytes": 441712,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "id": "member-human-assigned-neutral-local-api",
+      "authority": "isolated_loopback_api_runtime",
+      "result": "PASS_NATIVE_DEVTOOLS_LOCAL_API",
+      "qualification": "Rendered from the isolated cisme_test API and current member session; assigned human has no valid operator heartbeat, so the header remains neutral."
+    },
+    {
+      "file": "screenshots/22-member-large-font-23.png",
+      "sha256": "f0c8a68d2d7beb0b12a65622564b791260bec593b11d5a70062bbd7dfc2b584b",
+      "bytes": 78026,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "id": "22-member-large-font-23",
+      "authority": "isolated_loopback_api_plus_devtools_font_size_23",
+      "result": "PASS_NATIVE_DEVTOOLS_LARGE_FONT_PRESENTATION",
+      "qualification": "WeChat DevTools fontSizeSetting 23 presentation check; not physical-device accessibility evidence."
+    }
+  ],
+  "recordings": [
+    {
+      "id": "A-user-send-human-typing-reply",
+      "file": "recordings/A-user-send-human-typing-reply.mov",
+      "sha256": "385fa6a26fd7c979759e8a95eb6f8fbfb151b852142c5ba3ecbb0cc417b65c0b",
+      "bytes": 979793,
+      "capture": "macOS screencapture of the visible WeChat DevTools simulator region",
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "stream": {
+        "codec_name": "h264",
+        "width": 484,
+        "height": 1048,
+        "duration": "9.983333"
+      },
+      "qualification": "Genuine native simulator screen recording of deterministic local presentation states; not physical-device, public-network, system media-picker, or end-to-end upload evidence."
+    },
+    {
+      "id": "B-ai-handoff-human-takeover",
+      "file": "recordings/B-ai-handoff-human-takeover.mov",
+      "sha256": "53421a1fede020d3e02a68d4d8b224dd3fbda97e437bb517cba8c9eaa42d5759",
+      "bytes": 955661,
+      "capture": "macOS screencapture of the visible WeChat DevTools simulator region",
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "stream": {
+        "codec_name": "h264",
+        "width": 484,
+        "height": 1048,
+        "duration": "9.983333"
+      },
+      "qualification": "Genuine native simulator screen recording of deterministic local presentation states; not physical-device, public-network, system media-picker, or end-to-end upload evidence."
+    },
+    {
+      "id": "C-attachment-sheet-upload-preview-message",
+      "file": "recordings/C-attachment-sheet-upload-preview-message.mov",
+      "sha256": "acf508da85111de463d9863170663c32bc54167236492c5d2f263e1b760e6f11",
+      "bytes": 1503294,
+      "capture": "macOS screencapture of the visible WeChat DevTools simulator region",
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "stream": {
+        "codec_name": "h264",
+        "width": 484,
+        "height": 1048,
+        "duration": "9.973333"
+      },
+      "qualification": "Genuine native simulator screen recording of deterministic local presentation states; not physical-device, public-network, system media-picker, or end-to-end upload evidence."
+    },
+    {
+      "id": "D-order-card-member-to-admin",
+      "file": "recordings/D-order-card-member-to-admin.mov",
+      "sha256": "07bd21fefd71dd85260c2ed15308e2bfc5508bf820a2746d11990597d2b0ba35",
+      "bytes": 1214082,
+      "capture": "macOS screencapture of the visible WeChat DevTools simulator region",
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "stream": {
+        "codec_name": "h264",
+        "width": 484,
+        "height": 1048,
+        "duration": "9.973333"
+      },
+      "qualification": "Genuine native simulator screen recording of deterministic local presentation states; not physical-device, public-network, system media-picker, or end-to-end upload evidence."
+    }
+  ],
+  "derivedArtifacts": [
+    {
+      "file": "recordings/A-user-send-human-typing-reply-keyframes.png",
+      "sha256": "3245a0f894f75bb0bb3299eb4f8dba686709a5a4d5b757228dcd118793e3940a",
+      "bytes": 129817,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "kind": "recording_keyframes",
+      "sourceRecording": "recordings/A-user-send-human-typing-reply.mov"
+    },
+    {
+      "file": "recordings/B-ai-handoff-human-takeover-keyframes.png",
+      "sha256": "e22d87d67bb8ca4befd06267d7db831f298dc5f7e07689d2bd9d431e211c5c4f",
+      "bytes": 135755,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "kind": "recording_keyframes",
+      "sourceRecording": "recordings/B-ai-handoff-human-takeover.mov"
+    },
+    {
+      "file": "recordings/C-attachment-sheet-upload-preview-message-keyframes.png",
+      "sha256": "7b704b90c27557346177e185f0c6700d682323e1189b0ad8be7dfccbe1845b31",
+      "bytes": 195261,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "kind": "recording_keyframes",
+      "sourceRecording": "recordings/C-attachment-sheet-upload-preview-message.mov"
+    },
+    {
+      "file": "recordings/D-order-card-member-to-admin-keyframes.png",
+      "sha256": "f50a702467e3d3ac3e80157131fa62e363f95008387f1099191aaf71ea3d80b5",
+      "bytes": 194723,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "kind": "recording_keyframes",
+      "sourceRecording": "recordings/D-order-card-member-to-admin.mov"
+    },
+    {
+      "file": "recordings/recordings-contact-sheet.png",
+      "sha256": "67612eb63d9fbce95e8315d62f946e5cbe061d91798ace70a4e4c13444afa342",
+      "bytes": 666414,
+      "packageSourceSha256": "005f03d43a58b106515df69c28fd30413af41afb3a6d760c5e4bb2ea6156cb52",
+      "kind": "recording_contact_sheet"
+    }
+  ],
+  "contactSheet": {
+    "file": "support-state-contact-sheet.png",
+    "sha256": "0195fb9ea85d19c131a5c80bea650fc710a645fc2ee9dfa854582ca87d5b2c26",
+    "bytes": 1474219
+  },
+  "result": "PASS_NATIVE_DEVTOOLS_PRESENTATION_FIXTURES_WITH_QUALIFICATIONS",
+  "exclusions": [
+    "physical iOS",
+    "physical Android",
+    "system media picker automation",
+    "public HTTPS",
+    "formal Mini Program upload",
+    "production identity",
+    "real payment",
+    "real user data"
+  ]
+}

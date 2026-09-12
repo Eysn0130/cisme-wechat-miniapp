@@ -190,6 +190,7 @@ describe("mini program submission flow safety", () => {
     const tabView = await source("apps/miniprogram/custom-tab-bar/index.wxml");
     const post = await source("apps/miniprogram/pages/post/index.ts");
     const product = await source("apps/miniprogram/pages/product/index.ts");
+    const productView = await source("apps/miniprogram/pages/product/index.wxml");
 
     expect(account).toContain("if (this.data.loading && this.data.identityCommitStarted)");
     expect(account).toContain("身份请求已发送");
@@ -240,7 +241,8 @@ describe("mini program submission flow safety", () => {
       expect(route).toContain("wx.hideShareMenu()");
       expect(route).toContain("wx.showShareMenu");
     }
-    expect(product).toContain("nativeMode: true");
+    expect(productView).toContain("autoplay=\"{{false}}\"");
+    expect(product).not.toContain("createIntersectionObserver");
   });
 
   it("serializes draft loads and drops async work after page unload", async () => {
@@ -313,8 +315,8 @@ describe("mini program submission flow safety", () => {
     expect(communityView).toContain('bindtap="loadTasks"');
     expect(profileView).toContain("同步失败 · 点此重试");
     expect(profileView).toContain('wx:if="{{tasksError && member}}"');
-    expect(profileView).toContain("真实购买与配送仍未开放");
-    expect(shopView).toContain("已通过资质门禁并上架");
+    expect(profileView).toContain("微信支付与真实配送尚未开放");
+    expect(shopView).toContain("已完成资质确认并上架");
     expect(shopView).toContain("结算与支付尚未开放");
     expect(editorial).toContain("内容授权尚待确认");
   });

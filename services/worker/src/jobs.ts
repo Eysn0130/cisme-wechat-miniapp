@@ -139,6 +139,15 @@ export async function sweepExpired(pool: pg.Pool, now = new Date()): Promise<voi
   INSERT INTO media_cleanup_queue(media_id, object_key, reason, next_attempt_at)
   SELECT id, object_key, 'authorization_expired', $1 FROM expired
   ON CONFLICT DO NOTHING`, [now]);
+  await pool.query(`WITH expired AS (
+    UPDATE media_object SET upload_state='failed'
+    WHERE support_conversation_id IS NOT NULL AND bound_support_message_id IS NULL
+      AND upload_state IN ('authorized','uploaded') AND support_expires_at <= $1
+    RETURNING id,object_key
+  )
+  INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
+  SELECT id,object_key,'support_orphan',$1 FROM expired
+  ON CONFLICT DO NOTHING`, [now]);
 }
 
 export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates) {

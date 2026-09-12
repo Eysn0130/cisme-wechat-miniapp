@@ -36,7 +36,7 @@ const acceptanceFixture = fixtureSource
 if (acceptanceFixture) {
   if (acceptanceFixture.scope !== "local_devtools_synthetic_nonproduction") throw new Error("Acceptance fixture scope is not local synthetic");
   if (acceptanceFixture.origin !== "http://127.0.0.1:18080") throw new Error("Acceptance fixture origin mismatch");
-  if (!/(^|_)test(_|$)/.test(acceptanceFixture.database.name) || acceptanceFixture.database.migrationCount !== 34) throw new Error("Acceptance fixture database is not current test schema");
+  if (!/(^|_)test(_|$)/.test(acceptanceFixture.database.name) || acceptanceFixture.database.migrationCount !== 35 || acceptanceFixture.database.latestMigration !== "202609120001_support_commercial_chat.sql") throw new Error("Acceptance fixture database is not current test schema");
   if (!acceptanceFixture.assertions.orderFlowEnabled || acceptanceFixture.assertions.paymentAvailable || acceptanceFixture.assertions.credentialsOrTokensPersisted) {
     throw new Error("Acceptance fixture boundary assertions failed");
   }
@@ -276,16 +276,22 @@ const sourceManifest = {
 };
 await writeFile(join(outputRoot, "source-manifest.json"), JSON.stringify(sourceManifest, null, 2) + "\n");
 
+const appStyle = await readFile(join(miniProgramRoot, "app.wxss"), "utf8");
+function sourceToken(name: string): string {
+  const value = appStyle.match(new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*([^;]+);`))?.[1]?.trim();
+  if (!value) throw new Error(`Missing current Mini Program design token: ${name}`);
+  return value;
+}
 const designTokens = {
   schemaVersion: 1,
   runtimeSource: "apps/miniprogram/app.wxss",
   colors: {
-    ink: "#352a3a", inkDeep: "#2f2149", muted: "#817788", brand: "#56306f", brandDeep: "#321d48",
-    lilac: "#eee4f2", pageBackground: "#f7f2f8", surface: "rgba(255,252,255,.78)", border: "rgba(78,47,91,.12)",
+    ink: sourceToken("--cisme-ink"), inkDeep: sourceToken("--cisme-ink-deep"), muted: sourceToken("--cisme-muted"), brand: sourceToken("--cisme-plum"), brandDeep: sourceToken("--cisme-plum-deep"),
+    lilac: sourceToken("--cisme-lilac"), pageBackground: "#f7f2f8", surface: sourceToken("--cisme-surface"), border: sourceToken("--cisme-line"),
     errorText: "#8d3150", errorSurface: "#f8e8ed"
   },
-  typography: { microPx: 10, smallPx: 12, bodyPx: 14, actionPx: 16, titleRpx: 46, sans: "system/PingFang SC", display: "Songti SC fallback" },
-  interaction: { minimumHitTargetPx: 44, primaryHeightPx: 50, preferredTransitionMs: "150-220", reducedMotion: "page-specific media queries" },
+  typography: { microPx: parseFloat(sourceToken("--cisme-text-micro")), smallPx: parseFloat(sourceToken("--cisme-text-small")), bodyPx: parseFloat(sourceToken("--cisme-text-body")), actionPx: parseFloat(sourceToken("--cisme-text-action")), titleRpx: 46, sans: "system/PingFang SC", display: "Songti SC fallback" },
+  interaction: { minimumHitTargetPx: parseFloat(sourceToken("--cisme-hit-target")), primaryHeightPx: 50, preferredTransitionMs: "150-220", reducedMotion: "page-specific media queries" },
   geometry: { pageHorizontalPaddingRpx: 28, cardRadiusRpx: 32, fieldRadiusRpx: 21, pillRadius: "999rpx" },
   evidenceStatus: "SOURCE_EXTRACTED_NOT_DEVICE_VERIFIED"
 };
@@ -304,7 +310,7 @@ await writeFile(join(outputRoot, "performance-summary.json"), JSON.stringify(per
 
 const issues = [
   ["issue_id","severity","route/flow","role","source revision","reproduction","evidence","expected","actual","root cause","fix scope","verification","status"],
-  ["BACKEND-HEALTH-001","BLOCKER","all API-backed native routes","all roles",sourceRevision,"Launch the current DevTools develop build before starting a matching local acceptance API","environment-health.json + route-runtime-health.json","Configured local origin is listening, current schema is loaded, and protected routes have a valid session","The first diagnostic sweep targeted http://127.0.0.1:18080 with no listener; the unrelated API on 3100 used an older cisme database and had the order gate off","Runtime/configuration mismatch, not slow page rendering: no backend existed at the configured origin, and no authenticated session existed","Isolated loopback-only acceptance runner on cisme_test schema 34, synthetic fixtures, real Account-page dev login, and preflight assertions","ready/legal/order boundary pass; session persisted; all 27 routes settled with loading=false and empty error","FIXED_RETESTED_LOCAL_SYNTHETIC"],
+  ["BACKEND-HEALTH-001","BLOCKER","all API-backed native routes","all roles",sourceRevision,"Launch the current DevTools develop build before starting a matching local acceptance API","environment-health.json + route-runtime-health.json","Configured local origin is listening, current schema is loaded, and protected routes have a valid session","The first diagnostic sweep targeted http://127.0.0.1:18080 with no listener; the unrelated API on 3100 used an older cisme database and had the order gate off","Runtime/configuration mismatch, not slow page rendering: no backend existed at the configured origin, and no authenticated session existed","Isolated loopback-only acceptance runner on cisme_test schema 35, synthetic fixtures, real Account-page dev login, and preflight assertions","ready/legal/order boundary pass; session persisted; all 27 routes settled with loading=false and empty error","FIXED_RETESTED_LOCAL_SYNTHETIC"],
   ["EVIDENCE-001","MAJOR","all native routes","reviewer",sourceRevision,"Use wechatide simulator_screenshot after authenticated health preflight","routes.csv + contact-sheets/healthy-routes.png","Raw native frame for every reachable route","The earlier diagnostic pack was unauthenticated and one-second capture caught transitional/error states; the healthy pack uses route-specific success queries after API/session preflight","Missing health gate and insufficient stability window in the earlier capture procedure","Require environment/session preflight, one clean bridge recovery, route-specific queries, four-second stability, then loading/error assertions",`27/27 current-source success-state native frames captured at ${screenshotIndex[0]?.widthPx ?? "unknown"}×${screenshotIndex[0]?.heightPx ?? "unknown"}; state/interaction/device matrices remain open`,"FIXED_RETESTED"],
   ["REMOTE-HTTPS-001","BLOCKER","staging request path","all roles",sourceRevision,"TLS handshake with correct staging-api.cisme.cn SNI","existing deployment report","Valid certificate and HTTP response on normal DNS+SNI path","Correct SNI closes unexpectedly; direct-IP diagnostic is not normal-path proof","Remote listener/vhost/runtime not inspectable without bounded staging channel","Exact staging-only TAT/SSH bootstrap and layered diagnosis","No new remote action in this batch","OPEN"],
   ["DEVICE-IOS-001","MAJOR","cross-route iOS acceptance","all roles",sourceRevision,"Run current source on representative iPhone + 4G","routes.csv","Current-source login, keyboard, safe area, weak-network and core-flow evidence","No current-source iOS page frames or interactions","Requires physical device and user permission actions","Owner-assisted device session with synthetic account","0 device sessions","BLOCKED_OWNER_ASSISTED_CAPTURE"],
@@ -323,7 +329,7 @@ await writeFile(join(outputRoot, "README.md"), `# CISME Visual Review Pack — $
 `- Dynamic route inventory: ${routes.length}/${routes.length} routes indexed from \`app.json\`.\n` +
 `- Current-source raw native screenshots: ${sourceManifest.capture.capturedRawScreenshots}/${routes.length}; each is an untouched ${screenshotIndex[0]?.widthPx ?? "unknown"}×${screenshotIndex[0]?.heightPx ?? "unknown"} simulator frame.\n` +
 `- Interaction recordings: 0; iOS sessions: 0; Android sessions: 0.\n` +
-`- The earlier diagnostic pack exposed two real blockers: the configured loopback origin had no listener, and protected pages had no authenticated session. This pack was captured only after a loopback-only schema-34 acceptance API passed ready/legal/order checks and the Account UI completed its explicit local-fixture consent/login flow.\n` +
+`- The earlier diagnostic pack exposed two real blockers: the configured loopback origin had no listener, and protected pages had no authenticated session. This pack was captured only after a loopback-only schema-35 acceptance API passed ready/legal/order checks and the Account UI completed its explicit local-fixture consent/login flow.\n` +
 `- All 27 route-specific queries then settled with \`loading=false\`, an empty page error and the expected current route before capture. One clean project-window restart was used to recover the screenshot bridge; no web mock, generated image or historical frame is relabelled as current native evidence.\n` +
 `- Final visual status: **BLOCKED**. Source/package tests may pass while visual/device evidence remains blocked.\n\n` +
 `## Contents\n\n` +
@@ -353,7 +359,7 @@ await writeFile(join(outputRoot, "journeys.md"), `# Review journeys\n\n` +
 
 await writeFile(join(outputRoot, "capture-manual.md"), `# Bounded native capture procedure\n\n` +
 `1. This procedure is only for the disposable local synthetic boundary. Confirm the configured database is loopback \`cisme_test\`; never point the runner at staging, production or a real-user database.\n` +
-`2. Start \`npm run miniprogram:acceptance\`. The command requires an explicit reset, binds only \`127.0.0.1:18080\`, loads schema 34 and synthetic fixtures, keeps payment unavailable, and writes a credential-free fixture manifest under \`tmp/miniprogram-acceptance\`.\n` +
+`2. Start \`npm run miniprogram:acceptance\`. The command requires an explicit reset, binds only \`127.0.0.1:18080\`, loads schema 35 and synthetic fixtures, keeps payment unavailable, and writes a credential-free fixture manifest under \`tmp/miniprogram-acceptance\`.\n` +
 `3. Open \`${miniProgramRoot}\` in WeChat DevTools, confirm AppID \`${project.appid}\`, base library \`${project.libVersion}\`, develop mode and API origin \`http://127.0.0.1:18080\`. Use the Account page to explicitly accept the local fixture notice and perform the development login; do not inject a session token.\n` +
 `4. Before any screenshot, require ready/legal/order-boundary checks, a stored session, the fixed synthetic development identity and one protected-read proof. Approve the separate project-action permission prompt without changing business authorization, privacy checks or TLS validation.\n` +
 `5. Restart the project window at most once if the bridge is stale, compile once, then try one page. If \`waitForAutomatorReady\` recurs, stop automation and use the built-in simulator screenshot control.\n` +

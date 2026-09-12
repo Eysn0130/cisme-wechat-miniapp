@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "reviewId": "u0-u1-949fcf9d-20260912T0220Z",
+  "sourceRevision": "local-worktree:8e843a6b0a28+949fcf9da6d4",
+  "targets": {
+    "coreContentP95Ms": 2500,
+    "hotApiP95Ms": 400,
+    "hotApiP99Ms": 800,
+    "poolWaitP95Ms": 50,
+    "clickFeedbackTargetMs": 100
+  },
+  "inheritedLocalR1R2Evidence": {
+    "supportFirstMessageP95Ms": 11.76,
+    "supportPollP95Ms": 3.16,
+    "supportSqlP95Ms": 1.24,
+    "scope": "older local parent candidate only"
+  },
+  "currentR4B": {
+    "integrationBehavior": "PASS",
+    "latencyProfile": "UNVERIFIED",
+    "remoteStaging": "BLOCKED",
+    "deviceE2E": "BLOCKED"
+  },
+  "orderListSql": {
+    "before": {
+      "formula": "1 + 2N",
+      "at20Orders": 41,
+      "at50Orders": 101,
+      "addressReads": "N"
+    },
+    "after": {
+      "businessSqlQueries": 2,
+      "addressReads": 0,
+      "testedMemberAndManagementLimits": [20, 50],
+      "verification": "isolated PostgreSQL integration test"
+    }
+  },
+  "supportEmptyPollAt21VisibleMessages": {
+    "beforeSourceShaPrefix": "f6f426c42a18",
+    "beforeSetDataCalls": 1,
+    "beforeSetDataUtf8Bytes": 5966,
+    "afterSourceShaPrefix": "949fcf9da6d4",
+    "afterSetDataCalls": 1,
+    "afterSetDataUtf8Bytes": 333,
+    "afterMessagesReferencePreserved": true,
+    "byteReductionPercent": 94.42,
+    "measurement": "DevTools runtime setData wrapper around one empty poll"
+  },
+  "supportPolling": {
+    "visibleHealthyIntervalSeconds": 5,
+    "visibleHealthyRequestsPerMinute": 12,
+    "failureBackoffSeconds": [5, 10, 20, 30],
+    "sustainedFailureRequestsPerMinuteAtCap": 2,
+    "maximumConcurrentPolls": 1,
+    "hiddenRequestsPerMinute": 0
+  },
+  "composerGeometryPx": {
+    "viewportWidth": 484,
+    "threadWidth": 390,
+    "threadHeight": 609,
+    "composerWidth": 390,
+    "composerHeightAtThreeLines": 144,
+    "threadBottomInset": 144,
+    "newMessageBottomInset": 156
+  },
+  "notLatencyMeasurements": {
+    "beforeCliRoundTripMs": 1920,
+    "afterCliRoundTripMs": 2311,
+    "reason": "includes automation and CLI round trips; must not be reported as API latency"
+  },
+  "methodologyWarning": "Local HTTP, integration-test timing and DevTools CLI round trips are not device or public-network results. Current-source staging, 4G, cold/hot start, frame-time and device API latency remain UNVERIFIED."
+}

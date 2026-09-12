@@ -788,11 +788,20 @@ export class PlatformService {
       await this.assertSwitch(client, "uploads");
       // Every media mutation locks the parent before touching media or storage.
       // Keep this lock through the write so completion cannot verify stale bytes.
-      const parent = await client.query<{ submission_id: string }>("SELECT submission_id FROM media_object WHERE id=$1", [mediaId]);
-      const submissionId = parent.rows[0]?.submission_id;
-      if (!submissionId) throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
-      const submission = await client.query<{ status: string }>("SELECT status FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
-      if (!["draft", "needs_changes", "appealed"].includes(submission.rows[0]?.status ?? "")) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
+      const parent = await client.query<{ submission_id: string | null; support_conversation_id: string | null; support_expires_at: Date | null }>(
+        "SELECT submission_id,support_conversation_id,support_expires_at FROM media_object WHERE id=$1", [mediaId]);
+      const parentRow = parent.rows[0];
+      if (parentRow?.submission_id) {
+        const submission = await client.query<{ status: string }>("SELECT status FROM submission WHERE id=$1 FOR UPDATE", [parentRow.submission_id]);
+        if (!["draft", "needs_changes", "appealed"].includes(submission.rows[0]?.status ?? "")) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
+      } else if (parentRow?.support_conversation_id) {
+        const supportConversation = await client.query<{ status: string }>("SELECT status FROM support_conversation WHERE id=$1 FOR UPDATE", [parentRow.support_conversation_id]);
+        if (!supportConversation.rows[0] || !parentRow.support_expires_at || parentRow.support_expires_at <= now) {
+          throw new DomainError("UPLOAD_UNAVAILABLE", "Support image authorization has expired", 409);
+        }
+      } else {
+        throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
+      }
       const media = await client.query<{ object_key: string; mime_type: string }>("SELECT object_key, mime_type FROM media_object WHERE id=$1 AND upload_state='authorized' FOR UPDATE", [mediaId]);
       const row = media.rows[0];
       if (!row) throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
