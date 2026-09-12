@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "8020a1e113c028945a0ca84b98bdd2147c32918df4d719d17df0ac9660392505",
+  "packageSourceSha256": "f830ba6b218b7415948be03ae3eacd2aef540b62ea9a39be3d1610d0d78c34aa",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -199,6 +199,12 @@
     },
     {
       "route": "pages/community-review/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-author/index",
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": []

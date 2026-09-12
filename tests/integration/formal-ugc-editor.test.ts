@@ -113,6 +113,10 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect(nextPage.nextCursor).toBeNull();
   expect((await openApp.inject({method:"GET",url:"/v1/ugc/posts?q=%E6%90%9C%E7%B4%A2%E8%AF%8D"})).json().items.map((item:{id:string})=>item.id)).toEqual([secondId]);
   expect((await openApp.inject({method:"GET",url:"/v1/ugc/posts?cursor=not-a-cursor"})).statusCode).toBe(422);
+  const authorProfile=await openApp.inject({method:"GET",url:`/v1/ugc/authors/${owner.memberId}`});
+  expect(authorProfile.statusCode).toBe(200);
+  expect(authorProfile.json()).toMatchObject({id:owner.memberId,postCount:2,following:false,isMine:false});
+  expect(JSON.stringify(authorProfile.json())).not.toMatch(/phone|openid|contact|reviewNote/i);
 
   expect((await openApp.inject({method:"GET",url:"/v1/ugc/posts?following=1"})).statusCode).toBe(401);
   expect((await openApp.inject({method:"GET",url:"/v1/ugc/posts?following=1",headers:auth(other)})).json().items).toHaveLength(0);
@@ -126,6 +130,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await openApp.inject({method:"GET",url:"/v1/ugc/posts?following=1",headers:auth(other)})).json().items)
     .toHaveLength(2);
   expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`,headers:auth(other)})).json().following).toBe(true);
+  expect((await openApp.inject({method:"GET",url:`/v1/ugc/authors/${owner.memberId}`,headers:auth(other)})).json().following).toBe(true);
 
   const liked=await openApp.inject({method:"PUT",url:`/v1/ugc/posts/${draft.id}/reaction`,headers:auth(other),payload:{kind:"like",active:true}});
   expect(liked.json()).toMatchObject({count:1,active:true});
@@ -140,6 +145,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await openApp.inject({method:"PUT",url:`/v1/me/ugc/blocks/${owner.memberId}`,headers:auth(other),payload:{active:true}})).statusCode).toBe(200);
   expect((await openApp.inject({method:"GET",url:"/v1/ugc/posts",headers:auth(other)})).json().items).toHaveLength(0);
   expect((await openApp.inject({method:"GET",url:"/v1/ugc/posts?following=1",headers:auth(other)})).json().items).toHaveLength(0);
+  expect((await openApp.inject({method:"GET",url:`/v1/ugc/authors/${owner.memberId}`,headers:auth(other)})).statusCode).toBe(404);
   expect((await pool.query("SELECT count(*)::int AS n FROM ugc_author_follow WHERE follower_member_id=$1",[other.memberId])).rows[0].n).toBe(0);
   const edited=await openApp.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:auth(owner),
     payload:{...imageOnly,title:"未审核标题",body:"新版尚未审核",expectedVersion:6}});

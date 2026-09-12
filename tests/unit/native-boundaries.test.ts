@@ -193,8 +193,9 @@ describe("native mini program boundary", () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
       account: ["back", "openLegalDocuments", "openCrossBorder", "loginTap", "browseCommunity"],
+      "community-author": ["back", "load", "toggleFollow", "openPost"],
       "community-compose": ["back", "retryLoad", "startNew", "openDraft", "chooseImages", "retryImage", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],
-      "community-post": ["back", "load", "toggleFollow", "toggleReaction", "toggleReaction", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
+      "community-post": ["back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
       "community-review": ["back", "load", "reviewMedia", "reviewMedia", "reviewPost", "reviewPost", "publish"],
       community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "openMyPosts", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "openFormalReview", "load", "loadTasks", "openInvite", "openPost"],
       home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "closeCareSession", "advanceCareStep", "selectAssessment", "submitCareSession"],

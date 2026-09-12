@@ -9,6 +9,7 @@ const publicRoutes = [
   "/pages/home/index",
   "/pages/community/index",
   "/pages/community-post/index",
+  "/pages/community-author/index",
   "/pages/post/index",
   "/pages/shop/index",
   "/pages/product/index",

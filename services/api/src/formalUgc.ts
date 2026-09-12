@@ -282,6 +282,26 @@ export class FormalUgcService{
       publicEnabled:true};
   }
 
+  async publicAuthor(memberId:string|undefined,authorId:string){
+    if(!await this.publicEnabled())throw new DomainError("UGC_AUTHOR_NOT_FOUND","作者暂不可见",404);
+    const id=uuid(authorId);
+    const result=await this.pool.query(`SELECT a.id,
+      (SELECT count(*)::int FROM ugc_post p WHERE p.author_member_id=a.id AND p.state='published'
+        AND p.visibility='public') AS post_count,
+      ($2::uuid IS NOT NULL AND EXISTS(SELECT 1 FROM ugc_author_follow f
+        WHERE f.follower_member_id=$2 AND f.followed_member_id=a.id)) AS following
+      FROM member a WHERE a.id=$1 AND a.status='active'
+        AND EXISTS(SELECT 1 FROM ugc_post p WHERE p.author_member_id=a.id
+          AND p.state='published' AND p.visibility='public')
+        AND ($2::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b
+          WHERE b.blocker_member_id=$2 AND b.blocked_member_id=a.id))`,[id,memberId??null]);
+    const row=result.rows[0];
+    if(!row)throw new DomainError("UGC_AUTHOR_NOT_FOUND","作者暂不可见",404);
+    const publicNames=await communityAuthors(this.pool,[id]);
+    return {id,name:publicNames[id]?.name??"CISME 会员",avatar:publicNames[id]?.avatar??"",
+      postCount:row.post_count,following:row.following===true,isMine:memberId===id};
+  }
+
   async publicPost(memberId:string|undefined,postId:string){
     if(!await this.publicEnabled())throw new DomainError("UGC_POST_NOT_FOUND","护理故事暂不可见",404);
     const id=uuid(postId);

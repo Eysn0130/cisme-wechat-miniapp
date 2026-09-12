@@ -115,15 +115,17 @@ export class CommercialMembershipService {
         if (already.code !== code) throw new DomainError("REFERRAL_ALREADY_BOUND", "已确认过推荐关系，不能重复绑定", 409);
         return { confirmed: true, alreadyConfirmed: true, code };
       }
-      const sponsor = (await client.query(`SELECT c.id,c.member_id,c.state,m.state AS membership_state,m.effective_at,m.expires_at,a.status AS account_status
+      const sponsor = (await client.query(`SELECT c.id,c.member_id,c.state,m.state AS membership_state,
+        (m.effective_at<=clock_timestamp() AND (m.expires_at IS NULL OR m.expires_at>clock_timestamp())) AS eligible_now,
+        a.status AS account_status
         FROM commercial_referral_code c JOIN commercial_membership m ON m.member_id=c.member_id
         JOIN member a ON a.id=c.member_id WHERE c.code=$1 FOR SHARE OF c,m,a`, [code])).rows[0];
       if (!sponsor || sponsor.state !== "active" || sponsor.membership_state !== "active" || sponsor.account_status !== "active"
-        || new Date(sponsor.effective_at)>new Date() || (sponsor.expires_at && new Date(sponsor.expires_at)<=new Date()))
+        || sponsor.eligible_now !== true)
         throw new DomainError("REFERRAL_CODE_UNAVAILABLE", "推荐码无效或已停用", 409);
       if (sponsor.member_id === buyer) throw new DomainError("REFERRAL_SELF_FORBIDDEN", "不能确认自己的推荐码", 422);
-      await client.query(`INSERT INTO commercial_referral_relation(referred_member_id,referrer_member_id,referral_code_id,confirmation_key,confirmed_by)
-        VALUES($1,$2,$3,$4,$5)`, [buyer,sponsor.member_id,sponsor.id,key,principalId]);
+      await client.query(`INSERT INTO commercial_referral_relation(referred_member_id,referrer_member_id,referral_code_id,confirmation_key,confirmed_by,confirmed_at)
+        VALUES($1,$2,$3,$4,$5,clock_timestamp())`, [buyer,sponsor.member_id,sponsor.id,key,principalId]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
         VALUES($1,'commercial.referral_confirmed','member',$2,'USER_CONFIRMED_DIRECT_RELATION',$3,$4)`,
         [principalId,buyer,{ referrerMemberId:sponsor.member_id,referralCodeId:sponsor.id },key]);
@@ -246,7 +248,8 @@ export class CommercialMembershipService {
       if(!account || account.status!=="active")throw new DomainError("MEMBER_NOT_ACTIVE","账号不存在或不可用",409);
       const previous=(await client.query("SELECT * FROM commercial_membership WHERE member_id=$1 FOR UPDATE",[target])).rows[0];
       if((previous?.version ?? 0)!==expected)throw new DomainError("MEMBERSHIP_CHANGED","会员资格已变化，请刷新",409);
-      const effective=new Date();const version=expected+1;
+      const effective=(await client.query<{at:Date}>("SELECT clock_timestamp() AS at")).rows[0]!.at;
+      const version=expected+1;
       await client.query(`INSERT INTO commercial_membership(member_id,state,effective_at,expires_at,version,changed_by,change_reason)
         VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(member_id) DO UPDATE SET
         state=$2,effective_at=$3,expires_at=$4,version=$5,changed_by=$6,change_reason=$7,updated_at=now()`,

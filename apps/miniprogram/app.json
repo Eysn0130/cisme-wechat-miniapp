@@ -34,6 +34,7 @@
     ,{ "root": "pages/referral", "pages": ["index"] }
     ,{ "root": "pages/community-compose", "pages": ["index"] }
     ,{ "root": "pages/community-post", "pages": ["index"] }
+    ,{ "root": "pages/community-author", "pages": ["index"] }
     ,{ "root": "pages/community-review", "pages": ["index"] }
   ],
   "window": {

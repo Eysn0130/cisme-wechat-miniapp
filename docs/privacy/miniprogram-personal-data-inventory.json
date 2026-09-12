@@ -313,6 +313,14 @@
       "currentGate": "公开投影白名单；电话、地址、微信号与 OpenID 不公开"
     },
     {
+      "surface": "ugc_public_author_page",
+      "informationType": "作者内部 ID、审核后可公开的昵称/头像与已发布故事数量",
+      "purpose": "在故事详情查看同一作者的公开内容并主动关注",
+      "activation": "访客或登录用户点击公开故事中的作者",
+      "serverStorage": "读取现有 CISME 社区资料及已发布帖子，不新增个人资料副本",
+      "currentGate": "正式社区公开开关、活跃账号、公开帖子与资料投影白名单；屏蔽者本人不可查看"
+    },
+    {
       "surface": "commercial_membership_referral",
       "informationType": "会员资格、稳定推荐码、直接推荐关系和关联订单标识",
       "purpose": "限定一级推荐资格、归属与可审计订单快照",

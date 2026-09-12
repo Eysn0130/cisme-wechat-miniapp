@@ -12,7 +12,7 @@ Page({
   lastSessionToken:"",
   data: { chromeStyle: currentChromeStyle(), postId: "", post: null as PublicPost | null,
     images: [] as Array<{ id: string; src: string; index: number }>, comment: "", commentKey: key(), commentAttempted: false,
-    loading: true, busy: false, error: "", notice: "", epoch: 0 },
+    loading: true, busy: false, authorNavigating:false, error: "", notice: "", epoch: 0 },
   onLoad(query: Record<string, string | undefined>) {
     this.lastSessionToken=getApp<IAppOption>().globalData.sessionToken;
     const id = String(query.id || ""); this.setData({ postId: id });
@@ -23,9 +23,9 @@ Page({
     if(token!==this.lastSessionToken){
       this.lastSessionToken=token;this.data.epoch+=1;
       this.setData({post:null,images:[],comment:"",commentKey:key(),commentAttempted:false,
-        busy:false,notice:"",error:"",loading:true});
+        busy:false,authorNavigating:false,notice:"",error:"",loading:true});
       if(this.data.postId)void this.load();
-    }else if(this.data.post&&this.data.postId)void this.load();
+    }else{this.setData({authorNavigating:false});if(this.data.post&&this.data.postId)void this.load();}
   },
   onUnload() { this.data.epoch += 1; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
@@ -86,6 +86,10 @@ Page({
         this.setData({post:{...this.data.post,following:next}});
     }catch(error){if(epoch===this.data.epoch)this.setData({error:titleOf(error,"关注操作未完成，请重试。")});}
     finally{if(epoch===this.data.epoch)this.setData({busy:false});}
+  },
+  openAuthor(){const id=this.data.post?.authorId;if(!id||this.data.authorNavigating)return;
+    this.setData({authorNavigating:true});
+    wx.navigateTo({url:`/pages/community-author/index?id=${id}`,fail:()=>this.setData({authorNavigating:false})});
   },
   async report() {
     if (!this.data.post || this.data.busy) return;

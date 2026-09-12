@@ -54,8 +54,11 @@ Page({
   async proposeRate(){const detail=this.data.detail;if(!detail||!this.data.canManageRate||this.data.busy)return;
     const first=await wx.showModal({title:"提议会员费率",content:"输入 20–35 之间的百分比。提交后须由另一名授权管理者批准，且只影响生效后的新订单。",editable:true,placeholderText:"例如 20 或 25.5",confirmText:"下一步"});
     if(!first.confirm||!this.data.alive)return;
-    const number=Number((first.content||"").trim());const basisPoints=Math.round(number*100);
-    if(!Number.isFinite(number)||basisPoints<2000||basisPoints>3500){this.setData({actionError:"费率须在 20%–35% 之间。"});return;}
+    const input=(first.content||"").trim(),parts=/^(\d{2})(?:\.(\d{1,2}))?$/.exec(input);
+    const basisPoints=parts?Number(parts[1])*100+Number((parts[2]||"").padEnd(2,"0")):NaN;
+    if(!Number.isInteger(basisPoints)||basisPoints<2000||basisPoints>3500){
+      this.setData({actionError:"费率须在 20%–35% 之间，最多两位小数。"});return;
+    }
     const second=await wx.showModal({title:"填写变更依据",editable:true,placeholderText:"至少 4 字，供另一名管理者复核",confirmText:"提交提议"});
     if(!second.confirm||!this.data.alive)return;
     const reason=(second.content||"").trim();if(reason.length<4){this.setData({actionError:"请填写至少 4 字的依据。"});return;}
