@@ -14,3 +14,24 @@ regexTarget = "match"
 regexes = [
   '''idempotency-key["']?\s*:\s*["'](?:r4b-stock-below-reserved|order-cancel-buyer-a-01)["']'''
 ]
+
+[[allowlists]]
+description = "Exact synthetic operation identifiers in commercial integration tests"
+regexTarget = "match"
+regexes = [
+  '''idempotency-key["']?\s*:\s*["'](?:commercial-rate-proposal-0001|global-rate-proposal-0001|invalid-inherit-proposal-01|fulfillment-(?:beneficiary|refund|verify|refund-reject)-0001|settlement-approve-000[12]|late-refund-(?:proof|settlement|settlement-approve)-0001)["']'''
+]
+
+[[allowlists]]
+description = "Fixed dummy AES key in the local WeChat Pay HTTP fixture"
+regexTarget = "match"
+regexes = [
+  '''apiV3Key="0123456789abcdef0123456789abcdef"'''
+]
+
+[[allowlists]]
+description = "Published WeChat Pay bill-download hostname pair"
+regexTarget = "match"
+regexes = [
+  '''api\.mch\.weixin\.qq\.com","api2\.mch\.weixin\.qq\.com'''
+]

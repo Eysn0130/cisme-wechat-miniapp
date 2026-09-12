@@ -304,9 +304,10 @@ export class WechatPayV3Client{
       reject("交易账单摘要或下载地址无效");
     let url:URL;
     try{url=new URL(application.download_url);}catch{reject("交易账单下载地址无效");}
+    const billDownloadHosts = new Set(["api.mch.weixin.qq.com", "api2.mch.weixin.qq.com"]);
     const allowed=this.baseUrl.startsWith("http://")
       ?url.origin===this.baseUrl
-      :url.protocol==="https:"&&["api.mch.weixin.qq.com","api2.mch.weixin.qq.com"].includes(url.hostname);
+      :url.protocol==="https:" && billDownloadHosts.has(url.hostname);
     if(!allowed||url.username||url.password||url.hash||!url.pathname.startsWith("/v3/billdownload/"))
       reject("交易账单下载地址不属于渠道");
     const signedPath=url.pathname+url.search;
