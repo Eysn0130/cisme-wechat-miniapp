@@ -323,12 +323,30 @@
     },
     {
       "surface": "commission_payment_facts",
-      "informationType": "内部隔离协议测试中经签名、解密及订单绑定的微信支付通知编号、交易号、金额、时间与最小校验哈希；尚无真实退款或结算事实",
+      "informationType": "内部隔离协议测试中经签名、解密及订单绑定的微信支付通知编号、交易号、金额、时间与最小校验哈希；尚无真实结算事实",
       "purpose": "为未来真实购买的一级佣金建立可幂等处理的支付证据边界",
       "activation": "仅隔离合成协议测试；生产支付入站路由与下单支付意图均未启用",
       "serverStorage": "CISME PostgreSQL commission_payment_inbox 与不可变佣金分录；当前仅测试环境内部直接调用，真实资金尚未接入",
       "currentGate": "MAKE/真实转账禁用；合成订单 source_kind 不可变且不能计提；已验证事实处理也拒绝取消或超时订单",
       "retention": "POLICY PENDING；真实资金启用前需正式批准"
+    },
+    {
+      "surface": "commission_refund_facts",
+      "informationType": "商户退款单号、原订单与支付事实、商品级现金退款分摊、微信退款通知编号/退款单号/状态/金额/时间及最小校验哈希",
+      "purpose": "对签名且与预存退款单一致的成功退款形成可重放的累计计佣冲销；异常和关闭状态不冲销",
+      "activation": "仅隔离合成协议测试；没有生产退款申请或回调路由，未对真实个人执行退款",
+      "serverStorage": "CISME PostgreSQL commission_refund_intent、commission_refund_inbox 与追加式佣金冲销分录",
+      "currentGate": "退款单必须预存并绑定已核实支付；分摊、累计额度、重复通知和越权订单需核对；结算/转账继续关闭",
+      "retention": "POLICY PENDING；正式退款与财务事实保存期需另经批准"
+    },
+    {
+      "surface": "ugc_author_follow",
+      "informationType": "关注人与被关注作者的内部成员 ID、建立时间",
+      "purpose": "在公开社区中按本人关注的作者筛选内容",
+      "activation": "登录用户在公开故事详情主动关注或取消；屏蔽作者同时取消本人关注",
+      "serverStorage": "CISME PostgreSQL ugc_author_follow；不向他人公开完整关注列表",
+      "currentGate": "正式社区公开开关、作者公开内容、有效账号、本人操作及屏蔽关系服务端核对",
+      "retention": "取消关注时删除关系；账户注销与保存策略另按个人信息治理规则执行"
     }
   ],
   "runtimeDataEgress": [
@@ -358,11 +376,11 @@
     },
     {
       "recipient": "微信支付 API v3",
-      "data": "协议适配器可按原商户订单号查询交易状态；当前仅合成契约测试，不发起支付或转账",
-      "purpose": "核验未知支付结果；支付通知的内部签名/解密/绑定逻辑不代表真实商户接入",
+      "data": "协议适配器可按原商户订单号及原商户退款单号分别查询交易/退款状态；当前仅合成契约测试，不发起支付、退款或转账",
+      "purpose": "核验未知支付与退款结果；支付/退款通知的内部签名/解密/绑定逻辑不代表真实商户接入",
       "state": "adapter_and_internal_inbox_only_disabled_not_live"
     }
   ],
-  "migrationSetSha256": "c45c5fa8437059126b0128b5431dbee40458756c49d8f560c340a4e599d5735b",
-  "egressSignatureSha256": "519f2f3b6647368d59842c3a0b162691be791b7d0630c9ea70f78cc38c35c849"
+  "migrationSetSha256": "1cd197cea458660b6d0b0acb40cf663946847c1a9b6141465983e39205677577",
+  "egressSignatureSha256": "9ab377c30e40c781ab014c857034c8133b506474d09e1b58ce3c27ad76d0dcf1"
 }

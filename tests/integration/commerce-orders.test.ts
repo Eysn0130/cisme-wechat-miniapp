@@ -63,7 +63,7 @@ beforeAll(async () => {
   const code=(await app.inject({method:"POST",url:"/v1/me/commercial-membership/code",headers:auth(buyerB.sessionToken)})).json().code;
   const referral=await app.inject({method:"POST",url:"/v1/me/referral/confirm",headers:auth(buyerA.sessionToken),
     payload:{code,confirmationKey:"synthetic-order-referral-0001"}});
-  expect(referral.statusCode).toBe(200);
+  expect(referral.statusCode, JSON.stringify(referral.json())).toBe(200);
 });
 
 afterAll(async () => { await app.close(); await pool.end(); });

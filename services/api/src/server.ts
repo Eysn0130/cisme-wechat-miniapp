@@ -161,7 +161,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
 
   app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
-  app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
+  app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string;following?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
   app.get<{Params:{postId:string}}>("/v1/ugc/posts/:postId", async request => formalUgc.publicPost(request.memberId,request.params.postId));
   app.get<{Params:{mediaId:string};Querystring:{variant?:string}}>("/v1/ugc/media/:mediaId", async (request,reply) => {
     const object=await formalUgc.publicMedia(request.params.mediaId,request.query.variant==="thumbnail"?"thumbnail":"detail");
@@ -215,6 +215,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.delete<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId", async request => formalUgc.deleteOwnMedia(request.memberId,request.params.mediaId));
   app.put<{Params:{postId:string}}>("/v1/ugc/posts/:postId/reaction", async request => formalUgc.react(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.put<{Params:{memberId:string}}>("/v1/me/ugc/follows/:memberId", async request => formalUgc.follow(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
   app.post<{Params:{postId:string}}>("/v1/ugc/posts/:postId/comments", async request => formalUgc.comment(request.memberId,request.params.postId,idempotencyKey(request),(request.body??{}) as never));
   app.delete<{Params:{postId:string;commentId:string}}>("/v1/ugc/posts/:postId/comments/:commentId", async request => formalUgc.deleteComment(request.memberId,request.params.postId,request.params.commentId));
   app.post<{Params:{targetType:string;targetId:string}}>("/v1/ugc/reports/:targetType/:targetId", async request => formalUgc.report(request.memberId,request.params.targetType,request.params.targetId,(request.body??{}) as never));

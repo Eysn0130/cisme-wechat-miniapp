@@ -5,7 +5,7 @@
     <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
     <view wx:if="{{notice}}" class="state story-notice" aria-live="polite">{{notice}}</view>
     <block wx:if="{{post}}">
-      <view class="story-author"><image wx:if="{{post.avatar}}" src="{{post.avatar}}" class="story-author__avatar" mode="aspectFill"/><view wx:else class="story-author__avatar story-author__avatar--empty">C</view><view class="story-author__copy"><text class="story-author__name">{{post.author}}</text><text class="story-author__date">护理故事</text></view></view>
+      <view class="story-author"><image wx:if="{{post.avatar}}" src="{{post.avatar}}" class="story-author__avatar" mode="aspectFill"/><view wx:else class="story-author__avatar story-author__avatar--empty">C</view><view class="story-author__copy"><text class="story-author__name">{{post.author}}</text><text class="story-author__date">护理故事</text></view><button wx:if="{{!post.isMine}}" class="story-author__follow {{busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{busy}}" aria-label="{{post.following ? '取消关注作者' : '关注作者'}}">{{post.following ? '已关注' : '关注'}}</button></view>
       <view wx:if="{{post.title}}" class="story-title">{{post.title}}</view>
       <view wx:if="{{post.body}}" class="story-body">{{post.body}}</view>
       <view wx:for="{{images}}" wx:key="id" class="story-media"><image wx:if="{{item.src}}" src="{{item.src}}" mode="widthFix" data-src="{{item.src}}" bindtap="previewImage" aria-label="查看第 {{item.index}} 张故事图片"/><view wx:else class="story-media__fallback">图片暂时无法加载</view></view>

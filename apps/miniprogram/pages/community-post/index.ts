@@ -2,21 +2,31 @@ import { request, resumeAuthentication } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 
 type PublicPost = { id: string; version: number; authorId: string; author: string; avatar: string; title: string; body: string;
-  aiUsage: string; isMine: boolean; media: Array<{ id: string; position: number }>;
+  aiUsage: string; isMine: boolean; following: boolean; media: Array<{ id: string; position: number }>;
   likeCount: number; saveCount: number; liked: boolean; saved: boolean;
   comments: Array<{ id: string; author: string; body: string; parentId: string | null; createdAt: string }> };
 const key = () => `ugc-comment-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const titleOf = (error: unknown, fallback: string) => (error as { title?: string })?.title || fallback;
 
 Page({
+  lastSessionToken:"",
   data: { chromeStyle: currentChromeStyle(), postId: "", post: null as PublicPost | null,
     images: [] as Array<{ id: string; src: string; index: number }>, comment: "", commentKey: key(), commentAttempted: false,
     loading: true, busy: false, error: "", notice: "", epoch: 0 },
   onLoad(query: Record<string, string | undefined>) {
+    this.lastSessionToken=getApp<IAppOption>().globalData.sessionToken;
     const id = String(query.id || ""); this.setData({ postId: id });
     if (id) void this.load(); else this.setData({ loading: false, error: "内容编号缺失，请返回社区重试。" });
   },
-  onShow() { if (this.data.post && this.data.postId) void this.load(); },
+  onShow() {
+    const token=getApp<IAppOption>().globalData.sessionToken;
+    if(token!==this.lastSessionToken){
+      this.lastSessionToken=token;this.data.epoch+=1;
+      this.setData({post:null,images:[],comment:"",commentKey:key(),commentAttempted:false,
+        busy:false,notice:"",error:"",loading:true});
+      if(this.data.postId)void this.load();
+    }else if(this.data.post&&this.data.postId)void this.load();
+  },
   onUnload() { this.data.epoch += 1; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   async load() {
@@ -63,6 +73,19 @@ Page({
         this.setData({ post: { ...this.data.post, ...(kind === "like" ? { liked: active, likeCount: answer.count } : { saved: active, saveCount: answer.count }) } });
     } catch (error) { if (epoch === this.data.epoch) this.setData({ error: titleOf(error, "操作未完成，请重试。") }); }
     finally { if (epoch === this.data.epoch) this.setData({ busy: false }); }
+  },
+  async toggleFollow(){
+    const post=this.data.post;
+    if(!post||post.isMine||this.data.busy)return;
+    if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication(`/pages/community-post/index?id=${this.data.postId}`);return;}
+    const next=!post.following,epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    this.setData({busy:true,error:""});
+    try{
+      await request({path:`/v1/me/ugc/follows/${post.authorId}`,method:"PUT",data:{active:next}});
+      if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.data.post?.authorId===post.authorId)
+        this.setData({post:{...this.data.post,following:next}});
+    }catch(error){if(epoch===this.data.epoch)this.setData({error:titleOf(error,"关注操作未完成，请重试。")});}
+    finally{if(epoch===this.data.epoch)this.setData({busy:false});}
   },
   async report() {
     if (!this.data.post || this.data.busy) return;

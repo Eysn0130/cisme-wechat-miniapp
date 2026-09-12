@@ -243,8 +243,10 @@ export class FormalUgcService{
       : row.state,publicVersionActive:row.state==="published"&&Boolean(row.published_revision),version:row.version,updatedAt:row.updated_at,
       title:row.title||row.body?.slice(0,30)||"图片护理故事",imageCount:row.image_count}))};}
 
-  async feed(memberId:string|undefined,input:{q?:unknown;authorId?:unknown;limit?:unknown;cursor?:unknown}={}){
+  async feed(memberId:string|undefined,input:{q?:unknown;authorId?:unknown;limit?:unknown;cursor?:unknown;following?:unknown}={}){
     if(!await this.publicEnabled())return {items:[],total:0,nextCursor:null,publicEnabled:false};
+    const followingOnly=input.following===true||input.following==="1";
+    if(followingOnly&&!memberId)throw new DomainError("AUTH_REQUIRED","请先登录查看关注内容",401);
     const q=typeof input.q==="string"?input.q.trim().slice(0,80):"";
     const authorId=input.authorId?uuid(input.authorId):null;
     const limit=Number.isInteger(Number(input.limit))?Math.max(1,Math.min(30,Number(input.limit))):20;
@@ -268,7 +270,9 @@ export class FormalUgcService{
         AND ($2::uuid IS NULL OR p.author_member_id=$2)
         AND ($3::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE b.blocker_member_id=$3 AND b.blocked_member_id=p.author_member_id))
         AND ($5::timestamptz IS NULL OR (p.published_at,p.id)<($5::timestamptz,$6::uuid))
-      ORDER BY p.published_at DESC,p.id DESC LIMIT $4`,[q,authorId,memberId??null,limit+1,cursorAt,cursorId]);
+        AND (NOT $7::boolean OR EXISTS(SELECT 1 FROM ugc_author_follow f
+          WHERE f.follower_member_id=$3 AND f.followed_member_id=p.author_member_id))
+      ORDER BY p.published_at DESC,p.id DESC LIMIT $4`,[q,authorId,memberId??null,limit+1,cursorAt,cursorId,followingOnly]);
     const page=result.rows.slice(0,limit),last=page[page.length-1],hasMore=result.rows.length>limit;
     const authors=await communityAuthors(this.pool,page.map(row=>row.author_member_id));
     return {items:page.map(row=>({id:row.id,authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",
@@ -287,7 +291,7 @@ export class FormalUgcService{
       WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
         AND ($2::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id))`,[id,memberId??null])).rows[0];
     if(!post)throw new DomainError("UGC_POST_NOT_FOUND","护理故事已下架或不可见",404);
-    const [media,reactions,comments,authors]=await Promise.all([
+    const [media,reactions,comments,authors,follow]=await Promise.all([
       this.pool.query(`SELECT b.media_asset_id AS id,b.position FROM ugc_post_media b JOIN ugc_media_asset a ON a.id=b.media_asset_id
         WHERE b.post_id=$1 AND b.revision=$2 AND a.state='approved' ORDER BY b.position`,[id,post.published_revision]),
       this.pool.query(`SELECT kind,count(*)::int AS count,bool_or(member_id=$2) AS mine FROM ugc_post_reaction WHERE post_id=$1 GROUP BY kind`,[id,memberId??null]),
@@ -296,12 +300,15 @@ export class FormalUgcService{
         WHERE c.post_id=$1 AND c.state='published' AND
         (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment parent WHERE parent.id=c.parent_id AND parent.state='published'))
         ORDER BY c.created_at,c.id LIMIT 100`,[id]),
-      communityAuthors(this.pool,[post.author_member_id])
+      communityAuthors(this.pool,[post.author_member_id]),
+      memberId?this.pool.query(`SELECT EXISTS(SELECT 1 FROM ugc_author_follow
+        WHERE follower_member_id=$1 AND followed_member_id=$2) AS following`,[memberId,post.author_member_id])
+        :Promise.resolve({rows:[{following:false}]})
     ]);
     const commentAuthors=await communityAuthors(this.pool,comments.rows.map(row=>row.author_member_id));
     return {id,version:post.version,authorId:post.author_member_id,author:authors[post.author_member_id]?.name??"CISME 会员",
       avatar:authors[post.author_member_id]?.avatar??"",title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,
-      publishedAt:post.published_at,isMine:memberId===post.author_member_id,media:media.rows,
+      publishedAt:post.published_at,isMine:memberId===post.author_member_id,following:follow.rows[0]?.following===true,media:media.rows,
       likeCount:reactions.rows.find(row=>row.kind==="like")?.count??0,saveCount:reactions.rows.find(row=>row.kind==="save")?.count??0,
       liked:reactions.rows.find(row=>row.kind==="like")?.mine??false,saved:reactions.rows.find(row=>row.kind==="save")?.mine??false,
       comments:comments.rows.map(row=>({id:row.id,body:row.body,createdAt:row.created_at,authorId:row.author_member_id,
@@ -554,6 +561,26 @@ export class FormalUgcService{
     });
   }
 
+  async follow(memberId:string|undefined,authorId:string,active:unknown){
+    const owner=member(memberId),author=uuid(authorId);
+    if(owner===author||typeof active!=="boolean")throw new DomainError("UGC_FOLLOW_INVALID","关注操作无效",422);
+    return transaction(this.pool,async client=>{
+      await this.requirePublicGate(client);
+      if(active){
+        const visible=await client.query(`SELECT 1 FROM member a WHERE a.id=$1 AND a.status='active'
+          AND EXISTS(SELECT 1 FROM ugc_post p WHERE p.author_member_id=a.id AND p.state='published' AND p.visibility='public')
+          AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
+            (b.blocker_member_id=$2 AND b.blocked_member_id=$1)
+            OR (b.blocker_member_id=$1 AND b.blocked_member_id=$2))`,[author,owner]);
+        if(!visible.rowCount)throw new DomainError("UGC_AUTHOR_NOT_FOUND","作者暂不可关注",404);
+        await client.query(`INSERT INTO ugc_author_follow(follower_member_id,followed_member_id)
+          VALUES($1,$2) ON CONFLICT DO NOTHING`,[owner,author]);
+      }else await client.query(`DELETE FROM ugc_author_follow
+        WHERE follower_member_id=$1 AND followed_member_id=$2`,[owner,author]);
+      return {authorId:author,following:active};
+    });
+  }
+
   async comment(memberId:string|undefined,postId:string,operationKey:unknown,input:{body?:unknown;parentId?:unknown;replyToId?:unknown}){
     const owner=member(memberId),id=uuid(postId),op=key(operationKey),body=cleanText(input.body,1000,"评论");
     if(!body)throw new DomainError("UGC_COMMENT_EMPTY","请输入评论内容",422);
@@ -672,8 +699,12 @@ export class FormalUgcService{
   async block(memberId:string|undefined,blockedId:string,active:unknown){
     const owner=member(memberId),blocked=uuid(blockedId);
     if(owner===blocked||typeof active!=="boolean")throw new DomainError("UGC_BLOCK_INVALID","屏蔽操作无效",422);
-    if(active)await this.pool.query(`INSERT INTO ugc_block_relation(blocker_member_id,blocked_member_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,[owner,blocked]);
-    else await this.pool.query("DELETE FROM ugc_block_relation WHERE blocker_member_id=$1 AND blocked_member_id=$2",[owner,blocked]);
+    await transaction(this.pool,async client=>{
+      if(active){
+        await client.query(`INSERT INTO ugc_block_relation(blocker_member_id,blocked_member_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,[owner,blocked]);
+        await client.query(`DELETE FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2`,[owner,blocked]);
+      }else await client.query("DELETE FROM ugc_block_relation WHERE blocker_member_id=$1 AND blocked_member_id=$2",[owner,blocked]);
+    });
     return {memberId:blocked,blocked:active};
   }
 }

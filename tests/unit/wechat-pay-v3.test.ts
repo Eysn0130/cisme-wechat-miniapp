@@ -56,3 +56,29 @@ it("queries an unknown result using the original merchant order number and verif
   expect(seenUrl).toContain(`/out-trade-no/${binding.outTradeNo}?mchid=${binding.merchantId}`);
   expect(assertPaymentBinding(queried,binding).providerTransactionId).toBe(transaction.transaction_id);
 });
+
+it("queries the same merchant refund number and keeps PROCESSING distinct from success",async()=>{
+  const refundBinding={merchantId:binding.merchantId,outTradeNo:binding.outTradeNo,
+    providerTransactionId:transaction.transaction_id,outRefundNo:"RF2026091200000008",
+    totalCents:50_000,refundCents:10_000,payerTotalCents:50_000,payerRefundCents:10_000};
+  let status="PROCESSING",seenUrl="",payerRefund=10_000;
+  const fetcher=(async(url:string|URL|Request)=>{
+    seenUrl=String(url);
+    const payload={refund_id:"500000000000000000000108",out_refund_no:refundBinding.outRefundNo,
+      transaction_id:refundBinding.providerTransactionId,out_trade_no:refundBinding.outTradeNo,status,
+      ...(status==="SUCCESS"?{success_time:new Date().toISOString()}:{}),
+      amount:{total:refundBinding.totalCents,refund:refundBinding.refundCents,
+        payer_total:refundBinding.payerTotalCents,payer_refund:payerRefund,currency:"CNY"}};
+    const raw=JSON.stringify(payload),timestamp=Math.floor(Date.now()/1000).toString(),nonce="refund-query-nonce";
+    const signature=sign("RSA-SHA256",Buffer.from(`${timestamp}\n${nonce}\n${raw}\n`),platform.privateKey).toString("base64");
+    return new Response(raw,{status:200,headers:{"Wechatpay-Serial":"PUB_KEY_ID_3000000001",
+      "Wechatpay-Timestamp":timestamp,"Wechatpay-Nonce":nonce,"Wechatpay-Signature":signature}});
+  }) as typeof fetch;
+  const client=new WechatPayV3Client(binding.merchantId,"MERCHANT_SERIAL",merchantPrivate,keys,fetcher);
+  expect((await client.queryRefundByMerchantRefundNumber(refundBinding)).status).toBe("PROCESSING");
+  expect(seenUrl).toContain(`/v3/refund/domestic/refunds/${refundBinding.outRefundNo}`);
+  status="SUCCESS";
+  expect((await client.queryRefundByMerchantRefundNumber(refundBinding)).succeededAt).toBeTruthy();
+  payerRefund=9_999;
+  await expect(client.queryRefundByMerchantRefundNumber(refundBinding)).rejects.toThrow();
+});

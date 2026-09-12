@@ -18,7 +18,7 @@ let scrollDirection: -1 | 0 | 1 = 0;
 let scrollTravel = 0;
 
 Page({
-  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], followingFeed: [] as any[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], reviewBusy: false, teamError: "", feed: [] as any[], formalNextCursor: null as string|null, formalLoadingMore:false, searchInput:"", appliedSearch:"", displayFeedCount: editorialStories.length, feedColumns: feedColumns(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], followingFeed: [] as any[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], reviewBusy: false, teamError: "", feed: [] as any[], formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, searchInput:"", appliedSearch:"", displayFeedCount: editorialStories.length, feedColumns: feedColumns(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.resetChromeMotion();
@@ -123,19 +123,22 @@ Page({
     void this.load();
   },
   async onReachBottom(){
-    const cursor=this.data.formalNextCursor,attempt=this.data.feedAttempt;
-    if(!cursor||this.data.formalLoadingMore||this.data.loading||this.data.mode!=="recommend"||!this.data.ugcFeedEnabled)return;
+    const mode=this.data.mode,cursor=mode==="following"?this.data.followingNextCursor:this.data.formalNextCursor,
+      attempt=this.data.feedAttempt;
+    if(!cursor||this.data.formalLoadingMore||this.data.loading||!["recommend","following"].includes(mode)||!this.data.ugcFeedEnabled)return;
     const token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({formalLoadingMore:true});
     try{
-      const q=this.data.appliedSearch?`&q=${encodeURIComponent(this.data.appliedSearch)}`:"";
-      const page=await request<{items:any[];nextCursor:string|null}>({path:`/v1/ugc/posts?limit=30&cursor=${encodeURIComponent(cursor)}${q}`,
+      const q=mode==="recommend"&&this.data.appliedSearch?`&q=${encodeURIComponent(this.data.appliedSearch)}`:"";
+      const following=mode==="following"?"&following=1":"";
+      const page=await request<{items:any[];nextCursor:string|null}>({path:`/v1/ugc/posts?limit=30&cursor=${encodeURIComponent(cursor)}${q}${following}`,
         authMode:token?"optional":"public"});
-      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||mode!==this.data.mode)return;
       const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,"");
       const more=page.items.map(item=>({...item,kind:"formal",author_id:item.authorId,
         image:item.coverId&&origin?`${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail`:""}));
-      this.setData({feed:[...this.data.feed,...more],formalNextCursor:page.nextCursor});
+      if(mode==="following")this.setData({followingFeed:[...this.data.followingFeed,...more],followingNextCursor:page.nextCursor});
+      else this.setData({feed:[...this.data.feed,...more],formalNextCursor:page.nextCursor});
       this.renderFeed();
     }catch{if(attempt===this.data.feedAttempt)this.setData({error:"更多内容暂时无法加载，请重试。"});}
     finally{if(attempt===this.data.feedAttempt)this.setData({formalLoadingMore:false});}
@@ -144,7 +147,7 @@ Page({
     const mode = String(event.currentTarget.dataset.mode);
     if (!["featured", "recommend", "following", "review"].includes(mode) || (mode === "review" && !this.data.canReview)) return;
     if (mode === "recommend" && !this.data.ugcFeedEnabled && !this.data.socialPreviewEnabled) return;
-    if (mode === "following" && !this.data.socialPreviewEnabled) return;
+    if (mode === "following" && !this.data.socialPreviewEnabled && !this.data.ugcFeedEnabled) return;
     if ((mode === "following" || mode === "review") && !getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication(); return; }
     this.setData({ mode });
     if (mode === "review") await this.loadReview();
@@ -157,18 +160,30 @@ Page({
       : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
     const featured = editorialStories.map(item => ({ ...item, author_id: "brand:cisme" }));
     let items = this.data.mode === "featured" ? featured : this.data.mode === "recommend" ? reviewed : reviewed.concat(featured);
-    if (this.data.mode === "following") items = items.filter(item => this.data.follows.includes(item.author_id));
+    if (this.data.mode === "following") items = items.filter(item => item.kind==="formal"||this.data.follows.includes(item.author_id));
     this.setData({ displayFeedCount: items.length, feedColumns: feedColumns(items) });
   },
   async loadFollowing() {
     const attempt = this.data.feedAttempt;
     const token = getApp<IAppOption>().globalData.sessionToken;
-    this.setData({ followingFeed: [], loading: true, error: "" });
+    this.setData({ followingFeed: [], followingNextCursor:null,loading: true, error: "" });
     this.renderFeed();
     try {
-      const followingFeed = await prepareFeedPage(await request<{items:any[];authors?:Record<string,any>}>({ path: "/v1/me/following/page?limit=30" }));
-      if (attempt !== this.data.feedAttempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      this.setData({ followingFeed }); this.renderFeed();
+      const [formalOutcome,previewOutcome]=await Promise.all([
+        this.data.ugcFeedEnabled?request<{items:any[];nextCursor:string|null}>({path:"/v1/ugc/posts?following=1&limit=30"})
+          .then(page=>({page}),error=>({error})):Promise.resolve({page:{items:[],nextCursor:null}}),
+        this.data.socialPreviewEnabled?request<{items:any[];authors?:Record<string,any>}>({path:"/v1/me/following/page?limit=30"})
+          .then(page=>({page}),error=>({error})):Promise.resolve({page:{items:[]}})
+      ]);
+      if (attempt !== this.data.feedAttempt || token !== getApp<IAppOption>().globalData.sessionToken||this.data.mode!=="following") return;
+      if("error" in formalOutcome&&"error" in previewOutcome)throw formalOutcome.error;
+      const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,"");
+      const formal="page" in formalOutcome?formalOutcome.page.items.map(item=>({...item,kind:"formal",author_id:item.authorId,
+        image:item.coverId&&origin?`${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail`:""})):[];
+      const preview="page" in previewOutcome?await prepareFeedPage(previewOutcome.page):[];
+      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||this.data.mode!=="following")return;
+      this.setData({followingFeed:[...formal,...preview],followingNextCursor:"page" in formalOutcome?formalOutcome.page.nextCursor:null});
+      this.renderFeed();
     } catch { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ error: "关注内容未同步，请重试。" }); }
     finally { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({loading:false}); }
   },
@@ -251,7 +266,11 @@ Page({
   },
   async load() {
     const attempt = this.data.feedAttempt + 1;
-    this.setData({ feedAttempt: attempt, loading: true, formalNextCursor:null, formalLoadingMore:false, reviewBusy: false, teamError: "", error: "" });
+    const privateMode=this.data.mode==="following"||this.data.mode==="review";
+    this.setData({ feedAttempt: attempt, loading: true, formalNextCursor:null, followingNextCursor:null,
+      followingFeed:[],follows:[],canReview:false,reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],
+      formalLoadingMore:false, reviewBusy: false, teamError: "", error: "",
+      ...(privateMode?{feedColumns:[[],[]] as [any[],any[]],displayFeedCount:0}:{}) });
     const tasksPromise = this.loadTasks();
     const capabilityPromise = Promise.all([request<{ communityPreviewEnabled?: boolean }>({ path: "/v1/capabilities", authMode: "public" }),
       request<{ publicEnabled?: boolean }>({ path: "/v1/ugc/status", authMode: "public" })])
@@ -265,7 +284,7 @@ Page({
     const capabilities = await capabilityPromise;
     if (this.data.feedAttempt !== attempt) return;
     const availableMode = this.data.mode === "recommend" && !capabilities.ugcFeedEnabled && !capabilities.socialPreviewEnabled
-      || this.data.mode === "following" && !capabilities.socialPreviewEnabled
+      || this.data.mode === "following" && !capabilities.socialPreviewEnabled && !capabilities.ugcFeedEnabled
       ? "featured"
       : this.data.mode;
     this.setData({ ...capabilities, mode: availableMode });
