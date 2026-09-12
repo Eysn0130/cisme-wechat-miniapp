@@ -1,379 +1,379 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+  "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
   "finalResult": "blocked",
   "evidenceIndex": {
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__home__index.png": {
-      "sha256": "eabfa7621aa6a45f9c2d1665a3cfd58eaef6e9405da93071464144f4cf2a0c04",
-      "bytes": 425089,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__home__index.png": {
+      "sha256": "0be56d292f3c1cd9e1285bee2df470195feac3c9b2621d69835d5ce1bfdc237e",
+      "bytes": 447124,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/home/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__records__index.png": {
-      "sha256": "7761b7218645296001ab42705cc862b8ba42cf47a4524e00383deac202b3cc43",
-      "bytes": 213744,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__records__index.png": {
+      "sha256": "7d97c4be7bb6c2e6a9702042c5d886e410d0dd301a3719cb3efdbf03115b8355",
+      "bytes": 215290,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/records/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__community__index.png": {
-      "sha256": "83845baa6c49af02e50caa599d969b5a978327ca823213b418c4e0b6c00eaf10",
-      "bytes": 375973,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__community__index.png": {
+      "sha256": "73c25b0ce3dcd5906b51a218dbdb40625e2d5772561d94aa2a34f2ca22eefa04",
+      "bytes": 377017,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/community/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__profile__index.png": {
-      "sha256": "d53d98f0f7c9ef1caba147a6e15d05599f6975b31b574cc58ba649bff98f848a",
-      "bytes": 180265,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__profile__index.png": {
+      "sha256": "5b0bb18944dd3f52979654be42f1cb07b4a6e6cdb7c3e99379e23ce3321ae0a0",
+      "bytes": 199028,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/profile/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__account__index.png": {
-      "sha256": "be1b416d67a103e8ac1966ed14913d9fd42b308e304de66cca26818b88f11420",
-      "bytes": 132072,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__account__index.png": {
+      "sha256": "153090794cc760f41b5f9eec6a0c245a0a14bf3615c6e81b449ba8f561e34a0d",
+      "bytes": 132173,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/account/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__task__index.png": {
-      "sha256": "703cfcd2bbb0dd3ad350d116d7cd72cec8e1acf4122dc31c1e82fcf0f7c0c18b",
-      "bytes": 183134,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__task__index.png": {
+      "sha256": "57b0b03e5ed19b008c858379140aa672631a95aebf0b9a7aa23ed1c4b022780d",
+      "bytes": 183242,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/task/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__submit__index.png": {
-      "sha256": "711811a187a6181a864943fcba5f3a625fc2f94f837b585fe202c46529f8513d",
-      "bytes": 153678,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__submit__index.png": {
+      "sha256": "65fdc3722765847f073bd563e0b708446d9310221a12c8f4c00fb3702dc5106b",
+      "bytes": 153714,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/submit/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__progress__index.png": {
-      "sha256": "4fa7a22f6966f8247bd508c4700fa3f6a210b2af76e15d489256c340f3d84ed2",
-      "bytes": 104343,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__progress__index.png": {
+      "sha256": "e13f063335efe8dacb7c70658042c48991cd4272d22a94c14301484504639db8",
+      "bytes": 104992,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/progress/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__points__index.png": {
-      "sha256": "1ab748a3a4670211b2293f997755a61fc5f3959a3c0a463f991f3b0eb9268472",
-      "bytes": 161347,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__points__index.png": {
+      "sha256": "c22b896dca2d74872c6b78a5063cd0ec0f107db677f02b66c923e5faf19d6113",
+      "bytes": 161423,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/points/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__post__index.png": {
-      "sha256": "fa9acc53f3b99dcb6e8a1237fb8d206993ebc9d3aa6c58aa7e2e665fa758ae26",
-      "bytes": 206676,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__post__index.png": {
+      "sha256": "7ae0ef1567b49022438813f9134d215a2d802f3360f9c01f9321fd2ec6968b4e",
+      "bytes": 206692,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/post/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__shop__index.png": {
-      "sha256": "c76d7c2f099b8f4eb1218f6dd08478e5861758a9546064272884811439ba5da9",
-      "bytes": 280150,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__shop__index.png": {
+      "sha256": "c2599c22bc378c627ed9190f2e1a67bf0b16e83853355077dd257efdfae43bd6",
+      "bytes": 279141,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/shop/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__product__index.png": {
-      "sha256": "22d6560b4464d32d35d1ccef7048dfaf031bb227d48bf95b86c5e9dd4c90a746",
-      "bytes": 303523,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__product__index.png": {
+      "sha256": "b4cdc058951b64f98386e2fd383be70cd7d11c5c3f070a1ce64295fe3555de18",
+      "bytes": 305103,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/product/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__checkout__index.png": {
-      "sha256": "c23622b80a654f4fbf097896f398245e0e733239692b046bd882963ab92bdc3c",
-      "bytes": 116802,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__checkout__index.png": {
+      "sha256": "b197ec7e967401957455ef1f7e2355e3666f9ec1d07c00dcc214e7aef2d96f45",
+      "bytes": 116927,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/checkout/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__orders__index.png": {
-      "sha256": "e3463068ea98f3077096cac03d9b3c293ad67836fb5ec3e8e2c115140d322f06",
-      "bytes": 67107,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__orders__index.png": {
+      "sha256": "2a3f2849ff0917fe1d8cd4ba9e1a531c87e16ac6596f393b049511d58c3465a4",
+      "bytes": 67136,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/orders/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__order-detail__index.png": {
-      "sha256": "9a7f60c4097662dd40b77473711fd26f50e46521b2259cd8e4064422a1c9d399",
-      "bytes": 148236,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__order-detail__index.png": {
+      "sha256": "4cdc3c386d2ba4aa5ae02d6a53d28d4ef5a41cfea474fe4babda3a51955c61db",
+      "bytes": 144752,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/order-detail/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__settings__index.png": {
-      "sha256": "c4e24d603d55e8666b64b575fece960516f278f1b26bd8d68589b3ec7e7cc1c5",
-      "bytes": 95174,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__settings__index.png": {
+      "sha256": "f86dc773772123c303882ed0f67233e2e08c156c9378c18869c2cbbdbed1196c",
+      "bytes": 94768,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/settings/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__invite__index.png": {
-      "sha256": "d115c0053fb72b20eaa0d45e7a33a4a9647b2d8fee0aff71e46e5b9a61323b2f",
-      "bytes": 138505,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__invite__index.png": {
+      "sha256": "9cae9cf664f30ea23f1e7005caa636daf867570d5a64731ded283675390adb6f",
+      "bytes": 140425,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/invite/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__legal__index.png": {
-      "sha256": "91d9d78da74f7c827db9a5558cd70cc5be1654aee8415f9d437b53151f0a0b0a",
-      "bytes": 59564,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__legal__index.png": {
+      "sha256": "7ae870cf02caf883e5af9e5bc84dedc352b8e02b6e5c199ae190d99511ab061a",
+      "bytes": 59609,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/legal/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__privacy-rights__index.png": {
-      "sha256": "44cb8398e4bfa4e2676b4bcc0cb0953f9a259761305e1f67f23f132f69f16095",
-      "bytes": 109259,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__privacy-rights__index.png": {
+      "sha256": "6802d2140335390d0f2de059b8c13f14f0be0c32c5248319109c8170d1cd0599",
+      "bytes": 109320,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/privacy-rights/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__support__index.png": {
-      "sha256": "816f33474c9419693dcc464af3b1353562788eb565f2216f9e1e084c9d9a8133",
-      "bytes": 191523,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__support__index.png": {
+      "sha256": "dc579fb6428a1a1626a3b0177f8395909e63142952128d488e4e498c2c328363",
+      "bytes": 67407,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/support/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management__index.png": {
-      "sha256": "52f652b2e5ab1f4e3bf814e5d2bd2f27ab6c419535c03967bf3c0149491cb70f",
-      "bytes": 104609,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management__index.png": {
+      "sha256": "633638a41f4e5352627810706f321590543736c3d1f6dd4dd550afbcc7452aac",
+      "bytes": 104973,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/management/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-catalog__index.png": {
-      "sha256": "28fdb8a47d6722ebf38f8dea5b5e033d0c09c030942d5ce53db12168d9adaeb6",
-      "bytes": 156765,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-catalog__index.png": {
+      "sha256": "9614443f06c881ec524541639b20eba28ea28e5b78afcd7f89828ec746798240",
+      "bytes": 162370,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/management-catalog/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-product__index.png": {
-      "sha256": "304aba1da8eb1ef39a782d5d4107643a68d57397b8f26705f1e0d3c86cd28c1c",
-      "bytes": 182852,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-product__index.png": {
+      "sha256": "04a5508fa6d755f8aef8e34c7b9c11d1b97fa383b52e4297b7d21bb10eafb04d",
+      "bytes": 183165,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/management-product/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-orders__index.png": {
-      "sha256": "d6cf8987822a012d40950ec790319621d17a390c96bc3dbcbdcb102a448d73fe",
-      "bytes": 76917,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-orders__index.png": {
+      "sha256": "21f74cc933a6f4158ed13fb7de93ddac8a596fb058ea654c708b6535ff593d97",
+      "bytes": 76593,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/management-orders/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-order-detail__index.png": {
-      "sha256": "09c005f92f6dd061b2019834c25c7f9ad861cb4a32573e7b3d8df9e55bc113c7",
-      "bytes": 59897,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-order-detail__index.png": {
+      "sha256": "2f028fc24b92dfde0061efc44520f58084e9e3d54681a92b038195cf45f048d1",
+      "bytes": 60469,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/management-order-detail/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-support__index.png": {
-      "sha256": "9fba6d69d0e0a00c6c4cf48c2c94c83d125012380d865205741668e3204eeb10",
-      "bytes": 64607,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-support__index.png": {
+      "sha256": "0a29f7c3a63a8686dc31df50486e02f209a58b6f11d87797788d90c1440fc615",
+      "bytes": 42275,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/management-support/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-support-chat__index.png": {
-      "sha256": "cc81b337f13cbfa5203ecce1cb0d762b582aa0d2d874cfc6cb94954053baf466",
-      "bytes": 184623,
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-support-chat__index.png": {
+      "sha256": "d983b9827a9bb3795c587f61b129a3803de206d00c934c39938cf77a7da7f5db",
+      "bytes": 82603,
       "mimeType": "image/png",
       "widthPx": 484,
       "heightPx": 1048,
       "kind": "route_native",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
       "route": "pages/management-support-chat/index",
       "state": "authenticated-route-success",
       "viewport": "484x1048"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/devtools-a7a92a2b-compile-open.json": {
-      "sha256": "aceae026ab6dacd32955defadd8ea74ca0ace97a413109cc776c23b2b0e907f2",
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/devtools-72a6a61d-compile-open.json": {
+      "sha256": "b1c0a00eb69e88ba32a9128ad318fd38e0278234d0baa89ee6d72749e5cd979a",
       "bytes": 3602,
       "mimeType": "application/json",
       "kind": "devtools_compile",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855"
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/devtools-a7a92a2b-console-filter.json": {
-      "sha256": "d1e09674172db38af34c37d609a1da7b7fb7403460e77e529cf6a81c098f9217",
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/devtools-72a6a61d-console-filter.json": {
+      "sha256": "7d663d9f818464cc31dc6d44c3c69ed09e74d4e37d31471c54a3933b1e79927b",
       "bytes": 464,
       "mimeType": "application/json",
       "kind": "devtools_console",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855"
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/devtools-a7a92a2b-network-filter.json": {
-      "sha256": "0a38f1111d1e6cb05d3f5ce0213668c310f01b8305e0123e7d818d852f6288ee",
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/devtools-72a6a61d-network-filter.json": {
+      "sha256": "fe0f9e909d572fd7aa062dbfad1cdb5e7409e7db8d71db9d7a978946f5e8b51f",
       "bytes": 479,
       "mimeType": "application/json",
       "kind": "devtools_network",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855"
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8"
     },
-    "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/route-runtime-health.json": {
-      "sha256": "66d9115393a9f8d867380ea30e640f3797b1cba1b59d64750cc2b45be0cdf70a",
+    "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/route-runtime-health.json": {
+      "sha256": "bc2c3448648a2fb90781d9fb388190f0c960cce233570c5fc5f2e02de9a2a47d",
       "bytes": 8476,
       "mimeType": "application/json",
       "kind": "devtools_route_runtime_health",
-      "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855"
+      "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8"
     }
   },
   "devtools": {
-    "packageSourceSha256": "a7a92a2b41ef6a2efcdf3e22401ccfc28152b54604e404f5023472bc7cc6f855",
+    "packageSourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
     "compileErrors": 0,
     "consoleErrors": 0,
     "networkFailures": 0,
     "healthyRuntimeRoutes": 27,
     "environment": "local_devtools_synthetic_nonproduction",
     "compileEvidenceFiles": [
-      "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/devtools-a7a92a2b-compile-open.json"
+      "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/devtools-72a6a61d-compile-open.json"
     ],
     "consoleEvidenceFiles": [
-      "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/devtools-a7a92a2b-console-filter.json"
+      "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/devtools-72a6a61d-console-filter.json"
     ],
     "networkEvidenceFiles": [
-      "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/devtools-a7a92a2b-network-filter.json"
+      "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/devtools-72a6a61d-network-filter.json"
     ],
     "routeRuntimeHealthFiles": [
-      "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/route-runtime-health.json"
+      "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/route-runtime-health.json"
     ]
   },
   "routeCoverage": [
@@ -382,7 +382,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__home__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__home__index.png"
       ]
     },
     {
@@ -390,7 +390,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__records__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__records__index.png"
       ]
     },
     {
@@ -398,7 +398,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__community__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__community__index.png"
       ]
     },
     {
@@ -406,7 +406,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__profile__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__profile__index.png"
       ]
     },
     {
@@ -414,7 +414,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__account__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__account__index.png"
       ]
     },
     {
@@ -422,7 +422,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__task__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__task__index.png"
       ]
     },
     {
@@ -430,7 +430,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__submit__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__submit__index.png"
       ]
     },
     {
@@ -438,7 +438,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__progress__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__progress__index.png"
       ]
     },
     {
@@ -446,7 +446,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__points__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__points__index.png"
       ]
     },
     {
@@ -454,7 +454,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__post__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__post__index.png"
       ]
     },
     {
@@ -462,7 +462,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__shop__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__shop__index.png"
       ]
     },
     {
@@ -470,7 +470,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__product__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__product__index.png"
       ]
     },
     {
@@ -478,7 +478,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__checkout__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__checkout__index.png"
       ]
     },
     {
@@ -486,7 +486,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__orders__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__orders__index.png"
       ]
     },
     {
@@ -494,7 +494,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__order-detail__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__order-detail__index.png"
       ]
     },
     {
@@ -502,7 +502,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__settings__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__settings__index.png"
       ]
     },
     {
@@ -510,7 +510,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__invite__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__invite__index.png"
       ]
     },
     {
@@ -518,7 +518,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__legal__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__legal__index.png"
       ]
     },
     {
@@ -526,7 +526,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__privacy-rights__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__privacy-rights__index.png"
       ]
     },
     {
@@ -534,7 +534,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__support__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__support__index.png"
       ]
     },
     {
@@ -542,7 +542,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management__index.png"
       ]
     },
     {
@@ -550,7 +550,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-catalog__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-catalog__index.png"
       ]
     },
     {
@@ -558,7 +558,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-product__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-product__index.png"
       ]
     },
     {
@@ -566,7 +566,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-orders__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-orders__index.png"
       ]
     },
     {
@@ -574,7 +574,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-order-detail__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-order-detail__index.png"
       ]
     },
     {
@@ -582,7 +582,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-support__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-support__index.png"
       ]
     },
     {
@@ -590,7 +590,7 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-composer-a7a92a2b-20260912t0948/screenshots/raw/pages__management-support-chat__index.png"
+        "docs/evidence/visual/review-precision-72a6a61d-20260912t1922/screenshots/raw/pages__management-support-chat__index.png"
       ]
     }
   ],

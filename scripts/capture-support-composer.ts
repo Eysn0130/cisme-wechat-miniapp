@@ -7,7 +7,7 @@ import { inspectMiniProgramPackage } from "./miniprogram-package-lib.js";
 
 const root = resolve(import.meta.dirname, "..");
 const project = join(root, "apps/miniprogram");
-const output = join(root, "docs/evidence/support-composer-2026-09-12");
+const output = resolve(root, process.argv[2] ?? "docs/evidence/support-composer-2026-09-12");
 const screenshots = join(output, "screenshots");
 const fixture = JSON.parse(await readFile(join(root, "tmp/miniprogram-acceptance/fixture.json"), "utf8")) as {
   scope: string;

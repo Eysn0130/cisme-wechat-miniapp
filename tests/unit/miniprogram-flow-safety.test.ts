@@ -315,8 +315,8 @@ describe("mini program submission flow safety", () => {
     expect(communityView).toContain('bindtap="loadTasks"');
     expect(profileView).toContain("同步失败 · 点此重试");
     expect(profileView).toContain('wx:if="{{tasksError && member}}"');
-    expect(profileView).toContain("真实购买与配送仍未开放");
-    expect(shopView).toContain("已通过资质门禁并上架");
+    expect(profileView).toContain("微信支付与真实配送尚未开放");
+    expect(shopView).toContain("已完成资质确认并上架");
     expect(shopView).toContain("结算与支付尚未开放");
     expect(editorial).toContain("内容授权尚待确认");
   });

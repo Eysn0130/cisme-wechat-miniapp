@@ -7,7 +7,7 @@ page {
   --cisme-lilac: #eee4f2;
   --cisme-line: rgba(78, 47, 91, .12);
   --cisme-surface: rgba(255, 252, 255, .78);
-  --cisme-text-micro: 10px;
+  --cisme-text-micro: 11px;
   --cisme-text-small: 12px;
   --cisme-text-body: 14px;
   --cisme-text-action: 16px;

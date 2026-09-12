@@ -544,7 +544,8 @@ Page({
     if (!this.data.canReply || !this.data.assignedToMe || this.data.busy || !this.data.conversation) return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    const decision = await wx.showModal({ title: "确认解决这次问题？", content: "会话历史会保留。用户再次发送消息时会重新进入待人工队列。", confirmText: "标记已解决" });
+    const draftWarning = this.data.input.trim() ? "当前未发送的回复草稿会清除。" : "";
+    const decision = await wx.showModal({ title: "确认解决这次问题？", content: `${draftWarning}会话历史会保留。用户再次发送消息时会重新进入待人工队列。`, confirmText: "标记已解决" });
     if (!decision.confirm || !this.owns(epoch, ownerToken)) return;
     this.setData({ busy: true, error: "" });
     try {

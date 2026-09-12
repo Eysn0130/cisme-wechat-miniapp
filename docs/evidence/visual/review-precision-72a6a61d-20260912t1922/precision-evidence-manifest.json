@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "72a6a61d3ad3411ac86b44c00dd511cc4deaf54e9573af311deafde6fb9082e8",
+  "generatedAt": "2026-09-12T11:31:25.617033+00:00",
+  "baselineSourceSha256": "4e551cc6c41528a052af595e4ae48d569b9b17345a30db5a40bf2f1aec69175b",
+  "managementInlineBeforeSourceSha256": "c8eaee4518080b08304a9df59b5f383f9faa935714b7cfbcc1b91e3d2cda780e",
+  "currentRawRoutes": 27,
+  "currentComposerStates": 16,
+  "currentRouteManifest": "source-manifest.json",
+  "currentComposerManifest": "composer-current/visual-evidence-manifest.json",
+  "artifacts": [
+    {
+      "path": "screenshots/management-product-actions.png",
+      "sha256": "412083f7af82a47d1d166412334776b99a35be06809336ad3f6e65ce436a3feb",
+      "bytes": 77573
+    },
+    {
+      "path": "before-sources/management-product-actions-c8eaee45.png",
+      "sha256": "155084c7ffb91d6b913df8d77a5784be891bf8aa3d99f5cd22b4c4b87327741e",
+      "bytes": 77500
+    },
+    {
+      "path": "contact-sheets/admin-composer-contact-sheet.png",
+      "sha256": "f5448cafc2267bff3471b9c9a8baa8122080488f0a88f4890e0350a59a9df230",
+      "bytes": 108049
+    },
+    {
+      "path": "contact-sheets/before-after-precision-contact-sheet.png",
+      "sha256": "d397131839b2e042a7e6a71481d5fb4c106fc3827525b16ee0dcb5a77841b489",
+      "bytes": 251199
+    },
+    {
+      "path": "contact-sheets/bottom-sheet-contact-sheet.png",
+      "sha256": "553330df5bd7978ca513d444cf608ddcd0dee725c38fb6dcd9dd68497083f1de",
+      "bytes": 112725
+    },
+    {
+      "path": "contact-sheets/button-family-contact-sheet.png",
+      "sha256": "c88b3d71d3bd1477a202061a274fc8a4d9820cb4b4563ce0f613dd2fa10b1806",
+      "bytes": 570009
+    },
+    {
+      "path": "contact-sheets/composer-contact-sheet.png",
+      "sha256": "c58c60b41646878e5bc3cbcdce21d0a56b3def3e734eb4c0ad7a818933b0e7ac",
+      "bytes": 430599
+    },
+    {
+      "path": "contact-sheets/healthy-routes.png",
+      "sha256": "890c59a172f7546ee6f382fbc19496bc339146a88e1176bc20573dc93699fdbf",
+      "bytes": 4082473
+    },
+    {
+      "path": "contact-sheets/management-inline-before-after.png",
+      "sha256": "ec2a812dc3cfbd279ec49094bf1d1e8204e799114939904f16665c87830bd589",
+      "bytes": 41595
+    },
+    {
+      "path": "contact-sheets/typography-contact-sheet.png",
+      "sha256": "f9675f5da9cbeb6a426fe7e078074a82c03b36c02aff611896efbfc340cca875",
+      "bytes": 510568
+    },
+    {
+      "path": "admin-interaction-runtime-assertion.json",
+      "sha256": "9072be1f4697e6d8b1afb194e857ec150af9fd851cbf32e4601c4055be3dbd59",
+      "bytes": 1374
+    }
+  ],
+  "limitations": [
+    "Contact sheets are navigation aids; raw simulator frames remain authoritative.",
+    "Synthetic fixture messages, times and IDs can differ across before/after captures.",
+    "No physical iOS/Android keyboard, system font scaling, camera or weak-network pass.",
+    "The screenshot bridge did not paint the system Modal; resolve confirmation is a runtime assertion only."
+  ]
+}

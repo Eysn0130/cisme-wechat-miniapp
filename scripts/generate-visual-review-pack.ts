@@ -276,16 +276,22 @@ const sourceManifest = {
 };
 await writeFile(join(outputRoot, "source-manifest.json"), JSON.stringify(sourceManifest, null, 2) + "\n");
 
+const appStyle = await readFile(join(miniProgramRoot, "app.wxss"), "utf8");
+function sourceToken(name: string): string {
+  const value = appStyle.match(new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*([^;]+);`))?.[1]?.trim();
+  if (!value) throw new Error(`Missing current Mini Program design token: ${name}`);
+  return value;
+}
 const designTokens = {
   schemaVersion: 1,
   runtimeSource: "apps/miniprogram/app.wxss",
   colors: {
-    ink: "#352a3a", inkDeep: "#2f2149", muted: "#817788", brand: "#56306f", brandDeep: "#321d48",
-    lilac: "#eee4f2", pageBackground: "#f7f2f8", surface: "rgba(255,252,255,.78)", border: "rgba(78,47,91,.12)",
+    ink: sourceToken("--cisme-ink"), inkDeep: sourceToken("--cisme-ink-deep"), muted: sourceToken("--cisme-muted"), brand: sourceToken("--cisme-plum"), brandDeep: sourceToken("--cisme-plum-deep"),
+    lilac: sourceToken("--cisme-lilac"), pageBackground: "#f7f2f8", surface: sourceToken("--cisme-surface"), border: sourceToken("--cisme-line"),
     errorText: "#8d3150", errorSurface: "#f8e8ed"
   },
-  typography: { microPx: 10, smallPx: 12, bodyPx: 14, actionPx: 16, titleRpx: 46, sans: "system/PingFang SC", display: "Songti SC fallback" },
-  interaction: { minimumHitTargetPx: 44, primaryHeightPx: 50, preferredTransitionMs: "150-220", reducedMotion: "page-specific media queries" },
+  typography: { microPx: parseFloat(sourceToken("--cisme-text-micro")), smallPx: parseFloat(sourceToken("--cisme-text-small")), bodyPx: parseFloat(sourceToken("--cisme-text-body")), actionPx: parseFloat(sourceToken("--cisme-text-action")), titleRpx: 46, sans: "system/PingFang SC", display: "Songti SC fallback" },
+  interaction: { minimumHitTargetPx: parseFloat(sourceToken("--cisme-hit-target")), primaryHeightPx: 50, preferredTransitionMs: "150-220", reducedMotion: "page-specific media queries" },
   geometry: { pageHorizontalPaddingRpx: 28, cardRadiusRpx: 32, fieldRadiusRpx: 21, pillRadius: "999rpx" },
   evidenceStatus: "SOURCE_EXTRACTED_NOT_DEVICE_VERIFIED"
 };

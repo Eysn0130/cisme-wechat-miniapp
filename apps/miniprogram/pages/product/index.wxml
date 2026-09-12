@@ -21,11 +21,11 @@
     <view class="glass product-facts">
       <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>成分与用法请参阅产品说明</text></view>
       <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/package-plum.svg" mode="aspectFit"/><text>配送与售后信息将在购买时展示</text></view>
-      <view class="product-fact product-fact--last"><image class="product-fact__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><text>价格与可用库存会在服务端报价时重新核验</text></view>
+      <view class="product-fact product-fact--last"><image class="product-fact__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><text>价格与可用库存会在确认订单时再次核对</text></view>
     </view>
     <view class="product-note">{{item.purchaseCopy}}</view>
   </view>
-  <view wx:if="{{item}}" class="product-action"><button class="primary product-action__button {{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating?'primary--disabled':''}}" bindtap="openCheckout" disabled="{{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating}}"><text class="action-label">{{item.purchaseEnabled&&selectedSku.purchaseEnabled?'立即购买':'购买尚未开放'}}</text></button></view>
+  <view wx:if="{{item}}" class="product-action"><button class="primary product-action__button {{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating?'primary--disabled':''}}" bindtap="openCheckout" disabled="{{!item.purchaseEnabled||!selectedSku.purchaseEnabled||navigating}}"><text class="action-label">{{item.purchaseEnabled&&selectedSku.purchaseEnabled?'前往核对订单':'购买尚未开放'}}</text></button></view>
   <view wx:if="{{!item && error}}" class="glass error-scene product-error-scene" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/package-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">商品状态</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary product-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载商品资料</text></button><button class="{{leaving ? 'control--disabled' : ''}} product-error-action {{errorKind === 'missing' ? 'primary' : 'secondary'}}" disabled="{{leaving}}" bindtap="back"><text class="action-label">返回商品目录</text></button></view></view>
 </view>
 </view>

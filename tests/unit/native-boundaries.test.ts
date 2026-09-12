@@ -83,7 +83,7 @@ describe("native mini program boundary", () => {
   it("keeps native typography and hit targets on the frozen legibility tokens", async () => {
     const appStyle = await readFile(resolve("apps/miniprogram/app.wxss"), "utf8");
     for (const token of [
-      "--cisme-text-micro: 10px",
+      "--cisme-text-micro: 11px",
       "--cisme-text-small: 12px",
       "--cisme-text-body: 14px",
       "--cisme-text-action: 16px",
@@ -120,6 +120,8 @@ describe("native mini program boundary", () => {
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
       "checkout/index.wxml": 3,
+      "management-catalog/index.wxml": 1,
+      "management-product/index.wxml": 1,
       "settings/index.wxml": 1,
       "post/index.wxml": 1,
       "privacy-rights/index.wxml": 1,

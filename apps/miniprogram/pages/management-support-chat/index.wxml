@@ -68,8 +68,9 @@
     <view wx:elif="{{conversation && conversation.status === 'resolved'}}" class="operator-owned">本次服务已结束，等待会员再次发起</view>
     <block wx:if="{{assignedToMe && conversation.status === 'human_active'}}">
       <view class="operator-ai-row">
-        <button class="{{!aiProviderAvailable || busy ? 'control--disabled' : ''}}" bindtap="suggest" disabled="{{!aiProviderAvailable || busy}}">{{aiProviderAvailable ? 'AI 建议' : 'AI 建议未接入'}}</button>
-        <text>只写入草稿，必须由人工确认发送</text>
+        <button wx:if="{{aiProviderAvailable}}" class="{{busy ? 'control--disabled' : ''}}" bindtap="suggest" disabled="{{busy}}">AI 建议</button>
+        <text wx:else class="operator-ai-status">AI 建议未接入</text>
+        <text class="operator-ai-row__helper">仅生成草稿，需人工确认发送</text>
       </view>
       <view class="operator-compose {{composerFocused ? 'operator-compose--focused' : ''}}">
         <textarea class="operator-input {{composerCapped ? 'operator-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="true" hold-keyboard="true" disable-default-padding="true" confirm-type="send" confirm-hold="true" bindconfirm="send" cursor-spacing="16" placeholder="以人工客服身份回复" placeholder-class="operator-input__placeholder"/>

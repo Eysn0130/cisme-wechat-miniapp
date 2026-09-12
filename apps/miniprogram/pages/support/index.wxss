@@ -533,7 +533,7 @@
 }
 
 .support-input__placeholder {
-  color: #918596;
+  color: var(--cisme-muted);
   font-size: 28rpx;
   font-weight: 400;
 }
@@ -663,8 +663,11 @@
 
 .support-draft-media button,
 .support-draft-order button {
-  min-width: 40px;
-  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--cisme-hit-target);
+  min-height: var(--cisme-hit-target);
   padding: 0 12rpx;
   color: #72557f;
   background: #f1e9f3;
@@ -754,11 +757,16 @@
 }
 
 .support-sheet__cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
+  min-height: 50px;
   margin-top: 18rpx;
   border-radius: 22rpx;
   color: #625668;
   background: #f4eff5;
+  line-height: 1.25;
 }
 
 .support-order-picker {
