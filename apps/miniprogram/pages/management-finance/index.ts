@@ -73,7 +73,9 @@ Page({
   selectSection(event:WechatMiniprogram.TouchEvent){
     const section=String(event.currentTarget.dataset.section) as Section;
     if(!this.data.sections.some(item=>item.id===section)||this.data.busy)return;
-    this.setData({section,actionError:"",actionStatus:""});void this.load();
+    // A cycle snapshot is immutable but its *approval* and source availability
+    // may have changed while the reviewer worked in another section.
+    this.setData({section,cycle:null,actionError:"",actionStatus:""});void this.load();
   },
   async load(){
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,section=this.data.section;
@@ -131,6 +133,7 @@ Page({
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   chooseCycleMonth(event:{detail:{value:string}}){
+    if(this.data.busy)return;
     this.setData({cycleMonth:event.detail.value,cycle:null,cycleDecisionKeys:{},
       actionError:"",actionStatus:""});
   },

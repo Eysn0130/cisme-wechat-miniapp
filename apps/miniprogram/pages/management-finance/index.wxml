@@ -14,7 +14,7 @@
     </view>
     <view wx:if="{{section==='cycles'}}" class="finance-bill-import">
       <text>上海自然月 · 周期候选（仅隔离测试）</text>
-      <picker mode="date" fields="month" value="{{cycleMonth}}" end="{{latestCycleMonth}}" bindchange="chooseCycleMonth"><view class="finance-bill-date">{{cycleMonth}} · 选择月份</view></picker>
+      <picker mode="date" fields="month" value="{{cycleMonth}}" end="{{latestCycleMonth}}" bindchange="chooseCycleMonth" disabled="{{busy}}"><view class="finance-bill-date">{{cycleMonth}} · 选择月份</view></picker>
       <button class="finance-action {{busy?'control--disabled':''}}" bindtap="prepareCycle" disabled="{{busy}}" loading="{{busy}}">准备或复查候选</button>
       <text class="subtitle">每月 15 日起准备上一自然月末来源；税前不足 ¥100 结转，不作失效。准备不等于批准；真实税务、身份及资金政策仍阻断。</text>
       <view wx:if="{{cycle}}"><text class="finance-copy">{{cycle.periodEnd}} 候选 · {{cycle.members.length}} 位 · {{cycle.replay?'已存在的不可改写快照':'新快照'}}</text><text class="finance-id">准备人 {{cycle.preparedByMemberId}}；须由另一名授权人员复核。</text>
