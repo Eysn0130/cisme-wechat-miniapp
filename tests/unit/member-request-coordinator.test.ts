@@ -52,4 +52,31 @@ describe('concurrent native reads',()=>{
    expect(await queue.read('feed',run,{ttlMs:100,staleMs:1000,tags:['feed']})).toBe(2);
   } finally { vi.useRealTimers(); }
  });
+ it('bounds unique read keys and refetches an evicted old key without leaking its result',async()=>{
+  const queue=new RequestCoordinator();
+  const old=deferred(),latest=deferred();
+  const first=queue.read('first',()=>old.promise,{ttlMs:60_000,tags:['feed']});
+  for(let i=0;i<300;i++)await queue.read(`feed-page-${i}`,async()=>i,{ttlMs:60_000,tags:['feed']});
+  expect((queue as unknown as {cache:Map<string,unknown>}).cache.size).toBeLessThanOrEqual(256);
+  const fresh=queue.read('first',()=>latest.promise,{ttlMs:60_000,tags:['feed']});
+  expect(fresh).not.toBe(first);
+  old.resolve(1);await first;
+  latest.resolve(2);expect(await fresh).toBe(2);
+  expect(await queue.read('first',async()=>3,{ttlMs:60_000,tags:['feed']})).toBe(2);
+ });
+ it('prunes expired entries before evicting a still-fresh oldest entry',async()=>{
+  vi.useFakeTimers();
+  try{
+   const queue=new RequestCoordinator(),active=vi.fn(async()=>1),expired=vi.fn(async()=>2);
+   await queue.read('active',active,{ttlMs:60_000});
+   await queue.read('expired',expired,{ttlMs:1});
+   await vi.advanceTimersByTimeAsync(2);
+   for(let i=0;i<255;i++)await queue.read(`other-${i}`,async()=>i,{ttlMs:60_000});
+   expect((queue as unknown as {cache:Map<string,unknown>}).cache.size).toBe(256);
+   expect(await queue.read('active',active,{ttlMs:60_000})).toBe(1);
+   expect(active).toHaveBeenCalledTimes(1);
+   await queue.read('expired',expired,{ttlMs:60_000});
+   expect(expired).toHaveBeenCalledTimes(2);
+  }finally{vi.useRealTimers();}
+ });
 });
