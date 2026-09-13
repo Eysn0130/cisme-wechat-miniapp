@@ -32,7 +32,7 @@ export interface CommerceOrderPage {
 }
 export interface CommerceOrderRuntimeStatus {
   version: 1; orderFlowEnabled: boolean; paymentAvailable: false; paymentOnboarding: "IN_PROGRESS"; currency: "CNY";
-  scope: "synthetic_nonproduction" | "verified_isolated_test" | "disabled";
+  scope: "synthetic_nonproduction" | "verified_isolated_test" | "formal_protocol_synthetic_test" | "disabled";
   isolatedMoneyOperationsAvailable: boolean; isolatedTransferAvailable: boolean;
 }
 

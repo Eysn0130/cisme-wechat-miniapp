@@ -95,13 +95,16 @@ export class CommerceOrderService {
     private readonly addresses: DeliveryAddressService,
     private readonly commercial: CommercialMembershipService,
     private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
-      simulatedPayment?: { appId: string; merchantId: string; transferSceneId?: string } }
+      simulatedPayment?: { appId: string; merchantId: string; transferSceneId?: string };
+      formalTestPayment?: { appId: string; merchantId: string } }
   ) {}
 
   status() {
     return { version: 1, orderFlowEnabled: this.options.enabled, paymentAvailable: false, paymentOnboarding: "IN_PROGRESS", currency: "CNY" as const,
-      scope: this.options.simulatedPayment?"verified_isolated_test":this.options.enabled?"synthetic_nonproduction":"disabled",
-      isolatedMoneyOperationsAvailable:Boolean(this.options.simulatedPayment),
+      scope: this.options.simulatedPayment?"verified_isolated_test":
+        this.options.formalTestPayment?"formal_protocol_synthetic_test":
+        this.options.enabled?"synthetic_nonproduction":"disabled",
+      isolatedMoneyOperationsAvailable:Boolean(this.options.simulatedPayment||this.options.formalTestPayment),
       isolatedTransferAvailable:Boolean(this.options.simulatedPayment?.transferSceneId) };
   }
 
@@ -264,21 +267,22 @@ export class CommerceOrderService {
       if (available < quote.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
       const orderId = randomUUID(); const expiresAt = new Date(now.getTime() + this.options.pendingOrderTtlMinutes * 60_000);
       const number = orderNumber(now); const sealed = this.addresses.sealOrderSnapshot(owner,orderId,address.payload);
-      const transactionSource=this.options.simulatedPayment?"verified_commerce":"synthetic_nonproduction";
+      const paymentBinding=this.options.simulatedPayment??this.options.formalTestPayment;
+      const transactionSource=paymentBinding?"verified_commerce":"synthetic_nonproduction";
       const order = (await client.query<OrderRow>(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,subtotal_cents,
         member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at,created_at,updated_at,transaction_source_kind)
         VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$12,$13) RETURNING *`,
         [orderId,number,owner,quote.id,quote.currency,quote.subtotal_cents,quote.member_discount_cents,quote.shipping_cents,quote.total_cents,quote.pricing_rule_version,expiresAt,now,transactionSource])).rows[0]!;
-      if(this.options.simulatedPayment){
+      if(paymentBinding){
         const identity=(await client.query<{openid:string}>(`SELECT openid FROM wechat_identity
           WHERE member_id=$1 AND provider='wechat_miniprogram' AND app_id=$2
-          ORDER BY created_at DESC,id DESC LIMIT 1`,[owner,this.options.simulatedPayment.appId])).rows[0];
+          ORDER BY created_at DESC,id DESC LIMIT 1`,[owner,paymentBinding.appId])).rows[0];
         if(!identity)throw new DomainError("PAYMENT_PAYER_IDENTITY_REQUIRED","当前微信身份不可用于支付测试",409);
         await client.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,
           app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
           VALUES($1,$2,$3,$4,$5,$6,$7,'CNY',$8,$9,$10,$11)`,
-          [orderId,number,owner,identity.openid,this.options.simulatedPayment.appId,
-            this.options.simulatedPayment.merchantId,money(quote.total_cents),quote.id,quote.pricing_rule_version,quote.price_version,expiresAt]);
+          [orderId,number,owner,identity.openid,paymentBinding.appId,
+            paymentBinding.merchantId,money(quote.total_cents),quote.id,quote.pricing_rule_version,quote.price_version,expiresAt]);
       }
       await client.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,image_path,
         quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents) VALUES($1,1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,

@@ -30,7 +30,8 @@ Page({
     this.setData({loading:true,error:"",order:null,refunds:[],refundTotal:0,refundCursor:null,isolatedPayment:false,refundError:""});
     try{const [order,status]=await Promise.all([myOrder(this.data.id),orderRuntimeStatus().catch(()=>null)]);
       if(!this.current(epoch,token))return;
-      const isolatedPayment=status?.scope==="verified_isolated_test"&&status.isolatedMoneyOperationsAvailable&&order.transactionSourceKind==="verified_commerce";
+      const isolatedPayment=(status?.scope==="verified_isolated_test"||status?.scope==="formal_protocol_synthetic_test")&&
+        status.isolatedMoneyOperationsAvailable&&order.transactionSourceKind==="verified_commerce";
       this.setData({order:this.normalize(order),isolatedPayment,loading:false});
       if(isolatedPayment&&order.status==="paid")void this.loadRefunds(epoch,token);
     }catch(error){if(this.current(epoch,token))this.setData({order:null,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}},

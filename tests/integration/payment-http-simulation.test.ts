@@ -1,5 +1,8 @@
 import { createCipheriv, createHash, generateKeyPairSync, randomBytes, randomUUID, sign, verify } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { loadConfig } from "@cisme/config";
@@ -14,6 +17,7 @@ import { RefundCommandService } from "../../services/api/src/refundCommand";
 import { AuthorityService } from "../../services/api/src/authority";
 import { SettlementCommandService } from "../../services/api/src/settlementCommand";
 import { TransferCallbackInbox } from "../../services/api/src/transferCallbackInbox";
+import { formalPaymentProtocol } from "../../services/api/src/formalPaymentProtocol";
 
 const pool=testPool();
 const merchant=generateKeyPairSync("rsa",{modulusLength:2048});
@@ -265,17 +269,17 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 
-async function createOrder(key:string){
-  const address=await app.inject({method:"POST",url:"/v1/me/addresses",headers:{...auth(buyer.sessionToken),
+async function createOrder(key:string,target:FastifyInstance=app){
+  const address=await target.inject({method:"POST",url:"/v1/me/addresses",headers:{...auth(buyer.sessionToken),
     "idempotency-key":`address-${key}-0001`},payload:{recipientName:"合成收件人",phone:"13800001234",province:"上海市",
       city:"上海市",district:"浦东新区",detail:"隔离测试路 1 号",postalCode:"200000",nationalCode:"310115",
       provinceCode:"310000",cityCode:"310100",districtCode:"310115",label:"home",isDefault:true}});
   expect(address.statusCode,JSON.stringify(address.json())).toBe(200);
-  const quote=await app.inject({method:"POST",url:"/v1/me/commerce/quotes",headers:{...auth(buyer.sessionToken),
+  const quote=await target.inject({method:"POST",url:"/v1/me/commerce/quotes",headers:{...auth(buyer.sessionToken),
     "idempotency-key":`quote-${key}-0001`},payload:{skuId,quantity:1,addressId:address.json().id,
       addressVersion:address.json().version}});
   expect(quote.statusCode,JSON.stringify(quote.json())).toBe(200);
-  const created=await app.inject({method:"POST",url:"/v1/me/orders",headers:{...auth(buyer.sessionToken),
+  const created=await target.inject({method:"POST",url:"/v1/me/orders",headers:{...auth(buyer.sessionToken),
     "idempotency-key":`order-${key}-0001`},payload:{quoteId:quote.json().id}});
   expect(created.statusCode,JSON.stringify(created.json())).toBe(200);
   return created.json() as {id:string;orderNumber:string;version:number};
@@ -1016,4 +1020,78 @@ it("flags a channel-observed refund missing from an otherwise complete REFUND bi
       {exception_code:null,related_id:refunds[0]},
       {exception_code:"REFUND_MISSING_PROVIDER_BILL",related_id:refunds[1]}
     ]));
+});
+
+it("assembles pinned formal trust through isolated payment, callback, refund and worker routes without non-loopback egress",async()=>{
+  const fixtureDir=await mkdtemp(join(tmpdir(),"cisme-formal-protocol-"));
+  let formalApp:FastifyInstance|undefined;
+  try{
+    const merchantPath=join(fixtureDir,"merchant.pem"),platformPath=join(fixtureDir,"platform.pem"),
+      apiKeyPath=join(fixtureDir,"api-v3.key"),manifestPath=join(fixtureDir,"trust.json");
+    await writeFile(merchantPath,merchantPrivate,{mode:0o600});
+    await writeFile(platformPath,platformPublic,{mode:0o600});
+    await writeFile(apiKeyPath,apiV3Key,{mode:0o600});
+    await writeFile(manifestPath,JSON.stringify({schemaVersion:1,
+      keys:[{id:serial,publicKeyFile:platformPath}]}),{mode:0o600});
+    const config=loadConfig({APP_ENV:"test",DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:"payment-http-session",
+      ADMIN_API_TOKEN:"payment-http-admin",UPLOAD_TOKEN_SECRET:"payment-http-upload",OBJECT_STORAGE_DRIVER:"api_gateway",
+      CONTACT_ENCRYPTION_KEY:"11".repeat(32),CONTACT_HASH_KEY:"22".repeat(32),CONTACT_KEY_VERSION:"payment-test-v1",
+      COMMERCE_ORDER_FLOW_ENABLED:"true",COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED:"true",
+      WECHAT_APP_ID:appId,COMMERCE_FORMAL_MERCHANT_ID:merchantId,COMMERCE_FORMAL_MERCHANT_SERIAL:"MERCHANT_CERT_FIXTURE",
+      COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE:merchantPath,COMMERCE_FORMAL_API_V3_KEY_FILE:apiKeyPath,
+      COMMERCE_FORMAL_PLATFORM_TRUST_FILE:manifestPath,
+      COMMERCE_FORMAL_PAYMENT_NOTIFY_URL:"https://formal-fixture.invalid/v1/payments/wechat/callback",
+      COMMERCE_FORMAL_REFUND_NOTIFY_URL:"https://formal-fixture.invalid/v1/payments/wechat/refund-callback"});
+    let syntheticCalls=0;
+    const loopbackOnly:typeof fetch=(input,init)=>{
+      const original=new URL(String(input));
+      if(original.origin!=="https://api.mch.weixin.qq.com")throw new Error("NON_LOOPBACK_EGRESS_FORBIDDEN");
+      syntheticCalls+=1;
+      return fetch(`${baseUrl}${original.pathname}${original.search}`,init);
+    };
+    const protocol=formalPaymentProtocol(config,pool,loopbackOnly)!;
+    expect(protocol.networkAuthorized).toBe(false);
+    await expect(createApp({config,pool,storage:createApiGatewayStorage(config),
+      paymentProtocol:formalPaymentProtocol(config,pool)!}))
+      .rejects.toThrow("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
+    await expect(createApp({config:{...config,env:"staging"},pool,
+      storage:createApiGatewayStorage(config),paymentProtocol:protocol}))
+      .rejects.toThrow("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
+    formalApp=await createApp({config,pool,storage:createApiGatewayStorage(config),paymentProtocol:protocol});
+    expect((await formalApp.inject({method:"GET",url:"/v1/commerce/orders/status"})).json().scope)
+      .toBe("formal_protocol_synthetic_test");
+    await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1,
+      version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
+    const order=await createOrder("formal-local",formalApp);
+    const prepay=await formalApp.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,
+      headers:auth(buyer.sessionToken),payload:{}});
+    expect(prepay.statusCode,JSON.stringify(prepay.json())).toBe(200);
+    expect(prepay.json()).toMatchObject({simulation:true,state:"prepay_ready"});
+    const paid=paidCallback(order.orderNumber);
+    expect((await formalApp.inject({method:"POST",url:"/v1/payments/wechat/callback",
+      headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
+    await runMoneyWorkerCycle(protocol.inbox,protocol.refundInbox);
+    expect((await pool.query(`SELECT status FROM commerce_order WHERE id=$1`,[order.id])).rows[0].status).toBe("paid");
+    const request=await formalApp.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
+      headers:{...auth(buyer.sessionToken),"idempotency-key":"formal-refund-req"},
+      payload:{amountCents:1000,reason:"合成正式协议退款"}});
+    expect(request.statusCode,JSON.stringify(request.json())).toBe(200);
+    const approved=await formalApp.inject({method:"POST",url:`/v1/management/refund-requests/${request.json().id}/decision`,
+      headers:{...auth(operator.sessionToken),"idempotency-key":"formal-refund-approve"},
+      payload:{decision:"approve",expectedVersion:1,reason:"正式装配隔离复核"}});
+    expect(approved.statusCode,JSON.stringify(approved.json())).toBe(200);
+    const formalRefund=new RefundCommandService(pool,new AuthorityService(pool,"test"),protocol.channel,
+      protocol.refundInbox,{merchantId,notifyUrl:protocol.refundNotifyUrl});
+    expect(await formalRefund.processDue()).toContainEqual({id:approved.json().intent.id,state:"accepted_processing"});
+    const refunded=refundCallback(approved.json().intent.outRefundNo);
+    expect((await formalApp.inject({method:"POST",url:"/v1/payments/wechat/refund-callback",
+      headers:{...refunded.headers,"Content-Type":"application/json"},payload:refunded.raw})).statusCode).toBe(204);
+    await runMoneyWorkerCycle(protocol.inbox,protocol.refundInbox,formalRefund);
+    expect((await pool.query(`SELECT state FROM commission_refund_inbox WHERE refund_intent_id=$1`,
+      [approved.json().intent.id])).rows[0].state).toBe("applied");
+    expect(syntheticCalls).toBeGreaterThanOrEqual(2);
+  }finally{
+    await formalApp?.close();
+    await rm(fixtureDir,{recursive:true,force:true});
+  }
 });

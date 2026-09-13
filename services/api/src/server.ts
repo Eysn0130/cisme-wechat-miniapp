@@ -56,7 +56,8 @@ interface AppDependencies {
   storage: ObjectStorage;
   paymentProtocol?: { channel: WechatPayV3Client; inbox: VerifiedPaymentInbox;
     refundInbox: VerifiedRefundInbox; paymentNotifyUrl: string; refundNotifyUrl: string;
-    transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox };
+    transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox;
+    isolatedSyntheticTransport?: boolean };
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -97,6 +98,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config);
   const deliveryAddresses = new DeliveryAddressService(pool, config);
+  // A formal profile can exercise the complete command/inbox route only in
+  // APP_ENV=test with an injected synthetic transport. Real environments
+  // merely validate pinned trust; no config file grants outbound authority.
+  const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
+    ?config.commerce.formalProtocol:undefined;
+  const paymentProfile=config.commerce.simulatedPayment??formalTestProfile;
+  if(dependencies.paymentProtocol&&!paymentProfile)
+    throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
   const orders = new CommerceOrderService(pool, authority, deliveryAddresses, commercial, {
     enabled: config.commerce.orderFlowEnabled,
     quoteTtlMinutes: config.commerce.quoteTtlMinutes,
@@ -104,18 +113,20 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     ...(config.commerce.simulatedPayment?{simulatedPayment:{appId:config.commerce.simulatedPayment.appId,
       merchantId:config.commerce.simulatedPayment.merchantId,
       ...(config.commerce.simulatedPayment.transferSceneId
-        ?{transferSceneId:config.commerce.simulatedPayment.transferSceneId}:{})}}:{})
+        ?{transferSceneId:config.commerce.simulatedPayment.transferSceneId}:{})}}:{}),
+    ...(formalTestProfile?{formalTestPayment:{appId:formalTestProfile.appId,
+      merchantId:formalTestProfile.merchantId}}:{})
   });
-  if(config.commerce.simulatedPayment&&!dependencies.paymentProtocol)
-    throw new Error("FAIL_CLOSED:SIMULATED_PAYMENT_PROTOCOL_REQUIRED");
-  const payment= config.commerce.simulatedPayment&&dependencies.paymentProtocol
+  if(paymentProfile&&!dependencies.paymentProtocol)
+    throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_REQUIRED");
+  const payment= paymentProfile&&dependencies.paymentProtocol
     ? new PaymentAttemptService(pool,orders,dependencies.paymentProtocol.inbox,
-      dependencies.paymentProtocol.channel,{appId:config.commerce.simulatedPayment.appId,
-        merchantId:config.commerce.simulatedPayment.merchantId,notifyUrl:dependencies.paymentProtocol.paymentNotifyUrl})
+      dependencies.paymentProtocol.channel,{appId:paymentProfile.appId,
+        merchantId:paymentProfile.merchantId,notifyUrl:dependencies.paymentProtocol.paymentNotifyUrl})
     : null;
-  const refunds=config.commerce.simulatedPayment&&dependencies.paymentProtocol
+  const refunds=paymentProfile&&dependencies.paymentProtocol
     ?new RefundCommandService(pool,authority,dependencies.paymentProtocol.channel,
-      dependencies.paymentProtocol.refundInbox,{merchantId:config.commerce.simulatedPayment.merchantId,
+      dependencies.paymentProtocol.refundInbox,{merchantId:paymentProfile.merchantId,
       notifyUrl:dependencies.paymentProtocol.refundNotifyUrl}):null;
   const fulfillment=new FulfillmentReleaseService(pool,authority,config.env);
   if(config.commerce.simulatedPayment?.transferSceneId&&
@@ -130,9 +141,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const moneyOps=dependencies.paymentProtocol
     ?new MoneyOperationsService(pool,authority,dependencies.paymentProtocol.channel,
       dependencies.paymentProtocol.inbox,dependencies.paymentProtocol.refundInbox,settlement):null;
-  const tradeBills=config.commerce.simulatedPayment&&dependencies.paymentProtocol
+  const tradeBills=paymentProfile&&dependencies.paymentProtocol
     ?new TradeBillReconciliationService(pool,authority,dependencies.paymentProtocol.channel,
-      config.commerce.simulatedPayment.merchantId):null;
+      paymentProfile.merchantId):null;
   const privacyRights = new PrivacyRights(pool);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
@@ -690,10 +701,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadConfig();
   const pool = createPool(config.databaseUrl, config.database);
   const storage = createObjectStorage(config);
-  const paymentProtocol=isolatedPaymentProtocol(config,pool);
-  // Validates the complete pinned formal protocol profile at startup. The
-  // assembled adapter has no live transport or command routes in this build.
+  const isolatedProtocol=isolatedPaymentProtocol(config,pool);
+  // Always validate pinned trust. A configured formal profile alone never
+  // installs routes or a worker; only a test-injected loopback transport may
+  // exercise the formal wire contract through createApp.
   formalPaymentProtocol(config,pool);
+  const paymentProtocol=isolatedProtocol;
   const app = await createApp({ config, pool, storage,
     ...(paymentProtocol?{paymentProtocol}:{}) });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
@@ -702,12 +715,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl
     ? startUgcSafetyLoop(new UgcSafetyService(pool,config,storage),config.media.ugcScanBaseUrl,
       error=>console.error("CISME_UGC_SAFETY_TICK_FAILED",error)) : null;
-  const moneyWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&paymentProtocol&&config.commerce.simulatedPayment
+  const activeProfile=config.commerce.simulatedPayment;
+  const moneyWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&paymentProtocol&&activeProfile
     ?startMoneyBackgroundWorker(paymentProtocol.inbox,paymentProtocol.refundInbox,
       new RefundCommandService(pool,new AuthorityService(pool,config.env),paymentProtocol.channel,
-        paymentProtocol.refundInbox,{merchantId:config.commerce.simulatedPayment.merchantId,
+        paymentProtocol.refundInbox,{merchantId:activeProfile.merchantId,
           notifyUrl:paymentProtocol.refundNotifyUrl}),
-      config.commerce.simulatedPayment.transferSceneId&&paymentProtocol.transferNotifyUrl
+      config.commerce.simulatedPayment?.transferSceneId&&paymentProtocol.transferNotifyUrl
         ?new SettlementCommandService(pool,new AuthorityService(pool,config.env),paymentProtocol.channel,
           config.env,{appId:config.commerce.simulatedPayment.appId,
             merchantId:config.commerce.simulatedPayment.merchantId,

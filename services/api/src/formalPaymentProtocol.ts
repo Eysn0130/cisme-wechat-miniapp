@@ -61,8 +61,8 @@ export function formalPaymentProtocol(config:AppConfig,pool:pg.Pool,testTranspor
   const refundInbox=new VerifiedRefundInbox(pool,{merchantId:profile.merchantId,apiV3Key,platformKeys});
   const transferInbox=profile.transferSceneId
     ?new TransferCallbackInbox(pool,{merchantId:profile.merchantId,apiV3Key,platformKeys}):undefined;
-  return {channel,inbox,refundInbox,transferInbox,
+  return {channel,inbox,refundInbox,...(transferInbox?{transferInbox}:{}),
     paymentNotifyUrl:profile.paymentNotifyUrl,refundNotifyUrl:profile.refundNotifyUrl,
-    transferNotifyUrl:profile.transferNotifyUrl,
-    networkAuthorized:false as const};
+    ...(profile.transferNotifyUrl?{transferNotifyUrl:profile.transferNotifyUrl}:{}),
+    networkAuthorized:false as const,isolatedSyntheticTransport:Boolean(testTransport)};
 }
