@@ -69,7 +69,7 @@ export class RefundCommandService{
         FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
         WHERE r.order_id=$1 AND (r.state='requested' OR (r.state='approved' AND i.state<>'closed'))`,[orderId])).rows[0];
       if(Number(existing?.reserved??0)+amount>Number(order.total_cents))
-        throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计申请金额超过可退现金",409);
+        throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计申请金额超过可退订单金额",409);
       const row=(await client.query<RequestRow>(`INSERT INTO commerce_refund_request(order_id,requested_by_member_id,
         idempotency_key,request_hash,amount_cents,reason) VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
         [orderId,memberId,requestKey,fingerprint,amount,why])).rows[0]!;
