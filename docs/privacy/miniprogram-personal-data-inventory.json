@@ -444,6 +444,6 @@
       "state": "isolated_loopback_http_protocol_and_inert_formal_trust_assembly_production_closed"
     }
   ],
-  "migrationSetSha256": "42d9fbb76b1d3012ae83521eb3b2c55a5cc3d99f98a9a2bb686d7e0eeac00cfd",
+  "migrationSetSha256": "5da9e1660b439f03178bde1d83dc7cff46a061aa3b6f6b5ae3dc4041fd276f81",
   "egressSignatureSha256": "1e5864578036c798b1217d73f7ec028a6ced37ce73c90e5cd4dfce352f72dd0a"
 }

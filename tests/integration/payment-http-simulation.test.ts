@@ -345,6 +345,13 @@ async function creditSpendCase(){
       WHERE id=$1`,[intent.id])).rows[0]).toMatchObject({refund_cents:String(cash),payer_refund_cents:String(cash)});
     expect((await pool.query(`SELECT sum(amount_cents)::text AS amount FROM commission_credit_refund_allocation
       WHERE refund_intent_id=$1`,[intent.id])).rows[0].amount).toBe(String(returned));
+    const creditSource=(await pool.query<{source_id:string}>(`SELECT source_id FROM commission_credit_refund_allocation
+      WHERE refund_intent_id=$1 LIMIT 1`,[intent.id])).rows[0]!;
+    await expect(pool.query(`INSERT INTO commission_credit_entry
+      (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+      VALUES($1,$2,'refund_return',$3,$4,'fixture:unverified-refund')`,
+      [creditSource.source_id,`unverified-credit-return-${index}-01`,returned,purchase.id]))
+      .rejects.toMatchObject({code:"23514"});
     expect(await refundCommands.processDue()).toContainEqual({id:intent.id,state:"accepted_processing"});
     expect(channelRefunds.get(intent.outRefundNo)?.total).toBe(9000);
     const callback=refundCallback(intent.outRefundNo);

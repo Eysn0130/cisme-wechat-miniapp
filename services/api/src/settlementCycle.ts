@@ -19,8 +19,8 @@ type CycleRow = {id:string;cutoff_at:Date;prepared_at:Date;state:string;
   threshold_cents:string;policy_version:string;prepared_by_member_id:string};
 type CandidateRow = {member_id:string;order_id:string;gross_cents:string};
 
-/** A non-payable preview persisted on/after the 15th. It deliberately has no
- * approval, reservation, tax default, conversion or transfer endpoint. */
+/** A non-payable preview persisted on/after the 15th. Isolated test approval
+ * is a separate maker/checker command; no production tax or payout policy. */
 export class SettlementCycleService {
   constructor(private readonly pool:pg.Pool,private readonly authority:AuthorityService,
     private readonly environment:AppEnvironment) {}

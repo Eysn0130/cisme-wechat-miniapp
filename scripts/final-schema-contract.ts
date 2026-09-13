@@ -139,6 +139,7 @@ export async function assertFinalSchemaContract(db:Database){
     "commission_credit_source.commission_credit_source_immutable",
     "commission_credit_entry.commission_credit_entry_immutable",
     "commission_credit_entry.commission_credit_entry_guard",
+    "commission_credit_entry.commission_credit_refund_signed_fact",
     "commission_credit_checkout_allocation.commission_credit_checkout_immutable",
     "commission_credit_refund_allocation.commission_credit_refund_immutable",
     "commission_transfer_callback_inbox.commission_transfer_callback_guard",
@@ -152,5 +153,5 @@ export async function assertFinalSchemaContract(db:Database){
     "commerce_trade_bill_batch.commerce_trade_bill_batch_immutable",
     "commerce_trade_bill_row.commerce_trade_bill_row_immutable"
   ])if(!triggerNames.has(trigger))throw new Error(`FINAL_SCHEMA_TRIGGER_MISSING:${trigger}`);
-  return {tables:requiredTables.length,constraints:40,indexes:35,triggers:32};
+  return {tables:requiredTables.length,constraints:40,indexes:35,triggers:33};
 }
