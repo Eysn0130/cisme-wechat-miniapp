@@ -1,4 +1,4 @@
-import { requireMemberAccess } from "../../services/api";
+import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request, submissionReturnUrl } from "../../services/api";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 
@@ -62,7 +62,14 @@ Page({
   data: { chromeStyle: currentChromeStyle(), submissionId: "", submission: null as any, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), appealReason: "", appealValid: false, appealBlocked: false, loading: true, working: false, navigatingToRevision: false, navigatingAway: false, loadAttempt: 0, pageAlive: true, errorAction: "load" as "load" | "missing" | "appeal" | "revise", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) { this.setData({ submissionId: query.id ?? "", pageAlive: true }); },
-  onShow() { if (!requireMemberAccess()) return; this.data.pageAlive = true; void this.load(); },
+  onShow() {
+    this.data.pageAlive = true;
+    if (!retainMemberSnapshot(this)) this.setData({ submission: null, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "",
+      timeline: progressTimeline("draft"), appealReason: "", appealValid: false, appealBlocked: false, working: false,
+      navigatingToRevision: false, navigatingAway: false, loadAttempt: this.data.loadAttempt + 1, loading: false, errorTitle: "", error: "" });
+    if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "load", errorTitle: "请先确认身份", error: "登录后才能查看自己的审核进度。" }); return; }
+    void this.load();
+  },
   onHide() { this.data.loadAttempt += 1; },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; wx.disableAlertBeforeUnload(); },
   async load(event?: WechatMiniprogram.TouchEvent) {
@@ -72,10 +79,11 @@ Page({
       return;
     }
     const attempt = this.data.loadAttempt + 1;
+    const token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ loadAttempt: attempt, submission: null, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), loading: true, errorAction: "load", errorTitle: "", error: "" });
     try {
       const submission = await request<any>({ path: `/v1/submissions/${this.data.submissionId}` });
-      if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
+      if (!this.data.pageAlive || this.data.loadAttempt !== attempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
       const views: Record<string, { title: string; subtitle: string }> = {
         draft: { title: "投稿材料仍在草稿中", subtitle: "提交后才会进入人工审核" },
         submitted: { title: "发布证明已提交", subtitle: "已进入人工审核，结果将在站内更新" },
@@ -92,7 +100,7 @@ Page({
       this.setData({ submission, statusTitle: view.title, statusSubtitle: view.subtitle, timeline: progressTimeline(status), statusLabel, reviewReason: submission.review?.reason_summary ?? "", appealBlocked: false, loading: false, errorTitle: "", error: "" });
     }
     catch (error) {
-      if (this.data.pageAlive && this.data.loadAttempt === attempt) {
+      if (this.data.pageAlive && this.data.loadAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) {
         const failure = progressLoadFailure(error);
         this.setData({ submission: null, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), loading: false, errorAction: failure.action, errorTitle: failure.title, error: failure.copy }, scrollToProgressError);
       }

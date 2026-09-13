@@ -40,7 +40,8 @@ Page({
     this.setData({ listMode: !query.id && query.new !== "1", requestedDraftId: query.id || "", requestedNew: query.new === "1" });
     if (!getApp<IAppOption>().globalData.sessionToken) {
       this.setData({ loading: false, error: "登录后可写自己的护理故事。" });
-      resumeAuthentication(query.id ? `/pages/community-compose/index?id=${encodeURIComponent(query.id)}` : "/pages/community-compose/index");
+      resumeAuthentication(query.id ? `/pages/community-compose/index?id=${encodeURIComponent(query.id)}` :
+        query.new === "1" ? "/pages/community-compose/index?new=1" : "/pages/community-compose/index");
       return;
     }
     if (query.id) void this.loadDraft(query.id);

@@ -96,6 +96,141 @@ beforeEach(() => {
 });
 
 describe("mini-program page behavior", () => {
+  it("clears task, review, and settings snapshots before a guest can return from login", async () => {
+    retainMemberSnapshotMock.mockReturnValue(false);
+    requireMemberAccessMock.mockReturnValue(false);
+
+    await vi.importActual("../../apps/miniprogram/pages/task/index");
+    const task = mountedPage(capturedPage!, { task: { id: "previous-task", submission_id: "previous-submission" },
+      continuationSubmissionId: "previous-submission", working: true });
+    task.onShow();
+    expect(task.data).toMatchObject({ task: null, continuationSubmissionId: "", working: false, errorTitle: "请先确认身份" });
+
+    await vi.importActual("../../apps/miniprogram/pages/progress/index");
+    const progress = mountedPage(capturedPage!, { submission: { id: "previous-submission", status: "rejected" },
+      appealReason: "private appeal", reviewReason: "private review", working: true });
+    progress.onShow();
+    expect(progress.data).toMatchObject({ submission: null, appealReason: "", reviewReason: "", working: false, errorTitle: "请先确认身份" });
+
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings = mountedPage(capturedPage!, { memberId: "previous-member", displayName: "上一位会员",
+      phoneMasked: "138****0000", addresses: [{ id: "previous-address" }], addressQuickInput: "旧地址",
+      addressDraft: { phone: "13800000000" }, consents: [{ purpose: "private" }], profileDirty: true });
+    settings.profileSessionToken = "previous-token";
+    settings.addressRecoverySnapshot = { ownerMemberId: "previous-member" };
+    settings.onShow();
+    expect(settings.data).toMatchObject({ memberId: "", displayName: "", phoneMasked: "", addresses: [],
+      addressQuickInput: "", consents: [], profileDirty: false, errorAction: "auth" });
+    expect(settings.data.addressDraft.phone).toBe("");
+    expect(settings.profileSessionToken).toBe("");
+    expect(settings.addressRecoverySnapshot).toBeNull();
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the address deep link after authentication without showing a guest editor", async () => {
+    retainMemberSnapshotMock.mockReturnValue(false);
+    requireMemberAccessMock.mockReturnValueOnce(false).mockReturnValue(true);
+    requestMock.mockImplementation(() => new Promise(() => undefined));
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings = mountedPage(capturedPage!);
+    settings.onLoad({ section: "addresses" });
+    settings.onShow();
+    expect(settings.data.editingAddresses).toBe(false);
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "new-member" } });
+    settings.onShow();
+    expect(settings.data.editingAddresses).toBe(true);
+  });
+
+  it("does not import a previous member's WeChat address after the session changes", async () => {
+    let session = "member-a";
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: session } });
+    wxMock.chooseAddress = vi.fn();
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings = mountedPage(capturedPage!, { memberId: "member-a", addressesReady: true });
+    settings.importWechatAddress();
+    const callback = wxMock.chooseAddress.mock.calls[0]![0].success as (result: Record<string, string>) => void;
+    session = "member-b";
+    settings.data.memberId = "member-b";
+    callback({ userName: "上一位会员", telNumber: "13800000000", provinceName: "广东省" });
+    expect(settings.data.addressDraft.recipientName).toBe("");
+    expect(settings.data.addressDraft.phone).toBe("");
+    expect(wxMock.setStorageSync).not.toHaveBeenCalled();
+  });
+
+  it("leaves no settings PII visible if the login relaunch fails after logout", async () => {
+    wxMock.showModal!.mockResolvedValue({ confirm: true });
+    wxMock.reLaunch!.mockImplementation(({ fail }: { fail: () => void }) => fail());
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings = mountedPage(capturedPage!, { memberId: "previous-member", displayName: "上一位会员",
+      phoneMasked: "138****0000", addresses: [{ id: "previous-address" }], consents: [{ purpose: "private" }] });
+    await settings.logout();
+    expect(settings.data).toMatchObject({ memberId: "", displayName: "", phoneMasked: "", addresses: [], consents: [], loggingOut: false });
+    expect(settings.data.error).toContain("会话已经安全退出");
+  });
+
+  it("scrubs member-only points, orders, and invitation data before a guest login overlay", async () => {
+    retainMemberSnapshotMock.mockReturnValue(false);
+    requireMemberAccessMock.mockReturnValue(false);
+
+    await vi.importActual("../../apps/miniprogram/pages/points/index");
+    const points = mountedPage(capturedPage!, { points: { projection: { available: 888 } }, balanceClass: "private", loading: false });
+    points.onShow();
+    expect(points.data).toMatchObject({ points: null, balanceClass: "", loading: false, error: "请先确认身份后查看积分账本。" });
+
+    await vi.importActual("../../apps/miniprogram/pages/orders/index");
+    const orders = mountedPage(capturedPage!, { items: [{ id: "previous-order" }], nextCursor: "private-cursor", loading: false });
+    orders.onShow();
+    expect(orders.data).toMatchObject({ items: [], nextCursor: null, loading: false, error: "请先确认身份后查看订单。" });
+
+    await vi.importActual("../../apps/miniprogram/pages/invite/index");
+    const invite = mountedPage(capturedPage!, { displayName: "上一位会员", shareId: "previous-share", shareCode: "PRIVATE",
+      commercialEligible: true, referralCode: "PRIVATE-CODE", history: [{ shareId: "previous-share" }], loading: false });
+    invite.onShow();
+    expect(invite.data).toMatchObject({ displayName: "CISME 会员", shareId: "", shareCode: "待生成",
+      commercialEligible: false, referralCode: "", history: [], loading: false, error: "请先确认身份后查看邀请资料。" });
+    expect(wxMock.hideShareMenu).toHaveBeenCalled();
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores an old order response after the active member changes", async () => {
+    let session = "member-a";
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: session } });
+    let finishOld: (value: unknown) => void = () => undefined;
+    requestMock.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }))
+      .mockResolvedValue({ items: [], nextCursor: null });
+    await vi.importActual("../../apps/miniprogram/pages/orders/index");
+    const orders = mountedPage(capturedPage!);
+    orders.onShow();
+    session = "member-b";
+    orders.onShow();
+    await vi.waitFor(() => expect(orders.data.loading).toBe(false));
+    finishOld({ items: [{ id: "member-a-order", lines: [], totalCents: 100, createdAt: "2026-09-13T00:00:00Z" }], nextCursor: null });
+    await Promise.resolve();
+    expect(orders.data.items).toEqual([]);
+  });
+
+  it("does not retain an invitation code when its refresh fails", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "member-a" } });
+    requestMock.mockRejectedValue(new Error("offline"));
+    await vi.importActual("../../apps/miniprogram/pages/invite/index");
+    const invite = mountedPage(capturedPage!, { commercialEligible: true, referralCode: "OLD-CODE", shareId: "old-link", loading: false });
+    invite.onShow();
+    await vi.waitFor(() => expect(invite.data.loading).toBe(false));
+    expect(invite.data).toMatchObject({ commercialEligible: false, referralCode: "", shareId: "", error: "邀请资料暂时无法同步，请重试。" });
+  });
+
+  it("preserves the new-draft deep link when guest authentication must restart the page", async () => {
+    requestMock.mockResolvedValue({ publicEnabled: false });
+    await vi.importActual("../../apps/miniprogram/pages/community-compose/index");
+    const page = mountedPage(capturedPage!);
+
+    page.onLoad({ new: "1" });
+
+    expect(resumeAuthenticationMock).toHaveBeenCalledWith("/pages/community-compose/index?new=1");
+    expect(page.data.requestedNew).toBe(true);
+    expect(page.data.loading).toBe(false);
+  });
+
   it("reads the clipboard only from the explicit address action and keeps parsing local", async () => {
     Object.assign(globalThis, { getApp: () => ({ globalData: { sessionToken: "member-session" } }) });
     wxMock.getClipboardData!.mockImplementation((options) => options.success({ data: "林女士 13800000001 广东省深圳市南山区 护理路8号" }));

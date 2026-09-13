@@ -30,6 +30,7 @@
     "perf:worker-capacity": "tsx scripts/worker-capacity-benchmark.ts",
     "lint:contracts": "tsx scripts/validate-contracts.ts",
     "miniprogram:package-gate": "tsx scripts/check-miniprogram-package.ts",
+    "miniprogram:route-audit": "tsx scripts/audit-native-routes.ts",
     "design:qa:status": "tsx scripts/check-design-qa.ts",
     "design:qa:gate": "tsx scripts/check-design-qa.ts --require-passed",
     "visual:review-pack": "tsx scripts/generate-visual-review-pack.ts",

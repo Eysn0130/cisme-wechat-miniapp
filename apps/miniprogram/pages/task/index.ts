@@ -1,4 +1,4 @@
-import { requireMemberAccess } from "../../services/api";
+import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, rememberSubmissionReturn, request } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 
@@ -19,22 +19,30 @@ Page({
   },
   onHide() { this.data.loadAttempt += 1; },
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; wx.disableAlertBeforeUnload(); },
-  onShow() { if (!requireMemberAccess()) return; this.setData({ pageAlive: true, leaving: false }); void this.load(); },
+  onShow() {
+    this.data.pageAlive = true;
+    if (!retainMemberSnapshot(this)) this.setData({ task: null, continuationSubmissionId: "", working: false,
+      loadAttempt: this.data.loadAttempt + 1, loading: false, errorTitle: "", error: "" });
+    if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "load", errorTitle: "请先确认身份", error: "登录后才能查看自己的邀请资格。" }); return; }
+    this.setData({ pageAlive: true, leaving: false });
+    void this.load();
+  },
   async load(event?: WechatMiniprogram.TouchEvent): Promise<boolean> {
     if (event?.type) clearAuthenticationRedirectSuppression();
     if (!this.data.taskId) { this.setData({ task: null, loading: false, errorAction: "missing", errorTitle: "无法打开邀请详情", error: "链接中缺少邀请编号，请返回品牌精选社区重新进入。" }); return false; }
     const attempt = this.data.loadAttempt + 1;
+    const token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ loadAttempt: attempt, task: null, loading: true, errorAction: "load", errorTitle: "", error: "" });
     try {
       const task = await request({ path: `/v1/tasks/${this.data.taskId}` });
-      if (this.data.pageAlive && this.data.loadAttempt === attempt) {
+      if (this.data.pageAlive && this.data.loadAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) {
         this.setData({ task, loading: false, errorTitle: "", error: "" });
         return true;
       }
       return false;
     }
     catch (error) {
-      if (this.data.pageAlive && this.data.loadAttempt === attempt) {
+      if (this.data.pageAlive && this.data.loadAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) {
         const failure = taskLoadFailure(error);
         this.setData({ task: null, loading: false, errorAction: failure.action, errorTitle: failure.title, error: failure.copy });
       }

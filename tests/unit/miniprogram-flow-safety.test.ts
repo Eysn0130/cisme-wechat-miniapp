@@ -28,7 +28,8 @@ describe("mini program submission flow safety", () => {
     const progressView = await source("apps/miniprogram/pages/progress/index.wxml");
 
     expect(task).toContain("wx.navigateTo({ url: `/pages/submit/index?id=${claim.submissionId}`");
-    expect(task).toContain("onShow() { if (!requireMemberAccess()) return; this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
+    expect(task).toContain("if (!retainMemberSnapshot(this)) this.setData({ task: null");
+    expect(task).toContain("if (!requireMemberAccess()) { this.setData({ loading: false");
     expect(task).toContain("loadAttempt: 0");
     expect(task).toContain("this.data.loadAttempt === attempt");
     expect(task).toContain('errorTitle: "无法打开邀请详情"');
