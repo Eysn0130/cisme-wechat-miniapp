@@ -406,6 +406,50 @@ async function creditSpendCase(){
     headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-clean-cancel-001"},
     payload:{expectedVersion:cleanPurchase.version,reason:"仅干净来源可预占并正常释放"}})).statusCode).toBe(200);
   expect(await credit.listMine(referrer.memberId)).toMatchObject({checkoutAvailableCents:cleanBalance,spendable:true});
+  const rejected=await app.inject({method:"POST",url:`/v1/management/refund-requests/${disputed.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"credit-source-dispute-reject-001"},
+    payload:{decision:"reject",expectedVersion:1,reason:"隔离争议核实后不退款"}});
+  expect(rejected.statusCode,rejected.body).toBe(200);
+  const pendingAtRisk=await creditOrder("origin-risk",cleanBalance+1);
+  const reservedOrigins=(await pool.query<{order_id:string}>(`SELECT DISTINCT s.order_id
+    FROM commission_credit_checkout_allocation a JOIN commission_credit_source s ON s.id=a.source_id
+    WHERE a.order_id=$1`,[pendingAtRisk.id])).rows;
+  expect(reservedOrigins.some(row=>row.order_id===source.id)).toBe(true);
+  const newDispute=await app.inject({method:"POST",url:`/v1/me/orders/${source.id}/refund-requests`,
+    headers:{...auth(buyer.sessionToken),"idempotency-key":"credit-source-later-dispute-001"},
+    payload:{amountCents:10000,reason:"预占后出现隔离来源争议"}});
+  expect(newDispute.statusCode,newDispute.body).toBe(200);
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${pendingAtRisk.id}/payment-intent`,
+    headers:auth(referrer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const paidAtRisk=paidCallback(pendingAtRisk.orderNumber);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
+    headers:{...paidAtRisk.headers,"Content-Type":"application/json"},payload:paidAtRisk.raw})).statusCode).toBe(204);
+  expect((await runMoneyWorkerCycle(paymentInbox)).payments)
+    .toContainEqual(expect.objectContaining({state:"applied"}));
+  expect((await pool.query("SELECT status FROM commerce_order WHERE id=$1",[pendingAtRisk.id])).rows[0].status)
+    .toBe("paid");
+  expect((await pool.query(`SELECT count(*)::int AS n FROM audit_log WHERE object_id=$1
+    AND action='commission.credit_reserved_origin_disputed'`,[pendingAtRisk.id])).rows[0].n)
+    .toBeGreaterThan(0);
+  expect((await credit.listMine(referrer.memberId)).checkoutAvailableCents).toBeLessThanOrEqual(cleanBalance);
+  const approvedRisk=await app.inject({method:"POST",url:`/v1/management/refund-requests/${newDispute.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"credit-source-later-approve-001"},
+    payload:{decision:"approve",expectedVersion:1,reason:"隔离来源全额退款核对"}});
+  expect(approvedRisk.statusCode,approvedRisk.body).toBe(200);
+  expect(await refundCommands.processDue()).toContainEqual({id:approvedRisk.json().intent.id,
+    state:"accepted_processing"});
+  const signedRiskRefund=refundCallback(approvedRisk.json().intent.outRefundNo);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/refund-callback",
+    headers:{...signedRiskRefund.headers,"Content-Type":"application/json"},
+    payload:signedRiskRefund.raw})).statusCode).toBe(204);
+  expect((await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands)).refunds)
+    .toContainEqual(expect.objectContaining({state:"applied"}));
+  const exposure=(await pool.query<{after_state:{uncoveredCents:number}}>(`SELECT after_state
+    FROM audit_log WHERE object_id=$1 AND action='commission.credit_recovery_exposure'
+    ORDER BY created_at DESC,id DESC LIMIT 1`,[source.id])).rows[0];
+  expect(exposure?.after_state.uncoveredCents).toBeGreaterThan(0);
+  expect((await pool.query("SELECT status FROM commerce_order WHERE id=$1",[pendingAtRisk.id])).rows[0].status)
+    .toBe("paid");
 }
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 
@@ -783,7 +827,7 @@ it("reserves commission once and records settlement only after signed SUCCESS qu
   expect(paid.json().commission).toMatchObject({paymentHeldCents:0,availableCents:0,settledCents:2000});
 });
 
-it("cancels an unsubmitted transfer when a later refund request invalidates its reservation",async()=>{
+it("cancels an unsubmitted transfer even if an approved refund has no intent yet",async()=>{
   await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1,
     version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
   const order=await createOrder("settlement-late-refund");
@@ -815,6 +859,14 @@ it("cancels an unsubmitted transfer when a later refund request invalidates its 
     headers:{...auth(buyer.sessionToken),"idempotency-key":"late-refund-request-0001"},
     payload:{amountCents:1000,reason:"隔离预占后的售后申请"}});
   expect(refund.statusCode,JSON.stringify(refund.json())).toBe(200);
+  // Model an interrupted/historical decision before its channel intent was
+  // persisted. The LEFT JOIN must treat a missing intent as unresolved.
+  await pool.query(`UPDATE commerce_refund_request SET state='approved',version=version+1,
+    decided_by_member_id=$2,decision_key='late-refund-gap-decision',
+    decision_hash=$3,decision_reason='历史批准但意图缺失',decided_at=clock_timestamp()
+    WHERE id=$1`,[refund.json().id,operator.memberId,"e".repeat(64)]);
+  expect((await pool.query(`SELECT count(*)::int AS n FROM commission_refund_intent
+    WHERE request_id=$1`,[refund.json().id])).rows[0].n).toBe(0);
   expect(await settlementCommands.processDue()).toContainEqual({id:request.json().id,state:"cancelled_invalid_allocation"});
   expect(channelTransfers.has(reserved.json().outBillNo)).toBe(false);
   expect((await pool.query(`SELECT state FROM commission_settlement_request WHERE id=$1`,

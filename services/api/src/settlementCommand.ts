@@ -105,7 +105,7 @@ export class SettlementCommandService{
           if(compositionConflict)continue;
           const unresolved=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request r
             LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.order_id=$1 AND
-            (r.state='requested' OR (r.state='approved' AND i.state IN ('prepared','abnormal')))`,[order_id])).rows[0]?.n??0;
+            (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state IN ('prepared','abnormal'))))`,[order_id])).rows[0]?.n??0;
           // Freeze only this source order; an unrelated disputed refund must
           // not freeze the entire member's otherwise-earned allocations.
           if(unresolved)continue;
@@ -264,7 +264,7 @@ export class SettlementCommandService{
       if(compositionConflict)return false;
       const unresolved=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request r
         LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.order_id=$1 AND
-        (r.state='requested' OR (r.state='approved' AND i.state IN ('prepared','abnormal')))`,
+        (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state IN ('prepared','abnormal'))))`,
         [allocation.order_id])).rows[0]?.n??0;
       if(unresolved)return false;
       const sums=(await client.query<{net:string;released:string;settled:string;converted:string}>(`SELECT

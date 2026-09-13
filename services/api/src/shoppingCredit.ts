@@ -154,7 +154,22 @@ export async function consumeReservedCreditForCheckout(client:DbClient,orderId:s
     const amount=Number(lot.amount_cents);
     if(Number(lot.reserved)!==amount||Number(lot.released)!==0||Number(lot.spent)!==0)
       throw new DomainError("CREDIT_CHECKOUT_RESERVATION_DRIFT","权益预占状态需核对",409);
-    await assertOriginPurchasable(client,lot.origin_order_id);
+    // Once the channel has signed a cash success, a later dispute on an
+    // already-reserved origin cannot strand the paid purchase indefinitely.
+    // The refund worker freezes unused origin credit and records any uncovered
+    // exposure; no *new* checkout may reserve the disputed source.
+    let originDisputed=false;
+    try{await assertOriginPurchasable(client,lot.origin_order_id);}
+    catch(error){
+      if(!(error instanceof DomainError&&error.code==="CREDIT_CHECKOUT_ORIGIN_DISPUTED"))throw error;
+      originDisputed=true;
+    }
+    if(originDisputed)await client.query(`INSERT INTO audit_log(principal_id,action,object_type,
+      object_id,reason_code,after_state,trace_id) VALUES('worker:payment-inbox',
+      'commission.credit_reserved_origin_disputed','commerce_order',$1,
+      'RESERVED_CREDIT_SOURCE_REQUIRES_RECOVERY_REVIEW',$2,$3)`,[orderId,
+        {originOrderId:lot.origin_order_id,sourceId:lot.source_id,amountCents:amount},
+        `credit-order-origin-risk:${orderId}:${lot.source_id}`]);
     await client.query(`INSERT INTO commission_credit_entry
       (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
       VALUES($1,$2,'reserve_release',$3,$4,'worker:payment-inbox')`,[lot.source_id,
