@@ -5,12 +5,15 @@ import { transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
 import { AuthorityService } from "./authority.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
+import { CommercialMembershipService } from "./commercialMembership.js";
+import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
 
-type OrderStatus = "pending_payment" | "cancelled" | "expired";
+type OrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 type QuoteRow = {
   id: string; member_id: string; product_id: string; sku_id: string; address_id: string; address_version: number;
   quantity: number; currency: "CNY"; unit_price_cents: number; subtotal_cents: string; member_discount_cents: string;
   shipping_cents: string; total_cents: string; pricing_rule_version: string; product_version: number; sku_version: number;
+  credit_tender_cents:string;
   price_version: number; status: "active" | "consumed" | "expired"; idempotency_key: string; request_hash: string;
   expires_at: Date; consumed_at: Date | null; created_at: Date;
 };
@@ -23,13 +26,16 @@ type CatalogCheckoutRow = {
 type OrderRow = {
   id: string; order_number: string; member_id: string; source_quote_id: string; status: OrderStatus; currency: "CNY";
   subtotal_cents: string; member_discount_cents: string; shipping_cents: string; total_cents: string;
+  credit_tender_cents:string;
   pricing_rule_version: string; version: number; expires_at: Date; cancelled_at: Date | null; expired_at: Date | null;
   terminal_reason: string | null; created_at: Date; updated_at: Date;
+  transaction_source_kind:"synthetic_nonproduction"|"verified_commerce";
 };
 type OrderLineRow = {
   id: string; order_id: string; line_number: number; product_code: string; product_name: string; sku_code: string; sku_label: string;
   image_path: string | null; quantity: number; unit_price_cents: number; line_subtotal_cents: string;
   line_discount_cents: string; line_total_cents: string;
+  credit_tender_cents:string;
 };
 type OrderAddressRow = { encrypted_payload: string; payload_hmac: string; key_version: string };
 
@@ -55,6 +61,11 @@ function money(value: string | number): number {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > MAX_TOTAL_CENTS) throw new DomainError("COMMERCE_MONEY_INVALID", "Order amount is outside the supported range", 500);
   return parsed;
+}
+function supportedCheckoutFields(input:Record<string,unknown>,allowed:readonly string[]):void{
+  if(Object.keys(input).some(field=>!allowed.includes(field)))
+    throw new DomainError("COMMERCE_TENDER_UNSUPPORTED",
+      "当前报价尚不支持优惠券、积分或购物权益等额外支付组成，请移除后重新确认",422);
 }
 function member(memberId: string | undefined): string {
   if (!memberId) throw new DomainError("AUTH_REQUIRED", "请先登录后继续", 401);
@@ -86,12 +97,20 @@ export class CommerceOrderService {
     private readonly pool: pg.Pool,
     private readonly authority: AuthorityService,
     private readonly addresses: DeliveryAddressService,
-    private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number }
+    private readonly commercial: CommercialMembershipService,
+    private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
+      simulatedPayment?: { appId: string; merchantId: string; transferSceneId?: string };
+      formalTestPayment?: { appId: string; merchantId: string }; isolatedCreditCheckout?:boolean }
   ) {}
 
   status() {
     return { version: 1, orderFlowEnabled: this.options.enabled, paymentAvailable: false, paymentOnboarding: "IN_PROGRESS", currency: "CNY" as const,
-      scope: this.options.enabled ? "synthetic_nonproduction" : "disabled" };
+      scope: this.options.simulatedPayment?"verified_isolated_test":
+        this.options.formalTestPayment?"formal_protocol_synthetic_test":
+        this.options.enabled?"synthetic_nonproduction":"disabled",
+      isolatedMoneyOperationsAvailable:Boolean(this.options.simulatedPayment||this.options.formalTestPayment),
+      isolatedTransferAvailable:Boolean(this.options.simulatedPayment?.transferSceneId),
+      isolatedCreditCheckoutAvailable:Boolean(this.options.isolatedCreditCheckout) };
   }
 
   private requireEnabled(): void {
@@ -118,7 +137,9 @@ export class CommerceOrderService {
   private quoteView(row: QuoteRow, item: CatalogCheckoutRow) {
     return { id: row.id, status: row.status, currency: row.currency, quantity: row.quantity, unitPriceCents: row.unit_price_cents,
       subtotalCents: money(row.subtotal_cents), memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents),
-      totalCents: money(row.total_cents), pricingRuleVersion: row.pricing_rule_version, addressId: row.address_id,
+      totalCents: money(row.total_cents),creditTenderCents:money(row.credit_tender_cents),
+      cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
+      pricingRuleVersion: row.pricing_rule_version, addressId: row.address_id,
       addressVersion: row.address_version, expiresAt: row.expires_at.toISOString(), serverTime: new Date().toISOString(), paymentAvailable: false,
       item: { productId: item.product_id, productCode: item.product_code, productName: item.product_name, image: item.product_image,
         skuId: item.sku_id, skuCode: item.sku_code, skuLabel: item.sku_label } };
@@ -126,8 +147,13 @@ export class CommerceOrderService {
 
   async quote(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, now = new Date()) {
     this.requireEnabled(); const owner = member(memberId); const actor = principal(principalId); const idempotencyKey = key(keyInput);
+    supportedCheckoutFields(input,["skuId","quantity","addressId","addressVersion","creditCents"]);
+    const creditCents=input.creditCents===undefined?0:integer(input.creditCents,"CREDIT_AMOUNT_INVALID",0,MAX_TOTAL_CENTS);
+    if(creditCents&&!this.options.isolatedCreditCheckout)
+      throw new DomainError("SHOPPING_CREDIT_LIVE_DISABLED","购物权益下单仅供隔离合成测试",503);
     const normalized = { skuId: uuid(input.skuId, "SKU_ID_INVALID"), quantity: integer(input.quantity, "ORDER_QUANTITY_INVALID", 1, 99),
-      addressId: uuid(input.addressId, "DELIVERY_ADDRESS_NOT_FOUND"), addressVersion: version(input.addressVersion) };
+      addressId: uuid(input.addressId, "DELIVERY_ADDRESS_NOT_FOUND"), addressVersion: version(input.addressVersion),
+      creditCents };
     const requestHash = hash(normalized);
     return transaction(this.pool, async client => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`commerce-quote:${owner}:${idempotencyKey}`]);
@@ -143,15 +169,18 @@ export class CommerceOrderService {
       if (available < normalized.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
       const subtotal = item.amount_cents * normalized.quantity;
       if (!Number.isSafeInteger(subtotal) || subtotal > MAX_TOTAL_CENTS) throw new DomainError("COMMERCE_MONEY_OVERFLOW", "订单金额超过支持范围", 422);
+      if(creditCents>=subtotal)
+        throw new DomainError("CREDIT_CASH_COMPONENT_REQUIRED","隔离测试订单至少保留一分渠道现金支付",422);
       // Real shipping/member-price policies are not yet approved. This version is
       // deliberately synthetic-only and therefore applies no invented discount or freight promise.
       const pricingRuleVersion = "r4b-synthetic-base-price-v1";
       const expiresAt = new Date(now.getTime() + this.options.quoteTtlMinutes * 60_000);
       const inserted = await client.query<QuoteRow>(`INSERT INTO commerce_checkout_quote(member_id,product_id,sku_id,address_id,address_version,quantity,currency,
-        unit_price_cents,subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,product_version,sku_version,price_version,
-        idempotency_key,request_hash,expires_at,created_at) VALUES($1,$2,$3,$4,$5,$6,'CNY',$7,$8,0,0,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
-        [owner,item.product_id,item.sku_id,normalized.addressId,normalized.addressVersion,normalized.quantity,item.amount_cents,subtotal,pricingRuleVersion,
-          item.product_version,item.sku_version,item.price_version,idempotencyKey,requestHash,expiresAt,now]);
+        unit_price_cents,subtotal_cents,member_discount_cents,shipping_cents,total_cents,credit_tender_cents,
+        pricing_rule_version,product_version,sku_version,price_version,
+        idempotency_key,request_hash,expires_at,created_at) VALUES($1,$2,$3,$4,$5,$6,'CNY',$7,$8,0,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+        [owner,item.product_id,item.sku_id,normalized.addressId,normalized.addressVersion,normalized.quantity,item.amount_cents,subtotal,
+          creditCents,pricingRuleVersion,item.product_version,item.sku_version,item.price_version,idempotencyKey,requestHash,expiresAt,now]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
         VALUES($1,'commerce.quote.create','commerce_checkout_quote',$2,$3,gen_random_uuid()::text)`, [actor, inserted.rows[0]!.id,
         { skuId: item.sku_id, quantity: normalized.quantity, totalCents: subtotal, expiresAt: expiresAt.toISOString() }]);
@@ -170,24 +199,32 @@ export class CommerceOrderService {
     };
     return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
+      creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
       pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
       terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      transactionSourceKind:row.transaction_source_kind,
       lines: lines.rows.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
-        unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents), totalCents: money(line.line_total_cents) })),
+        unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents),
+        totalCents: money(line.line_total_cents),creditTenderCents:money(line.credit_tender_cents),
+        cashPayableCents:money(line.line_total_cents)-money(line.credit_tender_cents) })),
       address: addressView };
   }
 
   private orderSummaryView(row: OrderRow, lines: OrderLineRow[]) {
     return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
+      creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
       pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
       terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      transactionSourceKind:row.transaction_source_kind,
       lines: lines.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
-        unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents), totalCents: money(line.line_total_cents) })),
+        unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents),
+        totalCents: money(line.line_total_cents),creditTenderCents:money(line.credit_tender_cents),
+        cashPayableCents:money(line.line_total_cents)-money(line.credit_tender_cents) })),
       // List endpoints deliberately omit delivery snapshots. Full or redacted
       // addresses are loaded only by the corresponding detail endpoint.
       address: null };
@@ -217,6 +254,7 @@ export class CommerceOrderService {
 
   async create(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {
     this.requireEnabled(); const owner = member(memberId); const actor = principal(principalId); const idempotencyKey = key(keyInput);
+    supportedCheckoutFields(input,["quoteId"]);
     const normalized = { quoteId: uuid(input.quoteId, "QUOTE_ID_INVALID") }; const requestHash = hash(normalized);
     return transaction(this.pool, async client => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`commerce-order:${owner}:${idempotencyKey}`]);
@@ -249,14 +287,36 @@ export class CommerceOrderService {
       if (available < quote.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
       const orderId = randomUUID(); const expiresAt = new Date(now.getTime() + this.options.pendingOrderTtlMinutes * 60_000);
       const number = orderNumber(now); const sealed = this.addresses.sealOrderSnapshot(owner,orderId,address.payload);
+      const paymentBinding=this.options.simulatedPayment??this.options.formalTestPayment;
+      const transactionSource=paymentBinding?"verified_commerce":"synthetic_nonproduction";
+      const creditCents=money(quote.credit_tender_cents),cashPayable=money(quote.total_cents)-creditCents;
+      if(creditCents&&(!this.options.isolatedCreditCheckout||!paymentBinding||cashPayable<1))
+        throw new DomainError("SHOPPING_CREDIT_LIVE_DISABLED","购物权益支付组成仅供隔离合成测试",503);
       const order = (await client.query<OrderRow>(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,subtotal_cents,
-        member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at,created_at,updated_at)
-        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$12) RETURNING *`,
-        [orderId,number,owner,quote.id,quote.currency,quote.subtotal_cents,quote.member_discount_cents,quote.shipping_cents,quote.total_cents,quote.pricing_rule_version,expiresAt,now])).rows[0]!;
+        member_discount_cents,shipping_cents,total_cents,credit_tender_cents,pricing_rule_version,
+        expires_at,created_at,updated_at,transaction_source_kind)
+        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14) RETURNING *`,
+        [orderId,number,owner,quote.id,quote.currency,quote.subtotal_cents,quote.member_discount_cents,
+          quote.shipping_cents,quote.total_cents,creditCents,quote.pricing_rule_version,expiresAt,now,transactionSource])).rows[0]!;
+      if(creditCents)await reserveCreditForCheckout(client,owner,orderId,creditCents);
+      if(paymentBinding){
+        const identity=(await client.query<{openid:string}>(`SELECT openid FROM wechat_identity
+          WHERE member_id=$1 AND provider='wechat_miniprogram' AND app_id=$2
+          ORDER BY created_at DESC,id DESC LIMIT 1`,[owner,paymentBinding.appId])).rows[0];
+        if(!identity)throw new DomainError("PAYMENT_PAYER_IDENTITY_REQUIRED","当前微信身份不可用于支付测试",409);
+        await client.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,
+          app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
+          VALUES($1,$2,$3,$4,$5,$6,$7,'CNY',$8,$9,$10,$11)`,
+          [orderId,number,owner,identity.openid,paymentBinding.appId,
+            paymentBinding.merchantId,cashPayable,quote.id,quote.pricing_rule_version,quote.price_version,expiresAt]);
+      }
       await client.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,image_path,
-        quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents) VALUES($1,1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents,credit_tender_cents)
+        VALUES($1,1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
         [orderId,item.product_id,item.sku_id,item.product_code,item.product_name,item.sku_code,item.sku_label,item.product_image,quote.quantity,quote.unit_price_cents,
-          quote.subtotal_cents,quote.member_discount_cents,quote.total_cents]);
+          quote.subtotal_cents,quote.member_discount_cents,money(quote.subtotal_cents)-money(quote.member_discount_cents),creditCents]);
+      await this.commercial.snapshotOrder(client,orderId,owner,transactionSource,
+        money(quote.subtotal_cents)-money(quote.member_discount_cents)-creditCents,now);
       await client.query(`INSERT INTO commerce_order_address(order_id,encrypted_payload,payload_hmac,key_version,source_address_id,source_address_version)
         VALUES($1,$2,$3,$4,$5,$6)`, [orderId,sealed.encryptedPayload,sealed.payloadHmac,sealed.keyVersion,address.id,address.version]);
       await client.query(`INSERT INTO commerce_inventory_reservation(order_id,sku_id,quantity,expires_at) VALUES($1,$2,$3,$4)`, [orderId,item.sku_id,quote.quantity,expiresAt]);
@@ -276,6 +336,10 @@ export class CommerceOrderService {
   }
 
   private async release(client: DbClient, orderId: string, reason: string, now: Date, actor: string): Promise<void> {
+    const credit=(await client.query<{credit_tender_cents:string}>(
+      "SELECT credit_tender_cents FROM commerce_order WHERE id=$1",[orderId])).rows[0];
+    if(credit&&money(credit.credit_tender_cents)>0)
+      await releaseReservedCreditForCheckout(client,orderId,money(credit.credit_tender_cents),actor);
     const reservations = await client.query<{ id:string; sku_id:string; quantity:number }>("SELECT id,sku_id,quantity FROM commerce_inventory_reservation WHERE order_id=$1 AND status='active' FOR UPDATE", [orderId]);
     for (const reservation of reservations.rows) {
       const inventory = await client.query<{reserved_quantity:number}>("SELECT reserved_quantity FROM catalog_inventory_level WHERE sku_id=$1 FOR UPDATE", [reservation.sku_id]);
@@ -285,7 +349,7 @@ export class CommerceOrderService {
     }
   }
 
-  async cancel(memberId: string | undefined, principalId: string | undefined, orderIdInput: string, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {
+  async cancel(memberId: string | undefined, principalId: string | undefined, orderIdInput: string, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date(), verifiedCloseAttemptId?: string) {
     const owner=member(memberId); const actor=principal(principalId); const orderId=uuid(orderIdInput,"ORDER_ID_INVALID"); const idempotencyKey=key(keyInput);
     const normalized={operation:"commerce.order.cancel",actor,memberId:owner,orderId,expectedVersion:version(input.expectedVersion),reason:typeof input.reason==="string"?input.reason.trim():""};
     if (Array.from(normalized.reason).length<3 || Array.from(normalized.reason).length>500) throw new DomainError("ORDER_CANCEL_REASON_INVALID","请填写取消原因",422);
@@ -304,7 +368,19 @@ export class CommerceOrderService {
       const current=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2 FOR UPDATE",[orderId,owner])).rows[0];
       if(!current)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
       if(current.status!=="pending_payment")throw new DomainError("ORDER_NOT_CANCELLABLE","当前订单状态不可取消",409);
+      const source=(await client.query<{transaction_source_kind:string}>(
+        "SELECT transaction_source_kind FROM commerce_order WHERE id=$1",[orderId])).rows[0]?.transaction_source_kind;
+      if(source==="verified_commerce"){
+        const attempt=(await client.query<{id:string;state:string}>(
+          "SELECT id,state FROM commerce_payment_attempt WHERE order_id=$1 FOR UPDATE",[orderId])).rows[0];
+        if(attempt?.state!=="closed"&&(!verifiedCloseAttemptId||attempt?.id!==verifiedCloseAttemptId||attempt.state==="paid"))
+          throw new DomainError("PAYMENT_CLOSE_REQUIRED","须先核对并关闭渠道原订单，才能取消",409);
+      }
       if(current.version!==normalized.expectedVersion)throw new DomainError("ORDER_VERSION_CONFLICT","订单状态已变化，请刷新后重试",409);
+      if(source==="verified_commerce"&&verifiedCloseAttemptId){
+        await client.query(`UPDATE commerce_payment_attempt SET state='closed',request_lease_until=NULL,
+          updated_at=clock_timestamp() WHERE id=$1 AND order_id=$2 AND state<>'closed'`,[verifiedCloseAttemptId,orderId]);
+      }
       await this.release(client,orderId,"USER_CANCELLED",now,actor);
       const updated=(await client.query<OrderRow>(`UPDATE commerce_order SET status='cancelled',cancelled_at=$2,terminal_reason=$3,version=version+1,updated_at=$2 WHERE id=$1 RETURNING *`,[orderId,now,normalized.reason])).rows[0]!;
       await client.query(`INSERT INTO commerce_order_transition(order_id,from_status,to_status,reason_code,actor_principal_id,order_version,occurred_at)
@@ -346,7 +422,8 @@ export class CommerceOrderService {
 
 export async function expirePendingOrders(pool: pg.Pool, now = new Date(), limit = 50): Promise<number> {
   return transaction(pool,async client=>{
-    const orders=await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE status='pending_payment' AND expires_at<=$1
+    const orders=await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE status='pending_payment'
+      AND transaction_source_kind='synthetic_nonproduction' AND expires_at<=$1
       ORDER BY expires_at,id LIMIT $2 FOR UPDATE SKIP LOCKED`,[now,limit]);
     for(const order of orders.rows){
       const reservations=await client.query<{id:string;sku_id:string;quantity:number}>("SELECT id,sku_id,quantity FROM commerce_inventory_reservation WHERE order_id=$1 AND status='active' FOR UPDATE",[order.id]);

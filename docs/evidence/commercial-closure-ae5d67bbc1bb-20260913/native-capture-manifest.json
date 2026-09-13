@@ -1,0 +1,440 @@
+{
+  "sourceSha256": "ae5d67bbc1bbbaad5a7cd82e46a0b17ae646f818636d8d8baa0473245492f3a7",
+  "capturedAtUtc": "2026-09-12T21:12:42.701294+00:00",
+  "environment": "WeChat DevTools simulator, separate worktree project, isolated loopback acceptance API, synthetic account; no real device",
+  "scope": "One default/no-query navigation per app.json route plus 11 selected parameterized fixture routes. Includes guard, empty and redirect states. No complete route-state matrix, tap/keyboard, device, live channel or release claim.",
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/01-pages-home-index.png",
+      "sha256": "36b278a05d7a6828aac0c510b5e795d3faeb8d523fd44f74b793d784cf2bec7f",
+      "bytes": 446157
+    },
+    {
+      "route": "pages/records/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/02-pages-records-index.png",
+      "sha256": "efad71c4cfa152f891d2d0d6083df2b72b91553cd019b3813a147332d556daa2",
+      "bytes": 215389
+    },
+    {
+      "route": "pages/community/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/03-pages-community-index.png",
+      "sha256": "8ea931f507c063b5be7f55c7980352bfaf287d952ecd6296cc7386d4ab1dd647",
+      "bytes": 342665
+    },
+    {
+      "route": "pages/profile/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/04-pages-profile-index.png",
+      "sha256": "4494d5f159adfb6d6b991e92be43db26f5daec59ff3f985eacb364a7d6da2a97",
+      "bytes": 197943
+    },
+    {
+      "route": "pages/account/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/05-pages-account-index.png",
+      "sha256": "e90db47937132c6c57c1f4215741a6f90ba66e6adb895c8fe9353c18783cc7ce",
+      "bytes": 12329
+    },
+    {
+      "route": "pages/task/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/06-pages-task-index.png",
+      "sha256": "f327f4c878c8cb1249fa39705afae0f4895ec05dd789ac7b7b30e3bf3ca6be6a",
+      "bytes": 70246
+    },
+    {
+      "route": "pages/submit/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/07-pages-submit-index.png",
+      "sha256": "10ed4d8284e34eaa75295c5760e09e272379e4a60782ae1c9238f4be17dbc112",
+      "bytes": 66222
+    },
+    {
+      "route": "pages/progress/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/08-pages-progress-index.png",
+      "sha256": "a226903a2eec9a5cf65ef463a96645ca68d0d1c552ca93a12caf832628ed70f0",
+      "bytes": 71314
+    },
+    {
+      "route": "pages/points/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/09-pages-points-index.png",
+      "sha256": "532b27883922c68a5b9fb0d0b7906db2f12ed99190f789d583f447916abd7bc6",
+      "bytes": 161464
+    },
+    {
+      "route": "pages/post/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/10-pages-post-index.png",
+      "sha256": "4baf233c926979fde4fa6487c4453a4227ed361be9422096e9e68f4699854b5a",
+      "bytes": 59091
+    },
+    {
+      "route": "pages/shop/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/11-pages-shop-index.png",
+      "sha256": "e84dc102eaf85e7ed42cbb505a09db0aaba2963a99699c2be78e77c108a355d5",
+      "bytes": 279202
+    },
+    {
+      "route": "pages/product/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/12-pages-product-index.png",
+      "sha256": "66e6c0a4cd428066964b9d6194b33e180e63f572ba759898ed6be4b4a4b13ab2",
+      "bytes": 58166
+    },
+    {
+      "route": "pages/checkout/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/13-pages-checkout-index.png",
+      "sha256": "a586fcf8daf1a09d9d063c267a526486e6063fd62bce8ab98689d3e9d4ccb6b4",
+      "bytes": 38027
+    },
+    {
+      "route": "pages/orders/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/14-pages-orders-index.png",
+      "sha256": "00bd2c959ca04ddf4335ebce0d7f1e5fd329be35aabab830330ab4609c801cfb",
+      "bytes": 68835
+    },
+    {
+      "route": "pages/order-detail/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/15-pages-order-detail-index.png",
+      "sha256": "a8c0ef97b8bfbec0f8cb90923ca31f1cc99f61f3b6e467c5d37b054d09fad64b",
+      "bytes": 24253
+    },
+    {
+      "route": "pages/settings/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/16-pages-settings-index.png",
+      "sha256": "abefc7c0379c3953d2127b4e1ccafa99c0fcd6ad7d528590e40d3248c8d819de",
+      "bytes": 98308
+    },
+    {
+      "route": "pages/invite/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/17-pages-invite-index.png",
+      "sha256": "e30c79ad12930acf0278e9d10045b7f8d10db066112e8ae5e89babdaaf14bdca",
+      "bytes": 144743
+    },
+    {
+      "route": "pages/legal/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/18-pages-legal-index.png",
+      "sha256": "7331a8af836b796a03fcfe390eaff2ed597a39d0016d671c52dcc9a9fc4083b8",
+      "bytes": 57993
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/19-pages-privacy-rights-index.png",
+      "sha256": "89dc5c6c83ee892f957f35f495910e9fa0db36d60be4e5f781ff57a11f30a82b",
+      "bytes": 109240
+    },
+    {
+      "route": "pages/support/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/20-pages-support-index.png",
+      "sha256": "65af5dd285707f4feb63abc557006802a60a5f2d0919f6e3ee3d3c710d34280e",
+      "bytes": 66987
+    },
+    {
+      "route": "pages/management/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/21-pages-management-index.png",
+      "sha256": "1252d5c84731b34935000342c385fac4c68488ae7b12c5cc12476aed1fc83523",
+      "bytes": 122963
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/22-pages-management-catalog-index.png",
+      "sha256": "21e5951bbfb678bdab972cce224551dbf4c52c6fdc4139a8522de8b968459d8d",
+      "bytes": 162292
+    },
+    {
+      "route": "pages/management-product/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/23-pages-management-product-index.png",
+      "sha256": "85bf7193a671a3230def22142c22b435e1fccfebc25feac50fe7f3c28cfa31d3",
+      "bytes": 152387
+    },
+    {
+      "route": "pages/management-orders/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/24-pages-management-orders-index.png",
+      "sha256": "cc5241ca79dee40612c45a8a08bb497b046d1ce46c58386bdf0879fd02323b89",
+      "bytes": 76962
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/25-pages-management-order-detail-index.png",
+      "sha256": "e230b7baf23b96d52e4ec2be8919e2f4d6bde219b45a026f4f5bea56efa2f2a2",
+      "bytes": 24377
+    },
+    {
+      "route": "pages/management-support/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/26-pages-management-support-index.png",
+      "sha256": "edef7195bfb5c8f04893406c4ab505ebb6605a48dca34601d83d0868d962c6ae",
+      "bytes": 42098
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/27-pages-management-support-chat-index.png",
+      "sha256": "bbc64233aec716ca2fd8ee5fe03e30bba2410a64ce7bb77998501987d8dbccfd",
+      "bytes": 35195
+    },
+    {
+      "route": "pages/management-members/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/28-pages-management-members-index.png",
+      "sha256": "3dba76033174a0c654afabe75ece79a7600bab3204ab1faa652ab1fb22224bdb",
+      "bytes": 72577
+    },
+    {
+      "route": "pages/management-member/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/29-pages-management-member-index.png",
+      "sha256": "fd1cc991a84fedf7d9400c03e1f09f7c64009d93871a2a9a166e8abcef941ac6",
+      "bytes": 23038
+    },
+    {
+      "route": "pages/referral/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/30-pages-referral-index.png",
+      "sha256": "e92ae4ab382f4a55844792bffa1bd181b1aa91aca5dfde6e243da90ab71ef20f",
+      "bytes": 83409
+    },
+    {
+      "route": "pages/community-compose/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/31-pages-community-compose-index.png",
+      "sha256": "584fd4c4bb040b68a71b6b834b474d82d054a9b3de8f2c65ba3b071b9b75c0e3",
+      "bytes": 48233
+    },
+    {
+      "route": "pages/community-post/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/32-pages-community-post-index.png",
+      "sha256": "4c626361feea90258bb6e2090ef18fbee1152876cdea743bf22302aae6ff9b40",
+      "bytes": 24514
+    },
+    {
+      "route": "pages/community-author/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/33-pages-community-author-index.png",
+      "sha256": "10e6c5717c93ec8da15a2fd1eea802866a8f159d6a3640e900333c99019f608c",
+      "bytes": 23678
+    },
+    {
+      "route": "pages/community-review/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/34-pages-community-review-index.png",
+      "sha256": "6b80206daf4c43c35adcccf6392338880d4d6d7da4bdd42ac71d7e7c93f209de",
+      "bytes": 23781
+    },
+    {
+      "route": "pages/community-activity/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/35-pages-community-activity-index.png",
+      "sha256": "4f888875bc4fc4be2d04ce215471f3c387dae86af1f37a3188a55c1fde6fcae8",
+      "bytes": 28785
+    },
+    {
+      "route": "pages/management-finance/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/36-pages-management-finance-index.png",
+      "sha256": "b551d13fa53421aa701d7f97e20a052daf2864835af041279f3e16d52d5256ea",
+      "bytes": 43590
+    },
+    {
+      "route": "pages/commission/index",
+      "query": "",
+      "kind": "default",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/default/37-pages-commission-index.png",
+      "sha256": "2fe0146ea69b73c75f979fbbf182b2d877461ceb8ac6a8f4b7573c8d385441d3",
+      "bytes": 94053
+    },
+    {
+      "route": "pages/product/index",
+      "query": "id=synthetic-acceptance-serum",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/38-pages-product-index.png",
+      "sha256": "1c592a1309e8b522678d3950a9b46c5bfe0a4db8af13076df07f2bf142f324fa",
+      "bytes": 304553
+    },
+    {
+      "route": "pages/checkout/index",
+      "query": "product=synthetic-acceptance-serum&sku=cd07195d-47b6-48ad-ab3a-675def4ae0b4&quantity=1",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/39-pages-checkout-index.png",
+      "sha256": "afc06819e6925f5d26b17085bef6a69b26af884ac9481dd5640d1510ccdb5f20",
+      "bytes": 116415
+    },
+    {
+      "route": "pages/task/index",
+      "query": "id=afd10ebd-ab83-44e8-b1a6-ffb3630cb367",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/40-pages-task-index.png",
+      "sha256": "8b118dde72da8d6c63d6ae4aa11967a455b9b2cae2420829d65b7f0824651457",
+      "bytes": 182681
+    },
+    {
+      "route": "pages/submit/index",
+      "query": "id=6b01cd3e-0df5-4727-9a10-9b72f9aaf393",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/41-pages-submit-index.png",
+      "sha256": "f60c8f01a323eb3a48ce484c2f06daad583c42ad80830ae87b951898dc31b9f1",
+      "bytes": 154705
+    },
+    {
+      "route": "pages/progress/index",
+      "query": "id=6b01cd3e-0df5-4727-9a10-9b72f9aaf393",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/42-pages-progress-index.png",
+      "sha256": "b1f7f73608e85582a8e9eb12f366f16de5d5ea3f2ed0190dcd4c1c3d638739fe",
+      "bytes": 104448
+    },
+    {
+      "route": "pages/order-detail/index",
+      "query": "id=a899ba8e-6ca1-4bc8-9b83-3cabfd4e941a",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/43-pages-order-detail-index.png",
+      "sha256": "e051d7343b424dbd6021beb247a74914566b28bb30e59fa3db61580621ea2c95",
+      "bytes": 141600
+    },
+    {
+      "route": "pages/management-product/index",
+      "query": "id=a66e8760-fc38-4df0-808a-eb73dda00b91",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/44-pages-management-product-index.png",
+      "sha256": "fde8997b5f7c224ee4a586b1de97e73304af20c5c96cbb77a1411096941cc5e9",
+      "bytes": 182917
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "query": "id=a899ba8e-6ca1-4bc8-9b83-3cabfd4e941a",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/45-pages-management-order-detail-index.png",
+      "sha256": "8467ff643103616c7fd016809d79664dfe89bc8555e5b9a12ae9613045b41ffc",
+      "bytes": 63033
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "query": "id=4910a8e0-918d-4c79-a3ba-2e2ab35ea3c9",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/46-pages-management-support-chat-index.png",
+      "sha256": "2c4858d3d92ee1067d56a53d9ee21020f9609e2ea05519e9cc8337cfe75eb6d4",
+      "bytes": 82523
+    },
+    {
+      "route": "pages/post/index",
+      "query": "id=brand-scalp-ritual",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/47-pages-post-index.png",
+      "sha256": "fbc1613803ce23997ee3855bcfd04fd60049a87bc49f2af718a3ab57e5079dad",
+      "bytes": 206589
+    },
+    {
+      "route": "pages/legal/index",
+      "query": "type=privacy",
+      "kind": "fixture",
+      "status": "captured",
+      "path": "docs/evidence/commercial-closure-ae5d67bbc1bb-20260913/fixture/48-pages-legal-index.png",
+      "sha256": "36a739375163709cf2ab93217b5c0ce3c78debd1388722d03e87ba48b2b8588f",
+      "bytes": 59448
+    }
+  ]
+}

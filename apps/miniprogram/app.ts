@@ -1,4 +1,5 @@
 import { clearPreviousAvatarFiles } from "./services/member-avatar";
+import { pruneUgcBackups } from "./services/ugc-local-backup";
 import { miniProgramApiOrigins, miniProgramCloudFunctions, remoteDebugApiOrigin, type RemoteDebugQuery } from "./release-config";
 import { chromeStyle, readChromeMetrics } from "./services/layout";
 
@@ -27,6 +28,7 @@ App({
   },
   onLaunch(options) {
     clearPreviousAvatarFiles();
+    pruneUgcBackups();
     const runtime = runtimeApiConfig(options.query ?? {});
     this.globalData.apiBaseUrl = runtime.origin;
     this.globalData.cloudFunction = runtime.cloudFunction ?? null;
@@ -38,5 +40,8 @@ App({
     const metrics = readChromeMetrics();
     this.globalData.chromeMetrics = metrics;
     this.globalData.chromeStyle = chromeStyle(metrics);
+  },
+  onShow(){
+    pruneUgcBackups();
   }
 });

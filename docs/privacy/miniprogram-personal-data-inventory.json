@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-12",
+  "inventoryDate": "2026-09-13",
   "wechatApis": [
+    "wx.canIUse",
     "wx.chooseAddress",
     "wx.chooseMedia",
     "wx.compressImage",
@@ -33,6 +34,8 @@
     "wx.redirectTo",
     "wx.removeStorageSync",
     "wx.request",
+    "wx.requestMerchantTransfer",
+    "wx.requestPayment",
     "wx.requirePrivacyAuthorize",
     "wx.setClipboardData",
     "wx.setStorageSync",
@@ -75,10 +78,10 @@
     {
       "surface": "input-type:nickname",
       "informationType": "昵称",
-      "purpose": "用户主动设置会员显示名",
+      "purpose": "用户主动设置会员显示名；公开昵称须完成版本绑定的微信内容安全检测与独立人工复核",
       "activation": "用户编辑并保存资料后",
-      "serverStorage": "member.display_name",
-      "currentGate": "authenticated profile action"
+      "serverStorage": "member.display_name、member_profile 待审状态及 ugc_nickname_safety_scan 指纹与结论；新昵称未批准前不进入公开投影",
+      "currentGate": "公开展示须通过对应版本检测与独立复核；隔离测试可注入合成检测，真实平台结果未验证"
     },
     {
       "surface": "open-type:getPhoneNumber",
@@ -87,6 +90,22 @@
       "activation": "用户点击绑定并授权后",
       "serverStorage": "AES-GCM 密文、HMAC 盲索引、掩码",
       "currentGate": "phone binding configuration and authenticated action"
+    },
+    {
+      "surface": "wx.requestPayment",
+      "informationType": "隔离测试预支付参数与本机模拟付款动作；真实支付参数尚未向用户开放",
+      "purpose": "通过微信原生支付 API 验证客户端参数映射；服务端只依据可信渠道通知或原单查询确认付款",
+      "activation": "仅隔离 APP_ENV=test 流程由用户明确点击建立意图后；正式支付门禁关闭",
+      "serverStorage": "不保存客户端成功提示为支付事实；预支付意图与可信渠道事实另按资金表保存",
+      "currentGate": "隔离回环渠道、预存原单与付款身份绑定；支付失败或取消须重查原商户单号"
+    },
+    {
+      "surface": "wx.requestMerchantTransfer",
+      "informationType": "本人微信收款确认页所需原商户转账单参数；客户端回调不代表已入账",
+      "purpose": "由本人在微信原生页面确认隔离测试转账申请；支付事实仅来自可信渠道通知或原单查单",
+      "activation": "仅在隔离 APP_ENV=test 且原单已签名查得 WAIT_USER_CONFIRM 后由本人点击",
+      "serverStorage": "原商户单号、收款人标识与渠道状态持久保存；客户端提示不写入已支付分录",
+      "currentGate": "正式转账与真实收款均关闭，需官方能力和受控真机联调"
     },
     {
       "surface": "wx.chooseAddress",
@@ -107,10 +126,10 @@
     {
       "surface": "wx.chooseMedia",
       "informationType": "用户选中的图片/摄像头拍摄图片",
-      "purpose": "旧投稿审核证据，或用户主动加入本人客服会话的售前/售后图片",
-      "activation": "服务端 uploads 开关为 true、用户打开对应附件入口并完成微信隐私授权后",
+      "purpose": "用户主动选择护理故事、旧投稿审核证据或客服会话图片",
+      "activation": "本人进入相应入口并完成微信隐私授权后；正式护理故事还须有私有上传能力",
       "serverStorage": "本地验收由受控上传网关保存；正式/当前 staging COS 尚未启用；客服草稿对象 24 小时到期且未绑定对象进入清理队列",
-      "currentGate": "authoritative uploads switch before privacy or chooser API; authenticated support-conversation ownership"
+      "currentGate": "CISME API 授权与所属会员绑定；故事最多 9 张，客服最多 3 张；公开前需内容安全检测和人工审核"
     },
     {
       "surface": "wx.compressImage",
@@ -146,11 +165,11 @@
     },
     {
       "surface": "wx.uploadFile",
-      "informationType": "用户主动选择的投稿审核图片或客服会话图片",
-      "purpose": "上传旧投稿审核证据，或上传本人客服消息图片",
+      "informationType": "用户主动选择的护理故事、旧投稿审核或客服会话图片",
+      "purpose": "上传用户自己选择的内容；护理故事原图仅私有存储，公开展示由服务端产生去元数据派生图",
       "activation": "服务端授权成功后",
       "serverStorage": "本地验收可走受控网关；当前 staging 上传开关关闭且正式 COS 未启用",
-      "currentGate": "uploads switch plus short-lived server authorization, server-controlled object key, MIME/byte verification and owner binding"
+      "currentGate": "短期上传授权、所有权/MIME/字节校验；正式故事原图不得作为公共响应"
     },
     {
       "surface": "support_message.body",
@@ -285,25 +304,131 @@
       "userDeletionOrClosure": "当前无外部推理数据或持久 AI 草稿",
       "legalHold": "真正接入前随客服会话政策单独评估",
       "audit": "当前仅状态读取；离线 fixture 不使用真实聊天"
+    },
+    {
+      "surface": "ugc_post_revision",
+      "informationType": "作者文字、图片引用、AI 使用声明、内容权利和公开许可",
+      "purpose": "保存本人社区草稿、版本和审核历史",
+      "activation": "登录用户在编辑器输入时会自动在本机暂存；主动保存或提交后才写入服务端版本事实",
+      "serverStorage": "CISME PostgreSQL 版本事实；原图为私有对象，审核后生成去元数据 WebP 派生图；未保存的标题、正文、声明和图片 ID 另存本机微信存储，不含会话令牌",
+      "currentGate": "本人写入；恢复图片仅发放 5 分钟签名预览链接；内容安全扫描与双人复核前不可公开",
+      "retention": "本机未保存编辑备份 7 日；每次小程序启动、前台恢复或进入编辑器清理过期项，登出或切换会话清空；服务端版本 POLICY PENDING，删除公开内容不等于立即销毁依法需保留的治理事实"
+    },
+    {
+      "surface": "ugc_safety_scan",
+      "informationType": "待审文字或图片的临时访问 URL、作者 OpenID、微信检测 trace_id 与结果",
+      "purpose": "在人工审核前识别违规内容并防止未审内容公开",
+      "activation": "作者提交待审内容后，由后台任务发起",
+      "serverStorage": "CISME PostgreSQL 扫描任务与最小结果；图片原图私有，临时 URL 有签名和时限",
+      "currentGate": "生产须配置真实微信内容安全 API；结果未确认或有风险时闭合公开门禁",
+      "retention": "POLICY PENDING；原始扫描事实供申诉与问责，最小化保存"
+    },
+    {
+      "surface": "ugc_public_profile",
+      "informationType": "经本人开启且审核通过的社区头像、昵称及作者标识",
+      "purpose": "在社区内容与评论中展示发布者",
+      "activation": "用户主动开启社区展示，资料审核通过后",
+      "serverStorage": "CISME PostgreSQL 资料版本/审核状态",
+      "currentGate": "公开投影白名单；电话、地址、微信号与 OpenID 不公开"
+    },
+    {
+      "surface": "ugc_public_author_page",
+      "informationType": "作者内部 ID、审核后可公开的昵称/头像与已发布故事数量",
+      "purpose": "在故事详情查看同一作者的公开内容并主动关注",
+      "activation": "访客或登录用户点击公开故事中的作者",
+      "serverStorage": "读取现有 CISME 社区资料及已发布帖子，不新增个人资料副本",
+      "currentGate": "正式社区公开开关、活跃账号、公开帖子与资料投影白名单；屏蔽者本人不可查看"
+    },
+    {
+      "surface": "commercial_membership_referral",
+      "informationType": "会员资格、稳定推荐码、直接推荐关系和关联订单标识",
+      "purpose": "限定一级推荐资格、归属与可审计订单快照",
+      "activation": "授权管理员授予商业资格；被推荐人首次主动确认有效关系",
+      "serverStorage": "CISME PostgreSQL 资格、码、关系、规则和审计事实",
+      "currentGate": "服务端 capability 分离；推荐会员只看本人必要聚合，管理员读订单另需 commerce.order.read",
+      "retention": "POLICY PENDING；现金事实启用前另定争议及法定保存期限"
+    },
+    {
+      "surface": "commission_payment_facts",
+      "informationType": "隔离协议测试中的商户订单号、付款人 OpenID 快照、AppID/商户号、订单与报价版本、签名通知编号、渠道交易号、商品总额、购物权益组成与渠道现金额、用户渠道实付额（未知时为空）、组成状态、时间和最小校验哈希",
+      "purpose": "把支付意图、微信渠道事实、订单状态和一级佣金计提按原单可重放地绑定",
+      "activation": "APP_ENV=test 且显式启用本机回环模拟渠道；生产支付命令、回调和资金均关闭",
+      "serverStorage": "CISME PostgreSQL commerce_payment_attempt（含不可重置的可能发送时间与租约令牌）、commission_payment_inbox（领取令牌围栏）、commission_payment_composition_observation、订单状态和追加式佣金分录；回调在确认前持久化，相互冲突的组成保留原事实与补充摘要",
+      "currentGate": "签名与解密、原支付意图身份/金额/版本绑定、双重幂等及 worker；未知或折扣支付组成先保留资金事实并隔离订单/佣金，补充矛盾事实冻结释放与结算；合成订单不可计提",
+      "retention": "POLICY PENDING；真实资金启用前需正式批准"
+    },
+    {
+      "surface": "commission_refund_facts",
+      "informationType": "商户退款单号、原订单与支付事实、商品级现金退款及原来源购物权益分摊、微信退款通知编号/退款单号/状态/金额/时间及最小校验哈希",
+      "purpose": "对签名且与预存退款单一致的成功退款形成可重放的累计计佣冲销；异常和关闭状态不冲销",
+      "activation": "仅隔离本机模拟渠道的本人申请、异人审批、原单查单、签名回调与 worker；生产退款关闭",
+      "serverStorage": "CISME PostgreSQL commerce_refund_request、commission_refund_intent（含不可重置的可能发送时间与租约令牌）、commission_credit_refund_allocation、commission_refund_inbox（领取令牌围栏）与追加式佣金/权益分录；提交失败有退避、隔离和受审计重驱",
+      "currentGate": "退款单预存并绑定已核实支付；商品总额按原现金与权益组成累计分摊到商品行和来源批次，重复通知和越权订单核对；仅渠道签名 SUCCESS 追加权益退回，渠道受理不等于退款成功",
+      "retention": "POLICY PENDING；正式退款与财务事实保存期需另经批准"
+    },
+    {
+      "surface": "commission_fulfillment_settlement",
+      "informationType": "隔离测试中的履约凭据编号与摘要、签收时间、佣金释放与周期候选预占分配、税前/合成扣缴/净额、收款人 OpenID 快照、转账单号/渠道状态和最小校验哈希",
+      "purpose": "验证异人履约复核后才能释放佣金、并发预占不超额，以及可信转账成功才能记已结算",
+      "activation": "仅 APP_ENV=test 且显式启用本机模拟转账；正式物流、售后政策、商户转账场景尚未获批准",
+      "serverStorage": "CISME PostgreSQL commerce_fulfillment_attestation、commission_settlement_cycle/candidate/member、commission_settlement_request（含不可重置的可能发送时间与租约令牌）/allocation、commission_transfer_callback_inbox/fact 与追加式账本；异常摘要供授权运营人员核查",
+      "currentGate": "按服务端 capability 与对象状态隔离；会员申请仅作意向，普通路径不能直接批准转账；隔离测试周期须不同准备人/复核人/收款人及明确合成税务版本；原商户转账单号查单并核验签名；受理、待用户确认和处理中均不记为已付款",
+      "retention": "POLICY PENDING；正式资金、物流和争议证据保存期限需单独批准"
+    },
+    {
+      "surface": "commission_monthly_candidate",
+      "informationType": "授权准备人与独立复核人身份、自然月、候选会员/来源订单、税前金额、明确标为合成测试的扣缴/净额和历史准备/批准时间；不存真实税额的猜测值",
+      "purpose": "在隔离工程环境验证按上海自然月 15 日准备候选、100 元阈值结转以及来源级可审计重建",
+      "activation": "仅 test/development 且具备 commission.settlement.approve 可准备不可支付候选；仅 test 可由另一人按合成税务版本预占模拟转账，正式税务、身份与周期政策未批准",
+      "serverStorage": "CISME PostgreSQL commission_settlement_cycle/candidate/member 与来源绑定 request/allocation，不可变；候选本身不构成预占、纳税判断或已付款事实",
+      "currentGate": "服务端能力校验、数据库时钟、来源逐订单筛选、重复周期只返回原快照；测试审批重查来源、拒绝本人复核和真实税务口径；正式环境拒绝准备和付款",
+      "retention": "POLICY PENDING；佣金与财务证明保存、公开最小披露另经审批"
+    },
+    {
+      "surface": "isolated_commission_shopping_credit",
+      "informationType": "本人主动测试转换确认、税务合成规则版本、来源订单/分配金额、购物权益报价/购物订单预占及核销、原批次退款退回、冻结与撤销轨迹；不采集充值、转让或银行卡信息",
+      "purpose": "隔离验证已释放佣金与现金预占共用来源、1:1 对应分录、订单渠道现金和权益分账、签名退款原路退回及未使用权益的原来源恢复",
+      "activation": "仅 APP_ENV=test 且本人明确确认合成零扣缴测试规则；shopping_credit_live=false，生产不允许转换",
+      "serverStorage": "CISME PostgreSQL commission_credit_conversion/source/entry、commission_credit_checkout_allocation、commission_credit_refund_allocation 与不可变 commission_ledger_entry 来源移动；人工审计记录最小金额和来源笔数",
+      "currentGate": "已验真付款与释放、无未决退款/组成争议、按会员及来源订单锁定、可用来源扣除已付/在途/其他转换；订单先预占再凭渠道已核签付款事实核销，取消仅释放未核销预占；退款按原来源批次回权益；来源销售退款冻结暴露，取消转换只恢复完全未用且未冻结的来源",
+      "retention": "POLICY PENDING；购物权益、税务和财务记录保存及用户撤销例外需正式审批"
+    },
+    {
+      "surface": "commerce_trade_bill_evidence",
+      "informationType": "隔离渠道交易账单中的商户订单号、退款单号、渠道单号、付款标识及人民币金额；导入时临时核对身份，文件原文不落库",
+      "purpose": "逐行比对签名账单申请及摘要校验后的外部交易/退款受理事实与内部意图及账本，向授权人员显示差异摘要",
+      "activation": "仅隔离测试商户渠道由具有 commerce.money.reconcile 的人员按日期主动导入；正式商户账单未接入",
+      "serverStorage": "CISME PostgreSQL commerce_trade_bill_batch/row 保存文件 SHA1/SHA256、必要单号、整数分金额和差异码；commission_refund_channel_observation 追加保存已验签退款受理时间、渠道退款单号和响应哈希；不保存账单原文或付款 OpenID",
+      "currentGate": "签名申请、渠道限定的下载地址、文件摘要、单次大小和行数上限、日期/类型唯一幂等；REFUND 账单按渠道受理时间而非到账时间双向核对，缺可信受理证据保持异常；导入不改变支付、退款或佣金终态",
+      "retention": "POLICY PENDING；正式账单保存期需与财务、争议和隐私负责人批准"
+    },
+    {
+      "surface": "ugc_author_follow",
+      "informationType": "关注人与被关注作者的内部成员 ID、建立时间",
+      "purpose": "在公开社区中按本人关注的作者筛选内容",
+      "activation": "登录用户在公开故事详情主动关注或取消；屏蔽作者同时取消本人关注",
+      "serverStorage": "CISME PostgreSQL ugc_author_follow；不向他人公开完整关注列表",
+      "currentGate": "正式社区公开开关、作者公开内容、有效账号、本人操作及屏蔽关系服务端核对",
+      "retention": "取消关注时删除关系；账户注销与保存策略另按个人信息治理规则执行"
     }
   ],
   "runtimeDataEgress": [
     {
       "recipient": "微信接口 api.weixin.qq.com",
-      "data": "登录 code；手机号授权 code；服务端 AppID/Secret",
-      "purpose": "code2Session 与手机号解密",
-      "state": "implemented"
+      "data": "登录/手机号授权 code、服务端 AppID/Secret；正式 UGC 启用后待审昵称、正文、评论、带签名的私有图片临时 URL、作者 OpenID",
+      "purpose": "code2Session、手机号解密；生产配置齐备后调用微信内容安全文字/图片检测",
+      "state": "identity_implemented_ugc_scan_config_gated"
     },
     {
       "recipient": "CISME 自有 HTTPS API",
       "data": "页面所需的最小业务字段",
-      "purpose": "会员、护理、地址、投稿、权利请求、统一客服会话与自营商品目录",
+      "purpose": "会员、护理、地址、正式社区草稿/审核、商业资格/推荐、权利请求、客服与目录",
       "state": "implemented"
     },
     {
       "recipient": "腾讯云 COS",
-      "data": "未来的私有投稿/客服媒体和加密备份",
-      "purpose": "私有对象存储与灾备；客服预览只经 CISME 鉴权 API",
+      "data": "未来的私有投稿/客服原图及去元数据公开派生图、加密备份",
+      "purpose": "私有原图存储、授权预览与审核后派生图；当前仍取决于配置与审批",
       "state": "staging_media_not_enabled"
     },
     {
@@ -311,8 +436,14 @@
       "data": "固定健康检查，无会员数据",
       "purpose": "历史/未启用传输路径的可用性检查",
       "state": "not_mapped_for_preview_or_trial"
+    },
+    {
+      "recipient": "微信支付 API v3",
+      "data": "测试协议的预支付、原商户订单号/退款单号/转账单号、历史交易账单日期与必要的 AppID、商户号、收付款 OpenID、整数分金额；正式协议仅本机验证静态信任配置，默认无出网；本轮交易仅发送到本机回环模拟渠道",
+      "purpose": "验证支付、退款、转账、账单申请与下载的签名请求、签名回包或文件摘要、未知结果按原单查询和持久化事实；未向微信真实商户接口发起资金操作",
+      "state": "isolated_loopback_http_protocol_and_inert_formal_trust_assembly_production_closed"
     }
   ],
-  "migrationSetSha256": "f08f919006fd9dad58784c92a0037d9bcb7b5de089c2cde5670224910d0e5454",
-  "egressSignatureSha256": "29fe533f20c532da5bdbb01ea58d8177590c05b4d8a13457d0675e27dbb09881"
+  "migrationSetSha256": "fc20bb75202a7024ba3ee289a06593b7e3eef6a853246a5d448eb7b4b2a82fdc",
+  "egressSignatureSha256": "1e5864578036c798b1217d73f7ec028a6ced37ce73c90e5cd4dfce352f72dd0a"
 }

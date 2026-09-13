@@ -1,5 +1,6 @@
 import { clearMemberIdentity } from "./member-identity";
 import { clearMemberAvatarCache } from "./member-avatar";
+import { clearAllUgcBackups } from "./ugc-local-backup";
 import { RequestCoordinator } from "./request-coordinator";
 import { sendJsonRequest, type TransportHandle } from "./http";
 const app = { get globalData() { return getApp<IAppOption>().globalData; } };
@@ -15,6 +16,7 @@ function normalizedAuthPath(url: string): string {
 }
 
 export function setSessionToken(token: string): void {
+  if(!token)clearAllUgcBackups();
   clearMemberAvatarCache();
   clearMemberIdentity();
   reads.invalidate();

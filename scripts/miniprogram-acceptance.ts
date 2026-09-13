@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import jpeg from "jpeg-js";
 import { loadConfig } from "@cisme/config";
@@ -309,7 +309,8 @@ async function seedFixtures() {
     count(*)::int AS migration_count,
     max(version) AS latest_migration
     FROM schema_migration`)).rows[0];
-  if (databaseState.migration_count !== 35 || databaseState.latest_migration !== "202609120001_support_commercial_chat.sql") fail("SCHEMA_VERSION_INVALID");
+  const migrationFiles=(await readdir(resolve(process.cwd(),"db/migrations"))).filter(name=>name.endsWith(".sql")).sort();
+  if (databaseState.migration_count !== migrationFiles.length || databaseState.latest_migration !== migrationFiles.at(-1)) fail("SCHEMA_VERSION_INVALID");
 
   const fixture = {
     schemaVersion: 1,

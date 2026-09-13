@@ -8,6 +8,8 @@ const publicRoutes = [
   "/pages/account/index",
   "/pages/home/index",
   "/pages/community/index",
+  "/pages/community-post/index",
+  "/pages/community-author/index",
   "/pages/post/index",
   "/pages/shop/index",
   "/pages/product/index",
@@ -22,10 +24,17 @@ const memberRoutes = [
   "/pages/submit/index",
   "/pages/progress/index",
   "/pages/points/index",
+  "/pages/commission/index",
   "/pages/settings/index",
   "/pages/invite/index",
+  "/pages/referral/index",
+  "/pages/community-compose/index",
+  "/pages/community-activity/index",
+  "/pages/community-review/index",
   "/pages/support/index",
   "/pages/management/index",
+  "/pages/management-members/index",
+  "/pages/management-member/index",
   "/pages/management-catalog/index",
   "/pages/management-product/index",
   "/pages/management-support/index",
@@ -35,6 +44,7 @@ const memberRoutes = [
   ,"/pages/order-detail/index"
   ,"/pages/management-orders/index"
   ,"/pages/management-order-detail/index"
+  ,"/pages/management-finance/index"
 ];
 
 async function source(path: string): Promise<string> {

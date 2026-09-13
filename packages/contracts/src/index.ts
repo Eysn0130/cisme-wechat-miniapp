@@ -19,8 +19,10 @@ export type AdminRole = "reviewer" | "review_lead" | "auditor" | "support" | "fi
 export const CAPABILITIES = [
   "support.read", "support.reply", "support.assign",
   "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read",
-  "commerce.fulfillment.manage", "commerce.refund.approve",
-  "community.moderate", "member.support_view", "privacy.request.manage"
+  "commerce.fulfillment.manage", "commerce.refund.approve", "commerce.money.reconcile",
+  "community.moderate", "member.support_view", "member.profile.read", "member.manage",
+  "commission.read", "commission.rate.manage", "commission.rate.approve",
+  "commission.settlement.approve", "privacy.request.manage"
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 export type SupportConversationStatus = "ai_active" | "waiting_human" | "human_active" | "resolved";
@@ -73,7 +75,7 @@ export interface CatalogProductView {
   variants: CatalogSkuView[];
 }
 
-export type CommerceOrderStatus = "pending_payment" | "cancelled" | "expired";
+export type CommerceOrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 export interface CommerceQuoteView {
   id: string;
   status: "active" | "consumed" | "expired";
@@ -290,6 +292,7 @@ export const EVENT_TYPES = [
   "catalog.inventory.adjusted.v1",
   "commerce.order.created.v1",
   "commerce.order.cancelled.v1",
+  "commerce.order.paid.v1",
   "commerce.order.expired.v1"
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];

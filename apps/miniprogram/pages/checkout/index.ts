@@ -8,7 +8,7 @@ import {
   requestStillOwned,
   type QuoteClock
 } from "../../services/checkout-state";
-import { clientOperationKey, createCheckoutQuote, createPendingOrder, memberAddresses, orderRuntimeStatus, type CheckoutAddress, type CheckoutQuote } from "../../services/orders";
+import { clientOperationKey, createCheckoutQuote, createPendingOrder, isolatedCreditSummary, memberAddresses, orderRuntimeStatus, type CheckoutAddress, type CheckoutQuote } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 
 function problemCopy(error: unknown): string {
@@ -16,12 +16,16 @@ function problemCopy(error: unknown): string {
   const known: Record<string, string> = {
     INVENTORY_NOT_AVAILABLE: "当前库存不足，请调整数量后重新报价。", QUOTE_STALE: "商品或价格已变化，请重新报价。",
     QUOTE_EXPIRED: "报价已过期，请重新获取。", DELIVERY_ADDRESS_CHANGED: "收货地址已变化，请重新选择并报价。",
-    CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "当前环境未开放待支付订单验证。"
+    CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "当前环境未开放待支付订单验证。",
+    CREDIT_CHECKOUT_INSUFFICIENT:"可用测试购物权益已变化，请刷新后重新报价。",
+    CREDIT_CASH_COMPONENT_REQUIRED:"本机测试订单仍需保留至少一分模拟渠道现金支付。"
   };
   return known[problem.code ?? ""] ?? problem.title ?? "操作未完成，请检查网络后重试。";
 }
 
 function currentSessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
+function creditCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
+  return parts?Number(parts[1])*100+Number((parts[2]??"").padEnd(2,"0")):NaN;}
 
 Page({
   countdownTimer: null as ReturnType<typeof setInterval> | null,
@@ -31,9 +35,12 @@ Page({
   data: {
     chromeStyle: currentChromeStyle(), productCode: "", requestedSkuId: "", quantity: 1, product: null as CatalogProduct | null,
     selectedSku: null as CatalogSku | null, addresses: [] as CheckoutAddress[], selectedAddressId: "", runtimeEnabled: false,
+    isolatedPayment:false,creditEnabled:false,creditAvailableCents:0,creditAvailableYuan:"0.00",
+    creditInput:"",creditReadError:"",
     loading: true, busy: false, navigating: false, error: "", syncError: "", quote: null as CheckoutQuote | null,
     quoteClock: null as QuoteClock | null, quoteExpired: false, unitPriceYuan: "", subtotalYuan: "", discountYuan: "",
-    shippingYuan: "", totalYuan: "", countdown: "", quoteKey: "", createKey: "", sessionToken: ""
+    shippingYuan: "", totalYuan: "",creditYuan:"",cashYuan:"",
+    countdown: "", quoteKey: "", createKey: "", sessionToken: ""
   },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
@@ -82,6 +89,7 @@ Page({
     this.setData({ loading: true, syncError: "" });
     try {
       const [product, addressBook, runtime] = await Promise.all([catalogDetail(this.data.productCode), memberAddresses(), orderRuntimeStatus()]);
+      const credit=runtime.isolatedCreditCheckoutAvailable?await isolatedCreditSummary().catch(()=>null):null;
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const selected = product.variants.find((item) => item.id === this.data.requestedSkuId && item.active) ?? product.variants.find((item) => item.active) ?? null;
       const addresses = addressBook.addresses;
@@ -92,6 +100,8 @@ Page({
         selected && quoteAddress &&
         selected.id === this.data.quote.item.skuId &&
         this.data.quantity === this.data.quote.quantity &&
+        (this.data.quote.creditTenderCents===0||credit!==null)&&
+        this.data.quote.creditTenderCents===(this.data.creditInput?creditCents(this.data.creditInput):0) &&
         quoteAddress.version === this.data.quote.addressVersion &&
         preferred?.id === quoteAddress.id
       );
@@ -99,6 +109,12 @@ Page({
         product, selectedSku: selected, requestedSkuId: selected?.id ?? "",
         quantity: selected ? Math.min(this.data.quantity, Math.max(1, selected.availableQuantity)) : 1,
         addresses, selectedAddressId: preferred?.id ?? "", runtimeEnabled: runtime.orderFlowEnabled,
+        isolatedPayment:runtime.isolatedMoneyOperationsAvailable,
+        creditEnabled:runtime.isolatedCreditCheckoutAvailable&&credit!==null,
+        creditAvailableCents:credit?.checkoutAvailableCents??0,
+        creditAvailableYuan:centsToYuan(credit?.checkoutAvailableCents??0),
+        creditInput:credit?this.data.creditInput:"",
+        creditReadError:runtime.isolatedCreditCheckoutAvailable&&!credit?"测试购物权益暂不可核对，请仅按原价继续。":"",
         unitPriceYuan: selected ? centsToYuan(selected.priceCents) : "", loading: false,
         syncError: addressBook.enabled ? "" : "地址簿安全存储尚未配置，当前不能创建订单。"
       };
@@ -129,6 +145,8 @@ Page({
     if (!this.data.busy && this.data.quantity < maximum) this.invalidateQuote({ quantity: this.data.quantity + 1 });
   },
   selectAddress(event: WechatMiniprogram.TouchEvent) { if (!this.data.busy) this.invalidateQuote({ selectedAddressId: String(event.currentTarget.dataset.id ?? "") }); },
+  editCredit(event:WechatMiniprogram.Input){if(!this.data.busy&&this.data.creditEnabled)
+    this.invalidateQuote({creditInput:event.detail.value});},
   editAddresses() {
     if (this.data.busy || this.data.navigating) return;
     this.setData({ navigating: true });
@@ -139,17 +157,24 @@ Page({
     const address = this.data.addresses.find((item) => item.id === this.data.selectedAddressId);
     if (this.data.busy || !sku || !address) return;
     if (!this.data.runtimeEnabled) { this.setData({ error: "当前环境未开放待支付订单验证。" }); return; }
+    const credit=this.data.creditInput?creditCents(this.data.creditInput):0;
+    if(!Number.isSafeInteger(credit)||credit<0||credit>this.data.creditAvailableCents||
+      credit>0&&!this.data.creditEnabled||credit>=sku.priceCents*this.data.quantity){
+      this.setData({error:"购物权益金额须在本机测试可用额度内，且小于商品金额。"});return;}
     const epoch = this.requestEpoch;
     const ownerToken = currentSessionToken();
     const quoteKey = this.data.quoteKey || clientOperationKey("checkout-quote");
     this.setData({ busy: true, error: "", quoteKey });
     try {
-      const quote = await createCheckoutQuote({ skuId: sku.id, quantity: this.data.quantity, addressId: address.id, addressVersion: address.version }, quoteKey);
+      const quote = await createCheckoutQuote({ skuId: sku.id, quantity: this.data.quantity,
+        addressId: address.id, addressVersion: address.version,...(credit?{creditCents:credit}:{}) }, quoteKey);
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const quoteClock = createQuoteClock(quote.expiresAt, quote.serverTime);
       this.setData({
         quote, quoteClock, quoteExpired: false, createKey: "", subtotalYuan: centsToYuan(quote.subtotalCents),
-        discountYuan: centsToYuan(quote.memberDiscountCents), shippingYuan: centsToYuan(quote.shippingCents), totalYuan: centsToYuan(quote.totalCents)
+        discountYuan: centsToYuan(quote.memberDiscountCents), shippingYuan: centsToYuan(quote.shippingCents),
+        totalYuan: centsToYuan(quote.totalCents),creditYuan:centsToYuan(quote.creditTenderCents),
+        cashYuan:centsToYuan(quote.cashPayableCents)
       });
       this.startCountdown(quoteClock);
     } catch (error) {

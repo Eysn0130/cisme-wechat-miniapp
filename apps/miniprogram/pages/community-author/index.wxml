@@ -1,0 +1,22 @@
+<view class="chrome-root" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回上一页"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">社区作者</text></view>
+  <view class="page page--stack author-page">
+    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载作者资料…</view>
+    <view wx:if="{{error}}" class="state state--error author-error" aria-live="assertive"><text class="author-error__copy">{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回社区</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
+    <block wx:if="{{author}}">
+      <view class="author-head">
+        <image wx:if="{{author.avatar}}" class="author-avatar" src="{{author.avatar}}" mode="aspectFill"/>
+        <view wx:else class="author-avatar author-avatar--empty">C</view>
+        <view class="author-info"><text class="author-name">{{author.name}}</text><text class="author-count">{{author.postCount}} 篇公开护理故事</text></view>
+        <button wx:if="{{!author.isMine}}" class="author-follow {{busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
+      </view>
+      <text class="author-section">公开故事</text>
+      <view wx:if="{{!items.length && !loading}}" class="state">这位作者目前没有可查看的故事。</view>
+      <button wx:for="{{items}}" wx:key="id" class="author-story {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}">
+        <image wx:if="{{item.cover}}" class="author-story__image" src="{{item.cover}}" mode="aspectFill" lazy-load="{{true}}"/>
+        <view class="author-story__copy"><text class="author-story__title">{{item.title}}</text><text wx:if="{{item.excerpt}}" class="author-story__excerpt">{{item.excerpt}}</text><text class="author-story__meta">{{item.likeCount}} 赞</text></view>
+      </button>
+      <view wx:if="{{loadingMore}}" class="state">正在加载更多故事…</view>
+    </block>
+  </view>
+</view>

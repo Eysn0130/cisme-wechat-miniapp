@@ -1,0 +1,38 @@
+{
+  "sourceSha256": "ae5d67bbc1bbbaad5a7cd82e46a0b17ae646f818636d8d8baa0473245492f3a7",
+  "device": "WeChat DevTools simulator screenshot 484x1048; automation_element_action size returns logical px",
+  "controls": [
+    {
+      "selector": ".member-tabs button[data-section=\"orders\"]",
+      "beforePx": [
+        88,
+        39
+      ],
+      "afterPx": [
+        88,
+        45
+      ],
+      "beforeSourceSha256": "1c718144bd7fb89fcd07775f24758eb64d43bd873bccfdfd59d293b4056a78fb"
+    },
+    {
+      "selector": ".members-filters button",
+      "beforePx": [
+        57,
+        37
+      ],
+      "afterPx": [
+        57,
+        45
+      ],
+      "beforeSourceSha256": "1c718144bd7fb89fcd07775f24758eb64d43bd873bccfdfd59d293b4056a78fb"
+    },
+    {
+      "selector": ".composer-add",
+      "afterPx": [
+        76,
+        45
+      ]
+    }
+  ],
+  "limit": "Sampled controls only. Does not establish all controls reach 44 logical px or measure contrast."
+}

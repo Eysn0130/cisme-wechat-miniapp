@@ -33,6 +33,7 @@ All events use the transactional `outbox_event`, server UUID, aggregate version,
 | `catalog.product.publication_changed.v1` | catalog_product | product + version | commerce.product.manage publication command | publish requires eligible qualification and an active priced SKU; unpublish preserves history |
 | `catalog.inventory.adjusted.v1` | catalog_sku | adjustment ID | commerce.inventory.manage command | row lock and expected inventory version prevent lost updates; reasoned adjustment evidence is immutable |
 | `commerce.order.created.v1` | commerce_order | order + version | member order transaction | creates only `pending_payment`; payload contains order ID/number, status, currency and total, never address or member identity |
+| `commerce.order.paid.v1` | commerce_order | order + version | verified signed and decrypted payment Inbox application | requires a persisted, applied WeChat payment fact bound to the original order and payer; one paid transition and at most one commission accrual; never emitted for a synthetic order |
 | `commerce.order.cancelled.v1` | commerce_order | order + version | member cancel transaction | terminal transition and active reservation release are atomic; payload contains no free-text cancel reason or address |
 | `commerce.order.expired.v1` | commerce_order | order + version | worker expiry transaction | terminal transition and active reservation release are atomic and replay-safe; no payment-provider conclusion is implied |
 

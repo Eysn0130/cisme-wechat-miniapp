@@ -53,6 +53,39 @@ beforeEach(() => {
 });
 
 describe("U0 native page lifecycle regressions", () => {
+  it("drops a previous operator's finance cycle and approval keys before rechecking authority", async () => {
+    requestMock.mockImplementation(() => new Promise(() => undefined));
+    await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
+    const page = mountedPage(capturedPage!, {
+      authority: { memberId: "operator-a" }, sections: [{ id: "cycles", label: "周期候选" }],
+      cycle: { id: "private-cycle-a", members: [{ memberId: "private-payee-a", grossCents: 10000 }] },
+      cycleDecisionKeys: { "private-cycle-a:private-payee-a": "approval-key-a" },
+      items: [{ id: "private-issue-a" }], totalCount: 1, busy: true, loadingMore: true
+    });
+    session = "operator-b";
+
+    page.onShow();
+
+    expect(page.data).toMatchObject({ authority: null, sections: [], cycle: null,
+      cycleDecisionKeys: {}, items: [], totalCount: 0, busy: false, loadingMore: false, loading: true });
+  });
+  it("discards a stale finance cycle on section return and locks month edits during a submission", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
+    const page = mountedPage(capturedPage!, {
+      section:"refund",sections:[{id:"refund",label:"退款"},{id:"cycles",label:"周期候选"}],
+      cycle:{id:"old-cycle",members:[{memberId:"payee",grossCents:10000}]},
+      cycleMonth:"2026-08",cycleDecisionKeys:{"old-cycle:payee":"retry-key"}
+    });
+    page.selectSection({currentTarget:{dataset:{section:"cycles"}}});
+    expect(page.data).toMatchObject({section:"cycles",cycle:null,
+      cycleDecisionKeys:{"old-cycle:payee":"retry-key"}});
+    page.setData({busy:true});
+    page.chooseCycleMonth({detail:{value:"2026-07"}});
+    expect(page.data.cycleMonth).toBe("2026-08");
+    page.setData({busy:false});
+    page.chooseCycleMonth({detail:{value:"2026-07"}});
+    expect(page.data).toMatchObject({cycleMonth:"2026-07",cycle:null,cycleDecisionKeys:{}});
+  });
   it("scrubs checkout PII and quote facts before an unauthenticated return can render", async () => {
     retainMemberSnapshotMock.mockReturnValue(false);
     requireMemberAccessMock.mockReturnValue(false);

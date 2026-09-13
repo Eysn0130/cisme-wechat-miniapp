@@ -59,13 +59,16 @@
     "fastify": "5.12.3",
     "jpeg-js": "^0.4.4",
     "pg": "8.23.0",
-    "pino": "10.3.1"
+    "pino": "10.3.1",
+    "sharp": "0.35.4"
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "6.0.1",
     "@phosphor-icons/core": "^2.1.1",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "24.10.1",
     "@types/pg": "8.15.6",
+    "js-yaml": "^4.3.2",
     "jsdom": "^27.0.0",
     "miniprogram-api-typings": "5.2.3",
     "miniprogram-simulate": "^1.6.2",

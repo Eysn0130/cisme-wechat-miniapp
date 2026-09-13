@@ -13,7 +13,7 @@ describe("role-aware native support UX",()=>{
   const [view,logic,authority]=await Promise.all([read("apps/miniprogram/pages/profile/index.wxml"),read("apps/miniprogram/pages/profile/index.ts"),read("apps/miniprogram/services/authority.ts")]);
   expect(view).toContain("客服</strong>");expect(view).toContain('wx:if="{{authority.managementAvailable}}"');expect(view).toContain("管理中心");
   expect(logic).toContain("authorityProjection()");expect(authority).toContain('/v1/me/authority');expect(authority).not.toContain("isAdmin");
-  expect(logic).toMatch(/!requireMemberAccess\(\).*authority:null,supportUnread:0/);
+  expect(logic).toMatch(/!requireMemberAccess\(\).*authority:null,commercialEligible:false,commercialAccessible:false,supportUnread:0/);
  });
  it("uses a shared cursor state machine, bounded non-overlapping polling and explicit AI/human labels",async()=>{
   const [userLogic,userView,operatorLogic,operatorView,state]=await Promise.all([read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml"),read("apps/miniprogram/services/support-thread-state.ts")]);

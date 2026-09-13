@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import COS from "cos-nodejs-sdk-v5";
 import { loadConfig } from "@cisme/config";
 import { createObjectStorage } from "../../services/api/src/storage";
@@ -13,6 +13,10 @@ async function authorization() {
 }
 afterEach(() => vi.restoreAllMocks());
 describe("persistent COS upload gateway", () => {
+  // The gateway refuses versioned buckets before authorization or writes.
+  // These isolated cases exercise its signature and payload contract without
+  // requiring a real COS bucket or network access.
+  beforeEach(() => vi.spyOn(COS.prototype, "getBucketVersioning").mockResolvedValue({ VersioningConfiguration: {} } as never));
   it("issues a short-lived key-bound PUT when direct upload is explicitly enabled", async () => {
     const direct = loadConfig({ APP_ENV: "test", DATABASE_URL: "postgres://unused", APP_SESSION_SECRET: "session", ADMIN_API_TOKEN: "admin", UPLOAD_TOKEN_SECRET: "gateway-test-secret", OBJECT_STORAGE_DRIVER: "cos_gateway", S3_BUCKET: "private-evidence", S3_REGION: "ap-shanghai", S3_ACCESS_KEY_ID: "secret-id", S3_SECRET_ACCESS_KEY: "secret-key", COS_DIRECT_UPLOAD_ENABLED: "true" });
     const storage = createObjectStorage(direct);

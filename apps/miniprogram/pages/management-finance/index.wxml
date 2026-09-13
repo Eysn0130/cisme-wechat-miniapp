@@ -1,0 +1,54 @@
+<view class="management-shell" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">隔离资金核对</text></view>
+  <view class="page page--stack finance-page">
+    <view class="page-title">待处理事项</view>
+    <text class="subtitle">仅供隔离测试。支付、退款和转账各自核验；渠道受理不等于资金完成。</text>
+    <scroll-view wx:if="{{sections.length}}" class="finance-tabs" scroll-x enhanced show-scrollbar="false">
+      <button wx:for="{{sections}}" wx:key="id" class="finance-tab {{section===item.id?'is-active':''}} {{busy?'control--disabled':''}}" data-section="{{item.id}}" bindtap="selectSection" disabled="{{busy}}">{{item.label}}</button>
+    </scroll-view>
+    <view wx:if="{{section==='bills'}}" class="finance-bill-import">
+      <text>账单日期（次日生成）</text>
+      <picker mode="date" value="{{billDate}}" end="{{latestBillDate}}" bindchange="chooseBillDate"><view class="finance-bill-date">{{billDate}} · 选择日期</view></picker>
+      <view class="finance-actions"><button class="finance-action {{busy?'control--disabled':''}}" bindtap="importBill" data-type="SUCCESS" disabled="{{busy}}">核对支付账单</button><button class="finance-action {{busy?'control--disabled':''}}" bindtap="importBill" data-type="REFUND" disabled="{{busy}}">核对退款账单</button></view>
+      <text class="subtitle">退款账单只证明渠道受理；退款成功仍以原单查询或可信回调为准。</text>
+    </view>
+    <view wx:if="{{section==='cycles'}}" class="finance-bill-import">
+      <text>上海自然月 · 周期候选（仅隔离测试）</text>
+      <picker mode="date" fields="month" value="{{cycleMonth}}" end="{{latestCycleMonth}}" bindchange="chooseCycleMonth" disabled="{{busy}}"><view class="finance-bill-date">{{cycleMonth}} · 选择月份</view></picker>
+      <button class="finance-action {{busy?'control--disabled':''}}" bindtap="prepareCycle" disabled="{{busy}}" loading="{{busy}}">准备或复查候选</button>
+      <text class="subtitle">每月 15 日起准备上一自然月末来源；税前不足 ¥100 结转，不作失效。准备不等于批准；真实税务、身份及资金政策仍阻断。</text>
+      <view wx:if="{{cycle}}"><text class="finance-copy">{{cycle.periodEnd}} 候选 · {{cycle.members.length}} 位 · {{cycle.replay?'已存在的不可改写快照':'新快照'}}</text><text class="finance-id">准备人 {{cycle.preparedByMemberId}}；须由另一名授权人员复核。</text>
+        <view wx:for="{{cycle.members}}" wx:key="memberId" class="finance-row"><view class="finance-row__head"><strong>来源 {{item.orderCount}} 笔 · 税前 ¥{{item.grossLabel}}</strong><text>{{item.requestState||'待独立复核'}}</text></view>
+          <text class="finance-id">{{item.memberId}}</text><text wx:if="{{item.requestId}}" class="finance-copy">隔离申请 {{item.requestId}} · 扣缴 ¥0.00 仅合成口径</text>
+          <button wx:else class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-member="{{item.memberId}}" bindtap="approveCycleMember" disabled="{{busy}}">按来源独立复核</button></view>
+        <view wx:if="{{!cycle.members.length}}" class="state">本月无达到税前 ¥100 的候选；低于阈值的有效来源继续结转。</view>
+      </view>
+    </view>
+    <view wx:if="{{actionStatus}}" class="finance-feedback">{{actionStatus}}</view>
+    <view wx:if="{{actionError}}" class="finance-feedback finance-feedback--error">{{actionError}}</view>
+    <view wx:if="{{loading}}" class="state">正在核验权限并读取待办…</view>
+    <view wx:if="{{error}}" class="state state--error finance-error"><text>{{error}}</text><button class="text-button" bindtap="retry">重试</button></view>
+    <text wx:if="{{section!=='cycles'&&!loading&&!error}}" class="finance-count">待处理 {{totalCount}} 项</text>
+    <view wx:for="{{items}}" wx:key="id" class="finance-row">
+      <view class="finance-row__head"><strong>{{section==='issues'?item.kindLabel:section==='refund'?'退款申请':section==='fulfillment'?'履约核验':section==='bills'?'交易账单':'结算意向'}}</strong><text>{{item.dateLabel}}</text></view>
+      <text wx:if="{{section==='bills'}}" class="finance-copy">{{item.billDate}} · {{item.billType==='SUCCESS'?'支付':'退款受理'}} · {{item.rowCount}} 条中匹配 {{item.matchedCount}}，差异 {{item.exceptionCount}}</text>
+      <text wx:if="{{item.amountLabel}}" class="finance-amount">¥{{item.amountLabel}}</text>
+      <text wx:if="{{item.reason}}" class="finance-copy">{{item.reason}}</text>
+      <text wx:if="{{item.sourceReference}}" class="finance-copy">凭据 {{item.sourceReference}} · 签收 {{item.deliveredAt}}</text>
+      <text wx:if="{{item.code}}" class="finance-copy">{{item.code}} · 已尝试 {{item.attempts}} 次</text>
+      <text class="finance-id">{{item.orderId||item.memberId||item.relatedId||item.id}}</text>
+      <view wx:if="{{section!=='issues'&&section!=='bills'}}" class="finance-actions">
+        <button class="finance-action {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="reject" bindtap="decide" disabled="{{busy}}">退回</button>
+        <button wx:if="{{section==='fulfillment'}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="verify" bindtap="decide" disabled="{{busy}}">核验通过</button>
+        <button wx:elif="{{section==='refund'}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="approve" bindtap="decide" disabled="{{busy}}">核准</button>
+      </view>
+      <view wx:elif="{{section==='issues'&&item.kind!=='trade_bill'}}" class="finance-actions">
+        <button class="finance-action {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-action="recheck" bindtap="operateIssue" disabled="{{busy}}">查原单</button>
+        <button wx:if="{{item.canRedrive}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-action="redrive" bindtap="operateIssue" disabled="{{busy}}">核对后重驱</button>
+      </view>
+    </view>
+    <view wx:if="{{section!=='cycles'&&!loading&&!error&&!items.length}}" class="state">这一类目前没有待办。</view>
+    <view wx:if="{{moreError}}" class="finance-feedback finance-feedback--error">{{moreError}}</view>
+    <button wx:if="{{nextCursor}}" class="secondary {{loadingMore?'secondary--disabled':''}}" bindtap="loadMore" loading="{{loadingMore}}" disabled="{{loadingMore}}">加载更多</button>
+  </view>
+</view>

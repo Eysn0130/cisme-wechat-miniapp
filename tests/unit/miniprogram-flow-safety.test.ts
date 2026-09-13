@@ -134,7 +134,7 @@ describe("mini program submission flow safety", () => {
     const records = await source("apps/miniprogram/pages/records/index.ts");
     const recordsView = await source("apps/miniprogram/pages/records/index.wxml");
 
-    expect(community).toContain('feed: [], error: "会员内容暂时无法同步');
+    expect(community).toContain('feed: [], error: "社区内容暂时无法加载');
     expect(community).toContain("this.data.feedAttempt === attempt");
     expect(home).toContain("authorityAvailable: false");
     expect(home).toContain("care: null, supportUnread: 0, view: homeView(null)");
@@ -281,7 +281,8 @@ describe("mini program submission flow safety", () => {
     expect(settings).toContain("this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut");
     expect(settings).toMatch(/logout\(\) \{[\s\S]*?this\.data\.loadAttempt \+= 1;[\s\S]*?setSessionToken\(""\);/);
     expect(settings).toContain('loading: false, consents: [], sessionStatus: "invalid"');
-    expect(settingsView).toContain("当前会话状态暂时无法确认");
+    expect(settings).toContain("设置快照暂时无法加载，请检查网络后重试。");
+    expect(settingsView).toContain('wx:if="{{error}}"');
     expect(settingsView).toContain('disabled="{{!!workingConsentId || confirmingLogout || loggingOut || profileBusy || avatarBusy || phoneBusy || addressBusy || leavePromptOpen}}"');
   });
 
@@ -311,7 +312,7 @@ describe("mini program submission flow safety", () => {
     expect(taskEntries).toContain('case "rejected"');
     expect(taskEntries).toContain('case "needs_changes"');
     expect(taskEntries).toContain("task.claimable === true || Boolean(task.submission_id)");
-    expect(communityView).toContain("不能据此判断为无邀请");
+    expect(communityView).toContain("活动暂未加载，请重试。");
     expect(communityView).toContain('bindtap="loadTasks"');
     expect(profileView).toContain("同步失败 · 点此重试");
     expect(profileView).toContain('wx:if="{{tasksError && member}}"');
@@ -330,7 +331,7 @@ describe("mini program submission flow safety", () => {
     expect(profile).toContain("loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, pageAlive: true");
     expect(profile).toContain("this.data.loadAttempt !== attempt");
     expect(profile).toContain("this.data.tasksAttempt !== attempt");
-    expect(profile).toContain("member: null, points: null, care: null, authority:null, supportUnread:0, tasks: []");
+    expect(profile).toContain("member: null, points: null, care: null, authority:null, commercialEligible:false,commercialAccessible:false, supportUnread:0, tasks: []");
     expect(post).toContain("onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
     expect(post).not.toContain("allowPublicBrowsing");
     expect(post).toContain("this.data.loadAttempt !== attempt");

@@ -4,8 +4,21 @@ interface CacheEntry<T> { value?: T; expiresAt: number; staleUntil: number; pend
 /** Session-scoped in-memory read coalescing with bounded TTL/SWR. */
 export class RequestCoordinator {
   private cache = new Map<string, CacheEntry<unknown>>();
+  private readonly maxEntries = 256;
   private generation = 0;
   private tagGeneration = new Map<string, number>();
+  private enforceCapacity(now: number): void {
+    if (this.cache.size <= this.maxEntries) return;
+    for (const [key, entry] of this.cache) {
+      if (this.cache.size <= this.maxEntries) break;
+      if (!entry.pending && entry.staleUntil <= now) this.cache.delete(key);
+    }
+    while (this.cache.size > this.maxEntries) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest === undefined) break;
+      this.cache.delete(oldest);
+    }
+  }
   invalidate(tags?: readonly string[]): void {
     if (!tags?.length) { this.generation++; this.cache.clear(); return; }
     for (const tag of tags) this.tagGeneration.set(tag, (this.tagGeneration.get(tag) ?? 0) + 1);
@@ -37,6 +50,7 @@ export class RequestCoordinator {
     const result = execute();
     entry.pending = result;
     this.cache.set(scoped, entry);
+    this.enforceCapacity(now);
     void result.then((value) => {
       if (this.cache.get(scoped) !== entry) return;
       delete entry.pending;

@@ -1,5 +1,6 @@
 import { MemberProfile, type MemberProfileInput } from "./memberProfile.js";
 import { startBackgroundWorker } from "../../worker/src/jobs.js";
+import { startMoneyBackgroundWorker } from "../../worker/src/moneyJobs.js";
 import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
@@ -20,6 +21,23 @@ import { AuthorityService } from "./authority.js";
 import { SupportService } from "./supportService.js";
 import { CommerceCatalogService } from "./commerceCatalog.js";
 import { CommerceOrderService } from "./commerceOrders.js";
+import { PaymentAttemptService } from "./paymentAttempt.js";
+import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
+import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
+import { RefundCommandService } from "./refundCommand.js";
+import { FulfillmentReleaseService } from "./fulfillmentRelease.js";
+import { SettlementCommandService } from "./settlementCommand.js";
+import { SettlementCycleService } from "./settlementCycle.js";
+import { ShoppingCreditService } from "./shoppingCredit.js";
+import { TransferCallbackInbox } from "./transferCallbackInbox.js";
+import { MoneyOperationsService } from "./moneyOperations.js";
+import { TradeBillReconciliationService } from "./tradeBillReconciliation.js";
+import { WechatPayV3Client } from "./wechatPayV3.js";
+import { isolatedPaymentProtocol } from "./isolatedPaymentProtocol.js";
+import { formalPaymentProtocol } from "./formalPaymentProtocol.js";
+import { CommercialMembershipService } from "./commercialMembership.js";
+import { FormalUgcService } from "./formalUgc.js";
+import { UgcSafetyService, startUgcSafetyLoop } from "./ugcSafety.js";
 import { ApprovedKnowledgeRegistry, DisabledSupportAiProvider, SupportAiBoundary } from "./supportAiBoundary.js";
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
@@ -37,6 +55,11 @@ interface AppDependencies {
   config: AppConfig;
   pool: pg.Pool;
   storage: ObjectStorage;
+  paymentProtocol?: { channel: WechatPayV3Client; inbox: VerifiedPaymentInbox;
+    refundInbox: VerifiedRefundInbox; paymentNotifyUrl: string; refundNotifyUrl: string;
+    transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox;
+    isolatedSyntheticTransport?: boolean };
+  legacyDirectSettlementFixture?: boolean;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -67,6 +90,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
+  const commercial = new CommercialMembershipService(pool, authority,config.env);
+  const formalUgc = new FormalUgcService(pool, config, storage, authority);
+  const ugcSafety = new UgcSafetyService(pool, config, storage);
   const support = new SupportService(pool, authority, service, storage);
   const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled);
   const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
@@ -74,11 +100,58 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config);
   const deliveryAddresses = new DeliveryAddressService(pool, config);
-  const orders = new CommerceOrderService(pool, authority, deliveryAddresses, {
+  // A formal profile can exercise the complete command/inbox route only in
+  // APP_ENV=test with an injected synthetic transport. Real environments
+  // merely validate pinned trust; no config file grants outbound authority.
+  const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
+    ?config.commerce.formalProtocol:undefined;
+  const paymentProfile=config.commerce.simulatedPayment??formalTestProfile;
+  if(dependencies.paymentProtocol&&!paymentProfile)
+    throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
+  if(dependencies.legacyDirectSettlementFixture&&
+    (config.env!=="test"||!config.commerce.simulatedPayment?.transferSceneId))
+    throw new Error("FAIL_CLOSED:LEGACY_DIRECT_SETTLEMENT_TEST_FIXTURE_ONLY");
+  const orders = new CommerceOrderService(pool, authority, deliveryAddresses, commercial, {
     enabled: config.commerce.orderFlowEnabled,
     quoteTtlMinutes: config.commerce.quoteTtlMinutes,
-    pendingOrderTtlMinutes: config.commerce.pendingOrderTtlMinutes
+    pendingOrderTtlMinutes: config.commerce.pendingOrderTtlMinutes,
+    isolatedCreditCheckout:config.env==="test"&&Boolean(paymentProfile),
+    ...(config.commerce.simulatedPayment?{simulatedPayment:{appId:config.commerce.simulatedPayment.appId,
+      merchantId:config.commerce.simulatedPayment.merchantId,
+      ...(config.commerce.simulatedPayment.transferSceneId
+        ?{transferSceneId:config.commerce.simulatedPayment.transferSceneId}:{})}}:{}),
+    ...(formalTestProfile?{formalTestPayment:{appId:formalTestProfile.appId,
+      merchantId:formalTestProfile.merchantId}}:{})
   });
+  if(paymentProfile&&!dependencies.paymentProtocol)
+    throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_REQUIRED");
+  const payment= paymentProfile&&dependencies.paymentProtocol
+    ? new PaymentAttemptService(pool,orders,dependencies.paymentProtocol.inbox,
+      dependencies.paymentProtocol.channel,{appId:paymentProfile.appId,
+        merchantId:paymentProfile.merchantId,notifyUrl:dependencies.paymentProtocol.paymentNotifyUrl})
+    : null;
+  const refunds=paymentProfile&&dependencies.paymentProtocol
+    ?new RefundCommandService(pool,authority,dependencies.paymentProtocol.channel,
+      dependencies.paymentProtocol.refundInbox,{merchantId:paymentProfile.merchantId,
+      notifyUrl:dependencies.paymentProtocol.refundNotifyUrl}):null;
+  const fulfillment=new FulfillmentReleaseService(pool,authority,config.env);
+  if(config.commerce.simulatedPayment?.transferSceneId&&
+    (!dependencies.paymentProtocol?.transferNotifyUrl||!dependencies.paymentProtocol.transferInbox))
+    throw new Error("FAIL_CLOSED:ISOLATED_TRANSFER_PROTOCOL_REQUIRED");
+  const settlement=config.commerce.simulatedPayment?.transferSceneId&&dependencies.paymentProtocol?.transferNotifyUrl
+    ?new SettlementCommandService(pool,authority,dependencies.paymentProtocol.channel,config.env,
+      {appId:config.commerce.simulatedPayment.appId,merchantId:config.commerce.simulatedPayment.merchantId,
+        sceneId:config.commerce.simulatedPayment.transferSceneId,
+        notifyUrl:dependencies.paymentProtocol.transferNotifyUrl,
+        legacyDirectFixture:dependencies.legacyDirectSettlementFixture===true}):null;
+  const settlementCycle=new SettlementCycleService(pool,authority,config.env);
+  const shoppingCredit=new ShoppingCreditService(pool,config.env);
+  const moneyOps=dependencies.paymentProtocol
+    ?new MoneyOperationsService(pool,authority,dependencies.paymentProtocol.channel,
+      dependencies.paymentProtocol.inbox,dependencies.paymentProtocol.refundInbox,settlement):null;
+  const tradeBills=paymentProfile&&dependencies.paymentProtocol
+    ?new TradeBillReconciliationService(pool,authority,dependencies.paymentProtocol.channel,
+      paymentProfile.merchantId):null;
   const privacyRights = new PrivacyRights(pool);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
@@ -129,8 +202,15 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(path);
     const publicShareVisit = request.method === "POST" && /^\/v1\/shares\/[0-9a-f]{32}\/visits$/.test(path);
     const publicFeedRead = request.method === "GET" && (path === "/v1/feed" || path.startsWith("/v1/feed/"));
+    const publicUgcRead = request.method === "GET" && !request.headers.authorization &&
+      (path === "/v1/ugc/status" || path === "/v1/ugc/posts" || /^\/v1\/ugc\/posts\/[0-9a-f-]+$/i.test(path) ||
+        /^\/v1\/ugc\/posts\/[0-9a-f-]+\/comments$/i.test(path) ||
+        /^\/v1\/ugc\/authors\/[0-9a-f-]+$/i.test(path) ||
+        /^\/v1\/ugc\/media\/[0-9a-f-]+$/i.test(path) || /^\/v1\/ugc\/review-preview\/[0-9a-f-]+$/i.test(path) ||
+        /^\/v1\/ugc\/scan-source\/[0-9a-f-]+$/i.test(path) ||
+        /^\/v1\/ugc\/own-preview\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path.startsWith("/v1/admin/") || path.startsWith("/v1/uploads/") || publicFeedRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/admin/") || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
@@ -148,6 +228,95 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 
   app.get("/v1/capabilities", async () => ({ version: 1, communityPreviewEnabled: community.enabled(), socialPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile,
     pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
+
+  app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
+  app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string;following?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
+  app.get<{Params:{authorId:string}}>("/v1/ugc/authors/:authorId", async request => formalUgc.publicAuthor(request.memberId,request.params.authorId));
+  app.get<{Params:{postId:string}}>("/v1/ugc/posts/:postId", async request => formalUgc.publicPost(request.memberId,request.params.postId));
+  app.get<{Params:{postId:string};Querystring:{limit?:string;cursor?:string}}>("/v1/ugc/posts/:postId/comments",
+    async request => formalUgc.publicComments(request.memberId,request.params.postId,request.query));
+  app.get<{Params:{mediaId:string};Querystring:{variant?:string}}>("/v1/ugc/media/:mediaId", async (request,reply) => {
+    const object=await formalUgc.publicMedia(request.params.mediaId,request.query.variant==="thumbnail"?"thumbnail":"detail");
+    return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{mediaId:string};Querystring:{token?:string}}>("/v1/ugc/review-preview/:mediaId", async (request,reply) => {
+    const object=await formalUgc.reviewMediaPreview(request.params.mediaId,request.query.token);
+    return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{ownerId:string;mediaId:string};Querystring:{token?:string}}>("/v1/ugc/own-preview/:ownerId/:mediaId", async (request,reply) => {
+    const object=await formalUgc.ownMediaPreview(request.params.ownerId,request.params.mediaId,request.query.token);
+    return reply.header("Cache-Control","private, no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{mediaId:string};Querystring:{token?:string}}>("/v1/ugc/scan-source/:mediaId", async (request,reply) => {
+    const object=await ugcSafety.scanSource(request.params.mediaId,request.query.token);
+    return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Querystring:{signature?:string;msg_signature?:string;timestamp?:string;nonce?:string;echostr?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
+    reply.type("text/plain").send(ugcSafety.verifyChallenge(request.query)));
+  app.post<{Querystring:{signature?:string;msg_signature?:string;timestamp?:string;nonce?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
+    reply.type("text/plain").send(await ugcSafety.receiveCallback(request.query,(request.body??{}) as never)));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/ugc/posts", async request => formalUgc.myPosts(request.memberId,request.query));
+  app.get<{Params:{section:string};Querystring:{limit?:string;cursor?:string;postId?:string}}>("/v1/me/ugc/activity/:section",
+    async request => formalUgc.myActivity(request.memberId,request.params.section,request.query));
+  app.post("/v1/me/ugc/posts", async request => formalUgc.createDraft(request.memberId,idempotencyKey(request)));
+  app.get<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId", async request => formalUgc.readOwn(request.memberId,request.params.postId));
+  app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/appeals",async request=>
+    formalUgc.submitAppeal(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.put<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/draft", async request => formalUgc.saveDraft(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/submit", async request => {
+    const saved=await formalUgc.submit(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion);
+    return {...saved,scan:{state:config.media.ugcScanBaseUrl?"queued":"unavailable",retryRequired:!config.media.ugcScanBaseUrl}};
+  });
+  app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/scan", async request => {
+    const scanBase=config.media.ugcScanBaseUrl;
+    if(!scanBase)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
+    return ugcSafety.scanPost(request.memberId,request.params.postId,scanBase);
+  });
+  app.delete<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId", async request => formalUgc.deleteOwn(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion));
+  app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/media/authorize", async request => {
+    const input=(request.body??{}) as {mimeType?:unknown;maxBytes?:unknown};
+    const protocol=request.headers["x-forwarded-proto"]??"http",host=request.headers.host??`127.0.0.1:${config.port}`;
+    return formalUgc.authorizeMedia(request.memberId,request.params.postId,{...input,baseUrl:`${protocol}://${host}`});
+  });
+  app.post<{Params:{postId:string;mediaId:string}}>("/v1/me/ugc/posts/:postId/media/:mediaId/complete", async request => formalUgc.completeMedia(request.memberId,request.params.postId,request.params.mediaId));
+  app.get<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId", async (request,reply) => {
+    const object=await formalUgc.ownMedia(request.memberId,request.params.mediaId);
+    return reply.header("Cache-Control","private, no-store").type(object.mimeType).send(Buffer.from(object.bytes));
+  });
+  app.get<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId/preview-url", async request => {
+    const protocol=request.headers["x-forwarded-proto"]??"http",host=request.headers.host??`127.0.0.1:${config.port}`;
+    return formalUgc.ownMediaPreviewUrl(request.memberId,request.params.mediaId,`${protocol}://${host}`);
+  });
+  app.get<{Params:{postId:string;mediaId:string}}>("/v1/me/ugc/posts/:postId/media/:mediaId/preview-url",async request=>{
+    const protocol=request.headers["x-forwarded-proto"]??"http",host=request.headers.host??`127.0.0.1:${config.port}`;
+    return formalUgc.ownPostMediaPreviewUrl(request.memberId,request.params.postId,request.params.mediaId,`${protocol}://${host}`);
+  });
+  app.delete<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId", async request => formalUgc.deleteOwnMedia(request.memberId,request.params.mediaId));
+  app.put<{Params:{postId:string}}>("/v1/ugc/posts/:postId/reaction", async request => formalUgc.react(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.put<{Params:{memberId:string}}>("/v1/me/ugc/follows/:memberId", async request => formalUgc.follow(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
+  app.post<{Params:{postId:string}}>("/v1/ugc/posts/:postId/comments", async request => formalUgc.comment(request.memberId,request.params.postId,idempotencyKey(request),(request.body??{}) as never));
+  app.delete<{Params:{postId:string;commentId:string}}>("/v1/ugc/posts/:postId/comments/:commentId", async request => formalUgc.deleteComment(request.memberId,request.params.postId,request.params.commentId));
+  app.post<{Params:{targetType:string;targetId:string}}>("/v1/ugc/reports/:targetType/:targetId", async request => formalUgc.report(request.memberId,request.params.targetType,request.params.targetId,(request.body??{}) as never));
+  app.put<{Params:{memberId:string}}>("/v1/me/ugc/blocks/:memberId", async request => formalUgc.block(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
+  app.get("/v1/management/ugc/review-queue", async request => formalUgc.reviewQueue(request.memberId));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/ugc/reports",async request=>
+    formalUgc.reportQueue(request.memberId,request.query));
+  app.post<{Params:{reportId:string}}>("/v1/management/ugc/reports/:reportId/decision",async request=>
+    formalUgc.decideReport(request.memberId,request.params.reportId,(request.body??{}) as never));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/ugc/appeals",async request=>
+    formalUgc.appealQueue(request.memberId,request.query));
+  app.post<{Params:{appealId:string}}>("/v1/management/ugc/appeals/:appealId/decision",async request=>
+    formalUgc.decideAppeal(request.memberId,request.params.appealId,(request.body??{}) as never));
+  app.post<{Params:{mediaId:string}}>("/v1/management/ugc/media/:mediaId/review", async request => formalUgc.reviewMedia(request.memberId,request.params.mediaId,(request.body??{}) as never));
+  app.get<{Params:{mediaId:string}}>("/v1/management/ugc/media/:mediaId/preview-url", async request => {
+    const protocol=request.headers["x-forwarded-proto"]??"http",host=request.headers.host??`127.0.0.1:${config.port}`;
+    return formalUgc.reviewPreviewUrl(request.memberId,request.params.mediaId,`${protocol}://${host}`);
+  });
+  app.get<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId", async request => formalUgc.reviewCandidate(request.memberId,request.params.postId));
+  app.post<{Params:{commentId:string}}>("/v1/management/ugc/comments/:commentId/review", async request => formalUgc.reviewComment(request.memberId,request.params.commentId,(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId/review", async request => formalUgc.reviewPost(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId/publish", async request => formalUgc.publish(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion));
+  app.post<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId/hide", async request => formalUgc.hidePost(request.memberId,request.params.postId,(request.body??{}) as never));
 
   app.post("/v1/identity/dev", async (request) => {
     if (!config.allowDevAdapters) throw new DomainError("DEV_ADAPTER_FORBIDDEN", "Development identity adapter is disabled", 503);
@@ -206,8 +375,30 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const principal = adminPrincipal(request, config);
     return privacyRights.planExecution(principal, request.params.requestId, idempotencyKey(request), request.body as {expectedVersion?:unknown;reasonCode?:unknown});
   });
-  const memberProfile = new MemberProfile(pool);
+  const memberProfile = new MemberProfile(pool,config.env);
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
+  app.get("/v1/me/commercial-membership", async request => commercial.myStatus(request.memberId));
+  app.post("/v1/me/commercial-membership/code", async request => commercial.ensureCode(request.memberId));
+  app.get<{Querystring:{code?:string}}>("/v1/me/referral/preview",async request => commercial.previewReferral(request.memberId,request.query.code));
+  app.post("/v1/me/referral/confirm", async request => {
+    const input=(request.body ?? {}) as {code?:unknown;confirmationKey?:unknown};
+    return commercial.confirmReferral(request.memberId,request.principalId,input.code,input.confirmationKey);
+  });
+  app.get<{Querystring:{q?:string;filter?:string;limit?:string;cursor?:string}}>("/v1/management/members", async request => commercial.listMembers(request.memberId,request.query));
+  app.get<{Params:{memberId:string}}>("/v1/management/members/:memberId", async request => commercial.memberDetail(request.memberId,request.params.memberId));
+  app.get<{Params:{memberId:string;section:string};Querystring:{limit?:string;cursor?:string}}>("/v1/management/members/:memberId/sections/:section",
+    async request => commercial.memberSection(request.memberId,request.params.memberId,request.params.section,request.query));
+  app.post<{Params:{memberId:string}}>("/v1/management/members/:memberId/membership", async request => commercial.setMembership(
+    request.memberId,request.principalId,request.params.memberId,(request.body ?? {}) as {state?:unknown;expiresAt?:unknown;term?:unknown;expectedVersion?:unknown;reason?:unknown}));
+  app.post("/v1/management/commission-rates", async request => commercial.proposeRate(request.memberId,request.principalId,request.headers["idempotency-key"],
+    (request.body ?? {}) as {memberId?:unknown;action?:unknown;basisPoints?:unknown;effectiveAt?:unknown;reason?:unknown}));
+  app.get("/v1/management/commission-rates/current",async request=>commercial.currentGlobalRate(request.memberId));
+  app.get<{Params:{requestKey:string}}>("/v1/management/commission-rates/by-request/:requestKey",
+    async request => commercial.proposalByRequest(request.memberId,request.principalId,request.params.requestKey));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commission-rates/pending", async request => commercial.pendingRates(request.memberId,request.query));
+  app.post<{Params:{ruleId:string}}>("/v1/management/commission-rates/:ruleId/decision", async request => commercial.approveRate(
+    request.memberId,request.principalId,request.params.ruleId,request.headers["idempotency-key"],
+    (request.body ?? {}) as {decision?:unknown;expectedVersion?:unknown;reason?:unknown}));
   app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
   app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async request => support.messagesForMember(request.memberId, request.query));
   app.post("/v1/me/support/messages", async request => support.sendMember(request.memberId, request.principalId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown}, request.id));
@@ -280,6 +471,118 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId", async request => orders.detailMine(request.memberId,request.params.orderId));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel", async request => orders.cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
+  const paymentRequired=()=>{
+    if(!payment||!dependencies.paymentProtocol)throw new DomainError("PAYMENT_SIMULATION_DISABLED",
+      "支付协议测试仅在隔离环境可用",503);
+    return payment;
+  };
+  const refundRequired=()=>{
+    if(!refunds||!dependencies.paymentProtocol)throw new DomainError("REFUND_SIMULATION_DISABLED",
+      "退款协议测试仅在隔离环境可用",503);
+    return refunds;
+  };
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
+    paymentRequired().prepare(request.memberId,request.params.orderId));
+  app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
+    paymentRequired().refresh(request.memberId,request.params.orderId));
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
+    paymentRequired().cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>,request.id));
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/refund-requests",async request=>
+    refundRequired().request(request.memberId,request.params.orderId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:{limit?:string;cursor?:string;orderId?:string}}>("/v1/me/refund-requests",async request=>
+    refundRequired().listMine(request.memberId,request.query));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/refund-requests/pending",async request=>
+    refundRequired().pending(request.memberId,request.query));
+  app.post<{Params:{requestId:string}}>("/v1/management/refund-requests/:requestId/decision",async request=>
+    refundRequired().decide(request.memberId,request.params.requestId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  app.post<{Params:{intentId:string}}>("/v1/management/refund-submissions/:intentId/redrive",async request=>
+    refundRequired().redrive(request.memberId,request.params.intentId,
+      (request.body??{}) as Record<string,unknown>));
+  app.post<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/fulfillment",async request=>
+    fulfillment.submit(request.memberId,request.params.orderId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/fulfillment/pending",async request=>
+    fulfillment.pending(request.memberId,request.query));
+  app.post<{Params:{attestationId:string}}>("/v1/management/fulfillment/:attestationId/decision",async request=>
+    fulfillment.decide(request.memberId,request.params.attestationId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  const settlementRequired=()=>{
+    if(!settlement)throw new DomainError("SETTLEMENT_SIMULATION_DISABLED",
+      "隔离转账场景未配置，正式结算尚未启用",503);
+    return settlement;
+  };
+  app.post("/v1/me/commission/settlement-requests",async request=>
+    settlementRequired().request(request.memberId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/commission/settlement-requests",async request=>
+    settlementRequired().listMine(request.memberId,request.query));
+  app.post("/v1/me/commission/credit-conversions",async request=>
+    shoppingCredit.convert(request.memberId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/commission/credit-conversions",async request=>
+    shoppingCredit.listMine(request.memberId,request.query));
+  app.post<{Params:{conversionId:string}}>("/v1/me/commission/credit-conversions/:conversionId/cancel",async request=>
+    shoppingCredit.cancel(request.memberId,request.params.conversionId,idempotencyKey(request)));
+  app.get<{Params:{requestId:string}}>("/v1/me/commission/settlement-requests/:requestId/confirmation",async request=>
+    settlementRequired().receiptConfirmation(request.memberId,request.params.requestId));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commission/settlement-requests/pending",async request=>
+    settlementRequired().pending(request.memberId,request.query));
+  app.post<{Params:{requestId:string}}>("/v1/management/commission/settlement-requests/:requestId/decision",async request=>
+    settlementRequired().decide(request.memberId,request.params.requestId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  app.post<{Params:{requestId:string}}>("/v1/management/commission/settlement-requests/:requestId/redrive",async request=>
+    settlementRequired().redrive(request.memberId,request.params.requestId,
+      (request.body??{}) as Record<string,unknown>));
+  app.post("/v1/management/commission/settlement-cycles/prepare",async request=>
+    settlementCycle.prepare(request.memberId,(request.body as {periodEnd?:unknown}|null)?.periodEnd));
+  app.post<{Params:{cycleId:string}}>("/v1/management/commission/settlement-cycles/:cycleId/approve-member",async request=>
+    settlementRequired().approveCycleMember(request.memberId,request.params.cycleId,
+      idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+  const moneyOpsRequired=()=>{
+    if(!moneyOps)throw new DomainError("MONEY_OPERATIONS_DISABLED","隔离资金核对未启用",503);
+    return moneyOps;
+  };
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/money/issues",async request=>
+    moneyOpsRequired().issues(request.memberId,request.query));
+  app.post<{Params:{kind:string;inboxId:string}}>("/v1/management/money/inboxes/:kind/:inboxId/redrive",async request=>
+    moneyOpsRequired().redriveInbox(request.memberId,request.params.kind,request.params.inboxId,
+      (request.body??{}) as Record<string,unknown>));
+  app.post<{Params:{kind:string;objectId:string}}>("/v1/management/money/recheck/:kind/:objectId",async request=>
+    moneyOpsRequired().recheck(request.memberId,request.params.kind,request.params.objectId));
+  app.post<{Body:{billDate:string;billType:"SUCCESS"|"REFUND"}}>("/v1/management/money/trade-bills/import",async request=>{
+    if(!tradeBills)throw new DomainError("TRADE_BILL_DISABLED","隔离交易账单核对未启用",503);
+    return tradeBills.import(request.memberId,request.body?.billDate,request.body?.billType);
+  });
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/money/trade-bills",async request=>{
+    if(!tradeBills)throw new DomainError("TRADE_BILL_DISABLED","隔离交易账单核对未启用",503);
+    return tradeBills.list(request.memberId,request.query);
+  });
+  await app.register(async callbackScope=>{
+    callbackScope.addContentTypeParser("application/json",{parseAs:"buffer"},(_request,body,done)=>done(null,body));
+    callbackScope.post("/v1/payments/wechat/callback",async(request,reply)=>{
+      paymentRequired();
+      if(!Buffer.isBuffer(request.body))throw new DomainError("PAYMENT_CALLBACK_RAW_REQUIRED","支付通知原文缺失",400);
+      await dependencies.paymentProtocol!.inbox.receive(request.body,request.headers as Record<string,string|undefined>);
+      return reply.status(204).send();
+    });
+    callbackScope.post("/v1/payments/wechat/refund-callback",async(request,reply)=>{
+      refundRequired();
+      if(!Buffer.isBuffer(request.body))throw new DomainError("REFUND_CALLBACK_RAW_REQUIRED","退款通知原文缺失",400);
+      await dependencies.paymentProtocol!.refundInbox.receive(request.body,request.headers as Record<string,string|undefined>);
+      return reply.status(204).send();
+    });
+    callbackScope.post("/v1/payments/wechat/transfer-callback",async(request,reply)=>{
+      settlementRequired();
+      if(!Buffer.isBuffer(request.body))throw new DomainError("TRANSFER_CALLBACK_RAW_REQUIRED",
+        "转账通知原文缺失",400);
+      await dependencies.paymentProtocol!.transferInbox!.receive(request.body,
+        request.headers as Record<string,string|undefined>);
+      return reply.status(204).send();
+    });
+  });
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commerce/orders", async request => orders.managementList(request.memberId,request.query));
   app.get<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId", async request => orders.managementDetail(request.memberId,request.params.orderId));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/catalog/products", async request => catalog.managementList(request.memberId, request.query));
@@ -331,8 +634,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return service.authorizeMedia(request.memberId, request.params.submissionId, { ...body, maxBytes: Math.min(body.maxBytes ?? 10 * 1024 * 1024, 10 * 1024 * 1024), baseUrl: `${protocol}://${host}` }, new Date());
   });
 
-  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/chunks", { bodyLimit: 710000 }, async request => cloudUpload.chunk(request.params.mediaId, request.body as never));
-  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/assemble", async request => cloudUpload.finish(request.params.mediaId, (request.body as { token: string }).token));
+  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/chunks", { bodyLimit: 710000 }, async request =>
+    await formalUgc.ownsAuthorizedUpload(request.params.mediaId)
+      ? formalUgc.chunkMedia(request.params.mediaId,request.body as never)
+      : cloudUpload.chunk(request.params.mediaId, request.body as never));
+  app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId/assemble", async request =>
+    await formalUgc.ownsAuthorizedUpload(request.params.mediaId)
+      ? formalUgc.finishMedia(request.params.mediaId,(request.body as {token?:unknown})?.token)
+      : cloudUpload.finish(request.params.mediaId, (request.body as { token: string }).token));
   app.post<{ Params: { mediaId: string } }>("/v1/uploads/:mediaId", async (request) => {
     const upload = await request.file();
     if (!upload) throw new DomainError("UPLOAD_FILE_REQUIRED", "Multipart file is required", 400);
@@ -340,6 +649,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const token = fields.token?.value;
     if (typeof token !== "string") throw new DomainError("UPLOAD_TOKEN_REQUIRED", "Upload token is required", 401);
     const bytes = await upload.toBuffer();
+    if(await formalUgc.ownsAuthorizedUpload(request.params.mediaId))
+      return formalUgc.gatewayUpload(request.params.mediaId,{token,bytes,mimeType:upload.mimetype});
     return service.gatewayUpload(request.params.mediaId, { token, bytes, mimeType: upload.mimetype }, new Date());
   });
 
@@ -408,11 +719,35 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadConfig();
   const pool = createPool(config.databaseUrl, config.database);
   const storage = createObjectStorage(config);
-  const app = await createApp({ config, pool, storage });
+  const isolatedProtocol=isolatedPaymentProtocol(config,pool);
+  // Always validate pinned trust. A configured formal profile alone never
+  // installs routes or a worker; only a test-injected loopback transport may
+  // exercise the formal wire contract through createApp.
+  formalPaymentProtocol(config,pool);
+  const paymentProtocol=isolatedProtocol;
+  const app = await createApp({ config, pool, storage,
+    ...(paymentProtocol?{paymentProtocol}:{}) });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", error))
     : null;
-  app.addHook("onClose", async () => { await worker?.stop(); await pool.end(); });
+  const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl
+    ? startUgcSafetyLoop(new UgcSafetyService(pool,config,storage),config.media.ugcScanBaseUrl,
+      error=>console.error("CISME_UGC_SAFETY_TICK_FAILED",error)) : null;
+  const activeProfile=config.commerce.simulatedPayment;
+  const moneyWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&paymentProtocol&&activeProfile
+    ?startMoneyBackgroundWorker(paymentProtocol.inbox,paymentProtocol.refundInbox,
+      new RefundCommandService(pool,new AuthorityService(pool,config.env),paymentProtocol.channel,
+        paymentProtocol.refundInbox,{merchantId:activeProfile.merchantId,
+          notifyUrl:paymentProtocol.refundNotifyUrl}),
+      config.commerce.simulatedPayment?.transferSceneId&&paymentProtocol.transferNotifyUrl
+        ?new SettlementCommandService(pool,new AuthorityService(pool,config.env),paymentProtocol.channel,
+          config.env,{appId:config.commerce.simulatedPayment.appId,
+            merchantId:config.commerce.simulatedPayment.merchantId,
+            sceneId:config.commerce.simulatedPayment.transferSceneId,
+            notifyUrl:paymentProtocol.transferNotifyUrl}):undefined,
+      paymentProtocol.transferInbox,
+      error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",error)) : null;
+  app.addHook("onClose", async () => { moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
   const stop = () => void app.close().catch((error) => { console.error("CISME_SHUTDOWN_FAILED", error); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
