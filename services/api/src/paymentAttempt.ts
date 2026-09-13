@@ -9,7 +9,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 type Attempt={id:string;order_id:string;out_trade_no:string;member_id:string;payer_openid:string;
   app_id:string;merchant_id:string;amount_cents:string;currency:string;expires_at:Date;
   state:"prepared"|"prepay_ready"|"unknown"|"closed"|"paid";prepay_id:string|null;
-  request_lease_until:Date|null;order_status:string;order_version:number;product_name:string|null};
+  request_lease_until:Date|null;request_lease_token:string|null;first_dispatch_started_at:Date|null;
+  order_status:string;order_version:number;product_name:string|null};
 
 /** Test-environment orchestration over the same signed WeChat APIv3 wire
  * contract. No route can instantiate this without an isolated loopback channel. */
@@ -46,14 +47,14 @@ export class PaymentAttemptService{
     if(current.expires_at<=new Date())throw new DomainError("PAYMENT_ORDER_EXPIRED","订单支付时间已结束",409);
     if(current.state==="prepay_ready")return this.ready(current);
     const claimed=(await this.pool.query<Attempt>(`UPDATE commerce_payment_attempt SET state='unknown',
-      request_lease_until=clock_timestamp()+interval '20 seconds',updated_at=clock_timestamp()
+      request_lease_until=clock_timestamp()+interval '20 seconds',request_lease_token=gen_random_uuid(),
+      updated_at=clock_timestamp()
       WHERE id=$1 AND state IN ('prepared','unknown')
         AND (request_lease_until IS NULL OR request_lease_until<clock_timestamp()) RETURNING *`,[current.id])).rows[0];
     if(!claimed)throw new DomainError("PAYMENT_ATTEMPT_IN_PROGRESS","支付意图正在处理，请稍后刷新",409);
     try{
-      // A crashed or timed-out prepay call must be queried by the original
-      // merchant number. A missing channel order may be retried with that same
-      // number; an unknown query cannot trigger a new order number.
+      // An unknown prepay may already have reached the channel. A temporary
+      // missing response does not prove the original number was never sent.
       if(current.state==="unknown"){
         let queried;
         try{queried=await this.channel.queryByMerchantOrderNumber(current.out_trade_no);}
@@ -73,19 +74,30 @@ export class PaymentAttemptService{
           if(queried.trade_state!=="NOTPAY")
             throw new DomainError("PAYMENT_CHANNEL_UNRESOLVED","渠道支付状态待确认，请稍后重查",409);
         }
+        if(current.first_dispatch_started_at)
+          throw new DomainError("PAYMENT_ORIGINAL_QUERY_REQUIRED","原支付单可能已发送，须沿原号核对",409);
       }
+      const marked=await this.pool.query(`UPDATE commerce_payment_attempt SET
+        first_dispatch_started_at=clock_timestamp() WHERE id=$1 AND state='unknown'
+        AND request_lease_token=$2 AND first_dispatch_started_at IS NULL RETURNING id`,
+        [claimed.id,claimed.request_lease_token]);
+      if(!marked.rowCount)throw new DomainError("PAYMENT_ATTEMPT_IN_PROGRESS","支付任务已被其他处理者接管",409);
+      // This committed marker precedes the HTTP request. A crashed response
+      // cannot make a later caller infer that prepay was never sent.
       const prepay=await this.channel.createJsapiPrepay({appId:claimed.app_id,outTradeNo:claimed.out_trade_no,
         payerOpenid:claimed.payer_openid,totalCents:Number(claimed.amount_cents),
         description:(claimed.product_name??"CISME 商品").slice(0,127),notifyUrl:this.options.notifyUrl,
         expiresAt:claimed.expires_at});
       const saved=(await this.pool.query<Attempt>(`UPDATE commerce_payment_attempt SET state='prepay_ready',
         prepay_id=$2,request_lease_until=NULL,updated_at=clock_timestamp()
-        WHERE id=$1 AND state='unknown' RETURNING *`,[claimed.id,prepay.prepayId])).rows[0];
+        WHERE id=$1 AND state='unknown' AND request_lease_token=$3 RETURNING *`,
+        [claimed.id,prepay.prepayId,claimed.request_lease_token])).rows[0];
       if(!saved)throw new DomainError("PAYMENT_ATTEMPT_CONFLICT","支付意图状态已变化，请刷新",409);
       return this.ready({...saved,order_version:current.order_version});
     }catch(error){
       await this.pool.query(`UPDATE commerce_payment_attempt SET request_lease_until=NULL,
-        updated_at=clock_timestamp() WHERE id=$1 AND state='unknown'`,[claimed.id]);
+        updated_at=clock_timestamp() WHERE id=$1 AND state='unknown'
+          AND request_lease_token=$2`,[claimed.id,claimed.request_lease_token]);
       throw error;
     }
   }

@@ -2,6 +2,8 @@ import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction } from './db.js';
 import { normalizeMemberAvatar } from './memberAvatar.js';
+import { createHash } from 'node:crypto';
+import type { AppEnvironment } from '@cisme/config';
 
 export interface MemberProfileInput {
   displayName?: unknown; wechatHandle?: unknown; avatarDataUrl?: unknown;
@@ -9,7 +11,7 @@ export interface MemberProfileInput {
 }
 
 export class MemberProfile {
-  constructor(private pool: pg.Pool) {}
+  constructor(private pool: pg.Pool,private environment:AppEnvironment='test') {}
   async get(memberId: string | undefined) {
     if (!memberId) throw new DomainError('AUTH_REQUIRED', '请先登录会员账号', 401);
     const row = await this.pool.query(`SELECT m.id, m.display_name, p.wechat_handle, p.handle_source,
@@ -68,8 +70,18 @@ export class MemberProfile {
     if (!['approve','reject'].includes(String(input?.decision)) || !Number.isSafeInteger(input?.expectedVersion) || typeof input?.reason !== 'string' || input.reason.trim().length < 2 || input.reason.trim().length > 200) throw new DomainError('PROFILE_REVIEW_INVALID', '请填写审核结论与 2–200 字依据', 422);
     const reason = input.reason.trim();
     return transaction(this.pool, async client => {
+      // Profile edits acquire member then profile. Keep that order here to
+      // avoid a review/edit lock inversion during a nickname revision.
+      const account=(await client.query("SELECT display_name FROM member WHERE id=$1 AND status='active' FOR UPDATE",[memberId])).rows[0];
       const current = (await client.query(`SELECT p.* FROM member_profile p JOIN member m ON m.id=p.member_id AND m.status='active' WHERE p.member_id=$1 FOR UPDATE OF p`, [memberId])).rows[0];
       if (!current || !current.community_visible || current.public_status !== 'pending' || current.profile_revision !== input.expectedVersion) throw new DomainError('PROFILE_REVIEW_CHANGED', '资料或审核状态已变化，请刷新后复核', 409);
+      if(input.decision==='approve'&&this.environment!=='test'){
+        const sha=createHash('sha256').update(String(account?.display_name??'')).digest('hex');
+        const safe=(await client.query(`SELECT 1 FROM ugc_nickname_safety_scan
+          WHERE member_id=$1 AND profile_revision=$2 AND name_sha256=$3 AND provider='wechat_v2' AND state='safe'`,
+          [memberId,current.profile_revision,sha])).rowCount;
+        if(!safe)throw new DomainError('UGC_NICKNAME_SCAN_REQUIRED','新昵称的安全检测尚未通过',409);
+      }
       const status = input.decision === 'approve' ? 'approved' : 'rejected';
       await client.query('UPDATE member_profile SET public_status=$2,public_review_note=$3,public_reviewed_by=$4,public_reviewed_at=now() WHERE member_id=$1', [memberId, status, reason, principalId]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id) VALUES($1,$2,'member',$3,'COMMUNITY_PROFILE_REVIEW',gen_random_uuid()::text)`, [principalId, `member.profile_${status}`, memberId]);

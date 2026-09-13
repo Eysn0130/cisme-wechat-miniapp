@@ -246,8 +246,8 @@ export function createObjectStorage(config: AppConfig): ObjectStorage {
   return observeStorage(createS3Storage(config));
 }
 
-export function createCosGatewayStorage(config: AppConfig): ObjectStorage {
-  const client = new COS({
+export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): ObjectStorage {
+  const client = cosClient??new COS({
     SecretId: config.objectStorage.accessKeyId ?? "",
     SecretKey: config.objectStorage.secretAccessKey ?? "",
     Protocol: "https:",
@@ -255,9 +255,32 @@ export function createCosGatewayStorage(config: AppConfig): ObjectStorage {
   });
   const location = { Bucket: config.objectStorage.bucket, Region: config.objectStorage.region };
   const authorization = createApiGatewayStorage(config);
+  const requireNoVersioning=async()=>{
+    const versioning=await client.getBucketVersioning(location);
+    // Tencent COS documents that x-cos-forbid-overwrite is ineffective when
+    // versioning has been enabled. Until pinned-version reads are implemented,
+    // do not issue any UGC upload authorization for such a bucket.
+    if(versioning.VersioningConfiguration?.Status)
+      throw new DomainError("UGC_BUCKET_VERSIONING_UNSAFE","当前存储桶版本策略不支持不可覆盖素材",503);
+  };
+  const immutablePut=async(key:string,bytes:Uint8Array,mime:string,mediaId?:string)=>{
+    try{
+      await client.putObject({...location,Key:key,Body:Buffer.from(bytes),ContentType:mime,
+        ...(mediaId?{"x-cos-meta-media-id":mediaId}:{}),Headers:{"x-cos-forbid-overwrite":"true"}});
+    }catch(error){
+      // Retrying after a lost response is safe only if the existing object is
+      // byte-for-byte identical. A changed body must never replace evidence.
+      try{
+        const prior=await client.getObject({...location,Key:key});
+        if(prior.Body&&Buffer.from(prior.Body).equals(Buffer.from(bytes)))return;
+      }catch{/* Preserve the original write failure. */}
+      throw error;
+    }
+  };
   return {
     acceptsGatewayUpload: !config.media.directUploadEnabled,
     async authorize(input) {
+      await requireNoVersioning();
       if (!config.media.directUploadEnabled) return authorization.authorize(input);
       validateUploadAuthorization(input);
       const headers = { "Content-Type": input.mimeType, "x-cos-meta-media-id": input.mediaId, "x-cos-forbid-overwrite": "true" };
@@ -272,12 +295,13 @@ export function createCosGatewayStorage(config: AppConfig): ObjectStorage {
         expiresAt: new Date(input.now.getTime() + 600_000).toISOString()
       };
     },
-    async ensureReady() { await client.headBucket(location); },
+    async ensureReady() { await client.headBucket(location); await requireNoVersioning(); },
     async writeGatewayObject(input) {
+      await requireNoVersioning();
       const claims = validateGatewayUpload(input, config.objectStorage.uploadTokenSecret);
       const detectedMime = detectImageMime(input.bytes);
       if (detectedMime !== claims.mimeType) throw new DomainError("UPLOAD_CONTENT_MISMATCH", "Image content does not match authorization", 422);
-      await client.putObject({ ...location, Key: claims.objectKey, Body: Buffer.from(input.bytes), ContentType: claims.mimeType, "x-cos-meta-media-id": claims.mediaId });
+      await immutablePut(claims.objectKey,input.bytes,claims.mimeType,claims.mediaId);
       return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
     },
     async verify(objectKey) {
@@ -296,7 +320,8 @@ export function createCosGatewayStorage(config: AppConfig): ObjectStorage {
     async writeDerivedImage(objectKey, bytes) {
       if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
-      await client.putObject({ ...location, Key: objectKey, Body: Buffer.from(bytes), ContentType: "image/webp" });
+      await requireNoVersioning();
+      await immutablePut(objectKey,bytes,"image/webp");
     }
   };
 }

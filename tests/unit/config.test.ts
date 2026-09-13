@@ -13,6 +13,16 @@ describe("production configuration fails closed", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "staging", ALLOW_DEV_ADAPTERS: "true", WECHAT_APP_ID: "id", WECHAT_APP_SECRET: "secret" })).toThrow("DEV_ADAPTERS_FORBIDDEN");
   });
 
+  it("never allows plaintext UGC callbacks outside an explicit isolated test",()=>{
+    expect(()=>loadConfig({...base,APP_ENV:"production",WECHAT_APP_ID:"wx4eac2d4fb11d299b",
+      WECHAT_APP_SECRET:"fixture-secret",OBJECT_STORAGE_PROFILE:"fixture-profile",
+      WECHAT_MESSAGE_PLAINTEXT_TEST_ONLY:"true"}))
+      .toThrow("UGC_PLAINTEXT_CALLBACK_TEST_ONLY");
+    expect(()=>loadConfig({...base,APP_ENV:"development",WECHAT_MESSAGE_AES_KEY:"invalid"}))
+      .toThrow("CONFIG_INVALID:WECHAT_MESSAGE_AES_KEY");
+    expect(loadConfig({...base,APP_ENV:"test"}).wechat.plaintextCallbackTestOnly).toBe(false);
+  });
+
   it("requires WeChat credentials in production", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "production" })).toThrow("WECHAT_CREDENTIALS_REQUIRED");
   });

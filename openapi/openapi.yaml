@@ -667,11 +667,19 @@ paths:
       tags: [Commerce]
       operationId: requestIsolatedCommissionSettlement
       security: [{session: []}]
-      description: Test-only request; no reservation or payment until independent approval. Formal settlement remains disabled.
+      description: Legacy test-only request/approval transfer simulation. It is not the approved monthly batch cadence and cannot be used for formal settlement.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [amountCents, reason], properties: {amountCents: {type: integer, minimum: 1}, reason: {type: string}}}}}}
       responses: {'200': {description: Durable request or exact replay}, '409': {description: verified payee identity missing}, '503': {description: isolated transfer disabled}}
     get: {tags: [Commerce], operationId: myIsolatedCommissionSettlements, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], responses: {'200': {description: Paged owner-only settlement states; only signed SUCCESS is paid}, '503': {description: isolated transfer disabled}}}
+  /v1/me/commission/settlement-requests/{requestId}/confirmation:
+    get:
+      tags: [Commerce]
+      operationId: getIsolatedCommissionTransferConfirmation
+      security: [{session: []}]
+      description: Owner-bound original-order requestMerchantTransfer parameters, available only when the signed channel query reports WAIT_USER_CONFIRM; launching the confirmation page is never a paid fact. Test-isolated until formal merchant protocol and permissions are verified.
+      parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses: {'200': {description: Merchant id, mini-program app id, package, original order number and channel state}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: Original order is not awaiting user confirmation}, '503': {description: Isolated transfer disabled}}
   /v1/management/commission/settlement-requests/pending:
     get: {tags: [Commerce, Authority], operationId: pendingIsolatedCommissionSettlements, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Test-only commission.settlement.approve queue., responses: {'200': {description: Paged pending requests and exact count}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: isolated transfer disabled}}}
   /v1/management/commission/settlement-requests/{requestId}/decision:
@@ -692,6 +700,14 @@ paths:
       parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reason, expectedAttempts], properties: {reason: {type: string}, expectedAttempts: {type: integer, minimum: 0}}}}}}
       responses: {'200': {description: Original-bill requery scheduled}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: state changed}, '503': {description: isolated transfer disabled}}
+  /v1/management/commission/settlement-cycles/prepare:
+    post:
+      tags: [Commerce, Authority]
+      operationId: prepareNonPayableCommissionCycle
+      security: [{session: []}]
+      description: Engineering-only immutable snapshot on or after Shanghai 15th of a prior month's eligible released source orders. Tax-before-withholding threshold CNY 100, carried forward without expiration. It reserves nothing; withholding and net remain null. No approval or transfer path exists.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [periodEnd], properties: {periodEnd: {type: string, format: date, description: Previous calendar month's last day, e.g. 2026-08-31}}}}}}
+      responses: {'200': {description: Non-payable tax/payout-policy blocked candidate or immutable replay}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: Too early before Shanghai 15th}, '422': {description: Not a natural month end}, '503': {description: Formal cycle policy not approved}}
   /v1/payments/wechat/transfer-callback:
     post:
       tags: [Commerce]

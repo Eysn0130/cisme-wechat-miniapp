@@ -14,7 +14,8 @@ type RequestRow={id:string;order_id:string;requested_by_member_id:string;amount_
   request_hash:string;decision_key:string|null;decision_hash:string|null;decided_by_member_id:string|null};
 type IntentRow={id:string;order_id:string;out_refund_no:string;refund_cents:string;
   payer_refund_cents:string;submission_state:"prepared"|"unknown"|"accepted"|"closed";
-  submission_attempt_count:number;submission_lease_until:Date|null;state:string;
+  submission_attempt_count:number;submission_lease_until:Date|null;submission_lease_token:string|null;
+  first_dispatch_started_at:Date|null;state:string;
   order_number:string;total_cents:string;provider_transaction_id:string;paid_cents:string;merchant_id:string;
   request_reason:string};
 type Line={id:string;line_total_cents:string};
@@ -232,19 +233,27 @@ export class RefundCommandService{
       payerTotalCents:cents(row.paid_cents),payerRefundCents:cents(row.payer_refund_cents)};
   }
 
+  private async recordChannelAcceptance(intentId:string,sourceKind:"signed_create"|"signed_query",
+    evidence:Awaited<ReturnType<WechatPayV3Client["queryRefundByMerchantRefundNumberWithEvidence"]>>){
+    await this.pool.query(`INSERT INTO commission_refund_channel_observation
+      (refund_intent_id,source_kind,raw_sha256,provider_refund_id,accepted_at)
+      VALUES($1,$2,$3,$4,$5) ON CONFLICT(refund_intent_id,raw_sha256) DO NOTHING`,
+      [intentId,sourceKind,evidence.rawSha256,evidence.fact.providerRefundId,evidence.fact.acceptedAt]);
+  }
+
   async processDue(limit=20){
-    const claimed=(await this.pool.query<{id:string}>(`WITH due AS (
+    const claimed=(await this.pool.query<{id:string;submission_lease_token:string}>(`WITH due AS (
       SELECT id FROM commission_refund_intent WHERE state='prepared' AND
         submission_state IN ('prepared','unknown') AND submission_quarantined_at IS NULL
         AND submission_next_attempt_at<=clock_timestamp() AND
         (submission_lease_until IS NULL OR submission_lease_until<clock_timestamp())
       ORDER BY submission_next_attempt_at,id LIMIT $1 FOR UPDATE SKIP LOCKED
     ) UPDATE commission_refund_intent i SET submission_state='unknown',
-      submission_lease_until=clock_timestamp()+interval '30 seconds'
-      FROM due WHERE i.id=due.id RETURNING i.id`,[limit])).rows;
+      submission_lease_until=clock_timestamp()+interval '30 seconds',submission_lease_token=gen_random_uuid()
+      FROM due WHERE i.id=due.id RETURNING i.id,i.submission_lease_token`,[limit])).rows;
     const results:{id:string;state:string}[]=[];
-    for(const {id:targetId} of claimed){
-      try{results.push({id:targetId,state:await this.processOne(targetId)});}
+    for(const {id:targetId,submission_lease_token:leaseToken} of claimed){
+      try{results.push({id:targetId,state:await this.processOne(targetId,leaseToken)});}
       catch(error){
         const code=error instanceof DomainError?error.code:"CHANNEL_UNAVAILABLE";
         const prior=(await this.pool.query<{submission_attempt_count:number}>(
@@ -253,15 +262,16 @@ export class RefundCommandService{
         await this.pool.query(`UPDATE commission_refund_intent SET submission_lease_until=NULL,
           submission_attempt_count=$2,submission_next_attempt_at=clock_timestamp()+($3::integer*interval '1 millisecond'),
           submission_quarantined_at=CASE WHEN $2=8 THEN clock_timestamp() ELSE NULL END,
-          submission_last_error_code=$4 WHERE id=$1 AND state='prepared'`,
-          [targetId,count,delay,/^[A-Z0-9_]{3,80}$/.test(code)?code:"CHANNEL_UNAVAILABLE"]);
+          submission_last_error_code=$4 WHERE id=$1 AND state='prepared'
+          AND submission_lease_token=$5`,
+          [targetId,count,delay,/^[A-Z0-9_]{3,80}$/.test(code)?code:"CHANNEL_UNAVAILABLE",leaseToken]);
         results.push({id:targetId,state:count===8?"quarantined":"retry_scheduled"});
       }
     }
     return results;
   }
 
-  async processOne(intentId:string){
+  async processOne(intentId:string,leaseToken:string){
     const row=(await this.pool.query<IntentRow>(`SELECT i.*,o.order_number,o.total_cents,
       p.provider_transaction_id,p.amount_cents AS paid_cents,p.merchant_id,
       r.reason AS request_reason FROM commission_refund_intent i
@@ -269,12 +279,28 @@ export class RefundCommandService{
       JOIN commerce_refund_request r ON r.id=i.request_id WHERE i.id=$1`,[id(intentId)])).rows[0];
     if(!row||row.state!=="prepared"||row.submission_state!=="unknown")
       throw new DomainError("REFUND_SUBMISSION_NOT_PENDING","退款提交任务不在待处理状态",409);
+    if(row.submission_lease_token!==leaseToken)
+      throw new DomainError("REFUND_LEASE_LOST","退款任务租约已被接管",409);
     const binding=this.binding(row);
     let queried;
-    try{queried=await this.channel.queryRefundByMerchantRefundNumber(binding);}
+    try{
+      const evidence=await this.channel.queryRefundByMerchantRefundNumberWithEvidence(binding);
+      await this.recordChannelAcceptance(intentId,"signed_query",evidence);
+      queried=evidence.fact;
+    }
     catch(error){if(!(error instanceof DomainError&&error.code==="WECHAT_REFUND_NOT_FOUND"))throw error;}
     if(!queried){
+      if(row.first_dispatch_started_at)
+        throw new DomainError("REFUND_ORIGINAL_QUERY_REQUIRED","原退款单可能已发送，须继续查询并人工核对",409);
+      const marked=await this.pool.query(`UPDATE commission_refund_intent SET
+        first_dispatch_started_at=clock_timestamp() WHERE id=$1 AND state='prepared'
+        AND submission_state='unknown' AND first_dispatch_started_at IS NULL
+        AND submission_lease_token=$2 RETURNING id`,[intentId,leaseToken]);
+      if(!marked.rowCount)throw new DomainError("REFUND_LEASE_LOST","退款任务租约已被接管",409);
+      // This update is committed before the HTTP boundary. On crash, the
+      // original number stays held and NOT_FOUND never authorizes resubmission.
       const accepted=await this.channel.createRefund(binding,row.request_reason.slice(0,80),this.options.notifyUrl);
+      await this.recordChannelAcceptance(intentId,"signed_create",accepted);
       if(accepted.fact.status==="SUCCESS"||accepted.fact.status==="CLOSED"||accepted.fact.status==="ABNORMAL")
         queried=await this.channel.queryRefundByMerchantRefundNumber(binding);
       else queried=accepted.fact;
@@ -284,7 +310,8 @@ export class RefundCommandService{
     await this.pool.query(`UPDATE commission_refund_intent SET submission_state='accepted',
       submission_lease_until=NULL,submission_last_error_code=NULL,
       submission_next_attempt_at=clock_timestamp()+interval '1 minute'
-      WHERE id=$1 AND state='prepared' AND submission_state='unknown'`,[intentId]);
+      WHERE id=$1 AND state='prepared' AND submission_state='unknown'
+        AND submission_lease_token=$2`,[intentId,leaseToken]);
     return queried.status==="PROCESSING"?"accepted_processing":"verified_fact_pending";
   }
 
@@ -307,7 +334,9 @@ export class RefundCommandService{
         if(!row||row.state!=="prepared"){
           results.push({id:targetId,state:"already_terminal"});continue;
         }
-        const fact=await this.channel.queryRefundByMerchantRefundNumber(this.binding(row));
+        const evidence=await this.channel.queryRefundByMerchantRefundNumberWithEvidence(this.binding(row));
+        await this.recordChannelAcceptance(targetId,"signed_query",evidence);
+        const fact=evidence.fact;
         const terminal=fact.status!=="PROCESSING";
         if(terminal)await this.inbox.receiveQueried(this.channel,targetId);
         await this.pool.query(`UPDATE commission_refund_intent SET reconcile_lease_until=NULL,

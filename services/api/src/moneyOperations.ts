@@ -39,7 +39,9 @@ export class MoneyOperationsService{
         FROM commission_transfer_callback_inbox WHERE state='exception'
       UNION ALL SELECT r.id,'trade_bill',r.related_id,r.exception_code,0,b.imported_at,false
         FROM commerce_trade_bill_row r JOIN commerce_trade_bill_batch b ON b.id=r.batch_id
-        WHERE r.status='exception'`;
+        WHERE r.status='exception'
+      UNION ALL SELECT id,'payment_composition',order_id,'PAYMENT_COMPOSITION_CONFLICT',0,observed_at,false
+        FROM commission_payment_composition_observation`;
     const totalCount=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM (${union}) issue`)).rows[0]?.n??0;
     const rows=(await this.pool.query(`SELECT * FROM (${union}) issue
       WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))

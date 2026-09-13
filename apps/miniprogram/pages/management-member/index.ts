@@ -4,7 +4,7 @@ import { currentChromeStyle } from "../../services/layout";
 
 type MemberDetail={member:{id:string;displayName:string;accountStatus:string;membershipState:string;commercialEligible:boolean;effectiveAt:string|null;expiresAt:string|null;version:number;referralCode:string|null};rate:{basisPoints:number|null;effectiveAt:string|null;source:"member_override"|"global"|"none"}|null;
   commission:{pendingCents:number;availableCents:number;settledCents:number;settlementAvailable:boolean};scope:{referrals:boolean;orders:boolean;ownOrders:boolean};
-  membershipPolicy:{kind:string;termDays:number;serverTime:string;renewalExpiresAt:string;rateProposalSuggestedAt:string}};
+  membershipPolicy:{kind:string;termMonths:number;serverTime:string;renewalExpiresAt:string|null;rateProposalSuggestedAt:string}};
 type SectionRow={id:string;displayName?:string;confirmedAt?:string;verifiedOrderCount?:number;orderNumber?:string;status?:string;statusLabel?:string;productName?:string;totalCents?:number;totalLabel?:string;transactionSourceKind?:string;basisPoints?:number|null;rateLabel?:string;commissionNetCents?:number|null;commissionLabel?:string;title?:string};
 type SectionPage={items:SectionRow[];matchingTotal:number;nextCursor:string|null};
 type RateForm={mode:"override"|"inherit";percent:string;date:string;time:string;reason:string};
@@ -23,6 +23,7 @@ Page({
     visibleRows:[] as SectionRow[],visibleTotal:0,visibleCursor:null as string|null,sectionLoading:false,sectionLoadingMore:false,sectionError:"",
     effectiveLabel:"",expiresLabel:"",rateLabel:"",rateFormVisible:false,
     rateForm:{mode:"override",percent:"",date:"",time:"",reason:""} as RateForm,
+    rateOptions:["20%","25%","30%","35%"],rateFormIndex:0,
     loading:true,busy:false,alive:true,attempt:0,sectionAttempt:0,error:"",actionError:"",actionStatus:""},
   onLoad(query:Record<string,string|undefined>){this.setData({id:String(query.id||"")});},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
@@ -105,14 +106,14 @@ Page({
     const state=String(event.currentTarget.dataset.state||"");if(state!=="active"&&state!=="suspended")return;
     const active=state==="active";
     const result=await wx.showModal({title:active?"授予或续期商业会员？":"暂停商业会员资格？",
-      content:active?`工程测试期限 ${detail.membershipPolicy.termDays} 天。当前到期：${dateLabel(detail.member.expiresAt)}；变更后预计到期：${dateLabel(detail.membershipPolicy.renewalExpiresAt)}。正式政策待签字。请填写依据。`
+      content:active?`新规则为 ${detail.membershipPolicy.termMonths} 个日历月。当前到期：${detail.member.expiresAt?dateLabel(detail.member.expiresAt):"长期资格"}；变更后预计到期：${detail.membershipPolicy.renewalExpiresAt?dateLabel(detail.membershipPolicy.renewalExpiresAt):"保留长期资格"}。生产政策待批准。请填写依据。`
         :`暂停后推荐码不用于新关系或订单；当前到期 ${dateLabel(detail.member.expiresAt)} 保留。请填写依据。`,
       editable:true,placeholderText:"至少 4 字的变更依据",confirmText:active?"确认资格":"确认暂停"});
     if(!result.confirm||!current())return;
     const reason=(result.content||"").trim();if(reason.length<4){this.setData({actionError:"请填写至少 4 字的变更依据。"});return;}
     this.setData({busy:true,actionError:"",actionStatus:""});
     try{if(!current())return;
-      await request({path:`/v1/management/members/${id}/membership`,method:"POST",data:{state,...(active?{term:"engineering_365_day"}:{}),expectedVersion:version,reason}});
+      await request({path:`/v1/management/members/${id}/membership`,method:"POST",data:{state,...(active?{term:"engineering_12_calendar_months"}:{}),expectedVersion:version,reason}});
       if(current()){this.setData({busy:false,actionStatus:active?"资格已更新，请核对有效期。":"资格已暂停。"});await this.load();}}
     catch(error){if(current())this.setData({actionError:(error as {title?:string}).title||"资格变更尚未确认，请刷新后核对。"});}
     finally{if(current())this.setData({busy:false});}
@@ -120,13 +121,16 @@ Page({
   openRateForm(){const detail=this.data.detail;if(!detail||!this.data.canManageRate||this.data.busy)return;
     if(this.rateCommand){void this.sendRateCommand();return;}
     const when=rateDateParts(detail.membershipPolicy.rateProposalSuggestedAt);
-    this.setData({rateFormVisible:true,rateForm:{mode:"override",percent:detail.rate?.basisPoints?String(detail.rate.basisPoints/100):"20",
+    const index=[2000,2500,3000,3500].indexOf(detail.rate?.basisPoints??2000);
+    this.setData({rateFormVisible:true,rateFormIndex:Math.max(0,index),rateForm:{mode:"override",percent:String([20,25,30,35][Math.max(0,index)]),
       date:when.date,time:when.time,reason:""},actionError:"",actionStatus:""});
   },
   closeRateForm(){if(this.data.busy||this.rateCommand)return;this.setData({rateFormVisible:false,actionError:""});},
   selectRateMode(event:WechatMiniprogram.TouchEvent){const mode=String(event.currentTarget.dataset.mode);
     if(mode!=="override"&&mode!=="inherit")return;this.setData({rateForm:{...this.data.rateForm,mode}});},
-  editRatePercent(event:WechatMiniprogram.Input){this.setData({rateForm:{...this.data.rateForm,percent:event.detail.value}});},
+  selectRatePercent(event:WechatMiniprogram.PickerChange){const index=Number(event.detail.value);
+    if(!Number.isInteger(index)||index<0||index>3)return;
+    this.setData({rateFormIndex:index,rateForm:{...this.data.rateForm,percent:String([20,25,30,35][index])}});},
   editRateReason(event:WechatMiniprogram.Input){this.setData({rateForm:{...this.data.rateForm,reason:event.detail.value}});},
   changeRateDate(event:WechatMiniprogram.PickerChange){this.setData({rateForm:{...this.data.rateForm,date:String(event.detail.value)}});},
   changeRateTime(event:WechatMiniprogram.PickerChange){this.setData({rateForm:{...this.data.rateForm,time:String(event.detail.value)}});},
@@ -134,8 +138,8 @@ Page({
     if(this.rateCommand){void this.sendRateCommand();return;}
     const form=this.data.rateForm,reason=form.reason.trim(),parts=/^(\d{2})(?:\.(\d{1,2}))?$/.exec(form.percent.trim());
     const basisPoints=parts?Number(parts[1])*100+Number((parts[2]||"").padEnd(2,"0")):NaN;
-    if(form.mode==="override"&&(!Number.isInteger(basisPoints)||basisPoints<2000||basisPoints>3500)){
-      this.setData({actionError:"费率须在 20%–35% 之间，最多两位小数。"});return;}
+    if(form.mode==="override"&&![2000,2500,3000,3500].includes(basisPoints)){
+      this.setData({actionError:"请选择 20%、25%、30% 或 35%。"});return;}
     if(reason.length<4||reason.length>300){this.setData({actionError:"请填写 4–300 字的变更依据。"});return;}
     const effective=new Date(`${form.date}T${form.time}:00`);
     if(!Number.isFinite(effective.getTime())){this.setData({actionError:"请选择有效的生效日期和时间。"});return;}

@@ -3,14 +3,15 @@ import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
 import { AuthorityService } from "./authority.js";
-import { commissionBuckets } from "./commissionPolicy.js";
+import { commissionOrderBuckets } from "./commissionPolicy.js";
 import type { AppConfig } from "@cisme/config";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const codePattern = /^CM[A-HJ-NP-Z2-9]{10}$/;
 const codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const engineeringMembershipDays=365;
+const engineeringMembershipMonths=12;
+const nextShanghaiMidnight="(date_trunc('day',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')+interval '1 day') AT TIME ZONE 'Asia/Shanghai'";
 function member(id: string | undefined): string {
   if (!id) throw new DomainError("AUTH_REQUIRED", "请先登录后继续", 401);
   return id;
@@ -29,8 +30,8 @@ function codeValue(): string {
   return `CM${Array.from(bytes, byte => codeAlphabet[byte! % codeAlphabet.length]).join("")}`;
 }
 function rate(value: unknown): number {
-  if (!Number.isInteger(value) || Number(value) < 2000 || Number(value) > 3500) {
-    throw new DomainError("COMMISSION_RATE_INVALID", "返佣比例须在 20%–35% 之间", 422);
+  if (!Number.isInteger(value) || ![2000,2500,3000,3500].includes(Number(value))) {
+    throw new DomainError("COMMISSION_RATE_INVALID", "新费率仅支持 20%、25%、30%、35%", 422);
   }
   return Number(value);
 }
@@ -50,17 +51,22 @@ export class CommercialMembershipService {
   }
 
   private async balanceFor(referrerId:string){
-    const row=(await this.pool.query(`SELECT
-      COALESCE(sum(amount_cents) FILTER(WHERE kind='accrual'),0)::text AS accrued,
-      COALESCE(-sum(amount_cents) FILTER(WHERE kind='refund_reversal'),0)::text AS reversed,
-      COALESCE(sum(amount_cents) FILTER(WHERE kind='release'),0)::text AS released,
-      COALESCE(sum(amount_cents) FILTER(WHERE kind='settlement'),0)::text AS paid,
-      (SELECT COALESCE(sum(a.amount_cents),0)::text FROM commission_settlement_allocation a
+    const rows=(await this.pool.query(`SELECT l.order_id,l.accrued,l.reversed,l.released,l.paid,
+      COALESCE(h.held,0)::text AS held FROM (
+        SELECT order_id,
+          COALESCE(sum(amount_cents) FILTER(WHERE kind='accrual'),0)::text AS accrued,
+          COALESCE(-sum(amount_cents) FILTER(WHERE kind='refund_reversal'),0)::text AS reversed,
+          COALESCE(sum(amount_cents) FILTER(WHERE kind='release'),0)::text AS released,
+          COALESCE(sum(amount_cents) FILTER(WHERE kind='settlement'),0)::text AS paid
+        FROM commission_ledger_entry WHERE referrer_member_id=$1 GROUP BY order_id
+      ) l LEFT JOIN (
+        SELECT a.order_id,sum(a.amount_cents) AS held FROM commission_settlement_allocation a
         JOIN commission_settlement_request r ON r.id=a.request_id WHERE r.member_id=$1
-          AND r.state IN ('reserved','unknown','processing')) AS held
-      FROM commission_ledger_entry WHERE referrer_member_id=$1`,[referrerId])).rows[0];
-    return commissionBuckets({accruedCents:Number(row.accrued),reversedCents:Number(row.reversed),
-      releasedCents:Number(row.released),paidCents:Number(row.paid),heldCents:Number(row.held)});
+          AND r.state IN ('reserved','unknown','processing') GROUP BY a.order_id
+      ) h ON h.order_id=l.order_id`,[referrerId])).rows;
+    return commissionOrderBuckets(rows.map(row=>({accruedCents:Number(row.accrued),
+      reversedCents:Number(row.reversed),releasedCents:Number(row.released),
+      paidCents:Number(row.paid),heldCents:Number(row.held)})));
   }
 
   async myStatus(memberId: string | undefined) {
@@ -184,6 +190,10 @@ export class CommercialMembershipService {
         CASE WHEN member_rate.action='override' THEN member_rate.basis_points ELSE global_rate.basis_points END AS basis_points) rate
         ON rate.id IS NOT NULL
       WHERE r.referred_member_id=$2 AND r.confirmed_at<=$5 AND r.referrer_member_id<>$2
+        AND NOT EXISTS (SELECT 1 FROM commercial_membership buyer_membership
+          WHERE buyer_membership.member_id=$2 AND buyer_membership.state='active'
+            AND buyer_membership.effective_at<=$5
+            AND (buyer_membership.expires_at IS NULL OR buyer_membership.expires_at>$5))
         AND m.state='active' AND m.effective_at<=$5 AND (m.expires_at IS NULL OR m.expires_at>$5)
         AND c.state='active' AND sponsor.status='active'
       ON CONFLICT(order_id) DO NOTHING RETURNING order_id,basis_points,source_kind`,
@@ -237,14 +247,16 @@ export class CommercialMembershipService {
       this.authority.has(actorId,"commission.read"),this.authority.has(actorId,"commerce.order.read")]);
     const id = identifier(memberId);
     const person = (await this.pool.query(`SELECT a.id,a.display_name,a.status,a.created_at,m.state AS membership_state,m.effective_at,m.expires_at,m.version,
-      now() AS server_time,now()+interval '1 day' AS rate_proposal_suggested_at,
-      GREATEST(COALESCE(m.expires_at,now()),now())+make_interval(days=>$3::int) AS renewal_expires_at,
+      now() AS server_time,${nextShanghaiMidnight} AS rate_proposal_suggested_at,
+      CASE WHEN m.member_id IS NOT NULL AND m.expires_at IS NULL THEN NULL ELSE
+        ((GREATEST(COALESCE(m.expires_at,now()),now()) AT TIME ZONE 'Asia/Shanghai')+
+          make_interval(months=>$3::int)) AT TIME ZONE 'Asia/Shanghai' END AS renewal_expires_at,
       (a.status='active' AND m.state='active' AND m.effective_at<=now()
         AND (m.expires_at IS NULL OR m.expires_at>now())) AS commercial_eligible,
       CASE WHEN $2::boolean THEN c.code ELSE NULL END AS code,
       CASE WHEN $2::boolean THEN c.state ELSE NULL END AS code_state
       FROM member a LEFT JOIN commercial_membership m ON m.member_id=a.id
-      LEFT JOIN commercial_referral_code c ON c.member_id=a.id WHERE a.id=$1`, [id,canReadCommission,engineeringMembershipDays])).rows[0];
+      LEFT JOIN commercial_referral_code c ON c.member_id=a.id WHERE a.id=$1`, [id,canReadCommission,engineeringMembershipMonths])).rows[0];
     if (!person || person.status==="deleted") throw new DomainError("MEMBER_NOT_FOUND", "成员不存在", 404);
     const [rateRule,balance] = await Promise.all([
       canReadCommission?this.pool.query(`SELECT CASE WHEN member_rate.action='override' THEN member_rate.id ELSE global_rate.id END AS id,
@@ -271,7 +283,7 @@ export class CommercialMembershipService {
         memberAction:rateRule.rows[0]?.member_action??null,memberActionEffectiveAt:rateRule.rows[0]?.member_action_effective_at??null }:null,
       scope:{referrals:canReadCommission,orders:canReadCommission&&canReadOrders,ownOrders:canReadOrders},
       commission:balance?{...balance,settlementAvailable:false}:null,
-      membershipPolicy:{kind:"engineering_fixture",termDays:engineeringMembershipDays,serverTime:person.server_time,
+      membershipPolicy:{kind:"engineering_calendar_v2",termMonths:engineeringMembershipMonths,serverTime:person.server_time,
         renewalExpiresAt:person.renewal_expires_at,rateProposalSuggestedAt:person.rate_proposal_suggested_at} };
   }
 
@@ -341,7 +353,7 @@ export class CommercialMembershipService {
     const target = identifier(memberId);
     const state = input.state;
     if (state!=="active" && state!=="suspended" && state!=="expired") throw new DomainError("MEMBERSHIP_STATE_INVALID", "会员资格状态无效", 422);
-    const fixtureTerm=input.term==="engineering_365_day";
+    const fixtureTerm=input.term==="engineering_12_calendar_months"||input.term==="engineering_365_day";
     const expiry = typeof input.expiresAt === "string" && Number.isFinite(Date.parse(input.expiresAt)) ? new Date(input.expiresAt) : null;
     if(state==="active"&&!fixtureTerm&&!expiry)throw new DomainError("MEMBERSHIP_EXPIRY_REQUIRED","请设置资格有效期",422);
     if(fixtureTerm&&input.expiresAt!=null)throw new DomainError("MEMBERSHIP_TERM_CONFLICT","请选择一种资格期限方式",422);
@@ -358,11 +370,14 @@ export class CommercialMembershipService {
       const effective=(await client.query<{at:Date}>("SELECT clock_timestamp() AS at")).rows[0]!.at;
       let nextExpiry:Date|null=previous?.expires_at??null;
       if(state==="active"){
-        if(fixtureTerm){const row=(await client.query<{expires_at:Date}>(`SELECT GREATEST($1::timestamptz,$2::timestamptz)+make_interval(days=>$3::int) AS expires_at`,
-          [previous?.expires_at??effective,effective,engineeringMembershipDays])).rows[0];nextExpiry=row!.expires_at;}
+        if(previous&&previous.expires_at===null){nextExpiry=null;}
+        else if(fixtureTerm){const row=(await client.query<{expires_at:Date}>(`SELECT
+          ((GREATEST($1::timestamptz,$2::timestamptz) AT TIME ZONE 'Asia/Shanghai')+
+            make_interval(months=>$3::int)) AT TIME ZONE 'Asia/Shanghai' AS expires_at`,
+          [previous?.expires_at??effective,effective,engineeringMembershipMonths])).rows[0];nextExpiry=row!.expires_at;}
         else nextExpiry=expiry;
-        if(!nextExpiry||nextExpiry<=effective)throw new DomainError("MEMBERSHIP_EXPIRY_REQUIRED","资格到期时间须晚于服务端当前时间",422);
-        if(previous?.expires_at&&nextExpiry<previous.expires_at&&previous.expires_at>effective)
+        if(nextExpiry&&nextExpiry<=effective)throw new DomainError("MEMBERSHIP_EXPIRY_REQUIRED","资格到期时间须晚于服务端当前时间",422);
+        if(previous?.expires_at&&nextExpiry&&nextExpiry<previous.expires_at&&previous.expires_at>effective)
           throw new DomainError("MEMBERSHIP_EXPIRY_SHORTEN","续期不能缩短现有资格，请刷新后重试",409);
       }
       const effectiveAt=state==="active"?effective:previous?.effective_at??effective;
@@ -377,7 +392,7 @@ export class CommercialMembershipService {
         VALUES($1,'commercial.membership_change','member',$2,$3,$4,$5,$6)`,[principalId,target,why,
         {state:previous?.state ?? "none",expiresAt:previous?.expires_at ?? null},{state,expiresAt:nextExpiry},`commercial-membership:${target}:${version}`]);
       return {memberId:target,state,version,serverTime:effective,previousExpiresAt:previous?.expires_at??null,
-        expiresAt:nextExpiry,policyKind:fixtureTerm?"engineering_fixture":"operator_explicit"};
+        expiresAt:nextExpiry,policyKind:fixtureTerm?"engineering_calendar_v2":"operator_explicit"};
     });
   }
 
@@ -392,11 +407,11 @@ export class CommercialMembershipService {
     if(action==="inherit"&&(target===null||input.basisPoints!=null))
       throw new DomainError("RATE_INHERIT_INVALID","恢复继承仅适用于单个会员，且无需填写费率",422);
     const basisPoints=action==="inherit"?null:rate(input.basisPoints);const why=reason(input.reason);
-    const effective=typeof input.effectiveAt==="string"?new Date(input.effectiveAt):new Date(NaN);
-    if(!Number.isFinite(effective.getTime()))throw new DomainError("RATE_EFFECTIVE_INVALID","生效时间无效",422);
+    const effective=input.effectiveAt==null?null:typeof input.effectiveAt==="string"?new Date(input.effectiveAt):new Date(NaN);
+    if(effective&&!Number.isFinite(effective.getTime()))throw new DomainError("RATE_EFFECTIVE_INVALID","生效时间无效",422);
     if(!principalId)throw new DomainError("AUTH_REQUIRED","请重新登录后操作",401);
     const request=commandKey(requestKey),fingerprint=createHash("sha256")
-      .update(JSON.stringify({target,action,basisPoints,effectiveAt:effective.toISOString(),reason:why})).digest("hex");
+      .update(JSON.stringify({target,action,basisPoints,proposedEffectiveAt:effective?.toISOString()??null,reason:why})).digest("hex");
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actor,"commission.rate.manage");
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`commission-rate:${principalId}:${request}`]);
@@ -405,12 +420,13 @@ export class CommercialMembershipService {
       if(prior){if(prior.request_fingerprint!==fingerprint)
         throw new DomainError("RATE_REQUEST_CONFLICT","同一提议编号对应不同内容，请核对原提议",409);
         return {id:prior.id,action:prior.action,basis_points:prior.basis_points,effective_at:prior.effective_at,state:prior.state,alreadyCreated:true};}
-      const clock=(await client.query<{at:Date}>("SELECT clock_timestamp() AS at")).rows[0]!.at;
-      if(effective.getTime()<clock.getTime()+60_000)
-        throw new DomainError("RATE_EFFECTIVE_INVALID","生效时间须晚于服务端当前至少 1 分钟",422);
-      const result=await client.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,created_by,reason,request_key,request_fingerprint)
-        VALUES($1,$2,$3,'proposed',$4,$5,$6,$7,$8) RETURNING id,action,basis_points,effective_at,state`,
-        [target,action,basisPoints,effective,principalId,why,request,fingerprint]);
+      const suggested=(await client.query<{at:Date}>(`SELECT ${nextShanghaiMidnight} AS at`)).rows[0]!.at;
+      const proposed=effective??suggested;
+      const result=await client.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,
+        effective_at,proposed_effective_at,rule_version,created_by,reason,request_key,request_fingerprint)
+        VALUES($1,$2,$3,'proposed',$4,$4,'commercial-rate-v2',$5,$6,$7,$8)
+        RETURNING id,action,basis_points,effective_at,proposed_effective_at,state,version`,
+        [target,action,basisPoints,proposed,principalId,why,request,fingerprint]);
       return {...result.rows[0],alreadyCreated:false};
     });
   }
@@ -428,7 +444,7 @@ export class CommercialMembershipService {
   async currentGlobalRate(actorId:string|undefined){
     if(!await this.authority.has(actorId,"commission.read"))await this.authority.require(actorId,"commission.rate.manage");
     const row=(await this.pool.query(`SELECT id,basis_points,effective_at,now() AS server_time,
-      now()+interval '1 day' AS suggested_effective_at
+      ${nextShanghaiMidnight} AS suggested_effective_at
       FROM commission_rate_rule WHERE member_id IS NULL AND action='override' AND state='active' AND effective_at<=now()
       ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1`)).rows[0];
     return {basisPoints:row?.basis_points??null,effectiveAt:row?.effective_at??null,
@@ -436,25 +452,37 @@ export class CommercialMembershipService {
       policyKind:"engineering_fixture",paymentAvailable:false};
   }
 
-  async approveRate(actorId: string | undefined, principalId: string | undefined, ruleId: string, input:{decision?:unknown}) {
+  async approveRate(actorId: string | undefined, principalId: string | undefined, ruleId: string,
+    decisionKey:unknown,input:{decision?:unknown;expectedVersion?:unknown;reason?:unknown}) {
     this.requireEngineeringRules();
     const actor=await this.authority.require(actorId,"commission.rate.approve");
     const id=identifier(ruleId);
     if(input.decision!=="active" && input.decision!=="rejected")throw new DomainError("RATE_DECISION_INVALID","请选择批准或退回",422);
     if(!principalId)throw new DomainError("AUTH_REQUIRED","请重新登录后操作",401);
+    const expectedVersion=Number(input.expectedVersion),request=commandKey(decisionKey),why=reason(input.reason);
+    if(!Number.isSafeInteger(expectedVersion)||expectedVersion<1)
+      throw new DomainError("RATE_VERSION_INVALID","请刷新待复核提议",422);
+    const fingerprint=createHash("sha256").update(JSON.stringify({id,decision:input.decision,expectedVersion,why})).digest("hex");
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actor,"commission.rate.approve");
       const rule=(await client.query("SELECT * FROM commission_rate_rule WHERE id=$1 FOR UPDATE",[id])).rows[0];
-      if(!rule || rule.state!=="proposed")throw new DomainError("RATE_RULE_CHANGED","费率提议已处理，请刷新",409);
-      if(rule.created_by===principalId || rule.member_id===actor)throw new DomainError("RATE_SELF_APPROVAL_FORBIDDEN","提议人或受益人不能批准该费率",403);
-      if(input.decision==="active"){
-        const current=(await client.query<{at:Date}>("SELECT clock_timestamp() AS at")).rows[0]!.at;
-        if(rule.effective_at<=current)throw new DomainError("RATE_EFFECTIVE_LAPSED","计划生效时间已过，请退回并重新提议未来时间",409);
+      if(!rule)throw new DomainError("RATE_RULE_CHANGED","费率提议不存在，请刷新",409);
+      if(rule.state!=="proposed"){
+        if(rule.approved_by===principalId&&rule.decision_key===request&&rule.decision_hash===fingerprint)
+          return {id:rule.id,member_id:rule.member_id,action:rule.action,basis_points:rule.basis_points,
+            state:rule.state,effective_at:rule.effective_at,version:rule.version,alreadyDecided:true};
+        throw new DomainError("RATE_RULE_CHANGED","费率提议已处理，请刷新",409);
       }
-      const updated=(await client.query(`UPDATE commission_rate_rule SET state=$2,approved_by=$3,decided_at=now()
-        WHERE id=$1 RETURNING id,member_id,action,basis_points,state,effective_at`,[id,input.decision,principalId])).rows[0];
+      if(rule.created_by===principalId || rule.member_id===actor)throw new DomainError("RATE_SELF_APPROVAL_FORBIDDEN","提议人或受益人不能批准该费率",403);
+      if(rule.version!==expectedVersion)throw new DomainError("VERSION_CONFLICT","费率提议版本已变化",409);
+      const updated=(await client.query(`UPDATE commission_rate_rule SET state=$2,approved_by=$3,
+        decided_at=clock_timestamp(),version=version+1,decision_key=$4,decision_hash=$5,decision_reason=$6,
+        effective_at=CASE WHEN $2='active' THEN GREATEST(proposed_effective_at,${nextShanghaiMidnight})
+          ELSE effective_at END
+        WHERE id=$1 RETURNING id,member_id,action,basis_points,state,effective_at,proposed_effective_at,version`,
+        [id,input.decision,principalId,request,fingerprint,why])).rows[0];
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
-        VALUES($1,'commercial.rate_decision','commission_rate_rule',$2,$3,$4,$5)`,[principalId,id,rule.reason,updated,`commission-rate:${id}:${input.decision}`]);
+        VALUES($1,'commercial.rate_decision','commission_rate_rule',$2,$3,$4,$5)`,[principalId,id,why,updated,`commission-rate:${id}:${input.decision}`]);
       return updated;
     });
   }
@@ -462,12 +490,12 @@ export class CommercialMembershipService {
   async pendingRates(actorId: string | undefined,input:{limit?:unknown;cursor?:unknown}={}) {
     await this.authority.require(actorId,"commission.rate.approve");
     const limit=pageLimit(input.limit),scope=pageScope(["pending-rates"]),cursor=readPageCursor(input.cursor,scope);
-    const result=await this.pool.query(`SELECT r.id,r.member_id,m.display_name,r.action,r.basis_points,r.effective_at,r.created_at::text AS cursor_at,r.created_by,r.reason,r.created_at
+    const result=await this.pool.query(`SELECT r.id,r.member_id,m.display_name,r.action,r.basis_points,r.effective_at,r.version,r.created_at::text AS cursor_at,r.created_by,r.reason,r.created_at
       FROM commission_rate_rule r LEFT JOIN member m ON m.id=r.member_id
       WHERE r.state='proposed' AND ($2::timestamptz IS NULL OR (r.created_at,r.id)>($2::timestamptz,$3::uuid))
       ORDER BY r.created_at,r.id LIMIT $1`,[limit+1,cursor?.at??null,cursor?.id??null]);
     const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,memberId:row.member_id,
-      displayName:row.display_name ?? "全局默认",action:row.action,basisPoints:row.basis_points,effectiveAt:row.effective_at,
+      displayName:row.display_name ?? "全局默认",action:row.action,basisPoints:row.basis_points,effectiveAt:row.effective_at,version:row.version,
       createdBy:row.created_by,reason:row.reason,createdAt:row.created_at})),limit,scope);
     const total=(await this.pool.query(`SELECT count(*)::int AS total FROM commission_rate_rule WHERE state='proposed'`)).rows[0]?.total??0;
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};

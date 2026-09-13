@@ -94,9 +94,13 @@ export class FulfillmentReleaseService{
         throw new DomainError("FULFILLMENT_BENEFICIARY_REVIEW_FORBIDDEN","佣金受益人不能核验自己的释放依据",403);
       let releasedCents=0;
       if(decision==="verify"){
+        const compositionConflict=(await client.query<{n:number}>(`SELECT count(*)::int AS n
+          FROM commission_payment_composition_observation WHERE order_id=$1`,[order.id])).rows[0]?.n??0;
+        if(compositionConflict)throw new DomainError("PAYMENT_COMPOSITION_RECONCILIATION_REQUIRED",
+          "支付组成事实相互冲突，暂停佣金释放",409);
         const unresolved=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request r
           LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.order_id=$1 AND
-          (r.state='requested' OR (r.state='approved' AND i.state IN ('prepared','abnormal')))`,
+          (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state IN ('prepared','abnormal'))))`,
           [order.id])).rows[0]?.n??0;
         if(unresolved)throw new DomainError("FULFILLMENT_REFUND_UNRESOLVED",
           "仍有待决或在途退款，不能释放佣金",409);

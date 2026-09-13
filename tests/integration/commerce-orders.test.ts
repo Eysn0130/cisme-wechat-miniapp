@@ -75,6 +75,13 @@ describe("R4-B isolated pending-payment order flow", () => {
     const target = await address(buyerA, "1001");
     const first = await quote(buyerA, target, "quote-idem-buyer-a-01", 2);
     expect(first.statusCode).toBe(200);
+    for(const unsupported of [{couponCode:"coupon-01"},{pointsTenderCents:100},{shoppingCreditCents:100},
+      {lines:[{skuId:product.variants[0].id}]},{purpose:"commercial_purchase"}]){
+      const rejected=await app.inject({method:"POST",url:"/v1/me/commerce/quotes",
+        headers:{...auth(buyerA.sessionToken),"idempotency-key":`reject-${Object.keys(unsupported)[0]}-01`},
+        payload:{skuId:product.variants[0].id,quantity:1,addressId:target.id,addressVersion:target.version,...unsupported}});
+      expect(rejected.statusCode).toBe(422);expect(rejected.json().code).toBe("COMMERCE_TENDER_UNSUPPORTED");
+    }
     expect(first.json()).toMatchObject({ currency: "CNY", quantity: 2, unitPriceCents: 12345, subtotalCents: 24690, memberDiscountCents: 0, shippingCents: 0, totalCents: 24690, paymentAvailable: false });
     const replay = await quote(buyerA, target, "quote-idem-buyer-a-01", 2);
     expect(replay.json()).toMatchObject({ id: first.json().id, totalCents: 24690 });
@@ -135,8 +142,9 @@ describe("R4-B isolated pending-payment order flow", () => {
   it("returns a member to the current global rate without rewriting earlier order snapshots",async()=>{
     const target=(await app.inject({method:"GET",url:"/v1/me/addresses",headers:auth(buyerA.sessionToken)})).json().addresses[0];
     const override=(await pool.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,
-      created_by,approved_by,reason,decided_at) VALUES($1,'override',3000,'active',now()-interval '2 hours',
-      'fixture','fixture-reviewer','独立测试会员费率',now()-interval '3 hours') RETURNING id`,[buyerB.memberId])).rows[0].id;
+      proposed_effective_at,rule_version,created_by,approved_by,reason,decided_at)
+      VALUES($1,'override',3000,'active',now()-interval '2 hours',now()-interval '2 hours',
+      'legacy-v1','fixture','fixture-reviewer','独立测试会员费率',now()-interval '3 hours') RETURNING id`,[buyerB.memberId])).rows[0].id;
     const beforeQuote=(await quote(buyerA,target,"rate-override-quote-01")).json();
     const before=await createOrder(buyerA,beforeQuote.id,"rate-override-order-01");
     expect(before.statusCode).toBe(200);
@@ -144,8 +152,9 @@ describe("R4-B isolated pending-payment order flow", () => {
       .toMatchObject({rate_rule_id:override,basis_points:3000});
 
     await pool.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,
-      created_by,approved_by,reason,decided_at) VALUES($1,'inherit',NULL,'active',now()-interval '1 hour',
-      'fixture','fixture-reviewer','恢复继承全局费率',now()-interval '2 hours')`,[buyerB.memberId]);
+      proposed_effective_at,rule_version,created_by,approved_by,reason,decided_at)
+      VALUES($1,'inherit',NULL,'active',now()-interval '1 hour',now()-interval '1 hour',
+      'legacy-v1','fixture','fixture-reviewer','恢复继承全局费率',now()-interval '2 hours')`,[buyerB.memberId]);
     const afterQuote=(await quote(buyerA,target,"rate-inherit-quote-01")).json();
     const after=await createOrder(buyerA,afterQuote.id,"rate-inherit-order-01");
     expect(after.statusCode).toBe(200);
@@ -158,6 +167,23 @@ describe("R4-B isolated pending-payment order flow", () => {
         payload:{expectedVersion:order.json().version,reason:"Synthetic rate fixture cleanup"}});
       expect(cancelled.statusCode).toBe(200);
     }
+  });
+
+  it("does not pay a recommender for a qualified promoter's own new purchase",async()=>{
+    const granted=await app.inject({method:"POST",url:`/v1/management/members/${buyerA.memberId}/membership`,
+      headers:auth(operator.sessionToken),payload:{state:"active",term:"engineering_12_calendar_months",
+        expectedVersion:0,reason:"验证已具推广资格的买方不产生上级佣金"}});
+    expect(granted.statusCode).toBe(200);
+    const target=(await app.inject({method:"GET",url:"/v1/me/addresses",headers:auth(buyerA.sessionToken)})).json().addresses[0];
+    const proposed=(await quote(buyerA,target,"qualified-buyer-quote-01")).json();
+    const purchased=await createOrder(buyerA,proposed.id,"qualified-buyer-order-01");
+    expect(purchased.statusCode).toBe(200);
+    expect((await pool.query("SELECT count(*)::int AS n FROM commission_order_snapshot WHERE order_id=$1",
+      [purchased.json().id])).rows[0].n).toBe(0);
+    const cancelled=await app.inject({method:"POST",url:`/v1/me/orders/${purchased.json().id}/cancel`,
+      headers:{...auth(buyerA.sessionToken),"idempotency-key":"qualified-buyer-cancel-01"},
+      payload:{expectedVersion:purchased.json().version,reason:"合成商品订单清理"}});
+    expect(cancelled.statusCode).toBe(200);
   });
 
   it("builds member and management list summaries with a fixed SQL bound and no address decryption", async () => {

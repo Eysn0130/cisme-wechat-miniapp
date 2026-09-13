@@ -12,7 +12,8 @@ export interface AppConfig {
   sessionSecret: string;
   adminApiToken: string;
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
-  wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean; messageToken: string | null };
+  wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean;
+    messageToken: string | null; messageAesKey: string | null; plaintextCallbackTestOnly: boolean };
   objectStorage: {
     profile: string | null;
     driver: "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
@@ -50,7 +51,11 @@ export interface AppConfig {
   media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
   commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
     simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
-      transferSceneId?: string } };
+      transferSceneId?: string };
+    formalProtocol?: { appId: string; merchantId: string; merchantSerial: string;
+      merchantPrivateKeyFile: string; apiV3KeyFile: string; platformTrustManifestFile: string;
+      paymentNotifyUrl: string; refundNotifyUrl: string;
+      transferNotifyUrl?: string; transferSceneId?: string } };
 }
 
 function bool(value: string | undefined, fallback = false): boolean {
@@ -138,11 +143,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error("FAIL_CLOSED:PRODUCTION_STORAGE_PROFILE_REQUIRED");
   }
   const ugcGoLiveGate = bool(env.UGC_GO_LIVE_GATE);
+  const plaintextCallbackTestOnly=bool(env.WECHAT_MESSAGE_PLAINTEXT_TEST_ONLY);
+  if(plaintextCallbackTestOnly&&appEnv!=="test")
+    throw new Error("FAIL_CLOSED:UGC_PLAINTEXT_CALLBACK_TEST_ONLY");
+  if(env.WECHAT_MESSAGE_AES_KEY&&!/^[A-Za-z0-9+/]{43}$/.test(env.WECHAT_MESSAGE_AES_KEY))
+    throw new Error("CONFIG_INVALID:WECHAT_MESSAGE_AES_KEY");
   if (ugcGoLiveGate && (!env.UGC_LEGAL_APPROVAL_ID || ["UGC_PROVENANCE_READY", "UGC_CONTENT_SAFETY_READY", "UGC_MODERATION_READY"].some((name) => !bool(env[name])))) {
     throw new Error("FAIL_CLOSED:UGC_GATE_INCOMPLETE");
   }
   if (ugcGoLiveGate && (appEnv === "production" || appEnv === "staging") &&
-      (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET || !env.WECHAT_MESSAGE_TOKEN ||
+      (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET || !env.WECHAT_MESSAGE_TOKEN || !env.WECHAT_MESSAGE_AES_KEY ||
         !env.UGC_SCAN_BASE_URL || !/^https:\/\/[^/?#]+$/.test(env.UGC_SCAN_BASE_URL) ||
         env.RUN_BACKGROUND_WORKER!=="true")) {
     throw new Error("FAIL_CLOSED:UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED");
@@ -206,6 +216,40 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ?required("COMMERCE_SIMULATED_TRANSFER_SCENE_ID",env.COMMERCE_SIMULATED_TRANSFER_SCENE_ID):undefined;
   if(transferSceneId&&!/^[-A-Za-z0-9_]{2,36}$/.test(transferSceneId))
     throw new Error("CONFIG_INVALID:COMMERCE_SIMULATED_TRANSFER_SCENE_ID");
+  const formalProtocolEnabled=bool(env.COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED);
+  if(formalProtocolEnabled&&simulatedPaymentEnabled)
+    throw new Error("FAIL_CLOSED:COMMERCE_PROTOCOL_PROFILES_MUTUALLY_EXCLUSIVE");
+  // This configuration prepares trust and transport binding; it never grants
+  // permission for orders, refunds or transfers. Independent live-capability
+  // approvals are deliberately not defined by a single catch-all switch.
+  const formalProtocol=formalProtocolEnabled?{
+    appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),
+    merchantId:required("COMMERCE_FORMAL_MERCHANT_ID",env.COMMERCE_FORMAL_MERCHANT_ID),
+    merchantSerial:required("COMMERCE_FORMAL_MERCHANT_SERIAL",env.COMMERCE_FORMAL_MERCHANT_SERIAL),
+    merchantPrivateKeyFile:required("COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE",env.COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE),
+    apiV3KeyFile:required("COMMERCE_FORMAL_API_V3_KEY_FILE",env.COMMERCE_FORMAL_API_V3_KEY_FILE),
+    platformTrustManifestFile:required("COMMERCE_FORMAL_PLATFORM_TRUST_FILE",env.COMMERCE_FORMAL_PLATFORM_TRUST_FILE),
+    paymentNotifyUrl:required("COMMERCE_FORMAL_PAYMENT_NOTIFY_URL",env.COMMERCE_FORMAL_PAYMENT_NOTIFY_URL),
+    refundNotifyUrl:required("COMMERCE_FORMAL_REFUND_NOTIFY_URL",env.COMMERCE_FORMAL_REFUND_NOTIFY_URL),
+    ...(env.COMMERCE_FORMAL_TRANSFER_SCENE_ID?{
+      transferSceneId:env.COMMERCE_FORMAL_TRANSFER_SCENE_ID,
+      transferNotifyUrl:required("COMMERCE_FORMAL_TRANSFER_NOTIFY_URL",env.COMMERCE_FORMAL_TRANSFER_NOTIFY_URL)}:{})
+  }:undefined;
+  if(formalProtocol){
+    if(!/^wx[a-zA-Z0-9]{16}$/.test(formalProtocol.appId)||
+      !/^[0-9]{8,15}$/.test(formalProtocol.merchantId)||
+      !/^[A-Za-z0-9_]{8,100}$/.test(formalProtocol.merchantSerial)||
+      (formalProtocol.transferSceneId&&!/^[-A-Za-z0-9_]{2,36}$/.test(formalProtocol.transferSceneId)))
+      throw new Error("FAIL_CLOSED:COMMERCE_FORMAL_IDENTITY_INVALID");
+    for(const [label,path] of Object.entries({merchantPrivateKeyFile:formalProtocol.merchantPrivateKeyFile,
+      apiV3KeyFile:formalProtocol.apiV3KeyFile,platformTrustManifestFile:formalProtocol.platformTrustManifestFile}))
+      if(!path.startsWith("/")||path.includes("\0"))throw new Error(`FAIL_CLOSED:COMMERCE_FORMAL_${label}_ABSOLUTE_REQUIRED`);
+    for(const [kind,url] of [["payment",formalProtocol.paymentNotifyUrl],["refund",formalProtocol.refundNotifyUrl],
+      ...(formalProtocol.transferNotifyUrl?[["transfer",formalProtocol.transferNotifyUrl]]:[])] as const)
+      if(!/^https:\/\/[^/?#]+\/v1\/payments\/wechat\/[a-z-]+$/.test(url)||
+        !url.endsWith(kind==="payment"?"/callback":`/${kind}-callback`))
+        throw new Error(`FAIL_CLOSED:COMMERCE_FORMAL_${kind.toUpperCase()}_NOTIFY_URL_INVALID`);
+  }
 
   return {
     env: appEnv,
@@ -216,7 +260,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
     adminApiToken: required("ADMIN_API_TOKEN", env.ADMIN_API_TOKEN),
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
-    wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null, phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null },
+    wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null,
+      phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null,
+      messageAesKey:env.WECHAT_MESSAGE_AES_KEY??null,plaintextCallbackTestOnly },
     objectStorage: {
       profile: env.OBJECT_STORAGE_PROFILE ?? null,
       driver: storageDriver,
@@ -249,6 +295,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       ...(simulatedPaymentEnabled?{simulatedPayment:{appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),
         merchantId:required("COMMERCE_SIMULATED_MERCHANT_ID",env.COMMERCE_SIMULATED_MERCHANT_ID),
         channelUrl:simulatedChannelUrl,...(transferSceneId?{transferSceneId}:{})}}:{})
+      ,...(formalProtocol?{formalProtocol}:{})
     }
   };
 }

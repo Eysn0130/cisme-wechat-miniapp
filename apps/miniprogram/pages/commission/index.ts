@@ -8,8 +8,10 @@ type Buckets={pendingCents:number;availableCents:number;paymentHeldCents:number;
 type MemberStatus={eligible:boolean;membershipState:string;expiresAt:string|null;directReferralCount:number;
   verifiedOrderCount:number;commission:Buckets;settlementAvailable:boolean};
 type RequestRow={id:string;amountCents:number;state:string;channelState:string|null;createdAt:string;
-  amountLabel?:string;stateLabel?:string;createdLabel?:string};
+  amountLabel?:string;stateLabel?:string;createdLabel?:string;canConfirm?:boolean};
 type RequestPage={items:RequestRow[];totalCount:number;nextCursor:string|null};
+type TransferConfirmation={requestId:string;state:"WAIT_USER_CONFIRM";appId:string;mchId:string;
+  package:string;simulation:true};
 const stateNames:Record<string,string>={requested:"待独立复核",reserved:"金额已预占",unknown:"渠道结果待核对",
   processing:"渠道处理中",succeeded:"渠道已确认付款",failed:"未付款",cancelled:"已取消",rejected:"未通过"};
 const problem=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
@@ -60,6 +62,7 @@ Page({
       const seen=new Set(cursor?this.data.requests.map(row=>row.id):[]);
       const rows=page.items.filter(row=>!seen.has(row.id)).map(row=>({...row,
         amountLabel:centsToYuan(row.amountCents),stateLabel:stateNames[row.state]??row.state,
+        canConfirm:row.state==="processing"&&row.channelState==="WAIT_USER_CONFIRM",
         createdLabel:new Date(row.createdAt).toLocaleString("zh-CN",{hour12:false})}));
       this.setData({requests:[...(cursor?this.data.requests:[]),...rows],totalCount:page.totalCount,
         nextCursor:page.nextCursor,loadingMore:false});
@@ -68,6 +71,30 @@ Page({
   more(){const cursor=this.data.nextCursor;
     if(cursor&&!this.data.loadingMore)void this.loadRequests(this.data.epoch,getApp<IAppOption>().globalData.sessionToken,cursor);},
   retryList(){void this.loadRequests(this.data.epoch,getApp<IAppOption>().globalData.sessionToken);},
+  async confirmReceipt(event:WechatMiniprogram.BaseEvent){
+    const id=event.currentTarget.dataset.id as string;
+    if(this.data.busy||!this.data.isolatedTransfer||!this.data.requests.some(row=>row.id===id&&row.canConfirm))return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    let launched=false;
+    this.setData({busy:true,actionError:"",actionStatus:""});
+    try{
+      if(!wx.canIUse("requestMerchantTransfer")){
+        this.setData({actionError:"当前微信版本不支持确认收款，请更新微信后再试。"});return;
+      }
+      const confirmation=await request<TransferConfirmation>({path:`/v1/me/commission/settlement-requests/${id}/confirmation`});
+      if(!this.current(epoch,token))return;
+      if(confirmation.state!=="WAIT_USER_CONFIRM"||confirmation.appId!==wx.getAccountInfoSync().miniProgram.appId){
+        this.setData({actionError:"收款确认的原单或小程序身份不匹配，请刷新后联系管理员核对。"});return;
+      }
+      launched=true;
+      wx.requestMerchantTransfer({mchId:confirmation.mchId,appId:confirmation.appId,
+        package:confirmation.package,
+        success:()=>{if(this.current(epoch,token))this.setData({actionStatus:"已打开收款确认页；是否到账仍以渠道查单为准。"});},
+        fail:()=>{if(this.current(epoch,token))this.setData({actionError:"确认页未完成或已取消，可刷新原单后重试。"});},
+        complete:()=>{if(this.current(epoch,token)){this.setData({busy:false});void this.loadRequests(epoch,token);}}});
+    }catch(error){launched=false;if(this.current(epoch,token))this.setData({actionError:problem(error,"原转账单暂不可确认，请稍后刷新。")});}
+    finally{if(!launched&&this.current(epoch,token))this.setData({busy:false});}
+  },
   showForm(){if(this.data.isolatedTransfer&&this.data.status?.commission.availableCents&&
       !this.data.busy)this.setData({formVisible:true,actionError:"",actionStatus:""});},
   closeForm(){if(!this.data.busy)this.setData({formVisible:false,actionError:""});},

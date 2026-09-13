@@ -58,6 +58,11 @@ function money(value: string | number): number {
   if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > MAX_TOTAL_CENTS) throw new DomainError("COMMERCE_MONEY_INVALID", "Order amount is outside the supported range", 500);
   return parsed;
 }
+function supportedCheckoutFields(input:Record<string,unknown>,allowed:readonly string[]):void{
+  if(Object.keys(input).some(field=>!allowed.includes(field)))
+    throw new DomainError("COMMERCE_TENDER_UNSUPPORTED",
+      "当前报价尚不支持优惠券、积分或购物权益等额外支付组成，请移除后重新确认",422);
+}
 function member(memberId: string | undefined): string {
   if (!memberId) throw new DomainError("AUTH_REQUIRED", "请先登录后继续", 401);
   return memberId;
@@ -132,6 +137,7 @@ export class CommerceOrderService {
 
   async quote(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, now = new Date()) {
     this.requireEnabled(); const owner = member(memberId); const actor = principal(principalId); const idempotencyKey = key(keyInput);
+    supportedCheckoutFields(input,["skuId","quantity","addressId","addressVersion"]);
     const normalized = { skuId: uuid(input.skuId, "SKU_ID_INVALID"), quantity: integer(input.quantity, "ORDER_QUANTITY_INVALID", 1, 99),
       addressId: uuid(input.addressId, "DELIVERY_ADDRESS_NOT_FOUND"), addressVersion: version(input.addressVersion) };
     const requestHash = hash(normalized);
@@ -225,6 +231,7 @@ export class CommerceOrderService {
 
   async create(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {
     this.requireEnabled(); const owner = member(memberId); const actor = principal(principalId); const idempotencyKey = key(keyInput);
+    supportedCheckoutFields(input,["quoteId"]);
     const normalized = { quoteId: uuid(input.quoteId, "QUOTE_ID_INVALID") }; const requestHash = hash(normalized);
     return transaction(this.pool, async client => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`commerce-order:${owner}:${idempotencyKey}`]);

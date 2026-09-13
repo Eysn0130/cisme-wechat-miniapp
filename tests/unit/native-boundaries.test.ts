@@ -196,7 +196,7 @@ describe("native mini program boundary", () => {
     const expected: Record<string, string[]> = {
       account: ["back", "openLegalDocuments", "openCrossBorder", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
-      commission: ["back", "load", "showForm", "closeForm", "submit", "retryList", "more"],
+      commission: ["back", "load", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
       "community-compose": ["back", "retryLoad", "startNew", "openDraft", "deleteListDraft", "loadMoreList", "submitAppeal", "retryPreview", "toggleSorting", "chooseImages", "retryImage", "retryPreview", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],

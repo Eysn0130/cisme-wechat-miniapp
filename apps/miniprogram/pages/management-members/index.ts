@@ -3,7 +3,7 @@ import { authorityProjection, hasCapability, requireCapability } from "../../ser
 import { currentChromeStyle } from "../../services/layout";
 
 type MemberRow={id:string;displayName:string;accountStatus:string;membershipState:string;commercialEligible:boolean;expiresAt:string|null;referralCode:string|null;directReferralCount?:number};
-type RateProposal={id:string;memberId:string|null;displayName:string;action:"override"|"inherit";basisPoints:number|null;effectiveAt:string;createdBy:string;reason:string};
+type RateProposal={id:string;memberId:string|null;displayName:string;action:"override"|"inherit";basisPoints:number|null;effectiveAt:string;version:number;createdBy:string;reason:string};
 type GlobalRate={basisPoints:number|null;effectiveAt:string|null;serverTime:string;suggestedEffectiveAt:string;policyKind:string;paymentAvailable:boolean};
 type RateForm={percent:string;date:string;time:string;reason:string};
 const rateDateParts=(value:string)=>{const date=new Date(value),pad=(n:number)=>String(n).padStart(2,"0");
@@ -12,9 +12,11 @@ const dateLabel=(value:string|null)=>value?new Date(value).toLocaleDateString("z
 
 Page({
   globalRateCommand:null as null|{key:string;basisPoints:number;effectiveAt:string;reason:string},
+  rateDecisionCommand:null as null|{id:string;key:string;decision:"active"|"rejected";expectedVersion:number;reason:string},
   data:{chromeStyle:currentChromeStyle(),q:"",appliedQuery:"",filter:"all",filters:[{id:"all",label:"全部"},{id:"members",label:"会员"},{id:"ordinary",label:"普通用户"}],summary:{all:0,members:0,ordinary:0},items:[] as Array<MemberRow&{initial:string}>,pending:[] as Array<RateProposal&{rateLabel:string}>,canApprove:false,canReadCommission:false,
     canManageRate:false,globalRate:null as GlobalRate|null,globalRateLabel:"",globalRateError:"",globalRateStatus:"",globalRateFormVisible:false,
-    globalRateForm:{percent:"",date:"",time:"",reason:""} as RateForm,globalRateBusy:false,pendingVisible:false,
+    globalRateForm:{percent:"",date:"",time:"",reason:""} as RateForm,rateOptions:["20%","25%","30%","35%"],globalRateFormIndex:0,
+    globalRateBusy:false,pendingVisible:false,
     matchingTotal:0,loadedCount:0,nextCursor:null as string|null,loadingMore:false,moreError:"",
     pendingTotal:0,pendingCursor:null as string|null,pendingLoadingMore:false,pendingMoreError:"",
     loading:true,reviewBusy:false,navigating:false,attempt:0,alive:true,error:"",reviewError:""},
@@ -95,12 +97,15 @@ Page({
   openGlobalRateForm(){if(!this.data.canManageRate||!this.data.globalRate||this.data.globalRateBusy)return;
     if(this.globalRateCommand){void this.sendGlobalRateCommand();return;}
     const when=rateDateParts(this.data.globalRate.suggestedEffectiveAt);
-    this.setData({globalRateFormVisible:true,globalRateForm:{percent:String((this.data.globalRate.basisPoints??2000)/100),
+    const current=[2000,2500,3000,3500].indexOf(this.data.globalRate.basisPoints??2000);
+    this.setData({globalRateFormVisible:true,globalRateFormIndex:Math.max(0,current),globalRateForm:{percent:String([20,25,30,35][Math.max(0,current)]),
       date:when.date,time:when.time,reason:""},globalRateError:"",globalRateStatus:""});
   },
   closeGlobalRateForm(){if(this.data.globalRateBusy||this.globalRateCommand)return;
     this.setData({globalRateFormVisible:false,globalRateError:""});},
-  editGlobalPercent(event:WechatMiniprogram.Input){this.setData({globalRateForm:{...this.data.globalRateForm,percent:event.detail.value}});},
+  selectGlobalRate(event:WechatMiniprogram.PickerChange){const index=Number(event.detail.value);
+    if(!Number.isInteger(index)||index<0||index>3)return;
+    this.setData({globalRateFormIndex:index,globalRateForm:{...this.data.globalRateForm,percent:String([20,25,30,35][index])}});},
   editGlobalReason(event:WechatMiniprogram.Input){this.setData({globalRateForm:{...this.data.globalRateForm,reason:event.detail.value}});},
   changeGlobalDate(event:WechatMiniprogram.PickerChange){this.setData({globalRateForm:{...this.data.globalRateForm,date:String(event.detail.value)}});},
   changeGlobalTime(event:WechatMiniprogram.PickerChange){this.setData({globalRateForm:{...this.data.globalRateForm,time:String(event.detail.value)}});},
@@ -108,7 +113,7 @@ Page({
     if(this.globalRateCommand){void this.sendGlobalRateCommand();return;}
     const form=this.data.globalRateForm,parts=/^(\d{2})(?:\.(\d{1,2}))?$/.exec(form.percent.trim());
     const basisPoints=parts?Number(parts[1])*100+Number((parts[2]||"").padEnd(2,"0")):NaN,reason=form.reason.trim();
-    if(!Number.isInteger(basisPoints)||basisPoints<2000||basisPoints>3500){this.setData({globalRateError:"费率须在 20%–35% 之间，最多两位小数。"});return;}
+    if(![2000,2500,3000,3500].includes(basisPoints)){this.setData({globalRateError:"请选择 20%、25%、30% 或 35%。"});return;}
     if(reason.length<4||reason.length>300){this.setData({globalRateError:"请填写 4–300 字的变更依据。"});return;}
     const effective=new Date(`${form.date}T${form.time}:00`);
     if(!Number.isFinite(effective.getTime())){this.setData({globalRateError:"请选择有效的生效日期和时间。"});return;}
@@ -145,14 +150,24 @@ Page({
     const attempt=this.data.attempt,token=getApp<IAppOption>().globalData.sessionToken;
     const current=()=>this.data.alive&&attempt===this.data.attempt&&token===getApp<IAppOption>().globalData.sessionToken&&
       this.data.canApprove&&this.data.pending.some(row=>row.id===id&&row.memberId===item.memberId&&row.basisPoints===item.basisPoints);
-    const modal=await wx.showModal({title:decision==="active"?"批准费率提议？":"退回费率提议？",
-      content:`${item.displayName} · ${item.rateLabel}\n计划生效 ${dateLabel(item.effectiveAt)}\n${item.reason}\n由另一名授权管理者复核，仅影响生效后的新订单。`,confirmText:decision==="active"?"批准":"退回"});
-    if(!modal.confirm||!current())return;
+    let command=this.rateDecisionCommand;
+    if(!command||command.id!==id||command.decision!==decision){
+      const modal=await wx.showModal({title:decision==="active"?"批准费率提议？":"退回费率提议？",
+        content:`${item.displayName} · ${item.rateLabel}\n拟定生效 ${dateLabel(item.effectiveAt)}；批准后不早于下一个上海午夜。\n${item.reason}\n请填写本次复核依据。`,
+        editable:true,placeholderText:"至少 4 字的独立复核依据",confirmText:decision==="active"?"批准":"退回"});
+      if(!modal.confirm||!current())return;
+      const why=(modal.content||"").trim();
+      if(why.length<4||why.length>300){this.setData({reviewError:"请填写 4–300 字的复核依据。"});return;}
+      command={id,key:`rate-decision-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,12)}`,
+        decision:decision as "active"|"rejected",expectedVersion:item.version,reason:why};
+      this.rateDecisionCommand=command;
+    }
     this.setData({reviewBusy:true,reviewError:""});
     try{if(!current())return;
-      await request({path:`/v1/management/commission-rates/${id}/decision`,method:"POST",data:{decision}});
-      if(current()){this.setData({reviewBusy:false});await this.load();}}
-    catch(error){if(current())this.setData({reviewError:(error as {title?:string}).title||"费率处理未确认，请刷新后核对。"});}
+      await request({path:`/v1/management/commission-rates/${id}/decision`,method:"POST",idempotencyKey:command.key,
+        data:{decision:command.decision,expectedVersion:command.expectedVersion,reason:command.reason}});
+      if(current()){this.rateDecisionCommand=null;this.setData({reviewBusy:false});await this.load();}}
+    catch(error){if(current())this.setData({reviewError:(error as {title?:string}).title||"结果暂不确定，请重试同一复核编号或刷新核对。"});}
     finally{if(current())this.setData({reviewBusy:false});}
   },
   async refreshAuthority(){const projection=await authorityProjection().catch(()=>null);if(!projection||!hasCapability(projection,"member.profile.read"))return;void this.load();},

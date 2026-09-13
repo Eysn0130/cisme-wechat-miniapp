@@ -39,8 +39,10 @@ beforeAll(async()=>{
       confirmation_key,confirmed_by,confirmed_at) VALUES($1,$2,$3,$4,'fixture',now()+$5*interval '1 microsecond')`,
       [members.rows[i]!.id,sponsor.memberId,code,`paged-referral-${i+1}`,i+1]);
   }
-  await pool.query(`INSERT INTO commission_rate_rule(member_id,basis_points,state,effective_at,created_by,reason,created_at)
-    SELECT NULL,2200,'proposed',now()+interval '2 days','fixture-'||n,'pagination fixture',now()+n*interval '1 microsecond'
+  await pool.query(`INSERT INTO commission_rate_rule(member_id,basis_points,state,effective_at,proposed_effective_at,
+    rule_version,created_by,reason,created_at)
+    SELECT NULL,2200,'proposed',now()+interval '2 days',now()+interval '2 days',
+      'legacy-v1','fixture-'||n,'pagination fixture',now()+n*interval '1 microsecond'
     FROM generate_series(1,31) n`);
 });
 afterAll(async()=>{await app?.close();await pool.end();});

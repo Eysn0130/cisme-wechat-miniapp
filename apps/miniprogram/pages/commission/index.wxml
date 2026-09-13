@@ -25,7 +25,7 @@
         <view wx:if="{{actionStatus}}" class="state">{{actionStatus}}</view>
         <view wx:if="{{actionError}}" class="state state--error">{{actionError}}</view>
         <view class="commission-history"><strong>申请记录</strong><text>共 {{totalCount}} 项</text></view>
-        <view wx:for="{{requests}}" wx:key="id" class="commission-request"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.stateLabel}}</text></view><small>{{item.createdLabel}}</small></view>
+        <view wx:for="{{requests}}" wx:key="id" class="commission-request"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.stateLabel}}</text></view><small>{{item.createdLabel}}</small><button wx:if="{{item.canConfirm}}" class="secondary commission-request__confirm {{busy?'secondary--disabled':''}}" data-id="{{item.id}}" bindtap="confirmReceipt" disabled="{{busy}}">打开微信确认收款</button></view>
         <view wx:if="{{listError}}" class="state state--error"><text class="state-error__copy">{{listError}}</text><button class="text-button state-error__action" bindtap="retryList">重试</button></view>
         <button wx:if="{{nextCursor}}" class="secondary {{loadingMore?'secondary--disabled':''}}" bindtap="more" disabled="{{loadingMore}}" loading="{{loadingMore}}">加载更多</button>
       </view>

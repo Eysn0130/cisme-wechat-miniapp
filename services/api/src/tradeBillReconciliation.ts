@@ -8,11 +8,11 @@ import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.j
 type BillType="SUCCESS"|"REFUND";
 type BillRow={rowNumber:number;outTradeNo:string;outRefundNo:string|null;providerNo:string;
   amountCents:number;cashRefundCents:number|null;merchantId:string;appId:string;
-  payerOpenid:string;currency:string;couponCents:number};
+  payerOpenid:string;currency:string;couponCents:number;refundRequestedAt:string|null};
 type Checked=BillRow&{status:"matched"|"exception";exceptionCode:string|null;relatedId:string|null};
 const columns={trade:"商户订单号",refund:"商户退款单号",merchant:"商户号",provider:"微信订单号",
   providerRefund:"微信退款单号",amount:"订单金额",refundAmount:"申请退款金额",
-  cashRefund:"退款金额",currency:"货币种类",app:"公众账号ID",payer:"用户标识",coupon:"代金券金额"};
+  cashRefund:"退款金额",refundRequestedAt:"退款申请时间",currency:"货币种类",app:"公众账号ID",payer:"用户标识",coupon:"代金券金额"};
 function invalid(message:string):never{throw new DomainError("TRADE_BILL_INVALID",message,422);}
 function cents(raw:string){
   if(!/^\d{1,8}\.\d{2}$/.test(raw))invalid("账单金额必须是两位小数的人民币元");
@@ -47,7 +47,7 @@ export function parseTradeBill(bytes:Uint8Array,type:BillType):BillRow[]{
   const header=all[headerIndex]!;
   const required=[columns.trade,columns.merchant,columns.currency,
     ...(type==="SUCCESS"?[columns.provider,columns.amount,columns.app,columns.payer]:
-      [columns.refund,columns.providerRefund,columns.refundAmount,columns.cashRefund])];
+      [columns.refund,columns.providerRefund,columns.refundAmount,columns.cashRefund,columns.refundRequestedAt])];
   for(const name of required)if(!header.includes(name))invalid(`交易账单缺少字段：${name}`);
   const value=(row:string[],name:string)=>row[header.indexOf(name)]??"";
   const items:BillRow[]=[];
@@ -61,11 +61,18 @@ export function parseTradeBill(bytes:Uint8Array,type:BillType):BillRow[]{
       (refund!==null&&!/^[A-Za-z0-9_-]{8,64}$/.test(refund))||
       !/^[A-Za-z0-9_-]{8,200}$/.test(provider)||amount<1||amount>9_900_000_000)
       invalid("交易账单商户单号、渠道单号或金额无效");
+    const requested=type==="REFUND"?value(row,columns.refundRequestedAt):null;
+    if(type==="REFUND"){
+      const utc=/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(requested!)
+        ?Date.parse(`${requested!.replace(" ","T")}+08:00`):NaN;
+      if(!Number.isFinite(utc)||new Date(utc+8*3_600_000).toISOString().slice(0,19)
+        .replace("T"," ")!==requested)invalid("退款账单缺少有效的渠道受理时间");
+    }
     items.push({rowNumber:items.length+1,outTradeNo:trade,outRefundNo:refund,providerNo:provider,
       amountCents:amount,cashRefundCents:type==="REFUND"?cents(value(row,columns.cashRefund)):null,
       merchantId:value(row,columns.merchant),appId:value(row,columns.app),payerOpenid:value(row,columns.payer),
-      currency:value(row,columns.currency),couponCents:header.includes(columns.coupon)
-        ?cents(value(row,columns.coupon)):0});
+      currency:value(row,columns.currency),refundRequestedAt:requested,
+      couponCents:header.includes(columns.coupon)?cents(value(row,columns.coupon)):0});
     if(items.length>10000)invalid("交易账单超过单次可核对行数");
   }
   return items;
@@ -113,15 +120,20 @@ export class TradeBillReconciliationService{
       const refundNos=[...new Set(rows.map(row=>row.outRefundNo).filter((no):no is string=>Boolean(no)))];
       const paymentRows=(await client.query(`SELECT DISTINCT ON (a.out_trade_no) a.order_id AS id,
         a.out_trade_no,a.merchant_id,a.app_id,a.payer_openid,a.amount_cents,o.status,
-        p.provider_transaction_id,p.state AS inbox_state
+        p.provider_transaction_id,p.state AS inbox_state,
+        EXISTS(SELECT 1 FROM commission_payment_composition_observation c
+          WHERE c.order_id=a.order_id) AS composition_conflict
         FROM commerce_payment_attempt a JOIN commerce_order o ON o.id=a.order_id
-        LEFT JOIN commission_payment_inbox p ON p.order_id=a.order_id AND p.state='applied'
+        LEFT JOIN commission_payment_inbox p ON p.order_id=a.order_id
         WHERE a.out_trade_no=ANY($1::text[]) ORDER BY a.out_trade_no,p.applied_at DESC NULLS LAST`,[tradeNos])).rows;
       const refundRows=refundNos.length?(await client.query(`SELECT i.id,i.out_refund_no,i.refund_cents,
-        i.payer_refund_cents,o.order_number,p.provider_refund_id,p.state AS inbox_state
+        i.payer_refund_cents,o.order_number,ob.provider_refund_id,ob.accepted_local,
+        ob.conflicting AS acceptance_conflict
         FROM commission_refund_intent i JOIN commerce_order o ON o.id=i.order_id
-        LEFT JOIN LATERAL (SELECT provider_refund_id,state FROM commission_refund_inbox
-          WHERE refund_intent_id=i.id ORDER BY received_at DESC,id DESC LIMIT 1) p ON true
+        LEFT JOIN LATERAL (SELECT min(provider_refund_id) AS provider_refund_id,
+          to_char(min(accepted_at) AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD HH24:MI:SS') AS accepted_local,
+          count(DISTINCT (provider_refund_id,accepted_at))>1 AS conflicting
+          FROM commission_refund_channel_observation WHERE refund_intent_id=i.id) ob ON true
         WHERE i.out_refund_no=ANY($1::text[])`,[refundNos])).rows:[];
       const payments=new Map(paymentRows.map(row=>[row.out_trade_no,row]));
       const refunds=new Map(refundRows.map(row=>[row.out_refund_no,row]));
@@ -138,27 +150,32 @@ export class TradeBillReconciliationService{
           if(!code&&(found.merchant_id!==row.merchantId||found.app_id!==row.appId||
             found.payer_openid!==row.payerOpenid||Number(found.amount_cents)!==row.amountCents||
             found.provider_transaction_id!==row.providerNo))code="PAYMENT_FACT_MISMATCH";
+          if(!code&&found.composition_conflict)code="PAYMENT_COMPOSITION_CONFLICT";
           if(!code&&(found.status!=="paid"||found.inbox_state!=="applied"))code="PAYMENT_NOT_APPLIED";
         }else{
           const found=refunds.get(row.outRefundNo!);relatedId=found?.id??null;
           if(!code&&!found)code="REFUND_MISSING_INTERNAL";
+          if(!code&&found.acceptance_conflict)code="REFUND_ACCEPTANCE_CONFLICT";
+          if(!code&&!found.accepted_local)code="REFUND_ACCEPTANCE_UNVERIFIED";
           if(!code&&(found.order_number!==row.outTradeNo||
             Number(found.refund_cents)!==row.amountCents||
             Number(found.payer_refund_cents)!==row.cashRefundCents||
-            !found.provider_refund_id||found.provider_refund_id!==row.providerNo))code="REFUND_FACT_MISMATCH";
+            found.provider_refund_id!==row.providerNo))code="REFUND_FACT_MISMATCH";
+          if(!code&&(found.accepted_local!==row.refundRequestedAt||row.refundRequestedAt?.slice(0,10)!==date))
+            code="REFUND_ACCEPTANCE_TIME_MISMATCH";
         }
         return {...row,status:code?"exception":"matched",exceptionCode:code,relatedId};
       });
       if(type==="SUCCESS"){
         // A provider-only comparison can falsely clear an empty signed bill.
-        // Include applied internal payments whose channel success date belongs
-        // to this merchant's Beijing-calendar bill day.
+        // Include *every authenticated* payment fact, including quarantined
+        // coupon/unknown-composition and late-closed payments. Otherwise an
+        // empty channel bill could falsely clear a real but unposted receipt.
         const internal=(await client.query<{order_id:string;out_trade_no:string;provider_transaction_id:string;
           app_id:string;payer_openid:string;amount_cents:string}>(`SELECT p.order_id,a.out_trade_no,p.provider_transaction_id,
           a.app_id,a.payer_openid,p.amount_cents FROM commission_payment_inbox p
           JOIN commerce_payment_attempt a ON a.order_id=p.order_id
-          JOIN commerce_order o ON o.id=p.order_id AND o.status='paid'
-          WHERE p.state='applied' AND p.merchant_id=$1
+          WHERE p.merchant_id=$1
             AND (p.verified_paid_at AT TIME ZONE 'Asia/Shanghai')::date=$2::date`,
           [this.merchantId,date])).rows;
         const present=new Set(rows.map(row=>row.outTradeNo));
@@ -168,7 +185,32 @@ export class TradeBillReconciliationService{
           checked.push({rowNumber:checked.length+1,outTradeNo:fact.out_trade_no,outRefundNo:null,
             providerNo:fact.provider_transaction_id,amountCents:Number(fact.amount_cents),cashRefundCents:null,
             merchantId:this.merchantId,appId:fact.app_id,payerOpenid:fact.payer_openid,currency:"CNY",
-            couponCents:0,status:"exception",exceptionCode:"PAYMENT_MISSING_PROVIDER_BILL",relatedId:fact.order_id});
+            couponCents:0,refundRequestedAt:null,status:"exception",exceptionCode:"PAYMENT_MISSING_PROVIDER_BILL",relatedId:fact.order_id});
+        }
+      }else{
+        // The REFUND trade bill is dated by merchant refund acceptance, NOT
+        // by final SUCCESS/arrival to the payer. Only signed channel responses
+        // with an unambiguous create_time can support the reverse direction.
+        const internal=(await client.query<{id:string;out_refund_no:string;order_number:string;
+          provider_refund_id:string;refund_cents:string;payer_refund_cents:string}>(`SELECT
+          i.id,i.out_refund_no,o.order_number,min(ob.provider_refund_id) AS provider_refund_id,
+          i.refund_cents,i.payer_refund_cents
+          FROM commission_refund_intent i JOIN commerce_order o ON o.id=i.order_id
+          JOIN commission_payment_inbox p ON p.id=i.payment_inbox_id AND p.merchant_id=$1
+          JOIN commission_refund_channel_observation ob ON ob.refund_intent_id=i.id
+          WHERE (ob.accepted_at AT TIME ZONE 'Asia/Shanghai')::date=$2::date
+          GROUP BY i.id,o.order_number,i.out_refund_no,i.refund_cents,i.payer_refund_cents
+          HAVING count(DISTINCT (ob.provider_refund_id,ob.accepted_at))=1`,
+          [this.merchantId,date])).rows;
+        const present=new Set(rows.map(row=>row.outRefundNo));
+        for(const fact of internal){
+          if(present.has(fact.out_refund_no))continue;
+          if(checked.length>=10000)invalid("待核对的渠道及内部退款事实超过单批上限");
+          checked.push({rowNumber:checked.length+1,outTradeNo:fact.order_number,
+            outRefundNo:fact.out_refund_no,providerNo:fact.provider_refund_id,
+            amountCents:Number(fact.refund_cents),cashRefundCents:Number(fact.payer_refund_cents),
+            merchantId:this.merchantId,appId:"",payerOpenid:"",currency:"CNY",couponCents:0,
+            refundRequestedAt:null,status:"exception",exceptionCode:"REFUND_MISSING_PROVIDER_BILL",relatedId:fact.id});
         }
       }
       const matched=checked.filter(row=>row.status==="matched").length;

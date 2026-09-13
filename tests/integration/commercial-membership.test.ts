@@ -92,37 +92,72 @@ it("rejects invalid rates and enforces a separate approver",async()=>{
   const payload=(basisPoints:unknown)=>({memberId:a.memberId,basisPoints,effectiveAt,reason:"合成费率调整测试"});
   expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:auth(manager),payload:payload(3500)})).statusCode).toBe(403);
   await grant(manager,"commission.rate.manage");
-  for(const invalid of [1999,3501,20.5,"3500",null])expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",
+  for(const invalid of [1999,2100,2700,3400,3501,20.5,"3500",null])expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",
     headers:auth(manager),payload:payload(invalid)})).statusCode).toBe(422);
+  expect((await pool.query("SELECT rule_version FROM commission_rate_rule WHERE created_by='migration' LIMIT 1")).rows[0].rule_version)
+    .toBe("legacy-v1");
+  await expect(pool.query(`INSERT INTO commission_rate_rule(member_id,basis_points,state,effective_at,
+    proposed_effective_at,created_by,reason) VALUES($1,2200,'proposed',now()+interval '2 days',
+    now()+interval '2 days','fixture','新费率非法中间值')`,[a.memberId])).rejects.toMatchObject({code:"23514"});
   const rateHeaders={...auth(manager),"idempotency-key":"commercial-rate-proposal-0001"};
   const proposal=await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:rateHeaders,payload:payload(3500)});
   expect(proposal.statusCode).toBe(200);
   const replay=await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:rateHeaders,payload:payload(3500)});
   expect(replay.statusCode).toBe(200);expect(replay.json()).toMatchObject({id:proposal.json().id,alreadyCreated:true});
   expect((await app.inject({method:"GET",url:"/v1/management/commission-rates/by-request/commercial-rate-proposal-0001",headers:auth(manager)})).json().id).toBe(proposal.json().id);
-  expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:rateHeaders,payload:payload(3400)})).statusCode).toBe(409);
+  expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:rateHeaders,payload:payload(3000)})).statusCode).toBe(409);
   expect((await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
-    headers:auth(manager),payload:{decision:"active"}})).statusCode).toBe(403);
+    headers:{...auth(manager),"idempotency-key":"rate-self-approve-0001"},
+    payload:{decision:"active",expectedVersion:1,reason:"不可自行批准费率"}})).statusCode).toBe(403);
   await grant(checker,"commission.rate.approve");
   const approval=await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
-    headers:auth(checker),payload:{decision:"active"}});
+    headers:{...auth(checker),"idempotency-key":"rate-approval-0001"},
+    payload:{decision:"active",expectedVersion:1,reason:"独立批准会员费率"}});
   expect(approval.json()).toMatchObject({basis_points:3500,state:"active"});
+  expect(new Date(approval.json().effective_at).getTime()).toBeGreaterThan(new Date(effectiveAt).getTime());
   expect((await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
-    headers:auth(checker),payload:{decision:"active"}})).statusCode).toBe(409);
-  const lapsed=(await pool.query(`INSERT INTO commission_rate_rule(member_id,basis_points,state,effective_at,created_by,reason)
-    VALUES($1,2500,'proposed',now()-interval '1 hour',$2,'过期费率不能追溯批准') RETURNING id`,[a.memberId,manager.principalId])).rows[0].id;
+    headers:{...auth(checker),"idempotency-key":"rate-approval-0001"},
+    payload:{decision:"active",expectedVersion:1,reason:"独立批准会员费率"}})).json()).toMatchObject({alreadyDecided:true});
+  const lapsed=(await pool.query(`INSERT INTO commission_rate_rule(member_id,basis_points,state,effective_at,
+    proposed_effective_at,rule_version,created_by,reason)
+    VALUES($1,2500,'proposed',now()-interval '1 hour',now()-interval '1 hour','commercial-rate-v2',$2,'过期费率不能追溯批准') RETURNING id`,
+    [a.memberId,manager.principalId])).rows[0].id;
   const late=await app.inject({method:"POST",url:`/v1/management/commission-rates/${lapsed}/decision`,
-    headers:auth(checker),payload:{decision:"active"}});
-  expect(late.statusCode).toBe(409);expect(late.json().code).toBe("RATE_EFFECTIVE_LAPSED");
+    headers:{...auth(checker),"idempotency-key":"rate-late-approval-0001"},
+    payload:{decision:"active",expectedVersion:1,reason:"迟批顺延到上海次日"}});
+  expect(late.statusCode).toBe(200);
+  expect(new Date(late.json().effective_at).getTime()).toBeGreaterThan(Date.now());
+});
+
+it("persists only an audited, non-payable monthly candidate after the Shanghai 15th",async()=>{
+  const endpoint="/v1/management/commission/settlement-cycles/prepare";
+  const periodEnd=(await pool.query<{end:string}>(`SELECT
+    (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')-interval '1 month 1 day')::date::text AS "end"`)).rows[0]!.end;
+  expect((await app.inject({method:"POST",url:endpoint,headers:auth(a),payload:{periodEnd}})).statusCode).toBe(403);
+  await grant(checker,"commission.settlement.approve");
+  expect((await app.inject({method:"POST",url:endpoint,headers:auth(checker),
+    payload:{periodEnd:"2026-02-30"}})).statusCode).toBe(422);
+  const prepared=await app.inject({method:"POST",url:endpoint,headers:auth(checker),payload:{periodEnd}});
+  expect(prepared.statusCode).toBe(200);
+  expect(prepared.json()).toMatchObject({periodEnd,policyVersion:"engineering-monthly-15-v1",
+    thresholdCents:10000,state:"blocked_tax_and_payout_policy",payable:false,
+    withholdingPolicyVersion:null,netCents:null,replay:false,members:[]});
+  const replay=await app.inject({method:"POST",url:endpoint,headers:auth(checker),payload:{periodEnd}});
+  expect(replay.json()).toMatchObject({id:prepared.json().id,replay:true,members:[]});
+  const currentMonthEnd=(await pool.query<{end:string}>(`SELECT
+    (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')+interval '1 month - 1 day')::date::text AS "end"`)).rows[0]!.end;
+  const early=await app.inject({method:"POST",url:endpoint,headers:auth(checker),payload:{periodEnd:currentMonthEnd}});
+  expect(early.statusCode).toBe(409);expect(early.json().code).toBe("SETTLEMENT_CYCLE_TOO_EARLY");
+  expect((await pool.query(`SELECT count(*)::int AS n FROM commission_settlement_cycle`)).rows[0].n).toBe(1);
 });
 
 it("proposes global rates and member inheritance as audited separate approvals",async()=>{
   const effectiveAt=new Date(Date.now()+2*3600_000).toISOString();
   const global=await app.inject({method:"POST",url:"/v1/management/commission-rates",
     headers:{...auth(manager),"idempotency-key":"global-rate-proposal-0001"},
-    payload:{action:"override",basisPoints:2700,effectiveAt,reason:"调整工程全局默认费率"}});
+    payload:{action:"override",basisPoints:2500,effectiveAt,reason:"调整工程全局默认费率"}});
   expect(global.statusCode).toBe(200);
-  expect(global.json()).toMatchObject({action:"override",basis_points:2700,state:"proposed"});
+  expect(global.json()).toMatchObject({action:"override",basis_points:2500,state:"proposed"});
   const restored=await app.inject({method:"POST",url:"/v1/management/commission-rates",
     headers:{...auth(manager),"idempotency-key":"member-inherit-proposal-0001"},
     payload:{action:"inherit",memberId:a.memberId,effectiveAt,reason:"恢复会员继承全局费率"}});
@@ -137,10 +172,12 @@ it("proposes global rates and member inheritance as audited separate approvals",
     payload:{action:"inherit",basisPoints:2300,effectiveAt,reason:"无目标的继承操作无效"}})).statusCode).toBe(422);
   for(const proposal of [global,restored]){
     const self=await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
-      headers:auth(manager),payload:{decision:"active"}});
+      headers:{...auth(manager),"idempotency-key":`rate-self-${proposal.json().id}`},
+      payload:{decision:"active",expectedVersion:1,reason:"同一提议人不得批准"}});
     expect(self.statusCode).toBe(403);
     const approval=await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
-      headers:auth(checker),payload:{decision:"active"}});
+      headers:{...auth(checker),"idempotency-key":`rate-check-${proposal.json().id}`},
+      payload:{decision:"active",expectedVersion:1,reason:"独立复核新费率"}});
     expect(approval.statusCode).toBe(200);
     expect(approval.json().action).toBe(proposal.json().action);
   }
@@ -148,9 +185,9 @@ it("proposes global rates and member inheritance as audited separate approvals",
 
 it("uses the database clock for fixture renewal and never shortens an existing term",async()=>{
   const before=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
-  expect(before.membershipPolicy).toMatchObject({kind:"engineering_fixture",termDays:365});
+  expect(before.membershipPolicy).toMatchObject({kind:"engineering_calendar_v2",termMonths:12});
   const renewed=await app.inject({method:"POST",url:`/v1/management/members/${a.memberId}/membership`,headers:auth(manager),
-    payload:{state:"active",term:"engineering_365_day",expectedVersion:before.member.version,reason:"工程资格续期测试"}});
+    payload:{state:"active",term:"engineering_12_calendar_months",expectedVersion:before.member.version,reason:"工程资格续期测试"}});
   expect(renewed.statusCode).toBe(200);
   expect(new Date(renewed.json().expiresAt).getTime()).toBeGreaterThan(new Date(before.member.expiresAt).getTime());
   const shortened=await app.inject({method:"POST",url:`/v1/management/members/${a.memberId}/membership`,headers:auth(manager),
@@ -161,7 +198,7 @@ it("uses the database clock for fixture renewal and never shortens an existing t
   expect(suspended.statusCode).toBe(200);expect(suspended.json().expiresAt).toBe(renewed.json().expiresAt);
   expect((await app.inject({method:"GET",url:"/v1/me/commercial-membership",headers:auth(a)})).json().eligible).toBe(false);
   const resumed=await app.inject({method:"POST",url:`/v1/management/members/${a.memberId}/membership`,headers:auth(manager),
-    payload:{state:"active",term:"engineering_365_day",expectedVersion:suspended.json().version,reason:"恢复工程资格供后续测试"}});
+    payload:{state:"active",term:"engineering_12_calendar_months",expectedVersion:suspended.json().version,reason:"恢复工程资格供后续测试"}});
   expect(resumed.statusCode).toBe(200);
 });
 
@@ -178,6 +215,26 @@ it("does not present expired or blocked accounts as eligible commercial members"
   expect(list.summary.members).toBe(1);
   const detail=(await app.inject({method:"GET",url:`/v1/management/members/${b.memberId}`,headers:auth(manager)})).json();
   expect(detail.member).toMatchObject({membershipState:"active",commercialEligible:false});
+});
+
+it("renews twelve Shanghai calendar months at month ends without shortening lifetime grants",async()=>{
+  for(const [suffix,initial,expected] of [
+    ["january","2028-01-30T16:00:00.000Z","2029-01-30T16:00:00.000Z"],
+    ["leap","2028-02-28T16:00:00.000Z","2029-02-27T16:00:00.000Z"]
+  ]){
+    const target=await identity(`calendar-${suffix}`);
+    await pool.query(`INSERT INTO commercial_membership(member_id,state,effective_at,expires_at,changed_by,change_reason)
+      VALUES($1,'active',now(),$2,'fixture','历史资格供月末续期测试')`,[target.memberId,initial]);
+    const response=await app.inject({method:"POST",url:`/v1/management/members/${target.memberId}/membership`,headers:auth(manager),
+      payload:{state:"active",term:"engineering_12_calendar_months",expectedVersion:1,reason:"上海日历月续期回归"}});
+    expect(response.statusCode).toBe(200);expect(new Date(response.json().expiresAt).toISOString()).toBe(expected);
+  }
+  const lifetime=await identity("calendar-lifetime");
+  await pool.query(`INSERT INTO commercial_membership(member_id,state,effective_at,expires_at,changed_by,change_reason)
+    VALUES($1,'active',now(),NULL,'fixture','历史长期资格不可缩短')`,[lifetime.memberId]);
+  const response=await app.inject({method:"POST",url:`/v1/management/members/${lifetime.memberId}/membership`,headers:auth(manager),
+    payload:{state:"active",term:"engineering_12_calendar_months",expectedVersion:1,reason:"保护历史长期资格"}});
+  expect(response.statusCode).toBe(200);expect(response.json().expiresAt).toBeNull();
 });
 
 it("keeps unapproved commercial qualification and attribution writes closed outside engineering environments",async()=>{

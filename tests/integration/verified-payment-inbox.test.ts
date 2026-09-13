@@ -5,6 +5,8 @@ import { VerifiedPaymentInbox } from "../../services/api/src/verifiedPaymentInbo
 import { VerifiedRefundInbox } from "../../services/api/src/verifiedRefundInbox";
 import { expirePendingOrders } from "../../services/api/src/commerceOrders";
 import { recordMoneyInboxFailure, redriveQuarantinedMoneyInbox } from "../../services/api/src/moneyInboxRetry";
+import { SettlementCycleService } from "../../services/api/src/settlementCycle";
+import { AuthorityService } from "../../services/api/src/authority";
 
 const pool=testPool();
 const platform=generateKeyPairSync("rsa",{modulusLength:2048});
@@ -16,9 +18,9 @@ const refunds=new VerifiedRefundInbox(pool,{merchantId,apiV3Key,
   platformKeys:new Map([["PUB_KEY_ID_3000000001",publicPem]])});
 let buyer:string,referrer:string,sku:string,product:string,codeId:string,ruleId:string,addressId:string;
 
-async function seedOrder(suffix:string,commissionBasis:number|null=10000){
+async function seedOrder(suffix:string,commissionBasis:number|null=10000,createdAt=new Date()){
   const quoteId=randomUUID(),orderId=randomUUID(),number=`CM20260912${suffix.padStart(12,"0")}`;
-  const now=new Date(),expires=new Date(now.getTime()+60*60_000);
+  const now=createdAt,expires=new Date(now.getTime()+60*60_000);
   await pool.query(`INSERT INTO commerce_checkout_quote(id,member_id,product_id,sku_id,address_id,address_version,
     quantity,currency,unit_price_cents,subtotal_cents,member_discount_cents,shipping_cents,total_cents,
     pricing_rule_version,product_version,sku_version,price_version,status,idempotency_key,request_hash,
@@ -41,14 +43,16 @@ async function seedOrder(suffix:string,commissionBasis:number|null=10000){
     VALUES($1,$2,1,$3)`,[orderId,sku,expires]);
   await pool.query(`UPDATE catalog_inventory_level SET reserved_quantity=reserved_quantity+1 WHERE sku_id=$1`,[sku]);
   if(commissionBasis!==null)await pool.query(`INSERT INTO commission_order_snapshot(order_id,buyer_member_id,referrer_member_id,
-    referral_code_id,rate_rule_id,basis_points,cash_merchandise_cents,source_kind)
-    VALUES($1,$2,$3,$4,$5,2000,$6,'verified_commerce')`,[orderId,buyer,referrer,codeId,ruleId,commissionBasis]);
+    referral_code_id,rate_rule_id,basis_points,cash_merchandise_cents,source_kind,created_at)
+    VALUES($1,$2,$3,$4,$5,2000,$6,'verified_commerce',$7)`,[orderId,buyer,referrer,codeId,ruleId,commissionBasis,now]);
   return {id:orderId,number,createdAt:now,expiresAt:expires};
 }
-function notification(orderNumber:string,transactionId:string,eventId:string,successTime:string){
+function notification(orderNumber:string,transactionId:string,eventId:string,successTime:string,
+  payerTotal=10000){
   const transaction={appid:appId,mchid:merchantId,out_trade_no:orderNumber,
     transaction_id:transactionId,trade_type:"JSAPI",trade_state:"SUCCESS",success_time:successTime,
-    amount:{total:10000,currency:"CNY"},payer:{openid:"verified-buyer-openid"}};
+    amount:{total:10000,payer_total:payerTotal,currency:"CNY",payer_currency:"CNY"},
+    payer:{openid:"verified-buyer-openid"}};
   const nonce="0123456789ab",associated="transaction";
   const cipher=createCipheriv("aes-256-gcm",Buffer.from(apiV3Key),Buffer.from(nonce));
   cipher.setAAD(Buffer.from(associated));
@@ -331,4 +335,75 @@ it("also skips twenty delayed refund facts and applies a later signed refund onc
   expect(await restarted.processPending(20)).toEqual([{id:ids[20],state:"applied"}]);
   expect(await refunds.processPending(20)).toEqual([]);
   expect((await pool.query("SELECT count(*)::int AS n FROM commission_refund_inbox WHERE refund_intent_id=(SELECT id FROM commission_refund_intent WHERE out_refund_no='RF-PAGED-0021') AND state='applied'")).rows[0].n).toBe(1);
+});
+
+it("carries sub-threshold released sources into a later non-payable monthly candidate",async()=>{
+  const dates=(await pool.query<{earlier:string;later:string;created:Date;early_release:Date;late_release:Date}>(`SELECT
+    (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')-interval '2 months 1 day')::date::text AS earlier,
+    (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')-interval '1 month 1 day')::date::text AS later,
+    (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')-interval '4 months') AT TIME ZONE 'Asia/Shanghai' AS created,
+    (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')-interval '3 months'+interval '15 days') AT TIME ZONE 'Asia/Shanghai' AS early_release,
+    (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')-interval '2 months'+interval '15 days') AT TIME ZONE 'Asia/Shanghai' AS late_release`)).rows[0]!;
+  const operator=(await pool.query("INSERT INTO member(display_name) VALUES('Cycle reviewer fixture') RETURNING id")).rows[0].id;
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commission.settlement.approve','fixture','Cycle snapshot fixture','test','integration_fixture')`,[operator]);
+  await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+10 WHERE sku_id=$1`,[sku]);
+  const cycles=new SettlementCycleService(pool,new AuthorityService(pool,"test"),"test");
+  for(let index=0;index<5;index++){
+    const order=await seedOrder(String(100+index),10000,dates.created);
+    const event=notification(order.number,`cycle-transaction-${index}-00001`,
+      `cycle-notification-${index}-00001`,new Date(order.createdAt.getTime()+1000).toISOString());
+    const received=await processor.receive(event.rawBody,event.headers);
+    expect(await processor.processOne(received.inboxId)).toBe("applied");
+    const releasedAt=index===4?dates.late_release:dates.early_release;
+    const attestation=(await pool.query<{id:string}>(`INSERT INTO commerce_fulfillment_attestation
+      (order_id,source_kind,source_reference,evidence_sha256,request_key,request_hash,delivered_at,
+        release_policy_version,proposed_by_member_id,reviewed_by_member_id,decision_key,decision_hash,
+        decision_reason,state,version,decided_at)
+      VALUES($1,'isolated_manual_fixture',$2,$3,$4,$5,$6,'isolated-delivery-v1',
+        $7,$8,$9,$10,'合成履约复核','verified',2,$11) RETURNING id`,
+      [order.id,`cycle-delivery-${index}-001`,"a".repeat(64),`cycle-release-${index}-001`,
+        "b".repeat(64),new Date(releasedAt.getTime()-8*86_400_000),operator,buyer,
+        `cycle-decision-${index}-001`,"c".repeat(64),releasedAt])).rows[0]!.id;
+    await pool.query(`INSERT INTO commission_ledger_entry
+      (order_id,referrer_member_id,event_key,kind,amount_cents,source_fact_id,actor_principal_id,occurred_at)
+      VALUES($1,$2,$3,'release',2000,$4,'fixture:verified-release',$5)`,
+      [order.id,referrer,`cycle-release-ledger-${index}-001`,attestation,releasedAt]);
+  }
+  const earlier=await cycles.prepare(operator,dates.earlier);
+  expect(earlier.members).toEqual([]);
+  const later=await cycles.prepare(operator,dates.later);
+  expect(later).toMatchObject({payable:false,state:"blocked_tax_and_payout_policy",
+    members:[{memberId:referrer,grossCents:10000,orderCount:5,withholdingCents:null,netCents:null}]});
+  expect((await pool.query(`SELECT count(*)::int AS n FROM commission_settlement_cycle_candidate
+    WHERE cycle_id=$1`,[later.id])).rows[0].n).toBe(5);
+  await expect(pool.query(`UPDATE commission_settlement_cycle_candidate SET gross_cents=1 WHERE cycle_id=$1`,
+    [later.id])).rejects.toMatchObject({code:"55000"});
+});
+
+it("preserves discounted signed channel payment without posting unsupported cash commission",async()=>{
+  const order=await seedOrder("105"),transactionId="420000000000000000000150";
+  const paidAt=new Date(order.createdAt.getTime()+1000).toISOString();
+  const discounted=notification(order.number,transactionId,"EV-20260912-COUPON-0150",paidAt,9000);
+  const received=await processor.receive(discounted.rawBody,discounted.headers);
+  expect(received).toMatchObject({persisted:true,state:"pending"});
+  expect(await processor.processOne(received.inboxId)).toBe("exception");
+  expect((await pool.query(`SELECT amount_cents,payer_total_cents,composition_status,exception_code
+    FROM commission_payment_inbox WHERE id=$1`,[received.inboxId])).rows[0]).toMatchObject({
+    amount_cents:"10000",payer_total_cents:"9000",composition_status:"unknown_or_discounted",
+    exception_code:"PAYMENT_COMPOSITION_UNSUPPORTED"});
+  expect((await pool.query(`SELECT status FROM commerce_order WHERE id=$1`,[order.id])).rows[0].status)
+    .toBe("pending_payment");
+  expect((await pool.query(`SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1`,
+    [order.id])).rows[0].n).toBe(0);
+  // A later differently-composed signed observation remains immutable and
+  // explicitly requires finance reconciliation; it cannot auto-clear the hold.
+  const followUp=notification(order.number,transactionId,"EV-20260912-QUERY-0150",paidAt);
+  expect(await processor.receive(followUp.rawBody,followUp.headers))
+    .toMatchObject({persisted:true,inboxId:received.inboxId,state:"exception"});
+  expect((await pool.query(`SELECT composition_status,payer_total_cents FROM
+    commission_payment_composition_observation WHERE order_id=$1`,[order.id])).rows[0])
+    .toMatchObject({composition_status:"full_cash",payer_total_cents:"10000"});
+  expect((await pool.query(`SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1`,
+    [order.id])).rows[0].n).toBe(0);
 });

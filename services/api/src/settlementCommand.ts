@@ -13,7 +13,7 @@ type Row={id:string;member_id:string;requested_by_member_id:string;idempotency_k
   request_hash:string;amount_cents:string;state:string;version:number;approved_by_member_id:string|null;
   decision_key:string|null;decision_hash:string|null;app_id:string|null;merchant_id:string|null;
   payee_openid:string|null;out_bill_no:string|null;scene_id:string|null;transfer_remark:string|null;
-  created_at:Date;attempt_count:number};
+  created_at:Date;attempt_count:number;first_dispatch_started_at:Date|null;lease_token:string|null};
 const hash=(value:unknown)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
 function id(value:string){if(!UUID.test(value))throw new DomainError("SETTLEMENT_ID_INVALID","结算编号无效",422);return value;}
 function key(value:string){if(!KEY.test(value))throw new DomainError("IDEMPOTENCY_KEY_INVALID","请求键无效",400);return value;}
@@ -96,10 +96,15 @@ export class SettlementCommandService{
         const holdMap=new Map(held.map(item=>[item.order_id,Number(item.held)]));
         let remaining=Number(row.amount_cents);
         for(const {order_id} of orders){
+          const compositionConflict=(await client.query<{n:number}>(`SELECT count(*)::int AS n
+            FROM commission_payment_composition_observation WHERE order_id=$1`,[order_id])).rows[0]?.n??0;
+          if(compositionConflict)continue;
           const unresolved=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request r
             LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.order_id=$1 AND
             (r.state='requested' OR (r.state='approved' AND i.state IN ('prepared','abnormal')))`,[order_id])).rows[0]?.n??0;
-          if(unresolved)throw new DomainError("SETTLEMENT_REFUND_UNRESOLVED","关联订单仍有待决或在途退款",409);
+          // Freeze only this source order; an unrelated disputed refund must
+          // not freeze the entire member's otherwise-earned allocations.
+          if(unresolved)continue;
           const entries=ledger.filter(entry=>entry.order_id===order_id),sum=(kind:string)=>
             entries.filter(entry=>entry.kind===kind).reduce((n,entry)=>n+Number(entry.amount_cents),0);
           const accrued=sum("accrual"),net=accrued+sum("refund_reversal"),released=sum("release"),
@@ -154,6 +159,9 @@ export class SettlementCommandService{
     if(allocations.reduce((sum,item)=>sum+Number(item.amount_cents),0)!==Number(row.amount_cents))return false;
     for(const allocation of allocations){
       await client.query(`SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE`,[allocation.order_id]);
+      const compositionConflict=(await client.query<{n:number}>(`SELECT count(*)::int AS n
+        FROM commission_payment_composition_observation WHERE order_id=$1`,[allocation.order_id])).rows[0]?.n??0;
+      if(compositionConflict)return false;
       const unresolved=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request r
         LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.order_id=$1 AND
         (r.state='requested' OR (r.state='approved' AND i.state IN ('prepared','abnormal')))`,
@@ -166,24 +174,39 @@ export class SettlementCommandService{
         FROM commission_ledger_entry WHERE order_id=$1 AND referrer_member_id=$2`,
         [allocation.order_id,row.member_id])).rows[0]!;
       const available=Math.min(Number(sums.net),Number(sums.released))-Number(sums.settled);
-      if(!Number.isSafeInteger(available)||available<Number(allocation.amount_cents))return false;
+      // A signed transfer in flight owns its source ahead of a not-yet-sent
+      // candidate. Among unsent candidates the oldest reservation wins.
+      const others=(await client.query<{request_id:string;amount_cents:string;state:string;created_at:Date;
+        first_dispatch_started_at:Date|null}>(`SELECT a.request_id,a.amount_cents,r.state,r.created_at,r.first_dispatch_started_at
+        FROM commission_settlement_allocation a JOIN commission_settlement_request r ON r.id=a.request_id
+        WHERE a.order_id=$1 AND r.member_id=$2 AND r.id<>$3
+          AND r.state IN ('reserved','unknown','processing')`,
+        [allocation.order_id,row.member_id,row.id])).rows;
+      const prioritized=others.filter(other=>other.first_dispatch_started_at!==null||
+        (!row.first_dispatch_started_at &&
+          (new Date(other.created_at).getTime()<new Date(row.created_at).getTime()||
+            new Date(other.created_at).getTime()===new Date(row.created_at).getTime()&&other.request_id<row.id)));
+      const occupied=prioritized.reduce((sum,other)=>sum+Number(other.amount_cents),0);
+      if(!Number.isSafeInteger(available)||!Number.isSafeInteger(occupied)||
+        available-occupied<Number(allocation.amount_cents))return false;
     }
     return true;
   }
 
   async processDue(limit=20){
     this.gate();
-    const claimed=(await this.pool.query<{id:string}>(`WITH due AS (
+    const claimed=(await this.pool.query<{id:string;lease_token:string}>(`WITH due AS (
       SELECT id FROM commission_settlement_request WHERE state IN ('reserved','unknown','processing')
         AND quarantined_at IS NULL AND next_attempt_at<=clock_timestamp()
         AND (lease_until IS NULL OR lease_until<clock_timestamp())
       ORDER BY next_attempt_at,id LIMIT $1 FOR UPDATE SKIP LOCKED
     ) UPDATE commission_settlement_request r SET state=CASE WHEN r.state='reserved' THEN 'unknown' ELSE r.state END,
-      lease_until=clock_timestamp()+interval '30 seconds' FROM due WHERE r.id=due.id RETURNING r.id`,
+      lease_until=clock_timestamp()+interval '30 seconds',lease_token=gen_random_uuid()
+      FROM due WHERE r.id=due.id RETURNING r.id,r.lease_token`,
       [limit])).rows;
     const results:{id:string;state:string}[]=[];
-    for(const {id:targetId} of claimed){
-      try{results.push({id:targetId,state:await this.processOne(targetId)});}
+    for(const {id:targetId,lease_token:leaseToken} of claimed){
+      try{results.push({id:targetId,state:await this.processOne(targetId,leaseToken)});}
       catch(error){
         const code=error instanceof DomainError&&/^[A-Z0-9_]{3,80}$/.test(error.code)?error.code:
           "CHANNEL_UNAVAILABLE";
@@ -192,34 +215,38 @@ export class SettlementCommandService{
           next_attempt_at=clock_timestamp()+
             (LEAST(1800000,5000*POWER(2,LEAST(8,attempt_count)))::integer*interval '1 millisecond'),
           quarantined_at=CASE WHEN attempt_count>=7 THEN clock_timestamp() ELSE NULL END
-          WHERE id=$1 AND state IN ('unknown','processing')`,[targetId,code]);
+          WHERE id=$1 AND lease_token=$3 AND state IN ('unknown','processing')`,[targetId,code,leaseToken]);
         results.push({id:targetId,state:"retry_scheduled"});
       }
     }
     return results;
   }
 
-  async processOne(requestId:string){
+  async processOne(requestId:string,leaseToken:string){
     const row=(await this.pool.query<Row>(`SELECT * FROM commission_settlement_request WHERE id=$1`,
       [id(requestId)])).rows[0];
     if(!row||!["unknown","processing"].includes(row.state))
       throw new DomainError("SETTLEMENT_NOT_DUE","结算转账任务不在待处理状态",409);
+    if(row.lease_token!==leaseToken)
+      throw new DomainError("SETTLEMENT_LEASE_LOST","结算租约已经被其他任务接管",409);
     const binding=this.binding(row);
     let queried;
     try{queried=await this.channel.queryTransferByMerchantBillNumber(binding);}
     catch(error){
       if(!(error instanceof DomainError&&error.code==="WECHAT_TRANSFER_NOT_FOUND"))throw error;
-      if(row.state==="processing"||Date.now()-new Date(row.created_at).getTime()>29*86400_000)
+      if(row.first_dispatch_started_at||row.state==="processing"||
+        Date.now()-new Date(row.created_at).getTime()>29*86400_000)
         throw new DomainError("SETTLEMENT_ORIGINAL_QUERY_REQUIRED","原单状态尚不明确，暂停重发",409);
       return transaction(this.pool,async client=>{
         await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`settlement-member:${row.member_id}`]);
         const locked=(await client.query<Row>(`SELECT * FROM commission_settlement_request WHERE id=$1 FOR UPDATE`,
           [row.id])).rows[0];
-        if(!locked||locked.state!=="unknown")throw new DomainError("SETTLEMENT_NOT_DUE","结算状态已变化",409);
+        if(!locked||locked.state!=="unknown"||locked.lease_token!==leaseToken)
+          throw new DomainError("SETTLEMENT_LEASE_LOST","结算租约已经被其他任务接管",409);
         if(!await this.allocationStillEarned(client,locked)){
           // After an earlier outbound attempt, NOT_FOUND may be transient. Keep
           // the hold for operator requery instead of declaring it unpaid.
-          if(locked.attempt_count>0)throw new DomainError("SETTLEMENT_REQUERY_REQUIRED","已尝试发起的原单需人工复核",409);
+          if(locked.first_dispatch_started_at)throw new DomainError("SETTLEMENT_REQUERY_REQUIRED","可能已发起的原单需人工复核",409);
           await client.query(`UPDATE commission_settlement_request SET state='cancelled',lease_until=NULL,
             last_error_code='SETTLEMENT_ALLOCATION_INVALID',finalized_at=clock_timestamp(),version=version+1
             WHERE id=$1`,[locked.id]);
@@ -229,17 +256,22 @@ export class SettlementCommandService{
             [locked.id,{amountCents:Number(locked.amount_cents)},`settlement-invalid:${locked.id}`]);
           return "cancelled_invalid_allocation";
         }
-        // Order locks span the final check and bounded outbound call; refund
-        // requests and decisions take the same locks before changing exposure.
-        await this.channel.createTransfer(this.binding(locked));
-        // Creation response is never booked as paid, even if it says SUCCESS.
-        await client.query(`UPDATE commission_settlement_request SET state='processing',lease_until=NULL,
-          next_attempt_at=clock_timestamp()+interval '1 minute',last_error_code=NULL
+        // Commit the durable may-have-been-sent boundary BEFORE any HTTP call.
+        // A crash after this commit remains a requery, never a fresh payout.
+        await client.query(`UPDATE commission_settlement_request SET state='processing',
+          first_dispatch_started_at=clock_timestamp(),next_attempt_at=clock_timestamp()+interval '1 minute'
           WHERE id=$1 AND state='unknown'`,[locked.id]);
+        return this.binding(locked);
+      },"READ COMMITTED",1,10_000).then(async dispatchBinding=>{
+        if(typeof dispatchBinding==="string")return dispatchBinding;
+        await this.channel.createTransfer(dispatchBinding);
+        // Creation response is never booked as paid, even if it says SUCCESS.
+        await this.pool.query(`UPDATE commission_settlement_request SET lease_until=NULL,last_error_code=NULL
+          WHERE id=$1 AND lease_token=$2 AND state='processing'`,[row.id,leaseToken]);
         return "submitted_query_due";
-      },"READ COMMITTED",1,10_000);
+      });
     }
-    return this.applyQueried(row.id,queried);
+    return this.applyQueried(row.id,queried,leaseToken);
   }
 
   async confirmCallback(requestId:string){
@@ -252,7 +284,24 @@ export class SettlementCommandService{
     return {state:fact.state,providerBillNo:fact.providerBillNo};
   }
 
-  private async applyQueried(requestId:string,fact:Awaited<ReturnType<WechatPayV3Client["queryTransferByMerchantBillNumber"]>>){
+  async receiptConfirmation(memberId:string|undefined,requestIdInput:string){
+    this.gate();if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
+    const row=(await this.pool.query<Row>(`SELECT * FROM commission_settlement_request
+      WHERE id=$1 AND member_id=$2`,[id(requestIdInput),memberId])).rows[0];
+    if(!row)throw new DomainError("SETTLEMENT_NOT_FOUND","结算申请不存在",404);
+    if(row.state!=="processing"||!row.first_dispatch_started_at)
+      throw new DomainError("TRANSFER_CONFIRMATION_UNAVAILABLE","原转账单尚未进入待确认状态",409);
+    const binding=this.binding(row);
+    const fact=await this.channel.queryTransferByMerchantBillNumber(binding);
+    await this.applyQueried(row.id,fact);
+    if(fact.state!=="WAIT_USER_CONFIRM"||!fact.packageInfo)
+      throw new DomainError("TRANSFER_CONFIRMATION_UNAVAILABLE","原转账单不再需要确认，请刷新状态",409);
+    return {requestId:row.id,state:fact.state,appId:binding.appId,mchId:binding.merchantId,
+      package:fact.packageInfo,simulation:true};
+  }
+
+  private async applyQueried(requestId:string,fact:Awaited<ReturnType<WechatPayV3Client["queryTransferByMerchantBillNumber"]>>,
+    leaseToken?:string){
     return transaction(this.pool,async client=>{
       const pre=(await client.query<Row>(`SELECT * FROM commission_settlement_request WHERE id=$1`,
         [requestId])).rows[0];
@@ -260,6 +309,8 @@ export class SettlementCommandService{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`settlement-member:${pre.member_id}`]);
       const row=(await client.query<Row>(`SELECT * FROM commission_settlement_request WHERE id=$1 FOR UPDATE`,
         [requestId])).rows[0]!;
+      if(leaseToken&&row.lease_token!==leaseToken)
+        throw new DomainError("SETTLEMENT_LEASE_LOST","结算租约已经被其他任务接管",409);
       if(["succeeded","failed","cancelled"].includes(row.state))return "already_terminal";
       const allocations=(await client.query<{order_id:string;amount_cents:string}>(`SELECT order_id,
         amount_cents FROM commission_settlement_allocation WHERE request_id=$1 ORDER BY order_id`,

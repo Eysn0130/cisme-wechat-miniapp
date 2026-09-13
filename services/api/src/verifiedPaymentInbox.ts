@@ -59,14 +59,17 @@ export class VerifiedPaymentInbox {
       merchantId:this.binding.merchantId,outTradeNo:row.order_number,totalCents:safeMoney(row.amount_cents),
       currency:"CNY",payerOpenid:row.payer_openid});
     const inserted=await this.pool.query<{id:string}>(`INSERT INTO commission_payment_inbox(
-      notification_id,provider_transaction_id,order_id,app_id,merchant_id,amount_cents,currency,verified_paid_at,raw_sha256)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING RETURNING id`,
+      notification_id,provider_transaction_id,order_id,app_id,merchant_id,amount_cents,currency,verified_paid_at,raw_sha256,
+      payer_total_cents,composition_status)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT DO NOTHING RETURNING id`,
       [eventId,verified.providerTransactionId,row.id,verified.appId,verified.merchantId,
-        verified.totalCents,verified.currency,verified.paidAt,rawHash]);
+        verified.totalCents,verified.currency,verified.paidAt,rawHash,
+        verified.payerTotalCents,verified.compositionStatus]);
     let id=inserted.rows[0]?.id;
     if(!id){
       const existing=(await this.pool.query(`SELECT id,notification_id,provider_transaction_id,order_id,app_id,
-        merchant_id,amount_cents,currency,verified_paid_at,raw_sha256 FROM commission_payment_inbox
+        merchant_id,amount_cents,currency,verified_paid_at,raw_sha256,payer_total_cents,composition_status
+        FROM commission_payment_inbox
         WHERE notification_id=$1 OR provider_transaction_id=$2`,[eventId,verified.providerTransactionId])).rows[0];
       if(!existing||existing.provider_transaction_id!==verified.providerTransactionId||existing.order_id!==row.id||
         existing.app_id!==verified.appId||existing.merchant_id!==verified.merchantId||
@@ -74,6 +77,27 @@ export class VerifiedPaymentInbox {
         new Date(existing.verified_paid_at).toISOString()!==verified.paidAt||
         (existing.notification_id===eventId&&existing.raw_sha256!==rawHash))
         throw new DomainError("PAYMENT_EVENT_CONFLICT","微信支付通知与已收事实冲突",409);
+      const differentComposition=(existing.payer_total_cents===null?null:safeMoney(existing.payer_total_cents))
+        !==verified.payerTotalCents||existing.composition_status!==verified.compositionStatus;
+      if(differentComposition){
+        // A signed original-order query may omit payer_total while a later
+        // signed callback provides it. Never overwrite the first fact or
+        // silently apply stock/commission: retain the second raw observation
+        // for manual resolution under the same provider transaction ID.
+        const observed=await this.pool.query<{id:string}>(`INSERT INTO commission_payment_composition_observation
+          (notification_id,provider_transaction_id,order_id,raw_sha256,payer_total_cents,composition_status)
+          VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(notification_id) DO NOTHING RETURNING id`,
+          [eventId,verified.providerTransactionId,row.id,rawHash,verified.payerTotalCents,verified.compositionStatus]);
+        if(!observed.rows[0]){
+          const prior=(await this.pool.query<{raw_sha256:string;provider_transaction_id:string;order_id:string}>(
+            `SELECT raw_sha256,provider_transaction_id,order_id FROM commission_payment_composition_observation
+             WHERE notification_id=$1`,[eventId])).rows[0];
+          if(!prior||prior.raw_sha256!==rawHash||prior.provider_transaction_id!==verified.providerTransactionId||
+            prior.order_id!==row.id)throw new DomainError("PAYMENT_EVENT_CONFLICT","支付补充事实与已有通知冲突",409);
+        }else await this.pool.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
+          VALUES('inbox:payment','commerce.payment_composition_conflict','commerce_order',$1,
+            'SIGNED_FACT_REQUIRES_RECONCILIATION',$2)`,[row.id,`payment-composition:${eventId}`]);
+      }
       id=existing.id;
     }
     // Return as soon as the verified fact is durable. The caller can then
@@ -108,6 +132,8 @@ export class VerifiedPaymentInbox {
         return "exception" as const;
       };
       if(!order||order.transaction_source_kind!=="verified_commerce")return exception("ORDER_SOURCE_NOT_PAYABLE");
+      if(fact.composition_status!=="full_cash"||safeMoney(fact.payer_total_cents)!==safeMoney(fact.amount_cents))
+        return exception("PAYMENT_COMPOSITION_UNSUPPORTED");
       const attempt=(await client.query(`SELECT * FROM commerce_payment_attempt WHERE order_id=$1 FOR UPDATE`,[order.id])).rows[0];
       if(!attempt||attempt.out_trade_no!==order.order_number||attempt.member_id!==order.member_id||
         attempt.app_id!==fact.app_id||attempt.merchant_id!==fact.merchant_id||

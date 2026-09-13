@@ -14,7 +14,8 @@ const binding={appId:"wx4eac2d4fb11d299b",merchantId:"1234567890",outTradeNo:"CI
 const transaction={appid:binding.appId,mchid:binding.merchantId,out_trade_no:binding.outTradeNo,
   transaction_id:"420000000000000000000001",trade_type:"JSAPI",trade_state:"SUCCESS",
   success_time:"2026-09-12T11:59:30Z",
-  amount:{total:binding.totalCents,currency:"CNY"},payer:{openid:binding.payerOpenid}};
+  amount:{total:binding.totalCents,payer_total:binding.totalCents,currency:"CNY",payer_currency:"CNY"},
+  payer:{openid:binding.payerOpenid}};
 function notification(payload:unknown=transaction){
   const nonce="0123456789ab",associated="transaction";
   const cipher=createCipheriv("aes-256-gcm",Buffer.from(apiV3Key),Buffer.from(nonce));
@@ -31,6 +32,10 @@ function notification(payload:unknown=transaction){
 it("accepts only a signed, decrypted and order-bound JSAPI success fact",()=>{
   expect(verifyPaymentNotification(notification())).toMatchObject({eventId:"EV-20260912-0001",
     providerTransactionId:transaction.transaction_id,totalCents:50_000});
+  expect(assertPaymentBinding({...transaction,amount:{...transaction.amount,payer_total:40_000}},binding))
+    .toMatchObject({totalCents:50_000,payerTotalCents:40_000,compositionStatus:"unknown_or_discounted"});
+  expect(assertPaymentBinding({...transaction,amount:{total:50_000,currency:"CNY"}},binding))
+    .toMatchObject({payerTotalCents:null,compositionStatus:"unknown_or_discounted"});
   expect(()=>verifyPaymentNotification(notification({...transaction,amount:{total:49_999,currency:"CNY"}}))).toThrow();
   expect(()=>verifyPaymentNotification(notification({...transaction,payer:{openid:"other-user"}}))).toThrow();
   expect(()=>assertPaymentBinding({...transaction,trade_state:"NOTPAY"},binding)).toThrow();
@@ -66,6 +71,7 @@ it("queries the same merchant refund number and keeps PROCESSING distinct from s
     seenUrl=String(url);
     const payload={refund_id:"500000000000000000000108",out_refund_no:refundBinding.outRefundNo,
       transaction_id:refundBinding.providerTransactionId,out_trade_no:refundBinding.outTradeNo,status,
+      create_time:"2026-09-12T13:00:00+08:00",
       ...(status==="SUCCESS"?{success_time:new Date().toISOString()}:{}),
       amount:{total:refundBinding.totalCents,refund:refundBinding.refundCents,
         payer_total:refundBinding.payerTotalCents,payer_refund:payerRefund,currency:"CNY"}};

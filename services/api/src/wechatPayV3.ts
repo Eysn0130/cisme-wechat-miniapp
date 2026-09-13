@@ -5,11 +5,13 @@ type HeaderMap=Record<string,string|undefined>;
 type Resource={algorithm?:unknown;ciphertext?:unknown;associated_data?:unknown;nonce?:unknown;original_type?:unknown};
 type Notification={id?:unknown;event_type?:unknown;resource_type?:unknown;resource?:Resource};
 export type PaymentTransaction={appid?:unknown;mchid?:unknown;out_trade_no?:unknown;transaction_id?:unknown;
-  trade_type?:unknown;trade_state?:unknown;success_time?:unknown;amount?:{total?:unknown;currency?:unknown};payer?:{openid?:unknown}};
+  trade_type?:unknown;trade_state?:unknown;success_time?:unknown;
+  amount?:{total?:unknown;currency?:unknown;payer_total?:unknown;payer_currency?:unknown};
+  promotion_detail?:unknown;payer?:{openid?:unknown}};
 export type RefundTransaction={mchid?:unknown;out_trade_no?:unknown;transaction_id?:unknown;out_refund_no?:unknown;
   refund_id?:unknown;refund_status?:unknown;success_time?:unknown;
   amount?:{total?:unknown;refund?:unknown;payer_total?:unknown;payer_refund?:unknown;currency?:unknown}};
-export type RefundQueryResult=Omit<RefundTransaction,"refund_status">&{status?:unknown};
+export type RefundQueryResult=Omit<RefundTransaction,"refund_status">&{status?:unknown;create_time?:unknown};
 export interface PaymentBinding{appId:string;merchantId:string;outTradeNo:string;totalCents:number;currency:"CNY";payerOpenid:string;}
 export interface RefundBinding{merchantId:string;outTradeNo:string;providerTransactionId:string;outRefundNo:string;
   totalCents:number;refundCents:number;payerTotalCents:number;payerRefundCents:number;}
@@ -72,9 +74,21 @@ export function assertPaymentBinding(transaction:PaymentTransaction,binding:Paym
     typeof transaction.transaction_id!=="string"||!transaction.transaction_id||
     typeof transaction.success_time!=="string"||!Number.isFinite(Date.parse(transaction.success_time)))
     reject("微信支付事实与订单、金额或付款身份不匹配");
+  // total is the channel order amount, not proof of what the payer paid. The
+  // official success callback includes payer_total; query responses may omit
+  // it. Preserve an authenticated payment regardless, but do not release
+  // stock or accrue commission for an unknown/discounted composition.
+  const payerTotal=transaction.amount?.payer_total;
+  const payerTotalCents=Number.isSafeInteger(payerTotal)&&Number(payerTotal)>=0&&
+    Number(payerTotal)<=binding.totalCents?Number(payerTotal):null;
+  const compositionSupported=payerTotalCents===binding.totalCents&&
+    transaction.amount?.payer_currency==="CNY"&&
+    (transaction.promotion_detail===undefined||
+      Array.isArray(transaction.promotion_detail)&&transaction.promotion_detail.length===0);
   return {providerTransactionId:transaction.transaction_id,orderNumber:binding.outTradeNo,
     totalCents:binding.totalCents,currency:binding.currency,merchantId:binding.merchantId,appId:binding.appId,
-    paidAt:new Date(transaction.success_time).toISOString()};
+    paidAt:new Date(transaction.success_time).toISOString(),payerTotalCents,
+    compositionStatus:compositionSupported?"full_cash" as const:"unknown_or_discounted" as const};
 }
 export function decodePaymentNotification(input:{rawBody:Uint8Array;headers:HeaderMap;publicKeys:ReadonlyMap<string,string>;
   apiV3Key:string;now?:Date}){
@@ -143,12 +157,15 @@ export function assertRefundBinding(refund:RefundTransaction,binding:RefundBindi
 }
 export function assertRefundQueryBinding(result:RefundQueryResult,binding:RefundBinding){
   const status=String(result.status);
-  if(!["SUCCESS","CLOSED","ABNORMAL","PROCESSING"].includes(status)||result.amount?.currency!=="CNY")
-    reject("微信退款查询状态或币种无效");
+  if(!["SUCCESS","CLOSED","ABNORMAL","PROCESSING"].includes(status)||result.amount?.currency!=="CNY"||
+    typeof result.create_time!=="string"||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(result.create_time)||
+    !Number.isFinite(Date.parse(result.create_time)))
+    reject("微信退款查询状态、币种或受理时间无效");
   // This signed query response omits mchid; the authenticated merchant
   // request and its exact out_refund_no bind the merchant instead.
-  return assertRefundBinding({...result,mchid:binding.merchantId,refund_status:status},binding,
-    status as "SUCCESS"|"CLOSED"|"ABNORMAL"|"PROCESSING");
+  return {...assertRefundBinding({...result,mchid:binding.merchantId,refund_status:status},binding,
+    status as "SUCCESS"|"CLOSED"|"ABNORMAL"|"PROCESSING"),
+    acceptedAt:new Date(result.create_time).toISOString()};
 }
 export function verifyPaymentNotification(input:{rawBody:Uint8Array;headers:HeaderMap;publicKeys:ReadonlyMap<string,string>;
   apiV3Key:string;binding:PaymentBinding;now?:Date}){

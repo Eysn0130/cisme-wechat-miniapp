@@ -27,11 +27,13 @@ import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
 import { RefundCommandService } from "./refundCommand.js";
 import { FulfillmentReleaseService } from "./fulfillmentRelease.js";
 import { SettlementCommandService } from "./settlementCommand.js";
+import { SettlementCycleService } from "./settlementCycle.js";
 import { TransferCallbackInbox } from "./transferCallbackInbox.js";
 import { MoneyOperationsService } from "./moneyOperations.js";
 import { TradeBillReconciliationService } from "./tradeBillReconciliation.js";
 import { WechatPayV3Client } from "./wechatPayV3.js";
 import { isolatedPaymentProtocol } from "./isolatedPaymentProtocol.js";
+import { formalPaymentProtocol } from "./formalPaymentProtocol.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { FormalUgcService } from "./formalUgc.js";
 import { UgcSafetyService, startUgcSafetyLoop } from "./ugcSafety.js";
@@ -124,6 +126,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       {appId:config.commerce.simulatedPayment.appId,merchantId:config.commerce.simulatedPayment.merchantId,
         sceneId:config.commerce.simulatedPayment.transferSceneId,
         notifyUrl:dependencies.paymentProtocol.transferNotifyUrl}):null;
+  const settlementCycle=new SettlementCycleService(pool,authority,config.env);
   const moneyOps=dependencies.paymentProtocol
     ?new MoneyOperationsService(pool,authority,dependencies.paymentProtocol.channel,
       dependencies.paymentProtocol.inbox,dependencies.paymentProtocol.refundInbox,settlement):null;
@@ -229,11 +232,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const object=await ugcSafety.scanSource(request.params.mediaId,request.query.token);
     return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
   });
-  app.get<{Querystring:{signature?:string;timestamp?:string;nonce?:string;echostr?:string}}>("/v1/ugc/safety-callback", async (request,reply) => {
-    ugcSafety.verifyCallback(request.query);
-    return reply.type("text/plain").send(request.query.echostr??"");
-  });
-  app.post<{Querystring:{signature?:string;timestamp?:string;nonce?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
+  app.get<{Querystring:{signature?:string;msg_signature?:string;timestamp?:string;nonce?:string;echostr?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
+    reply.type("text/plain").send(ugcSafety.verifyChallenge(request.query)));
+  app.post<{Querystring:{signature?:string;msg_signature?:string;timestamp?:string;nonce?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
     reply.type("text/plain").send(await ugcSafety.receiveCallback(request.query,(request.body??{}) as never)));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/ugc/posts", async request => formalUgc.myPosts(request.memberId,request.query));
   app.get<{Params:{section:string};Querystring:{limit?:string;cursor?:string;postId?:string}}>("/v1/me/ugc/activity/:section",
@@ -355,7 +356,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const principal = adminPrincipal(request, config);
     return privacyRights.planExecution(principal, request.params.requestId, idempotencyKey(request), request.body as {expectedVersion?:unknown;reasonCode?:unknown});
   });
-  const memberProfile = new MemberProfile(pool);
+  const memberProfile = new MemberProfile(pool,config.env);
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
   app.get("/v1/me/commercial-membership", async request => commercial.myStatus(request.memberId));
   app.post("/v1/me/commercial-membership/code", async request => commercial.ensureCode(request.memberId));
@@ -377,7 +378,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     async request => commercial.proposalByRequest(request.memberId,request.principalId,request.params.requestKey));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commission-rates/pending", async request => commercial.pendingRates(request.memberId,request.query));
   app.post<{Params:{ruleId:string}}>("/v1/management/commission-rates/:ruleId/decision", async request => commercial.approveRate(
-    request.memberId,request.principalId,request.params.ruleId,(request.body ?? {}) as {decision?:unknown}));
+    request.memberId,request.principalId,request.params.ruleId,request.headers["idempotency-key"],
+    (request.body ?? {}) as {decision?:unknown;expectedVersion?:unknown;reason?:unknown}));
   app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
   app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async request => support.messagesForMember(request.memberId, request.query));
   app.post("/v1/me/support/messages", async request => support.sendMember(request.memberId, request.principalId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown}, request.id));
@@ -498,6 +500,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/commission/settlement-requests",async request=>
     settlementRequired().listMine(request.memberId,request.query));
+  app.get<{Params:{requestId:string}}>("/v1/me/commission/settlement-requests/:requestId/confirmation",async request=>
+    settlementRequired().receiptConfirmation(request.memberId,request.params.requestId));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commission/settlement-requests/pending",async request=>
     settlementRequired().pending(request.memberId,request.query));
   app.post<{Params:{requestId:string}}>("/v1/management/commission/settlement-requests/:requestId/decision",async request=>
@@ -506,6 +510,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{requestId:string}}>("/v1/management/commission/settlement-requests/:requestId/redrive",async request=>
     settlementRequired().redrive(request.memberId,request.params.requestId,
       (request.body??{}) as Record<string,unknown>));
+  app.post("/v1/management/commission/settlement-cycles/prepare",async request=>
+    settlementCycle.prepare(request.memberId,(request.body as {periodEnd?:unknown}|null)?.periodEnd));
   const moneyOpsRequired=()=>{
     if(!moneyOps)throw new DomainError("MONEY_OPERATIONS_DISABLED","隔离资金核对未启用",503);
     return moneyOps;
@@ -685,6 +691,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const pool = createPool(config.databaseUrl, config.database);
   const storage = createObjectStorage(config);
   const paymentProtocol=isolatedPaymentProtocol(config,pool);
+  // Validates the complete pinned formal protocol profile at startup. The
+  // assembled adapter has no live transport or command routes in this build.
+  formalPaymentProtocol(config,pool);
   const app = await createApp({ config, pool, storage,
     ...(paymentProtocol?{paymentProtocol}:{}) });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"

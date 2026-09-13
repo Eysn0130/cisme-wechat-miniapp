@@ -1,4 +1,4 @@
-import { createCipheriv, createHash, generateKeyPairSync, randomBytes, sign, verify } from "node:crypto";
+import { createCipheriv, createHash, generateKeyPairSync, randomBytes, randomUUID, sign, verify } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
@@ -26,7 +26,7 @@ const serial="PUB_KEY_ID_3000000001";
 const channelOrders=new Map<string,{appid:string;mchid:string;openid:string;amount:number;
   state:"NOTPAY"|"SUCCESS"|"CLOSED";prepayId:string;transactionId:string;paidAt:string}>();
 const channelRefunds=new Map<string,{outTradeNo:string;transactionId:string;amount:number;total:number;
-  status:"PROCESSING"|"SUCCESS"|"CLOSED"|"ABNORMAL";refundId:string;succeededAt:string}>();
+  status:"PROCESSING"|"SUCCESS"|"CLOSED"|"ABNORMAL";refundId:string;succeededAt:string;acceptedAt:string}>();
 const channelTransfers=new Map<string,{openid:string;amount:number;state:"WAIT_USER_CONFIRM"|"SUCCESS"|"FAIL";
   transferBillNo:string;remark:string}>();
 const tradeBillFixtures=new Map<string,Buffer>();
@@ -96,7 +96,7 @@ async function channelHandler(request:IncomingMessage,response:ServerResponse){
     if(!order){sendSigned(response,404,{code:"ORDER_NOT_EXIST"});return;}
     sendSigned(response,200,{appid:order.appid,mchid:order.mchid,out_trade_no:decodeURIComponent(query[1]!),
       trade_type:"JSAPI",trade_state:order.state,payer:{openid:order.openid},
-      amount:{total:order.amount,currency:"CNY"},
+      amount:{total:order.amount,payer_total:order.amount,currency:"CNY",payer_currency:"CNY"},
       ...(order.state==="SUCCESS"?{transaction_id:order.transactionId,success_time:order.paidAt}:{})});return;
   }
   const close=path.match(/^\/v3\/pay\/transactions\/out-trade-no\/([^/?]+)\/close$/);
@@ -113,7 +113,7 @@ async function channelHandler(request:IncomingMessage,response:ServerResponse){
     let refund=channelRefunds.get(input.out_refund_no);
     if(!refund){refund={outTradeNo:payment[0],transactionId:input.transaction_id,amount:input.amount.refund,
       total:input.amount.total,status:"PROCESSING",refundId:`ref-${randomBytes(12).toString("hex")}`,
-      succeededAt:""};channelRefunds.set(input.out_refund_no,refund);}
+      succeededAt:"",acceptedAt:new Date().toISOString()};channelRefunds.set(input.out_refund_no,refund);}
     if(refund.amount!==input.amount.refund||refund.transactionId!==input.transaction_id){
       sendSigned(response,409,{code:"REFUND_NO_USED"});return;
     }
@@ -157,17 +157,18 @@ async function channelHandler(request:IncomingMessage,response:ServerResponse){
 }
 function refundResponse(refundNumber:string,refund:NonNullable<ReturnType<typeof channelRefunds.get>>){
   return {out_trade_no:refund.outTradeNo,transaction_id:refund.transactionId,out_refund_no:refundNumber,
-    refund_id:refund.refundId,status:refund.status,
+    refund_id:refund.refundId,status:refund.status,create_time:refund.acceptedAt,
     ...(refund.status==="SUCCESS"?{success_time:refund.succeededAt}:{}),
     amount:{total:refund.total,refund:refund.amount,payer_total:refund.total,
       payer_refund:refund.amount,currency:"CNY"}};
 }
-function paidCallback(outTradeNo:string,payerOverride?:string,paidAtOverride?:string){
+function paidCallback(outTradeNo:string,payerOverride?:string,paidAtOverride?:string,payerTotalOverride?:number){
   const order=channelOrders.get(outTradeNo)!;
   order.state="SUCCESS";order.paidAt=paidAtOverride??new Date().toISOString();
   const transaction={appid:order.appid,mchid:order.mchid,out_trade_no:outTradeNo,
     trade_type:"JSAPI",trade_state:"SUCCESS",transaction_id:order.transactionId,
-    success_time:order.paidAt,payer:{openid:payerOverride??order.openid},amount:{total:order.amount,currency:"CNY"}};
+    success_time:order.paidAt,payer:{openid:payerOverride??order.openid},
+    amount:{total:order.amount,payer_total:payerTotalOverride??order.amount,currency:"CNY",payer_currency:"CNY"}};
   const nonce=randomBytes(6).toString("hex"),associated="transaction";
   const cipher=createCipheriv("aes-256-gcm",Buffer.from(apiV3Key),Buffer.from(nonce));cipher.setAAD(Buffer.from(associated));
   const ciphertext=Buffer.concat([cipher.update(JSON.stringify(transaction)),cipher.final(),cipher.getAuthTag()]).toString("base64");
@@ -607,6 +608,13 @@ it("reserves commission once and records settlement only after signed SUCCESS qu
   expect(channelTransfers.size).toBe(1);
   expect((await pool.query(`SELECT channel_state FROM commission_settlement_request WHERE id=$1`,
     [request.json().id])).rows[0].channel_state).toBe("WAIT_USER_CONFIRM");
+  const path=`/v1/me/commission/settlement-requests/${request.json().id}/confirmation`;
+  expect((await app.inject({method:"GET",url:path,headers:auth(buyer.sessionToken)})).statusCode).toBe(404);
+  const confirmation=await app.inject({method:"GET",url:path,headers:auth(referrer.sessionToken)});
+  expect(confirmation.statusCode,JSON.stringify(confirmation.json())).toBe(200);
+  expect(confirmation.json()).toMatchObject({requestId:request.json().id,state:"WAIT_USER_CONFIRM",
+    package:"fixture-user-confirm",simulation:true});
+  expect(confirmation.json()).toMatchObject({appId,mchId:merchantId});
   channelTransfers.get(outBillNo)!.state="SUCCESS";
   const wrong=transferCallback(outBillNo,"wrong-payee-openid");
   const rejected=await app.inject({method:"POST",url:"/v1/payments/wechat/transfer-callback",
@@ -625,6 +633,7 @@ it("reserves commission once and records settlement only after signed SUCCESS qu
     expect.objectContaining({state:"applied"}));
   expect((await pool.query(`SELECT amount_cents FROM commission_ledger_entry WHERE order_id=$1
     AND kind='settlement'`,[orderId])).rows[0].amount_cents).toBe("2000");
+  expect((await app.inject({method:"GET",url:path,headers:auth(referrer.sessionToken)})).statusCode).toBe(409);
   const paid=await app.inject({method:"GET",url:"/v1/me/commercial-membership",
     headers:auth(referrer.sessionToken)});
   expect(paid.json().commission).toMatchObject({paymentHeldCents:0,availableCents:0,settledCents:2000});
@@ -666,6 +675,183 @@ it("cancels an unsubmitted transfer when a later refund request invalidates its 
   expect(channelTransfers.has(reserved.json().outBillNo)).toBe(false);
   expect((await pool.query(`SELECT state FROM commission_settlement_request WHERE id=$1`,
     [request.json().id])).rows[0].state).toBe("cancelled");
+});
+
+it("keeps other-order pending income apart from a paid order refunded in full",async()=>{
+  const before=(await app.inject({method:"GET",url:"/v1/me/commercial-membership",
+    headers:auth(referrer.sessionToken)})).json().commission;
+  const prior=(await pool.query(`SELECT a.order_id FROM commission_settlement_allocation a
+    JOIN commission_settlement_request r ON r.id=a.request_id WHERE r.state='succeeded'
+    ORDER BY r.created_at LIMIT 1`)).rows[0].order_id as string;
+  const full=await app.inject({method:"POST",url:`/v1/me/orders/${prior}/refund-requests`,
+    headers:{...auth(buyer.sessionToken),"idempotency-key":"n01-full-refund-0001"},
+    payload:{amountCents:10000,reason:"隔离跨订单追偿与待结算"}});
+  expect(full.statusCode,JSON.stringify(full.json())).toBe(200);
+  const approved=await app.inject({method:"POST",url:`/v1/management/refund-requests/${full.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"n01-full-approve-0001"},
+    payload:{decision:"approve",expectedVersion:1,reason:"隔离跨订单全额退款"}});
+  expect(approved.statusCode,JSON.stringify(approved.json())).toBe(200);
+  await refundCommands.processDue();
+  const callback=refundCallback(approved.json().intent.outRefundNo);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/refund-callback",
+    headers:{...callback.headers,"Content-Type":"application/json"},payload:callback.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1,
+    version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
+  const next=await createOrder("n01-pending");
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${next.id}/payment-intent`,
+    headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const paid=paidCallback(next.orderNumber);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
+    headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  const status=await app.inject({method:"GET",url:"/v1/me/commercial-membership",
+    headers:auth(referrer.sessionToken)});
+  expect(status.statusCode,JSON.stringify(status.json())).toBe(200);
+  expect(status.json().commission).toMatchObject({pendingCents:before.pendingCents+2000,
+    recoveryCents:before.recoveryCents+2000,settledCents:before.settledCents});
+});
+
+it("fences other in-flight allocations after a verified refund",async()=>{
+  await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1,
+    version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
+  const order=await createOrder("n02-overlap");
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,
+    headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const paid=paidCallback(order.orderNumber);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
+    headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  const proof=await app.inject({method:"POST",url:`/v1/management/commerce/orders/${order.id}/fulfillment`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"n02-proof-0001"},
+    payload:{sourceReference:"fixture-carrier-n02-0001",evidenceSha256:"c".repeat(64),
+      deliveredAt:new Date().toISOString()}});
+  expect(proof.statusCode,JSON.stringify(proof.json())).toBe(200);
+  const release=await app.inject({method:"POST",url:`/v1/management/fulfillment/${proof.json().id}/decision`,
+    headers:{...auth(reviewer.sessionToken),"idempotency-key":"n02-release-0001"},
+    payload:{decision:"verify",expectedVersion:1,reason:"隔离来源已核验"}});
+  expect(release.statusCode,JSON.stringify(release.json())).toBe(200);
+  const requests=[];
+  for(let index=1;index<=2;index++){
+    const requested=await app.inject({method:"POST",url:"/v1/me/commission/settlement-requests",
+      headers:{...auth(referrer.sessionToken),"idempotency-key":`n02-request-${index}-0001`},
+      payload:{amountCents:800,reason:"隔离同订单多笔预占"}});
+    expect(requested.statusCode,JSON.stringify(requested.json())).toBe(200);
+    const reserved=await app.inject({method:"POST",
+      url:`/v1/management/commission/settlement-requests/${requested.json().id}/decision`,
+      headers:{...auth(operator.sessionToken),"idempotency-key":`n02-approve-${index}-0001`},
+      payload:{decision:"approve",expectedVersion:1,reason:"隔离重核多笔来源"}});
+    expect(reserved.statusCode,JSON.stringify(reserved.json())).toBe(200);
+    requests.push(reserved.json() as {id:string;outBillNo:string});
+  }
+  const refund=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
+    headers:{...auth(buyer.sessionToken),"idempotency-key":"n02-refund-0001"},
+    payload:{amountCents:5000,reason:"隔离预占后的部分退款"}});
+  expect(refund.statusCode,JSON.stringify(refund.json())).toBe(200);
+  const approved=await app.inject({method:"POST",url:`/v1/management/refund-requests/${refund.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"n02-refund-approve-0001"},
+    payload:{decision:"approve",expectedVersion:1,reason:"隔离已成功部分退款"}});
+  expect(approved.statusCode,JSON.stringify(approved.json())).toBe(200);
+  await refundCommands.processDue();
+  const callback=refundCallback(approved.json().intent.outRefundNo);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/refund-callback",
+    headers:{...callback.headers,"Content-Type":"application/json"},payload:callback.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  const results=await settlementCommands.processDue();
+  expect(results).toContainEqual({id:requests[0]!.id,state:"submitted_query_due"});
+  expect(results).toContainEqual({id:requests[1]!.id,state:"cancelled_invalid_allocation"});
+  expect(channelTransfers.has(requests[0]!.outBillNo)).toBe(true);
+  expect(channelTransfers.has(requests[1]!.outBillNo)).toBe(false);
+});
+
+it("retains a committed may-have-sent fact across restart, lease takeover and redrive",async()=>{
+  const active=(await pool.query(`SELECT id,out_bill_no FROM commission_settlement_request
+    WHERE state='processing' ORDER BY created_at DESC LIMIT 1`)).rows[0];
+  expect(active).toBeDefined();
+  const oldToken=(await pool.query(`UPDATE commission_settlement_request SET lease_token=gen_random_uuid()
+    WHERE id=$1 RETURNING lease_token`,[active.id])).rows[0].lease_token;
+  // The durable boundary remains even after a fresh worker takes the lease.
+  await expect(settlementCommands.processOne(active.id,randomUUID())).rejects.toMatchObject({code:"SETTLEMENT_LEASE_LOST"});
+  expect((await pool.query(`SELECT first_dispatch_started_at FROM commission_settlement_request
+    WHERE id=$1`,[active.id])).rows[0].first_dispatch_started_at).toBeTruthy();
+  expect(oldToken).toBeTruthy();
+  const source=(await pool.query(`SELECT order_id FROM commission_settlement_allocation
+    WHERE request_id=$1`,[active.id])).rows[0].order_id;
+  const requested=await app.inject({method:"POST",url:"/v1/me/commission/settlement-requests",
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"n03-request-0001"},
+    payload:{amountCents:100,reason:"隔离持久发送历史崩溃测试"}});
+  expect(requested.statusCode,JSON.stringify(requested.json())).toBe(200);
+  const approved=await app.inject({method:"POST",
+    url:`/v1/management/commission/settlement-requests/${requested.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"n03-approve-0001"},
+    payload:{decision:"approve",expectedVersion:1,reason:"隔离发送前持久边界"}});
+  expect(approved.statusCode,JSON.stringify(approved.json())).toBe(200);
+  const reserved={id:requested.json().id,out_bill_no:approved.json().outBillNo};
+  expect((await pool.query(`SELECT order_id FROM commission_settlement_allocation WHERE request_id=$1`,
+    [reserved.id])).rows[0].order_id).toBe(source);
+  await pool.query(`UPDATE commission_settlement_request SET state='unknown' WHERE id=$1`,[reserved.id]);
+  await pool.query(`UPDATE commission_settlement_request SET state='processing',
+    first_dispatch_started_at=clock_timestamp(),attempt_count=8,quarantined_at=clock_timestamp(),
+    next_attempt_at=clock_timestamp() WHERE id=$1`,[reserved.id]);
+  const redriven=await settlementCommands.redrive(operator.memberId,reserved.id,
+    {expectedAttempts:8,reason:"隔离模拟发送边界后恢复查询"});
+  expect(redriven.state).toBe("requery_due");
+  const fresh=new SettlementCommandService(pool,new AuthorityService(pool,"test"),
+    new WechatPayV3Client(merchantId,"MERCHANT_CERT_FIXTURE",merchantPrivate,
+      new Map([[serial,platformPublic]]),fetch,baseUrl),"test",
+    {appId,merchantId,sceneId:"ISOLATED_COMMISSION",
+      notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback"});
+  expect(await fresh.processDue()).toContainEqual({id:reserved.id,state:"retry_scheduled"});
+  const history=(await pool.query(`SELECT attempt_count,first_dispatch_started_at,state
+    FROM commission_settlement_request WHERE id=$1`,[reserved.id])).rows[0];
+  expect(history.first_dispatch_started_at).toBeTruthy();
+  expect(history.state).toBe("processing");
+  expect(channelTransfers.has(reserved.out_bill_no)).toBe(false);
+});
+
+it("does not reissue payment or refund after a committed dispatch boundary and temporary NOT_FOUND",async()=>{
+  await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+2,
+    version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
+  const payment=await createOrder("n03-payment-crash");
+  await pool.query(`UPDATE commerce_payment_attempt SET state='unknown',
+    first_dispatch_started_at=clock_timestamp() WHERE order_id=$1`,[payment.id]);
+  const retried=await app.inject({method:"POST",url:`/v1/me/orders/${payment.id}/payment-intent`,
+    headers:auth(buyer.sessionToken),payload:{}});
+  expect(retried.statusCode).toBe(409);
+  expect(retried.json().code).toBe("PAYMENT_ORIGINAL_QUERY_REQUIRED");
+  expect(channelOrders.has(payment.orderNumber)).toBe(false);
+
+  const paidOrder=await createOrder("n03-refund-crash");
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${paidOrder.id}/payment-intent`,
+    headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const paid=paidCallback(paidOrder.orderNumber);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
+    headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  const requested=await app.inject({method:"POST",url:`/v1/me/orders/${paidOrder.id}/refund-requests`,
+    headers:{...auth(buyer.sessionToken),"idempotency-key":"n03-refund-request-0001"},
+    payload:{amountCents:1000,reason:"隔离退款发送后崩溃"}});
+  expect(requested.statusCode,JSON.stringify(requested.json())).toBe(200);
+  const approved=await app.inject({method:"POST",url:`/v1/management/refund-requests/${requested.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"n03-refund-approve-0001"},
+    payload:{decision:"approve",expectedVersion:1,reason:"隔离退款原单可靠性"}});
+  expect(approved.statusCode,JSON.stringify(approved.json())).toBe(200);
+  const intent=approved.json().intent as {id:string;outRefundNo:string};
+  await pool.query(`UPDATE commission_refund_intent SET submission_state='unknown',
+    first_dispatch_started_at=clock_timestamp(),submission_attempt_count=8,
+    submission_quarantined_at=clock_timestamp() WHERE id=$1`,[intent.id]);
+  await refundCommands.redrive(operator.memberId,intent.id,
+    {expectedAttempts:8,reason:"隔离退款原单人工核对后重驱"});
+  const freshRefund=new RefundCommandService(pool,new AuthorityService(pool,"test"),
+    new WechatPayV3Client(merchantId,"MERCHANT_CERT_FIXTURE",merchantPrivate,
+      new Map([[serial,platformPublic]]),fetch,baseUrl),refundInbox,
+    {merchantId,notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/refund-callback"});
+  expect(await freshRefund.processDue()).toContainEqual({id:intent.id,state:"retry_scheduled"});
+  expect(channelRefunds.has(intent.outRefundNo)).toBe(false);
+  const history=(await pool.query(`SELECT first_dispatch_started_at,submission_attempt_count
+    FROM commission_refund_intent WHERE id=$1`,[intent.id])).rows[0];
+  expect(history.first_dispatch_started_at).toBeTruthy();
+  expect(history.submission_attempt_count).toBe(1);
 });
 
 it("downloads a hash-checked trade bill, imports once, and exposes amount conflicts without posting money",async()=>{
@@ -716,21 +902,27 @@ it("downloads a hash-checked trade bill, imports once, and exposes amount confli
   expect(issues.json().items).toContainEqual(expect.objectContaining({kind:"trade_bill",
     code:"PAYMENT_FACT_MISMATCH",canRedrive:false}));
   const refundFact=(await pool.query(`SELECT i.out_refund_no,i.refund_cents,i.payer_refund_cents,
-    o.order_number,p.provider_refund_id FROM commission_refund_intent i
+    o.order_number,p.provider_refund_id,
+    to_char(ob.accepted_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD HH24:MI:SS') AS acceptance_time
+    FROM commission_refund_intent i
     JOIN commerce_order o ON o.id=i.order_id
     JOIN commission_refund_inbox p ON p.refund_intent_id=i.id AND p.state='applied'
+    JOIN LATERAL (SELECT accepted_at FROM commission_refund_channel_observation
+      WHERE refund_intent_id=i.id ORDER BY observed_at,id LIMIT 1) ob ON true
     ORDER BY i.created_at LIMIT 1`)).rows[0];
   expect(refundFact).toBeDefined();
   const money=(value:number)=>(value/100).toFixed(2);
   tradeBillFixtures.set(`${billOne}:REFUND`,Buffer.from(
-    `交易时间,商户号,商户订单号,商户退款单号,微信退款单号,货币种类,申请退款金额,退款金额\n`+
-    `${billOne} 13:00:00,${merchantId},${refundFact.order_number},${refundFact.out_refund_no},`+
+    `交易时间,退款申请时间,商户号,商户订单号,商户退款单号,微信退款单号,货币种类,申请退款金额,退款金额\n`+
+    `${refundFact.acceptance_time},${refundFact.acceptance_time},${merchantId},${refundFact.order_number},${refundFact.out_refund_no},`+
     `${refundFact.provider_refund_id},CNY,${money(Number(refundFact.refund_cents))},`+
     `${money(Number(refundFact.payer_refund_cents))}\n总退款单数,1\n`));
   const refundBill=await app.inject({method:"POST",url:path,headers:auth(operator.sessionToken),
     payload:{billDate:billOne,billType:"REFUND"}});
   expect(refundBill.statusCode,JSON.stringify(refundBill.json())).toBe(200);
-  expect(refundBill.json()).toMatchObject({rowCount:1,matchedCount:1,exceptionCount:0});
+  expect(refundBill.json()).toMatchObject({rowCount:1,matchedCount:0,exceptionCount:1});
+  expect((await pool.query(`SELECT exception_code FROM commerce_trade_bill_row WHERE batch_id=$1`,
+    [refundBill.json().id])).rows[0].exception_code).toBe("REFUND_ACCEPTANCE_TIME_MISMATCH");
   expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry")).rows[0].n).toBe(prior);
 });
 
@@ -759,4 +951,69 @@ it("flags an internal paid order missing from a complete signed daily trade bill
   const row=(await pool.query(`SELECT exception_code,related_id FROM commerce_trade_bill_row
     WHERE batch_id=$1`,[imported.json().id])).rows[0];
   expect(row).toEqual({exception_code:"PAYMENT_MISSING_PROVIDER_BILL",related_id:order.id});
+});
+
+it("never clears a complete bill that omits a signed but quarantined discounted payment",async()=>{
+  const day=new Date(Date.now()+8*60*60*1000-4*24*60*60*1000).toISOString().slice(0,10);
+  await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1,
+    version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
+  const order=await createOrder("bill-discounted-exception");
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,
+    headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  await pool.query(`UPDATE commerce_order SET created_at=$2::timestamptz,
+    expires_at=$3::timestamptz WHERE id=$1`,[order.id,
+      `${day}T11:00:00+08:00`,`${day}T13:00:00+08:00`]);
+  const paid=paidCallback(order.orderNumber,undefined,`${day}T12:00:00+08:00`,9900);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
+    headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  const fact=(await pool.query(`SELECT state,composition_status FROM commission_payment_inbox
+    WHERE order_id=$1`,[order.id])).rows[0];
+  expect(fact).toMatchObject({state:"exception",composition_status:"unknown_or_discounted"});
+  tradeBillFixtures.set(`${day}:SUCCESS`,Buffer.from(
+    "交易时间,公众账号ID,商户号,微信订单号,商户订单号,用户标识,货币种类,订单金额,代金券金额\n总交易单数,0\n"));
+  const imported=await app.inject({method:"POST",url:"/v1/management/money/trade-bills/import",
+    headers:auth(operator.sessionToken),payload:{billDate:day,billType:"SUCCESS"}});
+  expect(imported.statusCode,JSON.stringify(imported.json())).toBe(200);
+  expect(imported.json()).toMatchObject({matchedCount:0,exceptionCount:1});
+  expect((await pool.query(`SELECT exception_code,related_id FROM commerce_trade_bill_row
+    WHERE batch_id=$1`,[imported.json().id])).rows[0])
+    .toEqual({exception_code:"PAYMENT_MISSING_PROVIDER_BILL",related_id:order.id});
+});
+
+it("flags a channel-observed refund missing from an otherwise complete REFUND bill",async()=>{
+  const yesterday=new Date(Date.now()+8*60*60*1000-24*60*60*1000).toISOString().slice(0,10);
+  const paid=(await pool.query<{id:string;order_id:string;order_number:string}>(`SELECT p.id,p.order_id,o.order_number
+    FROM commission_payment_inbox p JOIN commerce_order o ON o.id=p.order_id
+    WHERE p.state='applied' AND o.status='paid' LIMIT 1`)).rows[0]!;
+  // Synthetic signed-query observation: this isolates the reverse selector.
+  // The normal path inserts the same record only after verified HTTP bytes.
+  const refunds:string[]=[];
+  for(const index of [1,2]){
+    const refund=(await pool.query<{id:string}>(`INSERT INTO commission_refund_intent
+      (order_id,payment_inbox_id,out_refund_no,refund_cents,payer_refund_cents,
+        eligible_merchandise_refund_cents,other_merchandise_refund_cents,shipping_cash_refund_cents,
+        line_allocation,allocation_policy_version,created_by)
+      VALUES($1,$2,$3,1,1,1,0,0,'[]','isolated-test-v1','fixture') RETURNING id`,
+      [paid.order_id,paid.id,`RF-MISSING-PROVIDER-00${index}`])).rows[0]!;
+    refunds.push(refund.id);
+    await pool.query(`INSERT INTO commission_refund_channel_observation
+      (refund_intent_id,source_kind,raw_sha256,provider_refund_id,accepted_at)
+      VALUES($1,'signed_query',$2,$3,$4)`,
+      [refund.id,createHash("sha256").update(`refund-observed:${refund.id}`).digest("hex"),
+        `REFUND-PROVIDER-MISSING-00${index}`,`${yesterday}T12:00:00+08:00`]);
+  }
+  tradeBillFixtures.set(`${yesterday}:REFUND`,Buffer.from(
+    `交易时间,退款申请时间,商户号,商户订单号,商户退款单号,微信退款单号,货币种类,申请退款金额,退款金额\n`+
+    `${yesterday} 12:00:00,${yesterday} 12:00:00,${merchantId},${paid.order_number},`+
+    `RF-MISSING-PROVIDER-001,REFUND-PROVIDER-MISSING-001,CNY,0.01,0.01\n总退款单数,1\n`));
+  const imported=await app.inject({method:"POST",url:"/v1/management/money/trade-bills/import",
+    headers:auth(operator.sessionToken),payload:{billDate:yesterday,billType:"REFUND"}});
+  expect(imported.statusCode,JSON.stringify(imported.json())).toBe(200);
+  expect(imported.json()).toMatchObject({rowCount:2,matchedCount:1,exceptionCount:1});
+  expect((await pool.query(`SELECT exception_code,related_id FROM commerce_trade_bill_row WHERE batch_id=$1`,
+    [imported.json().id])).rows).toEqual(expect.arrayContaining([
+      {exception_code:null,related_id:refunds[0]},
+      {exception_code:"REFUND_MISSING_PROVIDER_BILL",related_id:refunds[1]}
+    ]));
 });
