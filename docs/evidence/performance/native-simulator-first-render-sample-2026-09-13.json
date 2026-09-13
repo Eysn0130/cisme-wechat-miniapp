@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-09-13T07:38:30Z",
+  "sourceHead": "eb8a54809ebc34080800cf93da1323f7462285e1",
+  "miniProgramSourceSha256": "b5d9a2299b6396ffa6b23e571075eb73dc6c6286af3cff4e980324d6518e22a4",
+  "projectPath": "/Users/mini/.codex/worktrees/f745/CISME/apps/miniprogram",
+  "environment": "WeChat Developer Tools Stable 2.02.2608070, simulator SDK 3.15.2, isolated local API and database, guest session",
+  "method": "wechatide simulator_open_page once per route, then read-only automation_evaluate of wx.getPerformance().getEntries()",
+  "scope": "Single simulator samples. Neither visual captures nor real-device, weak-network, user-interaction, endpoint P95, or release evidence.",
+  "samples": [
+    { "openedRoute": "pages/home/index", "entries": [
+      { "entryType": "script", "name": "evaluateScript", "startTimeMs": 1789284311173, "durationMs": 13 },
+      { "entryType": "render", "name": "firstRender", "path": "pages/home/index", "startTimeMs": 1789284311251, "durationMs": 33 }
+    ] },
+    { "openedRoute": "pages/records/index", "entries": [
+      { "entryType": "script", "name": "evaluateScript", "startTimeMs": 1789285073930, "durationMs": 15 },
+      { "entryType": "render", "name": "firstRender", "path": "pages/records/index", "startTimeMs": 1789285073982, "durationMs": 74 },
+      { "entryType": "navigation", "name": "route", "path": "pages/account/index", "startTimeMs": 1789285074003 },
+      { "entryType": "render", "name": "firstRender", "path": "pages/account/index", "startTimeMs": 1789285074694, "durationMs": 107 }
+    ], "note": "The protected route redirected this guest to Account." },
+    { "openedRoute": "pages/community/index", "entries": [
+      { "entryType": "script", "name": "evaluateScript", "startTimeMs": 1789285085148, "durationMs": 23 },
+      { "entryType": "render", "name": "firstRender", "path": "pages/community/index", "startTimeMs": 1789285085282, "durationMs": 66 }
+    ] },
+    { "openedRoute": "pages/profile/index", "entries": [
+      { "entryType": "script", "name": "evaluateScript", "startTimeMs": 1789285096707, "durationMs": 14 },
+      { "entryType": "render", "name": "firstRender", "path": "pages/profile/index", "startTimeMs": 1789285096803, "durationMs": 42 },
+      { "entryType": "navigation", "name": "route", "path": "pages/account/index", "startTimeMs": 1789285096820, "durationMs": 704 },
+      { "entryType": "render", "name": "firstRender", "path": "pages/account/index", "startTimeMs": 1789285097420, "durationMs": 91 }
+    ], "note": "The protected route redirected this guest to Account; the route entry includes other navigation work and is not the firstRender duration." }
+  ],
+  "captureLimitations": [
+    "The WeChat CLI simulator_screenshot operation hung on three attempts and was not retried.",
+    "The generic desktop screenshot interface selected a different, historical cisme-r0-platform window; its errors and image are excluded.",
+    "The CLI's size page action was unsupported by the installed Stable adapter; no layout measurement is claimed."
+  ],
+  "qaState": "releaseReady=false; no route is promoted to current visual pass by this file"
+}
