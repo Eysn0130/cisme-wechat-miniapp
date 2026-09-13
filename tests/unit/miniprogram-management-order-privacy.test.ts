@@ -3,10 +3,12 @@ import { beforeEach, expect, it, vi } from "vitest";
 const requireCapabilityMock=vi.hoisted(()=>vi.fn());
 const managementOrderMock=vi.hoisted(()=>vi.fn());
 const managementOrdersMock=vi.hoisted(()=>vi.fn());
+const managementCatalogMock=vi.hoisted(()=>vi.fn());
 vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock}));
 vi.mock("../../apps/miniprogram/services/orders",()=>({managementOrder:managementOrderMock,
   managementOrders:managementOrdersMock}));
-vi.mock("../../apps/miniprogram/services/commerce",()=>({centsToYuan:(n:number)=>(n/100).toFixed(2)}));
+vi.mock("../../apps/miniprogram/services/commerce",()=>({centsToYuan:(n:number)=>(n/100).toFixed(2),
+  managementCatalog:managementCatalogMock}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
 
 type PageDefinition=Record<string,any>&{data:Record<string,any>};
@@ -19,6 +21,7 @@ function mount(overrides:Record<string,unknown>={}){
 }
 beforeEach(async()=>{
   vi.resetModules();requireCapabilityMock.mockReset();managementOrderMock.mockReset();managementOrdersMock.mockReset();
+  managementCatalogMock.mockReset();
   session="operator-a";definition=null;
   (globalThis as any).getApp=()=>({globalData:{sessionToken:session}});
   (globalThis as any).Page=(page:PageDefinition)=>{definition=page;};
@@ -77,4 +80,18 @@ it("clears the order queue before a new operator's authority check and drops del
   expect(page.data).toMatchObject({items:[],nextCursor:null});
   resolveNew({items:[],nextCursor:null});await second;
   expect(page.data).toMatchObject({items:[],nextCursor:null,loading:false});
+});
+
+it("does not retain a private catalog queue after the product-management permission changes",async()=>{
+  await vi.importActual("../../apps/miniprogram/pages/management-catalog/index");
+  let deny!:()=>void;
+  requireCapabilityMock.mockReturnValue(new Promise(resolve=>{deny=()=>resolve(null);}));
+  const page=mount({items:[{id:"private-sku-a",price:10000}],nextCursor:"private-next",
+    loading:false,loadingMore:true});
+  session="operator-b";
+  const checking=page.onShow();
+  expect(page.data).toMatchObject({items:[],nextCursor:null,loading:true,loadingMore:false});
+  deny();await checking;
+  expect(page.data).toMatchObject({items:[],loading:false,error:"当前账号没有商品管理权限。"});
+  expect(managementCatalogMock).not.toHaveBeenCalled();
 });
