@@ -78,4 +78,34 @@ describe("commission integer policy",()=>{
     expect(()=>commissionBuckets({accruedCents:10_000,reversedCents:0,releasedCents:10_000,
       paidCents:6000,convertedCents:5000})).toThrow("佣金分录不守恒");
   });
+  it("rebuilds per-order recovery and pending under deterministic multi-order permutations",()=>{
+    let seed=0x13579bdf;
+    const next=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed;};
+    for(let round=0;round<128;round++){
+      const orders=Array.from({length:3+next()%7},()=>{
+        const accruedCents=1+next()%100_000,releasedCents=next()%(accruedCents+1),
+          reversedCents=next()%(accruedCents+1),paidCents=next()%(releasedCents+1),
+          convertedCents=next()%(releasedCents-paidCents+1),
+          heldCents=next()%(releasedCents-paidCents-convertedCents+1);
+        return {accruedCents,reversedCents,releasedCents,paidCents,convertedCents,heldCents};
+      });
+      const expectedPending=orders.reduce((sum,o)=>sum+Math.max(0,o.accruedCents-o.reversedCents-o.releasedCents),0);
+      const expectedRecovery=orders.reduce((sum,o)=>sum+Math.max(0,o.paidCents+o.convertedCents-
+        (o.accruedCents-o.reversedCents)),0);
+      const shuffled=[...orders];
+      for(let index=shuffled.length-1;index>0;index--){
+        const other=next()%(index+1);
+        [shuffled[index],shuffled[other]]=[shuffled[other]!,shuffled[index]!];
+      }
+      for(const ordered of [orders,[...orders].reverse(),shuffled]){
+        const result=commissionOrderBuckets(ordered);
+        expect(result.pendingCents).toBe(expectedPending);
+        expect(result.recoveryCents).toBe(expectedRecovery);
+        expect(result.netEarnedCents).toBe(ordered.reduce((sum,o)=>sum+o.accruedCents-o.reversedCents,0));
+        expect(result.settledCents+result.creditConvertedCents+result.paymentHeldCents+
+          result.availableCents-result.reservedRecoveryCents).toBeLessThanOrEqual(
+            ordered.reduce((sum,o)=>sum+o.releasedCents,0));
+      }
+    }
+  });
 });
