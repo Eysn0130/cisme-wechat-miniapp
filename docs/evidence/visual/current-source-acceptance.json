@@ -236,5 +236,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current-source WeChat DevTools simulator captures are indexed for 37 default navigations and 11 selected parameterized fixtures. They do not cover the full route-state matrix or physical iOS/Android devices; release remains blocked."
+  "note": "No WeChat DevTools captures have been collected for this package source hash. Historical 37 default-route and 11 parameterized captures retain their original source hashes and cannot certify the current candidate. Normal native tasks, critical states, and physical iOS/Android devices remain unverified."
 }
