@@ -471,4 +471,29 @@ it("converts only released source lots 1:1, arbitrates cash reservation, and res
   const continued=await credit.listMine(referrer,{limit:"1",cursor:page.nextCursor!});
   expect(continued.items[0]?.id).not.toBe(later.id);
   expect((await credit.listMine(buyer)).totalCount).toBe(0);
+  const affected=(await pool.query<{order_id:string;order_number:string;provider_transaction_id:string;created_at:Date}>(`
+    SELECT s.order_id,o.order_number,p.provider_transaction_id,o.created_at
+    FROM commission_credit_source s JOIN commerce_order o ON o.id=s.order_id
+    JOIN commission_payment_inbox p ON p.order_id=o.id AND p.state='applied'
+    WHERE s.conversion_id=$1`,[later.id])).rows[0]!;
+  const paidId=(await pool.query<{id:string}>(`SELECT id FROM commission_payment_inbox
+    WHERE order_id=$1 AND state='applied'`,[affected.order_id])).rows[0]!.id;
+  const refundNumber="RF20260912CREDIT0001";
+  await refundIntent({orderId:affected.order_id,paymentId:paidId,refundNumber,refundCents:10000});
+  const signed=refundNotification({orderNumber:affected.order_number,
+    transactionId:affected.provider_transaction_id,refundNumber,
+    providerRefundId:"500000000000000000000151",eventId:"EV-20260912-CREDIT-R151",
+    refundCents:10000,status:"SUCCESS",successTime:new Date(Date.now()+1000).toISOString()});
+  const refunded=await refunds.receive(signed.rawBody,signed.headers);
+  expect(await refunds.processOne(refunded.inboxId)).toBe("applied");
+  expect(await refunds.processOne(refunded.inboxId)).toBe("applied");
+  const sourceBalance=(await pool.query<{balance:string;frozen:string}>(`SELECT
+    sum(e.amount_cents)::text AS balance,
+    COALESCE(-sum(e.amount_cents) FILTER(WHERE e.kind='freeze'),0)::text AS frozen
+    FROM commission_credit_entry e JOIN commission_credit_source s ON s.id=e.source_id
+    WHERE s.conversion_id=$1`,[later.id])).rows[0]!;
+  expect(sourceBalance.balance).toBe("0");
+  expect(sourceBalance.frozen).toBe("1");
+  await expect(credit.cancel(referrer,later.id,"credit-frozen-cancel-0001"))
+    .rejects.toMatchObject({code:"CREDIT_ALREADY_USED_OR_FROZEN"});
 });

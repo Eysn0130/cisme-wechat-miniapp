@@ -5,6 +5,7 @@ import { transaction } from "./db.js";
 import { cumulativeCommission } from "./commissionPolicy.js";
 import { assertRefundBinding, decodeRefundNotification, type RefundTransaction, WechatPayV3Client } from "./wechatPayV3.js";
 import { claimDueMoneyInbox, recordMoneyInboxFailure } from "./moneyInboxRetry.js";
+import { freezeCreditExposureForRefund } from "./shoppingCredit.js";
 
 type LineAllocation={lineId:string;eligibleCashRefundCents:number;otherCashRefundCents:number};
 const refundPattern=/^[A-Za-z0-9_-]{8,64}$/;
@@ -204,6 +205,7 @@ export class VerifiedRefundInbox{
         VALUES($1,$2,$3,'refund_reversal',$4,$5,$6,'worker:refund-inbox')`,
         [order.id,snapshot.referrer_member_id,`wechat-refund:${fact.provider_refund_id}`,
           target-currentCommission,accrual.id,inboxId]);
+      const creditExposure=await freezeCreditExposureForRefund(client,order.id,inboxId);
       await client.query(`UPDATE commission_refund_intent SET state='succeeded',finalized_at=$2,
         reconcile_lease_until=NULL WHERE id=$1`,
         [intent.id,fact.succeeded_at]);
@@ -211,7 +213,7 @@ export class VerifiedRefundInbox{
         after_state,trace_id) VALUES('worker:refund-inbox','commerce.refund_applied','commerce_order',
         $1,'WECHAT_REFUND_VERIFIED',$2,$3)`,[order.id,{outRefundNo:intent.out_refund_no,
           payerRefundCents:cents(intent.payer_refund_cents),eligibleRefundCents:cents(intent.eligible_merchandise_refund_cents),
-          commissionTargetCents:target},`refund-inbox:${inboxId}`]);
+          commissionTargetCents:target,creditExposure},`refund-inbox:${inboxId}`]);
       return "applied";
     });
   }

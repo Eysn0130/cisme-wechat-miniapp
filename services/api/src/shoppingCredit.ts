@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type pg from "pg";
 import type { AppEnvironment } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
-import { transaction } from "./db.js";
+import { transaction, type DbClient } from "./db.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -19,6 +19,49 @@ function cents(value:unknown){const n=Number(value);if(!Number.isSafeInteger(n)|
 function key(value:unknown){if(typeof value!=="string"||!KEY.test(value))
   throw new DomainError("IDEMPOTENCY_KEY_INVALID","转换请求键无效",400);return value;}
 function id(value:string){if(!UUID.test(value))throw new DomainError("CREDIT_CONVERSION_ID_INVALID","转换编号无效",422);return value;}
+
+/** Called in the same transaction as a signed refund reversal, with its source
+ * order locked. Historical credit is never deleted or silently reclaimed:
+ * at-risk unused lots get immutable negative freeze entries, while an amount
+ * no longer available for freezing is an explicit recovery exposure. */
+export async function freezeCreditExposureForRefund(client:DbClient,orderId:string,refundFactId:string){
+  const ledger=(await client.query<{kind:string;amount_cents:string}>(`SELECT kind,amount_cents
+    FROM commission_ledger_entry WHERE order_id=$1`,[orderId])).rows;
+  const sum=(...kinds:string[])=>ledger.filter(row=>kinds.includes(row.kind))
+    .reduce((total,row)=>total+Number(row.amount_cents),0);
+  const net=sum("accrual","refund_reversal"),paid=sum("settlement"),
+    converted=sum("credit_conversion","credit_conversion_reversal");
+  if(![net,paid,converted].every(Number.isSafeInteger)||net<0||paid<0||converted<0)
+    throw new DomainError("CREDIT_REFUND_LEDGER_INVALID","退款来源权益账本需核对",409);
+  const sources=(await client.query<{id:string;amount_cents:string;balance:string;frozen:string}>(`
+    SELECT s.id,s.amount_cents,COALESCE(sum(e.amount_cents),0)::text AS balance,
+      COALESCE(-sum(e.amount_cents) FILTER(WHERE e.kind='freeze'),0)::text AS frozen
+    FROM commission_credit_source s JOIN commission_credit_conversion c ON c.id=s.conversion_id
+    LEFT JOIN commission_credit_entry e ON e.source_id=s.id
+    WHERE s.order_id=$1 AND c.state='available'
+    GROUP BY s.id ORDER BY s.id DESC`,[orderId])).rows;
+  const active=sources.reduce((total,row)=>total+Number(row.amount_cents),0);
+  if(active!==converted||sources.some(row=>![row.amount_cents,row.balance,row.frozen]
+    .every(value=>Number.isSafeInteger(Number(value))&&Number(value)>=0)))
+    throw new DomainError("CREDIT_REFUND_SOURCE_DRIFT","购物权益来源与现金账本不一致",409);
+  const target=Math.min(converted,Math.max(0,paid+converted-net));
+  let remaining=Math.max(0,target-sources.reduce((total,row)=>total+Number(row.frozen),0));
+  const initiallyRequired=remaining;
+  for(const source of sources){
+    const take=Math.min(remaining,Number(source.balance));
+    if(!take)continue;
+    await client.query(`INSERT INTO commission_credit_entry
+      (source_id,event_key,kind,amount_cents,actor_principal_id)
+      VALUES($1,$2,'freeze',$3,'worker:refund-inbox')`,
+      [source.id,`credit-refund-freeze:${refundFactId}:${source.id}`,-take]);
+    remaining-=take;
+  }
+  if(remaining)await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,
+    reason_code,after_state,trace_id) VALUES('worker:refund-inbox','commission.credit_recovery_exposure',
+    'commerce_order',$1,'CREDIT_EXPOSURE_UNCOVERED',$2,$3)`,
+    [orderId,{uncoveredCents:remaining,targetFrozenCents:target},`credit-refund:${refundFactId}`]);
+  return {targetFrozenCents:target,newlyFrozenCents:initiallyRequired-remaining,uncoveredCents:remaining};
+}
 
 /** No top-up, transfer or production path. This commits a 1:1 source-linked
  * cash-commission debit and credit issue atomically. Tax=0 is a *synthetic*
