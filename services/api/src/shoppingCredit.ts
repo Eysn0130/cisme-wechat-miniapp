@@ -105,19 +105,27 @@ async function assertOriginPurchasable(client:DbClient,orderId:string){
 export async function reserveCreditForCheckout(client:DbClient,memberId:string,orderId:string,amount:number){
   if(amount===0)return;
   await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`settlement-member:${memberId}`]);
-  const originOrders=(await client.query<{order_id:string}>(`SELECT DISTINCT s.order_id FROM commission_credit_source s
+  const originOrders=(await client.query<{order_id:string}>(`SELECT s.order_id FROM commission_credit_source s
     JOIN commission_credit_conversion c ON c.id=s.conversion_id
-    WHERE c.member_id=$1 AND c.state='available' ORDER BY s.order_id`,[memberId])).rows;
+    JOIN commission_credit_entry e ON e.source_id=s.id
+    WHERE c.member_id=$1 AND c.state='available'
+    GROUP BY s.order_id HAVING sum(e.amount_cents)>0 ORDER BY s.order_id`,[memberId])).rows;
+  if(!originOrders.length)
+    throw new DomainError("CREDIT_CHECKOUT_INSUFFICIENT","购物权益可用来源不足，请重新报价",409);
+  const purchasableOrigins:string[]=[];
   for(const row of originOrders){
     await client.query("SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE",[row.order_id]);
-    await assertOriginPurchasable(client,row.order_id);
+    try{await assertOriginPurchasable(client,row.order_id);purchasableOrigins.push(row.order_id);}
+    catch(error){if(!(error instanceof DomainError&&error.code==="CREDIT_CHECKOUT_ORIGIN_DISPUTED"))throw error;}
   }
+  if(!purchasableOrigins.length)
+    throw new DomainError("CREDIT_CHECKOUT_ORIGIN_DISPUTED","权益来源发生未决退款或追偿，请更换支付组成",409);
   const lots=(await client.query<{id:string;balance:string}>(`SELECT s.id,
     COALESCE(sum(e.amount_cents),0)::text AS balance FROM commission_credit_source s
     JOIN commission_credit_conversion c ON c.id=s.conversion_id
     JOIN commission_credit_entry e ON e.source_id=s.id
-    WHERE c.member_id=$1 AND c.state='available'
-    GROUP BY s.id,c.created_at ORDER BY c.created_at,s.id`,[memberId])).rows;
+    WHERE c.member_id=$1 AND c.state='available' AND s.order_id=ANY($2::uuid[])
+    GROUP BY s.id,c.created_at ORDER BY c.created_at,s.id`,[memberId,purchasableOrigins])).rows;
   if(lots.some(lot=>!Number.isSafeInteger(Number(lot.balance))||Number(lot.balance)<0))
     throw new DomainError("CREDIT_CHECKOUT_SOURCE_DRIFT","购物权益来源账本需核对",409);
   let remaining=amount;
@@ -205,12 +213,29 @@ export class ShoppingCreditService{
       FROM commission_credit_conversion c
       WHERE c.member_id=$1 AND ($2::timestamptz IS NULL OR (c.created_at,c.id)<($2::timestamptz,$3::uuid))
       ORDER BY c.created_at DESC,c.id DESC LIMIT $4`,[memberId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    const available=(await this.pool.query<{amount_cents:string}>(`SELECT COALESCE(sum(e.amount_cents),0)::text AS amount_cents
+    const available=(await this.pool.query<{amount_cents:string;checkout_cents:string}>(`WITH balance AS (
+      SELECT s.order_id,sum(e.amount_cents) AS amount_cents
       FROM commission_credit_source s JOIN commission_credit_conversion c ON c.id=s.conversion_id
       JOIN commission_credit_entry e ON e.source_id=s.id
-      WHERE c.member_id=$1 AND c.state='available'`,[memberId])).rows[0]!;
+      WHERE c.member_id=$1 AND c.state='available' GROUP BY s.order_id
+    ), eligible AS (
+      SELECT b.*,
+        NOT EXISTS(SELECT 1 FROM commission_payment_composition_observation x WHERE x.order_id=b.order_id)
+        AND NOT EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i
+          ON i.request_id=r.id WHERE r.order_id=b.order_id AND
+          (r.state='requested' OR r.state='approved' AND
+            (i.id IS NULL OR i.state IN ('prepared','abnormal'))))
+        AND COALESCE((SELECT sum(amount_cents) FROM commission_ledger_entry e WHERE e.order_id=b.order_id
+          AND e.kind IN ('accrual','refund_reversal')),0)>=
+          COALESCE((SELECT sum(amount_cents) FROM commission_ledger_entry e WHERE e.order_id=b.order_id
+            AND e.kind IN ('settlement','credit_conversion','credit_conversion_reversal')),0)
+        AS can_checkout FROM balance b
+    ) SELECT COALESCE(sum(amount_cents),0)::text AS amount_cents,
+      COALESCE(sum(amount_cents) FILTER (WHERE can_checkout AND amount_cents>0),0)::text AS checkout_cents
+      FROM eligible`,[memberId])).rows[0]!;
     return {...finishPage(rows.map(row=>({...this.view(row),cursorAt:row.created_at.toISOString()})),limit,scope),
-      totalCount:count,availableCents:Number(available.amount_cents),spendable:Number(available.amount_cents)>0,
+      totalCount:count,availableCents:Number(available.amount_cents),
+      checkoutAvailableCents:Number(available.checkout_cents),spendable:Number(available.checkout_cents)>0,
       redemptionStatus:"ISOLATED_TEST_ONLY" as const};
   }
 
@@ -223,8 +248,13 @@ export class ShoppingCreditService{
       fingerprint=hash({memberId,requested,confirmed:true,taxPolicyVersion:TAX_FIXTURE});
     return transaction(this.pool,async client=>{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`settlement-member:${memberId}`]);
-      const existing=(await client.query<Conversion>(`SELECT * FROM commission_credit_conversion
-        WHERE member_id=$1 AND idempotency_key=$2`,[memberId,requestKey])).rows[0];
+      const existing=(await client.query<Conversion>(`SELECT c.*,
+        COALESCE((SELECT sum(e.amount_cents) FROM commission_credit_source s
+          JOIN commission_credit_entry e ON e.source_id=s.id WHERE s.conversion_id=c.id),0)::text AS available_cents,
+        (SELECT count(*)::int FROM commission_credit_source s JOIN commission_credit_entry e
+          ON e.source_id=s.id WHERE s.conversion_id=c.id AND e.kind<>'issue') AS other_entry_count
+        FROM commission_credit_conversion c WHERE c.member_id=$1 AND c.idempotency_key=$2`,
+        [memberId,requestKey])).rows[0];
       if(existing){if(existing.request_hash!==fingerprint)throw new DomainError("IDEMPOTENCY_CONFLICT",
         "同一请求键不能转换不同金额",409);return this.view(existing);}
       const orders=(await client.query<{order_id:string}>(`SELECT order_id FROM commission_order_snapshot

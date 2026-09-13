@@ -331,6 +331,9 @@ async function creditSpendCase(){
     ORDER BY e.occurred_at,e.id`,[converted.id])).rows;
   expect(credited.filter(row=>row.kind==="spend")
     .reduce((sum,row)=>sum+Number(row.amount_cents),0)).toBe(-1000);
+  expect(await credit.convert(referrer.memberId,"credit-spend-convert-001",
+    {amountCents:2000,confirmed:true,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"}))
+    .toMatchObject({id:converted.id,availableCents:1000,cancellable:false});
   for(const [index,gross,cash,returned] of [[1,3000,2700,300],[2,7000,6300,700]]){
     const requested=await app.inject({method:"POST",url:`/v1/me/orders/${purchase.id}/refund-requests`,
       headers:{...auth(referrer.sessionToken),"idempotency-key":`credit-refund-request-${index}-01`},
@@ -375,6 +378,20 @@ async function creditSpendCase(){
     headers:{...auth(buyer.sessionToken),"idempotency-key":"credit-source-pending-refund-001"},
     payload:{amountCents:100,reason:"隔离信用来源退款争议"}});
   expect(disputed.statusCode,disputed.body).toBe(200);
+  expect((await pool.query(`SELECT count(*)::int AS n FROM commerce_refund_request
+    WHERE order_id=$1 AND state='requested'`,[source.id])).rows[0].n).toBe(1);
+  const cleanBalance=Number((await pool.query<{balance:string}>(`SELECT COALESCE(sum(e.amount_cents),0)::text AS balance
+    FROM commission_credit_source s JOIN commission_credit_entry e ON e.source_id=s.id
+    WHERE s.conversion_id=$1 AND s.order_id<>$2`,[converted.id,source.id])).rows[0]!.balance);
+  expect(cleanBalance).toBeGreaterThan(0);
+  expect(await credit.listMine(referrer.memberId)).toMatchObject({availableCents:2000,
+    checkoutAvailableCents:cleanBalance,spendable:true});
+  const cleanPurchase=await creditOrder("clean",Math.min(cleanBalance,500));
+  const usedOrigins=(await pool.query<{order_id:string}>(`SELECT DISTINCT s.order_id FROM commission_credit_checkout_allocation a
+    JOIN commission_credit_source s ON s.id=a.source_id WHERE a.order_id=$1`,[cleanPurchase.id])).rows;
+  expect(usedOrigins.length).toBeGreaterThan(0);
+  expect(usedOrigins.every(row=>row.order_id!==source.id)).toBe(true);
+  expect(await credit.listMine(referrer.memberId)).toMatchObject({checkoutAvailableCents:0,spendable:false});
   const disputedQuote=await app.inject({method:"POST",url:"/v1/me/commerce/quotes",
     headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-disputed-quote-001"},
     payload:{skuId,quantity:1,addressId:address.json().id,addressVersion:address.json().version,
@@ -385,6 +402,10 @@ async function creditSpendCase(){
     payload:{quoteId:disputedQuote.json().id}});
   expect(blocked.statusCode,blocked.body).toBe(409);
   expect(blocked.json().code).toBe("CREDIT_CHECKOUT_ORIGIN_DISPUTED");
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${cleanPurchase.id}/cancel-verified`,
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-clean-cancel-001"},
+    payload:{expectedVersion:cleanPurchase.version,reason:"仅干净来源可预占并正常释放"}})).statusCode).toBe(200);
+  expect(await credit.listMine(referrer.memberId)).toMatchObject({checkoutAvailableCents:cleanBalance,spendable:true});
 }
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 

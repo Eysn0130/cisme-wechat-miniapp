@@ -38,7 +38,7 @@ export interface CommerceOrderRuntimeStatus {
   scope: "synthetic_nonproduction" | "verified_isolated_test" | "formal_protocol_synthetic_test" | "disabled";
   isolatedMoneyOperationsAvailable: boolean; isolatedTransferAvailable: boolean; isolatedCreditCheckoutAvailable:boolean;
 }
-export interface IsolatedCreditSummary{availableCents:number;spendable:boolean;
+export interface IsolatedCreditSummary{availableCents:number;checkoutAvailableCents:number;spendable:boolean;
   redemptionStatus:"ISOLATED_TEST_ONLY";totalCount:number}
 export function isolatedCreditSummary():Promise<IsolatedCreditSummary>{
   return request({path:"/v1/me/commission/credit-conversions?limit=1",cacheTags:["member","orders"]});
