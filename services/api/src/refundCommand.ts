@@ -67,7 +67,8 @@ export class RefundCommandService{
       if(!payment)throw new DomainError("REFUND_PAYMENT_FACT_MISSING","原支付事实尚未入账",409);
       const existing=(await client.query<{reserved:string}>(`SELECT COALESCE(sum(r.amount_cents),0)::text AS reserved
         FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-        WHERE r.order_id=$1 AND (r.state='requested' OR (r.state='approved' AND i.state<>'closed'))`,[orderId])).rows[0];
+        WHERE r.order_id=$1 AND (r.state='requested' OR
+          (r.state='approved' AND (i.id IS NULL OR i.state<>'closed')))`,[orderId])).rows[0];
       if(Number(existing?.reserved??0)+amount>Number(order.total_cents))
         throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计申请金额超过可退订单金额",409);
       const row=(await client.query<RequestRow>(`INSERT INTO commerce_refund_request(order_id,requested_by_member_id,
@@ -112,6 +113,12 @@ export class RefundCommandService{
       let allocation:{lineId:string;eligibleCashRefundCents:number;otherCashRefundCents:number}[]=[];
       let eligible=0;
       if(decision==="approve"){
+        const missingIntent=(await client.query<{has_gap:boolean}>(`SELECT EXISTS(
+          SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i
+            ON i.request_id=r.id WHERE r.order_id=$1 AND r.state='approved' AND i.id IS NULL
+        ) AS has_gap`,[order.id])).rows[0]?.has_gap;
+        if(missingIntent)throw new DomainError("REFUND_APPROVED_INTENT_MISSING",
+          "已有批准退款尚未形成渠道意图，请先核对并修复原申请",409);
         const payment=(await client.query(`SELECT * FROM commission_payment_inbox WHERE order_id=$1 AND state='applied'`,[order.id])).rows[0];
         const cashTotal=Number(payment?.amount_cents),grossTotal=Number(order.total_cents),
           creditTotal=Number(order.credit_tender_cents);

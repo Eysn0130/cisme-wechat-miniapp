@@ -871,6 +871,21 @@ it("cancels an unsubmitted transfer even if an approved refund has no intent yet
   expect(channelTransfers.has(reserved.json().outBillNo)).toBe(false);
   expect((await pool.query(`SELECT state FROM commission_settlement_request WHERE id=$1`,
     [request.json().id])).rows[0].state).toBe("cancelled");
+  const overdraw=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
+    headers:{...auth(buyer.sessionToken),"idempotency-key":"late-refund-gap-overdraw-01"},
+    payload:{amountCents:10000,reason:"已有未写入意图的批准退款"}});
+  expect(overdraw.statusCode).toBe(409);
+  expect(overdraw.json().code).toBe("REFUND_AMOUNT_EXCEEDS_REMAINING");
+  const another=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
+    headers:{...auth(buyer.sessionToken),"idempotency-key":"late-refund-gap-another-01"},
+    payload:{amountCents:9000,reason:"剩余额度仍需避免审批竞态"}});
+  expect(another.statusCode,another.body).toBe(200);
+  const blockedDecision=await app.inject({method:"POST",
+    url:`/v1/management/refund-requests/${another.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"gap-approval-0001"},
+    payload:{decision:"approve",expectedVersion:1,reason:"隔离孤儿批准先核对"}});
+  expect(blockedDecision.statusCode).toBe(409);
+  expect(blockedDecision.json().code).toBe("REFUND_APPROVED_INTENT_MISSING");
 });
 
 it("keeps other-order pending income apart from a paid order refunded in full",async()=>{
