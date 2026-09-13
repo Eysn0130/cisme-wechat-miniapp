@@ -672,6 +672,24 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [amountCents, reason], properties: {amountCents: {type: integer, minimum: 1}, reason: {type: string}}}}}}
       responses: {'200': {description: Durable request or exact replay}, '409': {description: verified payee identity missing}, '503': {description: isolated transfer disabled}}
     get: {tags: [Commerce], operationId: myIsolatedCommissionSettlements, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], responses: {'200': {description: Paged owner-only settlement states; only signed SUCCESS is paid}, '503': {description: isolated transfer disabled}}}
+  /v1/me/commission/credit-conversions:
+    post:
+      tags: [Commerce]
+      operationId: convertReleasedCommissionToTestCredit
+      security: [{session: []}]
+      description: Test-only explicit 1:1 conversion from released source-attributed cash commission; commits an immutable cash debit and separate credit issue. The only accepted tax policy version is a synthetic zero-withholding fixture, not a real exemption. No live conversion or shopping redemption is enabled.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [amountCents, confirmed, taxPolicyVersion], properties: {amountCents: {type: integer, minimum: 1}, confirmed: {type: boolean, enum: [true]}, taxPolicyVersion: {type: string, enum: [isolated-synthetic-zero-withholding-v1]}}}}}}
+      responses: {'200': {description: Source-linked conversion or exact idempotent replay}, '409': {description: Funds held or disputed, or source insufficient}, '503': {description: Shopping credit live gate closed}}
+    get: {tags: [Commerce], operationId: myTestCommissionCreditConversions, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Paged owner-only source conversion history. spendable is false and redemptionStatus is NOT_IMPLEMENTED; no credit redemption is offered yet., responses: {'200': {description: Paged conversion history with exact total count}, '503': {description: Shopping credit live gate closed}}}
+  /v1/me/commission/credit-conversions/{conversionId}/cancel:
+    post:
+      tags: [Commerce]
+      operationId: cancelUnusedTestCommissionCredit
+      security: [{session: []}]
+      description: Test-only voluntary cancellation of an entirely unused and unfrozen conversion. Appends source-matched credit cancellation and cash-commission restoration; never converts spent credit to cash.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}, {name: conversionId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses: {'200': {description: Restored conversion or exact replay}, '409': {description: Credit was spent, frozen or source is disputed}, '503': {description: Shopping credit live gate closed}}
   /v1/me/commission/settlement-requests/{requestId}/confirmation:
     get:
       tags: [Commerce]

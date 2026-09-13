@@ -108,11 +108,12 @@ export class SettlementCommandService{
           const entries=ledger.filter(entry=>entry.order_id===order_id),sum=(kind:string)=>
             entries.filter(entry=>entry.kind===kind).reduce((n,entry)=>n+Number(entry.amount_cents),0);
           const accrued=sum("accrual"),net=accrued+sum("refund_reversal"),released=sum("release"),
-            settled=sum("settlement"),heldCents=holdMap.get(order_id)??0;
-          if(![accrued,net,released,settled,heldCents].every(Number.isSafeInteger)||
-            net<0||released>accrued||settled>released)
+            settled=sum("settlement"),converted=sum("credit_conversion")+sum("credit_conversion_reversal"),
+            heldCents=holdMap.get(order_id)??0;
+          if(![accrued,net,released,settled,converted,heldCents].every(Number.isSafeInteger)||
+            net<0||released>accrued||converted<0||settled+converted>released)
             throw new DomainError("COMMISSION_LEDGER_INVARIANT","佣金账本需先核对",409);
-          const available=Math.max(0,Math.min(net,released)-settled-heldCents),take=Math.min(remaining,available);
+          const available=Math.max(0,Math.min(net,released)-settled-converted-heldCents),take=Math.min(remaining,available);
           if(take>0){allocations.push({orderId:order_id,amountCents:take});remaining-=take;}
           if(remaining===0)break;
         }
@@ -167,13 +168,16 @@ export class SettlementCommandService{
         (r.state='requested' OR (r.state='approved' AND i.state IN ('prepared','abnormal')))`,
         [allocation.order_id])).rows[0]?.n??0;
       if(unresolved)return false;
-      const sums=(await client.query<{net:string;released:string;settled:string}>(`SELECT
+      const sums=(await client.query<{net:string;released:string;settled:string;converted:string}>(`SELECT
         COALESCE(sum(amount_cents) FILTER (WHERE kind IN ('accrual','refund_reversal')),0)::text AS net,
         COALESCE(sum(amount_cents) FILTER (WHERE kind='release'),0)::text AS released,
-        COALESCE(sum(amount_cents) FILTER (WHERE kind='settlement'),0)::text AS settled
+        COALESCE(sum(amount_cents) FILTER (WHERE kind='settlement'),0)::text AS settled,
+        COALESCE(sum(amount_cents) FILTER (WHERE kind IN
+          ('credit_conversion','credit_conversion_reversal')),0)::text AS converted
         FROM commission_ledger_entry WHERE order_id=$1 AND referrer_member_id=$2`,
         [allocation.order_id,row.member_id])).rows[0]!;
-      const available=Math.min(Number(sums.net),Number(sums.released))-Number(sums.settled);
+      const available=Math.min(Number(sums.net),Number(sums.released))-
+        Number(sums.settled)-Number(sums.converted);
       // A signed transfer in flight owns its source ahead of a not-yet-sent
       // candidate. Among unsent candidates the oldest reservation wins.
       const others=(await client.query<{request_id:string;amount_cents:string;state:string;created_at:Date;

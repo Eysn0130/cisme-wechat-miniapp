@@ -101,32 +101,34 @@ export function commissionAdjustment(previousAccruedCents:number,lines:Commissio
 /** Read projection of immutable movements. A later refund never erases paid
  * history; it creates a separate recovery exposure for manual resolution. */
 export function commissionBuckets(input:{accruedCents:number;reversedCents:number;releasedCents:number;
-  paidCents:number;heldCents?:number}){
+  paidCents:number;heldCents?:number;convertedCents?:number}){
   const total=(value:unknown)=>{
     if(!Number.isSafeInteger(value)||Number(value)<0)
       throw new DomainError("COMMISSION_LEDGER_AMOUNT_INVALID","佣金汇总金额超出范围",409);
     return Number(value);
   };
   const accrued=total(input.accruedCents),reversed=total(input.reversedCents),
-    released=total(input.releasedCents),paid=total(input.paidCents),held=total(input.heldCents??0);
-  if(reversed>accrued||released>accrued||paid>released)
+    released=total(input.releasedCents),paid=total(input.paidCents),held=total(input.heldCents??0),
+    converted=total(input.convertedCents??0);
+  if(reversed>accrued||released>accrued||!Number.isSafeInteger(paid+converted)||paid+converted>released)
     throw new DomainError("COMMISSION_LEDGER_INVARIANT","佣金分录不守恒，暂停结算并核对",409);
   const net=accrued-reversed;
   const pending=Math.max(0,net-released);
-  const availableBeforeHold=Math.max(0,Math.min(net,released)-paid);
-  if(held>released-paid)throw new DomainError("COMMISSION_HOLD_EXCEEDS_RELEASED","付款预占超过已释放金额",409);
+  const availableBeforeHold=Math.max(0,Math.min(net,released)-paid-converted);
+  if(held>released-paid-converted)throw new DomainError("COMMISSION_HOLD_EXCEEDS_RELEASED","付款预占超过已释放金额",409);
   // A trusted refund can arrive after reservation. Preserve the in-flight
   // transfer and surface exposure; never manufacture a negative cash balance.
   const reservedRecovery=Math.max(0,held-availableBeforeHold);
   return {pendingCents:pending,availableCents:Math.max(0,availableBeforeHold-held),paymentHeldCents:held,
-    settledCents:paid,recoveryCents:Math.max(0,paid-net),reservedRecoveryCents:reservedRecovery,
+    settledCents:paid,creditConvertedCents:converted,recoveryCents:Math.max(0,paid+converted-net),
+    reservedRecoveryCents:reservedRecovery,
     netEarnedCents:net};
 }
 
 /** Bucket each source order before summing: min/max do not distribute over sum.
  * No implicit cross-order recovery or offset is authorized by this projection. */
 export function commissionOrderBuckets(orders:Array<Parameters<typeof commissionBuckets>[0]>){
-  const total={pendingCents:0,availableCents:0,paymentHeldCents:0,settledCents:0,
+  const total={pendingCents:0,availableCents:0,paymentHeldCents:0,settledCents:0,creditConvertedCents:0,
     recoveryCents:0,reservedRecoveryCents:0,netEarnedCents:0};
   for(const order of orders){
     const buckets=commissionBuckets(order);

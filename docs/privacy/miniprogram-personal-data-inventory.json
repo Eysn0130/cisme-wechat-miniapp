@@ -385,6 +385,15 @@
       "retention": "POLICY PENDING；佣金与财务证明保存、公开最小披露另经审批"
     },
     {
+      "surface": "isolated_commission_shopping_credit",
+      "informationType": "本人主动测试转换确认、税务合成规则版本、来源订单/分配金额、购物权益分录与撤销轨迹；不采集充值、转让或银行卡信息",
+      "purpose": "隔离验证已释放佣金与现金预占共用来源、1:1 对应分录，以及未使用权益的原来源恢复；尚无购物核销或原组成退款实现",
+      "activation": "仅 APP_ENV=test 且本人明确确认合成零扣缴测试规则；shopping_credit_live=false，生产不允许转换",
+      "serverStorage": "CISME PostgreSQL commission_credit_conversion/source/entry 与不可变 commission_ledger_entry 来源移动；人工审计记录最小金额和来源笔数",
+      "currentGate": "已验真付款与释放、无退款/组成争议、按会员及订单同序锁定、可用来源扣除已付/在途/其他转换；取消只恢复完全未用且未冻结的来源，购物核销尚未实现",
+      "retention": "POLICY PENDING；购物权益、税务和财务记录保存及用户撤销例外需正式审批"
+    },
+    {
       "surface": "commerce_trade_bill_evidence",
       "informationType": "隔离渠道交易账单中的商户订单号、退款单号、渠道单号、付款标识及人民币金额；导入时临时核对身份，文件原文不落库",
       "purpose": "逐行比对签名账单申请及摘要校验后的外部交易/退款受理事实与内部意图及账本，向授权人员显示差异摘要",
@@ -435,6 +444,6 @@
       "state": "isolated_loopback_http_protocol_and_inert_formal_trust_assembly_production_closed"
     }
   ],
-  "migrationSetSha256": "d86cb56ceef487bcd1c95edb1317f18c8f42b2a8d3695f85a8e7c235991a1935",
+  "migrationSetSha256": "313cb96cc1b7c0ab36e691f3c661ba4677710c6216cd3c9680626fc03a881272",
   "egressSignatureSha256": "1e5864578036c798b1217d73f7ec028a6ced37ce73c90e5cd4dfce352f72dd0a"
 }

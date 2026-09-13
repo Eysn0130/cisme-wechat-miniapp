@@ -56,7 +56,9 @@ export class SettlementCycleService {
         SELECT s.order_id,s.referrer_member_id AS member_id,
           COALESCE(sum(e.amount_cents) FILTER (WHERE e.kind IN ('accrual','refund_reversal')),0) AS net,
           COALESCE(sum(e.amount_cents) FILTER (WHERE e.kind='release' AND e.occurred_at<$1),0) AS released_at_cutoff,
-          COALESCE(sum(e.amount_cents) FILTER (WHERE e.kind='settlement'),0) AS paid
+          COALESCE(sum(e.amount_cents) FILTER (WHERE e.kind='settlement'),0) AS paid,
+          COALESCE(sum(e.amount_cents) FILTER (WHERE e.kind IN
+            ('credit_conversion','credit_conversion_reversal')),0) AS converted
         FROM commission_order_snapshot s JOIN commission_ledger_entry e ON e.order_id=s.order_id
           AND e.referrer_member_id=s.referrer_member_id
         WHERE s.source_kind='verified_commerce' AND s.created_at<$1
@@ -67,7 +69,8 @@ export class SettlementCycleService {
         WHERE r.state IN ('reserved','unknown','processing') GROUP BY a.order_id
       ), available AS (
         SELECT source.member_id,source.order_id,
-          GREATEST(0,LEAST(source.net,source.released_at_cutoff)-source.paid-COALESCE(holds.held,0)) AS gross_cents
+          GREATEST(0,LEAST(source.net,source.released_at_cutoff)-source.paid-source.converted-
+            COALESCE(holds.held,0)) AS gross_cents
         FROM source LEFT JOIN holds ON holds.order_id=source.order_id
         WHERE NOT EXISTS (SELECT 1 FROM commission_payment_composition_observation c
           WHERE c.order_id=source.order_id)

@@ -6,6 +6,9 @@ import { VerifiedRefundInbox } from "../../services/api/src/verifiedRefundInbox"
 import { expirePendingOrders } from "../../services/api/src/commerceOrders";
 import { recordMoneyInboxFailure, redriveQuarantinedMoneyInbox } from "../../services/api/src/moneyInboxRetry";
 import { SettlementCycleService } from "../../services/api/src/settlementCycle";
+import { SettlementCommandService } from "../../services/api/src/settlementCommand";
+import { ShoppingCreditService } from "../../services/api/src/shoppingCredit";
+import type { WechatPayV3Client } from "../../services/api/src/wechatPayV3";
 import { AuthorityService } from "../../services/api/src/authority";
 
 const pool=testPool();
@@ -406,4 +409,66 @@ it("preserves discounted signed channel payment without posting unsupported cash
     .toMatchObject({composition_status:"full_cash",payer_total_cents:"10000"});
   expect((await pool.query(`SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1`,
     [order.id])).rows[0].n).toBe(0);
+});
+
+it("converts only released source lots 1:1, arbitrates cash reservation, and restores unused credit without rewriting history",async()=>{
+  const credit=new ShoppingCreditService(pool,"test");
+  const fixture={amountCents:8000,confirmed:true,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"};
+  await expect(new ShoppingCreditService(pool,"staging").convert(referrer,"stage-denied",fixture))
+    .rejects.toMatchObject({code:"SHOPPING_CREDIT_LIVE_DISABLED"});
+  await expect(credit.convert(referrer,"consent-missing",{...fixture,confirmed:false}))
+    .rejects.toMatchObject({code:"CREDIT_CONSENT_AND_TAX_FIXTURE_REQUIRED"});
+  const first=await credit.convert(referrer,"credit-source-0001",fixture);
+  expect(first).toMatchObject({amountCents:8000,grossCents:8000,withholdingCents:0,
+    state:"available",taxPolicyVersion:fixture.taxPolicyVersion});
+  expect(await credit.convert(referrer,"credit-source-0001",fixture)).toMatchObject({id:first.id});
+  await expect(credit.convert(referrer,"credit-source-0001",{...fixture,amountCents:7000}))
+    .rejects.toMatchObject({code:"IDEMPOTENCY_CONFLICT"});
+  const sources=(await pool.query<{amount_cents:string;order_id:string}>(`SELECT order_id,amount_cents
+    FROM commission_credit_source WHERE conversion_id=$1 ORDER BY order_id`,[first.id])).rows;
+  expect(sources).toHaveLength(4);
+  expect(sources.reduce((sum,row)=>sum+Number(row.amount_cents),0)).toBe(8000);
+  const movements=(await pool.query<{kind:string;amount_cents:string}>(`SELECT kind,amount_cents
+    FROM commission_ledger_entry WHERE source_fact_id=$1 ORDER BY kind`,[first.id])).rows;
+  expect(movements).toHaveLength(4);
+  expect(movements.every(row=>row.kind==="credit_conversion"&&Number(row.amount_cents)===2000)).toBe(true);
+  await expect(credit.cancel(buyer,first.id,"other-owner-cancel"))
+    .rejects.toMatchObject({code:"CREDIT_CONVERSION_NOT_FOUND"});
+  await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+    VALUES($1,'wechat_miniprogram',$2,'verified-referrer-credit-openid','wechat')`,[referrer,appId]);
+  const operator=(await pool.query("INSERT INTO member(display_name) VALUES('Credit checkout reviewer') RETURNING id")).rows[0].id;
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commission.settlement.approve','fixture','Credit race fixture','test','integration_fixture')`,[operator]);
+  // Use the real authority service, but no channel request is made by request/decide.
+  const reviewerSettlement=new SettlementCommandService(pool,new AuthorityService(pool,"test"),
+    {} as WechatPayV3Client,"test",{appId,merchantId,sceneId:"ISOLATED_CREDIT_TEST",
+      notifyUrl:"https://fixture.invalid/v1/payments/wechat/transfer-callback"});
+  const request=await reviewerSettlement.request(referrer,"credit-race-settle",{amountCents:2000,reason:"测试并发现金预占"});
+  const outcomes=await Promise.allSettled([
+    reviewerSettlement.decide(operator,request.id,"credit-race-approve",{decision:"approve",expectedVersion:1,
+      reason:"并发锁校验来源"}),
+    credit.convert(referrer,"credit-race-convert",{...fixture,amountCents:2000})
+  ]);
+  expect(outcomes.filter(outcome=>outcome.status==="fulfilled")).toHaveLength(1);
+  expect(outcomes.filter(outcome=>outcome.status==="rejected")).toHaveLength(1);
+  await expect(credit.convert(referrer,"credit-overdraw-1",{...fixture,amountCents:1}))
+    .rejects.toMatchObject({code:"CREDIT_SOURCE_INSUFFICIENT"});
+  const reversed=await credit.cancel(referrer,first.id,"credit-cancel-0001");
+  expect(reversed.state).toBe("cancelled");
+  expect((await credit.cancel(referrer,first.id,"credit-cancel-0001")).state).toBe("cancelled");
+  await expect(credit.cancel(referrer,first.id,"credit-cancel-0002"))
+    .rejects.toMatchObject({code:"CREDIT_CONVERSION_ALREADY_CANCELLED"});
+  expect((await pool.query(`SELECT COALESCE(sum(amount_cents),0)::text AS total
+    FROM commission_ledger_entry WHERE source_fact_id=$1`,[first.id])).rows[0].total).toBe("0");
+  expect((await pool.query(`SELECT COALESCE(sum(e.amount_cents),0)::text AS total
+    FROM commission_credit_entry e JOIN commission_credit_source s ON s.id=e.source_id
+    WHERE s.conversion_id=$1`,[first.id])).rows[0].total).toBe("0");
+  const later=await credit.convert(referrer,"credit-later-0001",{...fixture,amountCents:1});
+  const page=await credit.listMine(referrer,{limit:"1"});
+  expect(page).toMatchObject({totalCount:expect.any(Number),spendable:false,
+    redemptionStatus:"NOT_IMPLEMENTED",items:[{id:later.id}]});
+  expect(page.nextCursor).toBeTruthy();
+  const continued=await credit.listMine(referrer,{limit:"1",cursor:page.nextCursor!});
+  expect(continued.items[0]?.id).not.toBe(later.id);
+  expect((await credit.listMine(buyer)).totalCount).toBe(0);
 });

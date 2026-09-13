@@ -28,6 +28,7 @@ import { RefundCommandService } from "./refundCommand.js";
 import { FulfillmentReleaseService } from "./fulfillmentRelease.js";
 import { SettlementCommandService } from "./settlementCommand.js";
 import { SettlementCycleService } from "./settlementCycle.js";
+import { ShoppingCreditService } from "./shoppingCredit.js";
 import { TransferCallbackInbox } from "./transferCallbackInbox.js";
 import { MoneyOperationsService } from "./moneyOperations.js";
 import { TradeBillReconciliationService } from "./tradeBillReconciliation.js";
@@ -138,6 +139,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         sceneId:config.commerce.simulatedPayment.transferSceneId,
         notifyUrl:dependencies.paymentProtocol.transferNotifyUrl}):null;
   const settlementCycle=new SettlementCycleService(pool,authority,config.env);
+  const shoppingCredit=new ShoppingCreditService(pool,config.env);
   const moneyOps=dependencies.paymentProtocol
     ?new MoneyOperationsService(pool,authority,dependencies.paymentProtocol.channel,
       dependencies.paymentProtocol.inbox,dependencies.paymentProtocol.refundInbox,settlement):null;
@@ -511,6 +513,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/commission/settlement-requests",async request=>
     settlementRequired().listMine(request.memberId,request.query));
+  app.post("/v1/me/commission/credit-conversions",async request=>
+    shoppingCredit.convert(request.memberId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/commission/credit-conversions",async request=>
+    shoppingCredit.listMine(request.memberId,request.query));
+  app.post<{Params:{conversionId:string}}>("/v1/me/commission/credit-conversions/:conversionId/cancel",async request=>
+    shoppingCredit.cancel(request.memberId,request.params.conversionId,idempotencyKey(request)));
   app.get<{Params:{requestId:string}}>("/v1/me/commission/settlement-requests/:requestId/confirmation",async request=>
     settlementRequired().receiptConfirmation(request.memberId,request.params.requestId));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commission/settlement-requests/pending",async request=>

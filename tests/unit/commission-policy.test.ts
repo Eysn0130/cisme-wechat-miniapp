@@ -65,4 +65,17 @@ describe("commission integer policy",()=>{
       expect(commissionOrderBuckets(permutation)).toMatchObject({pendingCents:10_000,
         settledCents:10_000,recoveryCents:10_000,availableCents:0});
   });
+  it("keeps spent-to-credit source exposure distinct from cash paid and a different order's pending",()=>{
+    const orders=[{accruedCents:10_000,reversedCents:10_000,releasedCents:10_000,
+      paidCents:0,convertedCents:10_000,heldCents:0},
+    {accruedCents:10_000,reversedCents:0,releasedCents:0,paidCents:0,convertedCents:0,heldCents:0}];
+    for(const ordered of [orders,[...orders].reverse()])
+      expect(commissionOrderBuckets(ordered)).toMatchObject({pendingCents:10_000,
+        creditConvertedCents:10_000,settledCents:0,recoveryCents:10_000,availableCents:0});
+    expect(commissionBuckets({accruedCents:20_000,reversedCents:0,releasedCents:20_000,
+      paidCents:5000,convertedCents:5000,heldCents:5000})).toMatchObject({availableCents:5000,
+        settledCents:5000,creditConvertedCents:5000,paymentHeldCents:5000});
+    expect(()=>commissionBuckets({accruedCents:10_000,reversedCents:0,releasedCents:10_000,
+      paidCents:6000,convertedCents:5000})).toThrow("佣金分录不守恒");
+  });
 });

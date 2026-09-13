@@ -51,13 +51,15 @@ export class CommercialMembershipService {
   }
 
   private async balanceFor(referrerId:string){
-    const rows=(await this.pool.query(`SELECT l.order_id,l.accrued,l.reversed,l.released,l.paid,
+    const rows=(await this.pool.query(`SELECT l.order_id,l.accrued,l.reversed,l.released,l.paid,l.converted,
       COALESCE(h.held,0)::text AS held FROM (
         SELECT order_id,
           COALESCE(sum(amount_cents) FILTER(WHERE kind='accrual'),0)::text AS accrued,
           COALESCE(-sum(amount_cents) FILTER(WHERE kind='refund_reversal'),0)::text AS reversed,
           COALESCE(sum(amount_cents) FILTER(WHERE kind='release'),0)::text AS released,
-          COALESCE(sum(amount_cents) FILTER(WHERE kind='settlement'),0)::text AS paid
+          COALESCE(sum(amount_cents) FILTER(WHERE kind='settlement'),0)::text AS paid,
+          COALESCE(sum(amount_cents) FILTER(WHERE kind IN
+            ('credit_conversion','credit_conversion_reversal')),0)::text AS converted
         FROM commission_ledger_entry WHERE referrer_member_id=$1 GROUP BY order_id
       ) l LEFT JOIN (
         SELECT a.order_id,sum(a.amount_cents) AS held FROM commission_settlement_allocation a
@@ -66,7 +68,7 @@ export class CommercialMembershipService {
       ) h ON h.order_id=l.order_id`,[referrerId])).rows;
     return commissionOrderBuckets(rows.map(row=>({accruedCents:Number(row.accrued),
       reversedCents:Number(row.reversed),releasedCents:Number(row.released),
-      paidCents:Number(row.paid),heldCents:Number(row.held)})));
+      paidCents:Number(row.paid),heldCents:Number(row.held),convertedCents:Number(row.converted)})));
   }
 
   async myStatus(memberId: string | undefined) {
