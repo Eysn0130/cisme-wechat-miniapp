@@ -110,23 +110,26 @@ export class VerifiedPaymentInbox {
   }
 
   async processPending(limit=20){
-    const ids=await claimDueMoneyInbox(this.pool,"payment",limit);
+    const claims=await claimDueMoneyInbox(this.pool,"payment",limit);
     const results=[];
-    for(const id of ids){
-      try{results.push({id,state:await this.processOne(id)});}
-      catch(error){results.push({id,state:await recordMoneyInboxFailure(this.pool,"payment",id,error)});}
+    for(const {id,leaseToken} of claims){
+      try{results.push({id,state:await this.processOne(id,leaseToken)});}
+      catch(error){results.push({id,state:await recordMoneyInboxFailure(this.pool,"payment",id,error,leaseToken)});}
     }
     return results;
   }
 
-  async processOne(inboxId:string):Promise<"pending"|"applied"|"exception">{
+  async processOne(inboxId:string,leaseToken?:string):Promise<"pending"|"applied"|"exception">{
     return transaction(this.pool,async client=>{
       const fact=(await client.query(`SELECT * FROM commission_payment_inbox WHERE id=$1 FOR UPDATE`,[inboxId])).rows[0];
       if(!fact)throw new DomainError("PAYMENT_FACT_NOT_FOUND","支付事实不存在",404);
       if(fact.state!=="pending")return fact.state;
+      if(fact.lease_token!==(leaseToken??null))
+        throw new DomainError("PAYMENT_INBOX_LEASE_LOST","支付事实已由其他工作进程领取",409);
       const order=(await client.query(`SELECT * FROM commerce_order WHERE id=$1 FOR UPDATE`,[fact.order_id])).rows[0];
       const exception=async(code:string)=>{
-        await client.query(`UPDATE commission_payment_inbox SET state='exception',exception_code=$2,lease_until=NULL WHERE id=$1`,[inboxId,code]);
+        await client.query(`UPDATE commission_payment_inbox SET state='exception',exception_code=$2,
+          lease_until=NULL,lease_token=NULL WHERE id=$1`,[inboxId,code]);
         await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
           VALUES('worker:payment-inbox','commerce.payment_exception','commerce_order',$1,$2,$3)`,
           [fact.order_id,code,`payment-inbox:${inboxId}`]);
@@ -179,7 +182,8 @@ export class VerifiedPaymentInbox {
       await client.query(`INSERT INTO commerce_order_transition(order_id,from_status,to_status,reason_code,
         actor_principal_id,order_version,occurred_at) VALUES($1,'pending_payment','paid','WECHAT_PAY_VERIFIED',
         'worker:payment-inbox',$2,now())`,[order.id,updated.version]);
-      await client.query(`UPDATE commission_payment_inbox SET state='applied',applied_at=now(),lease_until=NULL WHERE id=$1`,[inboxId]);
+      await client.query(`UPDATE commission_payment_inbox SET state='applied',applied_at=now(),
+        lease_until=NULL,lease_token=NULL WHERE id=$1`,[inboxId]);
       await client.query(`UPDATE commerce_payment_attempt SET state='paid',request_lease_until=NULL,
         updated_at=now() WHERE id=$1`,[attempt.id]);
       if(snapshot){

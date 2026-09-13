@@ -12,27 +12,34 @@ function errorCode(error:unknown):{code:string;permanent:boolean}{
   return {code:"WORKER_UNEXPECTED",permanent:false};
 }
 
-export async function claimDueMoneyInbox(pool:pg.Pool,kind:MoneyInboxKind,limit=20):Promise<string[]>{
-  const result=await pool.query<{id:string}>(`WITH due AS (
+export type MoneyInboxClaim={id:string;leaseToken:string};
+export async function claimDueMoneyInbox(pool:pg.Pool,kind:MoneyInboxKind,limit=20):Promise<MoneyInboxClaim[]>{
+  const result=await pool.query<{id:string;lease_token:string}>(`WITH due AS (
     SELECT id FROM ${table(kind)} WHERE state='pending' AND next_attempt_at<=clock_timestamp()
       AND (lease_until IS NULL OR lease_until<=clock_timestamp())
     ORDER BY next_attempt_at,received_at,id FOR UPDATE SKIP LOCKED LIMIT $1
   ) UPDATE ${table(kind)} item SET lease_until=clock_timestamp()+interval '5 minutes',
-    last_attempt_at=clock_timestamp() FROM due WHERE item.id=due.id RETURNING item.id`,
+    lease_token=gen_random_uuid(),last_attempt_at=clock_timestamp()
+    FROM due WHERE item.id=due.id RETURNING item.id,item.lease_token`,
     [Math.max(1,Math.min(limit,100))]);
-  return result.rows.map(row=>row.id);
+  return result.rows.map(row=>({id:row.id,leaseToken:row.lease_token}));
 }
 
-export async function recordMoneyInboxFailure(pool:pg.Pool,kind:MoneyInboxKind,id:string,error:unknown){
+export async function recordMoneyInboxFailure(pool:pg.Pool,kind:MoneyInboxKind,id:string,error:unknown,
+  leaseToken?:string){
   const classified=errorCode(error);
   return transaction(pool,async client=>{
-    const row=(await client.query(`SELECT state,attempt_count FROM ${table(kind)} WHERE id=$1 FOR UPDATE`,[id])).rows[0];
+    const row=(await client.query(`SELECT state,attempt_count,lease_token FROM ${table(kind)}
+      WHERE id=$1 FOR UPDATE`,[id])).rows[0];
     if(!row||row.state!=="pending")return row?.state??"missing";
+    // A replaced claim has no right to count failures or quarantine the new
+    // worker's pending fact. Unclaimed direct test invocations remain possible.
+    if(row.lease_token!== (leaseToken??null))return "pending";
     const attempts=Number(row.attempt_count)+1;
     const isolated=classified.permanent||attempts>=maximumAttempts;
     if(isolated){
       await client.query(`UPDATE ${table(kind)} SET state='exception',exception_code=$2,last_error_code=$3,
-        attempt_count=$4,lease_until=NULL,quarantined_at=clock_timestamp() WHERE id=$1`,
+        attempt_count=$4,lease_until=NULL,lease_token=NULL,quarantined_at=clock_timestamp() WHERE id=$1`,
         [id,classified.permanent?`PROCESSING_${classified.code}`:"RETRY_EXHAUSTED",classified.code,attempts]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
         VALUES($1,$2,$3,$4,$5,$6)`,[`worker:${kind}-inbox`,`${kind}.inbox_quarantined`,
@@ -40,7 +47,8 @@ export async function recordMoneyInboxFailure(pool:pg.Pool,kind:MoneyInboxKind,i
       return "exception";
     }
     const delaySeconds=Math.min(3600,5*2**Math.min(attempts-1,10));
-    await client.query(`UPDATE ${table(kind)} SET attempt_count=$2,last_error_code=$3,lease_until=NULL,
+    await client.query(`UPDATE ${table(kind)} SET attempt_count=$2,last_error_code=$3,
+      lease_until=NULL,lease_token=NULL,
       next_attempt_at=clock_timestamp()+make_interval(secs=>$4::int) WHERE id=$1`,
       [id,attempts,classified.code,delaySeconds]);
     return "pending";
@@ -57,7 +65,8 @@ export async function redriveQuarantinedMoneyInbox(pool:pg.Pool,kind:MoneyInboxK
     if(!row||row.state!=="exception"||!row.quarantined_at)
       throw new DomainError("INBOX_REDRIVE_NOT_ALLOWED","该事实不在可重驱隔离队列",409);
     await client.query(`UPDATE ${table(kind)} SET state='pending',exception_code=NULL,quarantined_at=NULL,
-      attempt_count=0,next_attempt_at=clock_timestamp(),last_error_code=NULL,lease_until=NULL WHERE id=$1`,[id]);
+      attempt_count=0,next_attempt_at=clock_timestamp(),last_error_code=NULL,
+      lease_until=NULL,lease_token=NULL WHERE id=$1`,[id]);
     await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
       VALUES($1,$2,$3,$4,$5,$6)`,[operatorPrincipal,`${kind}.inbox_redriven`,
         kind==="payment"?"commission_payment_inbox":"commission_refund_inbox",id,reason,`${kind}-inbox-redrive:${id}:${Date.now()}`]);

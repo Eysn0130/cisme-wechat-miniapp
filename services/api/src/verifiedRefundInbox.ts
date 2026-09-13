@@ -105,25 +105,28 @@ export class VerifiedRefundInbox{
   }
 
   async processPending(limit=20){
-    const ids=await claimDueMoneyInbox(this.pool,"refund",limit);
+    const claims=await claimDueMoneyInbox(this.pool,"refund",limit);
     const results=[];
-    for(const id of ids){
-      try{results.push({id,state:await this.processOne(id)});}
-      catch(error){results.push({id,state:await recordMoneyInboxFailure(this.pool,"refund",id,error)});}
+    for(const {id,leaseToken} of claims){
+      try{results.push({id,state:await this.processOne(id,leaseToken)});}
+      catch(error){results.push({id,state:await recordMoneyInboxFailure(this.pool,"refund",id,error,leaseToken)});}
     }
     return results;
   }
 
-  async processOne(inboxId:string):Promise<"pending"|"applied"|"exception">{
+  async processOne(inboxId:string,leaseToken?:string):Promise<"pending"|"applied"|"exception">{
     return transaction(this.pool,async client=>{
       const fact=(await client.query(`SELECT * FROM commission_refund_inbox WHERE id=$1 FOR UPDATE`,[inboxId])).rows[0];
       if(!fact)throw new DomainError("REFUND_FACT_NOT_FOUND","退款事实不存在",404);
       if(fact.state!=="pending")return fact.state;
+      if(fact.lease_token!==(leaseToken??null))
+        throw new DomainError("REFUND_INBOX_LEASE_LOST","退款事实已由其他工作进程领取",409);
       const intent=(await client.query(`SELECT * FROM commission_refund_intent WHERE id=$1 FOR UPDATE`,[fact.refund_intent_id])).rows[0];
       if(!intent)throw new DomainError("REFUND_INTENT_NOT_FOUND","退款单不存在",404);
       const order=(await client.query(`SELECT * FROM commerce_order WHERE id=$1 FOR UPDATE`,[intent.order_id])).rows[0];
       const except=async(code:string)=>{
-        await client.query(`UPDATE commission_refund_inbox SET state='exception',exception_code=$2,lease_until=NULL WHERE id=$1`,[inboxId,code]);
+        await client.query(`UPDATE commission_refund_inbox SET state='exception',exception_code=$2,
+          lease_until=NULL,lease_token=NULL WHERE id=$1`,[inboxId,code]);
         await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
           VALUES('worker:refund-inbox','commerce.refund_exception','commerce_order',$1,$2,$3)`,
           [intent.order_id,code,`refund-inbox:${inboxId}`]);
@@ -145,7 +148,8 @@ export class VerifiedRefundInbox{
         if(intent.state!==nextState)await client.query(`UPDATE commission_refund_intent SET state=$2,
           finalized_at=now(),reconcile_lease_until=NULL WHERE id=$1`,
           [intent.id,nextState]);
-        await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now(),lease_until=NULL WHERE id=$1`,[inboxId]);
+        await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now(),
+          lease_until=NULL,lease_token=NULL WHERE id=$1`,[inboxId]);
         return "applied";
       }
       if(fact.refund_status!=="SUCCESS"||!fact.succeeded_at||
@@ -223,7 +227,8 @@ export class VerifiedRefundInbox{
         allocatedDiscountCents:0,pointsTenderCents:0,cumulativeRefundCents:eligibleTotal}],snapshot.basis_points).commissionCents:0;
       if(!Number.isSafeInteger(currentCommission)||currentCommission<0||target>currentCommission)
         return except("REFUND_LEDGER_MISMATCH");
-      await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now(),lease_until=NULL WHERE id=$1`,[inboxId]);
+      await client.query(`UPDATE commission_refund_inbox SET state='applied',applied_at=now(),
+        lease_until=NULL,lease_token=NULL WHERE id=$1`,[inboxId]);
       if(target<currentCommission&&snapshot&&accrual)await client.query(`INSERT INTO commission_ledger_entry(order_id,referrer_member_id,
         event_key,kind,amount_cents,reverse_of,source_fact_id,actor_principal_id)
         VALUES($1,$2,$3,'refund_reversal',$4,$5,$6,'worker:refund-inbox')`,

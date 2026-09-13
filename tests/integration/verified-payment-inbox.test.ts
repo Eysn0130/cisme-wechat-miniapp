@@ -4,7 +4,7 @@ import { resetDatabase, testPool } from "@cisme/testkit";
 import { VerifiedPaymentInbox } from "../../services/api/src/verifiedPaymentInbox";
 import { VerifiedRefundInbox } from "../../services/api/src/verifiedRefundInbox";
 import { expirePendingOrders } from "../../services/api/src/commerceOrders";
-import { recordMoneyInboxFailure, redriveQuarantinedMoneyInbox } from "../../services/api/src/moneyInboxRetry";
+import { claimDueMoneyInbox, recordMoneyInboxFailure, redriveQuarantinedMoneyInbox } from "../../services/api/src/moneyInboxRetry";
 import { SettlementCycleService } from "../../services/api/src/settlementCycle";
 import { SettlementCommandService } from "../../services/api/src/settlementCommand";
 import { ShoppingCreditService } from "../../services/api/src/shoppingCredit";
@@ -338,6 +338,46 @@ it("also skips twenty delayed refund facts and applies a later signed refund onc
   expect(await restarted.processPending(20)).toEqual([{id:ids[20],state:"applied"}]);
   expect(await refunds.processPending(20)).toEqual([]);
   expect((await pool.query("SELECT count(*)::int AS n FROM commission_refund_inbox WHERE refund_intent_id=(SELECT id FROM commission_refund_intent WHERE out_refund_no='RF-PAGED-0021') AND state='applied'")).rows[0].n).toBe(1);
+});
+
+it("fences stale payment and refund workers after a timed-out claim is replaced",async()=>{
+  const order=await seedOrder("12"),transactionId="420000000000000000000112";
+  const signed=notification(order.number,transactionId,"EV-CLAIM-FENCE-PAY-0112",
+    new Date(order.createdAt.getTime()+1000).toISOString());
+  const payment=await processor.receive(signed.rawBody,signed.headers);
+  const oldPayment=(await claimDueMoneyInbox(pool,"payment",100)).find(row=>row.id===payment.inboxId)!;
+  expect(oldPayment).toBeTruthy();
+  await pool.query("UPDATE commission_payment_inbox SET lease_until=now()-interval '1 second' WHERE id=$1",
+    [payment.inboxId]);
+  const newPayment=(await claimDueMoneyInbox(pool,"payment",100)).find(row=>row.id===payment.inboxId)!;
+  expect(newPayment.leaseToken).not.toBe(oldPayment.leaseToken);
+  await expect(processor.processOne(payment.inboxId,oldPayment.leaseToken))
+    .rejects.toMatchObject({code:"PAYMENT_INBOX_LEASE_LOST"});
+  expect(await recordMoneyInboxFailure(pool,"payment",payment.inboxId,new Error("stale payment"),
+    oldPayment.leaseToken)).toBe("pending");
+  expect((await pool.query("SELECT attempt_count,lease_token FROM commission_payment_inbox WHERE id=$1",
+    [payment.inboxId])).rows[0]).toMatchObject({attempt_count:0,lease_token:newPayment.leaseToken});
+  expect(await processor.processOne(payment.inboxId,newPayment.leaseToken)).toBe("applied");
+
+  const refundNumber="RF-CLAIM-FENCE-0112";
+  await refundIntent({orderId:order.id,paymentId:payment.inboxId,refundNumber,refundCents:100});
+  const refundSigned=refundNotification({orderNumber:order.number,transactionId,refundNumber,
+    providerRefundId:"500000000000000000000112",eventId:"EV-CLAIM-FENCE-REF-0112",
+    refundCents:100,status:"SUCCESS",successTime:new Date(order.createdAt.getTime()+2000).toISOString()});
+  const refund=await refunds.receive(refundSigned.rawBody,refundSigned.headers);
+  const oldRefund=(await claimDueMoneyInbox(pool,"refund",100)).find(row=>row.id===refund.inboxId)!;
+  expect(oldRefund).toBeTruthy();
+  await pool.query("UPDATE commission_refund_inbox SET lease_until=now()-interval '1 second' WHERE id=$1",
+    [refund.inboxId]);
+  const newRefund=(await claimDueMoneyInbox(pool,"refund",100)).find(row=>row.id===refund.inboxId)!;
+  expect(newRefund.leaseToken).not.toBe(oldRefund.leaseToken);
+  await expect(refunds.processOne(refund.inboxId,oldRefund.leaseToken))
+    .rejects.toMatchObject({code:"REFUND_INBOX_LEASE_LOST"});
+  expect(await recordMoneyInboxFailure(pool,"refund",refund.inboxId,new Error("stale refund"),
+    oldRefund.leaseToken)).toBe("pending");
+  expect((await pool.query("SELECT attempt_count,lease_token FROM commission_refund_inbox WHERE id=$1",
+    [refund.inboxId])).rows[0]).toMatchObject({attempt_count:0,lease_token:newRefund.leaseToken});
+  expect(await refunds.processOne(refund.inboxId,newRefund.leaseToken)).toBe("applied");
 });
 
 it("carries sub-threshold released sources into a later non-payable monthly candidate",async()=>{
