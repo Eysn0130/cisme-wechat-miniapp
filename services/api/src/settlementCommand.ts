@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { AppEnvironment } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
@@ -13,7 +13,8 @@ type Row={id:string;member_id:string;requested_by_member_id:string;idempotency_k
   request_hash:string;amount_cents:string;state:string;version:number;approved_by_member_id:string|null;
   decision_key:string|null;decision_hash:string|null;app_id:string|null;merchant_id:string|null;
   payee_openid:string|null;out_bill_no:string|null;scene_id:string|null;transfer_remark:string|null;
-  created_at:Date;attempt_count:number;first_dispatch_started_at:Date|null;lease_token:string|null};
+  created_at:Date;attempt_count:number;first_dispatch_started_at:Date|null;lease_token:string|null;
+  cycle_id:string|null;gross_cents:string|null;withholding_cents:string|null;tax_policy_version:string|null};
 const hash=(value:unknown)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
 function id(value:string){if(!UUID.test(value))throw new DomainError("SETTLEMENT_ID_INVALID","结算编号无效",422);return value;}
 function key(value:string){if(!KEY.test(value))throw new DomainError("IDEMPOTENCY_KEY_INVALID","请求键无效",400);return value;}
@@ -27,7 +28,8 @@ function reason(value:unknown){const s=String(value??"").trim();if(Array.from(s)
 export class SettlementCommandService{
   constructor(private readonly pool:pg.Pool,private readonly authority:AuthorityService,
     private readonly channel:WechatPayV3Client,private readonly environment:AppEnvironment,
-    private readonly options:{appId:string;merchantId:string;sceneId:string;notifyUrl:string}){}
+    private readonly options:{appId:string;merchantId:string;sceneId:string;notifyUrl:string;
+      legacyDirectFixture?:boolean}){}
   private gate(){if(this.environment!=="test")throw new DomainError("SETTLEMENT_POLICY_NOT_APPROVED",
     "结算场景、税务与发款政策尚未正式批准",503);}
 
@@ -63,6 +65,8 @@ export class SettlementCommandService{
       decision=input.decision,expectedVersion=Number(input.expectedVersion),why=reason(input.reason);
     if(decision!=="approve"&&decision!=="reject"||!Number.isSafeInteger(expectedVersion)||expectedVersion<1)
       throw new DomainError("SETTLEMENT_DECISION_INVALID","结算决定或版本无效",422);
+    if(decision==="approve"&&!this.options.legacyDirectFixture)
+      throw new DomainError("SETTLEMENT_CYCLE_REQUIRED","会员申请仅为结算意向，须走周期批次复核",409);
     const fingerprint=hash({requestId,decision,expectedVersion,why});
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actor,"commission.settlement.approve");
@@ -142,7 +146,88 @@ export class SettlementCommandService{
     },"SERIALIZABLE");
   }
 
+  /** Independent batch approval exists only in a synthetic test environment.
+   * Tax zero is a named fixture, not a production exemption or payable fact. */
+  async approveCycleMember(actorId:string|undefined,cycleIdInput:string,decisionKeyInput:string,
+    input:Record<string,unknown>){
+    this.gate();await this.authority.require(actorId,"commission.settlement.approve");
+    if(Object.keys(input).some(field=>!["memberId","reason","taxPolicyVersion"].includes(field)))
+      throw new DomainError("SETTLEMENT_CYCLE_INPUT_UNSUPPORTED","周期复核包含未批准的参数",422);
+    const actor=actorId!,cycleId=id(cycleIdInput),memberId=id(String(input.memberId??"")),
+      decisionKey=key(decisionKeyInput),why=reason(input.reason),
+      taxPolicyVersion=input.taxPolicyVersion;
+    if(taxPolicyVersion!=="isolated-synthetic-zero-withholding-v1")
+      throw new DomainError("SETTLEMENT_TAX_POLICY_NOT_APPROVED","仅允许隔离合成税务口径",409);
+    const fingerprint=hash({cycleId,memberId,why,taxPolicyVersion});
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,actor,"commission.settlement.approve");
+      const cycle=(await client.query<{id:string;prepared_by_member_id:string;state:string}>(
+        "SELECT id,prepared_by_member_id,state FROM commission_settlement_cycle WHERE id=$1",[cycleId])).rows[0];
+      if(!cycle||cycle.state!=="blocked_tax_and_payout_policy")
+        throw new DomainError("SETTLEMENT_CYCLE_NOT_FOUND","周期候选不存在或不可核对",404);
+      if(actor===cycle.prepared_by_member_id||actor===memberId||cycle.prepared_by_member_id===memberId)
+        throw new DomainError("SETTLEMENT_CYCLE_SELF_APPROVAL_FORBIDDEN","批次准备人、复核人和收款人须不同",403);
+      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`settlement-member:${memberId}`]);
+      const prior=(await client.query<{approved_by_member_id:string;decision_key:string;
+        decision_hash:string;request_id:string}>(`SELECT * FROM commission_settlement_cycle_member
+        WHERE cycle_id=$1 AND member_id=$2`,[cycleId,memberId])).rows[0];
+      if(prior){
+        if(prior.approved_by_member_id===actor&&prior.decision_key===decisionKey&&prior.decision_hash===fingerprint){
+          const existing=(await client.query<Row>("SELECT * FROM commission_settlement_request WHERE id=$1",
+            [prior.request_id])).rows[0];
+          if(!existing)throw new DomainError("SETTLEMENT_CYCLE_RECORD_DRIFT","周期复核记录不完整",409);
+          return {...this.view(existing),replay:true};
+        }
+        throw new DomainError("SETTLEMENT_CYCLE_ALREADY_APPROVED","同一周期与会员只能复核一次",409);
+      }
+      const used=(await client.query<{id:string}>(`SELECT id FROM commission_settlement_cycle_member
+        WHERE approved_by_member_id=$1 AND decision_key=$2`,[actor,decisionKey])).rows[0];
+      if(used)throw new DomainError("IDEMPOTENCY_CONFLICT","复核请求键已用于其他批次",409);
+      const candidates=(await client.query<{order_id:string;gross_cents:string}>(`SELECT order_id,gross_cents
+        FROM commission_settlement_cycle_candidate WHERE cycle_id=$1 AND member_id=$2
+        ORDER BY order_id`,[cycleId,memberId])).rows;
+      const gross=candidates.reduce((n,row)=>n+Number(row.gross_cents),0);
+      if(!Number.isSafeInteger(gross)||gross<10000||gross>9_900_000_000)
+        throw new DomainError("SETTLEMENT_CYCLE_THRESHOLD_NOT_MET","本期税前候选不足一百元",409);
+      for(const candidate of candidates)
+        await client.query("SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE",[candidate.order_id]);
+      const identity=(await client.query<{openid:string}>(`SELECT openid FROM wechat_identity
+        WHERE member_id=$1 AND provider='wechat_miniprogram' AND app_id=$2 AND adapter='wechat'
+        ORDER BY created_at DESC,id DESC LIMIT 1`,[memberId,this.options.appId])).rows[0];
+      if(!identity?.openid)throw new DomainError("SETTLEMENT_WECHAT_IDENTITY_REQUIRED","收款人缺少已核对的测试身份",409);
+      const requestId=randomUUID(),outBillNo=`CS${requestId.replaceAll("-","").slice(0,30).toUpperCase()}`;
+      const created=(await client.query<Row>(`INSERT INTO commission_settlement_request
+        (id,member_id,requested_by_member_id,idempotency_key,request_hash,amount_cents,reason,
+        policy_version,state,version,cycle_id,gross_cents,withholding_cents,tax_policy_version,
+        approved_by_member_id,decision_key,decision_hash,decision_reason,decided_at,
+        app_id,merchant_id,payee_openid,out_bill_no,scene_id,transfer_remark)
+        VALUES($1,$2,$3,$4,$5,$6,$7,'engineering-monthly-15-test-v1','reserved',2,$8,$6,0,$9,
+          $10,$11,$12,$7,clock_timestamp(),$13,$14,$15,$16,$17,'熹丝密周期结算隔离测试') RETURNING *`,
+        [requestId,memberId,cycle.prepared_by_member_id,`cycle:${cycleId}:${memberId}`,
+          fingerprint,gross,why,cycleId,taxPolicyVersion,actor,decisionKey,fingerprint,
+          this.options.appId,this.options.merchantId,identity.openid,outBillNo,this.options.sceneId])).rows[0]!;
+      for(const candidate of candidates)await client.query(`INSERT INTO commission_settlement_allocation
+        (request_id,order_id,amount_cents) VALUES($1,$2,$3)`,[requestId,candidate.order_id,candidate.gross_cents]);
+      if(!await this.allocationStillEarned(client,created))
+        throw new DomainError("SETTLEMENT_CYCLE_SOURCE_CHANGED","候选后来源有新退款、追偿或其他预占；重新核对",409);
+      await client.query(`INSERT INTO commission_settlement_cycle_member
+        (cycle_id,member_id,request_id,prepared_by_member_id,approved_by_member_id,
+          decision_key,decision_hash,decision_reason,gross_cents,withholding_cents,net_cents,tax_policy_version)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$9,$10)`,[cycleId,memberId,requestId,
+          cycle.prepared_by_member_id,actor,decisionKey,fingerprint,why,gross,taxPolicyVersion]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,
+        reason_code,after_state,trace_id) VALUES($1,'commission.cycle_member_approved',
+        'commission_settlement_cycle_member',$2,'SYNTHETIC_TAX_ONLY',$3,$4)`,
+        [`member:${actor}`,requestId,{cycleId,memberId,grossCents:gross,withholdingCents:0,
+          netCents:gross,taxPolicyVersion},`cycle-approval:${requestId}`]);
+      return {...this.view(created),replay:false};
+    },"SERIALIZABLE");
+  }
+
   private view(row:Row){return {id:row.id,memberId:row.member_id,amountCents:Number(row.amount_cents),
+    cycleId:row.cycle_id??null,grossCents:row.gross_cents===null?null:Number(row.gross_cents),
+    withholdingCents:row.withholding_cents===null?null:Number(row.withholding_cents),
+    taxPolicyVersion:row.tax_policy_version??null,
     state:row.state,version:row.version,outBillNo:row.out_bill_no,channelState:undefined};}
   private binding(row:Row):TransferBinding{
     if(!row.out_bill_no||!row.payee_openid||row.app_id!==this.options.appId||
@@ -151,6 +236,20 @@ export class SettlementCommandService{
     return {appId:row.app_id,merchantId:row.merchant_id,outBillNo:row.out_bill_no,
       payeeOpenid:row.payee_openid,amountCents:amount(row.amount_cents),sceneId:row.scene_id,
       remark:row.transfer_remark,notifyUrl:this.options.notifyUrl};
+  }
+
+  private async requireCycleApproval(row:Row,db:pg.Pool|pg.PoolClient=this.pool){
+    if(!row.cycle_id){
+      if(this.options.legacyDirectFixture)return;
+      throw new DomainError("SETTLEMENT_CYCLE_REQUIRED","历史意向不能旁路周期批次发款",409);
+    }
+    const approved=(await db.query<{id:string}>(`SELECT m.id FROM commission_settlement_cycle_member m
+      WHERE m.request_id=$1 AND m.cycle_id=$2 AND m.member_id=$3 AND m.net_cents=$4
+        AND m.gross_cents=$5 AND m.withholding_cents=$6 AND m.tax_policy_version=$7`,
+      [row.id,row.cycle_id,row.member_id,row.amount_cents,row.gross_cents,
+        row.withholding_cents,row.tax_policy_version])).rows[0];
+    if(!approved||row.tax_policy_version!=="isolated-synthetic-zero-withholding-v1")
+      throw new DomainError("SETTLEMENT_CYCLE_APPROVAL_DRIFT","周期复核或合成税务绑定不完整",409);
   }
 
   private async allocationStillEarned(client:pg.PoolClient,row:Row){
@@ -200,14 +299,16 @@ export class SettlementCommandService{
   async processDue(limit=20){
     this.gate();
     const claimed=(await this.pool.query<{id:string;lease_token:string}>(`WITH due AS (
-      SELECT id FROM commission_settlement_request WHERE state IN ('reserved','unknown','processing')
+      SELECT id FROM commission_settlement_request r WHERE state IN ('reserved','unknown','processing')
+        AND (cycle_id IS NOT NULL AND EXISTS
+          (SELECT 1 FROM commission_settlement_cycle_member m WHERE m.request_id=r.id) OR $2::boolean)
         AND quarantined_at IS NULL AND next_attempt_at<=clock_timestamp()
         AND (lease_until IS NULL OR lease_until<clock_timestamp())
       ORDER BY next_attempt_at,id LIMIT $1 FOR UPDATE SKIP LOCKED
     ) UPDATE commission_settlement_request r SET state=CASE WHEN r.state='reserved' THEN 'unknown' ELSE r.state END,
       lease_until=clock_timestamp()+interval '30 seconds',lease_token=gen_random_uuid()
       FROM due WHERE r.id=due.id RETURNING r.id,r.lease_token`,
-      [limit])).rows;
+      [limit,this.options.legacyDirectFixture===true])).rows;
     const results:{id:string;state:string}[]=[];
     for(const {id:targetId,lease_token:leaseToken} of claimed){
       try{results.push({id:targetId,state:await this.processOne(targetId,leaseToken)});}
@@ -231,6 +332,7 @@ export class SettlementCommandService{
       [id(requestId)])).rows[0];
     if(!row||!["unknown","processing"].includes(row.state))
       throw new DomainError("SETTLEMENT_NOT_DUE","结算转账任务不在待处理状态",409);
+    await this.requireCycleApproval(row);
     if(row.lease_token!==leaseToken)
       throw new DomainError("SETTLEMENT_LEASE_LOST","结算租约已经被其他任务接管",409);
     const binding=this.binding(row);
@@ -283,6 +385,7 @@ export class SettlementCommandService{
     const row=(await this.pool.query<Row>(`SELECT * FROM commission_settlement_request WHERE id=$1`,
       [id(requestId)])).rows[0];
     if(!row)throw new DomainError("SETTLEMENT_NOT_FOUND","结算申请不存在",404);
+    await this.requireCycleApproval(row);
     const fact=await this.channel.queryTransferByMerchantBillNumber(this.binding(row));
     await this.applyQueried(row.id,fact);
     return {state:fact.state,providerBillNo:fact.providerBillNo};
@@ -293,6 +396,7 @@ export class SettlementCommandService{
     const row=(await this.pool.query<Row>(`SELECT * FROM commission_settlement_request
       WHERE id=$1 AND member_id=$2`,[id(requestIdInput),memberId])).rows[0];
     if(!row)throw new DomainError("SETTLEMENT_NOT_FOUND","结算申请不存在",404);
+    await this.requireCycleApproval(row);
     if(row.state!=="processing"||!row.first_dispatch_started_at)
       throw new DomainError("TRANSFER_CONFIRMATION_UNAVAILABLE","原转账单尚未进入待确认状态",409);
     const binding=this.binding(row);
@@ -316,6 +420,7 @@ export class SettlementCommandService{
       if(leaseToken&&row.lease_token!==leaseToken)
         throw new DomainError("SETTLEMENT_LEASE_LOST","结算租约已经被其他任务接管",409);
       if(["succeeded","failed","cancelled"].includes(row.state))return "already_terminal";
+      await this.requireCycleApproval(row,client);
       const allocations=(await client.query<{order_id:string;amount_cents:string}>(`SELECT order_id,
         amount_cents FROM commission_settlement_allocation WHERE request_id=$1 ORDER BY order_id`,
         [row.id])).rows;

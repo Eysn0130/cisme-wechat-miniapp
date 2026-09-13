@@ -16,7 +16,7 @@ function period(value: unknown): string {
 }
 
 type CycleRow = {id:string;cutoff_at:Date;prepared_at:Date;state:string;
-  threshold_cents:string;policy_version:string};
+  threshold_cents:string;policy_version:string;prepared_by_member_id:string};
 type CandidateRow = {member_id:string;order_id:string;gross_cents:string};
 
 /** A non-payable preview persisted on/after the 15th. It deliberately has no
@@ -101,15 +101,23 @@ export class SettlementCycleService {
     },"SERIALIZABLE");
   }
   private async detailWithClient(client:pg.PoolClient,cycle:CycleRow,periodEnd:string,replay:boolean){
-    const rows=(await client.query<{member_id:string;gross_cents:string;order_count:number}>(`SELECT
-      member_id,sum(gross_cents)::text AS gross_cents,count(*)::int AS order_count
-      FROM commission_settlement_cycle_candidate WHERE cycle_id=$1 GROUP BY member_id ORDER BY member_id`,
+    const rows=(await client.query<{member_id:string;gross_cents:string;order_count:number;
+      request_id:string|null;request_state:string|null;withholding_cents:string|null;net_cents:string|null}>(`WITH summary AS (
+      SELECT member_id,sum(gross_cents)::text AS gross_cents,count(*)::int AS order_count
+      FROM commission_settlement_cycle_candidate WHERE cycle_id=$1 GROUP BY member_id
+    ) SELECT s.*,m.request_id,r.state AS request_state,m.withholding_cents::text,m.net_cents::text
+      FROM summary s LEFT JOIN commission_settlement_cycle_member m
+        ON m.cycle_id=$1 AND m.member_id=s.member_id
+      LEFT JOIN commission_settlement_request r ON r.id=m.request_id ORDER BY s.member_id`,
       [cycle.id])).rows;
     return {id:cycle.id,periodEnd,cutoffAt:cycle.cutoff_at,
-      preparedAt:cycle.prepared_at,policyVersion:cycle.policy_version,
+      preparedAt:cycle.prepared_at,preparedByMemberId:cycle.prepared_by_member_id,
+      policyVersion:cycle.policy_version,
       thresholdCents:Number(cycle.threshold_cents),state:cycle.state,
       payable:false,withholdingPolicyVersion:null,netCents:null,replay,
       members:rows.map(row=>({memberId:row.member_id,grossCents:Number(row.gross_cents),
-        orderCount:row.order_count,withholdingCents:null,netCents:null}))};
+        orderCount:row.order_count,requestId:row.request_id,requestState:row.request_state,
+        withholdingCents:row.withholding_cents===null?null:Number(row.withholding_cents),
+        netCents:row.net_cents===null?null:Number(row.net_cents)}))};
   }
 }

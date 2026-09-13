@@ -231,7 +231,8 @@ beforeAll(async()=>{
   app=await createApp({config,pool,storage:createApiGatewayStorage(config),paymentProtocol:{channel,inbox,refundInbox,
     paymentNotifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/callback",
     refundNotifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/refund-callback",
-    transferNotifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback",transferInbox}});
+    transferNotifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback",transferInbox},
+    legacyDirectSettlementFixture:true});
   const identity=await app.inject({method:"POST",url:"/v1/identity/dev",payload:{externalUserId:"payment-http-buyer",
     displayName:"Payment HTTP buyer",consents:[{documentType:"privacy",version:"test"},{documentType:"terms",version:"test"}]}});
   expect(identity.statusCode).toBe(200);buyer=identity.json();
@@ -266,7 +267,8 @@ beforeAll(async()=>{
     {merchantId,notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/refund-callback"});
   settlementCommands=new SettlementCommandService(pool,new AuthorityService(pool,"test"),channel,"test",
     {appId,merchantId,sceneId:"ISOLATED_COMMISSION",
-      notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback"});
+      notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback",
+      legacyDirectFixture:true});
 });
 
 async function creditSpendCase(){
@@ -914,7 +916,8 @@ it("retains a committed may-have-sent fact across restart, lease takeover and re
     new WechatPayV3Client(merchantId,"MERCHANT_CERT_FIXTURE",merchantPrivate,
       new Map([[serial,platformPublic]]),fetch,baseUrl),"test",
     {appId,merchantId,sceneId:"ISOLATED_COMMISSION",
-      notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback"});
+      notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback",
+      legacyDirectFixture:true});
   expect(await fresh.processDue()).toContainEqual({id:reserved.id,state:"retry_scheduled"});
   const history=(await pool.query(`SELECT attempt_count,first_dispatch_started_at,state
     FROM commission_settlement_request WHERE id=$1`,[reserved.id])).rows[0];

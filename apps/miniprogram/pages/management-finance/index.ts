@@ -3,7 +3,11 @@ import { authorityProjection,hasCapability,type AuthorityProjection } from "../.
 import { currentChromeStyle } from "../../services/layout";
 import { clientOperationKey,orderRuntimeStatus } from "../../services/orders";
 
-type Section="refund"|"fulfillment"|"settlement"|"issues"|"bills";
+type Section="refund"|"fulfillment"|"settlement"|"cycles"|"issues"|"bills";
+type CycleMember={memberId:string;grossCents:number;orderCount:number;requestId:string|null;
+  requestState:string|null;withholdingCents:number|null;netCents:number|null;grossLabel?:string};
+type Cycle={id:string;periodEnd:string;preparedByMemberId:string;state:string;payable:false;replay:boolean;
+  members:CycleMember[];thresholdCents:number;withholdingPolicyVersion:null};
 type Row={id:string;orderId?:string;memberId?:string;requestedByMemberId?:string;
   amountCents?:number;reason?:string;sourceReference?:string;evidenceSha256?:string;
   deliveredAt?:string;version?:number;kind?:string;relatedId?:string;code?:string;
@@ -13,18 +17,24 @@ type PageResult={items:Row[];totalCount:number;nextCursor:string|null};
 const sections:[Section,string,Parameters<typeof hasCapability>[1]][]=[
   ["refund","退款申请","commerce.refund.approve"],
   ["fulfillment","履约核验","commerce.fulfillment.manage"],
-  ["settlement","结算申请","commission.settlement.approve"],
+  ["settlement","结算意向","commission.settlement.approve"],
+  ["cycles","周期候选","commission.settlement.approve"],
   ["issues","异常任务","commerce.money.reconcile"],
   ["bills","交易账单","commerce.money.reconcile"]
 ];
 const paths:Record<Section,string>={refund:"/v1/management/refund-requests/pending",
   fulfillment:"/v1/management/fulfillment/pending",
-  settlement:"/v1/management/commission/settlement-requests/pending",
+  settlement:"/v1/management/commission/settlement-requests/pending",cycles:"",
   issues:"/v1/management/money/issues",bills:"/v1/management/money/trade-bills"};
 const kindNames:Record<string,string>={payment_inbox:"支付事实",refund_inbox:"退款事实",
   refund_submission:"退款提交",transfer:"转账查单",transfer_callback:"转账回调",
   trade_bill:"账单差异"};
 const yesterdayShanghai=()=>new Date(Date.now()+8*60*60*1000-24*60*60*1000).toISOString().slice(0,10);
+const lastCycleMonth=()=>{const shanghai=new Date(Date.now()+8*60*60*1000).toISOString();
+  return new Date(Date.UTC(Number(shanghai.slice(0,4)),Number(shanghai.slice(5,7))-1,0))
+    .toISOString().slice(0,7);};
+const cyclePeriodEnd=(month:string)=>/^\d{4}-(0[1-9]|1[0-2])$/.test(month)
+  ?new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10):"";
 const timeLabel=(value?:string)=>value?new Date(value).toLocaleString("zh-CN",{
   year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}):"";
 const format=(row:Row):Row=>({...row,amountLabel:typeof row.amountCents==="number"
@@ -36,9 +46,12 @@ Page({
     sections:[] as Array<{id:Section;label:string}>,section:"refund" as Section,
     items:[] as Row[],totalCount:0,nextCursor:null as string|null,loading:true,loadingMore:false,
     busy:false,error:"",moreError:"",actionError:"",actionStatus:"",
+    cycleMonth:lastCycleMonth(),latestCycleMonth:lastCycleMonth(),cycle:null as Cycle|null,
+    cycleDecisionKeys:{} as Record<string,string>,
     billDate:yesterdayShanghai(),latestBillDate:yesterdayShanghai(),alive:true,epoch:0,navigating:false},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
-  onShow(){this.data.alive=true;this.setData({navigating:false,latestBillDate:yesterdayShanghai()});void this.establish();},
+  onShow(){this.data.alive=true;this.setData({navigating:false,latestBillDate:yesterdayShanghai(),
+    latestCycleMonth:lastCycleMonth()});void this.establish();},
   onUnload(){this.data.alive=false;this.data.epoch+=1;},
   async establish(){
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
@@ -51,7 +64,7 @@ Page({
       if(!current())return;
       if(!status.isolatedMoneyOperationsAvailable){this.setData({loading:false,error:"当前环境没有开放隔离资金核对。"});return;}
       const available=sections.filter(([id,,capability])=>hasCapability(authority,capability)&&
-        (id!=="settlement"||status.isolatedTransferAvailable)).map(([id,label])=>({id,label}));
+        (!["settlement","cycles"].includes(id)||status.isolatedTransferAvailable)).map(([id,label])=>({id,label}));
       if(!available.length){this.setData({loading:false,error:"当前账号没有资金核对权限。"});return;}
       const section=available.some(item=>item.id===this.data.section)?this.data.section:available[0]!.id;
       this.setData({authority,sections:available,section});void this.load();
@@ -64,8 +77,9 @@ Page({
   },
   async load(){
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,section=this.data.section;
-    this.setData({items:[],totalCount:0,nextCursor:null,loading:true,loadingMore:false,
+    this.setData({items:[],totalCount:0,nextCursor:null,loading:section!=="cycles",loadingMore:false,
       error:"",moreError:""});
+    if(section==="cycles")return;
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section===section&&
       token===getApp<IAppOption>().globalData.sessionToken;
     try{const result=await request<PageResult>({path:`${paths[section]}?limit=20`});
@@ -75,6 +89,7 @@ Page({
       error:(error as {title?:string}).title||"待办暂时无法加载，请重试。"});}
   },
   async loadMore(){
+    if(this.data.section==="cycles")return;
     const cursor=this.data.nextCursor;if(!cursor||this.data.loading||this.data.loadingMore)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,section=this.data.section;
     this.setData({loadingMore:true,moreError:""});
@@ -88,7 +103,8 @@ Page({
       this.setData({loadingMore:false,moreError:(error as {title?:string}).title||"更多待办暂未加载。"});}
   },
   async decide(event:WechatMiniprogram.TouchEvent){
-    if(this.data.busy||this.data.section==="issues")return;
+    if(this.data.busy||this.data.section==="issues"||this.data.section==="cycles"||
+      this.data.section==="settlement"&&event.currentTarget.dataset.decision==="approve")return;
     const id=String(event.currentTarget.dataset.id),decision=String(event.currentTarget.dataset.decision),
       section=this.data.section,row=this.data.items.find(item=>item.id===id);
     if(!row||!row.version||!this.data.sections.some(item=>item.id===section))return;
@@ -112,6 +128,63 @@ Page({
       if(current()){this.setData({busy:false,actionStatus:"处理已提交，正在同步最新待办。"});await this.load();}
     }catch(error){if(current())this.setData({busy:false,
       actionError:(error as {title?:string}).title||"处理未完成，请核对状态后重试。"});}
+    finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
+  },
+  chooseCycleMonth(event:{detail:{value:string}}){
+    this.setData({cycleMonth:event.detail.value,cycle:null,cycleDecisionKeys:{},
+      actionError:"",actionStatus:""});
+  },
+  async loadCycle(){
+    const month=this.data.cycleMonth,periodEnd=cyclePeriodEnd(month),epoch=this.data.epoch,
+      token=getApp<IAppOption>().globalData.sessionToken;
+    if(this.data.section!=="cycles"||!periodEnd||month>this.data.latestCycleMonth){
+      this.setData({actionError:"请选择已结束的上海自然月。"});return;}
+    this.setData({busy:true,actionError:""});
+    try{const cycle=await request<Cycle>({path:"/v1/management/commission/settlement-cycles/prepare",
+      method:"POST",data:{periodEnd}});
+      if(this.data.alive&&this.data.epoch===epoch&&this.data.section==="cycles"&&
+        this.data.cycleMonth===month&&token===getApp<IAppOption>().globalData.sessionToken)
+        this.setData({cycle:{...cycle,members:cycle.members.map(row=>({...row,
+          grossLabel:(row.grossCents/100).toFixed(2)}))},busy:false});
+    }catch(error){if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false,
+      actionError:(error as {title?:string}).title||"周期候选暂不能核对。"});}
+    finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
+  },
+  async prepareCycle(){
+    if(this.data.busy||this.data.section!=="cycles")return;
+    const periodEnd=cyclePeriodEnd(this.data.cycleMonth);
+    if(!periodEnd||this.data.cycleMonth>this.data.latestCycleMonth){
+      this.setData({actionError:"请选择已结束的上海自然月。"});return;}
+    const answer=await wx.showModal({title:"核对周期候选？",
+      content:`${periodEnd} 前释放、目前仍可结算的来源按会员汇总。未满税前 ¥100 结转；生成候选不批准、不发款。每月须到 15 日才可准备。`,confirmText:"读取候选"});
+    if(answer.confirm)void this.loadCycle();
+  },
+  async approveCycleMember(event:WechatMiniprogram.TouchEvent){
+    const cycle=this.data.cycle,memberId=String(event.currentTarget.dataset.member??""),
+      row=cycle?.members.find(item=>item.memberId===memberId);
+    if(this.data.busy||this.data.section!=="cycles"||!cycle||!row||row.requestId)return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const answer=await wx.showModal({title:"独立复核本期候选？",
+      content:`收款人 ${memberId} · 税前 ¥${row.grossLabel} · ${row.orderCount} 笔。仅本机隔离模拟渠道，零扣缴为合成测试口径，绝非真实免税或付款授权。准备人与复核人不能相同。`,
+      editable:true,placeholderText:"输入至少 4 字复核依据",confirmText:"批准测试批次"});
+    if(!answer.confirm||!this.data.alive||this.data.epoch!==epoch||
+      token!==getApp<IAppOption>().globalData.sessionToken)return;
+    const reason=String(answer.content??"").trim();
+    if(Array.from(reason).length<4){this.setData({actionError:"请输入至少 4 字复核依据。"});return;}
+    const keyId=`${cycle.id}:${memberId}`,decisionKey=this.data.cycleDecisionKeys[keyId]||
+      clientOperationKey("cycle-approve");
+    this.setData({busy:true,actionError:"",actionStatus:"",
+      cycleDecisionKeys:{...this.data.cycleDecisionKeys,[keyId]:decisionKey}});
+    try{await request({path:`/v1/management/commission/settlement-cycles/${cycle.id}/approve-member`,
+      method:"POST",idempotencyKey:decisionKey,
+      data:{memberId,reason,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"}});
+      if(this.data.alive&&this.data.epoch===epoch&&this.data.section==="cycles"){
+        const keys={...this.data.cycleDecisionKeys};delete keys[keyId];
+        this.setData({busy:false,cycleDecisionKeys:keys,
+          actionStatus:"隔离批次已复核并生成来源预占；渠道确认前不代表已付款。"});
+        await this.loadCycle();}
+    }catch(error){if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false,
+      actionError:(error as {title?:string}).title||"批次复核未完成，请核对状态。"});}
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   async operateIssue(event:WechatMiniprogram.TouchEvent){

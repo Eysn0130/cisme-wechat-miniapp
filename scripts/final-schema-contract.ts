@@ -11,6 +11,7 @@ export async function assertFinalSchemaContract(db:Database){
     "commission_rate_rule","commission_order_snapshot","commission_ledger_entry","commission_payment_inbox",
     "commerce_payment_attempt","commerce_refund_request","commerce_fulfillment_attestation",
     "commission_settlement_request","commission_settlement_allocation","commission_transfer_fact",
+    "commission_settlement_cycle","commission_settlement_cycle_candidate","commission_settlement_cycle_member",
     "commission_credit_conversion","commission_credit_source","commission_credit_entry",
     "commission_credit_checkout_allocation","commission_credit_refund_allocation",
     "commission_transfer_callback_inbox","commerce_trade_bill_batch","commerce_trade_bill_row",
@@ -51,6 +52,10 @@ export async function assertFinalSchemaContract(db:Database){
   constraint("commerce_fulfillment_attestation","commerce_fulfillment_attestation_state_check","verified");
   constraint("commission_ledger_entry","commission_release_positive","amount_cents > 0");
   constraint("commission_settlement_request","commission_settlement_request_state_check","processing");
+  constraint("commission_settlement_request","commission_settlement_request_check","cycle_id IS NOT NULL");
+  constraint("commission_settlement_cycle_member","commission_settlement_cycle_member_tax_policy_version_check","isolated-synthetic-zero-withholding-v1");
+  constraint("commission_settlement_cycle_member","commission_settlement_cycle_member_check1","prepared_by_member_id");
+  constraint("commission_settlement_cycle_member","commission_settlement_cycle_member_check","gross_cents - withholding_cents");
   constraint("commission_ledger_entry","commission_settlement_positive","amount_cents > 0");
   constraint("commission_ledger_entry","commission_credit_conversion_sign_check","credit_conversion_reversal");
   constraint("commission_credit_conversion","commission_credit_conversion_tax_policy_version_check","isolated-synthetic-zero-withholding-v1");
@@ -89,6 +94,8 @@ export async function assertFinalSchemaContract(db:Database){
     ["commission_settlement_due","next_attempt_at"],
     ["commission_settlement_member","created_at"],
     ["commission_settlement_decision_key","UNIQUE"],
+    ["commission_settlement_cycle_member_cycle_id_member_id_key","UNIQUE"],
+    ["commission_settlement_cycle_member_request","request_id"],
     ["commission_settlement_allocation_order","order_id"],
     ["commission_transfer_fact_request","observed_at"],
     ["commission_settlement_fact_order","UNIQUE"],
@@ -123,6 +130,8 @@ export async function assertFinalSchemaContract(db:Database){
     "commerce_fulfillment_attestation.commerce_fulfillment_attestation_guard",
     "commission_ledger_entry.commission_release_source",
     "commission_settlement_request.commission_settlement_request_guard",
+    "commission_settlement_request.commission_settlement_cycle_identity",
+    "commission_settlement_cycle_member.commission_settlement_cycle_member_immutable",
     "commission_settlement_allocation.commission_settlement_allocation_immutable",
     "commission_transfer_fact.commission_transfer_fact_immutable",
     "commission_ledger_entry.commission_settlement_source",
@@ -143,5 +152,5 @@ export async function assertFinalSchemaContract(db:Database){
     "commerce_trade_bill_batch.commerce_trade_bill_batch_immutable",
     "commerce_trade_bill_row.commerce_trade_bill_row_immutable"
   ])if(!triggerNames.has(trigger))throw new Error(`FINAL_SCHEMA_TRIGGER_MISSING:${trigger}`);
-  return {tables:requiredTables.length,constraints:36,indexes:33,triggers:30};
+  return {tables:requiredTables.length,constraints:40,indexes:35,triggers:32};
 }

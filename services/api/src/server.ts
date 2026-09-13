@@ -59,6 +59,7 @@ interface AppDependencies {
     refundInbox: VerifiedRefundInbox; paymentNotifyUrl: string; refundNotifyUrl: string;
     transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox;
     isolatedSyntheticTransport?: boolean };
+  legacyDirectSettlementFixture?: boolean;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -107,6 +108,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const paymentProfile=config.commerce.simulatedPayment??formalTestProfile;
   if(dependencies.paymentProtocol&&!paymentProfile)
     throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
+  if(dependencies.legacyDirectSettlementFixture&&
+    (config.env!=="test"||!config.commerce.simulatedPayment?.transferSceneId))
+    throw new Error("FAIL_CLOSED:LEGACY_DIRECT_SETTLEMENT_TEST_FIXTURE_ONLY");
   const orders = new CommerceOrderService(pool, authority, deliveryAddresses, commercial, {
     enabled: config.commerce.orderFlowEnabled,
     quoteTtlMinutes: config.commerce.quoteTtlMinutes,
@@ -138,7 +142,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     ?new SettlementCommandService(pool,authority,dependencies.paymentProtocol.channel,config.env,
       {appId:config.commerce.simulatedPayment.appId,merchantId:config.commerce.simulatedPayment.merchantId,
         sceneId:config.commerce.simulatedPayment.transferSceneId,
-        notifyUrl:dependencies.paymentProtocol.transferNotifyUrl}):null;
+        notifyUrl:dependencies.paymentProtocol.transferNotifyUrl,
+        legacyDirectFixture:dependencies.legacyDirectSettlementFixture===true}):null;
   const settlementCycle=new SettlementCycleService(pool,authority,config.env);
   const shoppingCredit=new ShoppingCreditService(pool,config.env);
   const moneyOps=dependencies.paymentProtocol
@@ -533,6 +538,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as Record<string,unknown>));
   app.post("/v1/management/commission/settlement-cycles/prepare",async request=>
     settlementCycle.prepare(request.memberId,(request.body as {periodEnd?:unknown}|null)?.periodEnd));
+  app.post<{Params:{cycleId:string}}>("/v1/management/commission/settlement-cycles/:cycleId/approve-member",async request=>
+    settlementRequired().approveCycleMember(request.memberId,request.params.cycleId,
+      idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
   const moneyOpsRequired=()=>{
     if(!moneyOps)throw new DomainError("MONEY_OPERATIONS_DISABLED","隔离资金核对未启用",503);
     return moneyOps;

@@ -212,7 +212,7 @@ describe("native mini program boundary", () => {
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
       "management-order-detail": ["back", "back", "load"],
-      "management-finance": ["back", "selectSection", "importBill", "importBill", "retry", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
+      "management-finance": ["back", "selectSection", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
       "management-support": ["back", "open", "retry"],
       "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "claim", "suggest", "send", "resolve", "closeContext"],
       points: ["back", "openShop", "load"],

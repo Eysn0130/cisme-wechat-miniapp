@@ -382,6 +382,58 @@ it("carries sub-threshold released sources into a later non-payable monthly cand
     WHERE cycle_id=$1`,[later.id])).rows[0].n).toBe(5);
   await expect(pool.query(`UPDATE commission_settlement_cycle_candidate SET gross_cents=1 WHERE cycle_id=$1`,
     [later.id])).rejects.toMatchObject({code:"55000"});
+  const checker=(await pool.query("INSERT INTO member(display_name) VALUES('Cycle independent checker') RETURNING id")).rows[0].id;
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commission.settlement.approve','fixture','Cycle independent decision','test','integration_fixture')`,[checker]);
+  await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+    VALUES($1,'wechat_miniprogram',$2,'cycle-payee-openid','wechat')`,[referrer,appId]);
+  const commands=new SettlementCommandService(pool,new AuthorityService(pool,"test"),
+    {} as WechatPayV3Client,"test",{appId,merchantId,sceneId:"ISOLATED_CYCLE",
+      notifyUrl:"https://fixture.invalid/v1/payments/wechat/transfer-callback"});
+  const intent=await commands.request(referrer,"cycle-intent-0001",
+    {amountCents:10000,reason:"合成会员申请仅作意向"});
+  await expect(commands.decide(checker,intent.id,"cycle-direct-approval-0001",
+    {decision:"approve",expectedVersion:1,reason:"直接申请不得绕过周期批次"}))
+    .rejects.toMatchObject({code:"SETTLEMENT_CYCLE_REQUIRED"});
+  await expect(commands.approveCycleMember(operator,later.id,"cycle-self-check-0001",
+    {memberId:referrer,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1",reason:"同人不得复核周期"}))
+    .rejects.toMatchObject({code:"SETTLEMENT_CYCLE_SELF_APPROVAL_FORBIDDEN"});
+  await expect(commands.approveCycleMember(checker,later.id,"cycle-bad-tax-0001",
+    {memberId:referrer,taxPolicyVersion:"real-zero-tax",reason:"未经批准税务口径"}))
+    .rejects.toMatchObject({code:"SETTLEMENT_TAX_POLICY_NOT_APPROVED"});
+  const payload={memberId:referrer,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1",
+    reason:"独立复核五笔历史来源与合成税务"};
+  const approved=await commands.approveCycleMember(checker,later.id,"cycle-approved-0001",payload);
+  expect(approved).toMatchObject({cycleId:later.id,amountCents:10000,grossCents:10000,
+    withholdingCents:0,taxPolicyVersion:payload.taxPolicyVersion,state:"reserved",replay:false});
+  expect(await commands.approveCycleMember(checker,later.id,"cycle-approved-0001",payload))
+    .toMatchObject({id:approved.id,replay:true});
+  expect(await cycles.prepare(operator,dates.later)).toMatchObject({replay:true,
+    members:[{memberId:referrer,requestId:approved.id,requestState:"reserved",
+      grossCents:10000,withholdingCents:0,netCents:10000}]});
+  expect((await pool.query(`SELECT count(*)::int AS n,sum(amount_cents)::text AS gross
+    FROM commission_settlement_allocation WHERE request_id=$1`,[approved.id])).rows[0])
+    .toMatchObject({n:5,gross:"10000"});
+  await expect(pool.query(`UPDATE commission_settlement_request SET gross_cents=10001 WHERE id=$1`,
+    [approved.id])).rejects.toMatchObject({code:"55000"});
+  // This independent fixture owns its reservation and closes it before the
+  // following test's source-allocation race; it never sends a channel request.
+  await pool.query(`UPDATE commission_settlement_request SET state='cancelled',
+    finalized_at=clock_timestamp() WHERE id=$1`,[approved.id]);
+  const historical=new SettlementCommandService(pool,new AuthorityService(pool,"test"),
+    {} as WechatPayV3Client,"test",{appId,merchantId,sceneId:"ISOLATED_CYCLE",
+      notifyUrl:"https://fixture.invalid/v1/payments/wechat/transfer-callback",
+      legacyDirectFixture:true});
+  const oldIntent=await historical.request(referrer,"cycle-old-fixture-intent-001",
+    {amountCents:100,reason:"旧版转账协议仅供回归测试"});
+  const oldReserved=await historical.decide(checker,oldIntent.id,"cycle-old-fixture-approve-001",
+    {decision:"approve",expectedVersion:1,reason:"测试旧版意向不会在默认 worker 发款"});
+  expect(oldReserved.state).toBe("reserved");
+  expect(await commands.processDue()).toEqual([]);
+  expect((await pool.query("SELECT state,cycle_id FROM commission_settlement_request WHERE id=$1",
+    [oldReserved.id])).rows[0]).toMatchObject({state:"reserved",cycle_id:null});
+  await pool.query(`UPDATE commission_settlement_request SET state='cancelled',
+    finalized_at=clock_timestamp() WHERE id=$1`,[oldReserved.id]);
 });
 
 it("preserves discounted signed channel payment without posting unsupported cash commission",async()=>{
@@ -442,7 +494,7 @@ it("converts only released source lots 1:1, arbitrates cash reservation, and res
   // Use the real authority service, but no channel request is made by request/decide.
   const reviewerSettlement=new SettlementCommandService(pool,new AuthorityService(pool,"test"),
     {} as WechatPayV3Client,"test",{appId,merchantId,sceneId:"ISOLATED_CREDIT_TEST",
-      notifyUrl:"https://fixture.invalid/v1/payments/wechat/transfer-callback"});
+      notifyUrl:"https://fixture.invalid/v1/payments/wechat/transfer-callback",legacyDirectFixture:true});
   const request=await reviewerSettlement.request(referrer,"credit-race-settle",{amountCents:2000,reason:"测试并发现金预占"});
   const outcomes=await Promise.allSettled([
     reviewerSettlement.decide(operator,request.id,"credit-race-approve",{decision:"approve",expectedVersion:1,

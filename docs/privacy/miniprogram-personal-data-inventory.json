@@ -368,20 +368,20 @@
     },
     {
       "surface": "commission_fulfillment_settlement",
-      "informationType": "隔离测试中的履约凭据编号与摘要、签收时间、佣金释放与预占分配、收款人 OpenID 快照、转账单号/渠道状态和最小校验哈希",
+      "informationType": "隔离测试中的履约凭据编号与摘要、签收时间、佣金释放与周期候选预占分配、税前/合成扣缴/净额、收款人 OpenID 快照、转账单号/渠道状态和最小校验哈希",
       "purpose": "验证异人履约复核后才能释放佣金、并发预占不超额，以及可信转账成功才能记已结算",
       "activation": "仅 APP_ENV=test 且显式启用本机模拟转账；正式物流、售后政策、商户转账场景尚未获批准",
-      "serverStorage": "CISME PostgreSQL commerce_fulfillment_attestation、commission_settlement_request（含不可重置的可能发送时间与租约令牌）/allocation、commission_transfer_callback_inbox/fact 与追加式账本；异常摘要供授权运营人员核查",
-      "currentGate": "按服务端 capability 与对象状态隔离；申请和批准必须不同人；原商户转账单号查单并核验签名；受理、待用户确认和处理中均不记为已付款",
+      "serverStorage": "CISME PostgreSQL commerce_fulfillment_attestation、commission_settlement_cycle/candidate/member、commission_settlement_request（含不可重置的可能发送时间与租约令牌）/allocation、commission_transfer_callback_inbox/fact 与追加式账本；异常摘要供授权运营人员核查",
+      "currentGate": "按服务端 capability 与对象状态隔离；会员申请仅作意向，普通路径不能直接批准转账；隔离测试周期须不同准备人/复核人/收款人及明确合成税务版本；原商户转账单号查单并核验签名；受理、待用户确认和处理中均不记为已付款",
       "retention": "POLICY PENDING；正式资金、物流和争议证据保存期限需单独批准"
     },
     {
       "surface": "commission_monthly_candidate",
-      "informationType": "授权运营人员身份、自然月、候选会员/来源订单、税前可结算整数分金额与历史准备时间；不存税额或净额的猜测值",
+      "informationType": "授权准备人与独立复核人身份、自然月、候选会员/来源订单、税前金额、明确标为合成测试的扣缴/净额和历史准备/批准时间；不存真实税额的猜测值",
       "purpose": "在隔离工程环境验证按上海自然月 15 日准备候选、100 元阈值结转以及来源级可审计重建",
-      "activation": "仅 test/development 且具备 commission.settlement.approve；候选不可支付，正式税务、身份与周期政策未批准",
-      "serverStorage": "CISME PostgreSQL commission_settlement_cycle/candidate，不可变；不构成实际预占、纳税判断或已付款事实",
-      "currentGate": "服务端能力校验、数据库时钟、来源逐订单筛选、重复周期只返回原快照；正式环境拒绝准备",
+      "activation": "仅 test/development 且具备 commission.settlement.approve 可准备不可支付候选；仅 test 可由另一人按合成税务版本预占模拟转账，正式税务、身份与周期政策未批准",
+      "serverStorage": "CISME PostgreSQL commission_settlement_cycle/candidate/member 与来源绑定 request/allocation，不可变；候选本身不构成预占、纳税判断或已付款事实",
+      "currentGate": "服务端能力校验、数据库时钟、来源逐订单筛选、重复周期只返回原快照；测试审批重查来源、拒绝本人复核和真实税务口径；正式环境拒绝准备和付款",
       "retention": "POLICY PENDING；佣金与财务证明保存、公开最小披露另经审批"
     },
     {
@@ -444,6 +444,6 @@
       "state": "isolated_loopback_http_protocol_and_inert_formal_trust_assembly_production_closed"
     }
   ],
-  "migrationSetSha256": "4a4aa1fb32ff244ac1141d22d847bf2e5b33e243b1177d475a1bfa24e87c73cc",
+  "migrationSetSha256": "42d9fbb76b1d3012ae83521eb3b2c55a5cc3d99f98a9a2bb686d7e0eeac00cfd",
   "egressSignatureSha256": "1e5864578036c798b1217d73f7ec028a6ced37ce73c90e5cd4dfce352f72dd0a"
 }

@@ -699,13 +699,13 @@ paths:
       parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
       responses: {'200': {description: Merchant id, mini-program app id, package, original order number and channel state}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: Original order is not awaiting user confirmation}, '503': {description: Isolated transfer disabled}}
   /v1/management/commission/settlement-requests/pending:
-    get: {tags: [Commerce, Authority], operationId: pendingIsolatedCommissionSettlements, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Test-only commission.settlement.approve queue., responses: {'200': {description: Paged pending requests and exact count}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: isolated transfer disabled}}}
+    get: {tags: [Commerce, Authority], operationId: pendingIsolatedCommissionSettlements, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Test-only member intentions. They cannot bypass cycle approval to trigger a transfer; legacy direct approval exists only as an explicitly injected regression fixture., responses: {'200': {description: Paged pending intentions and exact count}, '403': {$ref: '#/components/responses/Problem'}, '503': {description: isolated transfer disabled}}}
   /v1/management/commission/settlement-requests/{requestId}/decision:
     post:
       tags: [Commerce, Authority]
       operationId: decideIsolatedCommissionSettlement
       security: [{session: []}]
-      description: Independent test-only approval atomically allocates released commission and reserves it by a stable merchant bill number. It does not initiate a real transfer when the isolated gate is off.
+      description: Member intentions may be rejected, but direct approval returns SETTLEMENT_CYCLE_REQUIRED. An explicitly injected APP_ENV=test legacy regression fixture preserves historical protocol tests only; ordinary batch approval is a separate route.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}, {name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, expectedVersion, reason], properties: {decision: {type: string, enum: [approve, reject]}, expectedVersion: {type: integer, minimum: 1}, reason: {type: string}}}}}}
       responses: {'200': {description: Reserved or rejected request}, '403': {description: capability required or self-approval forbidden}, '409': {description: stale version or insufficient released amount}, '503': {description: isolated transfer disabled}}
@@ -723,9 +723,18 @@ paths:
       tags: [Commerce, Authority]
       operationId: prepareNonPayableCommissionCycle
       security: [{session: []}]
-      description: Engineering-only immutable snapshot on or after Shanghai 15th of a prior month's eligible released source orders. Tax-before-withholding threshold CNY 100, carried forward without expiration. It reserves nothing; withholding and net remain null. No approval or transfer path exists.
+      description: Engineering-only immutable snapshot on or after Shanghai 15th of a prior month's eligible released source orders. Tax-before-withholding threshold CNY 100, carried forward without expiration. Preparation alone reserves nothing; candidate withholding and net remain null. A different person can approve each member only in isolated APP_ENV=test with an explicitly named synthetic tax fixture.
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [periodEnd], properties: {periodEnd: {type: string, format: date, description: Previous calendar month's last day, e.g. 2026-08-31}}}}}}
       responses: {'200': {description: Non-payable tax/payout-policy blocked candidate or immutable replay}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: Too early before Shanghai 15th}, '422': {description: Not a natural month end}, '503': {description: Formal cycle policy not approved}}
+  /v1/management/commission/settlement-cycles/{cycleId}/approve-member:
+    post:
+      tags: [Commerce, Authority]
+      operationId: approveIsolatedCommissionCycleMember
+      security: [{session: []}]
+      description: Isolated APP_ENV=test only. A distinct approver locks and rechecks all immutable candidate sources, records gross/withholding/net with the synthetic zero-withholding fixture, and reserves one original merchant bill number. The maker, checker and payee must differ. No production tax exemption or actual payout authorization is implied.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}, {name: cycleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [memberId, reason, taxPolicyVersion], properties: {memberId: {$ref: '#/components/schemas/Uuid'}, reason: {type: string, minLength: 4, maxLength: 300}, taxPolicyVersion: {type: string, enum: [isolated-synthetic-zero-withholding-v1]}}}}}}
+      responses: {'200': {description: Stable isolated cycle-member approval or exact replay}, '403': {description: capability or independence violation}, '409': {description: source drift, duplicate approval, or unapproved tax}, '503': {description: Isolated transfer not enabled}}
   /v1/payments/wechat/transfer-callback:
     post:
       tags: [Commerce]

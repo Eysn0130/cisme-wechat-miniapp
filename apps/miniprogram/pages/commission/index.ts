@@ -16,7 +16,7 @@ type CreditRow={id:string;amountCents:number;availableCents:number;cancellable:b
   createdAt:string;amountLabel?:string;availableLabel?:string;createdLabel?:string};
 type CreditPage={items:CreditRow[];totalCount:number;availableCents:number;nextCursor:string|null;
   redemptionStatus:"ISOLATED_TEST_ONLY"};
-const stateNames:Record<string,string>={requested:"待独立复核",reserved:"金额已预占",unknown:"渠道结果待核对",
+const stateNames:Record<string,string>={requested:"已登记意向，等待周期候选",reserved:"金额已预占",unknown:"渠道结果待核对",
   processing:"渠道处理中",succeeded:"渠道已确认付款",failed:"未付款",cancelled:"已取消",rejected:"未通过"};
 const problem=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
 function yuanToCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
@@ -182,15 +182,15 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,
       key=this.data.requestKey||clientOperationKey("settlement-request");
     const current=()=>this.current(epoch,token)&&this.data.isolatedTransfer;
-    const answer=await wx.showModal({title:"提交隔离结算申请？",
-      content:`申请 ¥${centsToYuan(amountCents)}。独立复核后才预占，渠道确认成功前均不计为已付款。本环境不转出真实资金。`,
-      confirmText:"提交申请"});
+    const answer=await wx.showModal({title:"登记隔离结算意向？",
+      content:`意向 ¥${centsToYuan(amountCents)}。它不会直接预占或发款；公司每月 15 日起准备上一月候选，税前未满 ¥100 结转，须由另一人按来源与合成税务规则复核。本环境不转出真实资金。`,
+      confirmText:"登记意向"});
     if(!answer.confirm||!current())return;
     this.setData({busy:true,requestKey:key,actionError:"",actionStatus:""});
     try{await request({path:"/v1/me/commission/settlement-requests",method:"POST",idempotencyKey:key,
       data:{amountCents,reason:why}});
       if(current()){this.setData({busy:false,formVisible:false,amount:"",reason:"",requestKey:"",
-        actionStatus:"申请已记录，请在下方查看复核及渠道状态。"});void this.loadRequests(epoch,token);}}
+        actionStatus:"结算意向已记录；它不会绕开周期候选和独立复核。"});void this.loadRequests(epoch,token);}}
     catch(error){if(current())this.setData({busy:false,
       actionError:problem(error,"申请结果暂时无法确认；再次提交会使用同一请求编号。")});}
     finally{if(current())this.setData({busy:false});}

@@ -26,13 +26,13 @@
         <button wx:if="{{creditCursor}}" class="secondary {{creditMoreLoading?'secondary--disabled':''}}" bindtap="moreCredits" loading="{{creditMoreLoading}}" disabled="{{creditMoreLoading}}">加载更多来源</button>
       </view>
       <view wx:if="{{isolatedTransfer}}" class="commission-section">
-        <view class="commission-section__heading"><strong>隔离结算申请</strong><text>测试渠道</text></view>
-        <button wx:if="{{!formVisible&&status.commission.availableCents>0}}" class="primary" bindtap="showForm">申请结算可用金额</button>
+        <view class="commission-section__heading"><strong>周期结算意向</strong><text>仅隔离测试</text></view>
+        <button wx:if="{{!formVisible&&status.commission.availableCents>0}}" class="primary" bindtap="showForm">登记结算意向</button>
         <text wx:if="{{!formVisible&&status.commission.availableCents===0}}" class="commission-muted">当前没有可申请的已释放金额。</text>
         <view wx:if="{{formVisible}}" class="commission-form">
           <text>申请金额（元）</text><input type="digit" value="{{amount}}" placeholder="例如 20.00" maxlength="11" bindinput="editAmount"/>
           <text>申请依据</text><textarea value="{{reason}}" placeholder="说明这笔隔离测试申请" maxlength="300" auto-height bindinput="editReason"/>
-          <view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submit" disabled="{{busy}}" loading="{{busy}}">提交复核</button></view>
+          <view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submit" disabled="{{busy}}" loading="{{busy}}">登记意向</button></view>
         </view>
         <view wx:if="{{actionStatus}}" class="state">{{actionStatus}}</view>
         <view wx:if="{{actionError}}" class="state state--error">{{actionError}}</view>
