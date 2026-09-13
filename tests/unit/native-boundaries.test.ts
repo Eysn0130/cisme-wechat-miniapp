@@ -120,7 +120,7 @@ describe("native mini program boundary", () => {
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
       "community-compose/index.wxml": 2,
-      "commission/index.wxml": 1,
+      "commission/index.wxml": 2,
       "community-review/index.wxml": 2,
       "checkout/index.wxml": 3,
       "management-catalog/index.wxml": 1,
@@ -196,7 +196,7 @@ describe("native mini program boundary", () => {
     const expected: Record<string, string[]> = {
       account: ["back", "openLegalDocuments", "openCrossBorder", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
-      commission: ["back", "load", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
+      commission: ["back", "load", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
       "community-compose": ["back", "retryLoad", "startNew", "openDraft", "deleteListDraft", "loadMoreList", "submitAppeal", "retryPreview", "toggleSorting", "chooseImages", "retryImage", "retryPreview", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],

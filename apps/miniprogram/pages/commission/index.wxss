@@ -14,3 +14,4 @@
 .commission-history{margin-top:24rpx;padding-top:20rpx;border-top:1rpx solid var(--cisme-line)}
 .commission-request{padding:17rpx 0;border-bottom:1rpx solid var(--cisme-line)}.commission-request view strong{font-size:27rpx;color:var(--cisme-ink)}.commission-request view text{font-size:24rpx;color:#56306f}.commission-request small{display:block;margin-top:7rpx;font-size:21rpx;color:var(--cisme-muted)}
 .commission-request__confirm{margin:14rpx 0 0;min-height:84rpx;font-size:24rpx}
+.commission-credit__action{margin-top:18rpx}.commission-credit__row>view{min-width:0}.commission-credit__row small{font-variant-numeric:tabular-nums}

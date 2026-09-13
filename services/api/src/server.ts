@@ -111,6 +111,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     enabled: config.commerce.orderFlowEnabled,
     quoteTtlMinutes: config.commerce.quoteTtlMinutes,
     pendingOrderTtlMinutes: config.commerce.pendingOrderTtlMinutes,
+    isolatedCreditCheckout:config.env==="test"&&Boolean(paymentProfile),
     ...(config.commerce.simulatedPayment?{simulatedPayment:{appId:config.commerce.simulatedPayment.appId,
       merchantId:config.commerce.simulatedPayment.merchantId,
       ...(config.commerce.simulatedPayment.transferSceneId

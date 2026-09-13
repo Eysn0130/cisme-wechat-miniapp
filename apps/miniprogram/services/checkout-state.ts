@@ -32,12 +32,19 @@ const quoteDefaults = {
   discountYuan: "",
   shippingYuan: "",
   totalYuan: "",
+  creditYuan:"",
+  cashYuan:"",
   error: ""
 };
 
 const privateDefaults = {
   addresses: [] as unknown[],
   selectedAddressId: "",
+  creditEnabled:false,
+  creditAvailableCents:0,
+  creditAvailableYuan:"0.00",
+  creditInput:"",
+  creditReadError:"",
   ...quoteDefaults
 };
 

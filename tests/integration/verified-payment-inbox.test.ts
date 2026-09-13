@@ -465,8 +465,8 @@ it("converts only released source lots 1:1, arbitrates cash reservation, and res
     WHERE s.conversion_id=$1`,[first.id])).rows[0].total).toBe("0");
   const later=await credit.convert(referrer,"credit-later-0001",{...fixture,amountCents:1});
   const page=await credit.listMine(referrer,{limit:"1"});
-  expect(page).toMatchObject({totalCount:expect.any(Number),spendable:false,
-    redemptionStatus:"NOT_IMPLEMENTED",items:[{id:later.id}]});
+  expect(page).toMatchObject({totalCount:expect.any(Number),spendable:true,availableCents:1,
+    redemptionStatus:"ISOLATED_TEST_ONLY",items:[{id:later.id,availableCents:1}]});
   expect(page.nextCursor).toBeTruthy();
   const continued=await credit.listMine(referrer,{limit:"1",cursor:page.nextCursor!});
   expect(continued.items[0]?.id).not.toBe(later.id);
@@ -494,6 +494,7 @@ it("converts only released source lots 1:1, arbitrates cash reservation, and res
     WHERE s.conversion_id=$1`,[later.id])).rows[0]!;
   expect(sourceBalance.balance).toBe("0");
   expect(sourceBalance.frozen).toBe("1");
+  expect((await credit.listMine(referrer)).items.find(item=>item.id===later.id)?.availableCents).toBe(0);
   await expect(credit.cancel(referrer,later.id,"credit-frozen-cancel-0001"))
     .rejects.toMatchObject({code:"CREDIT_ALREADY_USED_OR_FROZEN"});
 });

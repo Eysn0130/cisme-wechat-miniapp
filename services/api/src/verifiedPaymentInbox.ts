@@ -5,6 +5,7 @@ import { transaction } from "./db.js";
 import { enqueue } from "./outbox.js";
 import { assertPaymentBinding, decodePaymentNotification, type PaymentTransaction, WechatPayV3Client } from "./wechatPayV3.js";
 import { claimDueMoneyInbox, recordMoneyInboxFailure } from "./moneyInboxRetry.js";
+import { consumeReservedCreditForCheckout } from "./shoppingCredit.js";
 
 const orderPattern=/^CM[0-9]{8}[A-Z0-9]{12}$/;
 const safeMoney=(value:unknown)=>{
@@ -41,7 +42,7 @@ export class VerifiedPaymentInbox {
     const orderNumber=transaction.out_trade_no;
     if(typeof orderNumber!=="string"||!orderPattern.test(orderNumber))
       throw new DomainError("PAYMENT_ORDER_UNMATCHED","微信支付订单号未匹配",422);
-    const row=(await this.pool.query(`SELECT o.id,o.order_number,o.total_cents,o.member_id,
+    const row=(await this.pool.query(`SELECT o.id,o.order_number,o.total_cents,o.credit_tender_cents,o.member_id,
       o.source_quote_id,o.pricing_rule_version AS order_pricing_rule_version,
       a.payer_openid,a.app_id,a.merchant_id,a.amount_cents,a.currency,a.expires_at,
       a.quote_id,a.pricing_rule_version,a.quote_price_version,q.price_version AS current_quote_price_version
@@ -53,7 +54,7 @@ export class VerifiedPaymentInbox {
       throw new DomainError("PAYMENT_ORDER_UNMATCHED","微信支付订单或支付意图未匹配",422);
     if(row.quote_id!==row.source_quote_id||row.pricing_rule_version!==row.order_pricing_rule_version||
       row.quote_price_version!==row.current_quote_price_version||row.currency!=="CNY"||
-      safeMoney(row.amount_cents)!==safeMoney(row.total_cents))
+      safeMoney(row.amount_cents)!==safeMoney(row.total_cents)-safeMoney(row.credit_tender_cents))
       throw new DomainError("PAYMENT_INTENT_DRIFT","支付意图与订单快照不一致",409);
     const verified=assertPaymentBinding(transaction,{appId:this.binding.appId,
       merchantId:this.binding.merchantId,outTradeNo:row.order_number,totalCents:safeMoney(row.amount_cents),
@@ -150,15 +151,18 @@ export class VerifiedPaymentInbox {
       if(!reservations.rowCount||reservations.rows.some(row=>row.status!=="active"))return exception("RESERVATION_NOT_ACTIVE");
       const snapshot=(await client.query(`SELECT * FROM commission_order_snapshot WHERE order_id=$1`,[order.id])).rows[0];
       if(snapshot&&snapshot.source_kind!=="verified_commerce")return exception("SYNTHETIC_COMMISSION_SNAPSHOT");
-      const line=(await client.query(`SELECT COALESCE(sum(line_total_cents),0)::text AS merchandise_cents,
+      const line=(await client.query(`SELECT COALESCE(sum(line_total_cents-credit_tender_cents),0)::text AS merchandise_cents,
+        COALESCE(sum(credit_tender_cents),0)::text AS credit_cents,
         count(*)::int AS line_count FROM commerce_order_line WHERE order_id=$1`,[order.id])).rows[0];
       const merchandise=safeMoney(line.merchandise_cents);
-      if(!line.line_count||merchandise!==safeMoney(order.subtotal_cents)-safeMoney(order.member_discount_cents)||
+      if(!line.line_count||safeMoney(line.credit_cents)!==safeMoney(order.credit_tender_cents)||
+        merchandise!==safeMoney(order.subtotal_cents)-safeMoney(order.member_discount_cents)-safeMoney(order.credit_tender_cents)||
         merchandise+safeMoney(order.shipping_cents)!==safeMoney(fact.amount_cents))
         return exception("ORDER_CASH_LINES_MISMATCH");
       if(snapshot&&(snapshot.buyer_member_id!==order.member_id||
         safeMoney(snapshot.cash_merchandise_cents)>merchandise))
         return exception("COMMISSION_SNAPSHOT_MISMATCH");
+      await consumeReservedCreditForCheckout(client,order.id,safeMoney(order.credit_tender_cents));
       for(const reservation of reservations.rows){
         const stock=await client.query(`UPDATE catalog_inventory_level SET
           stock_on_hand=stock_on_hand-$2,reserved_quantity=reserved_quantity-$2,version=version+1,

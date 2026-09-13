@@ -12,7 +12,7 @@ const MAX=9_900_000_000;
 const hash=(value:unknown)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
 type Conversion={id:string;member_id:string;request_hash:string;gross_cents:string;credit_cents:string;
   tax_policy_version:string;state:"available"|"cancelled";cancel_key:string|null;cancel_hash:string|null;
-  created_at:Date;cancelled_at:Date|null};
+  created_at:Date;cancelled_at:Date|null;available_cents?:string;other_entry_count?:number};
 type Source={id:string;order_id:string;amount_cents:string};
 function cents(value:unknown){const n=Number(value);if(!Number.isSafeInteger(n)||n<1||n>MAX)
   throw new DomainError("CREDIT_AMOUNT_INVALID","购物权益转换金额须为正整数分",422);return n;}
@@ -63,6 +63,120 @@ export async function freezeCreditExposureForRefund(client:DbClient,orderId:stri
   return {targetFrozenCents:target,newlyFrozenCents:initiallyRequired-remaining,uncoveredCents:remaining};
 }
 
+type CheckoutAllocation={source_id:string;order_id:string;amount_cents:string;
+  origin_order_id:string;reserved:string;released:string;spent:string};
+async function lockOriginsForPurchase(client:DbClient,orderId:string){
+  const origins=(await client.query<{order_id:string}>(`SELECT DISTINCT s.order_id
+    FROM commission_credit_checkout_allocation a JOIN commission_credit_source s ON s.id=a.source_id
+    WHERE a.order_id=$1 ORDER BY s.order_id`,[orderId])).rows;
+  for(const origin of origins)await client.query("SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE",[origin.order_id]);
+}
+async function allocationsForPurchase(client:DbClient,orderId:string){
+  return (await client.query<CheckoutAllocation>(`SELECT a.source_id,a.order_id,a.amount_cents,
+    s.order_id AS origin_order_id,
+    COALESCE(-sum(e.amount_cents) FILTER(WHERE e.kind='reserve'),0)::text AS reserved,
+    COALESCE(sum(e.amount_cents) FILTER(WHERE e.kind='reserve_release'),0)::text AS released,
+    COALESCE(-sum(e.amount_cents) FILTER(WHERE e.kind='spend'),0)::text AS spent
+    FROM commission_credit_checkout_allocation a JOIN commission_credit_source s ON s.id=a.source_id
+    JOIN commission_credit_entry e ON e.source_id=a.source_id AND e.purchase_order_id=a.order_id
+    WHERE a.order_id=$1 GROUP BY a.source_id,a.order_id,a.amount_cents,s.order_id
+    ORDER BY a.source_id`,[orderId])).rows;
+}
+
+async function assertOriginPurchasable(client:DbClient,orderId:string){
+  const disputed=(await client.query<{n:number;net:string;paid:string;converted:string}>(`SELECT
+    (SELECT count(*)::int FROM commission_payment_composition_observation WHERE order_id=$1)+
+    (SELECT count(*)::int FROM commerce_refund_request r LEFT JOIN commission_refund_intent i
+     ON i.request_id=r.id WHERE r.order_id=$1 AND
+     (r.state='requested' OR r.state='approved' AND (i.id IS NULL OR i.state IN ('prepared','abnormal')))) AS n,
+    COALESCE((SELECT sum(amount_cents) FROM commission_ledger_entry WHERE order_id=$1
+      AND kind IN ('accrual','refund_reversal')),0)::text AS net,
+    COALESCE((SELECT sum(amount_cents) FROM commission_ledger_entry WHERE order_id=$1
+      AND kind='settlement'),0)::text AS paid,
+    COALESCE((SELECT sum(amount_cents) FROM commission_ledger_entry WHERE order_id=$1
+      AND kind IN ('credit_conversion','credit_conversion_reversal')),0)::text AS converted`,
+    [orderId])).rows[0];
+  if(!disputed||disputed.n||Number(disputed.net)<Number(disputed.paid)+Number(disputed.converted))
+    throw new DomainError("CREDIT_CHECKOUT_ORIGIN_DISPUTED","权益来源发生未决退款或追偿，请更换支付组成",409);
+}
+
+/** Source lots are locked against a concurrent verified refund; all other
+ * conversion and checkout writers use the same member advisory lock. */
+export async function reserveCreditForCheckout(client:DbClient,memberId:string,orderId:string,amount:number){
+  if(amount===0)return;
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`settlement-member:${memberId}`]);
+  const originOrders=(await client.query<{order_id:string}>(`SELECT DISTINCT s.order_id FROM commission_credit_source s
+    JOIN commission_credit_conversion c ON c.id=s.conversion_id
+    WHERE c.member_id=$1 AND c.state='available' ORDER BY s.order_id`,[memberId])).rows;
+  for(const row of originOrders){
+    await client.query("SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE",[row.order_id]);
+    await assertOriginPurchasable(client,row.order_id);
+  }
+  const lots=(await client.query<{id:string;balance:string}>(`SELECT s.id,
+    COALESCE(sum(e.amount_cents),0)::text AS balance FROM commission_credit_source s
+    JOIN commission_credit_conversion c ON c.id=s.conversion_id
+    JOIN commission_credit_entry e ON e.source_id=s.id
+    WHERE c.member_id=$1 AND c.state='available'
+    GROUP BY s.id,c.created_at ORDER BY c.created_at,s.id`,[memberId])).rows;
+  if(lots.some(lot=>!Number.isSafeInteger(Number(lot.balance))||Number(lot.balance)<0))
+    throw new DomainError("CREDIT_CHECKOUT_SOURCE_DRIFT","购物权益来源账本需核对",409);
+  let remaining=amount;
+  for(const lot of lots){
+    if(remaining===0)break;
+    const take=Math.min(remaining,Number(lot.balance));
+    if(!take)continue;
+    const reserved=(await client.query<{id:string}>(`INSERT INTO commission_credit_entry
+      (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+      VALUES($1,$2,'reserve',$3,$4,$5) RETURNING id`,[lot.id,
+        `credit-order-reserve:${orderId}:${lot.id}`,-take,orderId,`member:${memberId}`])).rows[0]!;
+    await client.query(`INSERT INTO commission_credit_checkout_allocation
+      (source_id,order_id,amount_cents,reserve_entry_id) VALUES($1,$2,$3,$4)`,
+      [lot.id,orderId,take,reserved.id]);
+    remaining-=take;
+  }
+  if(remaining)throw new DomainError("CREDIT_CHECKOUT_INSUFFICIENT","购物权益可用来源不足，请重新报价",409);
+}
+
+export async function consumeReservedCreditForCheckout(client:DbClient,orderId:string,expected:number){
+  await lockOriginsForPurchase(client,orderId);
+  const lots=await allocationsForPurchase(client,orderId);
+  if(lots.reduce((n,lot)=>n+Number(lot.amount_cents),0)!==expected)
+    throw new DomainError("CREDIT_CHECKOUT_ALLOCATION_DRIFT","支付组成与权益预占不一致",409);
+  for(const lot of lots){
+    const amount=Number(lot.amount_cents);
+    if(Number(lot.reserved)!==amount||Number(lot.released)!==0||Number(lot.spent)!==0)
+      throw new DomainError("CREDIT_CHECKOUT_RESERVATION_DRIFT","权益预占状态需核对",409);
+    await assertOriginPurchasable(client,lot.origin_order_id);
+    await client.query(`INSERT INTO commission_credit_entry
+      (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+      VALUES($1,$2,'reserve_release',$3,$4,'worker:payment-inbox')`,[lot.source_id,
+        `credit-order-consume-release:${orderId}:${lot.source_id}`,amount,orderId]);
+    await client.query(`INSERT INTO commission_credit_entry
+      (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+      VALUES($1,$2,'spend',$3,$4,'worker:payment-inbox')`,[lot.source_id,
+        `credit-order-spend:${orderId}:${lot.source_id}`,-amount,orderId]);
+  }
+}
+
+export async function releaseReservedCreditForCheckout(client:DbClient,orderId:string,expected:number,actor:string){
+  await lockOriginsForPurchase(client,orderId);
+  const lots=await allocationsForPurchase(client,orderId);
+  if(lots.reduce((n,lot)=>n+Number(lot.amount_cents),0)!==expected)
+    throw new DomainError("CREDIT_CHECKOUT_ALLOCATION_DRIFT","订单权益预占不完整",409);
+  for(const lot of lots){
+    const amount=Number(lot.amount_cents);
+    if(Number(lot.reserved)!==amount||Number(lot.released)!==0||Number(lot.spent)!==0)
+      throw new DomainError("CREDIT_CHECKOUT_RESERVATION_DRIFT","权益预占状态需核对",409);
+    await client.query(`INSERT INTO commission_credit_entry
+      (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+      VALUES($1,$2,'reserve_release',$3,$4,$5)`,[lot.source_id,
+        `credit-order-release:${orderId}:${lot.source_id}`,amount,orderId,actor]);
+  }
+  for(const origin of [...new Set(lots.map(lot=>lot.origin_order_id))].sort()){
+    await freezeCreditExposureForRefund(client,origin,`release-${orderId}`);
+  }
+}
+
 /** No top-up, transfer or production path. This commits a 1:1 source-linked
  * cash-commission debit and credit issue atomically. Tax=0 is a *synthetic*
  * fixture, never an exemption determination or a live conversion policy. */
@@ -72,6 +186,8 @@ export class ShoppingCreditService{
     "购物权益真实转换与税务规则尚未批准",503);}
   private view(row:Conversion){return {id:row.id,amountCents:Number(row.credit_cents),grossCents:Number(row.gross_cents),
     withholdingCents:0,taxPolicyVersion:row.tax_policy_version,state:row.state,
+    availableCents:row.state==="cancelled"?0:Number(row.available_cents??row.credit_cents),
+    cancellable:row.state==="available"&&(row.other_entry_count??0)===0,
     createdAt:row.created_at,cancelledAt:row.cancelled_at};}
 
   async listMine(memberId:string|undefined,query:{limit?:string;cursor?:string}={}){
@@ -80,11 +196,22 @@ export class ShoppingCreditService{
       cursor=readPageCursor(query.cursor,scope);
     const count=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n
       FROM commission_credit_conversion WHERE member_id=$1`,[memberId])).rows[0]?.n??0;
-    const rows=(await this.pool.query<Conversion>(`SELECT * FROM commission_credit_conversion
-      WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
-      ORDER BY created_at DESC,id DESC LIMIT $4`,[memberId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
+    const rows=(await this.pool.query<Conversion>(`SELECT c.*,
+      COALESCE((SELECT sum(e.amount_cents) FROM commission_credit_source s
+        JOIN commission_credit_entry e ON e.source_id=s.id WHERE s.conversion_id=c.id),0)::text AS available_cents,
+      (SELECT count(*)::int FROM commission_credit_source s
+        JOIN commission_credit_entry e ON e.source_id=s.id WHERE s.conversion_id=c.id
+          AND e.kind<>'issue') AS other_entry_count
+      FROM commission_credit_conversion c
+      WHERE c.member_id=$1 AND ($2::timestamptz IS NULL OR (c.created_at,c.id)<($2::timestamptz,$3::uuid))
+      ORDER BY c.created_at DESC,c.id DESC LIMIT $4`,[memberId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
+    const available=(await this.pool.query<{amount_cents:string}>(`SELECT COALESCE(sum(e.amount_cents),0)::text AS amount_cents
+      FROM commission_credit_source s JOIN commission_credit_conversion c ON c.id=s.conversion_id
+      JOIN commission_credit_entry e ON e.source_id=s.id
+      WHERE c.member_id=$1 AND c.state='available'`,[memberId])).rows[0]!;
     return {...finishPage(rows.map(row=>({...this.view(row),cursorAt:row.created_at.toISOString()})),limit,scope),
-      totalCount:count,spendable:false,redemptionStatus:"NOT_IMPLEMENTED" as const};
+      totalCount:count,availableCents:Number(available.amount_cents),spendable:Number(available.amount_cents)>0,
+      redemptionStatus:"ISOLATED_TEST_ONLY" as const};
   }
 
   async convert(memberId:string|undefined,requestKeyInput:string,input:Record<string,unknown>){

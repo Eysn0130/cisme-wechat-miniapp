@@ -13,6 +13,18 @@
       </view>
       <view class="commission-facts"><text>商业资格：{{status.eligible?'有效':status.membershipState==='suspended'?'暂停':status.membershipState==='expired'?'到期':'未开通'}}</text><text>直接推荐 {{status.directReferralCount}} 人 · 核验成交 {{status.verifiedOrderCount}} 单</text></view>
       <view class="commission-note">正式结算、商户转账、税务与售后规则尚未批准。页面中的隔离测试操作仅供开发者验证协议，不代表可申请真实提现。</view>
+      <view wx:if="{{isolatedCredit}}" class="commission-section">
+        <view class="commission-section__heading"><strong>购物权益 · 隔离测试</strong><text>不是真实余额</text></view>
+        <text class="commission-muted">可用测试权益 ¥{{creditAvailableLabel}}。与现金佣金和积分分账；购物下单只抵扣商品现金，不会重复计佣。</text>
+        <button wx:if="{{!creditFormVisible&&status.commission.availableCents>0}}" class="secondary commission-credit__action {{busy?'secondary--disabled':''}}" bindtap="showCreditForm" disabled="{{busy}}">自愿转换已释放佣金</button>
+        <view wx:if="{{creditFormVisible}}" class="commission-form"><text>转换金额（元）</text><input type="digit" value="{{creditAmount}}" placeholder="例如 20.00" maxlength="11" bindinput="editCreditAmount"/><view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeCreditForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitCredit" disabled="{{busy}}" loading="{{busy}}">确认测试转换</button></view></view>
+        <view wx:if="{{creditActionStatus}}" class="state" aria-live="polite">{{creditActionStatus}}</view><view wx:if="{{creditActionError}}" class="state state--error" aria-live="assertive">{{creditActionError}}</view>
+        <view class="commission-history"><strong>权益来源记录</strong><text>共 {{creditTotal}} 项</text></view>
+        <view wx:if="{{creditLoading}}" class="commission-muted">正在核对来源…</view>
+        <view wx:for="{{creditRows}}" wx:key="id" class="commission-request commission-credit__row"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.state==='cancelled'?'已撤销':item.availableCents===0?'已使用或冻结':'可用 ¥'+item.availableLabel}}</text></view><small>{{item.createdLabel}}</small><button wx:if="{{item.cancellable}}" class="secondary commission-request__confirm {{busy?'secondary--disabled':''}}" data-id="{{item.id}}" bindtap="cancelCredit" disabled="{{busy}}">撤销完全未用的测试转换</button></view>
+        <view wx:if="{{creditError}}" class="state state--error"><text>{{creditError}}</text><button class="text-button" bindtap="retryCredits">重试</button></view>
+        <button wx:if="{{creditCursor}}" class="secondary {{creditMoreLoading?'secondary--disabled':''}}" bindtap="moreCredits" loading="{{creditMoreLoading}}" disabled="{{creditMoreLoading}}">加载更多来源</button>
+      </view>
       <view wx:if="{{isolatedTransfer}}" class="commission-section">
         <view class="commission-section__heading"><strong>隔离结算申请</strong><text>测试渠道</text></view>
         <button wx:if="{{!formVisible&&status.commission.availableCents>0}}" class="primary" bindtap="showForm">申请结算可用金额</button>

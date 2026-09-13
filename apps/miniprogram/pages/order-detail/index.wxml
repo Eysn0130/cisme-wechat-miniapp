@@ -2,11 +2,11 @@
 <block wx:if="{{order}}"><view class="order-hero"><text class="eyebrow">{{order.orderNumber}}</text><strong>{{order.statusLabel}}</strong><text wx:if="{{order.status==='pending_payment'&&isolatedPayment}}">仅本机隔离协议测试；不会扣取真实款项。订单到期 {{order.expiresLabel}}。</text><text wx:elif="{{order.status==='pending_payment'}}">正式支付尚未开放；订单将在 {{order.expiresLabel}} 后由服务端超时处理。</text><text wx:elif="{{order.status==='paid'}}">支付事实已由服务端核验。履约和退款分别处理。</text><text wx:else>这笔订单已结束，原记录仍可查看。</text></view>
 <view class="detail-card"><view class="detail-heading">商品</view><view wx:for="{{order.lines}}" wx:key="id" class="line-item"><image src="{{item.image||'/assets/cisme/community-card-purple-bottle-v1.jpg'}}" mode="aspectFill"/><view><strong>{{item.productName}}</strong><text>{{item.skuLabel}} · ¥{{item.unitPriceYuan}} × {{item.quantity}}</text></view><strong>¥{{item.totalYuan}}</strong></view></view>
 <view class="detail-card"><view class="detail-heading">收货信息</view><block wx:if="{{order.address}}"><strong>{{order.address.recipientName}} · {{order.address.phone}}</strong><text class="detail-copy">{{order.addressSummary}}</text></block><text wx:else class="detail-copy">地址快照暂时无法读取，请联系客服。</text></view>
-<view class="detail-card money-card"><view><text>商品小计</text><strong>¥{{order.subtotalYuan}}</strong></view><view><text>会员优惠</text><strong>− ¥{{order.discountYuan}}</strong></view><view><text>运费</text><strong>¥{{order.shippingYuan}}</strong></view><view class="money-total"><text>合计</text><strong>¥{{order.totalYuan}}</strong></view></view>
+<view class="detail-card money-card"><view><text>商品小计</text><strong>¥{{order.subtotalYuan}}</strong></view><view><text>会员优惠</text><strong>− ¥{{order.discountYuan}}</strong></view><view><text>运费</text><strong>¥{{order.shippingYuan}}</strong></view><view class="money-total"><text>商品与运费合计</text><strong>¥{{order.totalYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}"><text>购物权益 · 隔离测试</text><strong>− ¥{{order.creditYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}" class="money-total"><text>模拟渠道现金</text><strong>¥{{order.cashYuan}}</strong></view></view>
 <view class="detail-card"><view class="detail-heading">订单信息</view><text class="detail-copy">创建时间：{{order.createdLabel}}</text><text class="detail-copy">规则版本：{{order.pricingRuleVersion}}</text><text wx:if="{{order.terminalReason}}" class="detail-copy">终态原因：{{order.terminalReason}}</text></view>
 <view wx:if="{{isolatedPayment&&order.status==='paid'}}" class="detail-card refund-card">
   <view class="detail-heading">退款与售后 · 隔离测试</view>
-  <text class="refund-copy">申请由另一名授权人员复核。只有渠道确认成功后才显示“已退款”；这不是正式售后入口。</text>
+  <text class="refund-copy">申请由另一名授权人员复核。{{order.creditTenderCents>0?'输入商品退款金额；现金按原微信付款退，购物权益回原来源批次。':''}}只有渠道确认成功后才显示“已退款”；这不是正式售后入口。</text>
   <button wx:if="{{!refundFormVisible}}" class="secondary" bindtap="showRefundForm">申请测试退款</button>
   <view wx:if="{{refundFormVisible}}" class="refund-form">
     <text class="refund-label">申请金额（元）</text><input type="digit" value="{{refundAmount}}" placeholder="如 20.00" bindinput="editRefundAmount" maxlength="11"/>
@@ -14,7 +14,7 @@
     <view class="refund-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeRefundForm" disabled="{{busy}}">取消填写</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitRefund" loading="{{busy}}" disabled="{{busy}}">提交申请</button></view>
   </view>
   <view class="refund-history"><text>本单申请 {{refundTotal}} 项</text><text wx:if="{{refundLoading}}">正在读取…</text></view>
-  <view wx:for="{{refunds}}" wx:key="id" class="refund-row"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.stateLabel}}</text></view><text>{{item.reason}}</text></view>
+  <view wx:for="{{refunds}}" wx:key="id" class="refund-row"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.stateLabel}}</text></view><text wx:if="{{item.cashRefundCents!==null}}">原路现金 ¥{{item.cashLabel}} · 原批次权益 ¥{{item.creditLabel}}</text><text>{{item.reason}}</text></view>
   <view wx:if="{{refundError}}" class="state state--error"><text class="state-error__copy">{{refundError}}</text><button class="text-button state-error__action" bindtap="retryRefunds">重试</button></view>
   <button wx:if="{{refundCursor}}" class="secondary {{refundMoreLoading?'secondary--disabled':''}}" bindtap="loadMoreRefunds" loading="{{refundMoreLoading}}" disabled="{{refundMoreLoading}}">加载更多退款记录</button>
 </view>

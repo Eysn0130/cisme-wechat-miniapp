@@ -350,7 +350,7 @@
     },
     {
       "surface": "commission_payment_facts",
-      "informationType": "隔离协议测试中的商户订单号、付款人 OpenID 快照、AppID/商户号、订单与报价版本、签名通知编号、渠道交易号、订单总额、用户实付额（未知时为空）、组成状态、时间和最小校验哈希",
+      "informationType": "隔离协议测试中的商户订单号、付款人 OpenID 快照、AppID/商户号、订单与报价版本、签名通知编号、渠道交易号、商品总额、购物权益组成与渠道现金额、用户渠道实付额（未知时为空）、组成状态、时间和最小校验哈希",
       "purpose": "把支付意图、微信渠道事实、订单状态和一级佣金计提按原单可重放地绑定",
       "activation": "APP_ENV=test 且显式启用本机回环模拟渠道；生产支付命令、回调和资金均关闭",
       "serverStorage": "CISME PostgreSQL commerce_payment_attempt（含不可重置的可能发送时间与租约令牌）、commission_payment_inbox、commission_payment_composition_observation、订单状态和追加式佣金分录；回调在确认前持久化，相互冲突的组成保留原事实与补充摘要",
@@ -359,11 +359,11 @@
     },
     {
       "surface": "commission_refund_facts",
-      "informationType": "商户退款单号、原订单与支付事实、商品级现金退款分摊、微信退款通知编号/退款单号/状态/金额/时间及最小校验哈希",
+      "informationType": "商户退款单号、原订单与支付事实、商品级现金退款及原来源购物权益分摊、微信退款通知编号/退款单号/状态/金额/时间及最小校验哈希",
       "purpose": "对签名且与预存退款单一致的成功退款形成可重放的累计计佣冲销；异常和关闭状态不冲销",
       "activation": "仅隔离本机模拟渠道的本人申请、异人审批、原单查单、签名回调与 worker；生产退款关闭",
-      "serverStorage": "CISME PostgreSQL commerce_refund_request、commission_refund_intent（含不可重置的可能发送时间与租约令牌）、commission_refund_inbox 与追加式佣金冲销分录；提交失败有退避、隔离和受审计重驱",
-      "currentGate": "退款单预存并绑定已核实支付；整数分现金分摊、累计额度、重复通知和越权订单核对；渠道受理不等于退款成功",
+      "serverStorage": "CISME PostgreSQL commerce_refund_request、commission_refund_intent（含不可重置的可能发送时间与租约令牌）、commission_credit_refund_allocation、commission_refund_inbox 与追加式佣金/权益分录；提交失败有退避、隔离和受审计重驱",
+      "currentGate": "退款单预存并绑定已核实支付；商品总额按原现金与权益组成累计分摊到商品行和来源批次，重复通知和越权订单核对；仅渠道签名 SUCCESS 追加权益退回，渠道受理不等于退款成功",
       "retention": "POLICY PENDING；正式退款与财务事实保存期需另经批准"
     },
     {
@@ -386,11 +386,11 @@
     },
     {
       "surface": "isolated_commission_shopping_credit",
-      "informationType": "本人主动测试转换确认、税务合成规则版本、来源订单/分配金额、购物权益分录与撤销轨迹；不采集充值、转让或银行卡信息",
-      "purpose": "隔离验证已释放佣金与现金预占共用来源、1:1 对应分录，以及未使用权益的原来源恢复；尚无购物核销或原组成退款实现",
+      "informationType": "本人主动测试转换确认、税务合成规则版本、来源订单/分配金额、购物权益报价/购物订单预占及核销、原批次退款退回、冻结与撤销轨迹；不采集充值、转让或银行卡信息",
+      "purpose": "隔离验证已释放佣金与现金预占共用来源、1:1 对应分录、订单渠道现金和权益分账、签名退款原路退回及未使用权益的原来源恢复",
       "activation": "仅 APP_ENV=test 且本人明确确认合成零扣缴测试规则；shopping_credit_live=false，生产不允许转换",
-      "serverStorage": "CISME PostgreSQL commission_credit_conversion/source/entry 与不可变 commission_ledger_entry 来源移动；人工审计记录最小金额和来源笔数",
-      "currentGate": "已验真付款与释放、无退款/组成争议、按会员及订单同序锁定、可用来源扣除已付/在途/其他转换；取消只恢复完全未用且未冻结的来源，购物核销尚未实现",
+      "serverStorage": "CISME PostgreSQL commission_credit_conversion/source/entry、commission_credit_checkout_allocation、commission_credit_refund_allocation 与不可变 commission_ledger_entry 来源移动；人工审计记录最小金额和来源笔数",
+      "currentGate": "已验真付款与释放、无未决退款/组成争议、按会员及来源订单锁定、可用来源扣除已付/在途/其他转换；订单先预占再凭渠道已核签付款事实核销，取消仅释放未核销预占；退款按原来源批次回权益；来源销售退款冻结暴露，取消转换只恢复完全未用且未冻结的来源",
       "retention": "POLICY PENDING；购物权益、税务和财务记录保存及用户撤销例外需正式审批"
     },
     {
@@ -444,6 +444,6 @@
       "state": "isolated_loopback_http_protocol_and_inert_formal_trust_assembly_production_closed"
     }
   ],
-  "migrationSetSha256": "313cb96cc1b7c0ab36e691f3c661ba4677710c6216cd3c9680626fc03a881272",
+  "migrationSetSha256": "4a4aa1fb32ff244ac1141d22d847bf2e5b33e243b1177d475a1bfa24e87c73cc",
   "egressSignatureSha256": "1e5864578036c798b1217d73f7ec028a6ced37ce73c90e5cd4dfce352f72dd0a"
 }

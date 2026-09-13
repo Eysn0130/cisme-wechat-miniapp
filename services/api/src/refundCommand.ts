@@ -18,7 +18,7 @@ type IntentRow={id:string;order_id:string;out_refund_no:string;refund_cents:stri
   first_dispatch_started_at:Date|null;state:string;
   order_number:string;total_cents:string;provider_transaction_id:string;paid_cents:string;merchant_id:string;
   request_reason:string};
-type Line={id:string;line_total_cents:string};
+type Line={id:string;line_total_cents:string;credit_tender_cents:string};
 
 function cents(value:unknown,code="REFUND_AMOUNT_INVALID"){
   const amount=Number(value);
@@ -113,41 +113,77 @@ export class RefundCommandService{
       let eligible=0;
       if(decision==="approve"){
         const payment=(await client.query(`SELECT * FROM commission_payment_inbox WHERE order_id=$1 AND state='applied'`,[order.id])).rows[0];
-        if(!payment||Number(payment.amount_cents)!==Number(order.total_cents))
+        const cashTotal=Number(payment?.amount_cents),grossTotal=Number(order.total_cents),
+          creditTotal=Number(order.credit_tender_cents);
+        if(!payment||!Number.isSafeInteger(cashTotal)||cashTotal!==grossTotal-creditTotal)
           throw new DomainError("REFUND_PAYMENT_FACT_MISMATCH","原支付金额不一致",409);
         const snapshot=(await client.query(`SELECT * FROM commission_order_snapshot WHERE order_id=$1`,[order.id])).rows[0];
         if(snapshot&&(snapshot.source_kind!=="verified_commerce"||
-          Number(snapshot.cash_merchandise_cents)!==Number(order.total_cents)))
+          Number(snapshot.cash_merchandise_cents)!==cashTotal))
           throw new DomainError("REFUND_POLICY_UNSUPPORTED","计佣基数与订单现金不一致，不能自动分摊",409);
-        const prior=(await client.query(`SELECT i.line_allocation,i.payer_refund_cents FROM commission_refund_intent i
-          WHERE i.order_id=$1 AND i.state<>'closed' FOR UPDATE`,[order.id])).rows;
-        const occupied=new Map<string,number>();let totalReserved=0;
+        const prior=(await client.query(`SELECT i.line_allocation,i.payer_refund_cents,
+          r.amount_cents AS gross_refund_cents FROM commission_refund_intent i
+          LEFT JOIN commerce_refund_request r ON r.id=i.request_id
+          WHERE i.order_id=$1 AND i.state<>'closed' FOR UPDATE OF i`,[order.id])).rows;
+        const occupied=new Map<string,number>();let totalReserved=0,grossReserved=0;
         for(const existing of prior){
           totalReserved+=Number(existing.payer_refund_cents);
+          grossReserved+=Number(existing.gross_refund_cents??existing.payer_refund_cents);
           for(const item of existing.line_allocation as {lineId:string;eligibleCashRefundCents:number;otherCashRefundCents:number}[])
             occupied.set(item.lineId,(occupied.get(item.lineId)??0)+item.eligibleCashRefundCents+item.otherCashRefundCents);
         }
-        if(totalReserved+amount>Number(payment.amount_cents))
+        if(grossReserved+amount>grossTotal)
+          throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计核准金额超过原商品金额",409);
+        const cumulativeCash=Number((BigInt(grossReserved+amount)*BigInt(cashTotal)+BigInt(Math.floor(grossTotal/2)))/BigInt(grossTotal));
+        const cashRefund=cumulativeCash-totalReserved,creditRefund=amount-cashRefund;
+        if(cashRefund<1||creditRefund<0||creditRefund>creditTotal)
+          throw new DomainError("REFUND_CASH_COMPONENT_REQUIRED","本次金额无法形成可核验的原路现金退款，请调整退款金额",409);
+        if(totalReserved+cashRefund>cashTotal)
           throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计核准金额超过原支付",409);
-        const lines=(await client.query<Line>(`SELECT id,line_total_cents FROM commerce_order_line
+        const lines=(await client.query<Line>(`SELECT id,line_total_cents,credit_tender_cents FROM commerce_order_line
           WHERE order_id=$1 ORDER BY line_number FOR UPDATE`,[order.id])).rows;
-        if(!lines.length||lines.reduce((sum,line)=>sum+Number(line.line_total_cents),0)!==Number(order.total_cents))
+        if(!lines.length||lines.reduce((sum,line)=>sum+Number(line.line_total_cents)-Number(line.credit_tender_cents),0)!==cashTotal)
           throw new DomainError("REFUND_CASH_LINES_MISMATCH","订单商品现金分摊不一致",409);
-        let remaining=amount;eligible=snapshot?amount:0;
+        let remaining=cashRefund;eligible=snapshot?cashRefund:0;
         for(const line of lines){
-          const available=Number(line.line_total_cents)-(occupied.get(line.id)??0),take=Math.min(remaining,available);
+          const available=Number(line.line_total_cents)-Number(line.credit_tender_cents)-(occupied.get(line.id)??0),
+            take=Math.min(remaining,available);
           if(take>0){allocation.push({lineId:line.id,eligibleCashRefundCents:snapshot?take:0,
             otherCashRefundCents:snapshot?0:take});remaining-=take;}
         }
         if(remaining!==0)throw new DomainError("REFUND_LINE_OVERDRAW","退款商品分摊超过原单",409);
+        const sourceAllocations:{sourceId:string;amount:number}[]=[];
+        if(creditTotal){
+          const sources=(await client.query<{source_id:string;amount_cents:string;returned:string;spent:string}>(`
+            SELECT a.source_id,a.amount_cents,
+              COALESCE((SELECT sum(x.amount_cents) FROM commission_credit_refund_allocation x
+                JOIN commission_refund_intent i ON i.id=x.refund_intent_id
+                WHERE x.source_id=a.source_id AND i.order_id=a.order_id AND i.state<>'closed'),0)::text AS returned,
+              COALESCE((SELECT -sum(e.amount_cents) FROM commission_credit_entry e
+                WHERE e.source_id=a.source_id AND e.purchase_order_id=a.order_id AND e.kind='spend'),0)::text AS spent
+            FROM commission_credit_checkout_allocation a WHERE a.order_id=$1 ORDER BY a.source_id`,[order.id])).rows;
+          if(sources.reduce((n,source)=>n+Number(source.amount_cents),0)!==creditTotal||
+            sources.some(source=>Number(source.spent)!==Number(source.amount_cents)))
+            throw new DomainError("REFUND_CREDIT_SOURCE_DRIFT","原权益来源与核销事实不一致",409);
+          let creditRemaining=creditRefund;
+          for(const source of sources){
+            const available=Number(source.amount_cents)-Number(source.returned),
+              take=Math.min(available,creditRemaining);
+            if(available<0)throw new DomainError("REFUND_CREDIT_OVERDRAW","权益退回已超过原批次",409);
+            if(take){sourceAllocations.push({sourceId:source.source_id,amount:take});creditRemaining-=take;}
+          }
+          if(creditRemaining)throw new DomainError("REFUND_CREDIT_OVERDRAW","权益退款批次不足",409);
+        }
         const outRefundNo=`CR${request.id.replaceAll("-","").toUpperCase()}`;
-        await client.query(`INSERT INTO commission_refund_intent(order_id,payment_inbox_id,out_refund_no,
+        const intent=(await client.query<{id:string}>(`INSERT INTO commission_refund_intent(order_id,payment_inbox_id,out_refund_no,
           refund_cents,payer_refund_cents,eligible_merchandise_refund_cents,
           other_merchandise_refund_cents,shipping_cash_refund_cents,line_allocation,
           allocation_policy_version,created_by,request_id)
-          VALUES($1,$2,$3,$4,$4,$5,$6,0,$7,'isolated-cash-lines-v1',$8,$9)`,
-          [order.id,payment.id,outRefundNo,amount,eligible,amount-eligible,JSON.stringify(allocation),
-            `member:${approver}`,request.id]);
+          VALUES($1,$2,$3,$4,$4,$5,$6,0,$7,$8,$9,$10) RETURNING id`,
+          [order.id,payment.id,outRefundNo,cashRefund,eligible,cashRefund-eligible,JSON.stringify(allocation),
+            creditTotal?"isolated-split-tender-v1":"isolated-cash-lines-v1",`member:${approver}`,request.id])).rows[0]!;
+        for(const source of sourceAllocations)await client.query(`INSERT INTO commission_credit_refund_allocation
+          (refund_intent_id,source_id,amount_cents) VALUES($1,$2,$3)`,[intent.id,source.sourceId,source.amount]);
       }
       const updated=(await client.query<RequestRow>(`UPDATE commerce_refund_request SET
         state=$2,version=version+1,decided_by_member_id=$3,decision_key=$4,decision_hash=$5,
@@ -161,11 +197,15 @@ export class RefundCommandService{
   }
 
   private async decisionView(client:pg.PoolClient,row:RequestRow){
-    const intent=(await client.query<{id:string;out_refund_no:string;state:string}>(
-      "SELECT id,out_refund_no,state FROM commission_refund_intent WHERE request_id=$1",[row.id])).rows[0];
+    const intent=(await client.query<{id:string;out_refund_no:string;state:string;payer_refund_cents:string;
+      credit_refund_cents:string}>(`SELECT i.id,i.out_refund_no,i.state,i.payer_refund_cents,
+      COALESCE((SELECT sum(a.amount_cents) FROM commission_credit_refund_allocation a
+        WHERE a.refund_intent_id=i.id),0)::text AS credit_refund_cents
+      FROM commission_refund_intent i WHERE i.request_id=$1`,[row.id])).rows[0];
     return {id:row.id,orderId:row.order_id,state:row.state,version:row.version,
       amountCents:Number(row.amount_cents),intent:intent?{id:intent.id,outRefundNo:intent.out_refund_no,
-        state:intent.state}:null};
+        state:intent.state,cashRefundCents:Number(intent.payer_refund_cents),
+        creditReturnCents:Number(intent.credit_refund_cents)}:null};
   }
 
   async listMine(memberId:string|undefined,query:{limit?:string;cursor?:string;orderId?:string}={}){
@@ -175,14 +215,18 @@ export class RefundCommandService{
     const count=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request
       WHERE requested_by_member_id=$1 AND ($2::uuid IS NULL OR order_id=$2)`,[memberId,orderId])).rows[0]?.n??0;
     const rows=(await this.pool.query(`SELECT r.id,r.order_id,r.amount_cents,r.state,r.reason,
-      r.created_at,i.state AS refund_state FROM commerce_refund_request r
+      r.created_at,i.state AS refund_state,i.payer_refund_cents,
+      (SELECT COALESCE(sum(a.amount_cents),0)::text FROM commission_credit_refund_allocation a
+        WHERE a.refund_intent_id=i.id) AS credit_refund_cents FROM commerce_refund_request r
       LEFT JOIN commission_refund_intent i ON i.request_id=r.id
       WHERE r.requested_by_member_id=$1 AND ($2::uuid IS NULL OR r.order_id=$2)
         AND ($3::timestamptz IS NULL OR (r.created_at,r.id)<($3::timestamptz,$4::uuid))
       ORDER BY r.created_at DESC,r.id DESC LIMIT $5`,[memberId,orderId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
     const page=finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
       orderId:row.order_id,amountCents:Number(row.amount_cents),state:row.state,
-      refundState:row.refund_state??null,reason:row.reason,createdAt:row.created_at})),limit,scope);
+      refundState:row.refund_state??null,reason:row.reason,createdAt:row.created_at,
+      cashRefundCents:row.payer_refund_cents===null?null:Number(row.payer_refund_cents),
+      creditReturnCents:row.payer_refund_cents===null?null:Number(row.credit_refund_cents)})),limit,scope);
     return {...page,totalCount:count};
   }
 
@@ -229,7 +273,7 @@ export class RefundCommandService{
       throw new DomainError("REFUND_MERCHANT_MISMATCH","退款商户号与原支付不符",409);
     return {merchantId:row.merchant_id,outTradeNo:row.order_number,
       providerTransactionId:row.provider_transaction_id,outRefundNo:row.out_refund_no,
-      totalCents:cents(row.total_cents),refundCents:cents(row.refund_cents),
+      totalCents:cents(row.paid_cents),refundCents:cents(row.refund_cents),
       payerTotalCents:cents(row.paid_cents),payerRefundCents:cents(row.payer_refund_cents)};
   }
 

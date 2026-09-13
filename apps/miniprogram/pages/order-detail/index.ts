@@ -3,7 +3,9 @@ import { centsToYuan } from "../../services/commerce";
 import { cancelMyOrder, clientOperationKey, myOrder, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付，待履约"};
-type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundState:string|null;reason:string;createdAt:string;amountLabel?:string;stateLabel?:string};
+type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundState:string|null;reason:string;createdAt:string;
+  cashRefundCents:number|null;creditReturnCents:number|null;amountLabel?:string;stateLabel?:string;
+  cashLabel?:string;creditLabel?:string};
 type RefundPage={items:RefundRow[];totalCount:number;nextCursor:string|null};
 const refundLabels:Record<string,string>={requested:"待复核",rejected:"未通过",approved:"已核准，待渠道处理",prepared:"待提交渠道",succeeded:"渠道已退款",closed:"渠道已关闭",abnormal:"渠道异常"};
 const orderIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -23,7 +25,7 @@ Page({
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     if(!requireMemberAccess())return;void this.load();},
   onUnload(){this.data.pageAlive=false;this.data.epoch+=1;},
-  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
+  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
   async load(){const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     if(this.data.invalidId){this.setData({loading:false,error:"请从订单列表选择一笔订单。",order:null});return;}
@@ -42,6 +44,8 @@ Page({
     try{const page=await request<RefundPage>({path:`/v1/me/refund-requests?orderId=${this.data.id}&limit=10${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`});
       if(!this.current(epoch,token)||this.data.order?.id!==this.data.id||cursor&&this.data.refundCursor!==cursor)return;
       const rows=page.items.map(row=>({...row,amountLabel:centsToYuan(row.amountCents),
+        cashLabel:row.cashRefundCents===null?"":centsToYuan(row.cashRefundCents),
+        creditLabel:row.creditReturnCents===null?"":centsToYuan(row.creditReturnCents),
         stateLabel:refundLabels[row.refundState??""]??refundLabels[row.state]??row.state}));
       const seen=new Set(cursor?this.data.refunds.map(row=>row.id):[]);
       this.setData({refunds:[...(cursor?this.data.refunds:[]),...rows.filter(row=>!seen.has(row.id))],
@@ -64,7 +68,7 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,id=order.id,
       key=this.data.refundKey||clientOperationKey("refund-request");
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.status==="paid";
-    const answer=await wx.showModal({title:"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请 ¥${centsToYuan(amountCents)}。另一名授权人员复核后才可能向测试渠道提交；受理不代表退款成功。`,confirmText:"提交申请"});
+    const answer=await wx.showModal({title:"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
     if(!answer.confirm||!current())return;
     this.setData({busy:true,refundKey:key,actionError:"",actionStatus:""});
     try{await request({path:`/v1/me/orders/${id}/refund-requests`,method:"POST",idempotencyKey:key,data:{amountCents,reason}});
@@ -110,7 +114,7 @@ Page({
     try{const updated=this.data.isolatedPayment?await request<CommerceOrder<MemberOrderAddress>>({
       path:`/v1/me/orders/${id}/cancel-verified`,method:"POST",idempotencyKey:cancelKey,data:{expectedVersion:version,reason:"用户确认取消待支付订单"}})
       :await cancelMyOrder(id,version,"用户确认取消待支付订单",cancelKey);
-      if(current())this.setData({order:this.normalize(updated),busy:false,cancelKey:"",actionStatus:"订单已取消，预留库存已释放。"});}
+      if(current())this.setData({order:this.normalize(updated),busy:false,cancelKey:"",actionStatus:"订单已取消，预留库存及测试购物权益已释放。"});}
     catch(error){if(current())this.setData({busy:false,actionError:errorTitle(error,"取消未完成，请刷新订单状态后重试。")});}
     finally{if(current())this.setData({busy:false});}},
   back(){if(this.data.busy||this.data.navigating)return;this.setData({navigating:true});wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/orders/index"})});}

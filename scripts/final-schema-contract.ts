@@ -12,6 +12,7 @@ export async function assertFinalSchemaContract(db:Database){
     "commerce_payment_attempt","commerce_refund_request","commerce_fulfillment_attestation",
     "commission_settlement_request","commission_settlement_allocation","commission_transfer_fact",
     "commission_credit_conversion","commission_credit_source","commission_credit_entry",
+    "commission_credit_checkout_allocation","commission_credit_refund_allocation",
     "commission_transfer_callback_inbox","commerce_trade_bill_batch","commerce_trade_bill_row",
     "commission_refund_intent","commission_refund_inbox","ugc_post","ugc_post_revision","ugc_media_asset",
     "ugc_post_media","ugc_safety_scan","ugc_safety_callback_inbox","ugc_comment_safety_scan",
@@ -55,6 +56,9 @@ export async function assertFinalSchemaContract(db:Database){
   constraint("commission_credit_conversion","commission_credit_conversion_tax_policy_version_check","isolated-synthetic-zero-withholding-v1");
   constraint("commission_credit_conversion","commission_credit_conversion_check2","cancel_hash IS NOT NULL");
   constraint("commission_credit_entry","commission_credit_entry_check1","purchase_order_id IS NOT NULL");
+  constraint("commerce_order","order_credit_cash_positive","credit_tender_cents");
+  constraint("commerce_checkout_quote","quote_credit_cash_positive","credit_tender_cents");
+  constraint("commission_credit_entry","commission_credit_entry_kind_check","reserve_release");
   constraint("authority_grant","authority_grant_capability_check","commission.settlement.approve");
   constraint("authority_grant","authority_grant_capability_check","commerce.money.reconcile");
   constraint("commission_transfer_callback_inbox","commission_transfer_callback_inbox_state_check","pending");
@@ -91,6 +95,8 @@ export async function assertFinalSchemaContract(db:Database){
     ["commission_credit_conversion_member_id_idempotency_key_key","UNIQUE"],
     ["commission_credit_source_order","order_id"],
     ["commission_credit_entry_source","source_id"],
+    ["commission_credit_checkout_order","order_id"],
+    ["commission_credit_refund_source","source_id"],
     ["commission_transfer_callback_due","next_attempt_at"],
     ["ugc_media_source_post","source_post_id"],
     ["ugc_report_queue","created_at"],
@@ -123,6 +129,9 @@ export async function assertFinalSchemaContract(db:Database){
     "commission_credit_conversion.commission_credit_conversion_guard",
     "commission_credit_source.commission_credit_source_immutable",
     "commission_credit_entry.commission_credit_entry_immutable",
+    "commission_credit_entry.commission_credit_entry_guard",
+    "commission_credit_checkout_allocation.commission_credit_checkout_immutable",
+    "commission_credit_refund_allocation.commission_credit_refund_immutable",
     "commission_transfer_callback_inbox.commission_transfer_callback_guard",
     "commission_ledger_entry.commission_accrual_source",
     "commission_ledger_entry.commission_refund_reversal_source",
@@ -134,5 +143,5 @@ export async function assertFinalSchemaContract(db:Database){
     "commerce_trade_bill_batch.commerce_trade_bill_batch_immutable",
     "commerce_trade_bill_row.commerce_trade_bill_row_immutable"
   ])if(!triggerNames.has(trigger))throw new Error(`FINAL_SCHEMA_TRIGGER_MISSING:${trigger}`);
-  return {tables:requiredTables.length,constraints:33,indexes:31,triggers:27};
+  return {tables:requiredTables.length,constraints:36,indexes:33,triggers:30};
 }

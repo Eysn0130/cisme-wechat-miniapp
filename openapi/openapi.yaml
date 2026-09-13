@@ -520,7 +520,7 @@ paths:
       tags: [Commerce]
       operationId: createCommerceQuote
       security: [{session: []}]
-      description: Creates an expiring server-authoritative CNY quote for one eligible published synthetic SKU and an owned versioned address. No inventory is reserved.
+      description: Creates an expiring server-authoritative CNY quote for one eligible published synthetic SKU and an owned versioned address. Optional creditCents is test-only, requires a positive cash leg and is checked again at order creation. No inventory or credit is reserved by a quote.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceQuoteInput'}}}}
       responses: {'200': {description: Quote or exact replay}, '409': {description: stock, sellability or idempotency conflict}, '422': {$ref: '#/components/responses/Problem'}, '503': {description: isolated order gate closed}}
@@ -535,7 +535,7 @@ paths:
       tags: [Commerce]
       operationId: createPendingCommerceOrder
       security: [{session: []}]
-      description: Revalidates quote, current sellability, price, address version and available stock in one transaction; creates only pending_payment and reserves inventory. There is no payment-success route.
+      description: Revalidates quote, current sellability, price, address version and available stock in one transaction; creates pending_payment and reserves inventory. Isolated split-tender orders also reserve exact credit source lots; gross price, credit leg and channel cash amount remain separate.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCreateInput'}}}}
       responses: {'200': {description: Pending-payment order or exact replay}, '409': {description: quote stale or expired, address changed, or inventory unavailable}, '503': {description: isolated order gate closed}}
@@ -592,7 +592,7 @@ paths:
       tags: [Commerce]
       operationId: requestIsolatedOrderRefund
       security: [{session: []}]
-      description: Test-only owner request against an applied signed payment. Reserves the requested integer cents across pending and approved requests and rejects unsupported discount or freight allocation.
+      description: Test-only owner request against an applied signed payment. amountCents is gross merchandise refund; mixed-credit orders allocate its cash leg to the original WeChat payment and credit leg to the exact spent source lots. Unapproved freight or discount remains blocked.
       parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [amountCents, reason], properties: {amountCents: {type: integer, minimum: 1}, reason: {type: string}}}}}}
       responses: {'200': {description: Stable refund request or exact replay}, '409': {description: not paid, unsupported allocation or overdraw}, '503': {description: isolated channel disabled}}
@@ -605,7 +605,7 @@ paths:
       tags: [Commerce, Authority]
       operationId: decideIsolatedRefundRequest
       security: [{session: []}]
-      description: Test-only independent commerce.refund.approve decision. Approval creates one immutable merchant refund number and a line-level cash allocation before any channel request. The worker queries the original number after unknown results.
+      description: Test-only independent commerce.refund.approve decision. Approval creates an immutable merchant refund number, line-level cash allocation and, for split tender, source-lot credit return allocation before any channel request. Credit returns only after authenticated channel SUCCESS. The worker queries the original number after unknown results.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}, {name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, expectedVersion, reason], properties: {decision: {type: string, enum: [approve, reject]}, expectedVersion: {type: integer, minimum: 1}, reason: {type: string}}}}}}
       responses: {'200': {description: Approved intent or rejected request; stable decision replay}, '403': {description: capability required or self-approval forbidden}, '409': {description: stale request, unsupported cash allocation or overdraw}}
@@ -677,11 +677,11 @@ paths:
       tags: [Commerce]
       operationId: convertReleasedCommissionToTestCredit
       security: [{session: []}]
-      description: Test-only explicit 1:1 conversion from released source-attributed cash commission; commits an immutable cash debit and separate credit issue. The only accepted tax policy version is a synthetic zero-withholding fixture, not a real exemption. No live conversion or shopping redemption is enabled.
+      description: Test-only explicit 1:1 conversion from released source-attributed cash commission; commits an immutable cash debit and separate credit issue. The only accepted tax policy version is a synthetic zero-withholding fixture, not a real exemption. Isolated checkout/redemption is enabled only in APP_ENV=test with a synthetic payment transport; no live conversion or spending is enabled.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [amountCents, confirmed, taxPolicyVersion], properties: {amountCents: {type: integer, minimum: 1}, confirmed: {type: boolean, enum: [true]}, taxPolicyVersion: {type: string, enum: [isolated-synthetic-zero-withholding-v1]}}}}}}
       responses: {'200': {description: Source-linked conversion or exact idempotent replay}, '409': {description: Funds held or disputed, or source insufficient}, '503': {description: Shopping credit live gate closed}}
-    get: {tags: [Commerce], operationId: myTestCommissionCreditConversions, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Paged owner-only source conversion history. spendable is false and redemptionStatus is NOT_IMPLEMENTED; no credit redemption is offered yet., responses: {'200': {description: Paged conversion history with exact total count}, '503': {description: Shopping credit live gate closed}}}
+    get: {tags: [Commerce], operationId: myTestCommissionCreditConversions, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Paged owner-only source conversion history and availableCents. spendable and redemptionStatus apply solely to isolated APP_ENV=test; live conversion and redemption remain disabled., responses: {'200': {description: Paged conversion history with exact total count}, '503': {description: Shopping credit live gate closed}}}
   /v1/me/commission/credit-conversions/{conversionId}/cancel:
     post:
       tags: [Commerce]
@@ -1243,7 +1243,7 @@ components:
     Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
     Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
   schemas:
-    CommerceQuoteInput: {type: object, additionalProperties: false, required: [skuId, quantity, addressId, addressVersion], properties: {skuId: {$ref: '#/components/schemas/Uuid'}, quantity: {type: integer, minimum: 1, maximum: 99}, addressId: {$ref: '#/components/schemas/Uuid'}, addressVersion: {type: integer, minimum: 1}}}
+    CommerceQuoteInput: {type: object, additionalProperties: false, required: [skuId, quantity, addressId, addressVersion], properties: {skuId: {$ref: '#/components/schemas/Uuid'}, quantity: {type: integer, minimum: 1, maximum: 99}, addressId: {$ref: '#/components/schemas/Uuid'}, addressVersion: {type: integer, minimum: 1}, creditCents: {type: integer, minimum: 0, description: Isolated test only; positive channel cash component required}}}
     CommerceOrderCreateInput: {type: object, additionalProperties: false, required: [quoteId], properties: {quoteId: {$ref: '#/components/schemas/Uuid'}}}
     CommerceOrderCancelInput: {type: object, additionalProperties: false, required: [expectedVersion, reason], properties: {expectedVersion: {type: integer, minimum: 1}, reason: {type: string, minLength: 3, maxLength: 500}}}
     CatalogSkuInput: {type: object, additionalProperties: false, required: [code, label, priceCents], properties: {code: {type: string, pattern: '^[A-Z0-9][A-Z0-9_-]{2,63}$'}, label: {type: string, minLength: 1, maxLength: 120}, priceCents: {type: integer, minimum: 1, maximum: 100000000}, active: {type: boolean}}}

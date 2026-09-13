@@ -51,7 +51,7 @@ export class VerifiedRefundInbox{
       throw new DomainError("REFUND_INTENT_UNMATCHED","退款意图与原支付事实未匹配",422);
     const binding={merchantId:this.binding.merchantId,outTradeNo:intent.order_number,
       providerTransactionId:intent.provider_transaction_id,outRefundNo:intent.out_refund_no,
-      totalCents:cents(intent.total_cents),refundCents:cents(intent.refund_cents),
+      totalCents:cents(intent.amount_cents),refundCents:cents(intent.refund_cents),
       payerTotalCents:cents(intent.amount_cents),payerRefundCents:cents(intent.payer_refund_cents)};
     const {result,fact,rawSha256}=await channel.queryRefundByMerchantRefundNumberWithEvidence(binding);
     if(fact.status==="PROCESSING")
@@ -73,7 +73,7 @@ export class VerifiedRefundInbox{
       throw new DomainError("REFUND_INTENT_UNMATCHED","退款单或原支付事实未匹配",422);
     const fact=assertRefundBinding(source,{merchantId:this.binding.merchantId,
       outTradeNo:row.order_number,providerTransactionId:row.provider_transaction_id,
-      outRefundNo:row.out_refund_no,totalCents:cents(row.total_cents),
+      outRefundNo:row.out_refund_no,totalCents:cents(row.paid_cents),
       refundCents:cents(row.refund_cents),payerTotalCents:cents(row.paid_cents),
       payerRefundCents:cents(row.payer_refund_cents)},status);
     const equivalent=(await this.pool.query(`SELECT * FROM commission_refund_inbox
@@ -152,6 +152,22 @@ export class VerifiedRefundInbox{
         new Date(fact.succeeded_at)<new Date(order.paid_at))return except("REFUND_SUCCESS_TIME_INVALID");
       if(cents(intent.refund_cents)!==cents(intent.payer_refund_cents))
         return except("VOUCHER_REFUND_UNSUPPORTED");
+      const creditTotal=cents(order.credit_tender_cents),cashTotal=cents(payment.amount_cents);
+      if(cashTotal+creditTotal!==cents(order.total_cents))
+        return except("REFUND_ORIGINAL_COMPOSITION_DRIFT");
+      const request=intent.request_id?(await client.query<{amount_cents:string}>(`
+        SELECT amount_cents FROM commerce_refund_request WHERE id=$1 AND order_id=$2 AND state='approved'`,
+        [intent.request_id,order.id])).rows[0]:undefined;
+      if(creditTotal&&!request)return except("REFUND_CREDIT_REQUEST_MISSING");
+      const expectedCredit=request?cents(request.amount_cents)-cents(intent.payer_refund_cents):0;
+      const creditAllocations=(await client.query<{source_id:string;amount_cents:string;origin_order_id:string}>(`
+        SELECT a.source_id,a.amount_cents,s.order_id AS origin_order_id
+        FROM commission_credit_refund_allocation a JOIN commission_credit_source s ON s.id=a.source_id
+        JOIN commission_credit_checkout_allocation c ON c.source_id=a.source_id AND c.order_id=$2
+        WHERE a.refund_intent_id=$1 ORDER BY s.order_id,a.source_id`,[intent.id,order.id])).rows;
+      if(expectedCredit<0||expectedCredit>creditTotal||
+        creditAllocations.reduce((n,row)=>n+cents(row.amount_cents),0)!==expectedCredit)
+        return except("REFUND_CREDIT_ALLOCATION_MISMATCH");
       const snapshot=(await client.query(`SELECT * FROM commission_order_snapshot WHERE order_id=$1`,[order.id])).rows[0];
       if(snapshot&&snapshot.source_kind!=="verified_commerce")return except("REFUND_COMMISSION_SNAPSHOT_MISMATCH");
       if(!snapshot&&cents(intent.eligible_merchandise_refund_cents)>0)
@@ -161,8 +177,10 @@ export class VerifiedRefundInbox{
       if(current.reduce((sum,line)=>sum+line.eligibleCashRefundCents,0)!==cents(intent.eligible_merchandise_refund_cents)||
         current.reduce((sum,line)=>sum+line.otherCashRefundCents,0)!==cents(intent.other_merchandise_refund_cents))
         return except("REFUND_ALLOCATION_SUM_MISMATCH");
-      const lines=(await client.query(`SELECT id,line_total_cents FROM commerce_order_line WHERE order_id=$1`,[order.id])).rows;
-      const lineCaps=new Map<string,number>(lines.map(line=>[line.id,cents(line.line_total_cents)]));
+      const lines=(await client.query(`SELECT id,line_total_cents,credit_tender_cents
+        FROM commerce_order_line WHERE order_id=$1`,[order.id])).rows;
+      const lineCaps=new Map<string,number>(lines.map(line=>[line.id,
+        cents(line.line_total_cents)-cents(line.credit_tender_cents)]));
       if(current.some(line=>!lineCaps.has(line.lineId)))return except("REFUND_LINE_NOT_IN_ORDER");
       const prior=(await client.query(`SELECT i.id,i.payer_refund_cents,i.eligible_merchandise_refund_cents,
         i.shipping_cash_refund_cents,
@@ -185,6 +203,12 @@ export class VerifiedRefundInbox{
         eligibleTotal>cents(snapshot?.cash_merchandise_cents??0)||
         [...lineTotals].some(([lineId,value])=>value>(lineCaps.get(lineId)??-1)))
         return except("REFUND_CUMULATIVE_OVERDRAW");
+      const previousCredit=(await client.query<{amount_cents:string}>(`
+        SELECT COALESCE(sum(a.amount_cents),0)::text AS amount_cents
+        FROM commission_credit_refund_allocation a JOIN commission_refund_intent i ON i.id=a.refund_intent_id
+        WHERE i.order_id=$1 AND i.state='succeeded'`,[order.id])).rows[0]!;
+      if(cents(previousCredit.amount_cents)+expectedCredit>creditTotal)
+        return except("REFUND_CREDIT_CUMULATIVE_OVERDRAW");
       const accrual=(await client.query(`SELECT id,amount_cents FROM commission_ledger_entry
         WHERE order_id=$1 AND kind='accrual' FOR UPDATE`,[order.id])).rows[0];
       const initialTarget=snapshot?cumulativeCommission([{lineId:order.id,
@@ -205,6 +229,14 @@ export class VerifiedRefundInbox{
         VALUES($1,$2,$3,'refund_reversal',$4,$5,$6,'worker:refund-inbox')`,
         [order.id,snapshot.referrer_member_id,`wechat-refund:${fact.provider_refund_id}`,
           target-currentCommission,accrual.id,inboxId]);
+      for(const credit of creditAllocations){
+        await client.query("SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE",[credit.origin_order_id]);
+        await client.query(`INSERT INTO commission_credit_entry
+          (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+          VALUES($1,$2,'refund_return',$3,$4,'worker:refund-inbox')`,[credit.source_id,
+            `credit-refund-return:${inboxId}:${credit.source_id}`,credit.amount_cents,order.id]);
+        await freezeCreditExposureForRefund(client,credit.origin_order_id,inboxId);
+      }
       const creditExposure=await freezeCreditExposureForRefund(client,order.id,inboxId);
       await client.query(`UPDATE commission_refund_intent SET state='succeeded',finalized_at=$2,
         reconcile_lease_until=NULL WHERE id=$1`,
@@ -213,7 +245,7 @@ export class VerifiedRefundInbox{
         after_state,trace_id) VALUES('worker:refund-inbox','commerce.refund_applied','commerce_order',
         $1,'WECHAT_REFUND_VERIFIED',$2,$3)`,[order.id,{outRefundNo:intent.out_refund_no,
           payerRefundCents:cents(intent.payer_refund_cents),eligibleRefundCents:cents(intent.eligible_merchandise_refund_cents),
-          commissionTargetCents:target,creditExposure},`refund-inbox:${inboxId}`]);
+          commissionTargetCents:target,creditReturnedCents:expectedCredit,creditExposure},`refund-inbox:${inboxId}`]);
       return "applied";
     });
   }

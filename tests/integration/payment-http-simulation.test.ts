@@ -18,6 +18,7 @@ import { AuthorityService } from "../../services/api/src/authority";
 import { SettlementCommandService } from "../../services/api/src/settlementCommand";
 import { TransferCallbackInbox } from "../../services/api/src/transferCallbackInbox";
 import { formalPaymentProtocol } from "../../services/api/src/formalPaymentProtocol";
+import { ShoppingCreditService } from "../../services/api/src/shoppingCredit";
 
 const pool=testPool();
 const merchant=generateKeyPairSync("rsa",{modulusLength:2048});
@@ -267,6 +268,115 @@ beforeAll(async()=>{
     {appId,merchantId,sceneId:"ISOLATED_COMMISSION",
       notifyUrl:"https://payment-fixture.invalid/v1/payments/wechat/transfer-callback"});
 });
+
+async function creditSpendCase(){
+  await pool.query("UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+5 WHERE sku_id=$1",[skuId]);
+  const source=await createOrder("credit-spend-source");
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${source.id}/payment-intent`,
+    headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const channelPaid=paidCallback(source.orderNumber);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
+    headers:{...channelPaid.headers,"Content-Type":"application/json"},payload:channelPaid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox);
+  const proposed=await app.inject({method:"POST",url:`/v1/management/commerce/orders/${source.id}/fulfillment`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"credit-spend-delivered-001"},
+    payload:{sourceReference:"fixture-credit-spend-001",evidenceSha256:"a".repeat(64),
+      deliveredAt:new Date().toISOString()}});
+  expect(proposed.statusCode,proposed.body).toBe(200);
+  const released=await app.inject({method:"POST",url:`/v1/management/fulfillment/${proposed.json().id}/decision`,
+    headers:{...auth(reviewer.sessionToken),"idempotency-key":"credit-spend-release-001"},
+    payload:{decision:"verify",expectedVersion:1,reason:"独立复核信用来源"}});
+  expect(released.statusCode,released.body).toBe(200);
+  const credit=new ShoppingCreditService(pool,"test");
+  const converted=await credit.convert(referrer.memberId,"credit-spend-convert-001",
+    {amountCents:2000,confirmed:true,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"});
+  const address=await app.inject({method:"POST",url:"/v1/me/addresses",
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-spend-address-001"},
+    payload:{recipientName:"合成权益买家",phone:"13800008888",province:"上海市",city:"上海市",
+      district:"浦东新区",detail:"隔离测试路 2 号",postalCode:"200000",nationalCode:"310115",
+      provinceCode:"310000",cityCode:"310100",districtCode:"310115",label:"home",isDefault:true}});
+  expect(address.statusCode,address.body).toBe(200);
+  async function creditOrder(suffix:string,creditCents:number){
+    const quote=await app.inject({method:"POST",url:"/v1/me/commerce/quotes",
+      headers:{...auth(referrer.sessionToken),"idempotency-key":`credit-quote-${suffix}-01`},
+      payload:{skuId,quantity:1,addressId:address.json().id,
+        addressVersion:address.json().version,creditCents}});
+    expect(quote.statusCode,quote.body).toBe(200);
+    expect(quote.json()).toMatchObject({totalCents:10000,creditTenderCents:creditCents,
+      cashPayableCents:10000-creditCents,memberDiscountCents:0});
+    const created=await app.inject({method:"POST",url:"/v1/me/orders",
+      headers:{...auth(referrer.sessionToken),"idempotency-key":`credit-order-${suffix}-01`},
+      payload:{quoteId:quote.json().id}});
+    expect(created.statusCode,created.body).toBe(200);
+    return created.json() as {id:string;orderNumber:string;version:number};
+  }
+  const purchase=await creditOrder("paid",1000);
+  const binding=(await pool.query<{amount_cents:string}>(`SELECT amount_cents
+    FROM commerce_payment_attempt WHERE order_id=$1`,[purchase.id])).rows[0]!;
+  expect(binding.amount_cents).toBe("9000");
+  expect((await pool.query(`SELECT cash_merchandise_cents FROM commission_order_snapshot
+    WHERE order_id=$1`,[purchase.id])).rowCount).toBe(0);
+  expect((await app.inject({method:"POST",url:`/v1/me/orders/${purchase.id}/payment-intent`,
+    headers:auth(referrer.sessionToken),payload:{}})).statusCode).toBe(200);
+  expect(channelOrders.get(purchase.orderNumber)?.amount).toBe(9000);
+  const payment=paidCallback(purchase.orderNumber);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
+    headers:{...payment.headers,"Content-Type":"application/json"},payload:payment.raw})).statusCode).toBe(204);
+  expect((await runMoneyWorkerCycle(paymentInbox)).payments).toContainEqual(expect.objectContaining({state:"applied"}));
+  expect((await pool.query("SELECT status FROM commerce_order WHERE id=$1",[purchase.id])).rows[0].status).toBe("paid");
+  const credited=(await pool.query<{kind:string;amount_cents:string}>(`SELECT e.kind,e.amount_cents FROM commission_credit_entry e
+    JOIN commission_credit_source s ON s.id=e.source_id WHERE s.conversion_id=$1
+    ORDER BY e.occurred_at,e.id`,[converted.id])).rows;
+  expect(credited.filter(row=>row.kind==="spend")
+    .reduce((sum,row)=>sum+Number(row.amount_cents),0)).toBe(-1000);
+  for(const [index,gross,cash,returned] of [[1,3000,2700,300],[2,7000,6300,700]]){
+    const requested=await app.inject({method:"POST",url:`/v1/me/orders/${purchase.id}/refund-requests`,
+      headers:{...auth(referrer.sessionToken),"idempotency-key":`credit-refund-request-${index}-01`},
+      payload:{amountCents:gross,reason:`隔离混合支付分次退款 ${index}`}});
+    expect(requested.statusCode,requested.body).toBe(200);
+    const approved=await app.inject({method:"POST",url:`/v1/management/refund-requests/${requested.json().id}/decision`,
+      headers:{...auth(operator.sessionToken),"idempotency-key":`credit-refund-approve-${index}-01`},
+      payload:{decision:"approve",expectedVersion:1,reason:"独立核对原付款组成"}});
+    expect(approved.statusCode,approved.body).toBe(200);
+    const intent=approved.json().intent;
+    expect((await pool.query(`SELECT refund_cents,payer_refund_cents FROM commission_refund_intent
+      WHERE id=$1`,[intent.id])).rows[0]).toMatchObject({refund_cents:String(cash),payer_refund_cents:String(cash)});
+    expect((await pool.query(`SELECT sum(amount_cents)::text AS amount FROM commission_credit_refund_allocation
+      WHERE refund_intent_id=$1`,[intent.id])).rows[0].amount).toBe(String(returned));
+    expect(await refundCommands.processDue()).toContainEqual({id:intent.id,state:"accepted_processing"});
+    expect(channelRefunds.get(intent.outRefundNo)?.total).toBe(9000);
+    const callback=refundCallback(intent.outRefundNo);
+    expect((await app.inject({method:"POST",url:"/v1/payments/wechat/refund-callback",
+      headers:{...callback.headers,"Content-Type":"application/json"},payload:callback.raw})).statusCode).toBe(204);
+    expect((await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands)).refunds)
+      .toContainEqual(expect.objectContaining({state:"applied"}));
+  }
+  const pending=await creditOrder("cancel",500);
+  const cancelled=await app.inject({method:"POST",url:`/v1/me/orders/${pending.id}/cancel-verified`,
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-order-cancel-001"},
+    payload:{expectedVersion:pending.version,reason:"隔离信用预占释放"}});
+  expect(cancelled.statusCode,cancelled.body).toBe(200);
+  const balance=(await pool.query<{balance:string}>(`SELECT sum(e.amount_cents)::text AS balance
+    FROM commission_credit_entry e JOIN commission_credit_source s ON s.id=e.source_id
+    WHERE s.conversion_id=$1`,[converted.id])).rows[0]!;
+  expect(balance.balance).toBe("2000");
+  expect((await credit.listMine(referrer.memberId)).items.find(item=>item.id===converted.id))
+    .toMatchObject({availableCents:2000,cancellable:false});
+  const disputed=await app.inject({method:"POST",url:`/v1/me/orders/${source.id}/refund-requests`,
+    headers:{...auth(buyer.sessionToken),"idempotency-key":"credit-source-pending-refund-001"},
+    payload:{amountCents:100,reason:"隔离信用来源退款争议"}});
+  expect(disputed.statusCode,disputed.body).toBe(200);
+  const disputedQuote=await app.inject({method:"POST",url:"/v1/me/commerce/quotes",
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-disputed-quote-001"},
+    payload:{skuId,quantity:1,addressId:address.json().id,addressVersion:address.json().version,
+      creditCents:500}});
+  expect(disputedQuote.statusCode,disputedQuote.body).toBe(200);
+  const blocked=await app.inject({method:"POST",url:"/v1/me/orders",
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-disputed-order-001"},
+    payload:{quoteId:disputedQuote.json().id}});
+  expect(blocked.statusCode,blocked.body).toBe(409);
+  expect(blocked.json().code).toBe("CREDIT_CHECKOUT_ORIGIN_DISPUTED");
+}
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 
 async function createOrder(key:string,target:FastifyInstance=app){
@@ -1095,3 +1205,5 @@ it("assembles pinned formal trust through isolated payment, callback, refund and
     await rm(fixtureDir,{recursive:true,force:true});
   }
 });
+
+it("spends source-attributed test credit beside signed cash, and releases an unpaid reservation",creditSpendCase);
