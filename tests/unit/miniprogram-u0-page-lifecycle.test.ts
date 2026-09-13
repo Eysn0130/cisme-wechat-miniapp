@@ -53,6 +53,22 @@ beforeEach(() => {
 });
 
 describe("U0 native page lifecycle regressions", () => {
+  it("drops a previous operator's finance cycle and approval keys before rechecking authority", async () => {
+    requestMock.mockImplementation(() => new Promise(() => undefined));
+    await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
+    const page = mountedPage(capturedPage!, {
+      authority: { memberId: "operator-a" }, sections: [{ id: "cycles", label: "周期候选" }],
+      cycle: { id: "private-cycle-a", members: [{ memberId: "private-payee-a", grossCents: 10000 }] },
+      cycleDecisionKeys: { "private-cycle-a:private-payee-a": "approval-key-a" },
+      items: [{ id: "private-issue-a" }], totalCount: 1, busy: true, loadingMore: true
+    });
+    session = "operator-b";
+
+    page.onShow();
+
+    expect(page.data).toMatchObject({ authority: null, sections: [], cycle: null,
+      cycleDecisionKeys: {}, items: [], totalCount: 0, busy: false, loadingMore: false, loading: true });
+  });
   it("scrubs checkout PII and quote facts before an unauthenticated return can render", async () => {
     retainMemberSnapshotMock.mockReturnValue(false);
     requireMemberAccessMock.mockReturnValue(false);

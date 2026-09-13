@@ -56,7 +56,7 @@ Page({
   async establish(){
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({authority:null,sections:[],items:[],totalCount:0,nextCursor:null,
-      loading:true,error:"",actionError:"",actionStatus:""});
+      cycle:null,cycleDecisionKeys:{},busy:false,loadingMore:false,loading:true,error:"",actionError:"",actionStatus:""});
     const current=()=>this.data.alive&&this.data.epoch===epoch&&
       token===getApp<IAppOption>().globalData.sessionToken;
     try{
