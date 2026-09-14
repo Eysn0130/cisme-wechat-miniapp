@@ -103,7 +103,7 @@ export function safeFailureFields(error: unknown): { failure_class: string; fail
   if (error instanceof DomainError && /^[A-Z][A-Z0-9_]{1,63}$/.test(error.code))
     return { failure_class: "domain", failure_code: error.code };
   const code = error && typeof error === "object" && "code" in error ? (error as { code?: unknown }).code : undefined;
-  if (typeof code === "string" && new Set(["23505", "40001", "40P01", "55P03", "57014", "53300"]).has(code))
+  if (typeof code === "string" && new Set(["22P02", "23505", "40001", "40P01", "55P03", "57014", "53300"]).has(code))
     return { failure_class: "database", failure_code: code };
   return { failure_class: "runtime" };
 }

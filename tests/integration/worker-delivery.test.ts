@@ -18,6 +18,7 @@ const config = loadConfig({
   OBJECT_STORAGE_DRIVER: "api_gateway"
 });
 let deleteShouldFail = true;
+const privateFailureMarker = "SYNTHETIC_PRIVATE_SIGNED_URL_PHONE_ADDRESS";
 const storage: ObjectStorage = {
   acceptsGatewayUpload: false,
   async ensureReady() {},
@@ -25,7 +26,7 @@ const storage: ObjectStorage = {
   async verify() { throw new Error("NOT_USED"); },
   async read() { throw new Error("NOT_USED"); },
   async writeDerivedImage() { throw new Error("NOT_USED"); },
-  async delete() { if (deleteShouldFail) throw new Error("DELETE_TEMPORARILY_UNAVAILABLE"); }
+  async delete() { if (deleteShouldFail) throw new Error(`DELETE_TEMPORARILY_UNAVAILABLE:${privateFailureMarker}`); }
 };
 let app: FastifyInstance;
 let operatorMemberId = "";
@@ -152,7 +153,7 @@ describe("worker delivery controls", () => {
     const failed = (await pool.query("SELECT attempts, processed_at, last_error FROM outbox_event WHERE id=$1", [malformed.rows[0]!.id])).rows[0];
     expect(failed.attempts).toBe(1);
     expect(failed.processed_at).toBeNull();
-    expect(failed.last_error).toContain("invalid input syntax for type uuid");
+    expect(failed.last_error).toBe("22P02");
     const missing = (await pool.query("SELECT attempts, processed_at, last_error FROM outbox_event WHERE id=$1", [missingSource.rows[0]!.id])).rows[0];
     expect(missing.attempts).toBe(1);
     expect(missing.processed_at).toBeNull();
@@ -189,14 +190,22 @@ describe("worker delivery controls", () => {
     for (let attempt = 0; attempt < WORKER_MAX_ATTEMPTS; attempt += 1) {
       await processMediaCleanup(pool, storage, new Date(start + attempt * 10 * 60_000), 10);
     }
+    const storedFailure = (await pool.query("SELECT last_error FROM media_cleanup_queue WHERE id=$1", [itemId])).rows[0].last_error;
+    expect(storedFailure).toBe("runtime");
+    expect(storedFailure).not.toContain(privateFailureMarker);
     expect((await pool.query("SELECT attempts, dead_letter_reason FROM media_cleanup_queue WHERE id=$1", [itemId])).rows[0])
       .toMatchObject({ attempts: WORKER_MAX_ATTEMPTS, dead_letter_reason: "MAX_ATTEMPTS_EXCEEDED" });
+    const operatorQueue = await app.inject({ url: "/v1/admin/worker-failures", headers: adminHeaders("worker-lead") });
+    expect(operatorQueue.statusCode).toBe(200);
+    expect(operatorQueue.body).not.toContain(privateFailureMarker);
 
     const redrive = await app.inject({
       method: "POST", url: `/v1/admin/worker-failures/media_cleanup/${itemId}/redrive`, headers: adminHeaders("worker-lead", "worker-redrive-cleanup-001"),
       payload: { reason: "OBJECT_STORE_RECOVERED", expectedAttempts: WORKER_MAX_ATTEMPTS }
     });
     expect(redrive.statusCode).toBe(200);
+    const redriveAudit = await pool.query("SELECT before_state FROM audit_log WHERE action='worker_failure.redrive' AND object_id=$1", [itemId]);
+    expect(JSON.stringify(redriveAudit.rows)).not.toContain(privateFailureMarker);
     deleteShouldFail = false;
     expect(await processMediaCleanup(pool, storage, new Date(start + 60 * 60_000), 10)).toBe(1);
     const recovered = (await pool.query("SELECT processed_at, redrive_count FROM media_cleanup_queue WHERE id=$1", [itemId])).rows[0];
