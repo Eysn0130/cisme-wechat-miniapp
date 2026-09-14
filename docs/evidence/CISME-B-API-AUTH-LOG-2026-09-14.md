@@ -4,7 +4,7 @@
 
 ## 口径
 
-运行时 Fastify 注册路由与源码清单、OpenAPI 一致：当前 **224 个 `/v1` method/path**，另有 2 个 health 方法。224/224 有显式 OpenAPI `security` 声明，安全方案只剩签名 `session`；其中原有 22 处旧 `/v1/admin/*` 的共享 token + 自报 principal 声明已更正。新增合成导出、擦除批准和恢复后，当前 25 个管理入口全部在参数化集成测试中确认仅持旧共享口令均为 401。此项只是**契约/入口身份检查**，不等于 224 个业务授权验证。`tests/integration/contract-inventory.test.ts` 校验运行时与源码，`tests/unit/openapi-security-coverage.test.ts` 校验源码与文档、管理入口会话声明和新接口声明缺失；`tests/integration/legacy-admin-auth.test.ts` 动态枚举当前管理入口。
+运行时 Fastify 注册路由与源码清单、OpenAPI 一致：当前 **224 个 `/v1` method/path**，另有 2 个 health 方法。224/224 有显式 OpenAPI `security` 声明：193 个须签名会话、30 个无会员会话（含公开读取、短期签名媒体、平台回调）、1 个允许游客或签名会员；唯一安全 scheme 为 `session`。公开/可选例外已固定在 `openapi-security-coverage.test.ts` 中；新增或改成公开接口必须显式审阅该清单，遗漏 `security` 会失败。对 193 个签名入口逐条执行无凭据及伪造 Bearer/actor 探针，386/386 返回 401（`protected-route-entry.test.ts`）；这不测试对象/字段/capability，也不把其余 31 个入口当作无保护。原有 22 处旧 `/v1/admin/*` 的共享 token + 自报 principal 声明已更正；新增合成导出、擦除批准和恢复后，当前 25 个管理入口全部在参数化集成测试中确认仅持旧共享口令均为 401。此项只是**契约/入口身份检查**，不等于 224 个业务授权验证。`tests/integration/contract-inventory.test.ts` 校验运行时与源码，`tests/unit/openapi-security-coverage.test.ts` 校验源码与文档及例外清单；`tests/integration/legacy-admin-auth.test.ts` 动态枚举当前管理入口。
 
 按“身份来源、对象、字段、审计与针对性执行测试均已核对”的严格口径，当前**已验证 23 / 224，未验证 201 / 224；这 23 项新增检查中未留下已证实缺陷**。此数量只计算下表地址簿、合成隐私执行、手机号、待支付订单基础接口与合成退款接口，其他测试已有局部覆盖但尚未完成逐项归属核对，暂不计入。未验证项不能推定无缺陷，整个 B 阶段不能标记 PASS。
 
