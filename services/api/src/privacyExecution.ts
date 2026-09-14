@@ -9,6 +9,7 @@ const maxArchiveBytes=1024*1024;
 const archiveLifetimeMs=60*60*1000; // synthetic test policy, not an external retention promise
 
 type ExportJob={id:string;privacy_request_id:string;member_id:string;requested_by:string;status:string;attempts:number};
+type ErasureJob=ExportJob&{dry_run:boolean;erasure_mode:string;scope:Record<string,unknown>;request_status:string;request_version:number;scope_code:string|null};
 
 /** This executor has no production mode. Every operation requires a test-only key. */
 export class SyntheticPrivacyExecution {
@@ -51,6 +52,44 @@ export class SyntheticPrivacyExecution {
     });
   }
 
+  async approveProfileErasure(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined) {
+    this.key();
+    if(!uuid.test(requestId))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
+    if(typeof input?.reasonCode!=='string'||!reason.test(input.reasonCode)||!Number.isInteger(input.expectedVersion)||Number(input.expectedVersion)<1)
+      throw new DomainError('PRIVACY_APPROVAL_INVALID','请提供有效原因码和当前版本',422);
+    return transaction(this.pool,async client=>{
+      const role=await client.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead'",[principalId]);
+      if(!role.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可批准',403);
+      const job=(await client.query<ErasureJob>(`SELECT j.id,j.privacy_request_id,j.member_id,j.requested_by,j.status,j.attempts,j.dry_run,j.erasure_mode,j.scope,
+        pr.status AS request_status,pr.version AS request_version,pr.scope_code FROM data_erasure_job j
+        JOIN privacy_request pr ON pr.id=j.privacy_request_id WHERE pr.id=$1 FOR UPDATE OF j,pr`,[requestId])).rows[0];
+      if(!job)throw new DomainError('PRIVACY_ERASURE_NOT_FOUND','删除计划不存在',404);
+      if(job.requested_by===principalId)throw new DomainError('PRIVACY_DUAL_REVIEW_REQUIRED','计划人与复核人必须不同',403);
+      if(job.request_version!==input.expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);
+      if(job.status!=='planned'||job.request_status!=='reviewing'||!job.dry_run||job.erasure_mode!=='delete_scope'||
+        job.scope_code!=='member_profile_handle_v1'||job.scope.scopeCode!==job.scope_code)
+        throw new DomainError('PRIVACY_ERASURE_NOT_APPROVABLE','计划状态或范围不允许批准',409);
+      const dev=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test'",[job.member_id]);
+      if(!dev.rowCount)throw new DomainError('PRIVACY_SYNTHETIC_IDENTITY_REQUIRED','仅合成身份可执行',403);
+      const policy=await client.query(`SELECT 1 FROM data_retention_policy WHERE code='synthetic_profile_handle_v1'
+        AND data_class='member_profile.wechat_handle' AND disposition='delete' AND enforcement_state='enforced' AND active=true`);
+      if(!policy.rowCount)throw new DomainError('PRIVACY_RETENTION_POLICY_PENDING','合成资料字段政策尚未启用',409);
+      const held=await client.query(`SELECT 1 FROM legal_hold_binding binding JOIN legal_hold hold ON hold.id=binding.hold_id
+        WHERE binding.object_type IN ('member','member_profile') AND binding.object_id=$1 AND hold.status='active' AND hold.expires_at>now() LIMIT 1`,[job.member_id]);
+      if(held.rowCount)throw new DomainError('PRIVACY_LEGAL_HOLD_ACTIVE','存在有效保留，不能批准删除',409);
+      await client.query(`UPDATE data_erasure_job SET scope=$2,dry_run=false,approved_by=$3,status='approved',updated_at=now() WHERE id=$1`,
+        [job.id,{syntheticOnly:true,scopeCode:job.scope_code},principalId]);
+      await client.query("UPDATE privacy_request SET status='approved',version=version+1,updated_at=now() WHERE id=$1",[requestId]);
+      await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+        VALUES($1,$2,'approved',$3)`,[requestId,principalId,{jobId:job.id,scopeCode:job.scope_code}]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES($1,'privacy.erasure.approve','privacy_request',$2,$3,$4,$5,gen_random_uuid()::text)`,
+        [principalId,requestId,input.reasonCode,{jobStatus:job.status,requestStatus:job.request_status},
+          {jobStatus:'approved',scopeCode:job.scope_code}]);
+      return {requestId,jobId:job.id,status:'approved',scopeCode:job.scope_code};
+    });
+  }
+
   private async archive(client:DbClient,memberId:string):Promise<Buffer> {
     // Fixed allow-list: no identity tokens, contact ciphertext, other members,
     // internal audit, security configuration, or shared UGC/order facts.
@@ -75,7 +114,7 @@ export class SyntheticPrivacyExecution {
         ORDER BY next_attempt_at,created_at FOR UPDATE SKIP LOCKED LIMIT 1`)).rows[0];
       if(!job)return false;
       await client.query("UPDATE data_export_job SET status='running',attempts=attempts+1,updated_at=now() WHERE id=$1",[job.id]);
-      if(job.status==='approved')await client.query("UPDATE privacy_request SET status='executing',version=version+1,updated_at=now() WHERE id=$1",[job.privacy_request_id]);
+      await client.query("UPDATE privacy_request SET status='executing',version=version+1,updated_at=now() WHERE id=$1 AND status='approved'",[job.privacy_request_id]);
       await client.query('SAVEPOINT archive_work');
       try{
         const plaintext=await this.archive(client,job.member_id);
@@ -106,6 +145,107 @@ export class SyntheticPrivacyExecution {
           VALUES($1,'worker:synthetic-privacy','execution_failed',$2)`,[job.privacy_request_id,{jobId:job.id,retryable:!exhausted}]);
       }
       return true;
+    });
+  }
+
+  /** A single explicitly scoped, database-only test erasure. No cascades. */
+  async runProfileErasureOnce(failAfterDelete?:()=>void):Promise<boolean> {
+    this.key();
+    return transaction(this.pool,async client=>{
+      const job=(await client.query<ExportJob>(`SELECT id,privacy_request_id,member_id,requested_by,status,attempts FROM data_erasure_job
+        WHERE dry_run=false AND erasure_mode='delete_scope' AND scope->>'syntheticOnly'='true'
+        AND scope->>'scopeCode'='member_profile_handle_v1' AND status IN ('approved','failed')
+        AND attempts<3 AND next_attempt_at<=now() ORDER BY next_attempt_at,created_at FOR UPDATE SKIP LOCKED LIMIT 1`)).rows[0];
+      if(!job)return false;
+      await client.query("UPDATE data_erasure_job SET status='running',attempts=attempts+1,updated_at=now() WHERE id=$1",[job.id]);
+      await client.query("UPDATE privacy_request SET status='executing',version=version+1,updated_at=now() WHERE id=$1 AND status='approved'",[job.privacy_request_id]);
+      await client.query('SAVEPOINT erasure_work');
+      let activeHoldCount=0;
+      try{
+        // The synthetic transaction blocks concurrent hold insertion/release
+        // until its scoped row deletion and result receipt commit together.
+        await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+        await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+        activeHoldCount=Number((await client.query<{count:number}>(`SELECT count(*)::int AS count FROM legal_hold_binding binding
+          JOIN legal_hold hold ON hold.id=binding.hold_id WHERE binding.object_type IN ('member','member_profile')
+          AND binding.object_id=$1 AND hold.status='active' AND hold.expires_at>now()`,[job.member_id])).rows[0]?.count??0);
+        if(activeHoldCount>0)throw new DomainError('PRIVACY_LEGAL_HOLD_ACTIVE','存在有效保留，不能删除',409);
+        const policy=await client.query(`SELECT 1 FROM data_retention_policy WHERE code='synthetic_profile_handle_v1'
+          AND data_class='member_profile.wechat_handle' AND disposition='delete' AND enforcement_state='enforced' AND active=true FOR SHARE`);
+        if(!policy.rowCount)throw new DomainError('PRIVACY_RETENTION_POLICY_PENDING','合成资料字段政策尚未启用',409);
+        const removed=await client.query('DELETE FROM member_profile WHERE member_id=$1',[job.member_id]);
+        failAfterDelete?.();
+        const manifest={scopeCode:'member_profile_handle_v1',deletedProfileRows:removed.rowCount??0,
+          excludedClasses:['member','contact','address','care','orders','ugc','audit','object_storage']};
+        const digest=createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
+        await client.query(`UPDATE data_erasure_job SET status='partially_succeeded',legal_hold_count=0,manifest=$2,
+          result_sha256=$3,completed_at=now(),last_error_code=NULL,updated_at=now() WHERE id=$1`,[job.id,manifest,digest]);
+        await client.query(`UPDATE privacy_request SET status='partially_completed',resolution_code='SYNTHETIC_PROFILE_HANDLE_ONLY',
+          completed_at=now(),version=version+1,updated_at=now() WHERE id=$1`,[job.privacy_request_id]);
+        await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+          VALUES($1,'worker:synthetic-privacy','execution_partially_succeeded',$2)`,[job.privacy_request_id,{jobId:job.id,...manifest}]);
+        await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+          VALUES('worker:synthetic-privacy','privacy.erasure.apply','privacy_request',$1,'SYNTHETIC_PROFILE_HANDLE_ONLY',$2,$3,gen_random_uuid()::text)`,
+          [job.privacy_request_id,{scopeCode:'member_profile_handle_v1',status:'running'},manifest]);
+      }catch(error){
+        await client.query('ROLLBACK TO SAVEPOINT erasure_work');
+        const code=error instanceof DomainError && ['PRIVACY_LEGAL_HOLD_ACTIVE','PRIVACY_RETENTION_POLICY_PENDING'].includes(error.code)
+          ?error.code:'ERASURE_TASK_FAILED';
+        const exhausted=job.attempts+1>=3;
+        await client.query(`UPDATE data_erasure_job SET status='failed',last_error_code=$2,legal_hold_count=$3,
+          next_attempt_at=now()+interval '5 seconds',updated_at=now() WHERE id=$1`,[job.id,code,activeHoldCount]);
+        if(exhausted)await client.query("UPDATE privacy_request SET status='failed',version=version+1,updated_at=now() WHERE id=$1",[job.privacy_request_id]);
+        await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+          VALUES($1,'worker:synthetic-privacy','execution_failed',$2)`,
+          [job.privacy_request_id,{jobId:job.id,code,retryable:!exhausted}]);
+      }
+      return true;
+    });
+  }
+
+  async redrive(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined) {
+    this.key();
+    if(!uuid.test(requestId))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
+    if(typeof input?.reasonCode!=='string'||!reason.test(input.reasonCode)||!Number.isInteger(input.expectedVersion)||Number(input.expectedVersion)<1)
+      throw new DomainError('PRIVACY_REDRIVE_INVALID','请提供有效原因码和当前版本',422);
+    return transaction(this.pool,async client=>{
+      const role=await client.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead'",[principalId]);
+      if(!role.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可恢复执行',403);
+      const request=(await client.query<{status:string;version:number;member_id:string;scope_code:string|null}>(
+        'SELECT status,version,member_id,scope_code FROM privacy_request WHERE id=$1 FOR UPDATE',[requestId])).rows[0];
+      if(!request)throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
+      if(request.version!==input.expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);
+      if(request.status!=='failed')throw new DomainError('PRIVACY_REDRIVE_NOT_READY','请求尚未进入终止失败状态',409);
+      const dev=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test'",[request.member_id]);
+      if(!dev.rowCount)throw new DomainError('PRIVACY_SYNTHETIC_IDENTITY_REQUIRED','仅合成身份可执行',403);
+      const exportJob=(await client.query<{id:string;status:string;attempts:number;execution_mode:string;scope:Record<string,unknown>}>(
+        'SELECT id,status,attempts,execution_mode,scope FROM data_export_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId])).rows[0];
+      const erasureJob=exportJob?null:(await client.query<{id:string;status:string;attempts:number;dry_run:boolean;scope:Record<string,unknown>}>(
+        'SELECT id,status,attempts,dry_run,scope FROM data_erasure_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId])).rows[0];
+      let type:'export'|'erasure',jobId:string;
+      if(exportJob && exportJob.status==='failed' && exportJob.attempts>=3 && exportJob.execution_mode==='generate_archive' &&
+        exportJob.scope.syntheticOnly===true && exportJob.scope.profile==='member_portable_copy_v1') {
+        type='export';jobId=exportJob.id;
+        await client.query("UPDATE data_export_job SET attempts=0,last_error_code=NULL,next_attempt_at=now(),updated_at=now() WHERE id=$1",[jobId]);
+      }else if(erasureJob && erasureJob.status==='failed' && erasureJob.attempts>=3 && !erasureJob.dry_run &&
+        erasureJob.scope.syntheticOnly===true && erasureJob.scope.scopeCode==='member_profile_handle_v1' &&
+        request.scope_code==='member_profile_handle_v1') {
+        const policy=await client.query(`SELECT 1 FROM data_retention_policy WHERE code='synthetic_profile_handle_v1'
+          AND data_class='member_profile.wechat_handle' AND disposition='delete' AND enforcement_state='enforced' AND active=true`);
+        if(!policy.rowCount)throw new DomainError('PRIVACY_RETENTION_POLICY_PENDING','合成资料字段政策尚未启用',409);
+        const hold=await client.query(`SELECT 1 FROM legal_hold_binding binding JOIN legal_hold hold ON hold.id=binding.hold_id
+          WHERE binding.object_type IN ('member','member_profile') AND binding.object_id=$1 AND hold.status='active' AND hold.expires_at>now() LIMIT 1`,[request.member_id]);
+        if(hold.rowCount)throw new DomainError('PRIVACY_LEGAL_HOLD_ACTIVE','存在有效保留，不能恢复删除',409);
+        type='erasure';jobId=erasureJob.id;
+        await client.query("UPDATE data_erasure_job SET attempts=0,last_error_code=NULL,next_attempt_at=now(),legal_hold_count=0,updated_at=now() WHERE id=$1",[jobId]);
+      }else throw new DomainError('PRIVACY_REDRIVE_NOT_READY','作业未达到可复核恢复状态',409);
+      await client.query("UPDATE privacy_request SET status='approved',version=version+1,updated_at=now() WHERE id=$1",[requestId]);
+      await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+        VALUES($1,$2,'approved',$3)`,[requestId,principalId,{redrive:true,type,jobId}]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES($1,'privacy.execution.redrive','privacy_request',$2,$3,$4,$5,gen_random_uuid()::text)`,
+        [principalId,requestId,input.reasonCode,{status:'failed',attempts:3,type},{status:'approved',attempts:0,type}]);
+      return {requestId,jobId,type,status:'approved',redriven:true};
     });
   }
 

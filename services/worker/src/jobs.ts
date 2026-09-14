@@ -169,13 +169,14 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
   const privacyExecutor=gates.privacyEnvironment==='test'&&gates.privacySyntheticExportKey
     ?new SyntheticPrivacyExecution(pool,gates.privacyEnvironment,gates.privacySyntheticExportKey):null;
   const privacyExports=privacyExecutor?Number(await privacyExecutor.runExportOnce()):0;
+  const privacyErasures=privacyExecutor?Number(await privacyExecutor.runProfileErasureOnce()):0;
   const purgedPrivacyArtifacts=privacyExecutor?await privacyExecutor.purgeArtifacts():0;
-  return { published, cleaned, expiredOrders, privacyExports, purgedPrivacyArtifacts };
+  return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts };
 }
 
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates, onError: (error: unknown) => void) {
   return startWorkerLoop(async () => {
     const result = await runWorkerCycle(pool, storage, gates);
-    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 || result.privacyExports>0;
+    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 || result.privacyExports>0 || result.privacyErasures>0;
   }, onError);
 }

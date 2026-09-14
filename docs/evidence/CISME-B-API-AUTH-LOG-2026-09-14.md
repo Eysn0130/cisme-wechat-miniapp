@@ -4,9 +4,9 @@
 
 ## 口径
 
-运行时 Fastify 注册路由与源码清单、OpenAPI 一致：当前 **222 个 `/v1` method/path**，另有 2 个 health 方法。222/222 有显式 OpenAPI `security` 声明，安全方案只剩签名 `session`；其中原有 22 处旧 `/v1/admin/*` 的共享 token + 自报 principal 声明已更正。新增合成导出批准后，当前 23 个管理入口全部在参数化集成测试中确认仅持旧共享口令均为 401。此项只是**契约/入口身份检查**，不等于 222 个业务授权验证。`tests/integration/contract-inventory.test.ts` 校验运行时与源码，`tests/unit/openapi-security-coverage.test.ts` 校验源码与文档、管理入口会话声明和新接口声明缺失；`tests/integration/legacy-admin-auth.test.ts` 动态枚举当前管理入口。
+运行时 Fastify 注册路由与源码清单、OpenAPI 一致：当前 **224 个 `/v1` method/path**，另有 2 个 health 方法。224/224 有显式 OpenAPI `security` 声明，安全方案只剩签名 `session`；其中原有 22 处旧 `/v1/admin/*` 的共享 token + 自报 principal 声明已更正。新增合成导出、擦除批准和恢复后，当前 25 个管理入口全部在参数化集成测试中确认仅持旧共享口令均为 401。此项只是**契约/入口身份检查**，不等于 224 个业务授权验证。`tests/integration/contract-inventory.test.ts` 校验运行时与源码，`tests/unit/openapi-security-coverage.test.ts` 校验源码与文档、管理入口会话声明和新接口声明缺失；`tests/integration/legacy-admin-auth.test.ts` 动态枚举当前管理入口。
 
-按“身份来源、对象、字段、审计与针对性执行测试均已核对”的严格口径，当前**已验证 8 / 222，未验证 214 / 222；这 8 项新增检查中未留下已证实缺陷**。此数量只计算下表地址簿和合成导出接口，其他测试已有局部覆盖但尚未完成逐项归属核对，暂不计入。未验证项不能推定无缺陷，整个 B 阶段不能标记 PASS。
+按“身份来源、对象、字段、审计与针对性执行测试均已核对”的严格口径，当前**已验证 10 / 224，未验证 214 / 224；这 10 项新增检查中未留下已证实缺陷**。此数量只计算下表地址簿和合成隐私执行接口，其他测试已有局部覆盖但尚未完成逐项归属核对，暂不计入。未验证项不能推定无缺陷，整个 B 阶段不能标记 PASS。
 
 | Method / path | 类别；可信身份；capability | 对象归属；可读/可写字段；审计 | 合成执行结论 / 测试 ID |
 |---|---|---|---|
@@ -18,6 +18,8 @@
 | `POST /v1/admin/privacy-requests/{requestId}/export-approval` | 管理；签名 active operator，服务端 `review_lead` 角色；必须是不同计划人 | 仅 `dev_test` 会员、`APP_ENV=test` 与独立密钥、固定会员资料范围；版本/状态守卫；原因码与 before/after 审计 | 计划人及 support 403、旧版本 409、伪造 actor 403、第二复核人 200；`privacy-rights.test.ts` / synthetic profile export |
 | `GET /v1/me/privacy-requests/{requestId}/export` | 会员；签名 active member；无管理 capability | `request_id + member_id`，只解密本人未过期、未撤销的子集；字段白名单排除他人、手机号密文、token；逐次读取审计 | B 访问 A 为 404，正常读取 200/no-store，过期/撤销 404；`privacy-rights.test.ts` / synthetic profile export |
 | `POST /v1/me/privacy-requests/{requestId}/export-revoke` | 会员；签名 active member；无管理 capability | `request_id + member_id`，忽略伪造 `memberId` 正文；仅修改本人的副本可用性，写 before/after 审计 | B 伪造 owner 字段仍 404，本人撤销 200、后续读取 404；`privacy-rights.test.ts` / synthetic profile export |
+| `POST /v1/admin/privacy-requests/{requestId}/erasure-approval` | 管理；签名 active operator，服务端 `review_lead` 且非计划人 | 仅 `dev_test`、`APP_ENV=test`、独立密钥；本人不可改的 `scope_code` 与计划范围一致；测试保留政策 active、无 member/profile 法定保留；版本/原因码/审计 | 自批/support/伪造 actor 403，旧版本/未知政策/有保留 409；第二复核人 200；`privacy-rights.test.ts` / scoped profile-handle erasure |
+| `POST /v1/admin/privacy-requests/{requestId}/execution-redrive` | 管理；签名 active operator、服务端 `review_lead` | 仅已耗尽、固定范围、同一合成主体；擦除需再查政策/保留；重试归零不扩大字段范围；原因码与状态审计 | support 403，旧版本/有保留 409；人工复核恢复后仅原范围执行，删除失败回滚无部分落库；`privacy-rights.test.ts` / exhausted synthetic redrive |
 
 ## 日志回归
 

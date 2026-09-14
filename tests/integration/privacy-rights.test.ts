@@ -5,6 +5,7 @@ import {createApp} from '../../services/api/src/server';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {PlatformService} from '../../services/api/src/platformService';
 import {SyntheticPrivacyExecution} from '../../services/api/src/privacyExecution';
+import {PrivacyRights} from '../../services/api/src/privacyRights';
 import {runWorkerCycle} from '../../services/worker/src/jobs';
 import {operatorHeaders} from './operator-session';
 const pool=testPool();
@@ -189,4 +190,135 @@ it('preserves an explicit synthetic deletion scope and rejects cross-kind or pro
  expect(real?.member_id).toBeTruthy();
  await expect(pool.query(`INSERT INTO privacy_request(member_id,kind,message,due_at,scope_code)
    VALUES($1,'delete','Non dev scoped request',now()+interval '1 day','member_profile_handle_v1')`,[real.member_id])).rejects.toMatchObject({code:'23514'});
+});
+it('applies only the member-confirmed synthetic profile-handle scope after dual review, policy and hold checks',async()=>{
+ await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'Owner123','self_reported')",[ownerMemberId]);
+ const otherMember=(await pool.query("SELECT member_id FROM wechat_identity WHERE openid='dev:other' LIMIT 1")).rows[0].member_id;
+ await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'Other123','self_reported')",[otherMember]);
+ const scoped=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`},
+   payload:{kind:'delete',message:'Remove my self-reported WeChat handle only',scopeCode:'member_profile_handle_v1'}});
+ expect(scoped.statusCode).toBe(200);const id=scoped.json().id;
+ const replay=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`},
+   payload:{kind:'delete',message:'Remove my self-reported WeChat handle only',scopeCode:'member_profile_handle_v1'}});
+ expect(replay.json().id).toBe(id);
+ const unscoped=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`},
+   payload:{kind:'delete',message:'Remove my self-reported WeChat handle only'}});
+ expect(unscoped.statusCode).toBe(200);expect(unscoped.json().id).not.toBe(id);
+ await expect(new PrivacyRights(pool,'staging').submit(ownerMemberId,{kind:'delete',message:'Scope should fail outside test',scopeCode:'member_profile_handle_v1'}))
+   .rejects.toMatchObject({code:'PRIVACY_SCOPE_UNAVAILABLE'});
+ expect((await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`},
+   payload:{kind:'withdraw',message:'Wrong kind',scopeCode:'member_profile_handle_v1'}})).statusCode).toBe(422);
+ const plan=await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${id}/execution-plan`,
+   headers:admin('lead-user',{'idempotency-key':'synthetic-erasure-plan-v1'}),payload:{expectedVersion:1,reasonCode:'SYNTHETIC_TEST'}});
+ expect(plan.statusCode).toBe(200);expect(plan.json()).toMatchObject({type:'erasure',executionMode:'dry_run'});
+ const approval=`/v1/admin/privacy-requests/${id}/erasure-approval`;
+ const body={reasonCode:'SYNTHETIC_TEST',expectedVersion:2};
+ expect((await app.inject({method:'POST',url:approval,headers:admin('lead-user'),payload:body})).statusCode).toBe(403);
+ expect((await app.inject({method:'POST',url:approval,headers:admin('support-user'),payload:body})).statusCode).toBe(403);
+ expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead'),payload:body})).statusCode).toBe(409);
+ await pool.query(`INSERT INTO data_retention_policy(code,data_class,trigger_event,duration_days,disposition,legal_basis,enforcement_state,active)
+   VALUES('synthetic_profile_handle_v1','member_profile.wechat_handle','member explicit deletion request',NULL,'delete',
+   'Synthetic test-only profile handle policy','enforced',true)`);
+ expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead'),payload:{...body,expectedVersion:1}})).statusCode).toBe(409);
+ expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead',{'x-principal-id':'lead-user'}),payload:body})).statusCode).toBe(403);
+ const approvalHold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+   VALUES('SYNTHETIC_APPROVAL_HOLD','Synthetic member profile hold before approval','second-lead',
+   now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0];
+ await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'member_profile',$2)",[approvalHold.id,ownerMemberId]);
+ expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead'),payload:body})).statusCode).toBe(409);
+ await pool.query("UPDATE legal_hold SET status='released',released_by='second-lead',released_at=now() WHERE id=$1",[approvalHold.id]);
+ expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead'),payload:body})).statusCode).toBe(200);
+ expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.erasure.approve' AND object_id=$1",[id])).rows[0].count).toBe(1);
+ const job=(await pool.query('SELECT id,dry_run,status,scope FROM data_erasure_job WHERE privacy_request_id=$1',[id])).rows[0];
+ expect(job).toMatchObject({dry_run:false,status:'approved',scope:{syntheticOnly:true,scopeCode:'member_profile_handle_v1'}});
+ const hold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+   VALUES('SYNTHETIC_PROFILE_HOLD','Synthetic hold inserted after approval to test recheck','second-lead',
+   now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0];
+ await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'member_profile',$2)",[hold.id,ownerMemberId]);
+ const executor=new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
+ expect(await executor.runProfileErasureOnce()).toBe(true);
+ expect((await pool.query('SELECT status,last_error_code,legal_hold_count FROM data_erasure_job WHERE id=$1',[job.id])).rows[0])
+   .toMatchObject({status:'failed',last_error_code:'PRIVACY_LEGAL_HOLD_ACTIVE',legal_hold_count:1});
+ expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[ownerMemberId])).rows[0].wechat_handle).toBe('Owner123');
+ await pool.query("UPDATE legal_hold SET status='released',released_by='second-lead',released_at=now() WHERE id=$1",[hold.id]);
+ await pool.query("UPDATE data_erasure_job SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[job.id]);
+ expect(await executor.runProfileErasureOnce(()=>{throw new Error('ERASURE_PRIVATE_FAILURE_MARKER');})).toBe(true);
+ expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[ownerMemberId])).rows[0].wechat_handle).toBe('Owner123');
+ expect((await pool.query('SELECT last_error_code FROM data_erasure_job WHERE id=$1',[job.id])).rows[0].last_error_code).toBe('ERASURE_TASK_FAILED');
+ await pool.query("UPDATE data_erasure_job SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[job.id]);
+ expect((await runWorkerCycle(pool,storage,{ugcGoLiveGate:false,privacyEnvironment:'test',privacySyntheticExportKey:config.privacy.syntheticExportKey})).privacyErasures).toBe(1);
+ expect((await pool.query('SELECT count(*)::int AS count FROM member_profile WHERE member_id=$1',[ownerMemberId])).rows[0].count).toBe(0);
+ expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[otherMember])).rows[0].wechat_handle).toBe('Other123');
+ expect((await pool.query('SELECT count(*)::int AS count FROM member WHERE id=$1',[ownerMemberId])).rows[0].count).toBe(1);
+ expect((await pool.query('SELECT count(*)::int AS count FROM member_contact WHERE member_id=$1',[ownerMemberId])).rows[0].count).toBe(1);
+ const result=(await pool.query('SELECT status,manifest,legal_hold_count,result_sha256 FROM data_erasure_job WHERE id=$1',[job.id])).rows[0];
+ expect(result).toMatchObject({status:'partially_succeeded',legal_hold_count:0,manifest:{scopeCode:'member_profile_handle_v1',deletedProfileRows:1}});
+ expect(result.result_sha256).toMatch(/^[0-9a-f]{64}$/);
+ expect((await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`}})).json()
+   .find((item:{id:string})=>item.id===id)).toMatchObject({status:'partially_completed',resolution_code:'SYNTHETIC_PROFILE_HANDLE_ONLY',execution:{status:'partially_succeeded',scopeCode:'member_profile_handle_v1'}});
+ expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.erasure.apply' AND object_id=$1",[id])).rows[0].count).toBe(1);
+ expect(JSON.stringify((await pool.query('SELECT detail FROM privacy_request_event WHERE privacy_request_id=$1',[id])).rows)).not.toContain('ERASURE_PRIVATE_FAILURE_MARKER');
+});
+it('requires a review lead to redrive an exhausted scoped job and keeps failed deletion atomic',async()=>{
+ const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'redrive-member',displayName:'redrive',
+   consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+ expect(identity.statusCode).toBe(200);
+ const redriveMemberId=identity.json().memberId,redriveToken=identity.json().sessionToken;
+ await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'Redrive123','self_reported')",[redriveMemberId]);
+ const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${redriveToken}`},
+   payload:{kind:'delete',message:'Remove only my synthetic self-reported handle after failure',scopeCode:'member_profile_handle_v1'}});
+ expect(created.statusCode).toBe(200);const id=created.json().id;
+ expect((await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${id}/execution-plan`,
+   headers:admin('lead-user',{'idempotency-key':'synthetic-redrive-plan-v1'}),payload:{expectedVersion:1,reasonCode:'SYNTHETIC_TEST'}})).statusCode).toBe(200);
+ expect((await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${id}/erasure-approval`,
+   headers:admin('second-lead'),payload:{expectedVersion:2,reasonCode:'SYNTHETIC_TEST'}})).statusCode).toBe(200);
+ const executor=new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
+ for(let attempt=0;attempt<3;attempt++){
+   if(attempt)await pool.query("UPDATE data_erasure_job SET next_attempt_at=now()-interval '1 second' WHERE privacy_request_id=$1",[id]);
+   expect(await executor.runProfileErasureOnce(()=>{throw new Error('PRIVATE_EXHAUSTED_ERASURE');})).toBe(true);
+ }
+ expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[redriveMemberId])).rows[0].wechat_handle).toBe('Redrive123');
+ const exhausted=(await pool.query('SELECT status,version FROM privacy_request WHERE id=$1',[id])).rows[0];
+ expect(exhausted.status).toBe('failed');
+ const redrive=`/v1/admin/privacy-requests/${id}/execution-redrive`;
+ expect((await app.inject({method:'POST',url:redrive,headers:admin('support-user'),payload:{expectedVersion:exhausted.version,reasonCode:'SYNTHETIC_RECHECK'}})).statusCode).toBe(403);
+ expect((await app.inject({method:'POST',url:redrive,headers:admin('second-lead'),payload:{expectedVersion:exhausted.version-1,reasonCode:'SYNTHETIC_RECHECK'}})).statusCode).toBe(409);
+ const redriveHold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+   VALUES('SYNTHETIC_REDRIVE_HOLD','Synthetic hold before exhausted erasure redrive','second-lead',
+   now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0];
+ await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'member',$2)",[redriveHold.id,redriveMemberId]);
+ expect((await app.inject({method:'POST',url:redrive,headers:admin('second-lead'),payload:{expectedVersion:exhausted.version,reasonCode:'SYNTHETIC_RECHECK'}})).statusCode).toBe(409);
+ await pool.query("UPDATE legal_hold SET status='released',released_by='second-lead',released_at=now() WHERE id=$1",[redriveHold.id]);
+ expect((await app.inject({method:'POST',url:redrive,headers:admin('second-lead'),payload:{expectedVersion:exhausted.version,reasonCode:'SYNTHETIC_RECHECK'}})).statusCode).toBe(200);
+ expect(await executor.runProfileErasureOnce()).toBe(true);
+ expect((await pool.query('SELECT count(*)::int AS count FROM member_profile WHERE member_id=$1',[redriveMemberId])).rows[0].count).toBe(0);
+ expect((await pool.query('SELECT status,attempts FROM data_erasure_job WHERE privacy_request_id=$1',[id])).rows[0]).toMatchObject({status:'partially_succeeded',attempts:1});
+ expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.execution.redrive' AND object_id=$1",[id])).rows[0].count).toBe(1);
+ expect(JSON.stringify((await pool.query('SELECT detail FROM privacy_request_event WHERE privacy_request_id=$1',[id])).rows)).not.toContain('PRIVATE_EXHAUSTED_ERASURE');
+});
+it('redrives an exhausted synthetic export without exposing an unfinished artifact',async()=>{
+ const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'export-redrive-member',displayName:'export redrive',
+   consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+ expect(identity.statusCode).toBe(200);const session=identity.json().sessionToken;
+ const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${session}`},
+   payload:{kind:'access',message:'Synthetic export with exhausted retry'}});
+ expect(created.statusCode).toBe(200);const id=created.json().id;
+ expect((await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${id}/execution-plan`,
+   headers:admin('lead-user',{'idempotency-key':'synthetic-export-redrive-v1'}),payload:{expectedVersion:1,reasonCode:'SYNTHETIC_TEST'}})).statusCode).toBe(200);
+ expect((await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${id}/export-approval`,
+   headers:admin('second-lead'),payload:{expectedVersion:2,reasonCode:'SYNTHETIC_TEST'}})).statusCode).toBe(200);
+ const executor=new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
+ for(let attempt=0;attempt<3;attempt++){
+   if(attempt)await pool.query("UPDATE data_export_job SET next_attempt_at=now()-interval '1 second' WHERE privacy_request_id=$1",[id]);
+   expect(await executor.runExportOnce(()=>{throw new Error('PRIVATE_EXHAUSTED_EXPORT');})).toBe(true);
+ }
+ expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1',[id])).rows[0].count).toBe(0);
+ const request=(await pool.query('SELECT status,version FROM privacy_request WHERE id=$1',[id])).rows[0];
+ expect(request.status).toBe('failed');
+ expect((await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${id}/execution-redrive`,
+   headers:admin('second-lead'),payload:{expectedVersion:request.version,reasonCode:'SYNTHETIC_RECHECK'}})).statusCode).toBe(200);
+ expect(await executor.runExportOnce()).toBe(true);
+ expect((await app.inject({url:`/v1/me/privacy-requests/${id}/export`,headers:{authorization:`Bearer ${session}`}})).statusCode).toBe(200);
+ expect((await pool.query('SELECT status,attempts FROM data_export_job WHERE privacy_request_id=$1',[id])).rows[0]).toMatchObject({status:'succeeded',attempts:1});
+ expect(JSON.stringify((await pool.query('SELECT detail FROM privacy_request_event WHERE privacy_request_id=$1',[id])).rows)).not.toContain('PRIVATE_EXHAUSTED_EXPORT');
 });

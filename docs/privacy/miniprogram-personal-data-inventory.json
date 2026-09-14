@@ -417,7 +417,7 @@
       "purpose": "受理、核验、计划和向本人展示个人信息权利处理进度",
       "activation": "会员主动提交请求；授权运营人员按服务端能力处理",
       "serverStorage": "CISME PostgreSQL privacy_request、privacy_request_event、data_export_job、data_erasure_job；事件和审计不复制请求自由文本",
-      "currentGate": "本人会话仅见本人请求；受理与执行计划分别由服务端角色校验；可选 scope_code 仅适用于合成 dev_test 的资料字段删除请求且不可事后改写；正式执行仍为 plan_only/dry_run_only，只有 APP_ENV=test 的 dev_test 身份可获得合成会员资料子集导出",
+      "currentGate": "本人会话仅见本人请求；受理与执行计划分别由服务端角色校验；可选 scope_code 仅适用于合成 dev_test 的资料字段删除请求且不可事后改写；APP_ENV=test 的 dev_test 身份经第二复核和有效测试政策可删除该资料字段，或领取合成会员资料子集；正式执行仍为 plan_only/dry_run_only",
       "retention": "POLICY PENDING；代码中的 due_at 不是已获法务批准的对外法定时限"
     },
     {

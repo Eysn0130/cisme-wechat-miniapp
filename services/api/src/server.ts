@@ -162,7 +162,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const tradeBills=paymentProfile&&dependencies.paymentProtocol
     ?new TradeBillReconciliationService(pool,authority,dependencies.paymentProtocol.channel,
       paymentProfile.merchantId):null;
-  const privacyRights = new PrivacyRights(pool);
+  const privacyRights = new PrivacyRights(pool,config.env);
   const privacyExecution = new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
@@ -380,7 +380,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return { ready: ["terms", "privacy"].every(type => documents.rows.some(doc => doc.document_type === type)), documents: documents.rows };
   });
   app.get("/v1/me/privacy-requests", async request => privacyRights.list(request.memberId));
-  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown}));
+  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
   app.get("/v1/admin/privacy-requests", async request => {
     await privacyRights.requireOperator(adminPrincipal(request, config));
     return privacyRights.queue();
@@ -396,6 +396,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/export-approval", async request =>
     privacyExecution.approveExport(adminPrincipal(request,config),request.params.requestId,
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/erasure-approval", async request =>
+    privacyExecution.approveProfileErasure(adminPrincipal(request,config),request.params.requestId,
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/execution-redrive", async request =>
+    privacyExecution.redrive(adminPrincipal(request,config),request.params.requestId,
       request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
   app.get<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export", async (request,reply) => {
     const bytes=await privacyExecution.download(request.memberId,request.params.requestId);

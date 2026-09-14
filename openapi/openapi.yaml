@@ -52,10 +52,10 @@ paths:
     post:
       operationId: submitPrivacyRequest
       security: [{session: []}]
-      description: Registers access, correct, delete, close_account, withdraw or other request; deduplicates identical unanswered requests and limits to 10 per day. Does not execute deletion or account closure.
+      description: Registers access, correct, delete, close_account, withdraw or other request; deduplicates identical open requests and limits to 10 per day. Optional scopeCode is test-only for a dev_test identity and the profile-handle deletion class; unscoped requests never authorize automatic erasure. Submission alone does not execute deletion or account closure.
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}}}}}
+        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1]}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
   /v1/admin/privacy-requests:
     get:
@@ -93,6 +93,26 @@ paths:
         required: true
         content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}, expectedVersion: {type: integer, minimum: 1}}}}}
       responses: {'200': {description: Approved synthetic job}, '403': {description: Missing role or second reviewer}, '409': {description: Plan not approvable}, '503': {description: Synthetic execution disabled}}
+  /v1/admin/privacy-requests/{requestId}/erasure-approval:
+    post:
+      operationId: approveSyntheticProfileHandleErasure
+      security: [{session: []}]
+      description: Test environment only. A second signed review lead approves the member's explicit member_profile_handle_v1 scope only when an active synthetic retention policy and no legal hold exist. Never enables production apply or whole-account deletion.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Approved synthetic scoped job}, '403': {description: Missing role or second reviewer}, '409': {description: Missing scope, policy, hold clearance, or current version}, '503': {description: Synthetic execution disabled}}
+  /v1/admin/privacy-requests/{requestId}/execution-redrive:
+    post:
+      operationId: redriveExhaustedSyntheticPrivacyExecution
+      security: [{session: []}]
+      description: Test environment only. Signed review lead may auditably reset an exhausted synthetic export or explicitly scoped erasure after rechecking dev identity, fixed scope, and applicable policy/holds. No production execution.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Audited synthetic redrive}, '403': {description: Missing review lead role}, '409': {description: Not exhausted or prerequisites absent}, '503': {description: Synthetic execution disabled}}
   /v1/me/privacy-requests/{requestId}/export:
     get:
       operationId: downloadOwnSyntheticProfileExport

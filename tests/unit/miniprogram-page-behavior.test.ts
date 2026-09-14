@@ -1183,3 +1183,13 @@ it('shows only an explicitly opened own profile subset and clears it on hide',as
  page.onHide();
  expect(page.data.visibleExport).toBeNull();
 });
+
+it('labels a synthetic scoped erasure as partial and leaves unrelated data unclaimed',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce([{id:'request-a',kind:'delete',status:'partially_completed',execution:{type:'erasure',status:'partially_succeeded',scopeCode:'member_profile_handle_v1'}}]);
+ await page.load();
+ expect(page.data.records[0].executionSummary).toContain('仅清除自报微信号，其他资料未删除');
+ expect(page.data.records[0].statusLabel).toBe('部分完成');
+});
