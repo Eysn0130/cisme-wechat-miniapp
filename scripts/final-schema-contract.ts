@@ -74,6 +74,7 @@ export async function assertFinalSchemaContract(db:Database){
   constraint("commerce_trade_bill_row","commerce_trade_bill_row_status_check","exception");
   constraint("data_export_job","data_export_job_check4","plan_only");
   constraint("data_erasure_job","data_erasure_job_synthetic_execution","syntheticOnly");
+  constraint("privacy_request","privacy_request_synthetic_scope","member_profile_handle_v1");
   constraint("privacy_export_artifact","privacy_export_artifact_ciphertext_check","1048576");
   constraint("privacy_export_artifact","privacy_export_artifact_iv_check","12");
   constraint("privacy_export_artifact","privacy_export_artifact_auth_tag_check","16");
@@ -161,7 +162,8 @@ export async function assertFinalSchemaContract(db:Database){
     "commerce_trade_bill_batch.commerce_trade_bill_batch_immutable",
     "commerce_trade_bill_row.commerce_trade_bill_row_immutable",
     "data_export_job.data_export_job_synthetic_guard",
-    "data_erasure_job.data_erasure_job_synthetic_guard"
+    "data_erasure_job.data_erasure_job_synthetic_guard",
+    "privacy_request.privacy_request_synthetic_scope_guard"
   ])if(!triggerNames.has(trigger))throw new Error(`FINAL_SCHEMA_TRIGGER_MISSING:${trigger}`);
-  return {tables:requiredTables.length,constraints:46,indexes:36,triggers:35};
+  return {tables:requiredTables.length,constraints:47,indexes:36,triggers:36};
 }

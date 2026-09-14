@@ -178,3 +178,15 @@ expect((await pool.query("SELECT count(*)::int AS count FROM privacy_request_eve
 expect(await executor.purgeArtifacts()).toBe(1);
 expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact WHERE job_id=$1',[failed.id])).rows[0].count).toBe(0);
 });
+it('preserves an explicit synthetic deletion scope and rejects cross-kind or production-like scope injection',async()=>{
+ const dev=(await pool.query(`INSERT INTO privacy_request(member_id,kind,message,due_at,scope_code)
+   VALUES($1,'delete','Synthetic profile handle request',now()+interval '1 day','member_profile_handle_v1') RETURNING id,scope_code`,[ownerMemberId])).rows[0];
+ expect(dev.scope_code).toBe('member_profile_handle_v1');
+ await expect(pool.query("UPDATE privacy_request SET scope_code=NULL WHERE id=$1",[dev.id])).rejects.toMatchObject({code:'55000'});
+ await expect(pool.query(`INSERT INTO privacy_request(member_id,kind,message,due_at,scope_code)
+   VALUES($1,'withdraw','Wrong kind',now()+interval '1 day','member_profile_handle_v1')`,[ownerMemberId])).rejects.toMatchObject({code:'23514'});
+ const real=(await pool.query("SELECT member_id FROM wechat_identity WHERE provider='wechat_miniprogram' LIMIT 1")).rows[0];
+ expect(real?.member_id).toBeTruthy();
+ await expect(pool.query(`INSERT INTO privacy_request(member_id,kind,message,due_at,scope_code)
+   VALUES($1,'delete','Non dev scoped request',now()+interval '1 day','member_profile_handle_v1')`,[real.member_id])).rejects.toMatchObject({code:'23514'});
+});
