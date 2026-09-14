@@ -5,14 +5,16 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, expect, it } from "vitest";
+import { TEST_DATABASE_URL } from "@cisme/testkit";
 import { assertFinalSchemaContract } from "../../scripts/final-schema-contract";
 
 const exec=promisify(execFile);
-const adminUrl="postgres://cisme:cisme-dev-only@127.0.0.1:55432/postgres";
+const adminUrl=new URL(TEST_DATABASE_URL);
+adminUrl.pathname="/postgres";
 const databaseName=`cisme_upgrade_test_${randomUUID().replaceAll("-","")}`;
 const databaseUrl=new URL(adminUrl);
 databaseUrl.pathname=`/${databaseName}`;
-const admin=new pg.Pool({connectionString:adminUrl});
+const admin=new pg.Pool({connectionString:adminUrl.toString()});
 const db=new pg.Pool({connectionString:databaseUrl.toString()});
 let created=false;
 

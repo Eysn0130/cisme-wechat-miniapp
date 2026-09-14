@@ -4,14 +4,16 @@ import { readdir } from "node:fs/promises";
 import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { TEST_DATABASE_URL } from "@cisme/testkit";
 import { assertFinalSchemaContract } from "../../scripts/final-schema-contract";
 
 const exec = promisify(execFile);
-const adminUrl = "postgres://cisme:cisme-dev-only@127.0.0.1:55432/postgres";
+const adminUrl = new URL(TEST_DATABASE_URL);
+adminUrl.pathname = "/postgres";
 const databaseName = `cisme_migration_${randomUUID().replaceAll("-", "")}`;
 const migrationUrl = new URL(adminUrl);
 migrationUrl.pathname = `/${databaseName}`;
-const admin = new pg.Pool({ connectionString: adminUrl });
+const admin = new pg.Pool({ connectionString: adminUrl.toString() });
 let databaseCreated = false;
 const openPools = new Set<pg.Pool>();
 function migrationPool() { const pool = new pg.Pool({ connectionString: migrationUrl.toString() }); openPools.add(pool); return pool; }
