@@ -6,7 +6,7 @@
 
 运行时 Fastify 注册路由与源码清单、OpenAPI 一致：当前 **224 个 `/v1` method/path**，另有 2 个 health 方法。224/224 有显式 OpenAPI `security` 声明：193 个须签名会话、30 个无会员会话（含公开读取、短期签名媒体、平台回调）、1 个允许游客或签名会员；唯一安全 scheme 为 `session`。公开/可选例外已固定在 `openapi-security-coverage.test.ts` 中；新增或改成公开接口必须显式审阅该清单，遗漏 `security` 会失败。对 193 个签名入口逐条执行无凭据及伪造 Bearer/actor 探针，386/386 返回 401（`protected-route-entry.test.ts`）；这不测试对象/字段/capability，也不把其余 31 个入口当作无保护。原有 22 处旧 `/v1/admin/*` 的共享 token + 自报 principal 声明已更正；新增合成导出、擦除批准和恢复后，当前 25 个管理入口全部在参数化集成测试中确认仅持旧共享口令均为 401。此项只是**契约/入口身份检查**，不等于 224 个业务授权验证。`tests/integration/contract-inventory.test.ts` 校验运行时与源码，`tests/unit/openapi-security-coverage.test.ts` 校验源码与文档及例外清单；`tests/integration/legacy-admin-auth.test.ts` 动态枚举当前管理入口。
 
-按“身份来源、对象、字段、审计与针对性执行测试均已核对”的严格口径，当前**已验证 23 / 224，未验证 201 / 224；这 23 项新增检查中未留下已证实缺陷**。此数量只计算下表地址簿、合成隐私执行、手机号、待支付订单基础接口与合成退款接口，其他测试已有局部覆盖但尚未完成逐项归属核对，暂不计入。未验证项不能推定无缺陷，整个 B 阶段不能标记 PASS。
+按“身份来源、对象、字段、审计与针对性执行测试均已核对”的严格口径，当前**已验证 28 / 224，未验证 196 / 224；这 28 项新增检查中未留下已证实缺陷**。此数量只计算下表地址簿、合成隐私执行、手机号、待支付订单基础接口、合成退款及客服媒体接口，其他测试已有局部覆盖但尚未完成逐项归属核对，暂不计入。未验证项不能推定无缺陷，整个 B 阶段不能标记 PASS。
 
 | Method / path | 类别；可信身份；capability | 对象归属；可读/可写字段；审计 | 合成执行结论 / 测试 ID |
 |---|---|---|---|
@@ -28,6 +28,11 @@
 | `GET /v1/management/refund-requests/pending` | 管理；签名 active member，服务端 `commerce.refund.approve` capability | 全局待审批队列仅对该 capability 开放；字段限申请 ID、订单 ID、申请者 ID、金额、原因、版本和时间；只读无写审计 | 游客 401，无 capability 的 B 403，授权运营者能见当前待审申请；同上 / partial refunds |
 | `POST /v1/management/refund-requests/{requestId}/decision` | 管理；签名 active member，服务端 `commerce.refund.approve` capability | 申请 ID/version、已核验订单状态与原支付/商品分摊事实；申请人或佣金受益人不可自批；提交 memberId/principalId/role 不改审批 actor；写 `commerce.refund.decision` 审计 | 游客 401，无 capability 403，申请人即使有 capability 仍 403，独立审批 200；审计 actor 为签名运营者，累计金额和原退款号保持权威；同上 / partial refunds |
 | `POST /v1/management/refund-submissions/{intentId}/redrive` | 管理；签名 active member，服务端 `commerce.money.reconcile` capability | 仅 quarantined 的 prepared/unknown 原意图，`expectedAttempts` 守卫；伪造 memberId/principalId/state 不改对象或 actor；保留原退款号、只重新查单，写 `commerce.refund_submission_redrive` 审计 | 游客 401，无 capability 403，授权运营者一次重驱 200、同状态重复 409；审计恰一次且 actor 正确、合成渠道无第二个退款号；同上 / original refund number through unknown response |
+| `POST /v1/me/support/media/authorize` | 会员；签名 active member；无管理 capability | `support_member_id` 与会话一致，验证 MIME/大小、上传开关，签名上传 token 仅返本人；客户端 memberId/role 不改变归属；`support.media.authorize` 审计只存会话 actor、媒体 ID、类型和大小，不存 token/URL | 伪造 B 身份仍只为 A 建媒体；审计无 token；`support-commercial-chat.test.ts` / owned image lifecycle |
+| `POST /v1/me/support/media/{mediaId}/complete` | 会员；签名 active member；无管理 capability | 媒体 ID + 本人及会话归属，未过期、字节/MIME 校验后从 authorized 到 uploaded；`support.media.complete` 审计一次，仅存状态/字节数 | B 完成 A 媒体 404；A 完成与重放 200、审计仍恰一次；同上 |
+| `DELETE /v1/me/support/media/{mediaId}` | 会员；签名 active member；无管理 capability | 媒体 ID + 本人，不可删除已发消息绑定图片；未绑定图软删除并排队清理，关上传开关时仍可删除；`support.media.delete` 记录 before/after 但不存 object key/token | B 删除 A 媒体 404，A 删除 200 且产生清理队列，审计 actor 为 A；同上 |
+| `GET /v1/me/support/media/{mediaId}` | 会员；签名 active member；无管理 capability | 仅本人已上传且已绑定消息的图片字节，未绑定及他人 404；`Cache-Control: private, no-store`，只读无写审计 | B 读 A 404，A 读已绑定 200、未绑定 404，返回正确 MIME/私有缓存头；同上 |
+| `GET /v1/management/support/conversations/{conversationId}/media/{mediaId}` | 管理；签名 active member、服务端 `support.read` capability | conversationId + mediaId 绑定且已发消息；只返图片字节，不返 token/object key；私有无缓存，只读无写审计 | 无 capability 403、授权者错会话 404、正确会话 200，缓存头私有；同上 |
 | `POST /v1/admin/privacy-requests/{requestId}/export-approval` | 管理；签名 active operator，服务端 `review_lead` 角色；必须是不同计划人 | 仅 `dev_test` 会员、`APP_ENV=test` 与独立密钥、固定会员资料范围；版本/状态守卫；原因码与 before/after 审计 | 计划人及 support 403、旧版本 409、伪造 actor 403、第二复核人 200；`privacy-rights.test.ts` / synthetic profile export |
 | `GET /v1/me/privacy-requests/{requestId}/export` | 会员；签名 active member；无管理 capability | `request_id + member_id`，只解密本人未过期、未撤销的子集；字段白名单排除他人、手机号密文、token；逐次读取审计 | B 访问 A 为 404，正常读取 200/no-store，过期/撤销 404；`privacy-rights.test.ts` / synthetic profile export |
 | `POST /v1/me/privacy-requests/{requestId}/export-revoke` | 会员；签名 active member；无管理 capability | `request_id + member_id`，忽略伪造 `memberId` 正文；仅修改本人的副本可用性，写 before/after 审计 | B 伪造 owner 字段仍 404，本人撤销 200、后续读取 404；`privacy-rights.test.ts` / synthetic profile export |
@@ -42,6 +47,6 @@
 
 手机号路由的外部微信响应由 `createApp` **仅在 `APP_ENV=test`** 接受的合成 fetcher 注入；其它环境仍使用原实例默认微信传输，本轮未调用真实手机号接口或更改平台设置。
 
-另有 3 个支付意图方法完成了**部分**身份/对象测试，但不纳入 23 个严格完成项：`POST /v1/me/orders/{orderId}/payment-intent`、`GET /v1/me/orders/{orderId}/payment-intent`、`POST /v1/me/orders/{orderId}/cancel-verified`。它们均须签名会员且由 `commerce_payment_attempt.order_id + member_id` 定位；`payment-http-simulation.test.ts` 验证另一会员在预支付、刷新、核验取消时均获 404，预支付/取消未触发错误主体的合成渠道动作，真正取消的审计 actor 为订单会员，原号查单与关单后释放仍通过。`prepare` 和可能写入 inbox 的 `refresh` 尚未建立独立 actor 审计/字段契约检查，因此不将这 3 条写成完整 B 通过；测试也绝非真实微信支付联调。
+另有 3 个支付意图方法完成了**部分**身份/对象测试，但不纳入 28 个严格完成项：`POST /v1/me/orders/{orderId}/payment-intent`、`GET /v1/me/orders/{orderId}/payment-intent`、`POST /v1/me/orders/{orderId}/cancel-verified`。它们均须签名会员且由 `commerce_payment_attempt.order_id + member_id` 定位；`payment-http-simulation.test.ts` 验证另一会员在预支付、刷新、核验取消时均获 404，预支付/取消未触发错误主体的合成渠道动作，真正取消的审计 actor 为订单会员，原号查单与关单后释放仍通过。`prepare` 和可能写入 inbox 的 `refresh` 尚未建立独立 actor 审计/字段契约检查，因此不将这 3 条写成完整 B 通过；测试也绝非真实微信支付联调。
 
-待做：剩余 201 路由按同样口径逐项核对，优先已验证基础订单与退款之后的支付/佣金、管理授权、隐私权利其它入口、客服与 UGC 媒体；继续检查其它队列/第三方 SDK 的错误持久化路径；正式运维身份签发方案尚未获平台批准。因此 `CODE_SECURITY_READY=false`、`ENGINEERING_MERGE_READY=false`、`RELEASE_READY=false`。
+待做：剩余 196 路由按同样口径逐项核对，优先已验证基础订单、退款及客服媒体之后的支付/佣金、管理授权、隐私权利其它入口与 UGC 媒体；公开上传的三条短期签名 token 接口尚未列入严格完成项；继续检查其它队列/第三方 SDK 的错误持久化路径；正式运维身份签发方案尚未获平台批准。因此 `CODE_SECURITY_READY=false`、`ENGINEERING_MERGE_READY=false`、`RELEASE_READY=false`。

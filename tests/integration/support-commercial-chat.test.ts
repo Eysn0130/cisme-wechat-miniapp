@@ -130,14 +130,29 @@ describe.sequential("commercial support conversation facts", () => {
     const bytes = Buffer.from([0xff, 0xd8, 0xff, 0x00]);
     const authorizations: any[] = [];
     for (let index = 0; index < 3; index += 1) {
-      const authorization = await app.inject({ method: "POST", url: "/v1/me/support/media/authorize", headers: auth(member.sessionToken), payload: { mimeType: "image/jpeg", maxBytes: 4 } });
+      const authorization = await app.inject({ method: "POST", url: "/v1/me/support/media/authorize", headers: auth(member.sessionToken),
+        payload: { mimeType: "image/jpeg", maxBytes: 4, memberId: other.memberId, role: "support.read" } });
       expect(authorization.statusCode).toBe(200);
       const body = authorization.json();
       authorizations.push(body);
-      storedObjectKeys.push((await pool.query("SELECT object_key FROM media_object WHERE id=$1", [body.mediaId])).rows[0].object_key);
+      const mediaRow = (await pool.query("SELECT object_key,support_member_id FROM media_object WHERE id=$1", [body.mediaId])).rows[0];
+      storedObjectKeys.push(mediaRow.object_key);
+      expect(mediaRow.support_member_id).toBe(member.memberId);
+      const authorizeAudit = (await pool.query("SELECT principal_id,after_state FROM audit_log WHERE action='support.media.authorize' AND object_id=$1", [body.mediaId])).rows;
+      expect(authorizeAudit).toHaveLength(1);
+      expect(authorizeAudit[0]).toMatchObject({ principal_id: member.principalId,
+        after_state: { conversationId, mimeType: "image/jpeg", maxBytes: 4 } });
+      expect(JSON.stringify(authorizeAudit)).not.toContain(body.fields.token);
       expect((await app.inject({ method: "POST", url: `/v1/uploads/${body.mediaId}/chunks`, payload: { token: body.fields.token, index: 0, totalBytes: bytes.length, base64: bytes.toString("base64") } })).statusCode).toBe(200);
       expect((await app.inject({ method: "POST", url: `/v1/uploads/${body.mediaId}/assemble`, payload: { token: body.fields.token } })).statusCode).toBe(200);
+      if (index === 0) {
+        expect((await app.inject({ method: "POST", url: `/v1/me/support/media/${body.mediaId}/complete`, headers: auth(other.sessionToken) })).statusCode).toBe(404);
+        expect((await app.inject({ method: "DELETE", url: `/v1/me/support/media/${body.mediaId}`, headers: auth(other.sessionToken) })).statusCode).toBe(404);
+      }
       expect((await app.inject({ method: "POST", url: `/v1/me/support/media/${body.mediaId}/complete`, headers: auth(member.sessionToken) })).statusCode).toBe(200);
+      expect((await app.inject({ method: "POST", url: `/v1/me/support/media/${body.mediaId}/complete`, headers: auth(member.sessionToken) })).statusCode).toBe(200);
+      expect((await pool.query("SELECT principal_id,after_state FROM audit_log WHERE action='support.media.complete' AND object_id=$1", [body.mediaId])).rows)
+        .toEqual([{ principal_id: member.principalId, after_state: { uploadState: "uploaded", sizeBytes: bytes.length } }]);
     }
     const mediaIds = authorizations.map((item) => item.mediaId);
 
@@ -154,8 +169,12 @@ describe.sequential("commercial support conversation facts", () => {
     const memberPreview = await app.inject({ method: "GET", url: `/v1/me/support/media/${mediaIds[0]}`, headers: auth(member.sessionToken) });
     expect(memberPreview.statusCode).toBe(200);
     expect(memberPreview.headers["content-type"]).toContain("image/jpeg");
+    expect(memberPreview.headers["cache-control"]).toBe("private, no-store");
+    expect((await app.inject({ method: "GET", url: `/v1/management/support/conversations/${conversationId}/media/${mediaIds[0]}`, headers: auth(other.sessionToken) })).statusCode).toBe(403);
+    expect((await app.inject({ method: "GET", url: `/v1/management/support/conversations/${mediaIds[1]}/media/${mediaIds[0]}`, headers: auth(operator.sessionToken) })).statusCode).toBe(404);
     const operatorPreview = await app.inject({ method: "GET", url: `/v1/management/support/conversations/${conversationId}/media/${mediaIds[0]}`, headers: auth(operator.sessionToken) });
     expect(operatorPreview.statusCode).toBe(200);
+    expect(operatorPreview.headers["cache-control"]).toBe("private, no-store");
 
     const replay = await app.inject({ method: "POST", url: "/v1/me/support/messages", headers: auth(member.sessionToken), payload: { body: "", mediaIds, clientMessageId: "commercial-media-owned" } });
     expect(replay.statusCode).toBe(200);
@@ -163,10 +182,14 @@ describe.sequential("commercial support conversation facts", () => {
 
     const removable = (await app.inject({ method: "POST", url: "/v1/me/support/media/authorize", headers: auth(member.sessionToken), payload: { mimeType: "image/jpeg", maxBytes: 4 } })).json();
     storedObjectKeys.push((await pool.query("SELECT object_key FROM media_object WHERE id=$1", [removable.mediaId])).rows[0].object_key);
+    expect((await app.inject({ method: "GET", url: `/v1/me/support/media/${removable.mediaId}`, headers: auth(member.sessionToken) })).statusCode).toBe(404);
     await pool.query("UPDATE emergency_switch SET enabled=false,reason='synthetic upload stop' WHERE key='uploads'");
+    expect((await app.inject({ method: "DELETE", url: `/v1/me/support/media/${removable.mediaId}`, headers: auth(other.sessionToken) })).statusCode).toBe(404);
     const removedWhileClosed = await app.inject({ method: "DELETE", url: `/v1/me/support/media/${removable.mediaId}`, headers: auth(member.sessionToken) });
     await pool.query("UPDATE emergency_switch SET enabled=true,reason='normal' WHERE key='uploads'");
     expect(removedWhileClosed.statusCode).toBe(200);
     expect(removedWhileClosed.json()).toMatchObject({ deleted: true, cleanupQueued: true });
+    expect((await pool.query("SELECT principal_id,before_state,after_state FROM audit_log WHERE action='support.media.delete' AND object_id=$1", [removable.mediaId])).rows)
+      .toEqual([{ principal_id: member.principalId, before_state: { uploadState: "authorized" }, after_state: { uploadState: "deleted" } }]);
   });
 });

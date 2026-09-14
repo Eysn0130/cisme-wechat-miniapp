@@ -445,10 +445,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const body = (request.body ?? {}) as {mimeType?:unknown;maxBytes?:unknown};
     const protocol = request.headers["x-forwarded-proto"] ?? "http";
     const host = request.headers.host ?? `127.0.0.1:${config.port}`;
-    return support.authorizeSupportMedia(request.memberId, {...body,baseUrl:`${protocol}://${host}`});
+    return support.authorizeSupportMedia(request.memberId, request.principalId, {...body,baseUrl:`${protocol}://${host}`}, request.id);
   });
-  app.post<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId/complete", async request => support.completeSupportMedia(request.memberId, request.params.mediaId));
-  app.delete<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async request => support.deleteSupportMedia(request.memberId, request.params.mediaId));
+  app.post<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId/complete", async request => support.completeSupportMedia(request.memberId, request.principalId, request.params.mediaId, request.id));
+  app.delete<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async request => support.deleteSupportMedia(request.memberId, request.principalId, request.params.mediaId, request.id));
   app.get<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async (request, reply) => {
     const media = await support.memberSupportMedia(request.memberId, request.params.mediaId);
     return reply.header("Cache-Control", "private, no-store").type(media.mimeType).send(Buffer.from(media.bytes));

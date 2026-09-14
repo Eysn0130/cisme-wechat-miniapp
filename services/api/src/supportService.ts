@@ -365,8 +365,9 @@ export class SupportService {
     return { accepted: true, onlineExpiresAt: onlineUntil.toISOString(), typingExpiresAt: typingUntil.toISOString(), serverTime: now.toISOString() };
   }
 
-  async authorizeSupportMedia(memberId: string | undefined, input: { mimeType?: unknown; maxBytes?: unknown; baseUrl: string }, now = new Date()): Promise<UploadAuthorization> {
+  async authorizeSupportMedia(memberId: string | undefined, principalId: string | undefined, input: { mimeType?: unknown; maxBytes?: unknown; baseUrl: string }, traceId: string, now = new Date()): Promise<UploadAuthorization> {
     const owner = required(memberId, "AUTH_REQUIRED");
+    const actor = required(principalId, "AUTH_REQUIRED");
     const mimeType = input.mimeType;
     const maxBytes = Number(input.maxBytes);
     if (!(["image/jpeg", "image/png", "image/webp"] as unknown[]).includes(mimeType) || !Number.isInteger(maxBytes) || maxBytes < 1 || maxBytes > 5 * 1024 * 1024) {
@@ -383,12 +384,17 @@ export class SupportService {
       await client.query(`INSERT INTO media_object
         (id,submission_id,kind,object_key,mime_type,is_current,authorized_max_bytes,support_conversation_id,support_member_id,support_expires_at,authorized_at)
         VALUES($1,NULL,'chat_image',$2,$3,true,$4,$5,$6,$7,$8)`, [id, objectKey, mimeType, maxBytes, row.id, owner, expiresAt, now]);
-      return this.storage.authorize({ mediaId:id,objectKey,mimeType: mimeType as string,maxBytes,baseUrl:input.baseUrl,now });
+      const authorization = await this.storage.authorize({ mediaId:id,objectKey,mimeType: mimeType as string,maxBytes,baseUrl:input.baseUrl,now });
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
+        VALUES($1,'support.media.authorize','media_object',$2,$3,$4)`,
+        [actor,id,{conversationId:row.id,mimeType,maxBytes},traceId]);
+      return authorization;
     });
   }
 
-  async completeSupportMedia(memberId: string | undefined, mediaId: string, now = new Date()) {
+  async completeSupportMedia(memberId: string | undefined, principalId: string | undefined, mediaId: string, traceId: string, now = new Date()) {
     const owner = required(memberId, "AUTH_REQUIRED");
+    const actor = required(principalId, "AUTH_REQUIRED");
     const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
     const outcome = await transaction(this.pool, async (client) => {
       await this.platform.assertSwitch(client, "uploads");
@@ -411,14 +417,18 @@ export class SupportService {
       const media = (await client.query(`UPDATE media_object SET upload_state='uploaded',content_hash=$1,size_bytes=$2,uploaded_at=$3
         WHERE id=$4 RETURNING id,mime_type,size_bytes,upload_state`, [stored.checksumBase64, stored.bytes, now, targetMediaId])).rows[0];
       await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [targetMediaId]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
+        VALUES($1,'support.media.complete','media_object',$2,$3,$4)`,
+        [actor,targetMediaId,{uploadState:"uploaded",sizeBytes:stored.bytes},traceId]);
       return { media };
     });
     if ("error" in outcome) throw outcome.error;
     return outcome.media;
   }
 
-  async deleteSupportMedia(memberId: string | undefined, mediaId: string, now = new Date()) {
+  async deleteSupportMedia(memberId: string | undefined, principalId: string | undefined, mediaId: string, traceId: string, now = new Date()) {
     const owner = required(memberId, "AUTH_REQUIRED");
+    const actor = required(principalId, "AUTH_REQUIRED");
     const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
     return transaction(this.pool, async (client) => {
       const media = await client.query<{object_key:string;upload_state:string;bound_support_message_id:string|null}>(`SELECT object_key,upload_state,bound_support_message_id
@@ -430,6 +440,9 @@ export class SupportService {
       await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
         VALUES($1,$2,'support_deleted',$3) ON CONFLICT DO NOTHING`, [targetMediaId, row.object_key, now]);
       await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [targetMediaId]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,before_state,after_state,trace_id)
+        VALUES($1,'support.media.delete','media_object',$2,$3,$4,$5)`,
+        [actor,targetMediaId,{uploadState:row.upload_state},{uploadState:"deleted"},traceId]);
       return { deleted:true,cleanupQueued:true };
     });
   }
