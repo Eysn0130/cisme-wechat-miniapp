@@ -75,6 +75,16 @@ describe("R4-B isolated pending-payment order flow", () => {
     const target = await address(buyerA, "1001");
     const first = await quote(buyerA, target, "quote-idem-buyer-a-01", 2);
     expect(first.statusCode).toBe(200);
+    expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='commerce.quote.create' AND object_id=$1",
+      [first.json().id])).rows[0].principal_id).toBe(buyerA.principalId);
+    const crossAddress = await quote(buyerB, target, "cross0001");
+    expect(crossAddress.statusCode).toBe(404);
+    expect(crossAddress.json().code).toBe("DELIVERY_ADDRESS_NOT_FOUND");
+    const forgedQuote = await app.inject({ method: "POST", url: "/v1/me/commerce/quotes",
+      headers: { ...auth(buyerA.sessionToken), "idempotency-key": "cross0002" },
+      payload: { skuId: product.variants[0].id, quantity: 1, addressId: target.id,
+        addressVersion: target.version, memberId: buyerB.memberId, role: "review_lead", totalCents: 1 } });
+    expect(forgedQuote.statusCode).toBe(422);
     for(const unsupported of [{couponCode:"coupon-01"},{pointsTenderCents:100},{shoppingCreditCents:100},
       {lines:[{skuId:product.variants[0].id}]},{purpose:"commercial_purchase"}]){
       const rejected=await app.inject({method:"POST",url:"/v1/me/commerce/quotes",
@@ -95,6 +105,27 @@ describe("R4-B isolated pending-payment order flow", () => {
     const created = await createOrder(buyerA, quoted.id, "order-create-buyer-a-01");
     expect(created.statusCode).toBe(200);
     expect(created.json()).toMatchObject({ status: "pending_payment", currency: "CNY", totalCents: 12345, paymentAvailable: false, address: { recipientName: "合成收货人1001", phone: "13800001001" } });
+    expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='commerce.order.create' AND object_id=$1",
+      [created.json().id])).rows[0].principal_id).toBe(buyerA.principalId);
+    const crossQuoteCreate = await createOrder(buyerB, quoted.id, "cross0003");
+    expect(crossQuoteCreate.statusCode).toBe(404);
+    expect(crossQuoteCreate.json().code).toBe("QUOTE_NOT_FOUND");
+    const forgedCreate = await app.inject({ method: "POST", url: "/v1/me/orders",
+      headers: { ...auth(buyerB.sessionToken), "idempotency-key": "cross0004" },
+      payload: { quoteId: quoted.id, memberId: buyerA.memberId, status: "paid", role: "review_lead" } });
+    expect(forgedCreate.statusCode).toBe(422);
+    const crossList = await app.inject({ method: "GET", url: "/v1/me/orders?limit=20",
+      headers: auth(buyerB.sessionToken) });
+    expect(crossList.statusCode).toBe(200);
+    expect(crossList.json().items.some((item: { id: string }) => item.id === created.json().id)).toBe(false);
+    expect(JSON.stringify(crossList.json())).not.toContain("13800001001");
+    const crossCancel = await app.inject({ method: "POST", url: `/v1/me/orders/${created.json().id}/cancel`,
+      headers: { ...auth(buyerB.sessionToken), "idempotency-key": "cross0005" },
+      payload: { expectedVersion: created.json().version, reason: "合成跨人取消", memberId: buyerA.memberId, role: "review_lead" } });
+    expect(crossCancel.statusCode).toBe(404);
+    expect(crossCancel.json().code).toBe("ORDER_NOT_FOUND");
+    expect((await pool.query("SELECT count(*)::int AS n FROM audit_log WHERE action='commerce.order.cancel' AND object_id=$1",
+      [created.json().id])).rows[0].n).toBe(0);
     const snapshot=(await pool.query("SELECT buyer_member_id,referrer_member_id,basis_points,cash_merchandise_cents,source_kind FROM commission_order_snapshot WHERE order_id=$1",[created.json().id])).rows[0];
     expect(snapshot).toMatchObject({buyer_member_id:buyerA.memberId,referrer_member_id:buyerB.memberId,basis_points:2000,
       cash_merchandise_cents:"12345",source_kind:"synthetic_nonproduction"});
@@ -110,6 +141,10 @@ describe("R4-B isolated pending-payment order flow", () => {
     expect(management.json().address).toEqual({ recipientNameMasked: "合**", phoneMasked: "****1001", province: "上海市", city: "上海市", district: "浦东新区" });
     expect(JSON.stringify(management.json())).not.toContain("合成测试路");
     expect((await app.inject({ method: "GET", url: `/v1/me/orders/${created.json().id}`, headers: auth(buyerB.sessionToken) })).statusCode).toBe(404);
+    const ownDetail = await app.inject({ method: "GET", url: `/v1/me/orders/${created.json().id}`, headers: auth(buyerA.sessionToken) });
+    expect(ownDetail.statusCode).toBe(200);
+    expect(ownDetail.json().address).toMatchObject({ recipientName: "合成收货人1001", phone: "13800001001" });
+    expect(ownDetail.body).not.toContain("encrypted_payload");
 
     const latestInventory = (await app.inject({ method: "GET", url: `/v1/management/catalog/products/${product.productId}`, headers: auth(operator.sessionToken) })).json().variants[0];
     const belowReserved = await app.inject({ method: "POST", url: `/v1/management/catalog/skus/${latestInventory.id}/inventory-adjustments`, headers: { ...auth(operator.sessionToken), "idempotency-key": "r4b-stock-below-reserved" },
@@ -117,8 +152,10 @@ describe("R4-B isolated pending-payment order flow", () => {
     expect(belowReserved.statusCode).toBe(409); expect(belowReserved.json().code).toBe("INVENTORY_RESERVED_QUANTITY_CONFLICT");
 
     const cancelled = await app.inject({ method: "POST", url: `/v1/me/orders/${created.json().id}/cancel`, headers: { ...auth(buyerA.sessionToken), "idempotency-key": "order-cancel-buyer-a-01" },
-      payload: { expectedVersion: created.json().version, reason: "合成测试取消" } });
+      payload: { expectedVersion: created.json().version, reason: "合成测试取消", memberId: buyerB.memberId, role: "review_lead", status: "paid" } });
     expect(cancelled.statusCode).toBe(200); expect(cancelled.json()).toMatchObject({ status: "cancelled", version: 2 });
+    expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='commerce.order.cancel' AND object_id=$1",
+      [created.json().id])).rows[0].principal_id).toBe(buyerA.principalId);
     expect((await pool.query("SELECT count(*)::int AS n FROM commission_ledger_entry WHERE order_id=$1",[created.json().id])).rows[0].n).toBe(0);
     const cancelReplay = await app.inject({ method: "POST", url: `/v1/me/orders/${created.json().id}/cancel`, headers: { ...auth(buyerA.sessionToken), "idempotency-key": "order-cancel-buyer-a-01" },
       payload: { expectedVersion: created.json().version, reason: "合成测试取消" } });
