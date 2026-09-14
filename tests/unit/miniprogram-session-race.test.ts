@@ -83,6 +83,55 @@ it('retries a standard WeChat request:fail error once for an idempotent read',as
  } finally { vi.useRealTimers(); }
 });
 
+it('backs off once for an essential 429 read without clearing identity',async()=>{
+ vi.useFakeTimers();
+ try {
+  const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+  const result=api.request({path:'/v1/me'});
+  wxMock.request.mock.calls[0]![0].success({statusCode:429,data:{code:'RATE_LIMITED',retryAfterSeconds:1,title:'请稍后重试'}});
+  await vi.advanceTimersByTimeAsync(999);
+  expect(wxMock.request).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(wxMock.request).toHaveBeenCalledTimes(2);
+  wxMock.request.mock.calls[1]![0].success({statusCode:200,data:{id:'current-member'}});
+  await expect(result).resolves.toEqual({id:'current-member'});
+  expect(state.globalData.sessionToken).toBe('old-session');
+  expect(wxMock.navigateTo).not.toHaveBeenCalled();
+ } finally {vi.useRealTimers();}
+});
+
+it('never auto-retries a 429 write or an unbounded 429 read',async()=>{
+ const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+ const write=api.request({path:'/v1/me/orders',method:'POST',idempotencyKey:'stable-order-intent',data:{quoteId:'synthetic'}});
+ wxMock.request.mock.calls[0]![0].success({statusCode:429,data:{code:'RATE_LIMITED',retryAfterSeconds:1}});
+ await expect(write).rejects.toMatchObject({status:429,code:'RATE_LIMITED'});
+ const read=api.request({path:'/v1/me/orders'});
+ wxMock.request.mock.calls[1]![0].success({statusCode:429,data:{code:'RATE_LIMITED',retryAfterSeconds:60}});
+ await expect(read).rejects.toMatchObject({status:429,code:'RATE_LIMITED'});
+ expect(wxMock.request).toHaveBeenCalledTimes(2);
+ expect(state.globalData.sessionToken).toBe('old-session');
+});
+
+it('cancels a queued 429 retry after identity or page changes',async()=>{
+ vi.useFakeTimers();
+ try {
+  const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+  const switched=api.request({path:'/v1/me'}).catch((error:unknown)=>error);
+  wxMock.request.mock.calls[0]![0].success({statusCode:429,data:{code:'RATE_LIMITED',retryAfterSeconds:1}});
+  api.setSessionToken('new-member');
+  await vi.advanceTimersByTimeAsync(100);
+  expect(await switched).toMatchObject({code:'REQUEST_CONTEXT_CHANGED'});
+  expect(wxMock.request).toHaveBeenCalledTimes(1);
+
+  const departed=api.request({path:'/v1/me'}).catch((error:unknown)=>error);
+  wxMock.request.mock.calls[1]![0].success({statusCode:429,data:{code:'RATE_LIMITED',retryAfterSeconds:1}});
+  Object.assign(globalThis,{getCurrentPages:()=>[{route:'pages/settings/index'}]});
+  await vi.advanceTimersByTimeAsync(100);
+  expect(await departed).toMatchObject({code:'REQUEST_CONTEXT_CHANGED'});
+  expect(wxMock.request).toHaveBeenCalledTimes(2);
+ } finally {vi.useRealTimers();}
+});
+
 it('aborts a cancelable native request and rejects a successful response from an old session',async()=>{
  const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
  const aborted=api.requestCancelable({path:'/v1/me'});

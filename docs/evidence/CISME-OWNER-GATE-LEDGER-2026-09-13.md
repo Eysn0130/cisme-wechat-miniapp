@@ -2,6 +2,12 @@
 
 `ENGINEERING_MERGE_READY = FALSE`。本账本区分源码工程、GitHub 审查、独立 staging、微信平台、体验版和真机；任何一层 PASS 都不替代下一层。最终以 PR #3 的当前 HEAD 和小程序包 SHA 双重绑定验收。PRD 基线为 `docs/product/CISME-产品需求文档-PRD-V2.1-R4.md`，尤其 §6.3.1、§6.6.2、§6.8、§15.4–15.6。
 
+## 2026-09-14 续建状态（A 阶段候选，优先于下方历史数值）
+
+本账本下方 `2026-09-13` 的 345/162、46 提交与 `8c1185cf…` 是当时基线，**不能转写为当前版本结果**。本轮从 PR3 `557243a` 起步，PR2 base 仍为 `f655fff`；A 阶段源码候选小程序 SHA-256 为 `cbeec1e98b46de2ce297915c48a29ad4795b12b2d6248964fad25b491fe27aef`。当前本地 51 文件/348 单测、33 文件/168 集成测试、build/typecheck、219 方法契约、37 路由静态审计、250 文件包门禁通过；设计 QA 仍 `releaseReady=false`。详见 `docs/evidence/CISME-A-TRUSTED-ACTOR-RATE-LIMIT-2026-09-14.md`。候选提交及 CI 状态在提交/推送后以 PR3 实时状态为准，避免文件自指 SHA 无限提交。
+
+原旧管理共享口令 actor 冒用已由合成测试复现并修复；入口与鉴权后分层限流、原生 429 恢复已完成源码/合成回归，**尚未完成 B 的 219 接口授权与日志、C 的隐私执行、D 本地完整部署、E 当前包 DevTools/真机**。独立测试容器是本地环境，不是云端 staging。当前总状态：`CODE_SECURITY_READY=false`、`LOCAL_STACK_VERIFIED=false`、`CLOUD_STAGING_STATUS=BLOCKED`、`NATIVE_RUNTIME_ACCEPTANCE=0/37`、`PRIVACY_EXECUTION_STATUS=PLAN_ONLY/DRY_RUN`、`ENGINEERING_MERGE_READY=false`、`RELEASE_READY=false`。旧章节中“下一件可独立执行：等待限流确认”已由 2026-09-14 Owner 明确授权取代，不再是阻塞项。
+
 ## BASELINE
 
 | 项 | 实时核验结果 |

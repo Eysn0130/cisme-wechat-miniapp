@@ -20,7 +20,7 @@ it('protects all native review routes against guests and forged client roles',as
  await pool.query("INSERT INTO member_team_access(member_id,role,granted_by) VALUES($1,'administrator','legacy-fixture')",[member.memberId]);
  for(const url of ['/v1/team/reviews','/v1/team/publications']) {
   expect((await app.inject({method:'GET',url})).statusCode).toBe(401);
-  expect((await app.inject({method:'GET',url,headers:{...headers(member.sessionToken),'x-principal-id':team.principalId,'x-admin-token':config.adminApiToken}})).statusCode).toBe(403);
+  expect((await app.inject({method:'GET',url,headers:{...headers(member.sessionToken),'x-principal-id':team.principalId,'x-admin-token':'irrelevant-forged-secret'}})).statusCode).toBe(403);
   expect((await app.inject({method:'GET',url,headers:headers(team.sessionToken)})).statusCode).toBe(200);
  }
  for(const action of ['review','publish']) expect((await app.inject({method:'POST',url:`/v1/team/submissions/00000000-0000-0000-0000-000000000000/${action}`,headers:{...headers(member.sessionToken),'idempotency-key':'forged-operation'},payload:{}})).statusCode).toBe(403);

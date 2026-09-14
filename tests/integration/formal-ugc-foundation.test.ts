@@ -3,6 +3,7 @@ import { loadConfig } from '@cisme/config';
 import { TEST_DATABASE_URL, resetDatabase, testPool } from '@cisme/testkit';
 import { createApp } from '../../services/api/src/server';
 import { createApiGatewayStorage } from '../../services/api/src/storage';
+import { operatorHeaders } from './operator-session';
 
 const pool=testPool();
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'ugc-foundation-test',ADMIN_API_TOKEN:'ugc-foundation-admin',UPLOAD_TOKEN_SECRET:'ugc-foundation-upload',OBJECT_STORAGE_DRIVER:'api_gateway'});
@@ -23,7 +24,7 @@ afterAll(async()=>{await app.close();await pool.end();});
 it('keeps formal UGC structurally separate and public publication closed without approval',async()=>{
   const current=(await pool.query("SELECT enabled,version FROM emergency_switch WHERE key='community'")).rows[0];
   expect(current).toMatchObject({enabled:false,version:1});
-  const response=await app.inject({method:'PUT',url:'/v1/admin/switches/community',headers:{'x-admin-token':'ugc-foundation-admin','x-principal-id':'ugc-review-lead','idempotency-key':'formal-community-enable-v1'},payload:{enabled:true,reason:'premature test',expectedVersion:1}});
+  const response=await app.inject({method:'PUT',url:'/v1/admin/switches/community',headers:operatorHeaders(config,'ugc-review-lead',firstMember,{'idempotency-key':'formal-community-enable-v1'}),payload:{enabled:true,reason:'premature test',expectedVersion:1}});
   expect(response.statusCode).toBe(409);expect(response.json().code).toBe('COMMUNITY_RELEASE_NOT_IMPLEMENTED');
   await expect(pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'")).rejects.toMatchObject({code:'23514'});
   const feed=await app.inject({method:'GET',url:'/v1/ugc/posts',headers:{authorization:`Bearer ${firstSessionToken}`}});

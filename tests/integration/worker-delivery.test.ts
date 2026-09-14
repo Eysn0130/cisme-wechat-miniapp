@@ -5,6 +5,7 @@ import { TEST_DATABASE_URL, resetDatabase, testPool } from "@cisme/testkit";
 import { createApp } from "../../services/api/src/server";
 import type { ObjectStorage } from "../../services/api/src/storage";
 import { processMediaCleanup, processOutboxBatch, sweepExpired, WORKER_MAX_ATTEMPTS } from "../../services/worker/src/main";
+import { operatorHeaders } from "./operator-session";
 
 const pool = testPool();
 const config = loadConfig({
@@ -27,14 +28,13 @@ const storage: ObjectStorage = {
   async delete() { if (deleteShouldFail) throw new Error("DELETE_TEMPORARILY_UNAVAILABLE"); }
 };
 let app: FastifyInstance;
+let operatorMemberId = "";
 
 function adminHeaders(principal: string, key?: string) {
-  return {
-    "x-admin-token": "test-admin-token",
-    "x-principal-id": principal,
+  return operatorHeaders(config, principal, operatorMemberId, {
     "x-dev-clock": "2026-08-15T03:00:00Z",
     ...(key ? { "idempotency-key": key } : {})
-  };
+  });
 }
 
 async function insertPublicationSource(businessKey: string, now: Date) {
@@ -61,6 +61,7 @@ async function insertPublicationSource(businessKey: string, now: Date) {
 
 beforeAll(async () => {
   await resetDatabase(pool);
+  operatorMemberId = (await pool.query<{ id: string }>("INSERT INTO member(display_name) VALUES ('synthetic-worker-operator') RETURNING id")).rows[0]!.id;
   await pool.query("INSERT INTO principal_role(principal_id,role) VALUES ('worker-lead','review_lead'),('worker-auditor','auditor')");
   app = await createApp({ config, pool, storage });
 });

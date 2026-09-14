@@ -46,14 +46,12 @@ const databaseUrl = testDatabaseUrl();
 if (!process.argv.includes("--reset")) fail("EXPLICIT_RESET_REQUIRED");
 
 const secret = () => randomBytes(32).toString("hex");
-const adminToken = secret();
 const config = loadConfig({
   APP_ENV: "test",
   PORT: String(acceptancePort),
   DATABASE_URL: databaseUrl,
   ALLOW_DEV_ADAPTERS: "true",
   APP_SESSION_SECRET: secret(),
-  ADMIN_API_TOKEN: adminToken,
   UPLOAD_TOKEN_SECRET: secret(),
   OBJECT_STORAGE_DRIVER: "api_gateway",
   CONTACT_ENCRYPTION_KEY: secret(),
@@ -93,9 +91,6 @@ async function seedFixtures() {
   await storage.ensureReady();
   app = await createApp({ config, pool, storage });
 
-  await pool.query(`INSERT INTO principal_role(principal_id,role)
-    VALUES('local-acceptance-admin','review_lead'),('local-acceptance-admin','support')
-    ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active)
     VALUES
       ('privacy','local-acceptance-v1','本地验收隐私说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','local@example.invalid',true),
@@ -114,6 +109,8 @@ async function seedFixtures() {
     }
   }), "IDENTITY");
   const auth = { authorization: `Bearer ${identity.sessionToken}` };
+  await pool.query(`INSERT INTO principal_role(principal_id,role)
+    VALUES($1,'review_lead'),($1,'support') ON CONFLICT DO NOTHING`, [identity.principalId]);
 
   body(await app.inject({
     method: "PUT",
@@ -237,7 +234,7 @@ async function seedFixtures() {
   const enrollment = body<any>(await app.inject({
     method: "POST",
     url: "/v1/admin/tester-enrollments",
-    headers: { "x-admin-token": adminToken, "x-principal-id": "local-acceptance-admin", "x-dev-clock": "2026-09-01T09:00:00+08:00" },
+    headers: { ...auth, "x-dev-clock": "2026-09-01T09:00:00+08:00" },
     payload: {
       memberId: identity.memberId,
       qualificationType: "approved_tester_fulfillment",

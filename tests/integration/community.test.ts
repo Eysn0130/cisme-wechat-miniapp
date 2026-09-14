@@ -5,22 +5,24 @@ import { TEST_DATABASE_URL, resetDatabase, testPool } from "@cisme/testkit";
 import { createApp } from "../../services/api/src/server";
 import { createApiGatewayStorage } from "../../services/api/src/storage";
 import { CommunityService } from "../../services/api/src/communityService";
+import { operatorHeaders } from "./operator-session";
 const pool = testPool();
 const config = loadConfig({ APP_ENV: "test", DATABASE_URL: TEST_DATABASE_URL, APP_SESSION_SECRET: "community-test", ADMIN_API_TOKEN: "community-test-admin", UPLOAD_TOKEN_SECRET: "community-test-upload", OBJECT_STORAGE_DRIVER: "api_gateway" });
 let app: FastifyInstance;
 let owner = "", visitor = "", commentId = "";
+let ownerMemberId = "", visitorMemberId = "";
 const base = "/v1/community/brand-scalp-ritual";
 const headers = (token: string) => ({ authorization: `Bearer ${token}` });
 const send = (token: string, key: string, body: string, replyToId?: string, url=base) => app.inject({ method: "POST", url: `${url}/comments`, headers: { ...headers(token), "idempotency-key": key }, payload: { body, replyToId } });
-const review = (id: string) => app.inject({ method: "POST", url: `/v1/admin/community/brand-scalp-ritual/comments/${id}/review`, headers: { "x-admin-token": config.adminApiToken, "x-principal-id": "community-lead" }, payload: { decision: "published", reason: "已核对真实友善表达" } });
+const review = (id: string) => app.inject({ method: "POST", url: `/v1/admin/community/brand-scalp-ritual/comments/${id}/review`, headers: operatorHeaders(config, "community-lead", ownerMemberId), payload: { decision: "published", reason: "已核对真实友善表达" } });
 beforeAll(async () => {
   await resetDatabase(pool);
   app = await createApp({ config, pool, storage: createApiGatewayStorage(config) });
   for (const id of ["community-owner", "community-visitor"]) {
     const response = await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: id, displayName: id, consents: [{ documentType: "privacy", version: "v1" }, { documentType: "terms", version: "v1" }] } });
     expect(response.statusCode).toBe(200);
-    if (id === "community-owner") owner = response.json().sessionToken;
-    else visitor = response.json().sessionToken;
+    if (id === "community-owner") { owner = response.json().sessionToken; ownerMemberId = response.json().memberId; }
+    else { visitor = response.json().sessionToken; visitorMemberId = response.json().memberId; }
   }
   await pool.query("INSERT INTO principal_role(principal_id,role) VALUES('community-lead','review_lead')");
 });
@@ -58,7 +60,7 @@ describe("authenticated community preview", () => {
     expect((await send(visitor,"comment-pending-reply","回复未发布的评论",commentId)).statusCode).toBe(409);
   });
   it("requires review authority, records audit, and publishes nested replies", async () => {
-    const denied = await app.inject({ method: "POST", url: `/v1/admin/community/brand-scalp-ritual/comments/${commentId}/review`, headers: { "x-admin-token": config.adminApiToken, "x-principal-id": "unprivileged" }, payload: { decision: "published", reason: "测试审核权限" } });
+    const denied = await app.inject({ method: "POST", url: `/v1/admin/community/brand-scalp-ritual/comments/${commentId}/review`, headers: operatorHeaders(config, "unprivileged", visitorMemberId), payload: { decision: "published", reason: "测试审核权限" } });
     expect(denied.statusCode).toBe(403);
     expect((await review(commentId)).statusCode).toBe(200);
     const reply = await send(visitor,"comment-reply-001","我也在坚持记录",commentId);

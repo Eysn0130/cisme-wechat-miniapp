@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import rateLimit from "@fastify/rate-limit";
 import type pg from "pg";
 import { loadConfig, type AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
@@ -43,6 +44,7 @@ import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
 import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
 import { recordHttpRequest, runtimeMetrics, safeLoggerOptions } from "./observability.js";
+import { createRateLimitChecks } from "./rateLimits.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -67,10 +69,13 @@ function devClock(request: FastifyRequest): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function adminPrincipal(request: FastifyRequest, config: AppConfig): string {
-  if (request.headers["x-admin-token"] !== config.adminApiToken) throw new DomainError("ADMIN_AUTH_REQUIRED", "Admin token required", 401);
-  const principal = request.headers["x-principal-id"];
-  if (typeof principal !== "string" || !principal) throw new DomainError("ADMIN_PRINCIPAL_REQUIRED", "Admin principal required", 401);
+function adminPrincipal(request: FastifyRequest, _config: AppConfig): string {
+  // The legacy shared secret is not an actor credential. Only the signed
+  // session resolved by the common preHandler may select an audit principal.
+  const principal = request.principalId;
+  if (!principal) throw new DomainError("ADMIN_AUTH_REQUIRED", "Operator session required", 401);
+  const claimed = request.headers["x-principal-id"];
+  if (claimed !== undefined && claimed !== principal) throw new DomainError("ADMIN_ACTOR_MISMATCH", "Operator actor does not match session", 403);
   return principal;
 }
 
@@ -156,11 +161,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
   registerCloudHttpTransport(app);
+  await app.register(rateLimit, { global: false, cache: config.api.rateLimit.cacheSize });
+  const rateChecks = createRateLimitChecks(app, config.api.rateLimit);
 
-  app.addHook("onRequest", async (request) => {
+  app.addHook("onRequest", async (request, reply) => {
     (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeStartedAt = performance.now();
     (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeColdStart = coldStart;
     coldStart = false;
+    await rateChecks.onRequest(request, reply);
   });
   app.addHook("onSend", async (request, reply, payload) => {
     const started = (request as FastifyRequest & { cismeStartedAt?: number }).cismeStartedAt ?? performance.now();
@@ -184,18 +192,20 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       : null;
     const domain = error instanceof DomainError ? error : databaseDomain;
     const status = domain?.status ?? ((error as { statusCode?: number }).statusCode ?? 500);
+    const retryAfter = Number(reply.getHeader("Retry-After"));
     if (status >= 500) request.log.error(error);
     void reply.status(status).type("application/problem+json").send({
       type: `https://cisme.example/problems/${domain?.code ?? "INTERNAL_ERROR"}`,
       title: domain?.message ?? "Internal server error",
       status,
       code: domain?.code ?? "INTERNAL_ERROR",
+      ...(status === 429 && Number.isInteger(retryAfter) && retryAfter > 0 ? { retryAfterSeconds: retryAfter } : {}),
       ...(config.env === "test" && !domain ? { detail: (error as Error).message } : {}),
       trace_id: request.id
     });
   });
 
-  app.addHook("preHandler", async (request) => {
+  app.addHook("preHandler", async (request, reply) => {
     if (process.env.CISME_MIGRATION_READ_ONLY === "true" && !["GET", "HEAD", "OPTIONS"].includes(request.method)) throw new DomainError("SERVICE_MIGRATING", "会员服务正在迁移，请稍后重试；已保存的数据不受影响", 503);
     const path = request.url.split("?")[0] ?? request.url;
     const publicCommunityRead = request.method === "GET" && /^\/v1\/community\/[^/]+$/.test(path) && !request.headers.authorization;
@@ -210,7 +220,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         /^\/v1\/ugc\/scan-source\/[0-9a-f-]+$/i.test(path) ||
         /^\/v1\/ugc\/own-preview\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/admin/") || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
@@ -218,6 +228,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     }
     if (principal.memberId) request.memberId = principal.memberId;
     request.principalId = principal.id;
+    await rateChecks.afterAuth(request, reply);
   });
 
   app.get("/health/live", async () => ({ status: "ok" }));

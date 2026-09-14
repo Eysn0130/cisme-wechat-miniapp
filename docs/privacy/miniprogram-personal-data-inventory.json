@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-13",
+  "inventoryDate": "2026-09-14",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -445,5 +445,5 @@
     }
   ],
   "migrationSetSha256": "fc20bb75202a7024ba3ee289a06593b7e3eef6a853246a5d448eb7b4b2a82fdc",
-  "egressSignatureSha256": "1e5864578036c798b1217d73f7ec028a6ced37ce73c90e5cd4dfce352f72dd0a"
+  "egressSignatureSha256": "8965fbe8964fa81c097c5c88908df9f7e32c2bae8a1bf9982e45dc5d82e4f39e"
 }

@@ -33,8 +33,7 @@ interface PointsActionItem {
 
 const state = {
   api: localStorage.getItem("cisme.admin.api") || "http://127.0.0.1:3100",
-  token: sessionStorage.getItem("cisme.admin.token") || "",
-  principal: sessionStorage.getItem("cisme.admin.principal") || "admin-reviewer",
+  token: "",
   queue: [] as ReviewItem[], selected: null as ReviewItem | null,
   pointsGrants: [] as PointsGrantItem[], pointsActions: [] as PointsActionItem[], selectedFinance: null as { kind: "grant" | "action"; id: string } | null,
   privacyRequests: [] as Array<{id:string;member_id:string;kind:string;message:string;status:string;version:number;response?:string;execution?:{type:string;status:string;executionMode:string}}>, privacyBusy:false,
@@ -51,8 +50,8 @@ function render() {
     <header><div><span class="eyebrow">CISME OPERATIONS</span><h1>审核、发布与积分资产台</h1></div><div class="status">R0 · 内容与财务双人复核</div></header>
     <section class="credentials panel">
       <label>API 地址<input id="api" value="${escapeHtml(state.api)}"/></label>
-      <label>审核 Principal<input id="principal" value="${escapeHtml(state.principal)}"/></label>
-      <label>本次会话 Token<input id="token" type="password" value="${escapeHtml(state.token)}" autocomplete="off"/></label>
+      <label>已验证操作员会话<input id="token" type="password" value="${escapeHtml(state.token)}" autocomplete="off"/></label>
+      <p class="guard-note">共享管理口令与手填 Principal 已停用；此受控台不会自行提升身份。正式环境需接入已批准的操作员登录流程。</p>
       <button id="load">${state.loading ? "同步中…" : "读取授权队列"}</button>
     </section>
     <section class="enrollment panel">
@@ -147,11 +146,10 @@ function bindEvents() {
 
 function credentials() {
   state.api = (document.querySelector<HTMLInputElement>("#api")?.value || state.api).replace(/\/$/, "");
-  state.principal = document.querySelector<HTMLInputElement>("#principal")?.value || state.principal;
   state.token = document.querySelector<HTMLInputElement>("#token")?.value || state.token;
   localStorage.setItem("cisme.admin.api", state.api);
-  sessionStorage.setItem("cisme.admin.principal", state.principal);
-  sessionStorage.setItem("cisme.admin.token", state.token);
+  sessionStorage.removeItem("cisme.admin.principal");
+  sessionStorage.removeItem("cisme.admin.token");
 }
 
 let queueRequestEpoch = 0;
@@ -163,7 +161,7 @@ async function api(path: string, init?: RequestInit, signal?: AbortSignal) {
   if (signal?.aborted) abort(); else signal?.addEventListener("abort", abort, { once: true });
   const timer = window.setTimeout(() => controller.abort(new DOMException("请求超时", "TimeoutError")), 8_000);
   try {
-    const response = await fetch(`${state.api}${path}`, { ...init, signal: controller.signal, headers: { "content-type": "application/json", "x-admin-token": state.token, "x-principal-id": state.principal, ...init?.headers } });
+    const response = await fetch(`${state.api}${path}`, { ...init, signal: controller.signal, headers: { "content-type": "application/json", authorization: `Bearer ${state.token}`, ...init?.headers } });
     const body = await response.json();
     if (!response.ok) throw new Error(body.title || body.code || "请求失败");
     return body;

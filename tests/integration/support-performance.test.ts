@@ -4,7 +4,7 @@ import {loadConfig} from "@cisme/config";
 import {TEST_DATABASE_URL,resetDatabase,testPool} from "@cisme/testkit";
 import {createApp} from "../../services/api/src/server";
 import {createApiGatewayStorage} from "../../services/api/src/storage";
-const pool=testPool();const config=loadConfig({APP_ENV:"test",DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:"support-perf-session",ADMIN_API_TOKEN:"support-perf-admin",UPLOAD_TOKEN_SECRET:"support-perf-upload",OBJECT_STORAGE_DRIVER:"api_gateway"});let app:FastifyInstance;
+const pool=testPool();const config=loadConfig({APP_ENV:"test",DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:"support-perf-session",ADMIN_API_TOKEN:"support-perf-admin",UPLOAD_TOKEN_SECRET:"support-perf-upload",OBJECT_STORAGE_DRIVER:"api_gateway",API_RATE_LOGIN_MAX:"200"});let app:FastifyInstance;
 beforeAll(async()=>{await resetDatabase(pool);app=await createApp({config,pool,storage:createApiGatewayStorage(config)});});afterAll(async()=>{await app.close();await pool.end();});
 it("accepts one first support message from 100 isolated members without failure",async()=>{
  const members=await Promise.all(Array.from({length:100},(_,index)=>app.inject({method:"POST",url:"/v1/identity/dev",payload:{externalUserId:`support-perf-${index}`,displayName:`成员 ${index}`,consents:[{documentType:"privacy",version:"v1"},{documentType:"terms",version:"v1"}]}}).then(response=>response.json())));
