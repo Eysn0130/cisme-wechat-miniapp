@@ -518,9 +518,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return refunds;
   };
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
-    paymentRequired().prepare(request.memberId,request.params.orderId));
+    paymentRequired().prepare(request.memberId,request.principalId,request.params.orderId,request.id));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
-    paymentRequired().refresh(request.memberId,request.params.orderId));
+    paymentRequired().refresh(request.memberId,request.principalId,request.params.orderId,request.id));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
     paymentRequired().cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>,request.id));

@@ -6,7 +6,7 @@
 
 运行时 Fastify 注册路由与源码清单、OpenAPI 一致：当前 **224 个 `/v1` method/path**，另有 2 个 health 方法。224/224 有显式 OpenAPI `security` 声明：193 个须签名会话、30 个无会员会话（含公开读取、短期签名媒体、平台回调）、1 个允许游客或签名会员；唯一安全 scheme 为 `session`。公开/可选例外已固定在 `openapi-security-coverage.test.ts` 中；新增或改成公开接口必须显式审阅该清单，遗漏 `security` 会失败。对 193 个签名入口逐条执行无凭据及伪造 Bearer/actor 探针，386/386 返回 401（`protected-route-entry.test.ts`）；这不测试对象/字段/capability，也不把其余 31 个入口当作无保护。原有 22 处旧 `/v1/admin/*` 的共享 token + 自报 principal 声明已更正；新增合成导出、擦除批准和恢复后，当前 25 个管理入口全部在参数化集成测试中确认仅持旧共享口令均为 401。此项只是**契约/入口身份检查**，不等于 224 个业务授权验证。`tests/integration/contract-inventory.test.ts` 校验运行时与源码，`tests/unit/openapi-security-coverage.test.ts` 校验源码与文档及例外清单；`tests/integration/legacy-admin-auth.test.ts` 动态枚举当前管理入口。
 
-按“身份来源、对象、字段、审计与针对性执行测试均已核对”的严格口径，当前**已验证 28 / 224，未验证 196 / 224；这 28 项新增检查中未留下已证实缺陷**。此数量只计算下表地址簿、合成隐私执行、手机号、待支付订单基础接口、合成退款及客服媒体接口，其他测试已有局部覆盖但尚未完成逐项归属核对，暂不计入。未验证项不能推定无缺陷，整个 B 阶段不能标记 PASS。
+按“身份来源、对象、字段、审计与针对性执行测试均已核对”的严格口径，当前**已验证 31 / 224，未验证 193 / 224；这 31 项新增检查中未留下已证实缺陷**。此数量只计算下表地址簿、合成隐私执行、手机号、待支付订单基础接口、合成退款、客服媒体及隔离支付意图接口，其他测试已有局部覆盖但尚未完成逐项归属核对，暂不计入。未验证项不能推定无缺陷，整个 B 阶段不能标记 PASS。
 
 | Method / path | 类别；可信身份；capability | 对象归属；可读/可写字段；审计 | 合成执行结论 / 测试 ID |
 |---|---|---|---|
@@ -33,6 +33,9 @@
 | `DELETE /v1/me/support/media/{mediaId}` | 会员；签名 active member；无管理 capability | 媒体 ID + 本人，不可删除已发消息绑定图片；未绑定图软删除并排队清理，关上传开关时仍可删除；`support.media.delete` 记录 before/after 但不存 object key/token | B 删除 A 媒体 404，A 删除 200 且产生清理队列，审计 actor 为 A；同上 |
 | `GET /v1/me/support/media/{mediaId}` | 会员；签名 active member；无管理 capability | 仅本人已上传且已绑定消息的图片字节，未绑定及他人 404；`Cache-Control: private, no-store`，只读无写审计 | B 读 A 404，A 读已绑定 200、未绑定 404，返回正确 MIME/私有缓存头；同上 |
 | `GET /v1/management/support/conversations/{conversationId}/media/{mediaId}` | 管理；签名 active member、服务端 `support.read` capability | conversationId + mediaId 绑定且已发消息；只返图片字节，不返 token/object key；私有无缓存，只读无写审计 | 无 capability 403、授权者错会话 404、正确会话 200，缓存头私有；同上 |
+| `POST /v1/me/orders/{orderId}/payment-intent` | 会员；签名 active member；仅 `APP_ENV=test` 合成协议 | `commerce_payment_attempt.order_id + member_id` 定位，客户端 memberId/principalId/role/state 无效；支付单号、付款 openid 与金额取服务端订单快照。领取及预支付就绪/原号查单/关闭状态审计使用会话 actor 与服务端 trace，只存状态/收件箱 ID，不存预支付签名；重复调用不重复发单 | B 伪造 owner 404 且无渠道动作；A 写入 claim、prepay_ready 两条 actor/状态审计，重放不新增；崩溃边界原单 NOT_FOUND 拒绝再发；`payment-http-simulation.test.ts` / prepay and dispatch boundary |
+| `GET /v1/me/orders/{orderId}/payment-intent` | 会员；签名 active member；仅隔离合成协议 | 同一 `order_id + member_id` 归属，伪造 query memberId/role 无效；只按原号向签名渠道查单，`SUCCESS` 写 verified inbox 并记 `commerce.payment_intent.refresh_verified` 会话 actor/收件箱 ID；非成功只读，结果无预支付密钥 | B 伪造 query 404 且无渠道动作；A 原号已付时返回 `verified_pending`，审计 actor/前后状态和 inboxId 可追溯；同上 / lost callback reconcile |
+| `POST /v1/me/orders/{orderId}/cancel-verified` | 会员；签名 active member；仅隔离合成协议 | 同一 `order_id + member_id` 归属；服务端查/关原支付单，只有 CLOSED/未创建才以 expectedVersion 与幂等键提交订单取消；客户端 memberId/principalId/role/status 不决定 actor 或状态；订单取消审计写真实会话主体 | B 伪造 owner 404 且不关渠道单；A 过期版本 409、正确版本 200、库存释放，审计 actor 为 A；关单后迟到已付回调进入异常而不改订单；同上 / lost callback reconcile |
 | `POST /v1/admin/privacy-requests/{requestId}/export-approval` | 管理；签名 active operator，服务端 `review_lead` 角色；必须是不同计划人 | 仅 `dev_test` 会员、`APP_ENV=test` 与独立密钥、固定会员资料范围；版本/状态守卫；原因码与 before/after 审计 | 计划人及 support 403、旧版本 409、伪造 actor 403、第二复核人 200；`privacy-rights.test.ts` / synthetic profile export |
 | `GET /v1/me/privacy-requests/{requestId}/export` | 会员；签名 active member；无管理 capability | `request_id + member_id`，只解密本人未过期、未撤销的子集；字段白名单排除他人、手机号密文、token；逐次读取审计 | B 访问 A 为 404，正常读取 200/no-store，过期/撤销 404；`privacy-rights.test.ts` / synthetic profile export |
 | `POST /v1/me/privacy-requests/{requestId}/export-revoke` | 会员；签名 active member；无管理 capability | `request_id + member_id`，忽略伪造 `memberId` 正文；仅修改本人的副本可用性，写 before/after 审计 | B 伪造 owner 字段仍 404，本人撤销 200、后续读取 404；`privacy-rights.test.ts` / synthetic profile export |
@@ -47,6 +50,6 @@
 
 手机号路由的外部微信响应由 `createApp` **仅在 `APP_ENV=test`** 接受的合成 fetcher 注入；其它环境仍使用原实例默认微信传输，本轮未调用真实手机号接口或更改平台设置。
 
-另有 3 个支付意图方法完成了**部分**身份/对象测试，但不纳入 28 个严格完成项：`POST /v1/me/orders/{orderId}/payment-intent`、`GET /v1/me/orders/{orderId}/payment-intent`、`POST /v1/me/orders/{orderId}/cancel-verified`。它们均须签名会员且由 `commerce_payment_attempt.order_id + member_id` 定位；`payment-http-simulation.test.ts` 验证另一会员在预支付、刷新、核验取消时均获 404，预支付/取消未触发错误主体的合成渠道动作，真正取消的审计 actor 为订单会员，原号查单与关单后释放仍通过。`prepare` 和可能写入 inbox 的 `refresh` 尚未建立独立 actor 审计/字段契约检查，因此不将这 3 条写成完整 B 通过；测试也绝非真实微信支付联调。
+上述支付意图三条的严格计数只针对隔离合成渠道代码路径；它们不证明真实微信支付联调、正式商户号或退款链路可用。收件箱经工作进程应用资金事实与库存的独立审计另由支付/退款集成覆盖，不能据此推导其余资金接口已逐路完成 B 验收。
 
-待做：剩余 196 路由按同样口径逐项核对，优先已验证基础订单、退款及客服媒体之后的支付/佣金、管理授权、隐私权利其它入口与 UGC 媒体；公开上传的三条短期签名 token 接口尚未列入严格完成项；继续检查其它队列/第三方 SDK 的错误持久化路径；正式运维身份签发方案尚未获平台批准。因此 `CODE_SECURITY_READY=false`、`ENGINEERING_MERGE_READY=false`、`RELEASE_READY=false`。
+待做：剩余 193 路由按同样口径逐项核对，优先其它支付/佣金、管理授权、隐私权利其它入口与 UGC 媒体；公开上传的三条短期签名 token 接口尚未列入严格完成项；继续检查其它队列/第三方 SDK 的错误持久化路径；正式运维身份签发方案尚未获平台批准。因此 `CODE_SECURITY_READY=false`、`ENGINEERING_MERGE_READY=false`、`RELEASE_READY=false`。
