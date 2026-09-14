@@ -7,6 +7,7 @@ import { isolatedPaymentProtocol } from "../../api/src/isolatedPaymentProtocol.j
 import { RefundCommandService } from "../../api/src/refundCommand.js";
 import { AuthorityService } from "../../api/src/authority.js";
 import { SettlementCommandService } from "../../api/src/settlementCommand.js";
+import { safeFailureFields } from "../../api/src/observability.js";
 export { processOutboxBatch, processMediaCleanup, sweepExpired, WORKER_MAX_ATTEMPTS } from "./jobs.js";
 export { expirePendingOrders } from "../../api/src/commerceOrders.js";
 
@@ -14,7 +15,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadConfig();
   const pool = createPool(config.databaseUrl, config.database);
   const storage = createObjectStorage(config);
-  const worker = startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", error));
+  const worker = startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", safeFailureFields(error)));
   const paymentProtocol=isolatedPaymentProtocol(config,pool);
   const moneyWorker=paymentProtocol&&config.commerce.simulatedPayment
     ?startMoneyBackgroundWorker(paymentProtocol.inbox,paymentProtocol.refundInbox,
@@ -28,7 +29,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             sceneId:config.commerce.simulatedPayment.transferSceneId,
             notifyUrl:paymentProtocol.transferNotifyUrl}):undefined,
       paymentProtocol.transferInbox,
-      error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",error)):null;
+      error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",safeFailureFields(error))):null;
   const stop = async () => { moneyWorker?.stop(); await worker.stop(); await pool.end(); };
   process.once("SIGTERM", () => void stop());
   process.once("SIGINT", () => void stop());

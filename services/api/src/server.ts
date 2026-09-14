@@ -2,7 +2,7 @@ import { MemberProfile, type MemberProfileInput } from "./memberProfile.js";
 import { startBackgroundWorker } from "../../worker/src/jobs.js";
 import { startMoneyBackgroundWorker } from "../../worker/src/moneyJobs.js";
 import { randomUUID } from "node:crypto";
-import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+import Fastify, { LogController, type FastifyBaseLogger, type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
@@ -43,7 +43,7 @@ import { ApprovedKnowledgeRegistry, DisabledSupportAiProvider, SupportAiBoundary
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
 import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
-import { recordHttpRequest, runtimeMetrics, safeLoggerOptions } from "./observability.js";
+import { recordHttpRequest, runtimeMetrics, safeFailureFields, safeLoggerOptions } from "./observability.js";
 import { createRateLimitChecks } from "./rateLimits.js";
 
 declare module "fastify" {
@@ -62,6 +62,7 @@ interface AppDependencies {
     transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox;
     isolatedSyntheticTransport?: boolean };
   legacyDirectSettlementFixture?: boolean;
+  loggerInstance?: FastifyBaseLogger;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -87,10 +88,13 @@ function idempotencyKey(request: FastifyRequest): string {
 
 export async function createApp(dependencies: AppDependencies): Promise<FastifyInstance> {
   const { config, pool, storage } = dependencies;
-  const app = Fastify({ logger: safeLoggerOptions(config.observability.logLevel), genReqId: (request) => {
-    const supplied = request.headers["x-request-id"];
-    return typeof supplied === "string" && /^[A-Za-z0-9._:-]{8,96}$/.test(supplied) ? supplied : randomUUID();
-  }, bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.routeDeadlineMs });
+  const app = Fastify({ ...(dependencies.loggerInstance && config.env === "test"
+    ? { loggerInstance: dependencies.loggerInstance } : { logger: safeLoggerOptions(config.observability.logLevel) }),
+    logController: new LogController({ disableRequestLogging: true }),
+    // Trace IDs are server-owned. A caller-controlled x-request-id could be
+    // a phone number, token, or signed URL and would otherwise enter logs.
+    genReqId: () => randomUUID(),
+    bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.routeDeadlineMs });
   let coldStart = true;
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
@@ -193,7 +197,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const domain = error instanceof DomainError ? error : databaseDomain;
     const status = domain?.status ?? ((error as { statusCode?: number }).statusCode ?? 500);
     const retryAfter = Number(reply.getHeader("Retry-After"));
-    if (status >= 500) request.log.error(error);
+    if (status >= 500) request.log.error({ event: "http_failure", request_id: request.id,
+      method: request.method, route: request.routeOptions.url, status_code: status,
+      ...safeFailureFields(error) });
     void reply.status(status).type("application/problem+json").send({
       type: `https://cisme.example/problems/${domain?.code ?? "INTERNAL_ERROR"}`,
       title: domain?.message ?? "Internal server error",
@@ -739,11 +745,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const app = await createApp({ config, pool, storage,
     ...(paymentProtocol?{paymentProtocol}:{}) });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
-    ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", error))
+    ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
     : null;
   const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl
     ? startUgcSafetyLoop(new UgcSafetyService(pool,config,storage),config.media.ugcScanBaseUrl,
-      error=>console.error("CISME_UGC_SAFETY_TICK_FAILED",error)) : null;
+      error=>app.log.error({ event: "ugc_safety_tick_failed", ...safeFailureFields(error) })) : null;
   const activeProfile=config.commerce.simulatedPayment;
   const moneyWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&paymentProtocol&&activeProfile
     ?startMoneyBackgroundWorker(paymentProtocol.inbox,paymentProtocol.refundInbox,
@@ -757,9 +763,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             sceneId:config.commerce.simulatedPayment.transferSceneId,
             notifyUrl:paymentProtocol.transferNotifyUrl}):undefined,
       paymentProtocol.transferInbox,
-      error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",error)) : null;
+      error=>app.log.error({ event: "money_worker_tick_failed", ...safeFailureFields(error) })) : null;
   app.addHook("onClose", async () => { moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
-  const stop = () => void app.close().catch((error) => { console.error("CISME_SHUTDOWN_FAILED", error); process.exitCode = 1; });
+  const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
   const listenHost = process.env.API_LISTEN_HOST ?? "0.0.0.0";
