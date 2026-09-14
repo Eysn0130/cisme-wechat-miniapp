@@ -9,6 +9,13 @@ const base = {
 };
 
 describe("production configuration fails closed", () => {
+  it('accepts a separate synthetic export key only in isolated test configuration',()=>{
+    const key='7'.repeat(64);
+    expect(loadConfig({...base,APP_ENV:'test',PRIVACY_SYNTHETIC_EXPORT_KEY:key}).privacy.syntheticExportKey).toBe(key);
+    expect(()=>loadConfig({...base,APP_ENV:'development',PRIVACY_SYNTHETIC_EXPORT_KEY:key})).toThrow('PRIVACY_SYNTHETIC_EXPORT_KEY_TEST_ONLY');
+    expect(()=>loadConfig({...base,APP_ENV:'test',PRIVACY_SYNTHETIC_EXPORT_KEY:'short'})).toThrow('PRIVACY_SYNTHETIC_EXPORT_KEY_TEST_ONLY');
+    expect(()=>loadConfig({...base,APP_ENV:'staging',PRIVACY_SYNTHETIC_EXPORT_KEY:key})).toThrow('PRIVACY_SYNTHETIC_EXPORT_KEY_TEST_ONLY');
+  });
   it("rejects dev adapters in staging", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "staging", ALLOW_DEV_ADAPTERS: "true", WECHAT_APP_ID: "id", WECHAT_APP_SECRET: "secret" })).toThrow("DEV_ADAPTERS_FORBIDDEN");
   });

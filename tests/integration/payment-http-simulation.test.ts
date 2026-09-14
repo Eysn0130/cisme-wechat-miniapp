@@ -39,8 +39,9 @@ let corruptBillHash=false;
 let loseNextRefundResponse=false;
 let loseNextTransferResponse=false;
 let server:ReturnType<typeof createServer>,app:FastifyInstance,baseUrl:string;
-let buyer:{memberId:string;sessionToken:string},skuId:string;
-let operator:{memberId:string;sessionToken:string},referrer:{memberId:string;sessionToken:string},reviewer:{memberId:string;sessionToken:string};
+type TestActor={memberId:string;principalId:string;sessionToken:string};
+let buyer:TestActor,skuId:string;
+let operator:TestActor,referrer:TestActor,reviewer:TestActor;
 let refundCommands:RefundCommandService,refundInbox:VerifiedRefundInbox,paymentInbox:VerifiedPaymentInbox;
 let settlementCommands:SettlementCommandService;
 let transferInbox:TransferCallbackInbox;
@@ -476,11 +477,31 @@ it("runs quote, order, signed HTTP prepay, raw callback, and durable worker appl
   expect(source).toMatchObject({transaction_source_kind:"verified_commerce",payer_openid:"verified-http-buyer-openid",amount_cents:"10000"});
   await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
     VALUES($1,'wechat_miniprogram',$2,'later-rotated-buyer-openid','wechat')`,[buyer.memberId,appId]);
-  const prepay=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
+  const channelCountBeforeCross=channelOrders.size;
+  const crossPrepay=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,
+    headers:auth(referrer.sessionToken),payload:{memberId:buyer.memberId,role:"review_lead"}});
+  expect(crossPrepay.statusCode).toBe(404);
+  expect(crossPrepay.json().code).toBe("PAYMENT_ATTEMPT_NOT_FOUND");
+  const crossRefresh=await app.inject({method:"GET",url:`/v1/me/orders/${order.id}/payment-intent?memberId=${buyer.memberId}&role=review_lead`,
+    headers:auth(referrer.sessionToken)});
+  expect(crossRefresh.statusCode).toBe(404);
+  expect(crossRefresh.json().code).toBe("PAYMENT_ATTEMPT_NOT_FOUND");
+  expect(channelOrders.size).toBe(channelCountBeforeCross);
+  const prepay=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),
+    payload:{memberId:referrer.memberId,principalId:"forged",role:"review_lead",state:"paid"}});
   expect(prepay.statusCode,JSON.stringify(prepay.json())).toBe(200);
   expect(prepay.json()).toMatchObject({state:"prepay_ready",simulation:true,requestPayment:{signType:"RSA"}});
   const again=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
   expect(again.statusCode).toBe(200);expect(channelOrders.size).toBe(1);
+  const intentAudit=(await pool.query(`SELECT action,principal_id,before_state,after_state,trace_id FROM audit_log
+    WHERE object_type='commerce_payment_attempt' AND object_id=$1 ORDER BY action`,[order.id])).rows;
+  expect(intentAudit).toMatchObject([
+    {action:"commerce.payment_intent.claim",principal_id:buyer.principalId,before_state:{state:"prepared"},after_state:{state:"unknown"}},
+    {action:"commerce.payment_intent.prepay_ready",principal_id:buyer.principalId,before_state:{state:"unknown"},after_state:{state:"prepay_ready"}}
+  ]);
+  expect(intentAudit).toHaveLength(2);
+  expect(intentAudit.every((row)=>typeof row.trace_id==="string"&&row.trace_id.length>0)).toBe(true);
+  expect(JSON.stringify(intentAudit)).not.toContain(prepay.json().requestPayment.paySign);
   const directCancel=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/cancel`,headers:{...auth(buyer.sessionToken),
     "idempotency-key":"payment-direct-cancel-0001"},payload:{expectedVersion:1,reason:"测试直接取消"}});
   expect(directCancel.statusCode).toBe(409);expect(directCancel.json().code).toBe("PAYMENT_CLOSE_REQUIRED");
@@ -513,12 +534,22 @@ it("queries the original number after a lost callback and closes before inventor
   const refreshed=await app.inject({method:"GET",url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken)});
   expect(refreshed.statusCode,JSON.stringify(refreshed.json())).toBe(200);
   expect(refreshed.json().state).toBe("verified_pending");
+  const refreshAudit=(await pool.query(`SELECT principal_id,before_state,after_state FROM audit_log
+    WHERE action='commerce.payment_intent.refresh_verified' AND object_id=$1`,[order.id])).rows;
+  expect(refreshAudit).toMatchObject([{principal_id:buyer.principalId,
+    before_state:{state:"prepay_ready"},after_state:{state:"verified_pending",inboxId:refreshed.json().inboxId}}]);
   const inbox=new VerifiedPaymentInbox(pool,{appId,merchantId,apiV3Key,platformKeys:new Map([[serial,platformPublic]])});
   await runMoneyWorkerCycle(inbox);
   expect((await pool.query("SELECT status FROM commerce_order WHERE id=$1",[order.id])).rows[0].status).toBe("paid");
   const unpaid=await createOrder("cancel");
   expect((await app.inject({method:"POST",url:`/v1/me/orders/${unpaid.id}/payment-intent`,
     headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const crossCancel=await app.inject({method:"POST",url:`/v1/me/orders/${unpaid.id}/cancel-verified`,
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"cross0008"},
+    payload:{expectedVersion:unpaid.version,reason:"合成跨人取消",memberId:buyer.memberId,status:"closed"}});
+  expect(crossCancel.statusCode).toBe(404);
+  expect(crossCancel.json().code).toBe("PAYMENT_ATTEMPT_NOT_FOUND");
+  expect(channelOrders.get(unpaid.orderNumber)?.state).toBe("NOTPAY");
   const stale=await app.inject({method:"POST",url:`/v1/me/orders/${unpaid.id}/cancel-verified`,
     headers:{...auth(buyer.sessionToken),"idempotency-key":"payment-verified-cancel-stale-0001"},
     payload:{expectedVersion:unpaid.version+1,reason:"隔离版本过期取消"}});
@@ -528,9 +559,11 @@ it("queries the original number after a lost callback and closes before inventor
     .not.toBe("closed");
   const cancelled=await app.inject({method:"POST",url:`/v1/me/orders/${unpaid.id}/cancel-verified`,
     headers:{...auth(buyer.sessionToken),"idempotency-key":"payment-verified-cancel-0001"},
-    payload:{expectedVersion:unpaid.version,reason:"隔离模拟取消"}});
+    payload:{expectedVersion:unpaid.version,reason:"隔离模拟取消",memberId:referrer.memberId,principalId:"forged",role:"review_lead",status:"paid"}});
   expect(cancelled.statusCode,JSON.stringify(cancelled.json())).toBe(200);
   expect(cancelled.json().status).toBe("cancelled");
+  expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='commerce.order.cancel' AND object_id=$1",
+    [unpaid.id])).rows[0].principal_id).toBe(buyer.principalId);
   expect(channelOrders.get(unpaid.orderNumber)?.state).toBe("CLOSED");
   expect((await pool.query("SELECT status FROM commerce_inventory_reservation WHERE order_id=$1",[unpaid.id])).rows[0].status).toBe("released");
   const late=paidCallback(unpaid.orderNumber);
@@ -573,26 +606,63 @@ it("reserves partial refunds before signed HTTP submission and reverses commissi
   expect((await pool.query(`SELECT amount_cents FROM commission_ledger_entry WHERE order_id=$1 AND kind='accrual'`,
     [order.id])).rows[0].amount_cents).toBe("2000");
 
+  for(const [method,url] of [
+    ["POST",`/v1/me/orders/${order.id}/refund-requests`],
+    ["GET",`/v1/me/refund-requests?orderId=${order.id}`],
+    ["GET","/v1/management/refund-requests/pending"],
+    ["POST",`/v1/management/refund-requests/${order.id}/decision`],
+    ["POST",`/v1/management/refund-submissions/${order.id}/redrive`]
+  ] as const) expect((await app.inject({method,url})).statusCode,`${method} ${url}`).toBe(401);
+
   await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
     VALUES($1,'commerce.refund.approve','fixture','Self-approval negative','test','integration_fixture')`,[buyer.memberId]);
   for(const [index,amount] of [3000,4000,3000].entries()){
     const request=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
       headers:{...auth(buyer.sessionToken),"idempotency-key":`refund-request-${index}-0001`},
-      payload:{amountCents:amount,reason:`合成分次退款 ${index+1}`}});
+      payload:{amountCents:amount,reason:`合成分次退款 ${index+1}`,memberId:referrer.memberId,
+        status:"approved",role:"review_lead"}});
     expect(request.statusCode,JSON.stringify(request.json())).toBe(200);
+    expect(request.json().state).toBe("requested");
     const requestId=request.json().id;
+    expect((await pool.query("SELECT requested_by_member_id FROM commerce_refund_request WHERE id=$1",
+      [requestId])).rows[0].requested_by_member_id).toBe(buyer.memberId);
+    expect((await pool.query("SELECT principal_id,after_state FROM audit_log WHERE action='commerce.refund.request' AND object_id=$1",
+      [requestId])).rows[0]).toMatchObject({principal_id:`member:${buyer.memberId}`,
+        after_state:{state:"requested",amountCents:amount}});
+    if(index===0){
+      const otherRequest=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
+        headers:{...auth(referrer.sessionToken),"idempotency-key":"cross0006"},
+        payload:{amountCents:100,reason:"合成跨人退款申请",memberId:buyer.memberId}});
+      expect(otherRequest.statusCode).toBe(404);
+      expect(otherRequest.json().code).toBe("ORDER_NOT_FOUND");
+      expect((await app.inject({method:"GET",url:"/v1/management/refund-requests/pending",
+        headers:auth(referrer.sessionToken)})).statusCode).toBe(403);
+      const pending=await app.inject({method:"GET",url:"/v1/management/refund-requests/pending",
+        headers:auth(operator.sessionToken)});
+      expect(pending.statusCode).toBe(200);
+      expect(pending.json().items).toContainEqual(expect.objectContaining({id:requestId,
+        requestedByMemberId:buyer.memberId}));
+      expect((await app.inject({method:"POST",url:`/v1/management/refund-requests/${requestId}/decision`,
+        headers:{...auth(referrer.sessionToken),"idempotency-key":"cross0007"},
+        payload:{decision:"approve",expectedVersion:1,reason:"无权审批合成退款"}})).statusCode).toBe(403);
+    }
     const duplicate=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
       headers:{...auth(buyer.sessionToken),"idempotency-key":`refund-request-${index}-0001`},
       payload:{amountCents:amount,reason:`合成分次退款 ${index+1}`}});
     expect(duplicate.json().id).toBe(requestId);
+    expect((await pool.query("SELECT count(*)::int AS n FROM audit_log WHERE action='commerce.refund.request' AND object_id=$1",
+      [requestId])).rows[0].n).toBe(1);
     const self=await app.inject({method:"POST",url:`/v1/management/refund-requests/${requestId}/decision`,
       headers:{...auth(buyer.sessionToken),"idempotency-key":`refund-self-${index}-0001`},
       payload:{decision:"approve",expectedVersion:1,reason:"不允许自己审批"}});
     expect(self.statusCode).toBe(403);
     const approved=await app.inject({method:"POST",url:`/v1/management/refund-requests/${requestId}/decision`,
       headers:{...auth(operator.sessionToken),"idempotency-key":`refund-approve-${index}-0001`},
-      payload:{decision:"approve",expectedVersion:1,reason:`独立核对隔离退款 ${index+1}`}});
+      payload:{decision:"approve",expectedVersion:1,reason:`独立核对隔离退款 ${index+1}`,
+        memberId:buyer.memberId,principalId:"forged",role:"review_lead"}});
     expect(approved.statusCode,JSON.stringify(approved.json())).toBe(200);
+    expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='commerce.refund.decision' AND object_id=$1",
+      [requestId])).rows[0].principal_id).toBe(`member:${operator.memberId}`);
     const refundNumber=approved.json().intent.outRefundNo as string;
     expect(refundNumber).toMatch(/^CR[0-9A-F]{32}$/);
     expect((await pool.query(`SELECT count(*)::int AS n FROM commission_refund_intent WHERE request_id=$1`,
@@ -622,6 +692,14 @@ it("reserves partial refunds before signed HTTP submission and reverses commissi
   expect(ownerPage.statusCode,ownerPage.body).toBe(200);
   expect(ownerPage.json().totalCount).toBe(3);
   expect(ownerPage.json().items).toHaveLength(2);
+  const otherPage=await app.inject({method:"GET",url:`/v1/me/refund-requests?orderId=${order.id}&limit=2`,
+    headers:auth(referrer.sessionToken)});
+  expect(otherPage.statusCode).toBe(200);
+  expect(otherPage.json()).toMatchObject({totalCount:0,items:[]});
+  const borrowedCursor=await app.inject({method:"GET",url:`/v1/me/refund-requests?orderId=${order.id}&limit=2&cursor=${encodeURIComponent(ownerPage.json().nextCursor)}`,
+    headers:auth(referrer.sessionToken)});
+  expect(borrowedCursor.statusCode).toBe(422);
+  expect(borrowedCursor.json().code).toBe("PAGE_CURSOR_INVALID");
   const ownerNext=await app.inject({method:"GET",url:`/v1/me/refund-requests?orderId=${order.id}&limit=2&cursor=${encodeURIComponent(ownerPage.json().nextCursor)}`,
     headers:auth(buyer.sessionToken)});
   expect(ownerNext.statusCode,ownerNext.body).toBe(200);
@@ -669,12 +747,17 @@ it("keeps the original refund number through an unknown response and reconciles 
     headers:auth(buyer.sessionToken),payload:{expectedAttempts:8,reason:"原单状态已核验申请重驱"}});
   expect(denied.statusCode).toBe(403);
   const redrive=await app.inject({method:"POST",url:`/v1/management/refund-submissions/${intent.id}/redrive`,
-    headers:auth(operator.sessionToken),payload:{expectedAttempts:8,reason:"原单状态已核验申请重驱"}});
+    headers:auth(operator.sessionToken),payload:{expectedAttempts:8,reason:"原单状态已核验申请重驱",
+      memberId:buyer.memberId,principalId:"forged",state:"succeeded"}});
   expect(redrive.statusCode,redrive.body).toBe(200);
   expect(redrive.json()).toMatchObject({id:intent.id,state:"requery_due"});
+  expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='commerce.refund_submission_redrive' AND object_id=$1",
+    [intent.id])).rows[0].principal_id).toBe(`member:${operator.memberId}`);
   const staleRedrive=await app.inject({method:"POST",url:`/v1/management/refund-submissions/${intent.id}/redrive`,
     headers:auth(operator.sessionToken),payload:{expectedAttempts:8,reason:"不能重复重驱相同次数"}});
   expect(staleRedrive.statusCode).toBe(409);
+  expect((await pool.query("SELECT count(*)::int AS n FROM audit_log WHERE action='commerce.refund_submission_redrive' AND object_id=$1",
+    [intent.id])).rows[0].n).toBe(1);
   expect(await refundCommands.processDue()).toContainEqual({id:intent.id,state:"accepted_processing"});
   expect(channelRefunds.size).toBe(initialCount+1);
   refundCallback(intent.outRefundNo); // signed channel state changed; callback delivery is intentionally lost
@@ -1032,6 +1115,9 @@ it("does not reissue payment or refund after a committed dispatch boundary and t
   expect(retried.statusCode).toBe(409);
   expect(retried.json().code).toBe("PAYMENT_ORIGINAL_QUERY_REQUIRED");
   expect(channelOrders.has(payment.orderNumber)).toBe(false);
+  expect((await pool.query(`SELECT principal_id,before_state,after_state FROM audit_log
+    WHERE action='commerce.payment_intent.claim' AND object_id=$1`,[payment.id])).rows)
+    .toMatchObject([{principal_id:buyer.principalId,before_state:{state:"unknown"},after_state:{state:"unknown"}}]);
 
   const paidOrder=await createOrder("n03-refund-crash");
   expect((await app.inject({method:"POST",url:`/v1/me/orders/${paidOrder.id}/payment-intent`,

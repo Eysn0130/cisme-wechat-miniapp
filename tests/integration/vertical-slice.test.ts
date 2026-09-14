@@ -5,6 +5,7 @@ import { TEST_DATABASE_URL, resetDatabase, seedTestCampaign, testPool } from "@c
 import { createApp } from "../../services/api/src/server";
 import { createApiGatewayStorage } from "../../services/api/src/storage";
 import { processOutboxBatch } from "../../services/worker/src/main";
+import { operatorHeaders } from "./operator-session";
 
 const pool = testPool();
 const config = loadConfig({ APP_ENV: "test", DATABASE_URL: TEST_DATABASE_URL, ALLOW_DEV_ADAPTERS: "true", APP_SESSION_SECRET: "test-session-secret", ADMIN_API_TOKEN: "test-admin-token", UPLOAD_TOKEN_SECRET: "test-upload-secret", OBJECT_STORAGE_DRIVER: "api_gateway", POINTS_RULES_ENABLED: "true", POINTS_FINANCE_APPROVAL_ID: "test-only-finance-approval", POINTS_FINANCE_APPROVAL_EXPIRES_AT: "2099-12-31T23:59:59Z", POINTS_MAKER_CHECKER_READY: "true", POINTS_HOLD_DAYS: "7", POINTS_EXPIRY_DAYS: "365", POINTS_RULE_IDS: "CARE_D7_STORY_R0,CARE_D28_RECORD_R0,ORDER_REWARD_R0", CARE_PAUSE_POLICY_VERSION: "care-pause-test-v1", CARE_PAUSE_MAX_DAYS: "14", CARE_PAUSE_REASON_CODES: "MEMBER_REQUEST", UGC_GO_LIVE_GATE: "true", UGC_LEGAL_APPROVAL_ID: "test-only-legal-approval", UGC_PROVENANCE_READY: "true", UGC_CONTENT_SAFETY_READY: "true", UGC_MODERATION_READY: "true" });
@@ -21,6 +22,7 @@ const screenshotBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0
 function auth(clock = "2026-08-07T12:00:00+08:00") { return { authorization: `Bearer ${token}`, "x-dev-clock": clock }; }
 function careHeaders(key: string, clock = "2026-08-07T12:00:00+08:00") { return { ...auth(clock), "idempotency-key": key }; }
 function careCompletion(expectedVersion: number) { return { expectedVersion, stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" }; }
+function legacy(principal: string, extras: Record<string, string> = {}) { return operatorHeaders(config, principal, memberId, extras); }
 async function json(response: Awaited<ReturnType<FastifyInstance["inject"]>>) { const body = response.json(); expect(response.statusCode, JSON.stringify(body)).toBeLessThan(400); return body; }
 function multipart(tokenValue: string, bytes: Buffer, mime = "image/jpeg") {
   const boundary = "----cisme-test-boundary";
@@ -49,11 +51,11 @@ describe("unforgeable R0 vertical slice", () => {
     const invalidName = await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: "invalid-name", displayName: "超".repeat(41), consents: [{ documentType: "privacy", version: "v1" }, { documentType: "terms", version: "v1" }] } });
     expect(invalidName.statusCode).toBe(422); expect(invalidName.json().code).toBe("IDENTITY_DISPLAY_NAME_INVALID");
     const enrollmentPayload = { memberId, qualificationType: "approved_tester_fulfillment", externalRef: "tester-fulfillment-001", occurredAt: "2026-08-01T08:30:00+08:00", timezone: "Asia/Shanghai", protocolVersion: "care-r0-v1", reasonCode: "EXPERIENCE_QUALIFICATION_VERIFIED", evidence: { batch: "R0-A", delivered: true } };
-    const plannedResult = await json(await app.inject({ method: "POST", url: "/v1/admin/tester-enrollments", headers: { "x-admin-token": "test-admin-token", "x-principal-id": "admin-lead", "x-dev-clock": "2026-08-01T09:00:00+08:00" }, payload: enrollmentPayload }));
-    const replayedPlan = await json(await app.inject({ method: "POST", url: "/v1/admin/tester-enrollments", headers: { "x-admin-token": "test-admin-token", "x-principal-id": "admin-lead", "x-dev-clock": "2026-08-01T09:01:00+08:00" }, payload: enrollmentPayload }));
+    const plannedResult = await json(await app.inject({ method: "POST", url: "/v1/admin/tester-enrollments", headers: legacy("admin-lead", { "x-dev-clock": "2026-08-01T09:00:00+08:00" }), payload: enrollmentPayload }));
+    const replayedPlan = await json(await app.inject({ method: "POST", url: "/v1/admin/tester-enrollments", headers: legacy("admin-lead", { "x-dev-clock": "2026-08-01T09:01:00+08:00" }), payload: enrollmentPayload }));
     const planned = plannedResult.cycle;
     expect(replayedPlan.cycle.id).toBe(planned.id);
-    const overlapping = await app.inject({ method: "POST", url: "/v1/admin/tester-enrollments", headers: { "x-admin-token": "test-admin-token", "x-principal-id": "admin-lead", "x-dev-clock": "2026-08-01T09:02:00+08:00" }, payload: { ...enrollmentPayload, externalRef: "tester-fulfillment-overlap" } });
+    const overlapping = await app.inject({ method: "POST", url: "/v1/admin/tester-enrollments", headers: legacy("admin-lead", { "x-dev-clock": "2026-08-01T09:02:00+08:00" }), payload: { ...enrollmentPayload, externalRef: "tester-fulfillment-overlap" } });
     expect(overlapping.statusCode).toBe(409); expect(overlapping.json().code).toBe("CARE_CYCLE_ALREADY_OPEN");
     cycleId = planned.id; expect(planned.phase).toBe("planned"); expect(planned.startedOn).toBeNull();
     const missingActivateKey = await app.inject({ method: "POST", url: `/v1/care-cycles/${cycleId}/activate`, headers: auth("2026-08-01T10:00:00+08:00"), payload: { expectedVersion: planned.version } });
@@ -334,7 +336,7 @@ describe("unforgeable R0 vertical slice", () => {
     const first = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/submit`, headers: { ...auth(), "idempotency-key": "submit-v1" }, payload }));
     const replay = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/submit`, headers: { ...auth(), "idempotency-key": "submit-v1" }, payload }));
     expect(replay).toEqual(first);
-    const adminHeaders = { "x-admin-token": "test-admin-token", "x-principal-id": "admin-reviewer", "x-dev-clock": "2026-08-07T12:00:00+08:00" };
+    const adminHeaders = legacy("admin-reviewer", { "x-dev-clock": "2026-08-07T12:00:00+08:00" });
     const needs = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/review`, headers: { ...adminHeaders, "idempotency-key": `review-${submissionId}-v2` }, payload: { decision: "request_changes", reasonCode: "EVIDENCE_INCOMPLETE", evidence: { field: "caption" }, expectedVersion: 2 } }));
     const resubmitted = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/submit`, headers: { ...auth(), "idempotency-key": "submit-v3" }, payload: { ...payload, expectedVersion: needs.version } }));
     const rejected = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/review`, headers: { ...adminHeaders, "idempotency-key": `review-${submissionId}-v${resubmitted.version}` }, payload: { decision: "reject", reasonCode: "POLICY_REVIEW", evidence: { note: "needs appeal" }, expectedVersion: resubmitted.version } }));
@@ -389,7 +391,7 @@ describe("unforgeable R0 vertical slice", () => {
   it("requires four-eyes finance approval and conserves unfreeze, expiry and reversal", async () => {
     const grant = await pool.query<{ id: string }>("SELECT id FROM points_grant WHERE member_id=$1 ORDER BY created_at LIMIT 1", [memberId]);
     const grantId = grant.rows[0]!.id;
-    const finance = (principal: string, clock: string, key: string) => ({ "x-admin-token": "test-admin-token", "x-principal-id": principal, "x-dev-clock": clock, "idempotency-key": key });
+    const finance = (principal: string, clock: string, key: string) => legacy(principal, { "x-dev-clock": clock, "idempotency-key": key });
     const operatorQueue = await json(await app.inject({ method: "GET", url: "/v1/admin/points/grants", headers: finance("finance-maker", "2026-08-10T12:00:00+08:00", "unused-read-key") }));
     expect(operatorQueue.some((item: any) => item.id === grantId)).toBe(true);
     const held = await app.inject({ method: "POST", url: `/v1/admin/points/grants/${grantId}/actions`, headers: finance("finance-dual", "2026-08-10T12:00:00+08:00", `points-unfreeze-held-${grantId}`), payload: { action: "unfreeze", expectedGrantVersion: 1, reasonCode: "HOLD_COMPLETE", evidence: { approval: "finance-test" } } });
@@ -437,9 +439,9 @@ describe("unforgeable R0 vertical slice", () => {
     await processOutboxBatch(pool, new Date("2026-08-08T10:00:00+08:00"), 50, { ugcGoLiveGate: true });
     const privateAfterReview = await json(await app.inject({ method: "GET", url: "/v1/feed" })); expect(privateAfterReview).toHaveLength(0);
     const publishPayload = { title: "第 7 天护理记录", excerpt: "一份经过人工核验的护理阶段记录。", aiUsage: "none", reasonCode: "PUBLICATION_CLEAR", evidence: { rightsChecked: true, contentSafetyChecked: true } };
-    const sameReviewer = await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/publish`, headers: { "x-admin-token": "test-admin-token", "x-principal-id": "admin-reviewer", "idempotency-key": `publish-self-${submissionId}` }, payload: publishPayload });
+    const sameReviewer = await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/publish`, headers: legacy("admin-reviewer", { "idempotency-key": `publish-self-${submissionId}` }), payload: publishPayload });
     expect(sameReviewer.statusCode).toBe(409); expect(sameReviewer.json().code).toBe("FOUR_EYES_REQUIRED");
-    const lead = { "x-admin-token": "test-admin-token", "x-principal-id": "admin-lead", "idempotency-key": `publish-${submissionId}-v1`, "x-dev-clock": "2026-08-08T10:00:00+08:00" };
+    const lead = legacy("admin-lead", { "idempotency-key": `publish-${submissionId}-v1`, "x-dev-clock": "2026-08-08T10:00:00+08:00" });
     const queued = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/publish`, headers: lead, payload: publishPayload }));
     const replay = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/publish`, headers: lead, payload: publishPayload }));
     expect(queued.eventId).toBe(replay.eventId); expect(queued.status).toBe("publication_queued");
@@ -469,7 +471,7 @@ describe("unforgeable R0 vertical slice", () => {
     await expect(pool.query("INSERT INTO submission(member_id, post_url) VALUES ($1,$2)", [outsider.memberId, "https://example.test/care-story/vertical-1"])).rejects.toMatchObject({ code: "23505" });
     const forbidden = await app.inject({ method: "GET", url: `/v1/submissions/${submissionId}`, headers: { authorization: `Bearer ${outsider.sessionToken}` } });
     expect(forbidden.statusCode).toBe(404);
-    const lead = { "x-admin-token": "test-admin-token", "x-principal-id": "admin-lead" };
+    const lead = legacy("admin-lead");
     const switchRows = await json(await app.inject({ method: "GET", url: "/v1/admin/switches", headers: lead }));
     const switchVersions = new Map<string, number>(switchRows.map((item: any) => [item.key, item.version]));
     for (const key of ["rewards", "redemption", "submissions", "commerce"] as const) {
@@ -499,11 +501,11 @@ describe("unforgeable R0 vertical slice", () => {
     const disabledConfig = loadConfig({ APP_ENV: "test", DATABASE_URL: TEST_DATABASE_URL, ALLOW_DEV_ADAPTERS: "true", APP_SESSION_SECRET: "test-session-secret", ADMIN_API_TOKEN: "test-admin-token", UPLOAD_TOKEN_SECRET: "test-upload-secret", OBJECT_STORAGE_DRIVER: "api_gateway" });
     const disabledApp = await createApp({ config: disabledConfig, pool, storage });
     try {
-      const approved = await json(await disabledApp.inject({ method: "POST", url: `/v1/admin/submissions/${trialSubmission.rows[0]!.id}/review`, headers: { "x-admin-token": "test-admin-token", "x-principal-id": "admin-reviewer", "idempotency-key": `review-${trialSubmission.rows[0]!.id}-v1` }, payload: { decision: "approve", reasonCode: "TRIAL_APPROVED", evidence: { checked: true }, expectedVersion: 1 } }));
+      const approved = await json(await disabledApp.inject({ method: "POST", url: `/v1/admin/submissions/${trialSubmission.rows[0]!.id}/review`, headers: legacy("admin-reviewer", { "idempotency-key": `review-${trialSubmission.rows[0]!.id}-v1` }), payload: { decision: "approve", reasonCode: "TRIAL_APPROVED", evidence: { checked: true }, expectedVersion: 1 } }));
       expect(approved).not.toHaveProperty("pointsGrantId");
       const assets = await pool.query("SELECT count(*)::int count FROM reward_claim WHERE submission_id=$1", [trialSubmission.rows[0]!.id]);
       expect(assets.rows[0]!.count).toBe(0);
-      const publication = await disabledApp.inject({ method: "POST", url: `/v1/admin/submissions/${trialSubmission.rows[0]!.id}/publish`, headers: { "x-admin-token": "test-admin-token", "x-principal-id": "admin-lead", "idempotency-key": `publish-disabled-${trialSubmission.rows[0]!.id}` }, payload: { title: "不应公开", excerpt: "门禁关闭时不应创建发布事件。", aiUsage: "none", reasonCode: "PUBLICATION_CLEAR", evidence: { checked: true } } });
+      const publication = await disabledApp.inject({ method: "POST", url: `/v1/admin/submissions/${trialSubmission.rows[0]!.id}/publish`, headers: legacy("admin-lead", { "idempotency-key": `publish-disabled-${trialSubmission.rows[0]!.id}` }), payload: { title: "不应公开", excerpt: "门禁关闭时不应创建发布事件。", aiUsage: "none", reasonCode: "PUBLICATION_CLEAR", evidence: { checked: true } } });
       expect(publication.statusCode).toBe(503); expect(publication.json().code).toBe("UGC_GO_LIVE_GATE_CLOSED");
       const publicationEvents = await pool.query("SELECT count(*)::int count FROM outbox_event WHERE aggregate_id=$1 AND event_type='submission.publication.approved.v1'", [trialSubmission.rows[0]!.id]);
       expect(publicationEvents.rows[0]!.count).toBe(0);
@@ -527,12 +529,12 @@ describe("unforgeable R0 vertical slice", () => {
     const queued = await pool.query<{ id: string }>(`INSERT INTO submission(member_id,status,post_url,platform_account,disclosure,submitted_at)
       VALUES ($1,'submitted','https://example.test/care-story/expired-policy-read','审批到期测试','到期后不得宣称积分启用',$2) RETURNING id`, [memberId, new Date("2099-12-31T23:59:58Z")]);
     await pool.query("INSERT INTO review_case(submission_id) VALUES ($1)", [queued.rows[0]!.id]);
-    const reviewQueue = await json(await app.inject({ method: "GET", url: "/v1/admin/reviews", headers: { "x-admin-token": "test-admin-token", "x-principal-id": "admin-reviewer", "x-dev-clock": expiredClock } }));
+    const reviewQueue = await json(await app.inject({ method: "GET", url: "/v1/admin/reviews", headers: legacy("admin-reviewer", { "x-dev-clock": expiredClock }) }));
     expect(reviewQueue.find((item: any) => item.id === queued.rows[0]!.id)).toMatchObject({ reward_enabled: false });
   });
 
   it("operates invitation campaigns through versioned RBAC and audit instead of seed-only mutation", async () => {
-    const adminHeaders = { "x-admin-token": "test-admin-token", "x-principal-id": "admin-reviewer", "x-dev-clock": "2026-08-15T15:00:00+08:00" };
+    const adminHeaders = legacy("admin-reviewer", { "x-dev-clock": "2026-08-15T15:00:00+08:00" });
     const campaigns = await json(await app.inject({ method: "GET", url: "/v1/admin/campaigns", headers: adminHeaders }));
     const campaign = campaigns.find((item: any) => item.code === "care-d7-story-r0");
     expect(campaign).toBeTruthy();
@@ -545,7 +547,7 @@ describe("unforgeable R0 vertical slice", () => {
       reasonCode: "R0_CAPACITY_RECONFIRMED",
       evidence: { approval: "integration-reviewed" }
     };
-    const denied = await app.inject({ method: "PUT", url: `/v1/admin/campaigns/${campaign.id}`, headers: { "x-admin-token": "test-admin-token", "x-principal-id": "finance-maker", "idempotency-key": "campaign-update-denied" }, payload });
+    const denied = await app.inject({ method: "PUT", url: `/v1/admin/campaigns/${campaign.id}`, headers: legacy("finance-maker", { "idempotency-key": "campaign-update-denied" }), payload });
     expect(denied.statusCode).toBe(403);
     const headers = { ...adminHeaders, "idempotency-key": `campaign-${campaign.id}-v${campaign.version}` };
     const updated = await json(await app.inject({ method: "PUT", url: `/v1/admin/campaigns/${campaign.id}`, headers, payload }));

@@ -25,6 +25,9 @@ async function mimeOf(path: string): Promise<string> {
 Page({
   lastSessionToken: "",
   shown:false,
+  mediaVisible:false,
+  mediaEpoch:0,
+  mediaAbort:null as (() => void)|null,
   backupTimer: null as ReturnType<typeof setTimeout>|null,
   data: { chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "", aiUsage: "none",
     aiOptions: ["未使用 AI", "AI 辅助", "AI 生成", "尚不明确"], aiIndex: 0, rightsConfirmed: false, publicConsentConfirmed: false,
@@ -40,7 +43,8 @@ Page({
     this.setData({ listMode: !query.id && query.new !== "1", requestedDraftId: query.id || "", requestedNew: query.new === "1" });
     if (!getApp<IAppOption>().globalData.sessionToken) {
       this.setData({ loading: false, error: "登录后可写自己的护理故事。" });
-      resumeAuthentication(query.id ? `/pages/community-compose/index?id=${encodeURIComponent(query.id)}` : "/pages/community-compose/index");
+      resumeAuthentication(query.id ? `/pages/community-compose/index?id=${encodeURIComponent(query.id)}` :
+        query.new === "1" ? "/pages/community-compose/index?new=1" : "/pages/community-compose/index");
       return;
     }
     if (query.id) void this.loadDraft(query.id);
@@ -49,6 +53,7 @@ Page({
   },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
+    this.mediaVisible=true;
     const token=getApp<IAppOption>().globalData.sessionToken;
     void this.refreshPublicGate();
     if(token===this.lastSessionToken){if(this.shown&&this.data.state==="hidden"&&this.data.postId)void this.loadDraft(this.data.postId);
@@ -57,6 +62,9 @@ Page({
     const priorPostId=this.data.postId;
     const wasGuest=!this.lastSessionToken;
     this.lastSessionToken=token;
+    this.mediaEpoch+=1;
+    this.mediaAbort?.();
+    this.mediaAbort=null;
     this.data.epoch+=1;
     this.setData({postId:"",ownerId:"",files:[],drafts:[],listTotal:0,listCursor:null,listLoadingMore:false,listMoreError:"",
       title:"",body:"",notice:"",error:"",busy:false,uploadBusy:false,dirty:false,loading:true});
@@ -71,8 +79,17 @@ Page({
       this.setData({publicGateEnabled:status.publicEnabled===true});}
     catch{this.setData({publicGateEnabled:false});}
   },
-  onHide(){this.flushLocalBackup();},
-  onUnload() { this.flushLocalBackup();this.data.epoch += 1; },
+  onHide(){
+    this.mediaVisible=false;
+    this.mediaEpoch+=1;
+    this.mediaAbort?.();
+    this.mediaAbort=null;
+    if(this.data.uploadBusy) this.setData({uploadBusy:false,
+      files:this.data.files.map(file=>file.state==="uploading"?{...file,state:"failed" as const,error:"页面离开时上传已中断，可点重试继续。"}:file),
+      error:"图片操作已中断；文字草稿仍保留。返回后可重试图片。"});
+    this.flushLocalBackup();
+  },
+  onUnload() { this.flushLocalBackup();this.mediaVisible=false;this.mediaEpoch+=1;this.mediaAbort?.();this.mediaAbort=null;this.data.epoch += 1; },
   queueLocalBackup(){
     if(this.backupTimer)clearTimeout(this.backupTimer);
     this.backupTimer=setTimeout(()=>{this.backupTimer=null;this.flushLocalBackup();},400);
@@ -218,61 +235,73 @@ Page({
   updateMedia(id: string, patch: Partial<MediaItem>) {
     this.setData({ files: this.data.files.map(file => file.id === id ? { ...file, ...patch } : file) });
   },
-  async uploadImage(id: string, path: string, size: number, epoch: number, token: string) {
+  async uploadImage(id: string, path: string, size: number, epoch: number, token: string, mediaEpoch: number) {
     const postId=this.data.postId;
+    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&
+      token===getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId;
     try {
       const mimeType = await mimeOf(path);
-      if(epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||postId!==this.data.postId)return;
+      if(!current())return;
       const authorization = await request<{ mediaId: string; url: string; method: "POST" | "PUT"; fields: Record<string, string> }>({
         path: `/v1/me/ugc/posts/${postId}/media/authorize`, method: "POST", data: { mimeType, maxBytes: size } });
-      if (epoch !== this.data.epoch || token !== getApp<IAppOption>().globalData.sessionToken||postId!==this.data.postId) return;
+      if (!current()) return;
       this.updateMedia(id, { id: authorization.mediaId }); id = authorization.mediaId;
-      await uploadAuthorized(path, authorization, { onProgress: progress => {
-        if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId)
+      await uploadAuthorized(path, authorization, { registerAbort: abort=>{if(current())this.mediaAbort=abort;else abort();},onProgress: progress => {
+        if(current())
           this.updateMedia(id,{progress});
       } });
-      if(epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||postId!==this.data.postId)return;
+      if(!current())return;
       await request({ path: `/v1/me/ugc/posts/${postId}/media/${id}/complete`, method: "POST", data: {} });
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId){
+      if(current()){
         this.updateMedia(id, { state: "uploaded", progress: 100, error: "" });
         this.setData({dirty:true});this.queueLocalBackup();
         void this.loadMediaPreviews([id],epoch,token,postId);
       }
     } catch (error) {
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId)
+      if(current())
         this.updateMedia(id, { state: "failed", error: message(error, "上传失败，可点重试继续。") });
-    }
+    } finally {if(current())this.mediaAbort=null;}
   },
   async chooseImages() {
     if (!this.data.postId || this.data.uploadBusy || this.data.busy || this.data.files.length >= 9) return;
     const epoch = this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
+    const mediaEpoch=++this.mediaEpoch;
+    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken;
+    this.setData({uploadBusy:true,error:""});
     try {
+      await new Promise<void>((resolve,reject)=>wx.requirePrivacyAuthorize({success:()=>resolve(),fail:reject}));
+      if(!current())return;
       const chosen = await wx.chooseMedia({ count: 9 - this.data.files.length, mediaType: ["image"],
         sourceType: ["album", "camera"], sizeType: ["compressed", "original"] });
-      if (epoch !== this.data.epoch || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      this.setData({ uploadBusy: true, error: "" });
+      if(!current())return;
       for (const source of chosen.tempFiles) {
-        if (epoch !== this.data.epoch || token !== getApp<IAppOption>().globalData.sessionToken) return;
+        if(!current())return;
         if (source.size < 1 || source.size > 10 * 1024 * 1024) { this.setData({ error: "单张图片需小于 10MB，请重新选择。" }); continue; }
         const localPath = source.tempFilePath;
-        try { await mimeOf(localPath); } catch { this.setData({ error: "仅支持 JPG、PNG 或 WEBP 图片。" }); continue; }
+        try { await mimeOf(localPath); } catch { if(current())this.setData({ error: "仅支持 JPG、PNG 或 WEBP 图片。" }); continue; }
+        if(!current())return;
         const mediaId = `local-${operationKey()}`;
         this.setData({ files: [...this.data.files, { id: mediaId, localPath, previewUrl: "", size: source.size,
           state: "uploading" as const, progress: 0, error: "" }] });
-        await this.uploadImage(mediaId,localPath,source.size,epoch,token);
+        await this.uploadImage(mediaId,localPath,source.size,epoch,token,mediaEpoch);
       }
-    } catch (error) { if (epoch===this.data.epoch&&!/cancel/i.test((error as { errMsg?: string })?.errMsg || "")) this.setData({ error: "无法选择图片，请检查权限后重试。" }); }
-    finally { if (epoch === this.data.epoch) this.setData({ uploadBusy: false }); }
+    } catch (error) { if(current()&&!/cancel/i.test((error as { errMsg?: string })?.errMsg || "")) this.setData({ error: "未能选择图片，请检查微信隐私授权或相册权限后重试；文字草稿仍保留。" }); }
+    finally { if(current()) this.setData({ uploadBusy: false }); }
   },
   async retryImage(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id || "");
     const item = this.data.files.find(file => file.id === id);
     if (!item || item.state !== "failed" || !item.localPath || this.data.uploadBusy || this.data.busy) return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,mediaEpoch=++this.mediaEpoch;
+    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken;
     this.setData({ uploadBusy:true,error:"" });
-    this.updateMedia(id,{state:"uploading",progress:0,error:""});
-    try { await this.uploadImage(id,item.localPath,item.size,epoch,token); }
-    finally { if(epoch===this.data.epoch)this.setData({uploadBusy:false}); }
+    try {
+      await new Promise<void>((resolve,reject)=>wx.requirePrivacyAuthorize({success:()=>resolve(),fail:reject}));
+      if(!current())return;
+      this.updateMedia(id,{state:"uploading",progress:0,error:""});
+      await this.uploadImage(id,item.localPath,item.size,epoch,token,mediaEpoch);
+    }catch(error){if(current()&&!/cancel/i.test((error as {errMsg?:string})?.errMsg||""))this.updateMedia(id,{state:"failed",error:"需要完成微信隐私授权后才能重试图片；文字草稿仍保留。"});}
+    finally { if(current())this.setData({uploadBusy:false}); }
   },
   removeImage(event: WechatMiniprogram.TouchEvent) {
     if(this.data.busy||this.data.uploadBusy)return;

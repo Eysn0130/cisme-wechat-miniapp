@@ -47,6 +47,7 @@ Page({
   lastPresenceSentAt: 0,
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
   uploadAttempt: 0,
+  choosingImage: false,
   uploadAbort: null as (() => void) | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
@@ -87,6 +88,7 @@ Page({
       : null;
     this.data.visible = false;
     this.lifecycleEpoch += 1;
+    this.choosingImage = false;
     this.stopPolling();
     this.clearPresenceTimer();
     this.abortTransientWork();
@@ -317,7 +319,7 @@ Page({
   },
   retrySend() { void this.send(); },
   prepareAttachmentSheet(attachmentSheetMode: "image" | "attachment") {
-    if (this.data.sending || this.data.uploadBusy) return;
+    if (this.data.sending || this.data.uploadBusy || this.choosingImage) return;
     if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
     this.setData({ attachmentSheetOpen: true, attachmentSheetMode, composerFocused: false });
   },
@@ -327,11 +329,18 @@ Page({
   stopPropagation() {},
   mimeForPath(path: string): string | null { const lower = path.toLowerCase(); return /\.(jpg|jpeg)$/.test(lower) ? "image/jpeg" : lower.endsWith(".png") ? "image/png" : lower.endsWith(".webp") ? "image/webp" : null; },
   async chooseImage(event: WechatMiniprogram.TouchEvent) {
+    if (this.choosingImage || !this.data.pageAlive || !this.data.visible) return;
     const source = event.currentTarget.dataset.source === "camera" ? "camera" : "album";
+    const epoch = this.lifecycleEpoch;
+    const ownerToken = sessionToken();
+    const current = () => this.owns(epoch, ownerToken);
+    this.choosingImage = true;
     this.setData({ attachmentSheetOpen: false, error: "", errorAction: "" });
     try {
       await new Promise<void>((resolve, reject) => wx.requirePrivacyAuthorize({ success: () => resolve(), fail: reject }));
+      if (!current()) return;
       const chosen = await wx.chooseMedia({ count: 1, mediaType: ["image"], sourceType: [source] });
+      if (!current()) return;
       const file = chosen.tempFiles[0];
       if (!file) return;
       let localPath = file.tempFilePath;
@@ -339,10 +348,13 @@ Page({
       if (size > 1024 * 1024 && typeof wx.compressImage === "function") {
         try {
           const compressed = await wx.compressImage({ src: localPath, quality: 82 });
+          if (!current()) return;
           const info = await new Promise<WechatMiniprogram.GetFileInfoSuccessCallbackResult>((resolve, reject) => wx.getFileSystemManager().getFileInfo({ filePath: compressed.tempFilePath, success: resolve, fail: reject }));
+          if (!current()) return;
           if (info.size > 0 && info.size < size) { localPath = compressed.tempFilePath; size = info.size; }
         } catch {}
       }
+      if (!current()) return;
       const mimeType = this.mimeForPath(localPath) ?? this.mimeForPath(file.tempFilePath);
       if (!mimeType) { this.setData({ error: "仅支持 JPG、PNG 或 WEBP 图片。", errorAction: "" }); return; }
       if (!size || size > 5 * 1024 * 1024) { this.setData({ error: "图片需小于 5MB，请压缩或重新选择。", errorAction: "" }); return; }
@@ -353,7 +365,8 @@ Page({
       this.setData({ selectedImage: candidate, composerSendEnabled: false });
       wx.nextTick(() => this.measureComposer());
       await this.uploadImage(candidate);
-    } catch (error) { if (!isCancellation(error)) this.setData({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
+    } catch (error) { if (current() && !isCancellation(error)) this.setData({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
+    finally { if (this.lifecycleEpoch === epoch) this.choosingImage = false; }
   },
   async uploadImage(candidate?: SelectedImage | null) {
     const selected = candidate ?? this.data.selectedImage;

@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { miniProgramApiOrigins, miniProgramCloudFunctions } from "../apps/miniprogram/release-config";
 import { evaluateDesignQaEvidence } from "./design-qa-lib";
-import { validateWeChatRelease, type WeChatReleaseTarget } from "./wechat-release-lib";
+import { validateInternalTestPackageSafety, validateWeChatRelease, type WeChatReleaseTarget } from "./wechat-release-lib";
 
 type Command = "preflight" | "preview" | "upload";
 
@@ -57,7 +57,17 @@ const errors = validateWeChatRelease({
     miniProgramFilingCompleted: flag("WECHAT_MINIPROGRAM_FILING_COMPLETED")
   }
 });
-if (target !== "local") {
+if (target === "preview") {
+  errors.push(...validateInternalTestPackageSafety({
+    riskAccepted: flag("WECHAT_CI_RISK_ACCEPTED"),
+    testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
+    paymentsDisabled: flag("WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED"),
+    publicUgcDisabled: flag("WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED"),
+    testMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED")
+  }));
+  const designQa = await evaluateDesignQaEvidence(root);
+  errors.push(...designQa.structuralErrors);
+} else if (target === "trial" || target === "release") {
   const designQa = await evaluateDesignQaEvidence(root);
   errors.push(...designQa.releaseErrors);
 }

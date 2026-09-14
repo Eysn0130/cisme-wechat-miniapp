@@ -2,9 +2,10 @@ import { MemberProfile, type MemberProfileInput } from "./memberProfile.js";
 import { startBackgroundWorker } from "../../worker/src/jobs.js";
 import { startMoneyBackgroundWorker } from "../../worker/src/moneyJobs.js";
 import { randomUUID } from "node:crypto";
-import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+import Fastify, { LogController, type FastifyBaseLogger, type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import rateLimit from "@fastify/rate-limit";
 import type pg from "pg";
 import { loadConfig, type AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
@@ -12,6 +13,7 @@ import type { CareMilestoneCommandInput, CareVersionCommandInput, EmergencySwitc
 import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
 import { createPool } from "./db.js";
 import { PrivacyRights } from "./privacyRights.js";
+import { SyntheticPrivacyExecution } from "./privacyExecution.js";
 import { PhoneBinding } from "./phoneBinding.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CloudUpload } from "./cloudUpload.js";
@@ -42,7 +44,8 @@ import { ApprovedKnowledgeRegistry, DisabledSupportAiProvider, SupportAiBoundary
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
 import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
-import { recordHttpRequest, runtimeMetrics, safeLoggerOptions } from "./observability.js";
+import { recordHttpRequest, runtimeMetrics, safeFailureFields, safeLoggerOptions } from "./observability.js";
+import { createRateLimitChecks } from "./rateLimits.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -60,6 +63,8 @@ interface AppDependencies {
     transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox;
     isolatedSyntheticTransport?: boolean };
   legacyDirectSettlementFixture?: boolean;
+  loggerInstance?: FastifyBaseLogger;
+  phoneFetcher?: typeof fetch;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -67,10 +72,13 @@ function devClock(request: FastifyRequest): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function adminPrincipal(request: FastifyRequest, config: AppConfig): string {
-  if (request.headers["x-admin-token"] !== config.adminApiToken) throw new DomainError("ADMIN_AUTH_REQUIRED", "Admin token required", 401);
-  const principal = request.headers["x-principal-id"];
-  if (typeof principal !== "string" || !principal) throw new DomainError("ADMIN_PRINCIPAL_REQUIRED", "Admin principal required", 401);
+function adminPrincipal(request: FastifyRequest, _config: AppConfig): string {
+  // The legacy shared secret is not an actor credential. Only the signed
+  // session resolved by the common preHandler may select an audit principal.
+  const principal = request.principalId;
+  if (!principal) throw new DomainError("ADMIN_AUTH_REQUIRED", "Operator session required", 401);
+  const claimed = request.headers["x-principal-id"];
+  if (claimed !== undefined && claimed !== principal) throw new DomainError("ADMIN_ACTOR_MISMATCH", "Operator actor does not match session", 403);
   return principal;
 }
 
@@ -82,10 +90,13 @@ function idempotencyKey(request: FastifyRequest): string {
 
 export async function createApp(dependencies: AppDependencies): Promise<FastifyInstance> {
   const { config, pool, storage } = dependencies;
-  const app = Fastify({ logger: safeLoggerOptions(config.observability.logLevel), genReqId: (request) => {
-    const supplied = request.headers["x-request-id"];
-    return typeof supplied === "string" && /^[A-Za-z0-9._:-]{8,96}$/.test(supplied) ? supplied : randomUUID();
-  }, bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.routeDeadlineMs });
+  const app = Fastify({ ...(dependencies.loggerInstance && config.env === "test"
+    ? { loggerInstance: dependencies.loggerInstance } : { logger: safeLoggerOptions(config.observability.logLevel) }),
+    logController: new LogController({ disableRequestLogging: true }),
+    // Trace IDs are server-owned. A caller-controlled x-request-id could be
+    // a phone number, token, or signed URL and would otherwise enter logs.
+    genReqId: () => randomUUID(),
+    bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.routeDeadlineMs });
   let coldStart = true;
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
@@ -98,7 +109,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
   const access = new CommunityAccess(pool, config, authority);
   const cloudUpload = new CloudUpload(pool, config, service);
-  const phone = new PhoneBinding(pool, config);
+  const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
   const deliveryAddresses = new DeliveryAddressService(pool, config);
   // A formal profile can exercise the complete command/inbox route only in
   // APP_ENV=test with an injected synthetic transport. Real environments
@@ -152,15 +163,19 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const tradeBills=paymentProfile&&dependencies.paymentProtocol
     ?new TradeBillReconciliationService(pool,authority,dependencies.paymentProtocol.channel,
       paymentProfile.merchantId):null;
-  const privacyRights = new PrivacyRights(pool);
+  const privacyRights = new PrivacyRights(pool,config.env);
+  const privacyExecution = new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
   registerCloudHttpTransport(app);
+  await app.register(rateLimit, { global: false, cache: config.api.rateLimit.cacheSize });
+  const rateChecks = createRateLimitChecks(app, config.api.rateLimit);
 
-  app.addHook("onRequest", async (request) => {
+  app.addHook("onRequest", async (request, reply) => {
     (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeStartedAt = performance.now();
     (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeColdStart = coldStart;
     coldStart = false;
+    await rateChecks.onRequest(request, reply);
   });
   app.addHook("onSend", async (request, reply, payload) => {
     const started = (request as FastifyRequest & { cismeStartedAt?: number }).cismeStartedAt ?? performance.now();
@@ -184,18 +199,22 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       : null;
     const domain = error instanceof DomainError ? error : databaseDomain;
     const status = domain?.status ?? ((error as { statusCode?: number }).statusCode ?? 500);
-    if (status >= 500) request.log.error(error);
+    const retryAfter = Number(reply.getHeader("Retry-After"));
+    if (status >= 500) request.log.error({ event: "http_failure", request_id: request.id,
+      method: request.method, route: request.routeOptions.url, status_code: status,
+      ...safeFailureFields(error) });
     void reply.status(status).type("application/problem+json").send({
       type: `https://cisme.example/problems/${domain?.code ?? "INTERNAL_ERROR"}`,
       title: domain?.message ?? "Internal server error",
       status,
       code: domain?.code ?? "INTERNAL_ERROR",
+      ...(status === 429 && Number.isInteger(retryAfter) && retryAfter > 0 ? { retryAfterSeconds: retryAfter } : {}),
       ...(config.env === "test" && !domain ? { detail: (error as Error).message } : {}),
       trace_id: request.id
     });
   });
 
-  app.addHook("preHandler", async (request) => {
+  app.addHook("preHandler", async (request, reply) => {
     if (process.env.CISME_MIGRATION_READ_ONLY === "true" && !["GET", "HEAD", "OPTIONS"].includes(request.method)) throw new DomainError("SERVICE_MIGRATING", "会员服务正在迁移，请稍后重试；已保存的数据不受影响", 503);
     const path = request.url.split("?")[0] ?? request.url;
     const publicCommunityRead = request.method === "GET" && /^\/v1\/community\/[^/]+$/.test(path) && !request.headers.authorization;
@@ -210,7 +229,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         /^\/v1\/ugc\/scan-source\/[0-9a-f-]+$/i.test(path) ||
         /^\/v1\/ugc\/own-preview\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/admin/") || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
@@ -218,6 +237,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     }
     if (principal.memberId) request.memberId = principal.memberId;
     request.principalId = principal.id;
+    await rateChecks.afterAuth(request, reply);
   });
 
   app.get("/health/live", async () => ({ status: "ok" }));
@@ -361,7 +381,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return { ready: ["terms", "privacy"].every(type => documents.rows.some(doc => doc.document_type === type)), documents: documents.rows };
   });
   app.get("/v1/me/privacy-requests", async request => privacyRights.list(request.memberId));
-  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown}));
+  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
   app.get("/v1/admin/privacy-requests", async request => {
     await privacyRights.requireOperator(adminPrincipal(request, config));
     return privacyRights.queue();
@@ -375,6 +395,22 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const principal = adminPrincipal(request, config);
     return privacyRights.planExecution(principal, request.params.requestId, idempotencyKey(request), request.body as {expectedVersion?:unknown;reasonCode?:unknown});
   });
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/export-approval", async request =>
+    privacyExecution.approveExport(adminPrincipal(request,config),request.params.requestId,
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/erasure-approval", async request =>
+    privacyExecution.approveProfileErasure(adminPrincipal(request,config),request.params.requestId,
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/execution-redrive", async request =>
+    privacyExecution.redrive(adminPrincipal(request,config),request.params.requestId,
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+  app.get<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export", async (request,reply) => {
+    const bytes=await privacyExecution.download(request.memberId,request.params.requestId);
+    return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment; filename="cisme-profile.json"')
+      .type('application/json').send(bytes);
+  });
+  app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export-revoke", async request =>
+    privacyExecution.revoke(request.memberId,request.params.requestId));
   const memberProfile = new MemberProfile(pool,config.env);
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
   app.get("/v1/me/commercial-membership", async request => commercial.myStatus(request.memberId));
@@ -409,10 +445,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const body = (request.body ?? {}) as {mimeType?:unknown;maxBytes?:unknown};
     const protocol = request.headers["x-forwarded-proto"] ?? "http";
     const host = request.headers.host ?? `127.0.0.1:${config.port}`;
-    return support.authorizeSupportMedia(request.memberId, {...body,baseUrl:`${protocol}://${host}`});
+    return support.authorizeSupportMedia(request.memberId, request.principalId, {...body,baseUrl:`${protocol}://${host}`}, request.id);
   });
-  app.post<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId/complete", async request => support.completeSupportMedia(request.memberId, request.params.mediaId));
-  app.delete<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async request => support.deleteSupportMedia(request.memberId, request.params.mediaId));
+  app.post<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId/complete", async request => support.completeSupportMedia(request.memberId, request.principalId, request.params.mediaId, request.id));
+  app.delete<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async request => support.deleteSupportMedia(request.memberId, request.principalId, request.params.mediaId, request.id));
   app.get<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async (request, reply) => {
     const media = await support.memberSupportMedia(request.memberId, request.params.mediaId);
     return reply.header("Cache-Control", "private, no-store").type(media.mimeType).send(Buffer.from(media.bytes));
@@ -482,9 +518,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return refunds;
   };
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
-    paymentRequired().prepare(request.memberId,request.params.orderId));
+    paymentRequired().prepare(request.memberId,request.principalId,request.params.orderId,request.id));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
-    paymentRequired().refresh(request.memberId,request.params.orderId));
+    paymentRequired().refresh(request.memberId,request.principalId,request.params.orderId,request.id));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
     paymentRequired().cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>,request.id));
@@ -728,11 +764,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const app = await createApp({ config, pool, storage,
     ...(paymentProtocol?{paymentProtocol}:{}) });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
-    ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => console.error("CISME_WORKER_TICK_FAILED", error))
+    ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
+      privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null }, (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
     : null;
   const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl
     ? startUgcSafetyLoop(new UgcSafetyService(pool,config,storage),config.media.ugcScanBaseUrl,
-      error=>console.error("CISME_UGC_SAFETY_TICK_FAILED",error)) : null;
+      error=>app.log.error({ event: "ugc_safety_tick_failed", ...safeFailureFields(error) })) : null;
   const activeProfile=config.commerce.simulatedPayment;
   const moneyWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&paymentProtocol&&activeProfile
     ?startMoneyBackgroundWorker(paymentProtocol.inbox,paymentProtocol.refundInbox,
@@ -746,9 +783,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             sceneId:config.commerce.simulatedPayment.transferSceneId,
             notifyUrl:paymentProtocol.transferNotifyUrl}):undefined,
       paymentProtocol.transferInbox,
-      error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",error)) : null;
+      error=>app.log.error({ event: "money_worker_tick_failed", ...safeFailureFields(error) })) : null;
   app.addHook("onClose", async () => { moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
-  const stop = () => void app.close().catch((error) => { console.error("CISME_SHUTDOWN_FAILED", error); process.exitCode = 1; });
+  const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
   const listenHost = process.env.API_LISTEN_HOST ?? "0.0.0.0";

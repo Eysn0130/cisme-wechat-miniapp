@@ -18,39 +18,56 @@ function requestDigest(value: unknown): string {
 const executionProjection = `COALESCE(
   (SELECT jsonb_build_object(
     'type','export','id',job.id,'status',job.status,'executionMode',job.execution_mode,
+    'scope',CASE WHEN job.execution_mode='generate_archive' THEN 'member_profile_only' ELSE 'plan_only' END,
+    'downloadAvailable',EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id
+      AND artifact.revoked_at IS NULL AND artifact.expires_at>now() AND job.status='succeeded'),
+    'deliveryState',CASE
+      WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.revoked_at IS NOT NULL) THEN 'revoked'
+      WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.expires_at<=now()) THEN 'expired'
+      WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.revoked_at IS NULL AND artifact.expires_at>now()) THEN 'available'
+      WHEN job.status='succeeded' THEN 'removed'
+      ELSE 'not_ready' END,
+    'archiveExpiresAt',job.archive_expires_at,
     'createdAt',job.created_at,'updatedAt',job.updated_at,'completedAt',job.completed_at
   ) FROM data_export_job job WHERE job.privacy_request_id=pr.id),
   (SELECT jsonb_build_object(
     'type','erasure','id',job.id,'status',job.status,'executionMode',CASE WHEN job.dry_run THEN 'dry_run' ELSE 'apply' END,
-    'mode',job.erasure_mode,'legalHoldCount',job.legal_hold_count,
+    'mode',job.erasure_mode,'scopeCode',job.scope->>'scopeCode','legalHoldCount',job.legal_hold_count,
     'createdAt',job.created_at,'updatedAt',job.updated_at,'completedAt',job.completed_at
   ) FROM data_erasure_job job WHERE job.privacy_request_id=pr.id)
 ) AS execution`;
 
 export class PrivacyRights {
-  constructor(private pool: pg.Pool) {}
+  constructor(private pool: pg.Pool, private environment='production') {}
 
   async list(memberId: string | undefined) {
-    return (await this.pool.query(`SELECT pr.id,pr.kind,pr.message,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+    return (await this.pool.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       ${executionProjection}
       FROM privacy_request pr WHERE pr.member_id=$1 ORDER BY pr.created_at DESC LIMIT 100`,[owner(memberId)])).rows;
   }
 
-  async submit(memberId: string | undefined, input: {kind?:unknown;message?:unknown}) {
+  async submit(memberId: string | undefined, input: {kind?:unknown;message?:unknown;scopeCode?:unknown}) {
     const id=owner(memberId);
     if(!input || typeof input.kind!=='string' || !kinds.has(input.kind) || typeof input.message!=='string' || !input.message.trim() || Array.from(input.message).length>2000) {
       throw new DomainError('PRIVACY_REQUEST_INVALID','请选择请求类型并填写不超过 2000 字的说明',422);
     }
+    const scopeCode=input.scopeCode??null;
+    if(scopeCode!==null && (this.environment!=='test'||input.kind!=='delete'||scopeCode!=='member_profile_handle_v1'))
+      throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','当前环境或请求类型不支持此精确数据范围',422);
     const message=input.message.trim();
     return transaction(this.pool,async client=>{
       // Prevent duplicate taps and unbounded per-account submission bursts.
       await client.query('SELECT id FROM member WHERE id=$1 FOR UPDATE',[id]);
-      const existing=await client.query(`SELECT id,kind,status,version,due_at,created_at FROM privacy_request WHERE member_id=$1 AND kind=$2 AND message=$3 AND status NOT IN ('completed','rejected','canceled') ORDER BY created_at DESC LIMIT 1`,[id,input.kind,message]);
+      if(scopeCode!==null){
+        const identity=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test'",[id]);
+        if(!identity.rowCount)throw new DomainError('PRIVACY_SYNTHETIC_IDENTITY_REQUIRED','此精确数据范围仅供合成测试身份使用',403);
+      }
+      const existing=await client.query(`SELECT id,kind,status,version,due_at,created_at,scope_code FROM privacy_request WHERE member_id=$1 AND kind=$2 AND message=$3 AND scope_code IS NOT DISTINCT FROM $4 AND status NOT IN ('completed','partially_completed','rejected','canceled') ORDER BY created_at DESC LIMIT 1`,[id,input.kind,message,scopeCode]);
       if(existing.rows[0])return existing.rows[0];
       const count=await client.query(`SELECT count(*)::int AS count FROM privacy_request WHERE member_id=$1 AND created_at>now()-interval '1 day'`,[id]);
       if(count.rows[0].count>=10)throw new DomainError('PRIVACY_REQUEST_LIMIT','今天已提交多项请求，请查看已有受理记录',429);
-      const created=(await client.query(`INSERT INTO privacy_request(member_id,kind,message,due_at)
-        VALUES($1,$2,$3,now()+interval '30 days') RETURNING id,kind,status,version,due_at,created_at`,[id,input.kind,message])).rows[0];
+      const created=(await client.query(`INSERT INTO privacy_request(member_id,kind,message,due_at,scope_code)
+        VALUES($1,$2,$3,now()+interval '30 days',$4) RETURNING id,kind,status,version,due_at,created_at,scope_code`,[id,input.kind,message,scopeCode])).rows[0];
       await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
         VALUES($1,$2,'received',jsonb_build_object('kind',$3::text))`,[created.id,`member:${id}`,input.kind]);
       return created;
@@ -68,7 +85,7 @@ export class PrivacyRights {
   }
 
   async queue() {
-    return (await this.pool.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+    return (await this.pool.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       ${executionProjection}
       FROM privacy_request pr ORDER BY (pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at LIMIT 100`)).rows;
   }
@@ -114,7 +131,7 @@ export class PrivacyRights {
         if(replay.rows[0].request_hash!==hash)throw new DomainError('IDEMPOTENCY_CONFLICT','幂等键已用于不同的执行计划',409);
         return replay.rows[0].response_body;
       }
-      const current=await client.query<{member_id:string;kind:string;status:string;version:number}>('SELECT member_id,kind,status,version FROM privacy_request WHERE id=$1 FOR UPDATE',[id]);
+      const current=await client.query<{member_id:string;kind:string;status:string;version:number;scope_code:string|null}>('SELECT member_id,kind,status,version,scope_code FROM privacy_request WHERE id=$1 FOR UPDATE',[id]);
       if(!current.rowCount)throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
       const row=current.rows[0]!;
       if(row.version!==expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);
@@ -133,7 +150,8 @@ export class PrivacyRights {
         type='erasure';
         mode=row.kind==='delete'?'delete_scope':row.kind==='close_account'?'close_account':'withdraw_purpose';
         job=(await client.query<{id:string;status:string}>(`INSERT INTO data_erasure_job(privacy_request_id,member_id,erasure_mode,dry_run,scope,requested_by)
-          VALUES($1,$2,$3,true,$4,$5) RETURNING id,status`,[id,row.member_id,mode,{requestMessageScoped:true},principalId])).rows[0]!;
+          VALUES($1,$2,$3,true,$4,$5) RETURNING id,status`,[id,row.member_id,mode,
+          row.scope_code?{scopeCode:row.scope_code}:{requestMessageScoped:true},principalId])).rows[0]!;
       } else {
         throw new DomainError('PRIVACY_EXECUTION_MANUAL_ONLY','更正与其他请求需要人工核验，不能生成自动执行计划',409);
       }

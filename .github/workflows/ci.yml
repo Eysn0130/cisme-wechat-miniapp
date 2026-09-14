@@ -3,6 +3,8 @@ permissions:
   contents: read
 on:
   push:
+    branches: [main]
+    tags: ['candidate-*']
   pull_request:
   workflow_dispatch:
 jobs:
@@ -97,7 +99,8 @@ jobs:
       - name: Fail closed when protected credentials are unavailable
         run: test -n "$WECHAT_APP_ID" && test -n "$WECHAT_PRIVATE_KEY"
       - run: npm run typecheck
-      - run: npm run design:qa:gate
+      - run: npm run miniprogram:package-gate
+      - run: npm run design:qa:status
       - run: |
           key_path="$RUNNER_TEMP/wechat-private.key"
           printf '%s' "$WECHAT_PRIVATE_KEY" > "$key_path"
@@ -109,3 +112,7 @@ jobs:
           WECHAT_LEGAL_TEXTS_APPROVED: ${{ vars.WECHAT_LEGAL_TEXTS_APPROVED }}
           WECHAT_SERVER_DOMAINS_CONFIGURED: ${{ vars.WECHAT_SERVER_DOMAINS_CONFIGURED }}
           WECHAT_DEMO_SCOPE_APPROVED: ${{ vars.WECHAT_DEMO_SCOPE_APPROVED }}
+          WECHAT_EXPERIENCE_MEMBERS_CONFIGURED: ${{ vars.WECHAT_EXPERIENCE_MEMBERS_CONFIGURED }}
+          WECHAT_TEST_TARGET_ISOLATED_VERIFIED: ${{ vars.WECHAT_TEST_TARGET_ISOLATED_VERIFIED }}
+          WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED: ${{ vars.WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED }}
+          WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED: ${{ vars.WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED }}

@@ -52,22 +52,22 @@ paths:
     post:
       operationId: submitPrivacyRequest
       security: [{session: []}]
-      description: Registers access, correct, delete, close_account, withdraw or other request; deduplicates identical unanswered requests and limits to 10 per day. Does not execute deletion or account closure.
+      description: Registers access, correct, delete, close_account, withdraw or other request; deduplicates identical open requests and limits to 10 per day. Optional scopeCode is test-only for a dev_test identity and the profile-handle deletion class; unscoped requests never authorize automatic erasure. Submission alone does not execute deletion or account closure.
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}}}}}
+        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1]}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
   /v1/admin/privacy-requests:
     get:
       operationId: privacyRequestQueue
-      description: Requires admin token, principal, and support or review_lead role.
-      security: [{adminToken: [], adminPrincipal: []}]
+      description: Requires a signed active operator session and support or review_lead role; a client-supplied principal cannot select the actor.
+      security: [{session: []}]
       responses: {'200': {description: Requests with pending first}, '403': {description: Missing operator role}}
   /v1/admin/privacy-requests/{requestId}/response:
     post:
       operationId: respondPrivacyRequest
-      description: Requires admin token and support or review_lead role. Saves an auditable member-visible reply, not an automatic data operation.
-      security: [{adminToken: [], adminPrincipal: []}]
+      description: Requires a signed active operator session and support or review_lead role. Saves an auditable member-visible reply, not an automatic data operation.
+      security: [{session: []}]
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody:
         required: true
@@ -76,13 +76,57 @@ paths:
   /v1/admin/privacy-requests/{requestId}/execution-plan:
     post:
       operationId: planPrivacyRequestExecution
-      description: Review-lead-only, idempotent creation of one plan-only export job or dry-run erasure job. Does not read an export archive, delete data, close an account, approve a job, or run a job.
-      security: [{adminToken: [], adminPrincipal: []}]
+      description: Signed active review-lead session only; idempotent creation of one plan-only export job or dry-run erasure job. Does not read an export archive, delete data, close an account, approve a job, or run a job.
+      security: [{session: []}]
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody:
         required: true
         content: {application/json: {schema: {type: object, required: [expectedVersion, reasonCode], properties: {expectedVersion: {type: integer, minimum: 1}, reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}}}}}
       responses: {'200': {description: Non-executing plan created or exact idempotent replay}, '409': {description: Stale, closed, already planned, or manual-only request}, '403': {description: Missing review_lead role}, '404': {description: Request not found}}
+  /v1/admin/privacy-requests/{requestId}/export-approval:
+    post:
+      operationId: approveSyntheticProfileExport
+      security: [{session: []}]
+      description: Test environment only. A second signed review lead approves a fixed member-profile-only scope for a dev_test identity; never enables production execution.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Approved synthetic job}, '403': {description: Missing role or second reviewer}, '409': {description: Plan not approvable}, '503': {description: Synthetic execution disabled}}
+  /v1/admin/privacy-requests/{requestId}/erasure-approval:
+    post:
+      operationId: approveSyntheticProfileHandleErasure
+      security: [{session: []}]
+      description: Test environment only. A second signed review lead approves the member's explicit member_profile_handle_v1 scope only when an active synthetic retention policy and no legal hold exist. Never enables production apply or whole-account deletion.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Approved synthetic scoped job}, '403': {description: Missing role or second reviewer}, '409': {description: Missing scope, policy, hold clearance, or current version}, '503': {description: Synthetic execution disabled}}
+  /v1/admin/privacy-requests/{requestId}/execution-redrive:
+    post:
+      operationId: redriveExhaustedSyntheticPrivacyExecution
+      security: [{session: []}]
+      description: Test environment only. Signed review lead may auditably reset an exhausted synthetic export or explicitly scoped erasure after rechecking dev identity, fixed scope, and applicable policy/holds. No production execution.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Audited synthetic redrive}, '403': {description: Missing review lead role}, '409': {description: Not exhausted or prerequisites absent}, '503': {description: Synthetic execution disabled}}
+  /v1/me/privacy-requests/{requestId}/export:
+    get:
+      operationId: downloadOwnSyntheticProfileExport
+      security: [{session: []}]
+      description: Test-only private encrypted-at-rest profile subset. Member session, exact owner, unexpired and unrevoked artifact required; no-store response.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: JSON profile subset}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Synthetic execution disabled or key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export-revoke:
+    post:
+      operationId: revokeOwnSyntheticProfileExport
+      security: [{session: []}]
+      description: Test-only owner revocation of a synthetic export artifact; audited and no longer downloadable.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Revoked}, '404': {description: Not owned or unavailable}, '503': {description: Synthetic execution disabled}}
   /v1/legal:
     get:
       operationId: currentLegalDocuments
@@ -380,13 +424,13 @@ paths:
   /v1/submissions/{submissionId}/appeal:
     post: {tags: [Submission], operationId: appeal, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: Versioned appeal created or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/reviews:
-    get: {tags: [Admin], operationId: reviewQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered queue}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Admin], operationId: reviewQueue, security: [{session: []}], responses: {'200': {description: RBAC-filtered queue}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/tester-enrollments:
     post:
       tags: [Admin]
       operationId: qualifyExperienceMember
       description: Audited experience-member bridge when no transaction profile exists. A review lead or support principal records verified delivery or approved tester fulfillment and atomically creates one PLANNED care cycle. It is not a production order substitute.
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/TesterEnrollmentInput'}}}}
       responses: {'200': {description: Idempotent qualification fact and planned care cycle}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/admin/campaigns:
@@ -394,14 +438,14 @@ paths:
       tags: [Admin]
       operationId: listEligibilityCampaigns
       description: Versioned campaign configuration with effective allocation counts. Review lead, auditor or support only.
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       responses: {'200': {description: Campaign configuration and current allocation facts}, '403': {$ref: '#/components/responses/Problem'}}
   /v1/admin/campaigns/{campaignId}:
     put:
       tags: [Admin]
       operationId: updateEligibilityCampaign
       description: Review-lead-only, evidence-bearing update of campaign availability, window and capacity. Reward amount and qualifying milestone remain immutable finance/product facts.
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{name: campaignId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [active, capacity, startsAt, endsAt, expectedVersion, reasonCode, evidence], properties: {active: {type: boolean}, capacity: {type: integer, minimum: 1, maximum: 100000}, startsAt: {type: string, format: date-time}, endsAt: {type: string, format: date-time}, expectedVersion: {type: integer, minimum: 1}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}}}}
       responses: {'200': {description: Versioned audited update or exact replay}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
@@ -409,31 +453,31 @@ paths:
     post:
       tags: [Admin]
       operationId: reviewSubmission
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReviewInput'}}}}
       responses: {'200': {description: Versioned reward/evidence review; when finance-approved rules are enabled, approval creates at most one frozen grant; it never publishes content}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/admin/publications:
-    get: {tags: [Admin], operationId: publicationQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Approved submissions awaiting a separate public-content decision; review lead or auditor only}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Admin], operationId: publicationQueue, security: [{session: []}], responses: {'200': {description: Approved submissions awaiting a separate public-content decision; review lead or auditor only}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/submissions/{submissionId}/publish:
     post:
       tags: [Admin]
       operationId: approveSubmissionPublication
       description: Requires the UGC go-live gate, an active feed consent, a review-lead principal different from the reward reviewer, structured AI-use declaration and auditable evidence. Queues publication; the worker revalidates before visibility.
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PublicationInput'}}}}
       responses: {'200': {description: Idempotent publication decision queued or already published}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/admin/points/actions:
-    get: {tags: [Admin], operationId: pointsActionQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Finance-operator, finance-approver or auditor action queue}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Admin], operationId: pointsActionQueue, security: [{session: []}], responses: {'200': {description: Finance-operator, finance-approver or auditor action queue}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/points/grants:
-    get: {tags: [Admin], operationId: pointsGrantQueue, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Finance asset queue with lot buckets, policy dates, version and pending-action state}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Admin], operationId: pointsGrantQueue, security: [{session: []}], responses: {'200': {description: Finance asset queue with lot buckets, policy dates, version and pending-action state}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/points/grants/{grantId}/actions:
     post:
       tags: [Admin]
       operationId: requestPointsAction
       description: Finance operator proposes one whole-lot unfreeze, expiry, or remaining-balance reversal. No balance changes before a different finance approver signs.
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{name: grantId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PointsActionInput'}}}}
       responses: {'200': {description: Pending action or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
@@ -441,7 +485,7 @@ paths:
     post:
       tags: [Admin]
       operationId: approvePointsAction
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PointsDecisionInput'}}}}
       responses: {'200': {description: Atomic lot, projection, append-only entry and event update, or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
@@ -449,25 +493,25 @@ paths:
     post:
       tags: [Admin]
       operationId: rejectPointsAction
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{name: requestId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PointsDecisionInput'}}}}
       responses: {'200': {description: Rejected action or exact replay}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/admin/switches:
-    get: {tags: [Admin], operationId: listEmergencySwitches, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Versioned emergency and business switch states}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Admin], operationId: listEmergencySwitches, security: [{session: []}], responses: {'200': {description: Versioned emergency and business switch states}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/switches/{key}:
-    put: {tags: [Admin], operationId: setEmergencySwitch, security: [{adminToken: [], adminPrincipal: []}], parameters: [{name: key, in: path, required: true, schema: {type: string, enum: [identity, uploads, reviews, rewards, submissions, redemption, commerce, community]}}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, reason, expectedVersion], properties: {enabled: {type: boolean}, reason: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Versioned, audited switch update or exact replay; independent business kill switches. Community remains off until formal UGC routes, moderation, legal, privacy and device gates pass.}, '409': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}}}
+    put: {tags: [Admin], operationId: setEmergencySwitch, security: [{session: []}], parameters: [{name: key, in: path, required: true, schema: {type: string, enum: [identity, uploads, reviews, rewards, submissions, redemption, commerce, community]}}, {$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, reason, expectedVersion], properties: {enabled: {type: boolean}, reason: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Versioned, audited switch update or exact replay; independent business kill switches. Community remains off until formal UGC routes, moderation, legal, privacy and device gates pass.}, '409': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/worker-failures:
-    get: {tags: [Admin], operationId: listWorkerFailures, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered dead-lettered outbox and media-cleanup items}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Admin], operationId: listWorkerFailures, security: [{session: []}], responses: {'200': {description: RBAC-filtered dead-lettered outbox and media-cleanup items}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/worker-backlog:
-    get: {tags: [Admin], operationId: listWorkerBacklog, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: RBAC-filtered unprocessed event counts, oldest event and explicit implemented/unimplemented handler state}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {tags: [Admin], operationId: listWorkerBacklog, security: [{session: []}], responses: {'200': {description: RBAC-filtered unprocessed event counts, oldest event and explicit implemented/unimplemented handler state}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/runtime-metrics:
-    get: {tags: [Admin], operationId: runtimeMetrics, security: [{adminToken: [], adminPrincipal: []}], responses: {'200': {description: Bounded in-process latency percentiles, retry counts and pool occupancy; no SQL text, headers or member identifiers}}}
+    get: {tags: [Admin], operationId: runtimeMetrics, security: [{session: []}], responses: {'200': {description: Bounded in-process latency percentiles, retry counts and pool occupancy; no SQL text, headers or member identifiers}}}
   /v1/admin/worker-failures/{queue}/{itemId}/redrive:
     post:
       tags: [Admin]
       operationId: redriveWorkerFailure
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{name: queue, in: path, required: true, schema: {type: string, enum: [outbox, media_cleanup]}}, {name: itemId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [reason, expectedAttempts], properties: {reason: {type: string, minLength: 1}, expectedAttempts: {type: integer, minimum: 1}}}}}}
       responses: {'200': {description: Audited exact replay or one explicitly requeued dead-letter item}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
@@ -907,7 +951,7 @@ paths:
     post:
       operationId: reviewCommunityComment
       description: Local preview only. Requires review_lead role and writes an audit record. Only pending comments can be reviewed.
-      security: [{adminToken: [], adminPrincipal: []}]
+      security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/CommunityPostId'}, {$ref: '#/components/parameters/CommentId'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason], properties: {decision: {enum: [published, rejected]}, reason: {type: string, minLength: 4}}}}}}
       responses: {'200': {description: Audited review result}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
@@ -1207,8 +1251,6 @@ paths:
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
-    adminToken: {type: apiKey, in: header, name: x-admin-token}
-    adminPrincipal: {type: apiKey, in: header, name: x-principal-id}
   parameters:
     Cursor: {name: cursor, in: query, required: false, schema: {type: string, maxLength: 256}, description: Opaque stable tuple cursor returned by the preceding page.}
     PageLimit: {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 100}}

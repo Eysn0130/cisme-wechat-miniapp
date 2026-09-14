@@ -2,7 +2,7 @@
   <view class="topbar"><button class="topbar__back {{leaving ? 'control--disabled' : ''}}" disabled="{{leaving}}" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="invite-topbar-copy"><text class="topbar__title">邀请与分享</text><text class="invite-topbar-subtitle">邀请朋友，一起记录护理</text></view></view>
   <view class="page page--stack invite-page">
     <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载邀请资料…</view>
-    <block wx:if="{{!loading}}">
+    <block wx:if="{{!loading && !error}}">
       <view class="invite-card">
         <text class="invite-eyebrow">MY INVITATION</text>
         <view class="invite-avatar"><image class="invite-avatar-image" src="/assets/icons/user-circle-plum.svg" mode="aspectFit" aria-label="默认会员头像"/></view>

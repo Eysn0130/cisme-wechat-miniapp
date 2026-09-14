@@ -19,6 +19,7 @@ const config = loadConfig({
 const app = await createApp({ pool, config, storage: createApiGatewayStorage(config) });
 let ownerToken = "";
 let otherToken = "";
+let otherMemberId = "";
 
 const address = {
   recipientName: "林女士",
@@ -42,7 +43,7 @@ beforeAll(async () => {
     const response = await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: id, displayName: id, consents: [{ documentType: "privacy", version: "test" }, { documentType: "terms", version: "test" }] } });
     expect(response.statusCode).toBe(200);
     if (id === "address-owner") ownerToken = response.json().sessionToken;
-    else otherToken = response.json().sessionToken;
+    else { otherToken = response.json().sessionToken; otherMemberId = response.json().memberId; }
   }
 });
 
@@ -52,7 +53,8 @@ const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 
 it("stores address PII encrypted, isolates owners, and replays create requests", async () => {
   expect((await app.inject({ url: "/v1/me/addresses" })).statusCode).toBe(401);
-  const create = () => app.inject({ method: "POST", url: "/v1/me/addresses", headers: { ...auth(ownerToken), "idempotency-key": "address-create-owner-1" }, payload: address });
+  const create = () => app.inject({ method: "POST", url: "/v1/me/addresses", headers: { ...auth(ownerToken), "idempotency-key": "address-create-owner-1" },
+    payload: { ...address, memberId: otherMemberId, role: "administrator" } });
   const first = await create();
   expect(first.statusCode).toBe(200);
   expect(first.json()).toMatchObject({ recipientName: "林女士", phone: "13800000001", provinceCode: "440000", cityCode: "440300", districtCode: "440305", isDefault: true, version: 1 });
@@ -79,6 +81,17 @@ it("enforces optimistic versions and keeps exactly one default", async () => {
   expect(stale.statusCode).toBe(409);
   const forbidden = await app.inject({ method: "PUT", url: `/v1/me/addresses/${first.id}`, headers: auth(otherToken), payload: { ...address, expectedVersion: first.version + 1 } });
   expect(forbidden.statusCode).toBe(404);
+  const otherDefault = await app.inject({ method: "POST", url: `/v1/me/addresses/${first.id}/default`,
+    headers: auth(otherToken), payload: { expectedVersion: first.version + 1 } });
+  expect(otherDefault.statusCode).toBe(404);
+  const beforeAudit = (await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE object_type='member_delivery_address' AND object_id=$1", [first.id])).rows[0].count;
+  const otherDelete = await app.inject({ method: "DELETE", url: `/v1/me/addresses/${first.id}`,
+    headers: auth(otherToken), payload: { expectedVersion: first.version + 1 } });
+  // Deletion is intentionally idempotent for both absent and foreign IDs.
+  expect(otherDelete.statusCode).toBe(200);
+  const ownerList = (await app.inject({ url: "/v1/me/addresses", headers: auth(ownerToken) })).json().addresses;
+  expect(ownerList.some((item: { id: string }) => item.id === first.id)).toBe(true);
+  expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE object_type='member_delivery_address' AND object_id=$1", [first.id])).rows[0].count).toBe(beforeAudit);
 });
 
 it("soft-deletes an address and promotes a remaining address when needed", async () => {

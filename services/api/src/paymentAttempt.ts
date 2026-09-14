@@ -1,6 +1,6 @@
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
-import { transaction } from "./db.js";
+import { transaction, type DbClient } from "./db.js";
 import { CommerceOrderService } from "./commerceOrders.js";
 import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
 import { WechatPayV3Client } from "./wechatPayV3.js";
@@ -37,8 +37,14 @@ export class PaymentAttemptService{
       requestPayment:this.channel.miniProgramPaymentParams(row.app_id,row.prepay_id)};
   }
 
-  async prepare(memberId:string|undefined,orderId:string){
-    if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
+  private async audit(client:DbClient|pg.Pool,actor:string,action:string,orderId:string,
+    before:Record<string,unknown>,after:Record<string,unknown>,traceId:string){
+    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,before_state,after_state,trace_id)
+      VALUES($1,$2,'commerce_payment_attempt',$3,$4,$5,$6)`,[actor,action,orderId,before,after,traceId]);
+  }
+
+  async prepare(memberId:string|undefined,principalId:string|undefined,orderId:string,traceId:string){
+    if(!memberId||!principalId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
     const current=await this.attempt(orderId,memberId);
     if(current.app_id!==this.options.appId||current.merchant_id!==this.options.merchantId)
       throw new DomainError("PAYMENT_ATTEMPT_CONFIG_MISMATCH","支付意图配置不一致",409);
@@ -46,16 +52,25 @@ export class PaymentAttemptService{
       throw new DomainError("PAYMENT_ORDER_NOT_PENDING","订单已不在待支付状态",409);
     if(current.expires_at<=new Date())throw new DomainError("PAYMENT_ORDER_EXPIRED","订单支付时间已结束",409);
     if(current.state==="prepay_ready")return this.ready(current);
-    const claimed=(await this.pool.query<Attempt>(`UPDATE commerce_payment_attempt SET state='unknown',
-      request_lease_until=clock_timestamp()+interval '20 seconds',request_lease_token=gen_random_uuid(),
-      updated_at=clock_timestamp()
-      WHERE id=$1 AND state IN ('prepared','unknown')
-        AND (request_lease_until IS NULL OR request_lease_until<clock_timestamp()) RETURNING *`,[current.id])).rows[0];
-    if(!claimed)throw new DomainError("PAYMENT_ATTEMPT_IN_PROGRESS","支付意图正在处理，请稍后刷新",409);
+    const claim=await transaction(this.pool,async client=>{
+      const prior=(await client.query<{state:Attempt["state"]}>(`SELECT state FROM commerce_payment_attempt
+        WHERE id=$1 AND state IN ('prepared','unknown')
+          AND (request_lease_until IS NULL OR request_lease_until<clock_timestamp()) FOR UPDATE`,[current.id])).rows[0];
+      if(!prior)return undefined;
+      const next=(await client.query<Attempt>(`UPDATE commerce_payment_attempt SET state='unknown',
+        request_lease_until=clock_timestamp()+interval '20 seconds',request_lease_token=gen_random_uuid(),
+        updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[current.id])).rows[0];
+      if(!next)throw new DomainError("PAYMENT_ATTEMPT_IN_PROGRESS","支付意图已被其他处理者接管",409);
+      await this.audit(client,principalId,"commerce.payment_intent.claim",orderId,
+        {state:prior.state},{state:"unknown"},traceId);
+      return {next,priorState:prior.state};
+    });
+    if(!claim)throw new DomainError("PAYMENT_ATTEMPT_IN_PROGRESS","支付意图正在处理，请稍后刷新",409);
+    const claimed=claim.next;
     try{
       // An unknown prepay may already have reached the channel. A temporary
       // missing response does not prove the original number was never sent.
-      if(current.state==="unknown"){
+      if(claim.priorState==="unknown"){
         let queried;
         try{queried=await this.channel.queryByMerchantOrderNumber(current.out_trade_no);}
         catch(error){
@@ -63,18 +78,24 @@ export class PaymentAttemptService{
         }
         if(queried){
           if(queried.trade_state==="SUCCESS"){
-            await this.inbox.receiveQueried(this.channel,current.out_trade_no);
+            const persisted=await this.inbox.receiveQueried(this.channel,current.out_trade_no);
+            await this.audit(this.pool,principalId,"commerce.payment_intent.query_verified",orderId,
+              {state:"unknown"},{state:"verified_pending",inboxId:persisted.inboxId},traceId);
             return {orderId,state:"verified_pending" as const,simulation:true};
           }
           if(queried.trade_state==="CLOSED"){
-            await this.pool.query(`UPDATE commerce_payment_attempt SET state='closed',request_lease_until=NULL,
-              updated_at=clock_timestamp() WHERE id=$1 AND state='unknown'`,[current.id]);
+            await transaction(this.pool,async client=>{
+              const closed=await client.query(`UPDATE commerce_payment_attempt SET state='closed',request_lease_until=NULL,
+                updated_at=clock_timestamp() WHERE id=$1 AND state='unknown'`,[current.id]);
+              if(closed.rowCount)await this.audit(client,principalId,"commerce.payment_intent.channel_closed",orderId,
+                {state:"unknown"},{state:"closed"},traceId);
+            });
             throw new DomainError("PAYMENT_CHANNEL_CLOSED","渠道订单已关闭",409);
           }
           if(queried.trade_state!=="NOTPAY")
             throw new DomainError("PAYMENT_CHANNEL_UNRESOLVED","渠道支付状态待确认，请稍后重查",409);
         }
-        if(current.first_dispatch_started_at)
+        if(claimed.first_dispatch_started_at)
           throw new DomainError("PAYMENT_ORIGINAL_QUERY_REQUIRED","原支付单可能已发送，须沿原号核对",409);
       }
       const marked=await this.pool.query(`UPDATE commerce_payment_attempt SET
@@ -88,10 +109,15 @@ export class PaymentAttemptService{
         payerOpenid:claimed.payer_openid,totalCents:Number(claimed.amount_cents),
         description:(claimed.product_name??"CISME 商品").slice(0,127),notifyUrl:this.options.notifyUrl,
         expiresAt:claimed.expires_at});
-      const saved=(await this.pool.query<Attempt>(`UPDATE commerce_payment_attempt SET state='prepay_ready',
-        prepay_id=$2,request_lease_until=NULL,updated_at=clock_timestamp()
-        WHERE id=$1 AND state='unknown' AND request_lease_token=$3 RETURNING *`,
-        [claimed.id,prepay.prepayId,claimed.request_lease_token])).rows[0];
+      const saved=await transaction(this.pool,async client=>{
+        const next=(await client.query<Attempt>(`UPDATE commerce_payment_attempt SET state='prepay_ready',
+          prepay_id=$2,request_lease_until=NULL,updated_at=clock_timestamp()
+          WHERE id=$1 AND state='unknown' AND request_lease_token=$3 RETURNING *`,
+          [claimed.id,prepay.prepayId,claimed.request_lease_token])).rows[0];
+        if(next)await this.audit(client,principalId,"commerce.payment_intent.prepay_ready",orderId,
+          {state:"unknown"},{state:"prepay_ready"},traceId);
+        return next;
+      });
       if(!saved)throw new DomainError("PAYMENT_ATTEMPT_CONFLICT","支付意图状态已变化，请刷新",409);
       return this.ready({...saved,order_version:current.order_version});
     }catch(error){
@@ -102,14 +128,16 @@ export class PaymentAttemptService{
     }
   }
 
-  async refresh(memberId:string|undefined,orderId:string){
-    if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
+  async refresh(memberId:string|undefined,principalId:string|undefined,orderId:string,traceId:string){
+    if(!memberId||!principalId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
     const current=await this.attempt(orderId,memberId);
     if(current.order_status==="paid")return {orderId,state:"paid" as const,simulation:true};
     if(current.order_status!=="pending_payment")return {orderId,state:current.order_status,simulation:true};
     const queried=await this.channel.queryByMerchantOrderNumber(current.out_trade_no);
     if(queried.trade_state==="SUCCESS"){
       const persisted=await this.inbox.receiveQueried(this.channel,current.out_trade_no);
+      await this.audit(this.pool,principalId,"commerce.payment_intent.refresh_verified",orderId,
+        {state:current.state},{state:"verified_pending",inboxId:persisted.inboxId},traceId);
       return {orderId,state:"verified_pending" as const,inboxId:persisted.inboxId,simulation:true};
     }
     return {orderId,state:String(queried.trade_state??"unknown").toLowerCase(),simulation:true};

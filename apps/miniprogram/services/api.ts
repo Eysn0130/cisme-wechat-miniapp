@@ -177,12 +177,45 @@ function retryable(error: unknown): boolean {
     || ["NETWORK_ERROR", "request:fail"].some((code) => signal.includes(code));
 }
 
+const essentialRateLimitedReads = new Set([
+  "/v1/bootstrap/home", "/v1/bootstrap/profile", "/v1/bootstrap/settings",
+  "/v1/me", "/v1/capabilities", "/v1/identity/capabilities", "/v1/legal", "/v1/catalog"
+]);
+
+function retryDelayMs(error: unknown, options: RequestOptions): number | null {
+  const problem = error as { status?: number; code?: string; retryAfterSeconds?: number };
+  if (problem?.status === 429) {
+    const seconds = problem.retryAfterSeconds;
+    return problem.code === "RATE_LIMITED" && essentialRateLimitedReads.has(options.path) &&
+      Number.isInteger(seconds) && seconds! > 0 && seconds! <= 2 ? seconds! * 1000 : null;
+  }
+  return retryable(error) ? 40 + Math.floor(Math.random() * 81) : null;
+}
+
+async function waitForSafeRetry(delayMs: number, session: string, route: string): Promise<void> {
+  let remaining = delayMs;
+  while (remaining > 0) {
+    if (app.globalData.sessionToken !== session || currentRouteUrl() !== route) {
+      throw { code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消自动重试" };
+    }
+    const step = Math.min(100, remaining);
+    await new Promise(resolve => setTimeout(resolve, step));
+    remaining -= step;
+  }
+  if (app.globalData.sessionToken !== session || currentRouteUrl() !== route) {
+    throw { code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消自动重试" };
+  }
+}
+
 async function performRequest<T>(options: RequestOptions): Promise<T> {
   const method = options.method ?? "GET";
+  const session = app.globalData.sessionToken;
+  const route = currentRouteUrl();
   try { return await performRequestOnce<T>(options); }
   catch (error) {
-    if (method !== "GET" || !retryable(error)) throw error;
-    await new Promise((resolve) => setTimeout(resolve, 40 + Math.floor(Math.random() * 81)));
+    const delay = retryDelayMs(error, options);
+    if (method !== "GET" || delay === null) throw error;
+    await waitForSafeRetry(delay, session, route);
     return performRequestOnce<T>(options);
   }
 }

@@ -5,6 +5,8 @@ import { transaction } from "../../api/src/db.js";
 import { type ObjectStorage } from "../../api/src/storage.js";
 import { EVENT_DELIVERY_POLICIES, EVENT_TYPES, type EventType } from "@cisme/contracts";
 import { expirePendingOrders } from "../../api/src/commerceOrders.js";
+import { safeFailureFields } from "../../api/src/observability.js";
+import { SyntheticPrivacyExecution } from "../../api/src/privacyExecution.js";
 
 interface EventRow {
   id: string;
@@ -14,12 +16,20 @@ interface EventRow {
   attempts: number;
 }
 
-interface WorkerGates { ugcGoLiveGate: boolean }
+interface WorkerGates { ugcGoLiveGate: boolean; privacyEnvironment?:string; privacySyntheticExportKey?:string|null }
 type DeliveryOutcome = "applied" | "suppressed" | "audit_only";
 
 export const WORKER_MAX_ATTEMPTS = 5;
 const WORKER_BACKOFF_BASE_MS = 5_000;
 const WORKER_BACKOFF_CAP_MS = 5 * 60_000;
+const KNOWN_WORKER_FAILURES = new Set([
+  "UGC_GO_LIVE_GATE_CLOSED", "PUBLICATION_SOURCE_NOT_FOUND", "PUBLICATION_SOURCE_NOT_APPROVED", "WORKER_EVENT_NOT_SUPPORTED"
+]);
+function safeWorkerFailureCode(error: unknown): string {
+  if (error instanceof Error && KNOWN_WORKER_FAILURES.has(error.message)) return error.message;
+  const fields = safeFailureFields(error);
+  return fields.failure_code ?? fields.failure_class;
+}
 export function workerEventPolicy(eventType: string) { return EVENT_DELIVERY_POLICIES[eventType as EventType] ?? "unsupported"; }
 
 function failureSchedule(now: Date, previousAttempts: number) {
@@ -94,7 +104,7 @@ export async function processOutboxBatch(pool: pg.Pool, now = new Date(), limit 
         const failure = failureSchedule(now, event.attempts);
         await client.query(`UPDATE outbox_event
           SET attempts=$1, last_error=$2, next_attempt_at=$3, dead_lettered_at=$4, dead_letter_reason=$5, processing_outcome=NULL
-          WHERE id=$6`, [failure.attempts, String(error), failure.nextAttemptAt, failure.deadLetteredAt, failure.deadLetterReason, event.id]);
+          WHERE id=$6`, [failure.attempts, safeWorkerFailureCode(error), failure.nextAttemptAt, failure.deadLetteredAt, failure.deadLetterReason, event.id]);
       }
     }
     return processed;
@@ -119,7 +129,7 @@ export async function processMediaCleanup(pool: pg.Pool, storage: ObjectStorage,
     } catch (error) {
       const failure = failureSchedule(now, row.attempts);
       await pool.query(`UPDATE media_cleanup_queue SET attempts=$1,last_error=$2,next_attempt_at=$3,dead_lettered_at=$4,dead_letter_reason=$5,lease_token=NULL,leased_until=NULL
-        WHERE id=$6 AND lease_token=$7 AND processed_at IS NULL`, [failure.attempts, String(error), failure.nextAttemptAt, failure.deadLetteredAt, failure.deadLetterReason, row.id, leaseToken]);
+        WHERE id=$6 AND lease_token=$7 AND processed_at IS NULL`, [failure.attempts, safeWorkerFailureCode(error), failure.nextAttemptAt, failure.deadLetteredAt, failure.deadLetterReason, row.id, leaseToken]);
     }
   }
   return processed;
@@ -156,12 +166,17 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
   const cleaned = await processMediaCleanup(pool, storage);
   const expiredOrders = await expirePendingOrders(pool);
   await sweepExpired(pool);
-  return { published, cleaned, expiredOrders };
+  const privacyExecutor=gates.privacyEnvironment==='test'&&gates.privacySyntheticExportKey
+    ?new SyntheticPrivacyExecution(pool,gates.privacyEnvironment,gates.privacySyntheticExportKey):null;
+  const privacyExports=privacyExecutor?Number(await privacyExecutor.runExportOnce()):0;
+  const privacyErasures=privacyExecutor?Number(await privacyExecutor.runProfileErasureOnce()):0;
+  const purgedPrivacyArtifacts=privacyExecutor?await privacyExecutor.purgeArtifacts():0;
+  return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts };
 }
 
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates, onError: (error: unknown) => void) {
   return startWorkerLoop(async () => {
     const result = await runWorkerCycle(pool, storage, gates);
-    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50;
+    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 || result.privacyExports>0 || result.privacyErasures>0;
   }, onError);
 }

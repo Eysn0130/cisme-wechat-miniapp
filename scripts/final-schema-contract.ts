@@ -17,7 +17,8 @@ export async function assertFinalSchemaContract(db:Database){
     "commission_transfer_callback_inbox","commerce_trade_bill_batch","commerce_trade_bill_row",
     "commission_refund_intent","commission_refund_inbox","ugc_post","ugc_post_revision","ugc_media_asset",
     "ugc_post_media","ugc_safety_scan","ugc_safety_callback_inbox","ugc_comment_safety_scan",
-    "ugc_go_live_approval","ugc_post_review_action","ugc_block_relation","ugc_author_follow","ugc_report","ugc_post_appeal"
+    "ugc_go_live_approval","ugc_post_review_action","ugc_block_relation","ugc_author_follow","ugc_report","ugc_post_appeal",
+    "privacy_export_artifact"
   ];
   const tables=(await db.query<{name:string}>(`SELECT c.relname AS name FROM pg_class c
     JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'`)).rows;
@@ -71,6 +72,13 @@ export async function assertFinalSchemaContract(db:Database){
   constraint("ugc_post_appeal","ugc_appeal_decision_complete","decision_code");
   constraint("commerce_trade_bill_batch","commerce_trade_bill_batch_bill_type_check","REFUND");
   constraint("commerce_trade_bill_row","commerce_trade_bill_row_status_check","exception");
+  constraint("data_export_job","data_export_job_check4","plan_only");
+  constraint("data_erasure_job","data_erasure_job_synthetic_execution","syntheticOnly");
+  constraint("privacy_request","privacy_request_synthetic_scope","member_profile_handle_v1");
+  constraint("privacy_export_artifact","privacy_export_artifact_ciphertext_check","1048576");
+  constraint("privacy_export_artifact","privacy_export_artifact_iv_check","12");
+  constraint("privacy_export_artifact","privacy_export_artifact_auth_tag_check","16");
+  constraint("privacy_export_artifact","privacy_export_artifact_check","expires_at > created_at");
 
   const indexes=(await db.query<{name:string;definition:string}>(`SELECT indexname AS name,indexdef AS definition
     FROM pg_indexes WHERE schemaname='public'`)).rows;
@@ -109,7 +117,8 @@ export async function assertFinalSchemaContract(db:Database){
     ["ugc_report_queue","created_at"],
     ["ugc_post_appeal_queue","created_at"],
     ["commerce_trade_bill_batch_bill_date_bill_type_merchant_id_key","UNIQUE"],
-    ["commerce_trade_bill_row_exception","batch_id"]
+    ["commerce_trade_bill_row_exception","batch_id"],
+    ["privacy_export_artifact_expiry","expires_at"]
   ] as const){
     if(!indexes.find(row=>row.name===name&&row.definition.includes(part)))throw new Error(`FINAL_SCHEMA_INDEX_MISSING:${name}`);
   }
@@ -151,7 +160,10 @@ export async function assertFinalSchemaContract(db:Database){
     "ugc_report.ugc_report_terminal_guard",
     "ugc_post_appeal.ugc_post_appeal_terminal_guard",
     "commerce_trade_bill_batch.commerce_trade_bill_batch_immutable",
-    "commerce_trade_bill_row.commerce_trade_bill_row_immutable"
+    "commerce_trade_bill_row.commerce_trade_bill_row_immutable",
+    "data_export_job.data_export_job_synthetic_guard",
+    "data_erasure_job.data_erasure_job_synthetic_guard",
+    "privacy_request.privacy_request_synthetic_scope_guard"
   ])if(!triggerNames.has(trigger))throw new Error(`FINAL_SCHEMA_TRIGGER_MISSING:${trigger}`);
-  return {tables:requiredTables.length,constraints:40,indexes:35,triggers:33};
+  return {tables:requiredTables.length,constraints:47,indexes:36,triggers:36};
 }

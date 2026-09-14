@@ -4,14 +4,16 @@ import { readdir } from "node:fs/promises";
 import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { TEST_DATABASE_URL } from "@cisme/testkit";
 import { assertFinalSchemaContract } from "../../scripts/final-schema-contract";
 
 const exec = promisify(execFile);
-const adminUrl = "postgres://cisme:cisme-dev-only@127.0.0.1:55432/postgres";
+const adminUrl = new URL(TEST_DATABASE_URL);
+adminUrl.pathname = "/postgres";
 const databaseName = `cisme_migration_${randomUUID().replaceAll("-", "")}`;
 const migrationUrl = new URL(adminUrl);
 migrationUrl.pathname = `/${databaseName}`;
-const admin = new pg.Pool({ connectionString: adminUrl });
+const admin = new pg.Pool({ connectionString: adminUrl.toString() });
 let databaseCreated = false;
 const openPools = new Set<pg.Pool>();
 function migrationPool() { const pool = new pg.Pool({ connectionString: migrationUrl.toString() }); openPools.add(pool); return pool; }
@@ -39,7 +41,7 @@ describe("empty and N-1 database lifecycle", () => {
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
     let pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
-    expect(await assertFinalSchemaContract(pool)).toEqual({tables:40,constraints:40,indexes:35,triggers:33});
+    expect(await assertFinalSchemaContract(pool)).toEqual({tables:41,constraints:47,indexes:36,triggers:36});
     const damaged=await pool.connect();
     try{
       await damaged.query("BEGIN");

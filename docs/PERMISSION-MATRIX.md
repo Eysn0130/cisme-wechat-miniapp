@@ -13,5 +13,9 @@
 | Toggle emergency switches | — | no | yes | no | no | audited before/after state and reason |
 | Read audit log | — | no API in R0 | no API in R0 | direct controlled DB only | no | field-level API intentionally absent |
 | Read public feed | read-only | read-only | read-only | read-only | read-only | only visible, reviewed, licensed, non-revoked items |
+| Approve synthetic profile export | — | no | second reviewer only | no | no | `APP_ENV=test`, separate test key, `dev_test` identity, current version, fixed profile subset; never production apply |
+| View/revoke synthetic profile export | self | — | — | — | — | signed active member, exact request owner, unexpired/unrevoked private artifact; audited; no full-account export claim |
+| Approve synthetic profile-handle erasure | — | no | second reviewer only | no | no | immutable member-requested scope, active synthetic policy, no legal hold, test environment and dev_test identity; only profile row is affected |
+| Redrive exhausted synthetic privacy job | — | no | yes | no | no | fixed scope, current request version, policy/hold recheck where applicable, reason and audit; production path disabled |
 
-Admin authentication currently uses an environment token plus principal ID for local integration. Production must replace it with an enterprise identity provider, MFA and short-lived role claims before deployment.
+Legacy `/v1/admin/*` routes now require a signed, active operator session. `x-admin-token` grants no access, and `x-principal-id` cannot replace the session actor. The existing role checks remain in each operation. The browser operator console still lacks an approved production login/session-issuance flow; enterprise identity and MFA remain deployment gates, not implemented controls.

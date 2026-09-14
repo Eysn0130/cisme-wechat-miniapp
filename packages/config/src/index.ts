@@ -10,7 +10,7 @@ export interface AppConfig {
   allowDevAdapters: boolean;
   devClock: string | null;
   sessionSecret: string;
-  adminApiToken: string;
+  privacy: { syntheticExportKey: string | null };
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
   wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean;
     messageToken: string | null; messageAesKey: string | null; plaintextCallbackTestOnly: boolean };
@@ -46,7 +46,11 @@ export interface AppConfig {
     transactionDeadlineMs: number;
     transactionMaxAttempts: number;
   };
-  api: { routeDeadlineMs: number };
+  api: { routeDeadlineMs: number; rateLimit: {
+    windowMs: number; cacheSize: number; ingressMax: number; loginMax: number;
+    shareVisitMax: number; callbackMax: number; uploadMax: number; readyMax: number; memberMax: number;
+    adminWriteMax: number; moneyWriteMax: number; ugcWriteMax: number;
+  } };
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
   media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
   commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
@@ -95,6 +99,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (!["development", "test", "staging", "production"].includes(appEnv)) throw new Error("CONFIG_INVALID:APP_ENV");
   const allowDevAdapters = bool(env.ALLOW_DEV_ADAPTERS, appEnv !== "production" && appEnv !== "staging");
   if ((appEnv === "production" || appEnv === "staging") && allowDevAdapters) throw new Error("FAIL_CLOSED:DEV_ADAPTERS_FORBIDDEN");
+  const syntheticExportKey=env.PRIVACY_SYNTHETIC_EXPORT_KEY?.trim() || null;
+  if(syntheticExportKey && (appEnv!=="test" || !/^[0-9a-fA-F]{64}$/.test(syntheticExportKey)))
+    throw new Error("FAIL_CLOSED:PRIVACY_SYNTHETIC_EXPORT_KEY_TEST_ONLY");
 
   const transactionRaw = env.SELECTED_TRANSACTION_PROFILE?.trim() || null;
   const pointsRulesEnabled = bool(env.POINTS_RULES_ENABLED);
@@ -127,8 +134,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if ((appEnv === "production" || appEnv === "staging") && env.WECHAT_APP_ID !== CANONICAL_WECHAT_MINIPROGRAM_APP_ID) {
     throw new Error("FAIL_CLOSED:WECHAT_APP_ID_NOT_CANONICAL");
   }
-  if ((appEnv === "production" || appEnv === "staging") && (!env.APP_SESSION_SECRET || !env.ADMIN_API_TOKEN)) {
-    throw new Error("FAIL_CLOSED:AUTH_SECRETS_REQUIRED");
+  if ((appEnv === "production" || appEnv === "staging") && !env.APP_SESSION_SECRET) {
+    throw new Error("FAIL_CLOSED:SESSION_SECRET_REQUIRED");
   }
   const storageDriver = (env.OBJECT_STORAGE_DRIVER ?? "s3") as "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
   if (!['s3', 'api_gateway', 's3_gateway', 'cos_gateway'].includes(storageDriver)) throw new Error("CONFIG_INVALID:OBJECT_STORAGE_DRIVER");
@@ -258,7 +265,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowDevAdapters,
     devClock: env.DEV_CLOCK ?? null,
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
-    adminApiToken: required("ADMIN_API_TOKEN", env.ADMIN_API_TOKEN),
+    privacy: { syntheticExportKey },
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
     wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null,
       phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null,
@@ -285,7 +292,21 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pointsExpiryDays,
     carePausePolicy: { version: carePausePolicyVersion, maxDays: carePauseMaxDays, reasonCodes: carePauseReasonCodes },
     database,
-    api: { routeDeadlineMs: integer("API_ROUTE_DEADLINE_MS", env.API_ROUTE_DEADLINE_MS, 8_000, 250, 120_000) },
+    api: { routeDeadlineMs: integer("API_ROUTE_DEADLINE_MS", env.API_ROUTE_DEADLINE_MS, 8_000, 250, 120_000),
+      rateLimit: {
+        windowMs: integer("API_RATE_WINDOW_MS", env.API_RATE_WINDOW_MS, 60_000, 1_000, 3_600_000),
+        cacheSize: integer("API_RATE_CACHE_SIZE", env.API_RATE_CACHE_SIZE, 10_000, 100, 100_000),
+        ingressMax: integer("API_RATE_INGRESS_MAX", env.API_RATE_INGRESS_MAX, 600, 1, 100_000),
+        loginMax: integer("API_RATE_LOGIN_MAX", env.API_RATE_LOGIN_MAX, 30, 1, 10_000),
+        shareVisitMax: integer("API_RATE_SHARE_VISIT_MAX", env.API_RATE_SHARE_VISIT_MAX, 120, 1, 100_000),
+        callbackMax: integer("API_RATE_CALLBACK_MAX", env.API_RATE_CALLBACK_MAX, 1_000, 1, 100_000),
+        uploadMax: integer("API_RATE_UPLOAD_MAX", env.API_RATE_UPLOAD_MAX, 30, 1, 100_000),
+        readyMax: integer("API_RATE_READY_MAX", env.API_RATE_READY_MAX, 120, 1, 100_000),
+        memberMax: integer("API_RATE_MEMBER_MAX", env.API_RATE_MEMBER_MAX, 180, 1, 100_000),
+        adminWriteMax: integer("API_RATE_ADMIN_WRITE_MAX", env.API_RATE_ADMIN_WRITE_MAX, 60, 1, 100_000),
+        moneyWriteMax: integer("API_RATE_MONEY_WRITE_MAX", env.API_RATE_MONEY_WRITE_MAX, 30, 1, 100_000),
+        ugcWriteMax: integer("API_RATE_UGC_WRITE_MAX", env.API_RATE_UGC_WRITE_MAX, 60, 1, 100_000)
+      } },
     observability: { logLevel },
     media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null },
     commerce: {

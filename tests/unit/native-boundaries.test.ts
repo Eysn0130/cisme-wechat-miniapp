@@ -217,7 +217,7 @@ describe("native mini program boundary", () => {
       "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "claim", "suggest", "send", "resolve", "closeContext"],
       points: ["back", "openShop", "load"],
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
-      "privacy-rights": ["back", "submit", "load", "login", "@feedback"],
+      "privacy-rights": ["back", "submit", "load", "viewExport", "revokeExport", "login", "@feedback"],
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
       checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],

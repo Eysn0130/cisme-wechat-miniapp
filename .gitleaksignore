@@ -8,3 +8,7 @@
 70d374c41aaec0a65f6fdc6103e67cdc19e619f1:tests/integration/commerce-orders.test.ts:generic-api-key:184
 70d374c41aaec0a65f6fdc6103e67cdc19e619f1:tests/integration/payment-http-simulation.test.ts:generic-api-key:752
 70d374c41aaec0a65f6fdc6103e67cdc19e619f1:tests/integration/payment-http-simulation.test.ts:generic-api-key:836
+# Reviewed 2026-09-14: this is a literal synthetic idempotency marker in the
+# isolated profile-erasure test, not an API credential. Keep the exception tied
+# to the exact committed finding; all other scan rules and history remain active.
+a80040cab5a17e632af3470ff0e55b0ade7f78d5:tests/integration/privacy-rights.test.ts:generic-api-key:212
