@@ -10,6 +10,7 @@ export interface AppConfig {
   allowDevAdapters: boolean;
   devClock: string | null;
   sessionSecret: string;
+  privacy: { syntheticExportKey: string | null };
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
   wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean;
     messageToken: string | null; messageAesKey: string | null; plaintextCallbackTestOnly: boolean };
@@ -98,6 +99,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (!["development", "test", "staging", "production"].includes(appEnv)) throw new Error("CONFIG_INVALID:APP_ENV");
   const allowDevAdapters = bool(env.ALLOW_DEV_ADAPTERS, appEnv !== "production" && appEnv !== "staging");
   if ((appEnv === "production" || appEnv === "staging") && allowDevAdapters) throw new Error("FAIL_CLOSED:DEV_ADAPTERS_FORBIDDEN");
+  const syntheticExportKey=env.PRIVACY_SYNTHETIC_EXPORT_KEY?.trim() || null;
+  if(syntheticExportKey && (appEnv!=="test" || !/^[0-9a-fA-F]{64}$/.test(syntheticExportKey)))
+    throw new Error("FAIL_CLOSED:PRIVACY_SYNTHETIC_EXPORT_KEY_TEST_ONLY");
 
   const transactionRaw = env.SELECTED_TRANSACTION_PROFILE?.trim() || null;
   const pointsRulesEnabled = bool(env.POINTS_RULES_ENABLED);
@@ -261,6 +265,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowDevAdapters,
     devClock: env.DEV_CLOCK ?? null,
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
+    privacy: { syntheticExportKey },
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
     wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null,
       phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null,

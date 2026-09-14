@@ -11,7 +11,8 @@ export async function runOnce() {
   try {
     const storage = createObjectStorage(config);
     await storage.ensureReady();
-    return await runWorkerCycle(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate });
+    return await runWorkerCycle(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
+      privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null });
   } finally {
     await pool.end();
   }

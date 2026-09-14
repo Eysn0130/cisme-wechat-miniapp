@@ -6,6 +6,7 @@ import { type ObjectStorage } from "../../api/src/storage.js";
 import { EVENT_DELIVERY_POLICIES, EVENT_TYPES, type EventType } from "@cisme/contracts";
 import { expirePendingOrders } from "../../api/src/commerceOrders.js";
 import { safeFailureFields } from "../../api/src/observability.js";
+import { SyntheticPrivacyExecution } from "../../api/src/privacyExecution.js";
 
 interface EventRow {
   id: string;
@@ -15,7 +16,7 @@ interface EventRow {
   attempts: number;
 }
 
-interface WorkerGates { ugcGoLiveGate: boolean }
+interface WorkerGates { ugcGoLiveGate: boolean; privacyEnvironment?:string; privacySyntheticExportKey?:string|null }
 type DeliveryOutcome = "applied" | "suppressed" | "audit_only";
 
 export const WORKER_MAX_ATTEMPTS = 5;
@@ -165,12 +166,16 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
   const cleaned = await processMediaCleanup(pool, storage);
   const expiredOrders = await expirePendingOrders(pool);
   await sweepExpired(pool);
-  return { published, cleaned, expiredOrders };
+  const privacyExecutor=gates.privacyEnvironment==='test'&&gates.privacySyntheticExportKey
+    ?new SyntheticPrivacyExecution(pool,gates.privacyEnvironment,gates.privacySyntheticExportKey):null;
+  const privacyExports=privacyExecutor?Number(await privacyExecutor.runExportOnce()):0;
+  const purgedPrivacyArtifacts=privacyExecutor?await privacyExecutor.purgeArtifacts():0;
+  return { published, cleaned, expiredOrders, privacyExports, purgedPrivacyArtifacts };
 }
 
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates, onError: (error: unknown) => void) {
   return startWorkerLoop(async () => {
     const result = await runWorkerCycle(pool, storage, gates);
-    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50;
+    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 || result.privacyExports>0;
   }, onError);
 }

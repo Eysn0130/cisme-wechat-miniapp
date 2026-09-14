@@ -417,16 +417,16 @@
       "purpose": "受理、核验、计划和向本人展示个人信息权利处理进度",
       "activation": "会员主动提交请求；授权运营人员按服务端能力处理",
       "serverStorage": "CISME PostgreSQL privacy_request、privacy_request_event、data_export_job、data_erasure_job；事件和审计不复制请求自由文本",
-      "currentGate": "本人会话仅见本人请求；受理与执行计划分别由服务端角色校验；现有正式执行仍为 plan_only/dry_run_only",
+      "currentGate": "本人会话仅见本人请求；受理与执行计划分别由服务端角色校验；正式执行仍为 plan_only/dry_run_only，只有 APP_ENV=test 的 dev_test 身份可获得合成会员资料子集导出",
       "retention": "POLICY PENDING；代码中的 due_at 不是已获法务批准的对外法定时限"
     },
     {
       "surface": "privacy_export_artifact",
       "informationType": "合成开发身份的本人数据副本密文、随机 IV、认证标签、到期/撤销时间；不含明文密钥",
-      "purpose": "仅在后续双人审核的合成执行路径中验证私有、限时的数据导出交付，不开放正式用户下载",
-      "activation": "新迁移仅建立向后兼容表与 dev_test 身份数据库守卫；执行器和下载入口须另行实现并验证，不得把建表当作已完成导出",
+      "purpose": "仅在双人审核的合成执行路径中验证私有、限时的会员资料子集交付，不开放正式用户下载",
+      "activation": "仅 APP_ENV=test 且设置独立测试密钥；dev_test 请求由第二位 review_lead 以固定范围批准，worker 原子生成，会员本人显式查看或撤销",
       "serverStorage": "CISME PostgreSQL privacy_export_artifact，使用独立测试密钥的 AES-GCM 密文；真实环境执行仍关闭",
-      "currentGate": "schema 只允许 syntheticOnly 范围且 dev_test 关联身份进入可执行作业；应用/worker 开关与二次验证尚待后续实现",
+      "currentGate": "schema 的 syntheticOnly/dev_test 守卫与应用/worker 的 test-only 密钥双重限制；成员会话+对象归属+到期/撤销核验；未覆盖完整账号导出或真实环境 apply",
       "retention": "真实保存期限 POLICY PENDING；合成测试的短期到期不是对外承诺"
     }
   ],

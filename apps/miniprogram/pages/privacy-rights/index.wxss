@@ -1,1 +1,2 @@
 .rights-page{padding-bottom:40px}.rights-card{padding:20px;display:flex;flex-direction:column;gap:16px;line-height:1.7;font-size:14px}.rights-title{font-size:18px;font-weight:600}.rights-picker{padding:12px 0;color:#56306f}.rights-input{width:100%;min-height:140px;box-sizing:border-box;background:#faf7fa;border:1px solid #e5dce8;border-radius:12px;padding:12px}.rights-meta{font-size:12px;line-height:1.6;color:#776b7e;word-break:break-all}
+.rights-export{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:#faf7fa;word-break:break-all}

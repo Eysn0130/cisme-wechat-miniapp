@@ -1158,3 +1158,28 @@ it("keeps cross-border acceptance separate and refuses identity before it is sel
  page.toggleAgreement({detail:{value:["accepted"]}});expect(page.data.crossBorderAccepted).toBe(false);
  page.toggleCrossBorder({detail:{value:["accepted"]}});expect(page.data.crossBorderAccepted).toBe(true);
 });
+
+it('discards a late synthetic privacy export after leaving the page or switching identity',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'owner-token'}};
+ (globalThis as any).getApp=()=>appState;
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ let resolveArchive!: (value:unknown)=>void;
+ requestMock.mockImplementationOnce(()=>new Promise(resolve=>{resolveArchive=resolve;}));
+ const pending=page.viewExport({currentTarget:{dataset:{id:'request-a'}}});
+ page.onHide();appState.globalData.sessionToken='other-token';
+ resolveArchive({scope:'member_profile_only',member:{displayName:'OWNER_PRIVATE'},profile:null});
+ await pending;
+ expect(page.data.visibleExport).toBeNull();
+});
+
+it('shows only an explicitly opened own profile subset and clears it on hide',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce({scope:'member_profile_only',member:{displayName:'Owner'},profile:{wechatHandle:'ownerwx'}});
+ await page.viewExport({currentTarget:{dataset:{id:'request-a'}}});
+ expect(page.data.visibleExport).toEqual({requestId:'request-a',displayName:'Owner',wechatHandle:'ownerwx'});
+ page.onHide();
+ expect(page.data.visibleExport).toBeNull();
+});

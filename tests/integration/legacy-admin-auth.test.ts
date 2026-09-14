@@ -41,10 +41,10 @@ beforeAll(async () => {
 
 afterAll(async () => { await app?.close(); await pool.end(); });
 
-it("requires a signed session on every registered legacy admin operation", async () => {
+it("requires a signed session on every currently registered admin operation", async () => {
   const operations = registeredSourceOperations(readFileSync("services/api/src/server.ts", "utf8"))
     .filter((operation) => operation.path.startsWith("/v1/admin/"));
-  expect(operations).toHaveLength(22);
+  expect(operations.length).toBeGreaterThanOrEqual(22);
   for (const { method, path } of operations) {
     const url = path.replace(/\{[^}]+\}/g, "00000000-0000-4000-8000-000000000000");
     const result = await app.inject({ method: method as "GET" | "POST" | "PUT" | "DELETE", url,

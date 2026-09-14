@@ -4,13 +4,15 @@ import {TEST_DATABASE_URL,resetDatabase,testPool} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {PlatformService} from '../../services/api/src/platformService';
+import {SyntheticPrivacyExecution} from '../../services/api/src/privacyExecution';
+import {runWorkerCycle} from '../../services/worker/src/jobs';
 import {operatorHeaders} from './operator-session';
 const pool=testPool();
-const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'privacy-test',ADMIN_API_TOKEN:'privacy-admin',UPLOAD_TOKEN_SECRET:'privacy-upload',OBJECT_STORAGE_DRIVER:'api_gateway'});
+const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'privacy-test',ADMIN_API_TOKEN:'privacy-admin',UPLOAD_TOKEN_SECRET:'privacy-upload',OBJECT_STORAGE_DRIVER:'api_gateway',PRIVACY_SYNTHETIC_EXPORT_KEY:'7'.repeat(64)});
 const storage=createApiGatewayStorage(config);const app=await createApp({pool,config,storage});
 let token:string,otherToken:string,requestId:string,ownerMemberId:string;
 const admin=(principal:string,extras:Record<string,string>={})=>operatorHeaders(config,principal,ownerMemberId,extras);
-beforeAll(async()=>{await resetDatabase(pool);for(const [name,role] of [['support-user','support'],['lead-user','review_lead'],['other-user','reviewer']])await pool.query('INSERT INTO principal_role(principal_id,role) VALUES($1,$2)',[name,role]);
+beforeAll(async()=>{await resetDatabase(pool);for(const [name,role] of [['support-user','support'],['lead-user','review_lead'],['second-lead','review_lead'],['other-user','reviewer']])await pool.query('INSERT INTO principal_role(principal_id,role) VALUES($1,$2)',[name,role]);
 for(const id of ['owner','other']){const result=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:id,displayName:id,consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});expect(result.statusCode).toBe(200);if(id==='owner'){token=result.json().sessionToken;ownerMemberId=result.json().memberId;}else otherToken=result.json().sessionToken;}});
 afterAll(async()=>{await app.close();await pool.end();});
 it('requires a session, deduplicates repeated submission, and isolates members',async()=>{
@@ -118,4 +120,61 @@ const job=(await pool.query(`INSERT INTO data_export_job(privacy_request_id,memb
   VALUES($1,$2,'{"syntheticOnly":true,"dataClass":"profile"}','lead-user') RETURNING id`,[request.id,productionLike.member_id])).rows[0];
 await expect(pool.query("UPDATE data_export_job SET execution_mode='generate_archive',approved_by='second-lead',status='approved' WHERE id=$1",[job.id]))
   .rejects.toMatchObject({code:'23514'});
+});
+it('executes only a second-approved synthetic profile export with retry, owner-only delivery, expiry and revocation',async()=>{
+const marker='SYNTHETIC_OWNER_PROFILE_ONLY';
+await pool.query('UPDATE member SET display_name=$2 WHERE id=$1',[ownerMemberId,marker]);
+await pool.query(`INSERT INTO member_contact(member_id,phone_encrypted,phone_hmac,phone_masked,key_version)
+ VALUES($1,'DO_NOT_EXPORT_PHONE_CIPHERTEXT',$2,'188****0000','synthetic')`,[ownerMemberId,'d'.repeat(64)]);
+const otherMember=(await pool.query("SELECT member_id FROM wechat_identity WHERE openid='dev:other' LIMIT 1")).rows[0]?.member_id;
+expect(otherMember).toBeTruthy();
+await pool.query("UPDATE member SET display_name='DO_NOT_EXPORT_OTHER_MEMBER' WHERE id=$1",[otherMember]);
+const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`},payload:{kind:'access',message:'Synthetic profile subset export'}});
+expect(created.statusCode).toBe(200);const id=created.json().id;
+const plan=await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${id}/execution-plan`,
+  headers:admin('lead-user',{'idempotency-key':'synthetic-profile-plan-v1'}),payload:{expectedVersion:1,reasonCode:'SYNTHETIC_TEST'}});
+expect(plan.statusCode).toBe(200);
+const approval=`/v1/admin/privacy-requests/${id}/export-approval`;
+expect((await app.inject({method:'POST',url:approval,headers:admin('lead-user'),payload:{reasonCode:'SYNTHETIC_TEST',expectedVersion:2}})).statusCode).toBe(403);
+expect((await app.inject({method:'POST',url:approval,headers:admin('support-user'),payload:{reasonCode:'SYNTHETIC_TEST',expectedVersion:2}})).statusCode).toBe(403);
+expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead'),payload:{reasonCode:'SYNTHETIC_TEST',expectedVersion:1}})).statusCode).toBe(409);
+expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead',{'x-principal-id':'lead-user'}),payload:{reasonCode:'SYNTHETIC_TEST',expectedVersion:2}})).statusCode).toBe(403);
+expect((await app.inject({method:'POST',url:approval,headers:admin('second-lead'),payload:{reasonCode:'SYNTHETIC_TEST',expectedVersion:2}})).statusCode).toBe(200);
+expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.export.approve' AND object_id=$1",[id])).rows[0].count).toBe(1);
+const executor=new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
+expect(await executor.runExportOnce(()=>{throw new Error('PRIVATE_FAILURE_MARKER');})).toBe(true);
+const failed=(await pool.query('SELECT id,status,attempts,last_error_code FROM data_export_job WHERE privacy_request_id=$1',[id])).rows[0];
+expect(failed).toMatchObject({status:'failed',attempts:1,last_error_code:'EXPORT_TASK_FAILED'});
+expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact WHERE job_id=$1',[failed.id])).rows[0].count).toBe(0);
+expect(JSON.stringify((await pool.query('SELECT detail FROM privacy_request_event WHERE privacy_request_id=$1',[id])).rows)).not.toContain('PRIVATE_FAILURE_MARKER');
+await pool.query("UPDATE data_export_job SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[failed.id]);
+expect((await runWorkerCycle(pool,storage,{ugcGoLiveGate:false,privacyEnvironment:'test',privacySyntheticExportKey:config.privacy.syntheticExportKey})).privacyExports).toBe(1);
+expect(await executor.runExportOnce()).toBe(false);
+const own=await app.inject({url:`/v1/me/privacy-requests/${id}/export`,headers:{authorization:`Bearer ${token}`}});
+expect(own.statusCode).toBe(200);expect(own.headers['cache-control']).toBe('private, no-store');
+expect(own.json()).toMatchObject({schema:'cisme.synthetic.member_profile.v1',scope:'member_profile_only',member:{id:ownerMemberId,displayName:marker}});
+expect(own.body).not.toContain('DO_NOT_EXPORT_OTHER_MEMBER');expect(own.body).not.toContain(token);
+expect(own.body).not.toContain('DO_NOT_EXPORT_PHONE_CIPHERTEXT');
+expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.export.download' AND object_id=$1",[id])).rows[0].count).toBe(1);
+const other=await app.inject({url:`/v1/me/privacy-requests/${id}/export`,headers:{authorization:`Bearer ${otherToken}`}});
+expect(other.statusCode).toBe(404);
+const artifact=(await pool.query('SELECT ciphertext FROM privacy_export_artifact WHERE job_id=$1',[failed.id])).rows[0];
+expect(Buffer.from(artifact.ciphertext).toString('utf8')).not.toContain(marker);
+expect((await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`}})).json()
+  .find((item:{id:string})=>item.id===id)).toMatchObject({status:'partially_completed',resolution_code:'SYNTHETIC_PROFILE_EXPORT_ONLY',execution:{scope:'member_profile_only',downloadAvailable:true,deliveryState:'available'}});
+await pool.query("UPDATE privacy_export_artifact SET created_at=now()-interval '2 hours',expires_at=now()-interval '1 hour' WHERE job_id=$1",[failed.id]);
+expect((await app.inject({url:`/v1/me/privacy-requests/${id}/export`,headers:{authorization:`Bearer ${token}`}})).statusCode).toBe(404);
+expect((await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`}})).json()
+  .find((item:{id:string})=>item.id===id).execution.deliveryState).toBe('expired');
+await pool.query("UPDATE privacy_export_artifact SET created_at=now(),expires_at=now()+interval '1 hour' WHERE job_id=$1",[failed.id]);
+expect((await app.inject({method:'POST',url:`/v1/me/privacy-requests/${id}/export-revoke`,headers:{authorization:`Bearer ${otherToken}`}})).statusCode).toBe(404);
+expect((await app.inject({method:'POST',url:`/v1/me/privacy-requests/${id}/export-revoke`,headers:{authorization:`Bearer ${otherToken}`},payload:{memberId:ownerMemberId}})).statusCode).toBe(404);
+expect((await app.inject({method:'POST',url:`/v1/me/privacy-requests/${id}/export-revoke`,headers:{authorization:`Bearer ${token}`}})).statusCode).toBe(200);
+expect((await app.inject({url:`/v1/me/privacy-requests/${id}/export`,headers:{authorization:`Bearer ${token}`}})).statusCode).toBe(404);
+expect((await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`}})).json()
+  .find((item:{id:string})=>item.id===id).execution.deliveryState).toBe('revoked');
+expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.export.revoke' AND object_id=$1",[id])).rows[0].count).toBe(1);
+expect((await pool.query("SELECT count(*)::int AS count FROM privacy_request_event WHERE event_type='execution_partially_succeeded' AND privacy_request_id=$1",[id])).rows[0].count).toBe(1);
+expect(await executor.purgeArtifacts()).toBe(1);
+expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact WHERE job_id=$1',[failed.id])).rows[0].count).toBe(0);
 });

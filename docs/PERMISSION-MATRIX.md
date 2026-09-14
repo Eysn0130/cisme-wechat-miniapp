@@ -13,5 +13,7 @@
 | Toggle emergency switches | — | no | yes | no | no | audited before/after state and reason |
 | Read audit log | — | no API in R0 | no API in R0 | direct controlled DB only | no | field-level API intentionally absent |
 | Read public feed | read-only | read-only | read-only | read-only | read-only | only visible, reviewed, licensed, non-revoked items |
+| Approve synthetic profile export | — | no | second reviewer only | no | no | `APP_ENV=test`, separate test key, `dev_test` identity, current version, fixed profile subset; never production apply |
+| View/revoke synthetic profile export | self | — | — | — | — | signed active member, exact request owner, unexpired/unrevoked private artifact; audited; no full-account export claim |
 
 Legacy `/v1/admin/*` routes now require a signed, active operator session. `x-admin-token` grants no access, and `x-principal-id` cannot replace the session actor. The existing role checks remain in each operation. The browser operator console still lacks an approved production login/session-issuance flow; enterprise identity and MFA remain deployment gates, not implemented controls.

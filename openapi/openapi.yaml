@@ -83,6 +83,30 @@ paths:
         required: true
         content: {application/json: {schema: {type: object, required: [expectedVersion, reasonCode], properties: {expectedVersion: {type: integer, minimum: 1}, reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}}}}}
       responses: {'200': {description: Non-executing plan created or exact idempotent replay}, '409': {description: Stale, closed, already planned, or manual-only request}, '403': {description: Missing review_lead role}, '404': {description: Request not found}}
+  /v1/admin/privacy-requests/{requestId}/export-approval:
+    post:
+      operationId: approveSyntheticProfileExport
+      security: [{session: []}]
+      description: Test environment only. A second signed review lead approves a fixed member-profile-only scope for a dev_test identity; never enables production execution.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$'}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Approved synthetic job}, '403': {description: Missing role or second reviewer}, '409': {description: Plan not approvable}, '503': {description: Synthetic execution disabled}}
+  /v1/me/privacy-requests/{requestId}/export:
+    get:
+      operationId: downloadOwnSyntheticProfileExport
+      security: [{session: []}]
+      description: Test-only private encrypted-at-rest profile subset. Member session, exact owner, unexpired and unrevoked artifact required; no-store response.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: JSON profile subset}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Synthetic execution disabled or key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export-revoke:
+    post:
+      operationId: revokeOwnSyntheticProfileExport
+      security: [{session: []}]
+      description: Test-only owner revocation of a synthetic export artifact; audited and no longer downloadable.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Revoked}, '404': {description: Not owned or unavailable}, '503': {description: Synthetic execution disabled}}
   /v1/legal:
     get:
       operationId: currentLegalDocuments

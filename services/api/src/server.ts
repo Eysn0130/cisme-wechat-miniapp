@@ -13,6 +13,7 @@ import type { CareMilestoneCommandInput, CareVersionCommandInput, EmergencySwitc
 import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
 import { createPool } from "./db.js";
 import { PrivacyRights } from "./privacyRights.js";
+import { SyntheticPrivacyExecution } from "./privacyExecution.js";
 import { PhoneBinding } from "./phoneBinding.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CloudUpload } from "./cloudUpload.js";
@@ -162,6 +163,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     ?new TradeBillReconciliationService(pool,authority,dependencies.paymentProtocol.channel,
       paymentProfile.merchantId):null;
   const privacyRights = new PrivacyRights(pool);
+  const privacyExecution = new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
   registerCloudHttpTransport(app);
@@ -392,6 +394,16 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const principal = adminPrincipal(request, config);
     return privacyRights.planExecution(principal, request.params.requestId, idempotencyKey(request), request.body as {expectedVersion?:unknown;reasonCode?:unknown});
   });
+  app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/export-approval", async request =>
+    privacyExecution.approveExport(adminPrincipal(request,config),request.params.requestId,
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+  app.get<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export", async (request,reply) => {
+    const bytes=await privacyExecution.download(request.memberId,request.params.requestId);
+    return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment; filename="cisme-profile.json"')
+      .type('application/json').send(bytes);
+  });
+  app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export-revoke", async request =>
+    privacyExecution.revoke(request.memberId,request.params.requestId));
   const memberProfile = new MemberProfile(pool,config.env);
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
   app.get("/v1/me/commercial-membership", async request => commercial.myStatus(request.memberId));
@@ -745,7 +757,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const app = await createApp({ config, pool, storage,
     ...(paymentProtocol?{paymentProtocol}:{}) });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
-    ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate }, (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
+    ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
+      privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null }, (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
     : null;
   const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl
     ? startUgcSafetyLoop(new UgcSafetyService(pool,config,storage),config.media.ugcScanBaseUrl,

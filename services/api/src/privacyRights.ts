@@ -18,6 +18,16 @@ function requestDigest(value: unknown): string {
 const executionProjection = `COALESCE(
   (SELECT jsonb_build_object(
     'type','export','id',job.id,'status',job.status,'executionMode',job.execution_mode,
+    'scope',CASE WHEN job.execution_mode='generate_archive' THEN 'member_profile_only' ELSE 'plan_only' END,
+    'downloadAvailable',EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id
+      AND artifact.revoked_at IS NULL AND artifact.expires_at>now() AND job.status='succeeded'),
+    'deliveryState',CASE
+      WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.revoked_at IS NOT NULL) THEN 'revoked'
+      WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.expires_at<=now()) THEN 'expired'
+      WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.revoked_at IS NULL AND artifact.expires_at>now()) THEN 'available'
+      WHEN job.status='succeeded' THEN 'removed'
+      ELSE 'not_ready' END,
+    'archiveExpiresAt',job.archive_expires_at,
     'createdAt',job.created_at,'updatedAt',job.updated_at,'completedAt',job.completed_at
   ) FROM data_export_job job WHERE job.privacy_request_id=pr.id),
   (SELECT jsonb_build_object(
