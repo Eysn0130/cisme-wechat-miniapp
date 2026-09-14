@@ -74,6 +74,9 @@ export class RefundCommandService{
       const row=(await client.query<RequestRow>(`INSERT INTO commerce_refund_request(order_id,requested_by_member_id,
         idempotency_key,request_hash,amount_cents,reason) VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
         [orderId,memberId,requestKey,fingerprint,amount,why])).rows[0]!;
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,
+        after_state,trace_id) VALUES($1,'commerce.refund.request','commerce_refund_request',$2,$3,$4)`,
+        [`member:${memberId}`,row.id,{state:row.state,amountCents:amount},`refund-request:${row.id}`]);
       return {id:row.id,orderId,amountCents:amount,state:row.state,version:row.version};
     },"SERIALIZABLE");
   }
