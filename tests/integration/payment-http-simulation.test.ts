@@ -476,6 +476,16 @@ it("runs quote, order, signed HTTP prepay, raw callback, and durable worker appl
   expect(source).toMatchObject({transaction_source_kind:"verified_commerce",payer_openid:"verified-http-buyer-openid",amount_cents:"10000"});
   await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
     VALUES($1,'wechat_miniprogram',$2,'later-rotated-buyer-openid','wechat')`,[buyer.memberId,appId]);
+  const channelCountBeforeCross=channelOrders.size;
+  const crossPrepay=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,
+    headers:auth(referrer.sessionToken),payload:{memberId:buyer.memberId,role:"review_lead"}});
+  expect(crossPrepay.statusCode).toBe(404);
+  expect(crossPrepay.json().code).toBe("PAYMENT_ATTEMPT_NOT_FOUND");
+  const crossRefresh=await app.inject({method:"GET",url:`/v1/me/orders/${order.id}/payment-intent`,
+    headers:auth(referrer.sessionToken)});
+  expect(crossRefresh.statusCode).toBe(404);
+  expect(crossRefresh.json().code).toBe("PAYMENT_ATTEMPT_NOT_FOUND");
+  expect(channelOrders.size).toBe(channelCountBeforeCross);
   const prepay=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
   expect(prepay.statusCode,JSON.stringify(prepay.json())).toBe(200);
   expect(prepay.json()).toMatchObject({state:"prepay_ready",simulation:true,requestPayment:{signType:"RSA"}});
@@ -519,6 +529,12 @@ it("queries the original number after a lost callback and closes before inventor
   const unpaid=await createOrder("cancel");
   expect((await app.inject({method:"POST",url:`/v1/me/orders/${unpaid.id}/payment-intent`,
     headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const crossCancel=await app.inject({method:"POST",url:`/v1/me/orders/${unpaid.id}/cancel-verified`,
+    headers:{...auth(referrer.sessionToken),"idempotency-key":"cross0008"},
+    payload:{expectedVersion:unpaid.version,reason:"合成跨人取消",memberId:buyer.memberId,status:"closed"}});
+  expect(crossCancel.statusCode).toBe(404);
+  expect(crossCancel.json().code).toBe("PAYMENT_ATTEMPT_NOT_FOUND");
+  expect(channelOrders.get(unpaid.orderNumber)?.state).toBe("NOTPAY");
   const stale=await app.inject({method:"POST",url:`/v1/me/orders/${unpaid.id}/cancel-verified`,
     headers:{...auth(buyer.sessionToken),"idempotency-key":"payment-verified-cancel-stale-0001"},
     payload:{expectedVersion:unpaid.version+1,reason:"隔离版本过期取消"}});
@@ -531,6 +547,8 @@ it("queries the original number after a lost callback and closes before inventor
     payload:{expectedVersion:unpaid.version,reason:"隔离模拟取消"}});
   expect(cancelled.statusCode,JSON.stringify(cancelled.json())).toBe(200);
   expect(cancelled.json().status).toBe("cancelled");
+  expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='commerce.order.cancel' AND object_id=$1",
+    [unpaid.id])).rows[0].principal_id).toBe(buyer.principalId);
   expect(channelOrders.get(unpaid.orderNumber)?.state).toBe("CLOSED");
   expect((await pool.query("SELECT status FROM commerce_inventory_reservation WHERE order_id=$1",[unpaid.id])).rows[0].status).toBe("released");
   const late=paidCallback(unpaid.orderNumber);

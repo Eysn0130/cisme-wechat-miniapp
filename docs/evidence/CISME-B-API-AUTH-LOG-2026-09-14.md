@@ -42,4 +42,6 @@
 
 手机号路由的外部微信响应由 `createApp` **仅在 `APP_ENV=test`** 接受的合成 fetcher 注入；其它环境仍使用原实例默认微信传输，本轮未调用真实手机号接口或更改平台设置。
 
+另有 3 个支付意图方法完成了**部分**身份/对象测试，但不纳入 23 个严格完成项：`POST /v1/me/orders/{orderId}/payment-intent`、`GET /v1/me/orders/{orderId}/payment-intent`、`POST /v1/me/orders/{orderId}/cancel-verified`。它们均须签名会员且由 `commerce_payment_attempt.order_id + member_id` 定位；`payment-http-simulation.test.ts` 验证另一会员在预支付、刷新、核验取消时均获 404，预支付/取消未触发错误主体的合成渠道动作，真正取消的审计 actor 为订单会员，原号查单与关单后释放仍通过。`prepare` 和可能写入 inbox 的 `refresh` 尚未建立独立 actor 审计/字段契约检查，因此不将这 3 条写成完整 B 通过；测试也绝非真实微信支付联调。
+
 待做：剩余 201 路由按同样口径逐项核对，优先已验证基础订单与退款之后的支付/佣金、管理授权、隐私权利其它入口、客服与 UGC 媒体；继续检查其它队列/第三方 SDK 的错误持久化路径；正式运维身份签发方案尚未获平台批准。因此 `CODE_SECURITY_READY=false`、`ENGINEERING_MERGE_READY=false`、`RELEASE_READY=false`。
