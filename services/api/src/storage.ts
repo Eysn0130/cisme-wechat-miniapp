@@ -164,6 +164,7 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
     async writeGatewayObject(input) {
       const claims = validateGatewayUpload(input, secret);
       const detectedMime = detectImageMime(input.bytes);
+      await mkdir(directory, { recursive: true });
       await writeFile(resolve(directory, claims.objectKey.replaceAll("/", "__")), input.bytes, { flag: "w" });
       return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
     },
