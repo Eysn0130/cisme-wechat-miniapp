@@ -2,13 +2,13 @@
 
 `ENGINEERING_MERGE_READY = FALSE`。本账本区分源码工程、GitHub 审查、独立 staging、微信平台、体验版和真机；任何一层 PASS 都不替代下一层。最终以 PR #3 的当前 HEAD 和小程序包 SHA 双重绑定验收。PRD 基线为 `docs/product/CISME-产品需求文档-PRD-V2.1-R4.md`，尤其 §6.3.1、§6.6.2、§6.8、§15.4–15.6。
 
-## 2026-09-14 11:27 现况（优先于下方历史快照）
+## 2026-09-14 12:08 现况（优先于下方历史快照）
 
 PR #3 仍为 Draft，隐私执行代码提交 `a80040c`、其后手机号、待支付订单、合成退款、客服媒体与隔离支付意图授权测试在本轮续建；小程序包源码 SHA-256 `cf5fe2fd9baadf7a71d8bdfb4629b832ddd44559739c2226d2199d402c83c791`。当前候选完整本地隔离回归为 366 单测、562 集成测试（含 386 个签名入口探针），构建、契约和包门禁通过；支付意图定向集成 17/17 通过。设计结构检查通过但 `releaseReady=false`。224 个注册 `/v1` 方法中严格主体/对象/字段/动作实测 31 个，剩余 193 个未逐项闭环。合成数据本地完整栈及恢复演练完成，但云端独立 staging 未部署。隐私导出仅限测试环境明确资料子集；擦除仅限获二人审批的合成自报微信号，正式导出/删除/注销/撤回均未放行。A 限流和身份源码回归完成，B/C 其余工作仍开放；详见对应分项证据。
 
 当前包在微信开发者工具独立轻量窗口中只观察到游客首页及游客隐私权利页默认态，两张未经处理的原始模拟器截图与 SHA、采集路径见 `docs/evidence/visual/pr3-cf5fe2fd-20260914/README.md`。这是 **2 个默认态观察，不是 2/37 页面矩阵 PASS**：完整 DevTools 路由状态 0/37、iOS 真机 0/37、Android 真机 0/37、体验版 0，`current-source-acceptance.json` 仍 `finalResult=blocked`。用户使用开发者工具时不抢占其页面。
 
-B 入口层另有 193 个签名会话路由 × 无凭据/伪造 Bearer 两种 401 探针，共 386/386 通过；30 个无需会员会话入口和 1 个可选会话入口列为明确审阅例外。这与上文 23/224 的对象/字段/capability 严格覆盖是不同分母，不能相加或互相代替。
+B 入口层另有 193 个签名会话路由 × 无凭据/伪造 Bearer 两种 401 探针，共 386/386 通过；30 个无需会员会话入口和 1 个可选会话入口列为明确审阅例外。这与上文 31/224 的对象/字段/capability 严格覆盖是不同分母，不能相加或互相代替。
 
 `a80040c` 对应 GitHub `verify` 首次失败，原因是 Gitleaks 将隔离擦除测试中的固定 `idempotency-key` 误识别为 `generic-api-key`，精确指纹为 `a80040c:tests/integration/privacy-rights.test.ts:generic-api-key:212`；该值只用于合成幂等测试，非凭据。仅对该已审阅指纹加例外后，`cf0fe7e` 的 `verify` 通过；后续 HEAD 的 CI 仍须逐次核结果，不能把历史绿色继承为当前绿色。GitHub ruleset、独立云 staging、微信主体/隐私/域名、合法支付、获授权双平台真机均缺外部证据。`CODE_SECURITY_READY=false`、`CLOUD_STAGING_STATUS=BLOCKED`、`ENGINEERING_MERGE_READY=false`、`RELEASE_READY=false`。以下 A 阶段及 2026-09-13 段落是带时间戳的历史记录，不代表此刻状态。
 
