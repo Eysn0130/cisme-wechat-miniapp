@@ -64,6 +64,7 @@ interface AppDependencies {
     isolatedSyntheticTransport?: boolean };
   legacyDirectSettlementFixture?: boolean;
   loggerInstance?: FastifyBaseLogger;
+  phoneFetcher?: typeof fetch;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -108,7 +109,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
   const access = new CommunityAccess(pool, config, authority);
   const cloudUpload = new CloudUpload(pool, config, service);
-  const phone = new PhoneBinding(pool, config);
+  const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
   const deliveryAddresses = new DeliveryAddressService(pool, config);
   // A formal profile can exercise the complete command/inbox route only in
   // APP_ENV=test with an injected synthetic transport. Real environments
