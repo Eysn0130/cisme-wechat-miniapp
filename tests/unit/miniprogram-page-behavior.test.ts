@@ -247,6 +247,28 @@ describe("mini-program page behavior", () => {
     expect(wxMock.setStorageSync).toHaveBeenCalledWith("cisme.addressDraft.v1", expect.objectContaining({ ownerMemberId: "member-a" }));
   });
 
+  it("drops late clipboard content after settings is hidden or the member changes", async () => {
+    const app = { globalData: { sessionToken: "member-a-token" } };
+    (globalThis as any).getApp = () => app;
+    let complete!: (result: { data: string }) => void;
+    wxMock.getClipboardData!.mockImplementation(({ success }: { success(result: { data: string }): void }) => { complete = success; });
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const context = mountedPage(capturedPage!, { pageAlive: true, memberId: "member-a", addressQuickInput: "手工输入仍在", addressBusy: false, addressParsing: false });
+    context.clipboardAttempt = 0;
+    context.addressImportAttempt = 0;
+    context.avatarAttempt = 0;
+    context.pasteAndRecognizeAddress();
+    context.onHide();
+    complete({ data: "OLD_MEMBER_PRIVATE_ADDRESS" });
+    expect(context.data.addressQuickInput).toBe("手工输入仍在");
+    context.pasteAndRecognizeAddress();
+    app.globalData.sessionToken = "member-b-token";
+    context.data.memberId = "member-b";
+    complete({ data: "SECOND_OLD_MEMBER_PRIVATE_ADDRESS" });
+    expect(context.data.addressQuickInput).toBe("手工输入仍在");
+    expect(wxMock.setStorageSync).not.toHaveBeenCalled();
+  });
+
   it("keeps an address draft on version conflict instead of overwriting the server", async () => {
     Object.assign(globalThis, { getApp: () => ({ globalData: { sessionToken: "member-session" } }) });
     requestMock.mockRejectedValueOnce({ status: 409, code: "DELIVERY_ADDRESS_CHANGED", title: "地址已更新" });
@@ -684,6 +706,158 @@ describe("mini-program page behavior", () => {
     expect(uploadAuthorizedMock).not.toHaveBeenCalled();
   });
 
+  it("keeps support text and blocks repeated image taps while privacy consent is pending or refused", async () => {
+    const app = { globalData: { sessionToken: "support-member-a" } };
+    (globalThis as any).getApp = () => app;
+    let refuse!: (error: unknown) => void;
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ fail }: { fail(error: unknown): void }) => { refuse = fail; });
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = capturedPage!;
+    const context = mountedPage(page, { pageAlive: true, visible: true, input: "保留这段文字", selectedImage: null });
+    context.lifecycleEpoch = 1;
+    context.choosingImage = false;
+    const first = page.chooseImage.call(context, { currentTarget: { dataset: { source: "album" } } });
+    await page.chooseImage.call(context, { currentTarget: { dataset: { source: "camera" } } });
+    expect(wxMock.requirePrivacyAuthorize).toHaveBeenCalledTimes(1);
+    refuse({ errMsg: "privacy deny" });
+    await first;
+    expect(context.data.input).toBe("保留这段文字");
+    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
+  });
+
+  it("drops support image callbacks after account switch or page hide", async () => {
+    const app = { globalData: { sessionToken: "support-member-a" } };
+    (globalThis as any).getApp = () => app;
+    let allow!: () => void;
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => { allow = success; });
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const page = capturedPage!;
+    const context = mountedPage(page, { pageAlive: true, visible: true, input: "尚未发送的文字", selectedImage: null });
+    context.lifecycleEpoch = 1;
+    context.choosingImage = false;
+    const switched = page.chooseImage.call(context, { currentTarget: { dataset: { source: "album" } } });
+    app.globalData.sessionToken = "support-member-b";
+    allow();
+    await switched;
+    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
+
+    app.globalData.sessionToken = "support-member-a";
+    let resolveChosen!: (value: unknown) => void;
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => success());
+    wxMock.chooseMedia!.mockImplementation(() => new Promise(resolve => { resolveChosen = resolve; }));
+    const hidden = page.chooseImage.call(context, { currentTarget: { dataset: { source: "album" } } });
+    await vi.waitFor(() => expect(wxMock.chooseMedia).toHaveBeenCalledTimes(1));
+    context.publishPresence = vi.fn(async () => {});
+    context.stopPolling = vi.fn();
+    context.clearPresenceTimer = vi.fn();
+    context.abortTransientWork = vi.fn();
+    page.onHide.call(context);
+    resolveChosen({ tempFiles: [{ tempFilePath: "/synthetic/private.jpg", size: 100 }] });
+    await hidden;
+    expect(context.data.input).toBe("尚未发送的文字");
+    expect(context.data.selectedImage).toBeNull();
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
+  });
+
+  it("does not choose or upload Submit evidence after privacy authorization returns to another session", async () => {
+    const app = { globalData: { sessionToken: "submit-member-a" } };
+    (globalThis as any).getApp = () => app;
+    let allow!: () => void;
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => { allow = success; });
+    await vi.importActual("../../apps/miniprogram/pages/submit/index");
+    const page = capturedPage!;
+    const context = mountedPage(page, { pageAlive: true, editable: true, mediaUploadsEnabled: true,
+      working: false, uploadingKind: "", savingDraft: false, draftDirty: false, submissionId: "submission-a" });
+    const pending = page.chooseMedia.call(context, { currentTarget: { dataset: { kind: "original" } } });
+    app.globalData.sessionToken = "submit-member-b";
+    allow();
+    await pending;
+    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
+  });
+
+  it("invalidates a pending Submit chooser on page hide without replacing old evidence", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "submit-member-a" } });
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => success());
+    let resolveChosen!: (value: unknown) => void;
+    wxMock.chooseMedia!.mockImplementation(() => new Promise(resolve => { resolveChosen = resolve; }));
+    await vi.importActual("../../apps/miniprogram/pages/submit/index");
+    const page = capturedPage!;
+    const oldMedia = [{ kind: "original", upload_state: "uploaded", id: "confirmed-old-evidence" }];
+    const context = mountedPage(page, { pageAlive: true, editable: true, mediaUploadsEnabled: true,
+      working: false, uploadingKind: "", savingDraft: false, draftDirty: false, submissionId: "submission-a",
+      submission: { media: oldMedia } });
+    const pending = page.chooseMedia.call(context, { currentTarget: { dataset: { kind: "original" } } });
+    await vi.waitFor(() => expect(wxMock.chooseMedia).toHaveBeenCalledTimes(1));
+    page.onHide.call(context);
+    resolveChosen({ tempFiles: [{ tempFilePath: "/synthetic/private.jpg", size: 100 }] });
+    await pending;
+    expect(context.data.submission.media).toEqual(oldMedia);
+    expect(context.data.uploadRecovery).toBe("retry");
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps community text intact on privacy refusal and permits a later explicit retry", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "community-member-a" } });
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ fail }: { fail(error: unknown): void }) => fail({ errMsg: "privacy deny" }));
+    await vi.importActual("../../apps/miniprogram/pages/community-compose/index");
+    const page = capturedPage!;
+    const context = mountedPage(page, { postId: "post-a", ownerId: "community-member-a", title: "草稿标题", body: "已写的正文",
+      files: [], busy: false, uploadBusy: false, epoch: 1 });
+    context.mediaVisible = true;
+    context.mediaEpoch = 0;
+    await page.chooseImages.call(context);
+    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
+    expect(context.data).toMatchObject({ title: "草稿标题", body: "已写的正文", uploadBusy: false });
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
+
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => success());
+    wxMock.chooseMedia!.mockResolvedValue({ tempFiles: [] });
+    await page.chooseImages.call(context);
+    expect(wxMock.chooseMedia).toHaveBeenCalledTimes(1);
+    expect(context.data).toMatchObject({ title: "草稿标题", body: "已写的正文", uploadBusy: false });
+  });
+
+  it("drops community chooser results after page hide or session switch", async () => {
+    const app = { globalData: { sessionToken: "community-member-a" } };
+    (globalThis as any).getApp = () => app;
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => success());
+    let resolveChosen!: (value: unknown) => void;
+    wxMock.chooseMedia!.mockImplementation(() => new Promise(resolve => { resolveChosen = resolve; }));
+    await vi.importActual("../../apps/miniprogram/pages/community-compose/index");
+    const page = capturedPage!;
+    const context = mountedPage(page, { postId: "post-a", ownerId: "community-member-a", title: "草稿标题", body: "保留正文",
+      files: [], busy: false, uploadBusy: false, epoch: 1, dirty: true });
+    context.mediaVisible = true;
+    context.mediaEpoch = 0;
+    context.flushLocalBackup = vi.fn();
+    const hidden = page.chooseImages.call(context);
+    await vi.waitFor(() => expect(wxMock.chooseMedia).toHaveBeenCalledTimes(1));
+    page.onHide.call(context);
+    resolveChosen({ tempFiles: [{ tempFilePath: "/synthetic/private.jpg", size: 100 }] });
+    await hidden;
+    expect(context.data.files).toEqual([]);
+    expect(context.data.body).toBe("保留正文");
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
+
+    context.mediaVisible = true;
+    let allow!: () => void;
+    wxMock.chooseMedia!.mockClear();
+    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => { allow = success; });
+    const switched = page.chooseImages.call(context);
+    app.globalData.sessionToken = "community-member-b";
+    allow();
+    await switched;
+    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
+  });
+
   it("scrubs the previous member submission before reloading after an account switch", async () => {
     retainMemberSnapshotMock.mockReturnValue(false);
     await vi.importActual("../../apps/miniprogram/pages/submit/index");
@@ -793,6 +967,23 @@ describe("mini-program page behavior", () => {
     expect(context.data.error).toContain("服务端可能已完成核验");
     expect(context.data.loading).toBe(false);
     expect(context.data.identityCommitStarted).toBe(false);
+  });
+  it("drops a late Account avatar result after the page is hidden", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "member-a" } });
+    let complete!: (results: unknown[]) => void;
+    wxMock.createSelectorQuery = vi.fn(() => ({
+      in() { return this; }, select() { return this; }, fields() { return this; },
+      exec(callback: (results: unknown[]) => void) { complete = callback; }
+    }));
+    await vi.importActual("../../apps/miniprogram/pages/account/index");
+    const context = mountedPage(capturedPage!, { loginStage: "avatar", pageAlive: true, pageVisible: true });
+    const pending = context.chooseLoginAvatar({ detail: { avatarUrl: "wxfile://private-avatar" } });
+    expect(context.data.avatarBusy).toBe(true);
+    context.onHide();
+    complete([]);
+    await pending;
+    expect(context.data.avatarBusy).toBe(false);
+    expect(requestMock).not.toHaveBeenCalled();
   });
   it("preserves a comment draft and operation after a lost response, then retries once", async () => {
     await vi.importActual("../../apps/miniprogram/pages/post/index");

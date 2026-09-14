@@ -78,6 +78,7 @@ function submissionFailure(error: unknown): { recovery: "retry" | "reload" | "ed
 }
 
 Page({
+  mediaUploadAbort: null as (() => void) | null,
   data: {
     chromeStyle: currentChromeStyle(),
     submissionId: "", submission: null as any, originalReady: false, screenshotReady: false,
@@ -120,12 +121,20 @@ Page({
     if (!this.data.draftDirty && !this.data.savingDraft && !this.data.working && !this.data.uploadingKind) void this.load();
   },
   onHide() {
+    const interrupted = Boolean(this.data.uploadingKind);
+    this.data.uploadAttempt += 1;
+    this.mediaUploadAbort?.();
+    this.mediaUploadAbort = null;
+    if (interrupted) this.setData({ uploadingKind: "", uploadRecovery: "retry", canSubmit: false,
+      error: "页面离开时图片上传已中断；文字草稿和已确认的旧证据仍保留，请返回后重新选择。" });
     if (this.data.draftDirty && !this.data.working) void this.saveDraft();
   },
   onUnload() {
     this.data.pageAlive = false;
     this.data.loadAttempt += 1;
     this.data.uploadAttempt += 1;
+    this.mediaUploadAbort?.();
+    this.mediaUploadAbort = null;
     if (draftSaveTimer) clearTimeout(draftSaveTimer);
     draftSaveTimer = undefined;
     if (keyboardListener) wx.offKeyboardHeightChange(keyboardListener);
@@ -319,7 +328,9 @@ Page({
       return;
     }
     const uploadAttempt = this.data.uploadAttempt + 1;
-    const uploadIsCurrent = () => this.data.pageAlive && this.data.uploadAttempt === uploadAttempt;
+    const ownerToken = getApp<IAppOption>().globalData.sessionToken;
+    const uploadIsCurrent = () => this.data.pageAlive && this.data.uploadAttempt === uploadAttempt
+      && ownerToken === getApp<IAppOption>().globalData.sessionToken;
     this.setData({ uploadAttempt, uploadingKind: kind, lastUploadKind: kind, canSubmit: false, draftRecovery: "", uploadRecovery: "", submitRecovery: "", submissionBlocked: false, error: "" });
     wx.enableAlertBeforeUnload({ message: "图片正在上传并校验，离开可能中断本次上传。" });
     try {
@@ -355,7 +366,9 @@ Page({
         data: { kind, mimeType, maxBytes: file.size }
       });
       if (!uploadIsCurrent()) return;
-      await uploadAuthorized(file.tempFilePath, authorization);
+      await uploadAuthorized(file.tempFilePath, authorization, {
+        registerAbort: abort => { if (uploadIsCurrent()) this.mediaUploadAbort = abort; else abort(); }
+      });
       if (!uploadIsCurrent()) return;
       await request({ path: `/v1/submissions/${this.data.submissionId}/media/${authorization.mediaId}/complete`, method: "POST" });
       if (!uploadIsCurrent()) return;
@@ -367,6 +380,7 @@ Page({
       }
     } finally {
       if (uploadIsCurrent()) {
+        this.mediaUploadAbort = null;
         this.setData({ uploadingKind: "" }, () => this.refreshCanSubmit());
         if (this.data.draftDirty) enableDraftExitGuard();
         else disableDraftExitGuard();

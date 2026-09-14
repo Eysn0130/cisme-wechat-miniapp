@@ -39,6 +39,9 @@ Page({
   profileSessionToken: "",
   requestedAddressSection: false,
   addressRecoverySnapshot: null as StoredAddressDraft | null,
+  clipboardAttempt: 0,
+  addressImportAttempt: 0,
+  avatarAttempt: 0,
   data: { avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
   onLoad(query:Record<string,string|undefined>) { this.data.pageAlive = true; this.requestedAddressSection=query.section==="addresses"; if(this.requestedAddressSection)this.setData({editingAddresses:true}); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
@@ -49,6 +52,12 @@ Page({
     if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "auth", error: "请先确认身份后查看个人设置。" }); return; }
     this.setData({ leaving: false, canManageMembers:false, ...(memberChanged && this.requestedAddressSection ? {editingAddresses:true} : {}) });
     void this.loadSettingsBootstrap(); void this.loadAddresses(); void this.loadManagementAccess();
+  },
+  onHide() {
+    this.clipboardAttempt = (this.clipboardAttempt ?? 0) + 1;
+    this.addressImportAttempt = (this.addressImportAttempt ?? 0) + 1;
+    this.avatarAttempt = (this.avatarAttempt ?? 0) + 1;
+    if (this.data.avatarBusy) this.setData({ avatarBusy: false });
   },
   clearMemberSnapshot() {
     this.profileSessionToken = "";
@@ -75,6 +84,9 @@ Page({
   async loadManagementAccess() { const token=getApp<IAppOption>().globalData.sessionToken; try { const projection=await authorityProjection(); if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({canManageMembers:hasCapability(projection,"member.profile.read")}); } catch { if(this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({canManageMembers:false}); } },
   onUnload() {
     this.data.pageAlive = false;
+    this.clipboardAttempt = (this.clipboardAttempt ?? 0) + 1;
+    this.addressImportAttempt = (this.addressImportAttempt ?? 0) + 1;
+    this.avatarAttempt = (this.avatarAttempt ?? 0) + 1;
     this.data.loadAttempt += 1;
     this.data.revokeAttempt += 1;
     this.data.addressAttempt += 1;
@@ -139,13 +151,15 @@ Page({
     const path = event.detail.avatarUrl;
     if (this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut || this.data.leavePromptOpen || this.data.phoneBusy || !path || !this.data.profileReady || this.data.avatarBusy || this.data.profileBusy) return;
     const token = getApp<IAppOption>().globalData.sessionToken;
+    const attempt = this.avatarAttempt = (this.avatarAttempt ?? 0) + 1;
+    const current = () => this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken && attempt === this.avatarAttempt;
     this.setData({avatarBusy:true,profileError:""});
     try {
       const payload = await prepareAvatarUpload(this as unknown as WechatMiniprogram.Page.TrivialInstance,path);
-      if (!this.data.pageAlive || token !== getApp<IAppOption>().globalData.sessionToken) return;
+      if (!current()) return;
       this.setData({avatarUrl:path,avatarPayload:payload,avatarChanged:true}); this.markProfileDirty();
-    } catch { if(this.data.pageAlive)this.setData({profileError:"头像未处理成功，请重新选择；原头像保持不变。"}); }
-    finally { if(this.data.pageAlive)this.setData({avatarBusy:false}); }
+    } catch { if(current())this.setData({profileError:"头像未处理成功，请重新选择；原头像保持不变。"}); }
+    finally { if(current())this.setData({avatarBusy:false}); }
   },
   removeAvatar() { if(this.data.profileBusy || this.data.avatarBusy)return; this.setData({avatarUrl:defaultMemberAvatar,avatarPayload:null,avatarChanged:true}); this.markProfileDirty(); },
   async reloadProfile() {
@@ -303,9 +317,12 @@ Page({
   },
   pasteAndRecognizeAddress(){
     if(this.data.addressBusy || this.data.addressParsing)return;
+    const token=getApp<IAppOption>().globalData.sessionToken,ownerId=this.data.memberId;
+    const attempt=this.clipboardAttempt=(this.clipboardAttempt??0)+1;
+    const current=()=>this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken&&ownerId===this.data.memberId&&attempt===this.clipboardAttempt;
     wx.getClipboardData({
-      success:(result)=>{if(!this.data.pageAlive)return;this.setData({addressQuickInput:String(result.data||"").slice(0,500)},()=>this.recognizeAddressText());},
-      fail:(error)=>{if(this.data.pageAlive && !String(error.errMsg||"").includes("cancel"))this.setData({addressParseStatus:"failed",addressParseSummary:"未能读取剪贴板",addressParseWarnings:["你仍可在文本框中长按粘贴，或直接手工填写"]});}
+      success:(result)=>{if(!current())return;this.setData({addressQuickInput:String(result.data||"").slice(0,500)},()=>{if(current())this.recognizeAddressText();});},
+      fail:(error)=>{if(current() && !String(error.errMsg||"").includes("cancel"))this.setData({addressParseStatus:"failed",addressParseSummary:"未能读取剪贴板",addressParseWarnings:["你仍可在文本框中长按粘贴，或直接手工填写"]});}
     });
   },
   changeAddressRegion(event:WechatMiniprogram.CustomEvent){
@@ -326,10 +343,12 @@ Page({
   importWechatAddress(){
     if(this.data.addressBusy)return;
     const token=getApp<IAppOption>().globalData.sessionToken,ownerId=this.data.memberId;
+    const attempt=this.addressImportAttempt=(this.addressImportAttempt??0)+1;
+    const current=()=>this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken&&ownerId===this.data.memberId&&attempt===this.addressImportAttempt;
     if(!token||!ownerId){this.setData({addressesError:"会员身份暂未同步，请稍后重试。"});return;}
     wx.chooseAddress({
-      success:(result)=>{if(!this.data.pageAlive||token!==getApp<IAppOption>().globalData.sessionToken||ownerId!==this.data.memberId)return;const region=[result.provinceName||"",result.cityName||"",result.countyName||""];const districtCode=result.nationalCode||"";const next=mergeAddressDraft(this.data.addressDraft,{recipientName:result.userName||"",phone:result.telNumber||"",region,regionCodes:["","",districtCode],regionSource:"wechat",regionNeedsConfirmation:true,detail:(result as typeof result & {detailInfoNew?:string}).detailInfoNew||[result.streetName,result.detailInfo].filter(Boolean).join(""),postalCode:result.postalCode||"",nationalCode:districtCode},true);this.setData({addressEditorOpen:true,addressDirty:true,addressDraft:next,addressParseStatus:"partial",addressParseSummary:"已从微信地址填入未手工修改的字段",addressParseWarnings:["请用所在地选择器核对省、市、区县及行政区划 code"]},()=>this.persistAddressDraft());this.syncUnloadGuard();},
-      fail:(error)=>{if(this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken&&ownerId===this.data.memberId&&!String(error.errMsg||"").includes("cancel"))this.setData({addressesError:"未能读取微信收货地址，你仍可手动填写。"});}
+      success:(result)=>{if(!current())return;const region=[result.provinceName||"",result.cityName||"",result.countyName||""];const districtCode=result.nationalCode||"";const next=mergeAddressDraft(this.data.addressDraft,{recipientName:result.userName||"",phone:result.telNumber||"",region,regionCodes:["","",districtCode],regionSource:"wechat",regionNeedsConfirmation:true,detail:(result as typeof result & {detailInfoNew?:string}).detailInfoNew||[result.streetName,result.detailInfo].filter(Boolean).join(""),postalCode:result.postalCode||"",nationalCode:districtCode},true);this.setData({addressEditorOpen:true,addressDirty:true,addressDraft:next,addressParseStatus:"partial",addressParseSummary:"已从微信地址填入未手工修改的字段",addressParseWarnings:["请用所在地选择器核对省、市、区县及行政区划 code"]},()=>{if(current())this.persistAddressDraft();});if(current())this.syncUnloadGuard();},
+      fail:(error)=>{if(current()&&!String(error.errMsg||"").includes("cancel"))this.setData({addressesError:"未能读取微信收货地址，你仍可手动填写。"});}
     });
   },
   async confirmAddressLeave():Promise<boolean>{

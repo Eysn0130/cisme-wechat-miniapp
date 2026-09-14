@@ -17,7 +17,7 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
-  data: { loginStage:"login", avatarBusy:false, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "" },
+  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "" },
   documents(): LegalDocumentVersions | null { return currentLegalDocuments() || this.data.serverLegalDocuments; },
   async syncLegalDocuments() {
     const previous = this.documents();
@@ -57,7 +57,8 @@ Page({
       }
     }
   },
-  onShow() { if (this.data.leaving) return; if(getApp<IAppOption>().globalData.sessionToken)this.setData({pendingDestination:this.data.pendingDestination || "/pages/profile/index"}); void this.syncLegalDocuments(); void this.loadCapabilities(); },
+  onShow() { this.data.pageVisible = true; if (this.data.leaving) return; if(getApp<IAppOption>().globalData.sessionToken)this.setData({pendingDestination:this.data.pendingDestination || "/pages/profile/index"}); void this.syncLegalDocuments(); void this.loadCapabilities(); },
+  onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1; if (this.data.avatarBusy) this.setData({avatarBusy:false}); },
   async loadMemberIdentity() {
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (!token) return;
@@ -72,6 +73,8 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onUnload() {
     this.data.pageAlive = false;
+    this.data.pageVisible = false;
+    this.data.avatarAttempt += 1;
     this.data.authAttempt += 1;
     wx.disableAlertBeforeUnload();
     cancelAuthentication();
@@ -163,24 +166,26 @@ Page({
     if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({loading:false,error:landed === "target" ? "" : "已登录，请再次点击继续。"});
   },
   async chooseLoginAvatar(event:WechatMiniprogram.CustomEvent) {
-    if(!this.data.pageAlive || this.data.loading || this.data.leaving || this.data.avatarBusy || this.data.loginStage !== "avatar" || !event.detail.avatarUrl)return;
+    if(!this.data.pageAlive || !this.data.pageVisible || this.data.loading || this.data.leaving || this.data.avatarBusy || this.data.loginStage !== "avatar" || !event.detail.avatarUrl)return;
     const token=getApp<IAppOption>().globalData.sessionToken;
     if(!token)return;
+    const attempt = ++this.data.avatarAttempt;
+    const current = () => this.data.pageAlive && this.data.pageVisible && attempt === this.data.avatarAttempt && token === getApp<IAppOption>().globalData.sessionToken;
     this.setData({avatarBusy:true,error:""});
     try {
       const avatarDataUrl=await prepareAvatarUpload(this as unknown as WechatMiniprogram.Page.TrivialInstance,event.detail.avatarUrl);
-      if(!this.data.pageAlive || token!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(!current())return;
       const profile=await request<any>({path:"/v1/me/profile"});
-      if(!this.data.pageAlive || token!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(!current())return;
       const saved=await request<any>({path:"/v1/me/profile",method:"PUT",data:{displayName:profile.display_name,expectedVersion:profile.profile_revision || 0,avatarDataUrl}});
       const avatarUrl=await localMemberAvatar(saved.avatar_data_url,saved.avatar_revision);
-      if(!this.data.pageAlive || token!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(!current())return;
       publishMemberIdentity({id:saved.id,display_name:saved.display_name,avatarUrl,profile_revision:saved.profile_revision,completed_at:saved.completed_at,public_status:saved.public_status});
       this.setData({avatarUrl,avatarBusy:false});
       await this.continueLogin();
     } catch(error) {
-      if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({error:(error as {title?:string}).title || "头像未保存，请重新选择；也可以稍后设置。"});
-    } finally { if(this.data.pageAlive)this.setData({avatarBusy:false}); }
+      if(current())this.setData({error:(error as {title?:string}).title || "头像未保存，请重新选择；也可以稍后设置。"});
+    } finally { if(current())this.setData({avatarBusy:false}); }
   },
   async login(phoneCode?:string) {
     if (this.data.loading || this.data.leaving || this.data.avatarBusy || !this.data.pageAlive) return;
