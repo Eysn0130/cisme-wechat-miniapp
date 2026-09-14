@@ -98,3 +98,24 @@ expect((await send(' ')).statusCode).toBe(422);expect((await send('x'.repeat(200
 for(let i=0;i<10;i++)expect((await send(`Request ${i}`)).statusCode).toBe(200);
 expect((await send('Request 10')).statusCode).toBe(429);
 });
+it('keeps executable privacy job modes restricted to explicit synthetic dev identities at the database boundary',async()=>{
+const planned=(await pool.query("SELECT id FROM data_export_job WHERE execution_mode='plan_only' LIMIT 1")).rows[0];
+expect(planned?.id).toBeTruthy();
+await expect(pool.query("UPDATE data_export_job SET execution_mode='generate_archive',approved_by='second-lead',status='approved' WHERE id=$1",[planned.id]))
+  .rejects.toMatchObject({code:'23514'});
+const devClient=await pool.connect();
+try{
+  await devClient.query('BEGIN');
+  await devClient.query(`UPDATE data_export_job SET scope='{"syntheticOnly":true,"dataClass":"profile"}'::jsonb,
+    execution_mode='generate_archive',approved_by='second-lead',status='approved' WHERE id=$1`,[planned.id]);
+  expect((await devClient.query('SELECT execution_mode,status FROM data_export_job WHERE id=$1',[planned.id])).rows[0])
+    .toMatchObject({execution_mode:'generate_archive',status:'approved'});
+}finally{await devClient.query('ROLLBACK');devClient.release();}
+const productionLike=(await pool.query("SELECT member_id FROM wechat_identity WHERE provider='wechat_miniprogram' LIMIT 1")).rows[0];
+expect(productionLike?.member_id).toBeTruthy();
+const request=(await pool.query("INSERT INTO privacy_request(member_id,kind,message,due_at) VALUES($1,'access','Synthetic non-dev guard probe',now()+interval '1 day') RETURNING id",[productionLike.member_id])).rows[0];
+const job=(await pool.query(`INSERT INTO data_export_job(privacy_request_id,member_id,scope,requested_by)
+  VALUES($1,$2,'{"syntheticOnly":true,"dataClass":"profile"}','lead-user') RETURNING id`,[request.id,productionLike.member_id])).rows[0];
+await expect(pool.query("UPDATE data_export_job SET execution_mode='generate_archive',approved_by='second-lead',status='approved' WHERE id=$1",[job.id]))
+  .rejects.toMatchObject({code:'23514'});
+});

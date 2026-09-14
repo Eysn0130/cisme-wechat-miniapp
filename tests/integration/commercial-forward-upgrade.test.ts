@@ -75,7 +75,7 @@ it("upgrades PR #1 members through the prior PR #2 commercial schema and preserv
   await exec("./node_modules/.bin/tsx",["scripts/migrate.ts","up"],
     {env:{...process.env,DATABASE_URL:databaseUrl.toString()}});
   expect((await db.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(files.length);
-  expect(await assertFinalSchemaContract(db)).toEqual({tables:40,constraints:40,indexes:35,triggers:33});
+  expect(await assertFinalSchemaContract(db)).toEqual({tables:41,constraints:46,indexes:36,triggers:35});
   expect((await db.query(`SELECT state,expires_at FROM commercial_membership WHERE member_id=$1`,[owner])).rows[0])
     .toMatchObject({state:"active",expires_at:null});
   const upgradedRule=(await db.query(`SELECT basis_points,rule_version,proposed_effective_at,effective_at

@@ -410,6 +410,24 @@
       "serverStorage": "CISME PostgreSQL ugc_author_follow；不向他人公开完整关注列表",
       "currentGate": "正式社区公开开关、作者公开内容、有效账号、本人操作及屏蔽关系服务端核对",
       "retention": "取消关注时删除关系；账户注销与保存策略另按个人信息治理规则执行"
+    },
+    {
+      "surface": "privacy_request",
+      "informationType": "本人数据权利请求类型、自由文本、审核进度、回复与最小审计事件",
+      "purpose": "受理、核验、计划和向本人展示个人信息权利处理进度",
+      "activation": "会员主动提交请求；授权运营人员按服务端能力处理",
+      "serverStorage": "CISME PostgreSQL privacy_request、privacy_request_event、data_export_job、data_erasure_job；事件和审计不复制请求自由文本",
+      "currentGate": "本人会话仅见本人请求；受理与执行计划分别由服务端角色校验；现有正式执行仍为 plan_only/dry_run_only",
+      "retention": "POLICY PENDING；代码中的 due_at 不是已获法务批准的对外法定时限"
+    },
+    {
+      "surface": "privacy_export_artifact",
+      "informationType": "合成开发身份的本人数据副本密文、随机 IV、认证标签、到期/撤销时间；不含明文密钥",
+      "purpose": "仅在后续双人审核的合成执行路径中验证私有、限时的数据导出交付，不开放正式用户下载",
+      "activation": "新迁移仅建立向后兼容表与 dev_test 身份数据库守卫；执行器和下载入口须另行实现并验证，不得把建表当作已完成导出",
+      "serverStorage": "CISME PostgreSQL privacy_export_artifact，使用独立测试密钥的 AES-GCM 密文；真实环境执行仍关闭",
+      "currentGate": "schema 只允许 syntheticOnly 范围且 dev_test 关联身份进入可执行作业；应用/worker 开关与二次验证尚待后续实现",
+      "retention": "真实保存期限 POLICY PENDING；合成测试的短期到期不是对外承诺"
     }
   ],
   "runtimeDataEgress": [
@@ -444,6 +462,6 @@
       "state": "isolated_loopback_http_protocol_and_inert_formal_trust_assembly_production_closed"
     }
   ],
-  "migrationSetSha256": "fc20bb75202a7024ba3ee289a06593b7e3eef6a853246a5d448eb7b4b2a82fdc",
+  "migrationSetSha256": "bef18371e81e95efa778221dbe978fa30c60deea05d251711f23e5a8a8ec9c81",
   "egressSignatureSha256": "8965fbe8964fa81c097c5c88908df9f7e32c2bae8a1bf9982e45dc5d82e4f39e"
 }

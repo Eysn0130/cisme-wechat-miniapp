@@ -41,7 +41,7 @@ describe("empty and N-1 database lifecycle", () => {
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
     let pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
-    expect(await assertFinalSchemaContract(pool)).toEqual({tables:40,constraints:40,indexes:35,triggers:33});
+    expect(await assertFinalSchemaContract(pool)).toEqual({tables:41,constraints:46,indexes:36,triggers:35});
     const damaged=await pool.connect();
     try{
       await damaged.query("BEGIN");
