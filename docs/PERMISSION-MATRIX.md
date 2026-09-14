@@ -14,4 +14,4 @@
 | Read audit log | — | no API in R0 | no API in R0 | direct controlled DB only | no | field-level API intentionally absent |
 | Read public feed | read-only | read-only | read-only | read-only | read-only | only visible, reviewed, licensed, non-revoked items |
 
-Admin authentication currently uses an environment token plus principal ID for local integration. Production must replace it with an enterprise identity provider, MFA and short-lived role claims before deployment.
+Legacy `/v1/admin/*` routes now require a signed, active operator session. `x-admin-token` grants no access, and `x-principal-id` cannot replace the session actor. The existing role checks remain in each operation. The browser operator console still lacks an approved production login/session-issuance flow; enterprise identity and MFA remain deployment gates, not implemented controls.
