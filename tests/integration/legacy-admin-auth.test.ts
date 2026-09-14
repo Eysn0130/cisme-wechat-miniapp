@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { loadConfig } from "@cisme/config";
 import { TEST_DATABASE_URL, resetDatabase, testPool } from "@cisme/testkit";
 import { createApp } from "../../services/api/src/server";
 import { createApiGatewayStorage } from "../../services/api/src/storage";
+import { registeredSourceOperations } from "../../scripts/route-contract-lib";
 
 const pool = testPool();
 const config = loadConfig({
@@ -38,6 +40,18 @@ beforeAll(async () => {
 });
 
 afterAll(async () => { await app?.close(); await pool.end(); });
+
+it("requires a signed session on every registered legacy admin operation", async () => {
+  const operations = registeredSourceOperations(readFileSync("services/api/src/server.ts", "utf8"))
+    .filter((operation) => operation.path.startsWith("/v1/admin/"));
+  expect(operations).toHaveLength(22);
+  for (const { method, path } of operations) {
+    const url = path.replace(/\{[^}]+\}/g, "00000000-0000-4000-8000-000000000000");
+    const result = await app.inject({ method: method as "GET" | "POST" | "PUT" | "DELETE", url,
+      headers: { "x-admin-token": "synthetic-shared-admin", "x-principal-id": "synthetic-review-lead" } });
+    expect(result.statusCode, `${method} ${path} must reject the shared secret without a session`).toBe(401);
+  }
+});
 
 it("does not let a shared legacy secret select an unrelated privileged actor", async () => {
   const route = "/v1/admin/reviews";
