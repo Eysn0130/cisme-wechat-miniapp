@@ -21,7 +21,21 @@ export interface WeChatReleaseInput {
 
 export type WeChatCiPreviewInput = Omit<WeChatReleaseInput, "target" | "devtoolsCliAvailable"> & {
   riskAccepted: boolean;
+  testTargetIsolated: boolean;
+  paymentsDisabled: boolean;
+  publicUgcDisabled: boolean;
+  testMembersConfigured: boolean;
 };
+
+export function validateInternalTestPackageSafety(input: Pick<WeChatCiPreviewInput,
+  "riskAccepted" | "testTargetIsolated" | "paymentsDisabled" | "publicUgcDisabled" | "testMembersConfigured">): string[] {
+  const errors = input.riskAccepted ? [] : ["WECHAT_CI_RISK_ACCEPTANCE_REQUIRED"];
+  if (!input.testTargetIsolated) errors.push("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
+  if (!input.paymentsDisabled) errors.push("INTERNAL_TEST_PAYMENTS_DISABLED_PROOF_REQUIRED");
+  if (!input.publicUgcDisabled) errors.push("INTERNAL_TEST_PUBLIC_UGC_DISABLED_PROOF_REQUIRED");
+  if (!input.testMembersConfigured) errors.push("INTERNAL_TEST_MEMBERS_SCOPE_PROOF_REQUIRED");
+  return errors;
+}
 
 const APP_ID = /^wx[0-9a-fA-F]{16}$/;
 
@@ -74,7 +88,7 @@ export function validateWeChatRelease(input: WeChatReleaseInput): string[] {
 }
 
 export function validateWeChatCiPreview(input: WeChatCiPreviewInput): string[] {
-  const errors = input.riskAccepted ? [] : ["WECHAT_CI_RISK_ACCEPTANCE_REQUIRED"];
+  const errors = validateInternalTestPackageSafety(input);
   return [
     ...errors,
     ...validateWeChatRelease({

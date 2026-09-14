@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { isPublicHttpsOrigin, isRealWeChatAppId, validateWeChatCiPreview, validateWeChatRelease } from "../../scripts/wechat-release-lib";
+import { isPublicHttpsOrigin, isRealWeChatAppId, validateInternalTestPackageSafety, validateWeChatCiPreview, validateWeChatRelease } from "../../scripts/wechat-release-lib";
 import {
   isPrivateLanHttpOrigin,
   isTemporaryRemoteDebugHttpsOrigin,
@@ -124,6 +124,10 @@ describe("WeChat release preflight", () => {
       apiOrigin: "",
       privacyCheckEnabled: true,
       riskAccepted: false,
+      testTargetIsolated: false,
+      paymentsDisabled: false,
+      publicUgcDisabled: false,
+      testMembersConfigured: false,
       manualGates: { ...completeGates, privacyGuideConfigured: false }
     })).toEqual(expect.arrayContaining([
       "WECHAT_CI_RISK_ACCEPTANCE_REQUIRED",
@@ -161,8 +165,22 @@ describe("WeChat release preflight", () => {
       apiOrigin: "https://demo-api.cisme.example",
       privacyCheckEnabled: true,
       riskAccepted: true,
+      testTargetIsolated: true,
+      paymentsDisabled: true,
+      publicUgcDisabled: true,
+      testMembersConfigured: true,
       manualGates: completeGates
     })).toEqual([]);
+  });
+
+  it("keeps every internal test-package safety proof independent of final design evidence", () => {
+    const safe = { riskAccepted: true, testTargetIsolated: true, paymentsDisabled: true,
+      publicUgcDisabled: true, testMembersConfigured: true };
+    expect(validateInternalTestPackageSafety(safe)).toEqual([]);
+    expect(validateInternalTestPackageSafety({ ...safe, testTargetIsolated: false })).toContain("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
+    expect(validateInternalTestPackageSafety({ ...safe, paymentsDisabled: false })).toContain("INTERNAL_TEST_PAYMENTS_DISABLED_PROOF_REQUIRED");
+    expect(validateInternalTestPackageSafety({ ...safe, publicUgcDisabled: false })).toContain("INTERNAL_TEST_PUBLIC_UGC_DISABLED_PROOF_REQUIRED");
+    expect(validateInternalTestPackageSafety({ ...safe, testMembersConfigured: false })).toContain("INTERNAL_TEST_MEMBERS_SCOPE_PROOF_REQUIRED");
   });
 
   it("requires cloud transport evidence and keeps experience membership scoped to trial", () => {
@@ -237,8 +255,9 @@ describe("WeChat release preflight", () => {
         stderr: expect.stringContaining("PRIVACY_GUIDE_CONSOLE_PROOF_REQUIRED")
       });
       expect(failure).toMatchObject({
-        stderr: expect.stringContaining("DESIGN_QA_FINAL_RESULT_NOT_PASSED")
+        stderr: expect.stringContaining("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED")
       });
+      expect((failure as {stderr:string}).stderr).not.toContain("DESIGN_QA_FINAL_RESULT_NOT_PASSED");
     } finally {
       await rm(fixtureRoot, { recursive: true, force: true });
     }

@@ -14,7 +14,7 @@ const projectPath = resolve(root, "apps/miniprogram");
 const projectConfig = JSON.parse(await readFile(resolve(projectPath, "project.config.json"), "utf8")) as { appid?: string };
 const appConfig = JSON.parse(await readFile(resolve(projectPath, "app.json"), "utf8")) as { __usePrivacyCheck__?: boolean };
 const flag = (name: string) => process.env[name] === "true";
-const releaseErrors = validateWeChatCiPreview({
+const preflightErrors = validateWeChatCiPreview({
   projectAppId: projectConfig.appid ?? "",
   expectedAppId: appid,
   apiOrigin: miniProgramApiOrigins.preview,
@@ -22,6 +22,10 @@ const releaseErrors = validateWeChatCiPreview({
   cloudTransportVerified: flag("WECHAT_CLOUD_HTTP_TRANSPORT_VERIFIED"),
   privacyCheckEnabled: appConfig.__usePrivacyCheck__ === true,
   riskAccepted: flag("WECHAT_CI_RISK_ACCEPTED"),
+  testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
+  paymentsDisabled: flag("WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED"),
+  publicUgcDisabled: flag("WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED"),
+  testMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED"),
   manualGates: {
     privacyGuideConfigured: flag("WECHAT_PRIVACY_GUIDE_CONFIGURED"),
     legalTextsApproved: flag("WECHAT_LEGAL_TEXTS_APPROVED"),
@@ -30,9 +34,10 @@ const releaseErrors = validateWeChatCiPreview({
     experienceMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED")
   }
 });
-releaseErrors.push(...(await evaluateDesignQaEvidence(root)).releaseErrors);
-if (releaseErrors.length) {
-  console.error(JSON.stringify({ ok: false, command: "isolated-preview", errors: [...new Set(releaseErrors)] }, null, 2));
+const designQa = await evaluateDesignQaEvidence(root);
+preflightErrors.push(...designQa.structuralErrors);
+if (preflightErrors.length) {
+  console.error(JSON.stringify({ ok: false, command: "internal-test-package-preflight", errors: [...new Set(preflightErrors)] }, null, 2));
   process.exit(1);
 }
 
