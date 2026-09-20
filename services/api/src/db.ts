@@ -165,7 +165,13 @@ async function leaseWithinBudget(pool: pg.Pool, budget: OperationBudget, options
       const remaining = budget.remaining();
       // A transaction's SET LOCAL rolls back with it. Standalone leases reset
       // session settings before their one healthy release (below).
-      await rawQuery("SELECT set_config('statement_timeout',$1,$3), set_config('lock_timeout',$2,$3)", [String(Math.min(options.statementTimeoutMs, remaining)), String(Math.min(options.lockTimeoutMs, remaining)), local]);
+      // An aborted PostgreSQL transaction rejects even SELECT set_config.
+      // ROLLBACK / ROLLBACK TO must reach the server first so existing
+      // savepoint recovery can restore a usable transaction. This does not
+      // renew the absolute budget or detach its active-connection cancellation.
+      if (!/^\s*ROLLBACK\b/i.test(queryText(input))) {
+        await rawQuery("SELECT set_config('statement_timeout',$1,$3), set_config('lock_timeout',$2,$3)", [String(Math.min(options.statementTimeoutMs, remaining)), String(Math.min(options.lockTimeoutMs, remaining)), local]);
+      }
       assertUsable();
       return rawQuery(...input);
     });
