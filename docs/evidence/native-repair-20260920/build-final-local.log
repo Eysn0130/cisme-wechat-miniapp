@@ -1,0 +1,26 @@
+
+> cisme-wechat-miniapp@0.1.0 build
+> npm run typecheck && tsup services/api/src/server.ts services/worker/src/main.ts --format esm --splitting --out-dir dist/services && vite build --config apps/admin/vite.config.ts
+
+
+> cisme-wechat-miniapp@0.1.0 typecheck
+> tsc --noEmit && tsc --noEmit -p apps/miniprogram/tsconfig.json
+
+[34mCLI[39m Building entry: services/api/src/server.ts, services/worker/src/main.ts
+[34mCLI[39m Using tsconfig: tsconfig.json
+[34mCLI[39m tsup v8.5.0
+[34mCLI[39m Target: es2023
+[34mESM[39m Build start
+[32mESM[39m [1mdist/services/worker/src/main.js [22m[32m2.34 KB[39m
+[32mESM[39m [1mdist/services/chunk-ZVFLTBSF.js  [22m[32m308.03 KB[39m
+[32mESM[39m [1mdist/services/api/src/server.js  [22m[32m543.96 KB[39m
+[32mESM[39m ⚡️ Build success in 72ms
+[36mvite v8.1.3 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 5 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/admin/index.html                  0.37 kB │ gzip: 0.29 kB
+dist/admin/assets/index-BLfiwXzC.css   2.79 kB │ gzip: 1.11 kB
+dist/admin/assets/index-DcqyeT62.js   20.62 kB │ gzip: 6.80 kB
+
+[32m✓ built in 36ms[39m

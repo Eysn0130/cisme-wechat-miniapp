@@ -58,8 +58,8 @@ describe("mini program submission flow safety", () => {
     expect(api).toContain("export function suppressAuthenticationRedirectOnce(returnUrl: string)");
     expect(api).toContain("if (suppressedAuthRedirectPath === authPath)");
     expect(api).toContain("export function resumeAuthentication(returnUrl = currentRouteUrl())");
-    expect(api).toMatch(/if \(authMode === "required" && !app\.globalData\.sessionToken\) \{\s*beginAuthentication\(\);\s*return Promise\.reject\(\{ status: 401, code: "AUTHENTICATION_REQUIRED"/);
-    expect(api).toContain('problem.code === "MEMBER_NOT_FOUND"');
+    expect(api).toMatch(/if \(authMode === "required" && !token\) \{[\s\S]*?beginAuthentication\(origin\);[\s\S]*?status: 401, code: "AUTHENTICATION_REQUIRED"/);
+    expect(api).toContain('problem?.code === "MEMBER_NOT_FOUND"');
     expect(api).toContain("const previous = pages[pages.length - 2]");
     expect(api).toContain("previous?.route === path.slice(1)");
     expect(api).toContain("wx.navigateBack({");
@@ -135,11 +135,11 @@ describe("mini program submission flow safety", () => {
     const records = await source("apps/miniprogram/pages/records/index.ts");
     const recordsView = await source("apps/miniprogram/pages/records/index.wxml");
 
-    expect(community).toContain('feed: [], error: "社区内容暂时无法加载');
+    expect(community).toContain('feedModel(this).feed = []; this.setData({ error: "社区内容暂时无法加载');
     expect(community).toContain("this.data.feedAttempt === attempt");
     expect(home).toContain("authorityAvailable: false");
-    expect(home).toContain("care: null, supportUnread: 0, view: homeView(null)");
-    expect(home).toContain("onUnload() { this.data.pageAlive = false");
+    expect(home).toContain("care: null, view: homeView(null)");
+    expect(home).toContain("onUnload() { cancelPageReads(this); this.data.pageAlive = false");
     expect(home).toContain("const refreshed = await this.load(true)");
     expect(homeView).toContain('disabled="{{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable}}"');
     expect(records).toContain("care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary");
@@ -157,10 +157,11 @@ describe("mini program submission flow safety", () => {
 
     expect(home).toContain("async load(preserveSnapshot = false)");
     expect(records).toContain("async load(preserveSnapshot = false, failClosed = false)");
-    for (const route of [home, records]) expect(route).toContain("preserveSnapshot && this.data.authorityAvailable");
+    expect(home).toContain("preserveSnapshot && sameSession && this.data.authorityAvailable");
+    expect(records).toContain("preserveSnapshot && this.data.authorityAvailable");
     expect(home).toContain("await this.load(true)");
     expect(records).toContain("await this.load(true, true)");
-    expect(home).toMatch(/await request\([\s\S]*?await this\.load\(true\)/);
+    expect(home).toMatch(/await request<T>\([\s\S]*?await this\.load\(true\)/);
     expect(records).toMatch(/await request\([\s\S]*?await this\.load\(true, true\)/);
     expect(home).toMatch(/retryLoad\(\) \{[^}]*void this\.load\(\); \}/);
     expect(records).toContain("if (this.data.authorityAvailable) void this.load(true); else void this.load()");
@@ -293,7 +294,7 @@ describe("mini program submission flow safety", () => {
     expect(home).toContain("care-activate-${care.id}-v${care.version}");
     expect(home).toContain("care-milestone-${care.id}-${care.due}-v${care.version}");
     expect(home).toContain("stepCodes: this.data.sessionCompletedCodes, selfAssessment: this.data.sessionAssessment");
-    expect(home).toContain('await request({ path, method: "POST", idempotencyKey, data })');
+    expect(home).toContain('await request<T>({ path, method: "POST", idempotencyKey, data: command.data })');
   });
 
   it("only presents authoritative actionable invitations and truthful gated fixtures", async () => {
@@ -329,10 +330,10 @@ describe("mini program submission flow safety", () => {
     const tab = await source("apps/miniprogram/custom-tab-bar/index.ts");
     const tabView = await source("apps/miniprogram/custom-tab-bar/index.wxml");
 
-    expect(profile).toContain("loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, pageAlive: true");
-    expect(profile).toContain("this.data.loadAttempt !== attempt");
+    expect(profile).toContain("loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true");
+    expect(profile).toContain("this.data.loadAttempt === attempt");
     expect(profile).toContain("this.data.tasksAttempt !== attempt");
-    expect(profile).toContain("member: null, points: null, care: null, authority:null, commercialEligible:false,commercialAccessible:false, supportUnread:0, tasks: []");
+    expect(profile).toContain("member:null, points:null, care:null, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null");
     expect(post).toContain("onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
     expect(post).not.toContain("allowPublicBrowsing");
     expect(post).toContain("this.data.loadAttempt !== attempt");
@@ -462,7 +463,7 @@ describe("mini program submission flow safety", () => {
     expect(home).toContain('displayName.length > 24 ? "care-greeting--very-long"');
     expect(homeView).toContain("care-greeting {{view.greetingClass}}");
     expect(homeStyle).toContain(".care-greeting--very-long");
-    expect(profile).toContain('String(points.projection?.available ?? 0).length >= 8 ? "pass-stat__value--compact"');
+    expect(profile).toContain('String(points.projection.available).length >= 8 ? "pass-stat__value--compact"');
     expect(profileStyle).toContain(".care-status__stats strong.pass-stat__value--compact");
     expect(profileStyle).toContain("overflow-wrap:anywhere;white-space:normal");
     expect(points).toContain('balanceClass = String(points.projection.available).length >= 8 ? "points-hero__balance--compact"');

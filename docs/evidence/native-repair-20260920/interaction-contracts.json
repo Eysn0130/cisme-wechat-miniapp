@@ -1,0 +1,2424 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-20",
+  "packageSourceSha256": "ce7c06c1bac5e3efaaf6151783e2353cb896f1ed7087a2c0b97ab1cf71e19b3e",
+  "kind": "source-inventory-and-required-interaction-contract-NOT-native-acceptance",
+  "commonRequiredStates": {
+    "loading": "关键内容就地忙态；仅锁冲突动作，返回/查看/安全取消不整屏阻断。骨架不等于可交互。",
+    "success": "只在权威成功或查询到已提交事实时显示成功；关联原对象/版本/幂等键。",
+    "empty": "只有成功且结果确实为空时展示空态；不能用空态替代网络错/无权限。",
+    "error": "可恢复局部失败；保留合法已显示内容；服务端错误码映射，不掩盖未知提交。",
+    "offline": "停止无意义重试；读可说明陈旧值但不据此授权写；写保留待确认并查询恢复。",
+    "permission": "游客只在显式动作授权；过期401失效原会话；每次服务器校验主体/对象/字段/动作。",
+    "cancel": "消费者取消不能误杀共享请求；Cloud HTTP只能逻辑取消；取消等待不宣称撤回已发写。",
+    "resume": "重新核验会话/对象/版本；抑制旧页晚响应；已保存事实必须可查询；进程被杀未保存草稿另列缺口。",
+    "navigation": "原生Tab/返回/胶囊避让；离页终止计时器与可取消读；任何动效不阻断返回。",
+    "accessibility": "真机核对字号/读屏标签/焦点/触控区域/键盘/安全区；颜色非唯一状态提示；减少动效。",
+    "events": "仅核对实际源码处理器与业务事件；需求事件不等于已埋点，不采正文/身份/签名URL。"
+  },
+  "routeCount": 37,
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "advanceCareStep",
+        "closeCareSession",
+        "openSupport",
+        "primaryAction",
+        "retryCareMutation",
+        "retryLoad",
+        "selectAssessment",
+        "selectProtocolStep",
+        "stopPropagation",
+        "submitCareSession"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/bootstrap/home",
+        "/v1/care-cycles/${care.id}/activate",
+        "/v1/care-cycles/${care.id}/milestones/${care.due}/complete",
+        "/v1/me/support/summary"
+      ],
+      "importedServicesObserved": [
+        "cancelPageReads",
+        "careCommandConfirmed",
+        "careDaypart",
+        "careGreeting",
+        "careHomeSchedule",
+        "currentChromeStyle",
+        "measurementClock",
+        "memberIdentity",
+        "pageRead",
+        "recordClientMetric",
+        "registerIncomingShare",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "shouldReduceMotion"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "游客浏览→显式授权→planned确认→00净澈/01清洁/02修护/03精护→感受→保存/结果确认；不得自动激活或伪庆祝",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A20",
+        "CARE-01",
+        "CARE-02",
+        "CARE-03",
+        "CARE-04"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/records/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "authenticate",
+        "changeCycle",
+        "closeRecordDetail",
+        "goHome",
+        "goShop",
+        "openRecordDetail",
+        "retryLoad",
+        "showEarlierCycles",
+        "stopPropagation"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/care-cycles/${care.id}/${action}",
+        "/v1/me/care"
+      ],
+      "importedServicesObserved": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "motionDuration",
+        "requireMemberAccess",
+        "resumeAuthentication",
+        "retainMemberSnapshot",
+        "shouldReduceMotion"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "回看服务器时间、分步事实与感受；旧记录标缺失；暂停/恢复/终止校验归属/版本",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A20",
+        "CARE-01",
+        "CARE-02",
+        "CARE-03",
+        "CARE-04"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/community/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "clearSearch",
+        "copyPostUrl",
+        "decideFormalAppeal",
+        "decideFormalReport",
+        "load",
+        "loadMoreAppeals",
+        "loadMoreReports",
+        "loadReview",
+        "loadTasks",
+        "onReachBottom",
+        "onSearchInput",
+        "openFormalReview",
+        "openInvite",
+        "openMyPosts",
+        "openPost",
+        "openReportTarget",
+        "publishSubmission",
+        "reviewMemberProfile",
+        "reviewSubmission",
+        "selectMode",
+        "submitSearch"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/capabilities",
+        "/v1/feed/page?limit=30",
+        "/v1/management/ugc/appeals/${id}/decision",
+        "/v1/management/ugc/appeals?limit=30",
+        "/v1/management/ugc/reports/${id}/decision",
+        "/v1/management/ugc/reports?limit=30",
+        "/v1/management/ugc/review-queue",
+        "/v1/me/community-access",
+        "/v1/me/following/page?limit=30",
+        "/v1/me/follows",
+        "/v1/me/tasks",
+        "/v1/team/member-profiles",
+        "/v1/team/member-profiles/${item.member_id}/review",
+        "/v1/team/publications",
+        "/v1/team/reviews",
+        "/v1/team/submissions/${item.id}/publish",
+        "/v1/team/submissions/${item.id}/review",
+        "/v1/ugc/media/${item.coverId}?variant=thumbnail",
+        "/v1/ugc/posts?following=1",
+        "/v1/ugc/posts?limit=30",
+        "/v1/ugc/posts?limit=30${formalQuery}",
+        "/v1/ugc/status"
+      ],
+      "importedServicesObserved": [
+        "cancelPageReads",
+        "consumerTaskEntries",
+        "currentChromeStyle",
+        "feedColumnPatch",
+        "localMemberAvatar",
+        "measurementClock",
+        "memberIdentity",
+        "prepareFeedPage",
+        "projectFeedCards",
+        "recordClientMetric",
+        "resumeAuthentication"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "保留当前允许内容；分页增量/尾部失败；模式与换号晚响应隔离；公开UGC门禁不变",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A16",
+        "COM-02"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/profile/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "load",
+        "openAccount",
+        "openCommission",
+        "openCommunityActivity",
+        "openInvite",
+        "openManagement",
+        "openOrders",
+        "openPoints",
+        "openRecords",
+        "openSettings",
+        "openShop",
+        "openSupport",
+        "openTasks",
+        "retryAuxiliary",
+        "retryTasks"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/bootstrap/profile",
+        "/v1/me/commercial-membership",
+        "/v1/me/support/summary",
+        "/v1/me/tasks"
+      ],
+      "importedServicesObserved": [
+        "authorityProjection",
+        "cancelPageReads",
+        "clearAuthenticationRedirectSuppression",
+        "consumerTaskEntries",
+        "currentChromeStyle",
+        "localMemberAvatar",
+        "measurementClock",
+        "memberIdentity",
+        "pageRead",
+        "publishMemberIdentity",
+        "recordClientMetric",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "主快照先显示；权限、商业、未读、头像独立加载；未知不是0/无资格",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "ME-01"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/account/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "browseCommunity",
+        "chooseLoginAvatar",
+        "loginTap",
+        "loginWithPhone",
+        "openCrossBorder",
+        "openLegalDocuments",
+        "toggleAgreement",
+        "toggleCrossBorder"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/identity/capabilities",
+        "/v1/identity/dev",
+        "/v1/identity/wechat",
+        "/v1/legal",
+        "/v1/me",
+        "/v1/me/phone",
+        "/v1/me/profile"
+      ],
+      "importedServicesObserved": [
+        "attributePendingShare",
+        "cancelAuthentication",
+        "consumeAuthReturnUrl",
+        "currentChromeStyle",
+        "localMemberAvatar",
+        "motionDuration",
+        "navigateAfterAuthentication",
+        "prepareAvatarUpload",
+        "publishMemberIdentity",
+        "setSessionToken",
+        "suppressAuthenticationRedirectOnce"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A21"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/task/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "claim",
+        "continueSubmission",
+        "goCommunity",
+        "load"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/tasks/${this.data.taskId}",
+        "/v1/tasks/${this.data.taskId}/claim"
+      ],
+      "importedServicesObserved": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "rememberSubmissionReturn",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A14",
+        "EXT-01"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/submit/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "chooseMedia",
+        "copySubmissionId",
+        "focusPostUrl",
+        "load",
+        "openMediaPrivacy",
+        "openMediaSettings",
+        "openProgress",
+        "resolveDraftConflict",
+        "retryDraftSave",
+        "submit",
+        "updateField",
+        "updatePermission"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/submissions/${this.data.submissionId}",
+        "/v1/submissions/${this.data.submissionId}/draft",
+        "/v1/submissions/${this.data.submissionId}/media/${authorization.mediaId}/complete",
+        "/v1/submissions/${this.data.submissionId}/media/authorize",
+        "/v1/submissions/${this.data.submissionId}/submit"
+      ],
+      "importedServicesObserved": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "motionDuration",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "submissionReturnUrl",
+        "uploadAuthorized"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A02",
+        "EXT-03"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/progress/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "appeal",
+        "back",
+        "goCommunity",
+        "load",
+        "revise",
+        "updateAppeal"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/submissions/${this.data.submissionId}",
+        "/v1/submissions/${this.data.submissionId}/appeal"
+      ],
+      "importedServicesObserved": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "motionDuration",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "submissionReturnUrl"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "EXT-04",
+        "EXT-05"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/points/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "load",
+        "openShop"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/points"
+      ],
+      "importedServicesObserved": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A03",
+        "A05",
+        "A06"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/post/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "blurComment",
+        "cancelReply",
+        "deleteComment",
+        "expandReplies",
+        "focusComment",
+        "inputComment",
+        "keyboardChanged",
+        "likeComment",
+        "load",
+        "loadSocial",
+        "mediaLoaded",
+        "onMediaChange",
+        "previewMedia",
+        "replyComment",
+        "sendComment",
+        "showComments",
+        "toggleFollow",
+        "toggleLike",
+        "toggleSave"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/capabilities",
+        "/v1/community/${encodeURIComponent",
+        "/v1/feed/${encodeURIComponent",
+        "/v1/me/follows",
+        "/v1/me/follows/${encodeURIComponent"
+      ],
+      "importedServicesObserved": [
+        "clearAuthenticationRedirectSuppression",
+        "commentThreads",
+        "currentChromeStyle",
+        "editorialStory",
+        "motionDuration",
+        "prepareCommentAuthors",
+        "prepareFeedAuthors",
+        "prepareShareLink",
+        "registerIncomingShare"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "COM-02"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/shop/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "load",
+        "openProduct"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "catalogList",
+        "currentChromeStyle",
+        "formatCnyCents",
+        "nativeCatalogImage"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§8",
+        "§6.3.1"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/product/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "decrease",
+        "galleryChange",
+        "galleryNext",
+        "galleryPrevious",
+        "increase",
+        "load",
+        "openCheckout",
+        "selectSku"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "catalogDetail",
+        "currentChromeStyle",
+        "formatCnyCents",
+        "nativeCatalogImage",
+        "prepareShareLink",
+        "registerIncomingShare",
+        "requireMemberAccess"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§8",
+        "§6.3.1"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/checkout/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "confirmOrder",
+        "decrease",
+        "editAddresses",
+        "editCredit",
+        "increase",
+        "refreshQuote",
+        "requestQuote",
+        "selectAddress",
+        "selectSku"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "catalogDetail",
+        "centsToYuan",
+        "clearCheckoutPrivateState",
+        "clientOperationKey",
+        "createCheckoutQuote",
+        "createPendingOrder",
+        "createQuoteClock",
+        "currentChromeStyle",
+        "invalidateCheckoutQuote",
+        "isolatedCreditSummary",
+        "memberAddresses",
+        "orderRuntimeStatus",
+        "quoteClockView",
+        "requestStillOwned",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "服务端新报价、库存、价格、资格；未知支付只查询；不执行真实资金测试",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A07",
+        "WX-PAY-MAKE-01"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/orders/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "load",
+        "loadMore",
+        "open",
+        "openShop"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "centsToYuan",
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "myOrders",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A04",
+        "A05",
+        "A13"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "cancel",
+        "closeRefundForm",
+        "editRefundAmount",
+        "editRefundReason",
+        "load",
+        "loadMoreRefunds",
+        "preparePayment",
+        "recheckPayment",
+        "retryRefunds",
+        "showRefundForm",
+        "submitRefund"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/orders/${id}/cancel-verified",
+        "/v1/me/orders/${id}/payment-intent",
+        "/v1/me/orders/${id}/refund-requests",
+        "/v1/me/refund-requests?orderId=${this.data.id}"
+      ],
+      "importedServicesObserved": [
+        "CommerceOrder",
+        "cancelMyOrder",
+        "centsToYuan",
+        "clientOperationKey",
+        "currentChromeStyle",
+        "myOrder",
+        "orderRuntimeStatus",
+        "requireMemberAccess"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "订单、售后与支付状态以服务器为准；不可用动画或缓存宣布支付成功",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A04",
+        "A05",
+        "A13"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/settings/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "bindPhone",
+        "cancelAddressEdit",
+        "changeAddressDefault",
+        "changeAddressRegion",
+        "changeCommunityVisibility",
+        "chooseAvatar",
+        "copyMemberId",
+        "deleteAddress",
+        "discardRecoveredAddressDraft",
+        "editAddress",
+        "editAddressField",
+        "editAddressQuickInput",
+        "editDisplayName",
+        "editWechatHandle",
+        "importWechatAddress",
+        "load",
+        "loadAddresses",
+        "loadConflictedAddress",
+        "logout",
+        "newAddress",
+        "openAccount",
+        "openAddresses",
+        "openLegal",
+        "openMemberManagement",
+        "openPrivacyRights",
+        "pasteAndRecognizeAddress",
+        "reauthenticate",
+        "recognizeAddressText",
+        "reloadProfile",
+        "removeAvatar",
+        "restoreAddressDraft",
+        "reviewNickname",
+        "revoke",
+        "saveAddress",
+        "saveConflictedAsNew",
+        "saveProfile",
+        "selectAddressLabel",
+        "setDefaultAddress",
+        "toggleAbout",
+        "unbindPhone"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/bootstrap/settings",
+        "/v1/consents/${id}/revoke",
+        "/v1/me/addresses",
+        "/v1/me/addresses/${draft.id}",
+        "/v1/me/addresses/${item.id}",
+        "/v1/me/addresses/${item.id}/default",
+        "/v1/me/consents",
+        "/v1/me/phone",
+        "/v1/me/profile"
+      ],
+      "importedServicesObserved": [
+        "authorityProjection",
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "emptyAddressDraft",
+        "hasCapability",
+        "localMemberAvatar",
+        "makeStoredAddressDraft",
+        "memberIdentity",
+        "mergeAddressDraft",
+        "motionDuration",
+        "parseQuickAddress",
+        "prepareAvatarUpload",
+        "publishMemberIdentity",
+        "recoverStoredAddressDraft",
+        "requireMemberAccess",
+        "resumeAuthentication",
+        "retainMemberSnapshot",
+        "setSessionToken",
+        "touchAddressField",
+        "validateAddressDraft"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A11",
+        "LIC-01",
+        "LIC-02"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/invite/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "copyReferralCode",
+        "load",
+        "openReferralConfirm",
+        "prepare"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me",
+        "/v1/me/commercial-membership",
+        "/v1/me/commercial-membership/code",
+        "/v1/me/shares?targetType=invite",
+        "/v1/shares"
+      ],
+      "importedServicesObserved": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A01",
+        "SHARE-01"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/legal/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "load",
+        "privacyRights"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/legal"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§11"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "choose",
+        "input",
+        "load",
+        "login",
+        "revokeExport",
+        "submit",
+        "viewExport"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/privacy-requests",
+        "/v1/me/privacy-requests/${requestId}/export",
+        "/v1/me/privacy-requests/${requestId}/export-revoke"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle",
+        "resumeAuthentication"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A11"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/support/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "chooseImage",
+        "closeAttachmentSheet",
+        "closeOrderPicker",
+        "jumpToLatest",
+        "loadOlder",
+        "onComposerBlur",
+        "onComposerFocus",
+        "onComposerLineChange",
+        "onKeyboardHeightChange",
+        "onThreadBottom",
+        "onThreadScroll",
+        "openAttachmentSheet",
+        "openImageSheet",
+        "openOrder",
+        "openOrderPicker",
+        "previewImage",
+        "removeImage",
+        "removeOrder",
+        "requestHuman",
+        "retry",
+        "retryHandoff",
+        "retryImageUpload",
+        "retrySend",
+        "selectOrder",
+        "send",
+        "stopPropagation",
+        "updateInput"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/support/handoff",
+        "/v1/me/support/media/${mediaId}",
+        "/v1/me/support/media/${mediaId}/complete",
+        "/v1/me/support/media/${replacedMediaId}",
+        "/v1/me/support/media/${selected.mediaId}",
+        "/v1/me/support/media/authorize",
+        "/v1/me/support/messages",
+        "/v1/me/support/messages?after=${after}",
+        "/v1/me/support/messages?before=${this.data.olderCursor}",
+        "/v1/me/support/presence",
+        "/v1/me/support/read"
+      ],
+      "importedServicesObserved": [
+        "centsToYuan",
+        "createSupportThreadState",
+        "currentChromeStyle",
+        "downloadPrivateMedia",
+        "mergeAcknowledgement",
+        "mergeHistoryPage",
+        "mergeSyncPage",
+        "myOrders",
+        "presentSupportMessages",
+        "readableSequence",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "supportHeaderPresentation",
+        "supportMessageSetDataPatch",
+        "supportPollDelay",
+        "uploadAuthorized",
+        "withReadCursor"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "文字/图片、差量轮询、发送中/失败/待确认；键盘安全区和滚动锚点需真机",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§6",
+        "§11"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "openCatalog",
+        "openFinance",
+        "openMembers",
+        "openOrders",
+        "openSupport",
+        "retry"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "authorityProjection",
+        "currentChromeStyle",
+        "hasCapability",
+        "orderRuntimeStatus"
+      ],
+      "lifecycleObserved": [
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "create",
+        "load",
+        "loadMore",
+        "open"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "centsToYuan",
+        "currentChromeStyle",
+        "managementCatalog",
+        "requireCapability"
+      ],
+      "lifecycleObserved": [
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-product/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "codeChange",
+        "descriptionChange",
+        "imageChange",
+        "inventory",
+        "keepLocalDraft",
+        "loadRemoteDraft",
+        "nameChange",
+        "priceChange",
+        "publication",
+        "publicationReasonChange",
+        "qualificationEvidenceChange",
+        "qualificationReasonChange",
+        "qualify",
+        "save",
+        "skuCodeChange",
+        "skuLabelChange",
+        "stockDeltaChange",
+        "stockReasonChange",
+        "subtitleChange"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "adjustInventory",
+        "authorityProjection",
+        "createProduct",
+        "createProductDraftState",
+        "currentChromeStyle",
+        "hasCapability",
+        "keepLocalDraftAgainstLatest",
+        "loadRemoteDraft",
+        "managementProduct",
+        "parseYuanToCents",
+        "publishProduct",
+        "qualifyProduct",
+        "reconcileProductDraft",
+        "retainMemberSnapshot",
+        "updateProduct"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "load",
+        "loadMore",
+        "open"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "centsToYuan",
+        "currentChromeStyle",
+        "managementOrders",
+        "requireCapability"
+      ],
+      "lifecycleObserved": [
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "load"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [],
+      "importedServicesObserved": [
+        "CommerceOrder",
+        "centsToYuan",
+        "currentChromeStyle",
+        "managementOrder",
+        "requireCapability"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-support/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "loadMore",
+        "open",
+        "retry"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/management/support/conversations?limit=30"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle",
+        "requireCapability"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "claim",
+        "closeContext",
+        "jumpToLatest",
+        "loadOlder",
+        "onComposerBlur",
+        "onComposerFocus",
+        "onComposerLineChange",
+        "onKeyboardHeightChange",
+        "onThreadBottom",
+        "onThreadScroll",
+        "openContext",
+        "openOrder",
+        "previewImage",
+        "resolve",
+        "retry",
+        "retrySend",
+        "send",
+        "stopPropagation",
+        "suggest",
+        "updateInput"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/management/support/ai/status",
+        "/v1/management/support/conversations/${this.data.id}/claim",
+        "/v1/management/support/conversations/${this.data.id}/member-context",
+        "/v1/management/support/conversations/${this.data.id}/messages",
+        "/v1/management/support/conversations/${this.data.id}/messages?after=${after}",
+        "/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}",
+        "/v1/management/support/conversations/${this.data.id}/presence",
+        "/v1/management/support/conversations/${this.data.id}/read",
+        "/v1/management/support/conversations/${this.data.id}/resolve",
+        "/v1/management/support/conversations/${this.data.id}/suggested-reply"
+      ],
+      "importedServicesObserved": [
+        "authorityProjection",
+        "centsToYuan",
+        "createSupportThreadState",
+        "currentChromeStyle",
+        "downloadPrivateMedia",
+        "hasCapability",
+        "mergeAcknowledgement",
+        "mergeHistoryPage",
+        "mergeSyncPage",
+        "presentSupportMessages",
+        "readableSequence",
+        "requireCapability",
+        "retainMemberSnapshot",
+        "supportMessageSetDataPatch",
+        "supportPollDelay",
+        "withReadCursor"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-members/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "changeGlobalDate",
+        "changeGlobalTime",
+        "closeGlobalRateForm",
+        "editGlobalReason",
+        "editSearch",
+        "load",
+        "loadMore",
+        "loadMoreRates",
+        "openGlobalRateForm",
+        "openMember",
+        "reviewRate",
+        "search",
+        "selectFilter",
+        "selectGlobalRate",
+        "submitGlobalRateForm",
+        "togglePending"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/management/commission-rates",
+        "/v1/management/commission-rates/${id}/decision",
+        "/v1/management/commission-rates/by-request/${command.key}",
+        "/v1/management/commission-rates/current",
+        "/v1/management/commission-rates/pending?limit=30",
+        "/v1/management/members${query}"
+      ],
+      "importedServicesObserved": [
+        "authorityProjection",
+        "currentChromeStyle",
+        "hasCapability",
+        "requireCapability"
+      ],
+      "lifecycleObserved": [
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-member/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "changeMembership",
+        "changeRateDate",
+        "changeRateTime",
+        "closeRateForm",
+        "editRateReason",
+        "load",
+        "loadMoreSection",
+        "openRateForm",
+        "openRow",
+        "retrySection",
+        "selectOrderMode",
+        "selectRateMode",
+        "selectRatePercent",
+        "selectSection",
+        "submitRateForm"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/management/commission-rates",
+        "/v1/management/commission-rates/by-request/${command.key}",
+        "/v1/management/members/${id}/membership",
+        "/v1/management/members/${id}/sections/${section}?limit=30${cursor?",
+        "/v1/management/members/${this.data.id}"
+      ],
+      "importedServicesObserved": [
+        "authorityProjection",
+        "currentChromeStyle",
+        "hasCapability",
+        "requireCapability"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/referral/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "confirm",
+        "editCode",
+        "preview"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/referral/confirm",
+        "/v1/me/referral/preview?code=${encodeURIComponent"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle",
+        "resumeAuthentication"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§7",
+        "A01"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "changeAi",
+        "changeConsent",
+        "changeRights",
+        "chooseImages",
+        "deleteListDraft",
+        "editBody",
+        "editTitle",
+        "loadMoreList",
+        "moveImage",
+        "openDraft",
+        "previewFailed",
+        "previewImage",
+        "removeImage",
+        "retryImage",
+        "retryLoad",
+        "retryPreview",
+        "saveDraft",
+        "startNew",
+        "submit",
+        "submitAppeal",
+        "toggleSorting"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/ugc/posts",
+        "/v1/me/ugc/posts/${draft.id}/submit",
+        "/v1/me/ugc/posts/${id}",
+        "/v1/me/ugc/posts/${postId}/appeals",
+        "/v1/me/ugc/posts/${postId}/draft",
+        "/v1/me/ugc/posts/${postId}/media/${id}/complete",
+        "/v1/me/ugc/posts/${postId}/media/${id}/preview-url",
+        "/v1/me/ugc/posts/${postId}/media/authorize",
+        "/v1/me/ugc/posts?limit=30",
+        "/v1/ugc/status"
+      ],
+      "importedServicesObserved": [
+        "clearUgcBackup",
+        "currentChromeStyle",
+        "readUgcBackup",
+        "resumeAuthentication",
+        "uploadAuthorized",
+        "writeUgcBackup"
+      ],
+      "lifecycleObserved": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A16",
+        "AIGC-01"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/community-post/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "blockAuthor",
+        "cancelReply",
+        "chooseReply",
+        "deleteOwn",
+        "editComment",
+        "editOwn",
+        "load",
+        "loadMoreComments",
+        "openAuthor",
+        "openMyComments",
+        "previewImage",
+        "report",
+        "sendComment",
+        "toggleFollow",
+        "toggleReaction"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/ugc/activity/comments?postId=${postId}",
+        "/v1/me/ugc/blocks/${post.authorId}",
+        "/v1/me/ugc/follows/${post.authorId}",
+        "/v1/me/ugc/posts/${postId}",
+        "/v1/ugc/media/${item.id}",
+        "/v1/ugc/posts/${post.id}/comments?limit=30",
+        "/v1/ugc/posts/${this.data.postId}",
+        "/v1/ugc/posts/${this.data.postId}/comments",
+        "/v1/ugc/posts/${this.data.postId}/reaction",
+        "/v1/ugc/reports/post/${postId}"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle",
+        "resumeAuthentication"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "COM-02"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/community-author/index",
+      "sourceAccessClassification": "public",
+      "triggerHandlersObserved": [
+        "back",
+        "load",
+        "openPost",
+        "toggleFollow"
+      ],
+      "prerequisite": "允许本页公开浏览；写操作再显式授权并核验服务端门禁",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/ugc/follows/${author.id}",
+        "/v1/ugc/authors/${id}",
+        "/v1/ugc/authors/${this.data.authorId}",
+        "/v1/ugc/media/${item.coverId}?variant=thumbnail",
+        "/v1/ugc/posts?authorId=${id}"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle",
+        "resumeAuthentication"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A10"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/community-review/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "load",
+        "preview",
+        "publish",
+        "reviewMedia",
+        "reviewPost"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/management/ugc/media/${id}/review",
+        "/v1/management/ugc/media/${item.id}/preview-url",
+        "/v1/management/ugc/posts/${intent.postId}/publish",
+        "/v1/management/ugc/posts/${intent.postId}/review",
+        "/v1/management/ugc/posts/${this.data.postId}"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle",
+        "requireMemberAccess"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A09",
+        "A15",
+        "A16"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "deleteComment",
+        "loadMore",
+        "openAppealedPost",
+        "openPost",
+        "removeSaved",
+        "retry",
+        "selectSection",
+        "unblock"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/ugc/activity/${section}?limit=30${cursor?",
+        "/v1/me/ugc/blocks/${id}",
+        "/v1/ugc/posts/${id}/reaction",
+        "/v1/ugc/posts/${row.postId}/comments/${id}"
+      ],
+      "importedServicesObserved": [
+        "currentChromeStyle",
+        "requireMemberAccess"
+      ],
+      "lifecycleObserved": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "MYCONTENT-01"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "approveCycleMember",
+        "back",
+        "chooseBillDate",
+        "chooseCycleMonth",
+        "decide",
+        "importBill",
+        "loadMore",
+        "operateIssue",
+        "prepareCycle",
+        "retry",
+        "selectSection"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/management/commission/settlement-cycles/${cycle.id}/approve-member",
+        "/v1/management/commission/settlement-cycles/prepare",
+        "/v1/management/commission/settlement-requests/${id}/decision",
+        "/v1/management/commission/settlement-requests/${id}/redrive",
+        "/v1/management/commission/settlement-requests/pending",
+        "/v1/management/fulfillment/${id}/decision",
+        "/v1/management/fulfillment/pending",
+        "/v1/management/money/inboxes/${item.kind===",
+        "/v1/management/money/issues",
+        "/v1/management/money/recheck/${kind}/${item.relatedId}",
+        "/v1/management/money/trade-bills",
+        "/v1/management/money/trade-bills/import",
+        "/v1/management/refund-requests/${id}/decision",
+        "/v1/management/refund-requests/pending",
+        "/v1/management/refund-submissions/${id}/redrive"
+      ],
+      "importedServicesObserved": [
+        "authorityProjection",
+        "clientOperationKey",
+        "currentChromeStyle",
+        "hasCapability",
+        "orderRuntimeStatus"
+      ],
+      "lifecycleObserved": [
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    },
+    {
+      "route": "pages/commission/index",
+      "sourceAccessClassification": "member",
+      "triggerHandlersObserved": [
+        "back",
+        "cancelCredit",
+        "closeCreditForm",
+        "closeForm",
+        "confirmReceipt",
+        "editAmount",
+        "editCreditAmount",
+        "editReason",
+        "load",
+        "more",
+        "moreCredits",
+        "retryCredits",
+        "retryList",
+        "showCreditForm",
+        "showForm",
+        "submit",
+        "submitCredit"
+      ],
+      "prerequisite": "有效会话；管理页另须当前capability与对象范围",
+      "apiExpressionsObservedNotExecuted": [
+        "/v1/me/commercial-membership",
+        "/v1/me/commission/credit-conversions",
+        "/v1/me/commission/credit-conversions/${id}/cancel",
+        "/v1/me/commission/credit-conversions?limit=10${cursor?",
+        "/v1/me/commission/settlement-requests",
+        "/v1/me/commission/settlement-requests/${id}/confirmation",
+        "/v1/me/commission/settlement-requests?limit=10${cursor?"
+      ],
+      "importedServicesObserved": [
+        "centsToYuan",
+        "clientOperationKey",
+        "currentChromeStyle",
+        "orderRuntimeStatus",
+        "requireMemberAccess"
+      ],
+      "lifecycleObserved": [
+        "onShow",
+        "onUnload"
+      ],
+      "primaryContract": "沿现有原生入口完成当前允许的操作；不扩商业发布范围。",
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§7",
+        "§8",
+        "§11"
+      ],
+      "nativeAcceptance": {
+        "devtools": "pending",
+        "iOS": "pending",
+        "Android": "pending",
+        "allStatesPassed": false
+      },
+      "limits": "静态表达式可能截断，且不含导入包装器内部路由；不是执行轨迹/完整授权证明。"
+    }
+  ],
+  "remainingKnownGaps": [
+    "37页完整原生状态/角色×设备证据未获得",
+    "社区详情返回的长列表连续滚动位置尚待原生实测；不宣称已完成窗口化",
+    "护理未保存步骤和进程被杀后的草稿不宣称持久化恢复；已提交事实通过服务端查询",
+    "键盘/字号/读屏/弱网/支付与上传中断需授权设备及隔离环境"
+  ]
+}

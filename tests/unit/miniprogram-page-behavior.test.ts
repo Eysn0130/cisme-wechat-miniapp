@@ -368,6 +368,7 @@ describe("mini-program page behavior", () => {
 
 
   it("does not attach a local person's photo or brand cover to server UGC", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "", apiBaseUrl: "https://synthetic.invalid" } });
     const item = { id: "real-submission", title: "Submitted story", excerpt: "Submitted text", cover_object_key: "private/object.jpg" };
     requestMock.mockImplementation(async ({ path }: { path: string }) => {
       if (path === "/v1/capabilities") return { ugcGoLiveGate: true, communityPreviewEnabled: false };
@@ -380,7 +381,7 @@ describe("mini-program page behavior", () => {
     await vi.importActual("../../apps/miniprogram/pages/community/index");
     const community = mountedPage(capturedPage!);
     await community.load();
-    community.setData({ mode: "recommend", feed: [item] });
+    community.setData({ mode: "recommend" });
     community.renderFeed();
     const card = community.data.feedColumns.flat().find((item: any) => item.id === "real-submission");
     expect(card).toMatchObject({ title: "Submitted story", image: "", avatar: "/assets/icons/user-circle-plum.svg" });
@@ -634,7 +635,7 @@ describe("mini-program page behavior", () => {
 
     expect(resetCareSession).toHaveBeenCalledTimes(1);
     expect(requestMock).not.toHaveBeenCalled();
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "本次护理已完成", icon: "success" });
+    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "四步练习已完成，未生成记录", icon: "none" });
   });
 
   it("requires explicit confirmation before activating a planned Home care cycle", async () => {

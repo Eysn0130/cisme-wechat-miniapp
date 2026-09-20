@@ -37,3 +37,19 @@ Modelled ceiling: ¥700/month before breakage, expiry or tax treatment. Finance 
 The current build has no implemented transaction profile, so any non-empty `SELECTED_TRANSACTION_PROFILE` fails with `TRANSACTION_PROFILE_NOT_IMPLEMENTED`; environment booleans cannot make `/health/ready` claim checkout readiness.
 
 When a profile implementation exists, its cash baseline must independently prove payment/order truth, refund, shipment, export and sandbox reconciliation. `POINTS_REDEMPTION_ENABLED=true` is a second gate requiring a selected profile, an unexpired finance approval plus prepare, commit, release and refund-allocation evidence. It does not require new-points earning rules to be enabled. A signed statement or green configuration value is insufficient; executable contract tests and reconciliation output are required.
+
+
+## 2026-09-20 implementation overlay — supersedes stale implementation claims above
+
+This overlay is not a new Owner, finance, legal or operations signature. The 2026-08-14 snapshot above is preserved for traceability; do not use it to delete subsequently implemented capabilities.
+
+| Historical entry | Verified current source / effective requirement | Remaining boundary |
+|---|---|---|
+| Fastify 5.12.0 / old local runtime | Root lock selects Fastify 5.12.3, pg 8.23.0, TypeScript 7.0.2; current CI and cloud repair use Node 24.18.0 | No dependency upgrade in this repair |
+| Base library 2.32.3 / old DevTools | `apps/miniprogram/project.config.json` selects 3.15.2; prior 2026-09-20 consolidation observed Stable 2.02.2608070 | That old observation is not a new-device pass for the repaired package |
+| MAKE runtime UNSET / checkout absent | PRD §0.1.1 selects MAKE; `commerceService.ts`, `commerceRoutes.ts` and native product/checkout/order routes exist | Actual cash movement, merchant configuration, finance sign-off and live release remain separately gated |
+| Old 800ms write / 99.5% appendix | PRD §13 / current NFR appendix: core API P95≤500ms, core-page interactive P95≤2s; G0 high capacity +30% headroom | 99.9% monthly availability remains conditional and unsigned; no deployed NFR pass asserted |
+| A timer proves cancellation | One monotonic operation budget, server SQL timeouts and disposal of cancelled leases; dependency cooperation; unknown COMMIT recovery | Confirm using real PostgreSQL faults and authorised staging, not handlerTimeout configuration alone |
+| Source sync implies release | New package gets a new manifest; historical screenshots keep original hash and scope | `releaseReady=false`; local Mac sync and 37-route/device states require their own evidence |
+
+The root audit and optional `tools/wechat-ci` audit are separate. The historical uploader count (80) is not silently repaired or waived by this work; the optional uploader and its credential workflow remain unenabled. See `docs/CISME-NATIVE-REPAIR-2026-09-20.md`.

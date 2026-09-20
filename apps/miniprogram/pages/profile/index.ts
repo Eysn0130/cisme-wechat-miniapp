@@ -1,7 +1,9 @@
+import { pageRead, cancelPageReads } from "../../services/page-requests";
+import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { defaultMemberAvatar, localMemberAvatar } from "../../services/member-avatar";
 import { memberIdentity, publishMemberIdentity } from "../../services/member-identity";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
-import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
+import { clearAuthenticationRedirectSuppression } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 import { consumerTaskEntries } from "../../services/task-entry";
 import { authorityProjection, type AuthorityProjection } from "../../services/authority";
@@ -17,56 +19,120 @@ function profileCareView(care: any): { title: string; copy: string; status: stri
   return { title: "护理周期待确认", copy: `${completed} / 4 个里程碑已完成，下一节点 ${next}`, status: "待资格确认" };
 }
 
+const snapshotOwners = new WeakMap<object, string>();
+type AuxiliaryState = "unknown" | "loading" | "ready" | "error";
+
 Page({
-  data: { memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, authority:null as AuthorityProjection|null, commercialEligible:false,commercialAccessible:false, supportUnread:0, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, pageAlive: true, error: "" },
+  data: { memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, authority:null as AuthorityProjection|null, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { if (!requireMemberAccess()) { this.setData({member:null,points:null,care:null,authority:null,commercialEligible:false,commercialAccessible:false,supportUnread:0,tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
-  onHide() { this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
-  onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
+  onShow() { if (!requireMemberAccess()) { this.setData({member:null,points:null,care:null,authority:null,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
+  onHide() { cancelPageReads(this); this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
+  onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
+  isCurrentLoad(attempt: number, token: string): boolean {
+    return this.data.pageAlive && this.data.loadAttempt === attempt && getApp<IAppOption>().globalData.sessionToken === token;
+  },
+  loadAuxiliary(attempt: number, token: string) {
+    const auxiliaryAttempt = ++this.data.auxiliaryAttempt;
+    const current = () => this.isCurrentLoad(attempt, token) && this.data.auxiliaryAttempt === auxiliaryAttempt;
+    // Clearing eligibility is fail-closed, not a statement that it is absent.
+    this.setData({ authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null, authorityState:"loading", commercialState:"loading", supportState:"loading" });
+    void (async () => {
+      try {
+        const authority = await authorityProjection(this);
+        if (current()) this.setData({ authority, authorityState:"ready" });
+      } catch { if (current()) this.setData({ authority:null, authorityState:"error" }); }
+    })();
+    void (async () => {
+      try {
+        const commercial = await pageRead<{ eligible:boolean; membershipState:string; verifiedOrderCount:number; commission:{netEarnedCents:number} }>(this, { path:"/v1/me/commercial-membership", cacheTags:["member"] });
+        if (typeof commercial.eligible !== "boolean" || !["none", "active", "suspended", "expired"].includes(commercial.membershipState)
+          || !Number.isSafeInteger(commercial.verifiedOrderCount) || commercial.verifiedOrderCount < 0
+          || !Number.isSafeInteger(commercial.commission?.netEarnedCents)) throw new Error("INVALID_COMMERCIAL_PROJECTION");
+        if (current()) this.setData({ commercialEligible:commercial.eligible, commercialAccessible:commercial.eligible || commercial.membershipState !== "none" || commercial.verifiedOrderCount > 0 || commercial.commission.netEarnedCents > 0, commercialState:"ready" });
+      } catch { if (current()) this.setData({ commercialEligible:false, commercialAccessible:false, commercialState:"error" }); }
+    })();
+    void (async () => {
+      try {
+        const support = await pageRead<{ unreadCount:number }>(this, { path:"/v1/me/support/summary", cacheTags:["support"] });
+        if (!Number.isSafeInteger(support.unreadCount) || support.unreadCount < 0) throw new Error("INVALID_UNREAD_COUNT");
+        if (current()) this.setData({ supportUnread:support.unreadCount, supportState:"ready" });
+      } catch { if (current()) this.setData({ supportUnread:null, supportState:"error" }); }
+    })();
+  },
+  retryAuxiliary() {
+    const token = getApp<IAppOption>().globalData.sessionToken;
+    if (token && this.data.member && !this.data.loading) this.loadAuxiliary(this.data.loadAttempt, token);
+  },
+  async loadAvatar(member: any, attempt: number, token: string, businessVersion: number) {
+    try {
+      const avatarUrl = await localMemberAvatar(member.avatar_data_url, member.avatar_revision);
+      if (!this.isCurrentLoad(attempt, token) || this.data.snapshotVersion !== businessVersion || this.data.member?.id !== member.id) return;
+      const known = memberIdentity();
+      const normalizedMember = known && known.id === member.id && known.profile_revision > member.profile_revision ? { ...member, ...known } : member;
+      const currentAvatar = normalizedMember === member ? avatarUrl : known!.avatarUrl;
+      const { avatar_data_url: _rawAvatar, ...visibleMember } = normalizedMember;
+      publishMemberIdentity({ id:member.id, display_name:normalizedMember.display_name, avatarUrl:currentAvatar, profile_revision:normalizedMember.profile_revision });
+      this.setData({ member:visibleMember, memberAvatar:currentAvatar, avatarState:"ready" });
+    } catch { if (this.isCurrentLoad(attempt, token)) this.setData({ avatarState:"error" }); }
+  },
   async load(event?: WechatMiniprogram.TouchEvent, preserveSnapshot = false) {
     if (event?.type) clearAuthenticationRedirectSuppression();
+    cancelPageReads(this);
+    const loadStarted = measurementClock();
     const attempt = this.data.loadAttempt + 1;
-    this.setData(preserveSnapshot && this.data.member ? { loadAttempt: attempt, tasksAttempt: this.data.tasksAttempt + 1, loading: true, error: "" } : { loadAttempt: attempt, tasksAttempt: this.data.tasksAttempt + 1, member: null, points: null, care: null, authority:null, commercialEligible:false,commercialAccessible:false, supportUnread:0, tasks: [], tasksLoading: false, tasksError: "", pointsBalanceClass: "", loading: true, error: "" });
+    const token = getApp<IAppOption>().globalData.sessionToken;
+    const sameSession = snapshotOwners.get(this) === token;
+    snapshotOwners.set(this, token);
+    if (!sameSession) this.setData({ snapshotVersion:0 });
+    this.setData(preserveSnapshot && sameSession
+      ? { loadAttempt:attempt, loading:true, error:"" }
+      : { loadAttempt:attempt, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null, tasks:[], tasksError:"", loading:true, error:"" });
     void this.loadTasks(attempt);
+    this.loadAuxiliary(attempt, token);
     try {
-      const [snapshot,authority,support,commercial]=await Promise.all([
-        request<any>({ path: "/v1/bootstrap/profile", cacheTags: ["member", "care", "points"] }),
-        authorityProjection().catch(()=>({version:1,capabilities:[],managementAvailable:false} as AuthorityProjection)),
-        request<{unreadCount:number}>({path:"/v1/me/support/summary",cacheTags:["support"]}).catch(()=>({unreadCount:0})),
-        request<{eligible:boolean;membershipState:string;verifiedOrderCount:number;commission:{netEarnedCents:number}}>({path:"/v1/me/commercial-membership",cacheTags:["member"]}).catch(()=>({eligible:false,membershipState:"none",verifiedOrderCount:0,commission:{netEarnedCents:0}}))
-      ]);
-      const { member, points, care } = snapshot;
-      const memberAvatar=await localMemberAvatar(member.avatar_data_url,member.avatar_revision);
-      if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
+      const snapshot = await pageRead<any>(this, { path: "/v1/bootstrap/profile", cacheTags: ["member", "care", "points"] });
+      if (!this.isCurrentLoad(attempt, token)) return;
+      if (!Number.isSafeInteger(snapshot.businessVersion) || snapshot.businessVersion < 0 || !snapshot.member?.id || !snapshot.points?.projection) throw new Error("INVALID_PROFILE_SNAPSHOT");
       if (snapshot.businessVersion < this.data.snapshotVersion) return;
-      const {avatar_data_url,...safeMember}=member;
-      publishMemberIdentity({...safeMember,avatarUrl:memberAvatar,profile_revision:member.profile_revision || 0});
+      const processingStarted = measurementClock();
+      const { member, points, care } = snapshot;
+      const known = memberIdentity();
+      const normalizedMember = known && known.id === member.id && known.profile_revision > member.profile_revision ? { ...member, ...known } : member;
+      const { avatar_data_url: _rawAvatar, ...visibleMember } = normalizedMember;
       const normalizedCare = care ?? { phase: "waiting", completed: [], due: null, next: null };
-      const progressPercent = Math.min(100, Math.round((normalizedCare.completed?.length ?? 0) / 4 * 100));
-      const careView = profileCareView(normalizedCare);
-      const pointsBalanceClass = String(points.projection?.available ?? 0).length >= 8 ? "pass-stat__value--compact" : "";
-      this.setData({ member:{...safeMember,...memberIdentity()}, memberAvatar:memberIdentity()?.avatarUrl || memberAvatar, points, care: normalizedCare, authority, commercialEligible:commercial.eligible===true,commercialAccessible:commercial.membershipState!=="none"||commercial.verifiedOrderCount>0||commercial.commission.netEarnedCents>0, supportUnread:Math.max(0,Number(support.unreadCount)||0), snapshotVersion: snapshot.businessVersion, progressPercent, pointsBalanceClass, careTitle: careView.title, careCopy: careView.copy, careStatus: careView.status, loading: false, error: "" });
-    } catch (error) {
-      if (this.data.pageAlive && this.data.loadAttempt === attempt) {
+      // One authoritative core snapshot; local file work is never on this path.
+      const core = { member:visibleMember, memberAvatar:defaultMemberAvatar, avatarState:"loading" as AuxiliaryState, points, care:normalizedCare, snapshotVersion:snapshot.businessVersion, progressPercent:Math.min(100, normalizedCare.completed.length * 25), pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", ...profileCareView(normalizedCare), loading:false };
+      recordClientMetric({ action: "profile", stage: "data_processing", durationMs: measurementClock() - processingStarted });
+      const bridgeStarted = measurementClock();
+      this.setData(core, () => {
+        if (this.isCurrentLoad(attempt, token)) {
+          recordClientMetric({ action: "profile", stage: "set_data", durationMs: measurementClock() - bridgeStarted });
+          recordClientMetric({ action: "profile", stage: "critical_ready", durationMs: measurementClock() - loadStarted });
+        }
+      });
+      void this.loadAvatar(member, attempt, token, snapshot.businessVersion);
+    } catch {
+      if (this.isCurrentLoad(attempt, token)) {
         this.data.tasksAttempt += 1;
-        this.setData({ member: null, points: null, care: null, authority:null, commercialEligible:false,commercialAccessible:false, supportUnread:0, tasks: [], tasksLoading: false, tasksError: "", loading: false, error: "会员资料暂时无法同步，请检查网络后重试。旧积分、护理状态与管理权限不会被当作当前权威。" });
+        this.setData({ memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, tasks:[], tasksLoading:false, tasksError:"", avatarState:"unknown", loading:false, error:"会员资料暂时无法同步，请重试。页面不会把旧积分或护理状态当作最新结果。" });
       }
-    }
+    } finally { if (this.isCurrentLoad(attempt, token)) this.setData({ loading:false }); }
   },
   async loadTasks(profileAttempt?: number) {
     const ownerAttempt = profileAttempt ?? this.data.loadAttempt;
+    const token = getApp<IAppOption>().globalData.sessionToken;
     const attempt = this.data.tasksAttempt + 1;
     this.setData({ tasksAttempt: attempt, tasks: [], tasksLoading: true, tasksError: "" });
     try {
-      const taskHistory = await request<any[]>({ path: "/v1/me/tasks" });
-      if (!this.data.pageAlive || this.data.loadAttempt !== ownerAttempt || this.data.tasksAttempt !== attempt) return;
+      const taskHistory = await pageRead<any[]>(this, { path: "/v1/me/tasks" });
+      if (!this.isCurrentLoad(ownerAttempt, token) || this.data.tasksAttempt !== attempt) return;
       const tasks = consumerTaskEntries(taskHistory);
       this.setData({ tasks, tasksError: "" });
     } catch (error) {
-      if (this.data.pageAlive && this.data.loadAttempt === ownerAttempt && this.data.tasksAttempt === attempt) this.setData({ tasks: [], tasksError: "活动暂未加载，请重试" });
+      if (this.isCurrentLoad(ownerAttempt, token) && this.data.tasksAttempt === attempt) this.setData({ tasks: [], tasksError: "活动暂未加载，请重试" });
     } finally {
-      if (this.data.pageAlive && this.data.loadAttempt === ownerAttempt && this.data.tasksAttempt === attempt) this.setData({ tasksLoading: false });
+      if (this.isCurrentLoad(ownerAttempt, token) && this.data.tasksAttempt === attempt) this.setData({ tasksLoading: false });
     }
   },
   retryTasks() { void this.loadTasks(); },
@@ -85,7 +151,7 @@ Page({
   openShop() { this.openRoute("/pages/shop/index", "navigate", "商品目录暂时无法打开"); },
   openOrders() { this.openRoute("/pages/orders/index", "navigate", "订单暂时无法打开"); },
   openSupport(){this.openRoute("/pages/support/index","navigate","客服暂时无法打开");},
-  openManagement(){this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},
+  openManagement(){if(this.data.authorityState!=="ready"||!this.data.authority?.managementAvailable)return;this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},
   openInvite() { this.openRoute("/pages/invite/index", "navigate", "邀请页面暂时无法打开"); },
   openCommission(){this.openRoute("/pages/commission/index","navigate","商业资格与佣金暂时无法打开");},
   openCommunityActivity(){this.openRoute("/pages/community-activity/index","navigate","社区记录暂时无法打开");},

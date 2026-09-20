@@ -10,7 +10,10 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with: {fetch-depth: 0}
@@ -49,27 +52,68 @@ jobs:
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $archive" | shasum -a 256 -c -
           tar -xzf "$archive" -C "$scanner_dir" gitleaks
           "$scanner_dir/gitleaks" git . --no-banner --no-color --redact=100
-      - run: npm ci
+      - name: Create bounded verification evidence directory
+        run: mkdir -p "$RUNNER_TEMP/native-validation"
+      - run: npm ci 2>&1 | tee "$RUNNER_TEMP/native-validation/ci.log"
       - run: docker compose -f infra/compose.yaml up -d --wait
       - name: Production dependency audit
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=high 2>&1 | tee "$RUNNER_TEMP/native-validation/audit-omit=dev-audit-level=high.log"
       - name: Development-tool high-severity audit
-        run: npm audit --audit-level=high
-      - run: npm run typecheck
-      - run: npm run miniprogram:package-gate
-      - run: npm run miniprogram:route-audit
-      - run: npm run design:qa:status
-      - run: npm test
-      - run: npm run test:integration
-      - run: npm run build
-      - run: npm run lint:contracts
+        run: npm audit --audit-level=high 2>&1 | tee "$RUNNER_TEMP/native-validation/audit-audit-level=high.log"
+      - run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/native-validation/typecheck.log"
+      - run: npm run miniprogram:package-gate 2>&1 | tee "$RUNNER_TEMP/native-validation/miniprogram-package-gate.log"
+      - run: npm run miniprogram:route-audit 2>&1 | tee "$RUNNER_TEMP/native-validation/miniprogram-route-audit.log"
+      - run: npm run design:qa:status 2>&1 | tee "$RUNNER_TEMP/native-validation/design-qa-status.log"
+      - run: npm test 2>&1 | tee "$RUNNER_TEMP/native-validation/test.log"
+      - run: npm run test:integration 2>&1 | tee "$RUNNER_TEMP/native-validation/test-integration.log"
+      - run: npm run build 2>&1 | tee "$RUNNER_TEMP/native-validation/build.log"
+      - run: npm run lint:contracts 2>&1 | tee "$RUNNER_TEMP/native-validation/lint-contracts.log"
+      - name: Isolated same-runner performance comparison (not native acceptance)
+        env:
+          TEST_DATABASE_URL: postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme_test
+          PERF_ALLOW_RESET: 'true'
+          PERF_SAMPLES: '4000'
+          PERF_CONCURRENCY: '10'
+          PERF_P95_MS: '500'
+          CAPACITY_ALLOW_RESET: 'true'
+          CAPACITY_FIXTURE_USERS: '100'
+          CAPACITY_LEVELS: '10,20'
+          CAPACITY_ROUNDS: '2'
+          CAPACITY_REQUESTS_PER_WORKER: '50'
+          WORKER_CAPACITY_EVENTS: '1000'
+          WORKER_CAPACITY_LEVELS: '1,2'
+          WORKER_CAPACITY_ROUNDS: '2'
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/native-validation"
+          git rev-parse HEAD > "$out/checkout-sha.txt"
+          git status --porcelain > "$out/pre-perf-worktree.txt"
+          node scripts/native-feed-benchmark.mjs > "$out/feed-before-after.json"
+          baseline="$RUNNER_TEMP/cisme-perf-baseline"
+          mkdir -p "$baseline"
+          git archive 56432fb9b42777ffd4b3aeaf17134a666c7f243c | tar -x -C "$baseline"
+          cmp package-lock.json "$baseline/package-lock.json"
+          # Identical measurement harness; baseline runtime is unchanged.
+          cp scripts/performance-smoke.ts "$baseline/scripts/performance-smoke.ts"
+          sha256sum scripts/performance-smoke.ts > "$out/smoke-harness-sha256.txt"
+          (cd "$baseline" && npm ci > "$out/baseline-npm-ci.log" 2>&1)
+          for cohort in baseline candidate; do
+            if [ "$cohort" = baseline ]; then directory="$baseline"; else directory="$GITHUB_WORKSPACE"; fi
+            (
+              cd "$directory"
+              npm run perf:smoke > "$out/$cohort-smoke.log" 2>&1
+              CAPACITY_OUTPUT="$out/$cohort-capacity.json" npm run perf:capacity > "$out/$cohort-capacity.log" 2>&1
+              WORKER_CAPACITY_OUTPUT="$out/$cohort-worker.json" npm run perf:worker-capacity > "$out/$cohort-worker.log" 2>&1
+            )
+          done
+          rm -rf "$baseline"
       - run: npm run sbom
       - run: npm run license:report
       - if: always()
         run: docker compose -f infra/compose.yaml logs --no-color > ci-compose.log
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with: {name: cisme-r0-evidence, path: "ci-compose.log\ndocs/evidence/sbom.cdx.json\ndocs/evidence/LICENSE-REPORT.md"}
+        with: {name: cisme-r0-evidence, path: "ci-compose.log\ndocs/evidence/sbom.cdx.json\ndocs/evidence/LICENSE-REPORT.md\n${{ runner.temp }}/native-validation/"}
   candidate-design-qa:
     needs: verify
     if: ${{ needs.verify.result == 'success' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/candidate-')) }}

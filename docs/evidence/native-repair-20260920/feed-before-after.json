@@ -1,0 +1,63 @@
+{
+  "kind": "source-VM-native-setData-payload-comparison-NOT-device-performance",
+  "baselineCommit": "56432fb9b42777ffd4b3aeaf17134a666c7f243c",
+  "source": {
+    "baselineSha256": "37a30c7b115b5a6ccd871dd54801370c313539142b55341940040315b3f55216",
+    "candidateSha256": "20c5822ff59d0a275c8ac696eefb0a570bd858c2f82d523b6d8b7feb043d9957"
+  },
+  "node": "v24.18.0",
+  "sampleCountPerCase": 1,
+  "cohort": "deterministic synthetic payload size, not latency percentiles",
+  "bridgeCallbacks": "synchronous synthetic; native durations/FPS/memory/network unmeasured",
+  "fixture": "seven documented card-like fields, 30 rows/page, no actual UGC",
+  "cases": [
+    {
+      "cards": 30,
+      "before": {
+        "setDataBytes": 19570,
+        "setDataCalls": 4,
+        "rawFeedTransfers": 1,
+        "fullColumnTransfers": 1
+      },
+      "after": {
+        "setDataBytes": 7906,
+        "setDataCalls": 4,
+        "rawFeedTransfers": 0,
+        "fullColumnTransfers": 0
+      },
+      "byteReductionPercent": 59.6
+    },
+    {
+      "cards": 100,
+      "before": {
+        "setDataBytes": 182089,
+        "setDataCalls": 16,
+        "rawFeedTransfers": 4,
+        "fullColumnTransfers": 4
+      },
+      "after": {
+        "setDataBytes": 26523,
+        "setDataCalls": 16,
+        "rawFeedTransfers": 0,
+        "fullColumnTransfers": 0
+      },
+      "byteReductionPercent": 85.43
+    },
+    {
+      "cards": 300,
+      "before": {
+        "setDataBytes": 1073016,
+        "setDataCalls": 40,
+        "rawFeedTransfers": 10,
+        "fullColumnTransfers": 10
+      },
+      "after": {
+        "setDataBytes": 79706,
+        "setDataCalls": 40,
+        "rawFeedTransfers": 0,
+        "fullColumnTransfers": 0
+      },
+      "byteReductionPercent": 92.57
+    }
+  ]
+}

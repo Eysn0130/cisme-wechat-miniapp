@@ -2,6 +2,7 @@ import { createCipheriv, createHmac, randomBytes } from 'node:crypto';
 import type pg from 'pg';
 import type { AppConfig } from '@cisme/config';
 import { DomainError } from '@cisme/domain';
+import { dependencySignal } from './operationBudget.js';
 import { transaction } from './db.js';
 export class PhoneBinding {
  private accessToken: {value:string; expiresAt:number} | null=null;
@@ -13,7 +14,7 @@ export class PhoneBinding {
  }
  private async token() {
   if(this.accessToken && this.accessToken.expiresAt>Date.now())return this.accessToken.value;
-  const response=await this.fetcher('https://api.weixin.qq.com/cgi-bin/stable_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credential',appid:this.config.wechat.appId,secret:this.config.wechat.appSecret}),signal:AbortSignal.timeout(15000)});
+  const response=await this.fetcher('https://api.weixin.qq.com/cgi-bin/stable_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credential',appid:this.config.wechat.appId,secret:this.config.wechat.appSecret}),signal:dependencySignal(15000)});
   const result=await response.json() as {access_token?:string;expires_in?:number};
   if(!response.ok || !result.access_token)throw new DomainError('WECHAT_PHONE_UNAVAILABLE','微信手机号服务暂不可用，请稍后重试',503);
   this.accessToken={value:result.access_token,expiresAt:Date.now()+Math.max(0,(result.expires_in || 7200)-120)*1000};return result.access_token;
@@ -44,7 +45,7 @@ export class PhoneBinding {
     return {bound:Boolean(own.rows[0]),masked:own.rows[0]?.phone_masked || null};
    }
    const token=await this.token();
-   const response=await this.fetcher(`https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${encodeURIComponent(token)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code}),signal:AbortSignal.timeout(15000)});
+   const response=await this.fetcher(`https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${encodeURIComponent(token)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code}),signal:dependencySignal(15000)});
    const result=await response.json() as {errcode?:number;phone_info?:{purePhoneNumber?:string;countryCode?:string;watermark?:{appid?:string;timestamp?:number}}};
    const phone=result.phone_info;
    if(!response.ok || result.errcode!==0 || !phone || phone.watermark?.appid!==this.config.wechat.appId || !/^[0-9]{4,15}$/.test(phone.purePhoneNumber || '') || !/^[0-9]{1,4}$/.test(phone.countryCode || ''))throw new DomainError('PHONE_AUTHORIZATION_FAILED','手机号授权未完成，请重新点击授权按钮',422);

@@ -1,3 +1,4 @@
+import { measurementClock, metricAction, projectNetworkPhases, recordClientMetric } from "./performance-metrics";
 import type { CloudHttpTarget } from "../release-config";
 type JsonResponse = WechatMiniprogram.RequestSuccessCallbackResult<WechatMiniprogram.IAnyObject>;
 interface JsonRequest {
@@ -7,6 +8,7 @@ interface JsonRequest {
   method: "GET" | "POST" | "PUT" | "DELETE";
   data?: WechatMiniprogram.IAnyObject;
   header: Record<string, string>;
+  timeoutMs?: number;
   success: (response: JsonResponse) => void;
   fail: (error: unknown) => void;
 }
@@ -26,7 +28,14 @@ interface NativeCloudHttp {
 }
 export interface TransportHandle { abort(): void }
 let initializedCloudEnv = "";
-const transportTimeoutMs = 12_000;
+export function normalizeTransportError(error: unknown): unknown {
+  const input = error as { code?: string; errMsg?: string } | null;
+  if (input?.code) return error;
+  const message = input?.errMsg ?? "";
+  if (/abort|cancel/i.test(message)) return { code: "REQUEST_ABORTED", title: "请求已取消" };
+  if (/timeout|time out/i.test(message)) return timeoutProblem();
+  return { code: "NETWORK_ERROR", title: "网络连接未完成，请检查连接后重试" };
+}
 
 function timeoutProblem() {
   return { code: "NETWORK_TIMEOUT", title: "网络响应超时，请检查网络后重试" };
@@ -36,6 +45,10 @@ export function sendJsonRequest(options: JsonRequest): TransportHandle {
   const { cloud, path, origin } = options;
   if (!cloud && !origin) throw new Error("MINIPROGRAM_API_BASE_URL_MISSING");
 
+  const transportTimeoutMs = options.timeoutMs ?? 12_000;
+  if (!Number.isFinite(transportTimeoutMs) || transportTimeoutMs <= 0) throw new Error("INVALID_REQUEST_TIMEOUT");
+  let physicalAbort = () => {};
+  const started = measurementClock();
   let settled = false;
   const finish = <T>(callback: (value: T) => void, value: T) => {
     if (settled) return;
@@ -43,9 +56,16 @@ export function sendJsonRequest(options: JsonRequest): TransportHandle {
     clearTimeout(timeout);
     callback(value);
   };
-  const succeed = (response: JsonResponse) => finish(options.success, response);
-  const fail = (error: unknown) => finish(options.fail, error);
-  const timeout = setTimeout(() => fail(timeoutProblem()), transportTimeoutMs);
+  const succeed = (response: JsonResponse) => {
+    if (!settled) recordClientMetric({ action: metricAction(path), stage: "transport", durationMs: measurementClock() - started, transport: cloud ? "cloud" : "direct", status: response.statusCode,
+      ...(!cloud ? { phases: projectNetworkPhases(response.profile) } : {}) });
+    finish(options.success, response);
+  };
+  const fail = (error: unknown) => {
+    if (!settled) recordClientMetric({ action: metricAction(path), stage: "transport", durationMs: measurementClock() - started, transport: cloud ? "cloud" : "direct" });
+    finish(options.fail, normalizeTransportError(error));
+  };
+  const timeout = setTimeout(() => { if (!settled) { fail(timeoutProblem()); physicalAbort(); } }, transportTimeoutMs);
 
   if (cloud) {
     const sdk = (wx as unknown as { cloud?: NativeCloudHttp }).cloud;
@@ -76,6 +96,7 @@ export function sendJsonRequest(options: JsonRequest): TransportHandle {
     } catch (error) { fail(error); }
     return { abort() { fail({ code: "REQUEST_ABORTED", title: "请求已取消" }); } };
   }
+  try {
   const task = wx.request({
     method: options.method,
     ...(options.data ? { data: options.data } : {}),
@@ -85,5 +106,7 @@ export function sendJsonRequest(options: JsonRequest): TransportHandle {
     success: succeed,
     fail
   });
-  return { abort() { task.abort(); fail({ code: "REQUEST_ABORTED", title: "请求已取消" }); } };
+  physicalAbort = () => task.abort();
+  } catch (error) { fail(error); }
+  return { abort() { if (!settled) { fail({ code: "REQUEST_ABORTED", title: "请求已取消" }); physicalAbort(); } } };
 }

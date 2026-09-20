@@ -201,8 +201,8 @@ describe("native mini program boundary", () => {
       "community-compose": ["back", "retryLoad", "startNew", "openDraft", "deleteListDraft", "loadMoreList", "submitAppeal", "retryPreview", "toggleSorting", "chooseImages", "retryImage", "retryPreview", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
       "community-review": ["back", "back", "load", "back", "reviewMedia", "reviewMedia", "reviewPost", "reviewPost", "publish"],
-      community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "openMyPosts", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "openFormalReview", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "load", "loadTasks", "openInvite", "openPost"],
-      home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "closeCareSession", "advanceCareStep", "selectAssessment", "submitCareSession"],
+      community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "openMyPosts", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "openFormalReview", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "load", "loadTasks", "openInvite", "openPost", "onReachBottom"],
+      home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "retryCareMutation", "closeCareSession", "retryLoad", "retryCareMutation", "advanceCareStep", "selectAssessment", "submitCareSession"],
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
       "management-member": ["back", "load", "selectSection", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
@@ -222,7 +222,7 @@ describe("native mini program boundary", () => {
       checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "back", "load", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
-      profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "load", "retryTasks"],
+      profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "load", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
       records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],
       referral: ["back", "preview", "confirm"],
@@ -281,7 +281,7 @@ describe("native mini program boundary", () => {
     expect(operatorStyles).toMatch(/\.operator-compose__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
   });
 
-  it("pins the Web-truth button baselines and fixed action geometry", async () => {
+  it("pins accepted native button geometry and truthful busy/unknown labels", async () => {
     const appStyle = await readFile(resolve("apps/miniprogram/app.wxss"), "utf8");
     const account = await readFile(resolve("apps/miniprogram/pages/account/index.wxss"), "utf8");
     const accountMarkup = await readFile(resolve("apps/miniprogram/pages/account/index.wxml"), "utf8");
@@ -309,7 +309,7 @@ describe("native mini program boundary", () => {
     expect(account).toMatch(/\.account-agreement__label \{[^}]*min-height:128rpx;/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-card \{ margin-top:32rpx; \}/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-login \{ margin-top:24rpx; \}[\s\S]*\.account-browse \{ margin-top:12rpx; \}/);
-    expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxml"), "utf8")).toContain('<text class="care-cta__label">{{view.action}}</text>');
+    expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxml"), "utf8")).toContain("<text class=\"care-cta__label\">{{working ? '正在保存…' : mutationState === 'unknown' ? '重试原保存' : view.action}}</text>");
     expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxss"), "utf8")).toMatch(/\.care-cta\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s);
     expect(records).toContain(".cycle-button--single { grid-column:1/-1; width:100%; }");
     for (const styles of [task, submit, product]) {

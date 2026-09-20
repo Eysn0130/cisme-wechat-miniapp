@@ -20,6 +20,7 @@ const app = await createApp({ config, pool, storage: createApiGatewayStorage(con
 try {
   const identity = (await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: "performance-smoke", displayName: "性能门禁会员", consents: [{ documentType: "privacy", version: "perf" }, { documentType: "terms", version: "perf" }] } })).json() as { sessionToken: string };
   const latencies: number[] = [];
+  const byRoute: Record<string, { latencies: number[]; errors: number; timeouts: number }> = {};
   let errors = 0, cursor = 0;
   const started = performance.now();
   async function worker() {
@@ -30,19 +31,29 @@ try {
       const response = index % 4 === 0
         ? await app.inject({ method: "GET", url: "/v1/capabilities" })
         : await app.inject({ method: "GET", url: "/v1/bootstrap/home", headers: { authorization: `Bearer ${identity.sessionToken}` } });
-      latencies.push(performance.now() - before);
-      if (response.statusCode < 200 || response.statusCode >= 300) errors += 1;
+      const elapsed = performance.now() - before;
+      latencies.push(elapsed);
+      const route = index % 4 === 0 ? "GET /v1/capabilities" : "GET /v1/bootstrap/home";
+      const bucket = byRoute[route] ??= { latencies: [], errors: 0, timeouts: 0 };
+      bucket.latencies.push(elapsed);
+      if (response.statusCode < 200 || response.statusCode >= 300) { errors += 1; bucket.errors += 1; }
+      if ([408,504].includes(response.statusCode) || /(?:TIMEOUT|DEADLINE_EXCEEDED)/.test(response.payload)) bucket.timeouts += 1;
     }
   }
   await Promise.all(Array.from({ length: concurrency }, worker));
   const elapsedMs = performance.now() - started;
   latencies.sort((a,b) => a-b);
   const percentile = (p: number) => latencies[Math.min(latencies.length - 1, Math.ceil(latencies.length * p) - 1)] ?? 0;
-  const report = { mode: "in_process_isolated_db_smoke", samples, concurrency, elapsedMs: Math.round(elapsedMs * 100) / 100, requestsPerSecond: Math.round(samples / elapsedMs * 100_000) / 100,
+  const routes = Object.fromEntries(Object.entries(byRoute).map(([route, bucket]) => {
+    bucket.latencies.sort((a,b) => a-b);
+    const p = (fraction: number) => bucket.latencies[Math.min(bucket.latencies.length-1,Math.ceil(bucket.latencies.length*fraction)-1)] ?? 0;
+    return [route, { samples: bucket.latencies.length, latencyMs: { p50:p(.5),p95:p(.95),p99:p(.99),max:bucket.latencies.at(-1) ?? 0 }, errors:bucket.errors,timeouts:bucket.timeouts,errorRate:bucket.errors/bucket.latencies.length }];
+  }));
+  const report = { timingBoundary: "server app.inject + isolated DB; no DNS/TLS/mobile/rendering", routes, mode: "in_process_isolated_db_smoke", samples, concurrency, elapsedMs: Math.round(elapsedMs * 100) / 100, requestsPerSecond: Math.round(samples / elapsedMs * 100_000) / 100,
     latencyMs: { p50: percentile(.5), p95: percentile(.95), p99: percentile(.99), max: latencies.at(-1) ?? 0 }, errors, errorRate: errors / samples,
     thresholds: { p95Ms: p95BudgetMs, errorRate: errorRateBudget } };
   console.log(JSON.stringify(report, null, 2));
-  if (report.latencyMs.p95 > p95BudgetMs || report.errorRate > errorRateBudget) process.exitCode = 1;
+  if (report.latencyMs.p95 > p95BudgetMs || report.errorRate > errorRateBudget || Object.values(routes).some(route => route.latencyMs.p95 > p95BudgetMs || route.errorRate > errorRateBudget)) process.exitCode = 1;
 } finally {
   await app.close();
   await pool.end();

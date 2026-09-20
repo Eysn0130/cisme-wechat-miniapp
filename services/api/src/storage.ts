@@ -16,6 +16,7 @@ import COS from "cos-nodejs-sdk-v5";
 import type { UploadAuthorization } from "@cisme/contracts";
 import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
+import { OperationBudget, assertOperationActive, currentOperationBudget, dependencySignal } from "./operationBudget.js";
 import { recordMetric } from "./observability.js";
 
 export interface StoredObject {
@@ -38,7 +39,7 @@ export interface ObjectStorage {
 function observeStorage(storage: ObjectStorage): ObjectStorage {
   const timed = async <T>(work: () => Promise<T>): Promise<T> => {
     const started = performance.now();
-    try { return await work(); }
+    try { assertOperationActive(); const result = await work(); assertOperationActive(); return result; }
     finally { recordMetric("storage_ms", performance.now() - started); }
   };
   return {
@@ -76,6 +77,33 @@ function s3Client(config: AppConfig): S3Client {
   return new S3Client(clientConfig);
 }
 
+async function readS3Body(body: { transformToByteArray(): Promise<Uint8Array> } | undefined): Promise<Uint8Array | undefined> {
+  if (!body) return undefined;
+  assertOperationActive();
+  const signal = dependencySignal(30_000);
+  const destroy = () => (body as { destroy?: (reason: Error) => void }).destroy?.(new Error("STORAGE_READ_CANCELLED"));
+  signal.addEventListener("abort", destroy, { once: true });
+  if (signal.aborted) destroy();
+  try { const bytes = await body.transformToByteArray(); assertOperationActive(); return bytes; }
+  finally { signal.removeEventListener("abort", destroy); }
+}
+
+/** COS retries can run outside the original ALS context. Bind a request-scoped
+ * client to an explicit immutable budget, never a shared SDK timeout or a
+ * guessed query signal. Node's transport consumes the before-send signal. */
+const budgetBoundCosClients = new WeakMap<object, OperationBudget>();
+export function bindCosOperationBudget(client: COS, budget: OperationBudget): void {
+  const bound = budgetBoundCosClients.get(client);
+  if (bound && bound !== budget) throw new Error("COS_CLIENT_BUDGET_ALREADY_BOUND");
+  if (bound || typeof client.on !== "function") return;
+  budgetBoundCosClients.set(client, budget);
+  client.on("before-send", (options: { signal?: AbortSignal; timeout?: number }) => {
+    options.signal = budget.signal;
+    try { options.timeout = Math.min(options.timeout || 30_000, budget.remaining()); }
+    catch (error) { budget.abort(error); options.timeout = 1; }
+  });
+}
+
 export function createS3Storage(config: AppConfig): ObjectStorage {
   const client = s3Client(config);
   const bucket = config.objectStorage.bucket;
@@ -83,9 +111,11 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
     acceptsGatewayUpload: false,
     async ensureReady() {
       try {
-        await client.send(new HeadBucketCommand({ Bucket: bucket }));
-      } catch {
-        await client.send(new CreateBucketCommand({ Bucket: bucket }));
+        await client.send(new HeadBucketCommand({ Bucket: bucket }), { abortSignal: dependencySignal(30_000) });
+      } catch (error) {
+        assertOperationActive();
+        if ((error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode !== 404) throw error;
+        await client.send(new CreateBucketCommand({ Bucket: bucket }), { abortSignal: dependencySignal(30_000) });
       }
     },
     async authorize(input) {
@@ -113,25 +143,25 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       };
     },
     async verify(objectKey) {
-      const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: objectKey }));
-      const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey }));
-      const bytes = await object.Body?.transformToByteArray();
+      const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
+      const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
+      const bytes = await readS3Body(object.Body);
       if (!bytes) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 422);
       return { bytes: Number(head.ContentLength ?? bytes.length), checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
     },
     async read(objectKey) {
-      const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey }));
-      const bytes = await object.Body?.transformToByteArray();
+      const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
+      const bytes = await readS3Body(object.Body);
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectImageMime(bytes) };
     },
     async delete(objectKey) {
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }));
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
     },
     async writeDerivedImage(objectKey, bytes) {
       if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
-      await client.send(new PutObjectCommand({ Bucket: bucket, Key: objectKey, Body: bytes, ContentType: "image/webp" }));
+      await client.send(new PutObjectCommand({ Bucket: bucket, Key: objectKey, Body: bytes, ContentType: "image/webp" }), { abortSignal: dependencySignal(30_000) });
     }
   };
 }
@@ -165,15 +195,15 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       const claims = validateGatewayUpload(input, secret);
       const detectedMime = detectImageMime(input.bytes);
       await mkdir(directory, { recursive: true });
-      await writeFile(resolve(directory, claims.objectKey.replaceAll("/", "__")), input.bytes, { flag: "w" });
+      await writeFile(resolve(directory, claims.objectKey.replaceAll("/", "__")), input.bytes, { flag: "w", signal: dependencySignal(30_000) });
       return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
     },
     async verify(objectKey) {
-      const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")));
+      const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")), { signal: dependencySignal(30_000) });
       return { bytes: bytes.length, checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
     },
     async read(objectKey) {
-      const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")));
+      const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")), { signal: dependencySignal(30_000) });
       if (!bytes.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectImageMime(bytes) };
     },
@@ -181,7 +211,7 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
       await mkdir(directory, { recursive: true });
-      await writeFile(resolve(directory, objectKey.replaceAll("/", "__")), bytes, { flag: "w" });
+      await writeFile(resolve(directory, objectKey.replaceAll("/", "__")), bytes, { flag: "w", signal: dependencySignal(30_000) });
     },
     async delete(objectKey) {
       try { await unlink(resolve(directory, objectKey.replaceAll("/", "__"))); } catch { /* idempotent */ }
@@ -234,7 +264,7 @@ export function createS3GatewayStorage(config: AppConfig): ObjectStorage {
         Body: input.bytes,
         ContentType: claims.mimeType,
         Metadata: { "media-id": claims.mediaId }
-      }));
+      }), { abortSignal: dependencySignal(30_000) });
       return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
     }
   };
@@ -248,16 +278,24 @@ export function createObjectStorage(config: AppConfig): ObjectStorage {
 }
 
 export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): ObjectStorage {
-  const client = cosClient??new COS({
-    SecretId: config.objectStorage.accessKeyId ?? "",
-    SecretKey: config.objectStorage.secretAccessKey ?? "",
-    Protocol: "https:",
-    Timeout: 30_000
-  });
+  const sdkOptions = { SecretId: config.objectStorage.accessKeyId ?? "", SecretKey: config.objectStorage.secretAccessKey ?? "",
+    Protocol: "https:" as const, Timeout: 30_000 };
+  const sharedClient = cosClient ?? new COS(sdkOptions);
+  const scopedClients = new WeakMap<OperationBudget, COS>();
+  const getClient = () => {
+    const budget = currentOperationBudget();
+    if (cosClient || !budget) return sharedClient;
+    budget.check();
+    let client = scopedClients.get(budget);
+    if (!client) { client = new COS(sdkOptions); bindCosOperationBudget(client, budget); scopedClients.set(budget, client); }
+    return client;
+  };
   const location = { Bucket: config.objectStorage.bucket, Region: config.objectStorage.region };
   const authorization = createApiGatewayStorage(config);
   const requireNoVersioning=async()=>{
-    const versioning=await client.getBucketVersioning(location);
+    assertOperationActive();
+    const versioning=await getClient().getBucketVersioning(location);
+    assertOperationActive();
     // Tencent COS documents that x-cos-forbid-overwrite is ineffective when
     // versioning has been enabled. Until pinned-version reads are implemented,
     // do not issue any UGC upload authorization for such a bucket.
@@ -266,13 +304,15 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
   };
   const immutablePut=async(key:string,bytes:Uint8Array,mime:string,mediaId?:string)=>{
     try{
-      await client.putObject({...location,Key:key,Body:Buffer.from(bytes),ContentType:mime,
+      assertOperationActive();
+      await getClient().putObject({...location,Key:key,Body:Buffer.from(bytes),ContentType:mime,
         ...(mediaId?{"x-cos-meta-media-id":mediaId}:{}),Headers:{"x-cos-forbid-overwrite":"true"}});
     }catch(error){
       // Retrying after a lost response is safe only if the existing object is
       // byte-for-byte identical. A changed body must never replace evidence.
       try{
-        const prior=await client.getObject({...location,Key:key});
+        assertOperationActive();
+        const prior=await getClient().getObject({...location,Key:key});
         if(prior.Body&&Buffer.from(prior.Body).equals(Buffer.from(bytes)))return;
       }catch{/* Preserve the original write failure. */}
       throw error;
@@ -296,7 +336,7 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
         expiresAt: new Date(input.now.getTime() + 600_000).toISOString()
       };
     },
-    async ensureReady() { await client.headBucket(location); await requireNoVersioning(); },
+    async ensureReady() { await getClient().headBucket(location); await requireNoVersioning(); },
     async writeGatewayObject(input) {
       await requireNoVersioning();
       const claims = validateGatewayUpload(input, config.objectStorage.uploadTokenSecret);
@@ -306,18 +346,18 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
       return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
     },
     async verify(objectKey) {
-      const result = await client.getObject({ ...location, Key: objectKey });
+      const result = await getClient().getObject({ ...location, Key: objectKey });
       const bytes = result.Body;
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 422);
       return { bytes: bytes.length, checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
     },
     async read(objectKey) {
-      const result = await client.getObject({ ...location, Key: objectKey });
+      const result = await getClient().getObject({ ...location, Key: objectKey });
       const bytes = result.Body;
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectImageMime(bytes) };
     },
-    async delete(objectKey) { await client.deleteObject({ ...location, Key: objectKey }); },
+    async delete(objectKey) { await getClient().deleteObject({ ...location, Key: objectKey }); },
     async writeDerivedImage(objectKey, bytes) {
       if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);

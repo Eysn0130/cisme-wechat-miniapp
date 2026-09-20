@@ -14,8 +14,9 @@ it("does not log synthetic sensitive markers from request URLs or thrown driver 
   const config = loadConfig({ APP_ENV: "test", DATABASE_URL: "postgres://unused",
     APP_SESSION_SECRET: "log-redaction-session", ADMIN_API_TOKEN: "log-redaction-admin",
     UPLOAD_TOKEN_SECRET: "log-redaction-upload", OBJECT_STORAGE_DRIVER: "api_gateway", LOG_LEVEL: "info" });
-  const pool = { query: async () => { throw Object.assign(new Error(`driver query detail ${marker}`),
-    { code: "57014", detail: marker, query: `SELECT '${marker}'` }); } } as unknown as pg.Pool;
+  const failQuery = async () => { throw Object.assign(new Error(`driver query detail ${marker}`),
+    { code: "57014", detail: marker, query: `SELECT '${marker}'` }); };
+  const pool = { query: failQuery, connect: async () => ({ query: failQuery, release() {} }) } as unknown as pg.Pool;
   const app = await createApp({ config, pool, storage: createApiGatewayStorage(config),
     loggerInstance: pino({ level: "info" }, sink) });
   try {

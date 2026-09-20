@@ -50,7 +50,7 @@
     <text wx:if="{{!reviewBusy && !teamError && !reviewQueue.length && !publicationQueue.length && !profileReviewQueue.length && !formalReviewQueue.length && !formalReportQueue.length && !formalAppealQueue.length}}">当前没有待处理的资料或内容</text>
   </view>
   <block wx:if="{{mode !== 'review'}}">
-  <view wx:if="{{mode === 'recommend' && !loading && !feed.length && !error}}" class="state">暂无审核发布的会员内容，可先浏览精选护理故事。</view>
+  <view wx:if="{{mode === 'recommend' && !loading && !displayFeedCount && !error}}" class="state">暂无审核发布的会员内容，可先浏览精选护理故事。</view>
   <view wx:if="{{mode === 'following' && !loading && !displayFeedCount}}" class="state">关注作者后，这里会显示他们公开的护理故事。可在故事详情中关注作者。</view>
   <view wx:if="{{loading}}" class="community-loading" aria-live="polite">正在加载护理故事…</view>
   <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重新加载</button></view>
@@ -66,6 +66,7 @@
     </button>
     </view>
   </view>
+  <view wx:if="{{moreError}}" class="state state--error" aria-live="polite"><text>{{moreError}}</text><button class="text-button {{formalLoadingMore ? 'control--disabled' : ''}}" bindtap="onReachBottom" disabled="{{formalLoadingMore}}">重试加载更多</button></view>
   <view wx:if="{{formalLoadingMore}}" class="community-loading" aria-live="polite">正在加载更多内容…</view>
   <view wx:if="{{mode === 'recommend' && appliedSearch && !loading && !displayFeedCount}}" class="state">没有找到相关护理故事或作者。试试其他关键词。</view>
   <view wx:if="{{mode === 'featured' && !loading}}" class="community-notice"><image class="community-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>精选由 CISME 护理编辑部整理。大家分享的护理故事审核发布后，会出现在推荐栏目。</text></view>

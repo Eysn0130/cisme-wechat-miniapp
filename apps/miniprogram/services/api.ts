@@ -1,3 +1,4 @@
+import { measurementClock, metricAction, recordClientMetric } from "./performance-metrics";
 import { clearMemberIdentity } from "./member-identity";
 import { clearMemberAvatarCache } from "./member-avatar";
 import { clearAllUgcBackups } from "./ugc-local-backup";
@@ -134,7 +135,7 @@ export function submissionReturnUrl(submissionId: string): string {
   return context.returnUrl;
 }
 
-type RequestOptions = { path: string; method?: "GET" | "POST" | "PUT" | "DELETE"; data?: WechatMiniprogram.IAnyObject; idempotencyKey?: string; authMode?: "required" | "optional" | "public"; cacheTags?: string[] };
+export type RequestOptions = { path: string; method?: "GET" | "POST" | "PUT" | "DELETE"; data?: WechatMiniprogram.IAnyObject; idempotencyKey?: string; authMode?: "required" | "optional" | "public"; cacheTags?: string[]; budgetMs?: number; registerAbort?: (abort: () => void) => void };
 
 function tagsForPath(path: string): string[] {
   const tags = new Set<string>();
@@ -149,145 +150,121 @@ function tagsForPath(path: string): string[] {
   if (!tags.size) tags.add("public");
   return [...tags];
 }
-
-function readPolicy(path: string, tags: string[]) {
-  if (path === "/v1/catalog" || path === "/v1/capabilities" || path === "/v1/identity/capabilities" || path === "/v1/legal") return { ttlMs: 5 * 60_000, staleMs: 55 * 60_000, tags };
-  if (path === "/v1/feed" || path.includes("/community/")) return { ttlMs: 5_000, staleMs: 15_000, tags };
-  if (path.includes("bootstrap") || path === "/v1/me" || path === "/v1/me/profile") return { ttlMs: 1_500, staleMs: 0, tags };
+function readPolicy(_path: string, tags: string[]) {
+  // Pages do not yet subscribe to background refreshes or label stale results.
+  // Keep session/tag isolation and concurrent coalescing, but do not silently
+  // serve completed permission, price, inventory, care or legal snapshots.
+  // Avatar/file caches remain separate and unchanged.
   return { ttlMs: 0, staleMs: 0, tags };
 }
-
-export function request<T>(options: RequestOptions): Promise<T> {
-  const tags = options.cacheTags ?? tagsForPath(options.path);
-  if ((options.method ?? "GET") !== "GET") {
-    reads.invalidate(tags);
-    return performRequest<T>(options).finally(() => reads.invalidate(tags));
-  }
-  // Include identity, transport and auth semantics so a public or old-account
-  // request can never satisfy another member's read.
-  const key = JSON.stringify([app.globalData.apiBaseUrl, app.globalData.cloudFunction, app.globalData.sessionToken, options]);
-  return reads.read(key, () => performRequest<T>(options), readPolicy(options.path, tags));
-}
-
+export function request<T>(options: RequestOptions): Promise<T> { return requestCancelable<T>(options).promise; }
 function requestId(): string { return `wx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`; }
-function retryable(error: unknown): boolean {
-  const problem = error as { status?: number; statusCode?: number; code?: string; errMsg?: string };
-  const signal = `${problem?.code ?? ""} ${problem?.errMsg ?? ""}`;
-  return problem?.status === 502 || problem?.status === 503 || problem?.statusCode === 502 || problem?.statusCode === 503
-    || ["NETWORK_ERROR", "request:fail"].some((code) => signal.includes(code));
-}
-
-const essentialRateLimitedReads = new Set([
+const approvedRetryReads = new Set([
   "/v1/bootstrap/home", "/v1/bootstrap/profile", "/v1/bootstrap/settings",
-  "/v1/me", "/v1/capabilities", "/v1/identity/capabilities", "/v1/legal", "/v1/catalog"
+  "/v1/me", "/v1/capabilities", "/v1/identity/capabilities", "/v1/legal", "/v1/catalog",
+  "/v1/me/support/summary", "/v1/me/authority"
 ]);
-
 function retryDelayMs(error: unknown, options: RequestOptions): number | null {
-  const problem = error as { status?: number; code?: string; retryAfterSeconds?: number };
+  if ((options.method ?? "GET") !== "GET" || !approvedRetryReads.has(options.path.split("?")[0]!)) return null;
+  const problem = error as { status?: number; code?: string; retryAfterSeconds?: number } | null;
   if (problem?.status === 429) {
     const seconds = problem.retryAfterSeconds;
-    return problem.code === "RATE_LIMITED" && essentialRateLimitedReads.has(options.path) &&
-      Number.isInteger(seconds) && seconds! > 0 && seconds! <= 2 ? seconds! * 1000 : null;
+    return problem.code === "RATE_LIMITED" && Number.isInteger(seconds) && seconds! > 0 && seconds! <= 2 ? seconds! * 1000 : null;
   }
-  return retryable(error) ? 40 + Math.floor(Math.random() * 81) : null;
+  return problem?.status === 502 || problem?.status === 503 || problem?.code === "NETWORK_ERROR" || problem?.code === "NETWORK_TIMEOUT"
+    ? 40 + Math.floor(Math.random() * 81) : null;
 }
+const cancelledProblem = () => ({ code: "REQUEST_ABORTED", title: "请求已取消；已发送写入不会因此撤回，请查询结果" });
+const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "本次操作等待已超时；写入结果请查询确认，不要更换幂等键重复提交" });
 
-async function waitForSafeRetry(delayMs: number, session: string, route: string): Promise<void> {
-  let remaining = delayMs;
-  while (remaining > 0) {
-    if (app.globalData.sessionToken !== session || currentRouteUrl() !== route) {
-      throw { code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消自动重试" };
-    }
-    const step = Math.min(100, remaining);
-    await new Promise(resolve => setTimeout(resolve, step));
-    remaining -= step;
-  }
-  if (app.globalData.sessionToken !== session || currentRouteUrl() !== route) {
-    throw { code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消自动重试" };
-  }
-}
-
-async function performRequest<T>(options: RequestOptions): Promise<T> {
-  const method = options.method ?? "GET";
-  const session = app.globalData.sessionToken;
-  const route = currentRouteUrl();
-  try { return await performRequestOnce<T>(options); }
-  catch (error) {
-    const delay = retryDelayMs(error, options);
-    if (method !== "GET" || delay === null) throw error;
-    await waitForSafeRetry(delay, session, route);
-    return performRequestOnce<T>(options);
-  }
-}
-
-function performRequestOnce<T>(options: RequestOptions): Promise<T> {
-  const method = options.method ?? "GET";
-  const data = options.data ?? (method === "GET" ? undefined : {});
-  const authMode = options.authMode ?? "required";
-  if (authMode === "required" && !app.globalData.sessionToken) {
-    beginAuthentication();
-    return Promise.reject({ status: 401, code: "AUTHENTICATION_REQUIRED", title: "请先完成身份确认" });
-  }
-  const requestOrigin = currentRouteUrl();
-  const requestSessionToken = authMode === "public" ? "" : app.globalData.sessionToken;
-  return new Promise((resolve, reject) => {
-    sendJsonRequest({
-      path: options.path,
-      origin: app.globalData.apiBaseUrl,
-      cloud: app.globalData.cloudFunction ?? null,
-      method,
-      ...(data ? { data } : {}),
-      header: {
-        Authorization: requestSessionToken ? `Bearer ${requestSessionToken}` : "",
-        "Idempotency-Key": options.idempotencyKey ?? "",
-        "Content-Type": "application/json",
-        "X-Request-Id": requestId()
-      },
-      success: (response) => {
-        if (requestSessionToken && app.globalData.sessionToken !== requestSessionToken) {
-          reject({ code: "REQUEST_SESSION_CHANGED", title: "会员身份已切换，请重新加载" });
-          return;
-        }
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          resolve(response.data as T);
-          return;
-        }
-        const problem = response.data as { code?: string };
-        if ((response.statusCode === 401 || problem.code === "MEMBER_NOT_FOUND") && requestSessionToken && app.globalData.sessionToken === requestSessionToken) {
-          setSessionToken("");
-          if (authMode === "required" && currentRouteUrl() === requestOrigin) beginAuthentication(requestOrigin);
-        }
-        const responseProblem = response.data as Record<string, unknown>;
-        reject({ ...responseProblem, status: response.statusCode });
-      },
-      fail: reject
-    });
+function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
+  const method = options.method ?? "GET", authMode = options.authMode ?? "required";
+  const session = app.globalData.sessionToken, token = authMode === "public" ? "" : session;
+  const origin = currentRouteUrl();
+  const budgetMs = options.budgetMs ?? 12_000;
+  if (!Number.isInteger(budgetMs) || budgetMs < 1 || budgetMs > 60_000)
+    return { promise: Promise.reject({ code: "INVALID_REQUEST_BUDGET", title: "请求等待预算无效" }), abort() {} };
+  const deadline = measurementClock() + budgetMs;
+  let stopped: unknown = null, transport: TransportHandle | null = null, interrupt: ((reason: unknown) => void) | null = null;
+  const stop = (reason: unknown) => { if (stopped) return; stopped = reason; interrupt?.(reason); transport?.abort(); };
+  const timer = setTimeout(() => stop(deadlineProblem()), budgetMs);
+  const remaining = () => {
+    if (stopped) throw stopped;
+    if (app.globalData.sessionToken !== session) throw { code: "REQUEST_SESSION_CHANGED", title: "会员身份已变化，请重新加载" };
+    const left = Math.ceil(deadline - measurementClock());
+    if (left <= 0) throw deadlineProblem();
+    return left;
+  };
+  const once = (): Promise<T> => new Promise((resolve, reject) => {
+    let settled = false;
+    const fail = (error: unknown) => { if (settled) return; settled = true; if (interrupt === fail) interrupt = null; reject(error); };
+    interrupt = fail;
+    try {
+      const timeoutMs = remaining();
+      if (authMode === "required" && !token) { beginAuthentication(origin); fail({ status: 401, code: "AUTHENTICATION_REQUIRED", title: "请先完成身份确认" }); return; }
+      transport = sendJsonRequest({ path: options.path, origin: app.globalData.apiBaseUrl, cloud: app.globalData.cloudFunction ?? null,
+        method, ...(options.data ? { data: options.data } : method !== "GET" ? { data: {} } : {}), timeoutMs,
+        header: { Authorization: token ? `Bearer ${token}` : "", "Idempotency-Key": options.idempotencyKey ?? "", "Content-Type": "application/json", "X-Request-Id": requestId() },
+        success: response => {
+          if (settled) return;
+          try { remaining(); } catch (error) { fail(error); return; }
+          if (response.statusCode >= 200 && response.statusCode < 300) { settled = true; if (interrupt === fail) interrupt = null; resolve(response.data as T); return; }
+          const problem = response.data as Record<string, unknown>;
+          if ((response.statusCode === 401 || problem?.code === "MEMBER_NOT_FOUND") && token && app.globalData.sessionToken === token) {
+            setSessionToken("");
+            if (authMode === "required" && currentRouteUrl() === origin) beginAuthentication(origin);
+          }
+          fail({ ...problem, status: response.statusCode });
+        }, fail });
+    } catch (error) { fail(error); }
   });
+  const delay = (milliseconds: number) => new Promise<void>((resolve, reject) => {
+    const started = measurementClock();
+    let timeout: ReturnType<typeof setTimeout>;
+    const cancelled = (reason: unknown) => { clearTimeout(timeout); if (interrupt === cancelled) interrupt = null; reject(reason); };
+    interrupt = cancelled;
+    timeout = setTimeout(() => {
+      if (interrupt === cancelled) interrupt = null;
+      try { remaining(); recordClientMetric({ action: metricAction(options.path), stage: "retry_wait", durationMs: measurementClock() - started }); resolve(); } catch (error) { reject(error); }
+    }, milliseconds);
+  });
+  const promise = (async () => {
+    try { return await once(); }
+    catch (error) {
+      const milliseconds = retryDelayMs(error, options);
+      if (milliseconds === null || stopped) throw error;
+      if (remaining() <= milliseconds) throw error;
+      await delay(milliseconds);
+      return once(); // At most one approved safe-GET retry, inside the same budget.
+    }
+  })().finally(() => { clearTimeout(timer); interrupt = null; });
+  return { promise, abort: () => stop(cancelledProblem()) };
 }
 
 export function requestCancelable<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
-  let handle: TransportHandle | null = null;
-  const method = options.method ?? "GET";
-  const data = options.data ?? (method === "GET" ? undefined : {});
-  const authMode = options.authMode ?? "required";
-  const token = authMode === "public" ? "" : app.globalData.sessionToken;
-  const requestOrigin = currentRouteUrl();
-  const promise = new Promise<T>((resolve, reject) => {
-    if (authMode === "required" && !token) { beginAuthentication(requestOrigin); reject({ status: 401, code: "AUTHENTICATION_REQUIRED", title: "请先完成身份确认" }); return; }
-    handle = sendJsonRequest({ path: options.path, origin: app.globalData.apiBaseUrl, cloud: app.globalData.cloudFunction ?? null, method, ...(data ? { data } : {}),
-      header: { Authorization: token ? `Bearer ${token}` : "", "Idempotency-Key": options.idempotencyKey ?? "", "Content-Type": "application/json", "X-Request-Id": requestId() },
-      success: (response) => {
-        if (token && app.globalData.sessionToken !== token) { reject({ code: "REQUEST_SESSION_CHANGED", title: "会员身份已切换，请重新加载" }); return; }
-        if (response.statusCode >= 200 && response.statusCode < 300) { resolve(response.data as T); return; }
-        const problem = response.data as { code?: string };
-        if ((response.statusCode === 401 || problem.code === "MEMBER_NOT_FOUND") && token && app.globalData.sessionToken === token) {
-          setSessionToken("");
-          if (authMode === "required" && currentRouteUrl() === requestOrigin) beginAuthentication(requestOrigin);
-        }
-        reject({ ...(response.data as Record<string, unknown>), status: response.statusCode });
-      }, fail: reject });
-  });
-  return { promise, abort() { handle?.abort(); } };
+  const method = options.method ?? "GET", tags = options.cacheTags ?? tagsForPath(options.path);
+  const session = app.globalData.sessionToken, origin = currentRouteUrl();
+  let task: { promise: Promise<T>; abort(reason?: unknown): void };
+  if (method === "GET") {
+    const key = JSON.stringify([app.globalData.apiBaseUrl, app.globalData.cloudFunction, session, options.path, options.data, options.authMode ?? "required", options.budgetMs ?? 12_000, options.idempotencyKey]);
+    const subscription = reads.acquire(key, () => performRequest<T>(options), readPolicy(options.path, tags));
+    task = subscription;
+    if (subscription.coalesced) recordClientMetric({ action: metricAction(options.path), stage: "coalesced", durationMs: 0 });
+  } else {
+    reads.invalidate(tags);
+    const write = performRequest<T>(options);
+    task = { promise: write.promise.finally(() => reads.invalidate(tags)), abort: write.abort };
+  }
+  // Context belongs to each consumer. A departed first reader cannot suppress
+  // another page's shared retry. Lifecycle owners can cancel immediately.
+  const monitor = method === "GET" ? setInterval(() => {
+    if (app.globalData.sessionToken !== session || currentRouteUrl() !== origin)
+      task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消本页读取" });
+  }, 100) : null;
+  const promise = task.promise.finally(() => { if (monitor) clearInterval(monitor); });
+  const abort = () => { recordClientMetric({ action: metricAction(options.path), stage: "cancel", durationMs: 0 }); task.abort(); };
+  options.registerAbort?.(abort);
+  return { promise, abort };
 }
 
 export async function uploadAuthorized(filePath: string, authorization: { url: string; method?: "POST" | "PUT"; fields: Record<string, string>; headers?: Record<string,string>; mediaId?: string }, options: {

@@ -1,0 +1,327 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/mnt/data/cisme-repair[39m
+
+ [31m❯[39m tests/unit/native-progressive-load.test.ts [2m([22m[2m13 tests[22m[2m | [22m[31m12 failed[39m[2m)[22m[33m 10080[2mms[22m[39m
+[31m     [31m×[31m makes the care action usable while support never responds[39m[32m 49[2mms[22m[39m
+[31m     [31m×[31m does not translate failed unread into zero or erase core facts[39m[32m 3[2mms[22m[39m
+     [32m✓[39m keeps core writes closed after bootstrap fails even if support succeeds[32m 2[2mms[22m[39m
+[31m     [31m×[31m preserves guest step and CTA through selection, minute tick, refresh and explicit navigation[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m ignores both core and auxiliary late responses after session switch[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m suppresses late support after hide and does not replace a newer business version[39m[33m 5001[2mms[22m[39m
+[31m     [31m×[31m restores guest semantics after an expired session without automatic navigation[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m displays member/points/care before permissions, commercial, support and avatar[39m[32m 14[2mms[22m[39m
+[31m     [31m×[31m distinguishes genuine absence from failure and does not erase the core on auxiliary failure[39m[32m 1[2mms[22m[39m
+[31m     [31m×[31m publishes separately arriving successful auxiliary results without changing the core version[39m[32m 1[2mms[22m[39m
+[31m     [31m×[31m rejects late avatar and auxiliary publication after hide[39m[32m 1[2mms[22m[39m
+[31m     [31m×[31m rejects late avatar and auxiliary publication after session[39m[32m 1[2mms[22m[39m
+[31m     [31m×[31m does not carry an older member's higher businessVersion into a new session[39m[33m 5000[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 12 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-01/03: native Home progressive, session-bound facts[2m > [22mmakes the care action usable while support never responds
+[31m[1mAssertionError[22m: expected { chromeStyle: '', …(31) } to match object { loading: false, …(4) }
+(48 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "authorityAvailable": true,[39m
+[32m-   "care": {[39m
+[32m-     "completed": [],[39m
+[32m-     "due": null,[39m
+[32m-     "id": "cycle-a",[39m
+[32m-     "next": "D1",[39m
+[32m-     "phase": "planned",[39m
+[32m-     "records": [],[39m
+[32m-     "scheduleOffsetDays": 0,[39m
+[32m-     "startedOn": null,[39m
+[32m-     "timezone": "Asia/Shanghai",[39m
+[32m-     "version": 1,[39m
+[32m-   },[39m
+[32m-   "loading": false,[39m
+[32m-   "supportState": "loading",[39m
+[32m-   "supportUnread": null,[39m
+[31m+   "authorityAvailable": false,[39m
+[31m+   "care": null,[39m
+[31m+   "loading": true,[39m
+[31m+   "supportUnread": 0,[39m
+[2m  }[22m
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m45:23[22m[39m
+    [90m 43|[39m   it("makes the care action usable while support never responds", asyn…
+    [90m 44|[39m     [35mawait[39m [34mloadPage[39m([32m"home"[39m)[33m;[39m [35mvoid[39m page[33m.[39m[34mload[39m()[33m;[39m [35mawait[39m [34mflush[39m()[33m;[39m
+    [90m 45|[39m     expect(page.data).toMatchObject({ loading: false, authorityAvailab…
+    [90m   |[39m                       [31m^[39m
+    [90m 46|[39m     support[33m.[39m[34mresolve[39m({ unreadCount[33m:[39m [34m4[39m })[33m;[39m [35mawait[39m [34mflush[39m()[33m;[39m
+    [90m 47|[39m     expect(page.data).toMatchObject({ supportState: "ready", supportUn…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-01/03: native Home progressive, session-bound facts[2m > [22mdoes not translate failed unread into zero or erase core facts
+[31m[1mAssertionError[22m: expected { chromeStyle: '', …(31) } to match object { loading: false, …(4) }
+(48 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[33m@@ -11,8 +11,7 @@[39m
+[2m      "startedOn": null,[22m
+[2m      "timezone": "Asia/Shanghai",[22m
+[2m      "version": 1,[22m
+[2m    },[22m
+[2m    "loading": false,[22m
+[32m-   "supportState": "error",[39m
+[32m-   "supportUnread": null,[39m
+[31m+   "supportUnread": 0,[39m
+[2m  }[22m
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m51:23[22m[39m
+    [90m 49|[39m   it("does not translate failed unread into zero or erase core facts",…
+    [90m 50|[39m     await loadPage("home"); void page.load(); support.reject(new Error…
+    [90m 51|[39m     expect(page.data).toMatchObject({ loading: false, authorityAvailab…
+    [90m   |[39m                       [31m^[39m
+    [90m 52|[39m   })[33m;[39m
+    [90m 53|[39m   it("keeps core writes closed after bootstrap fails even if support s…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-01/03: native Home progressive, session-bound facts[2m > [22mpreserves guest step and CTA through selection, minute tick, refresh and explicit navigation
+[31m[1mAssertionError[22m: expected { greeting: '早上好，CISME', …(13) } to match object { action: '授权身份并开始', …(1) }
+(12 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "action": "授权身份并开始",[39m
+[31m+   "action": "开始今日护理",[39m
+[2m    "protocolCode": "02",[22m
+[2m  }[22m
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m63:30[22m[39m
+    [90m 61|[39m     page.selectProtocolStep({ currentTarget: { dataset: { index: 2 } }…
+    [90m 62|[39m     for (const refresh of [() => page.refreshDaypart(), () => page.loa…
+    [90m 63|[39m       expect(page.data.view).toMatchObject({ action: "授权身份并开始", protoc…
+    [90m   |[39m                              [31m^[39m
+    [90m 64|[39m       [35mawait[39m [34mrefresh[39m()[33m;[39m
+    [90m 65|[39m     }
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-01/03: native Home progressive, session-bound facts[2m > [22mignores both core and auxiliary late responses after session switch
+[31m[1mAssertionError[22m: expected { id: 'cycle-a', version: 1, …(8) } to be null[39m
+
+[32m- Expected:[39m
+null
+
+[31m+ Received:[39m
+{
+  "completed": [],
+  "due": null,
+  "id": "cycle-a",
+  "next": "D1",
+  "phase": "planned",
+  "records": [],
+  "scheduleOffsetDays": 0,
+  "startedOn": null,
+  "timezone": "Asia/Shanghai",
+  "version": 1,
+}
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m74:28[22m[39m
+    [90m 72|[39m     [35mawait[39m [34mloadPage[39m([32m"home"[39m)[33m;[39m [35mvoid[39m page[33m.[39m[34mload[39m()[33m;[39m mocks[33m.[39mtoken [33m=[39m [32m"member-b"[39m[33m;[39m
+    [90m 73|[39m     core.resolve(snapshot); support.resolve({ unreadCount: 7 }); await…
+    [90m 74|[39m     expect(page.data.care).toBeNull(); expect(page.data.authorityAvail…
+    [90m   |[39m                            [31m^[39m
+    [90m 75|[39m   })[33m;[39m
+    [90m 76|[39m   it("suppresses late support after hide and does not replace a newer …
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-01/03: native Home progressive, session-bound facts[2m > [22msuppresses late support after hide and does not replace a newer business version
+[31m[1mError[22m: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m76:3[22m[39m
+    [90m 74|[39m     expect(page.data.care).toBeNull(); expect(page.data.authorityAvail…
+    [90m 75|[39m   })[33m;[39m
+    [90m 76|[39m   it("suppresses late support after hide and does not replace a newer …
+    [90m   |[39m   [31m^[39m
+    [90m 77|[39m     await loadPage("home"); await page.load(); page.onHide(); support.…
+    [90m 78|[39m     [34mexpect[39m(page[33m.[39mdata[33m.[39msupportUnread)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-01/03: native Home progressive, session-bound facts[2m > [22mrestores guest semantics after an expired session without automatic navigation
+[31m[1mAssertionError[22m: expected { chromeStyle: '', …(31) } to match object { needsAuthentication: true, …(2) }
+(49 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[2m    "authorityAvailable": false,[22m
+[2m    "loading": false,[22m
+[32m-   "needsAuthentication": true,[39m
+[31m+   "needsAuthentication": false,[39m
+[2m  }[22m
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m89:23[22m[39m
+    [90m 87|[39m     })[33m;[39m
+    [90m 88|[39m     [35mawait[39m [34mloadPage[39m([32m"home"[39m)[33m;[39m [35mawait[39m page[33m.[39m[34mload[39m()[33m;[39m
+    [90m 89|[39m     expect(page.data).toMatchObject({ needsAuthentication: true, autho…
+    [90m   |[39m                       [31m^[39m
+    [90m 90|[39m     expect(page.data.view.action).toBe("授权身份并开始"); expect((globalThis …
+    [90m 91|[39m   })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-02/09: native Profile consistent core, independent auxiliary states[2m > [22mdisplays member/points/care before permissions, commercial, support and avatar
+[31m[1mAssertionError[22m: expected { memberAvatar: 'neutral', …(23) } to match object { loading: false, …(8) }
+(19 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "authorityState": "loading",[39m
+[32m-   "avatarState": "loading",[39m
+[32m-   "care": {[39m
+[32m-     "completed": [],[39m
+[32m-     "due": null,[39m
+[32m-     "id": "cycle-a",[39m
+[32m-     "next": "D1",[39m
+[32m-     "phase": "planned",[39m
+[32m-     "records": [],[39m
+[32m-     "scheduleOffsetDays": 0,[39m
+[32m-     "startedOn": null,[39m
+[32m-     "timezone": "Asia/Shanghai",[39m
+[32m-     "version": 1,[39m
+[32m-   },[39m
+[32m-   "commercialState": "loading",[39m
+[32m-   "loading": false,[39m
+[32m-   "member": {[39m
+[32m-     "id": "a",[39m
+[32m-   },[39m
+[31m+   "care": null,[39m
+[31m+   "loading": true,[39m
+[31m+   "member": null,[39m
+[2m    "memberAvatar": "neutral",[22m
+[32m-   "points": {[39m
+[32m-     "projection": {[39m
+[32m-       "available": 12,[39m
+[32m-     },[39m
+[32m-   },[39m
+[32m-   "supportState": "loading",[39m
+[31m+   "points": null,[39m
+[2m  }[22m
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m97:23[22m[39m
+
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-02/09: native Profile consistent core, independent auxiliary states[2m > [22mdistinguishes genuine absence from failure and does not erase the core on auxiliary failure
+[31m[1mAssertionError[22m: expected { memberAvatar: 'neutral', …(23) } to match object { loading: false, …(8) }
+(19 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[2m    "authority": null,[22m
+[32m-   "authorityState": "error",[39m
+[32m-   "avatarState": "error",[39m
+[2m    "commercialAccessible": false,[22m
+[32m-   "commercialState": "error",[39m
+[2m    "loading": false,[22m
+[32m-   "member": {[39m
+[32m-     "id": "a",[39m
+[32m-   },[39m
+[32m-   "supportState": "error",[39m
+[32m-   "supportUnread": null,[39m
+[31m+   "member": null,[39m
+[31m+   "supportUnread": 0,[39m
+[2m  }[22m
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m104:23[22m[39m
+
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-02/09: native Profile consistent core, independent auxiliary states[2m > [22mpublishes separately arriving successful auxiliary results without changing the core version
+[31m[1mAssertionError[22m: expected { …(24) } to match object { snapshotVersion: 100, …(7) }
+(38 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "authorityState": "ready",[39m
+[32m-   "avatarState": "ready",[39m
+[32m-   "commercialAccessible": false,[39m
+[32m-   "commercialState": "ready",[39m
+[31m+   "commercialAccessible": true,[39m
+[2m    "memberAvatar": "wxfile://synthetic-avatar",[22m
+[2m    "snapshotVersion": 100,[22m
+[32m-   "supportState": "ready",[39m
+[2m    "supportUnread": 0,[22m
+[2m  }[22m
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m110:23[22m[39m
+
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-02/09: native Profile consistent core, independent auxiliary states[2m > [22mrejects late avatar and auxiliary publication after hide
+[31m[1mAssertionError[22m: expected +0 to be null[39m
+
+[32m- Expected:[39m
+null
+
+[31m+ Received:[39m
+0
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m117:129[22m[39m
+
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-02/09: native Profile consistent core, independent auxiliary states[2m > [22mrejects late avatar and auxiliary publication after session
+[31m[1mAssertionError[22m: expected { version: 1, …(2) } to be null[39m
+
+[32m- Expected:[39m
+null
+
+[31m+ Received:[39m
+{
+  "capabilities": [
+    "support.read",
+  ],
+  "managementAvailable": true,
+  "version": 1,
+}
+
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m117:33[22m[39m
+
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/native-progressive-load.test.ts[2m > [22mPERF-02/09: native Profile consistent core, independent auxiliary states[2m > [22mdoes not carry an older member's higher businessVersion into a new session
+[31m[1mError[22m: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[36m [2m❯[22m tests/unit/native-progressive-load.test.ts:[2m119:3[22m[39m
+    [90m117|[39m     expect(page.data.authority).toBeNull(); expect(page.data.commercia…
+    [90m118|[39m   })[33m;[39m
+    [90m119|[39m   it("does not carry an older member's higher businessVersion into a n…
+    [90m   |[39m   [31m^[39m
+    [90m120|[39m     [35mawait[39m [34mloadPage[39m([32m"profile"[39m)[33m;[39m [35mvoid[39m page[33m.[39m[34mload[39m()[33m;[39m [35mawait[39m [34mflush[39m()[33m;[39m
+    [90m121|[39m     mocks.token = "member-b"; mocks.request.mockImplementation(async (…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m12 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (13)[39m
+[2m   Start at [22m 21:48:06
+[2m   Duration [22m 10.23s[2m (transform 74ms, setup 0ms, import 52ms, tests 10.08s, environment 0ms)[22m
