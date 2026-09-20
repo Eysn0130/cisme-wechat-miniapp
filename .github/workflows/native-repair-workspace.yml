@@ -1,0 +1,56 @@
+# Temporary, branch-scoped source/dependency transfer for offline repair.
+# Remove this workflow before the repair PR is ready for merge.
+name: Native repair workspace
+on:
+  push:
+    branches: [codex/native-perf-ux-repair-20260920]
+    paths: [.github/workflows/native-repair-workspace.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.18.0'
+          cache: npm
+      - name: Export tracked source and pinned runtime only
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/native-repair"
+          mkdir -p "$out"
+          git rev-parse HEAD > "$out/HEAD.txt"
+          git bundle create "$out/source.bundle" HEAD
+          node --version > "$out/runtime.txt"
+          npm --version >> "$out/runtime.txt"
+          node_home="$(dirname "$(dirname "$(command -v node)")")"
+          tar -C "$node_home" -czf "$out/node-runtime.tar.gz" bin lib include share
+          sha256sum "$out/source.bundle" "$out/node-runtime.tar.gz" > "$out/SHA256SUMS"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-repair-source
+          path: ${{ runner.temp }}/native-repair/
+          retention-days: 3
+          if-no-files-found: error
+      - name: Install locked main dependencies (not tools/wechat-ci)
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/npm-ci-native-repair.log"
+      - name: Export exact locked dependencies for offline tests
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/native-repair-dependencies"
+          mkdir -p "$out"
+          tar -czf "$out/node_modules.tar.gz" node_modules
+          cp "$RUNNER_TEMP/npm-ci-native-repair.log" "$out/npm-ci.log"
+          sha256sum package-lock.json "$out/node_modules.tar.gz" > "$out/SHA256SUMS"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-repair-dependencies
+          path: ${{ runner.temp }}/native-repair-dependencies/
+          retention-days: 3
+          if-no-files-found: error
