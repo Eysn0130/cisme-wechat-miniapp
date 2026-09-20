@@ -53,10 +53,11 @@ jobs:
       - run: docker compose -f infra/compose.yaml up -d --wait
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
-      - name: Development-tool critical audit
-        run: npm audit --audit-level=critical
+      - name: Development-tool high-severity audit
+        run: npm audit --audit-level=high
       - run: npm run typecheck
       - run: npm run miniprogram:package-gate
+      - run: npm run miniprogram:route-audit
       - run: npm run design:qa:status
       - run: npm test
       - run: npm run test:integration

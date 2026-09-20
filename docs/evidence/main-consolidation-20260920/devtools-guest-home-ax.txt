@@ -1,0 +1,353 @@
+Window: "miniprogram", App: Wechat Devtools.
+0 standard window miniprogram, Secondary Actions: Raise
+	1 HTML content file:///Applications/wechatwebdevtools.app/Contents/Resources/app.asar/html/electron-project.html?projectpath=%2FUsers%2Fmini%2FCISME%2Fapps%2Fminiprogram&projectname=miniprogram&projectid=&theme=dark&skeletonPath=%2FUsers%2Fmini%2FLibrary%2FApplication%20Support%2F%E5%BE%AE%E4%BF%A1%E5%BC%80%E5%8F%91%E8%80%85%E5%B7%A5%E5%85%B7%2Fd1e8765721a6c23d43b14c95b1843e6b%2FWeappCache%2FskeletonCache%2F1a9814ab6d38ecb735fa2952f10ff917%2Fpageskeleton.html&appid=wx4eac2d4fb11d299b&isTemp=1&windowMode=fullMode&openSource=wechatide&frame=0&devid=s2&runtimeid=0&devtype=miniprogram&proxyPort=47010&userDataPath=%2FUsers%2Fmini%2FLibrary%2FApplication%2520Support%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%25BC%2580%25E5%258F%2591%25E8%2580%2585%25E5%25B7%25A5%25E5%2585%25B7%2Fd1e8765721a6c23d43b14c95b1843e6b&appVersion=2.02.2608070&appVersionType=0
+		2 container
+			3 text 微信开发者工具 Stable 2.02.2608070
+			4 container
+				5 text Mini Program Mode
+			6 text 预览
+			7 text 真机调试
+			8 text 上传
+			9 Unlabeled image To get missing image descriptions, open the context menu.
+			10 container
+				11 container
+					12 container
+						13 text 预览 编辑
+					14 container
+						15 text 普通编译
+					16 container
+						17 container
+							18 text 13 : 41
+						19 container
+							20 link
+							21 link
+						22 HTML content Webview: pages/home/index, URL: 127.0.0.1:51389/__pageframe__/pages/home/index
+							23 tab group
+								24 tab (selected) Description: 护理，当前页面, Value: 1
+									25 image
+									26 text 护理
+								27 tab (settable, integer) Description: 记录，未选中, Value: 0
+									28 image
+									29 text 记录
+								30 tab (settable, integer) Description: 社区，未选中, Value: 0
+									31 image
+									32 text 社区
+								33 tab (settable, integer) Description: 我的，未选中, Value: 0
+									34 image
+									35 text 我的
+							36 container
+								37 button 打开 CISME 客服
+									38 image
+								39 image
+								40 text CISME
+								41 container 欢迎来到 CISME
+									42 text 欢迎来到 CISME
+								43 text 日常护理
+								44 container 护理步骤，00 净澈，温和净澈
+									45 image
+									46 container
+										47 text 00  温和净澈
+									48 text 保持动作轻缓，不抓挠头皮。
+								49 button 授权身份并开始
+									50 text 授权身份并开始
+								51 container 四段护理步骤
+									52 button 00 净澈，当前查看
+										53 text 00
+										54 text 净澈
+										55 image
+									56 button 01 清洁，点击查看
+										57 text 01
+										58 text 清洁
+									59 button 02 修护，点击查看
+										60 text 02
+										61 text 修护
+									62 button 03 精护，点击查看
+										63 text 03
+										64 text 精护
+								65 container
+									66 image
+									67 text 先看看今天的护理方法 确认身份后可保存你的专属周期与记录
+						68 HTML content 小程序逻辑层, URL: 127.0.0.1:51389/appservice/s2/_sessionId/simulator-app-session-s2/mainframe?load
+							69 container
+								70 HTML content 小程序逻辑层, URL: 127.0.0.1:51389/appservice/instanceframe?s=1789936880844&autoload#id_1
+								71 HTML content 127.0.0.1:51389/appservice/appContext?contextName=app&id=ifr-1_2#id_1
+								72 HTML content 127.0.0.1:51389/appservice/app_xrframe_renderContext?contextName=app_xrframe_render&id=ifr-1_3&empty=true#id_1
+								73 HTML content 小程序逻辑层, URL: 127.0.0.1:51389/appservice/instanceframe?s=1789936880844#id_2
+								74 HTML content 127.0.0.1:51389/appservice/app_sub_debugContext?contextName=app_sub_debug&id=ifr-1_4&empty=true#id_1
+						75 container
+							76 link
+							77 link
+					78 container
+						79 text iPhone 12/13 (Pro) 93% 16
+					80 container
+						81 text 页面路径
+					82 text pages/home/index
+					83 link 复制
+				84 container
+					85 container
+						86 container
+							87 text miniprogram
+							88 toolbar
+								89 button Toggle Primary Side Bar (⌘K ⌘B)
+									90 text 
+								91 button 切换面板 (⌘J)
+									92 text 
+								93 button Toggle Secondary Side Bar (⌥⌘B)
+									94 text 
+						95 container
+							96 container
+								97 tab group 活动视图切换器
+									98 tab (selected) Description: 资源管理器 (⌘K ⇧⌘E), Value: 1
+										99 container 资源管理器 (⌘K ⇧⌘E)
+											100 text 
+									101 tab (settable, integer) Search (⇧⌘F), Value: 0
+										102 container Search (⇧⌘F)
+											103 text 
+									104 tab (settable, integer) Description: 源代码管理 (⌃⇧G) - 6 个挂起的更改, Value: 0
+										105 text 
+									106 tab (settable, integer) 扩展 (⇧⌘X), Value: 0
+										107 container 扩展 (⇧⌘X)
+											108 text 
+									109 pop up button 其他视图
+										110 text 
+								111 container
+									112 heading 资源管理器, Help: 资源管理器 (⌘K ⇧⌘E), Value: 2
+										113 text 资源管理器
+									114 content list 资源管理器操作
+										115 pop up button Views and More Actions...
+									116 container
+										117 container
+											118 button 文件资源管理器部分
+												119 text 
+												120 heading Description: 文件资源管理器部分, Help: miniprogram, Value: 3
+													121 text MINIPROGRAM
+											122 outline 树
+												123 container
+													124 row assets
+														125 container
+															126 text 
+															127 text assets
+													128 row components
+														129 container
+															130 text 
+															131 text components
+													132 row custom-tab-bar
+														133 container
+															134 text 
+															135 text custom-tab-bar
+													136 row pages
+														137 container
+															138 text 
+															139 text pages
+													140 row services
+														141 container
+															142 text 
+															143 text services
+													144 row subpackages
+														145 container
+															146 text 
+															147 text subpackages
+													148 row types
+														149 container
+															150 text 
+															151 text types
+													152 row app.json
+														153 container
+															154 text app.json
+													155 row app.ts
+														156 container
+															157 text app.ts
+													158 row app.wxss
+														159 container
+															160 text app.wxss
+													161 row project.config.json
+														162 container
+															163 text project.config.json
+													164 row project.private.config.json
+														165 container
+															166 text project.private.config.json
+													167 row release-config.ts
+														168 container
+															169 text release-config.ts
+													170 row sitemap.json
+														171 container
+															172 text sitemap.json
+													173 row tsconfig.json
+														174 container
+															175 text tsconfig.json
+										176 button 大纲 Section
+											177 text 
+											178 heading 大纲, Value: 3
+												179 text 大纲
+										180 button 时间线 Section
+											181 text 
+											182 heading 时间线, Value: 3
+												183 text 时间线
+							184 container
+								185 container
+									186 container 第 1 组 (空)
+										187 container
+											188 definition list
+												189 container 显示所有命令
+													190 text 显示所有命令
+												191 container Command+K Command+P
+													192 text ⌘ K ⌘ P
+											193 definition list
+												194 container Go to File
+													195 text Go to File
+												196 container Command+P
+													197 text ⌘ P
+											198 definition list
+												199 container 在文件中查找
+													200 text 在文件中查找
+												201 container Shift+Command+F
+													202 text ⇧ ⌘ F
+											203 definition list
+												204 container 开始调试
+													205 text 开始调试
+												206 text F5
+											207 definition list
+												208 container 切换终端
+													209 text 切换终端
+												210 text 未绑定
+								211 container
+									212 tab group 活动视图切换器
+										213 tab (settable, integer) 构建, Value: 0
+											214 container 构建
+												215 text 构建
+										216 tab (selected) Description: 调试器 - Errors: 0, Warnings: 2, Value: 1
+											217 text 调试器
+											218 text 2
+										219 tab (settable, integer) Description: 问题 (⌘K ⇧⌘M) - 总计 0 个问题, Value: 0
+											220 text 问题
+										221 tab (settable, integer) Description: 输出, Value: 0
+											222 text 输出
+										223 tab (settable, integer) Description: 调试控制台 (⇧⌘Y), Value: 0
+											224 text 调试控制台
+										225 tab (settable, integer) 终端, Value: 0
+											226 container 终端
+												227 text 终端
+										228 tab (settable, integer) 代码质量, Value: 0
+											229 container 代码质量
+												230 text 代码质量
+									231 toolbar 调试器操作
+									232 toolbar
+										233 button 最大化面板大小
+											234 text 
+										235 button 关闭面板
+											236 text 
+									237 container
+										238 container
+											239 HTML content devtools://devtools/bundled/devtools_app.html?remoteBase=https://chrome-devtools-frontend.appspot.com/serve_file/@61dafe6541432a46304ba3c84a0a6135b7cddd69/&can_dock=&toolbarColor=rgba(223,223,223,1)&textColor=rgba(0,0,0,1)&experiments=true
+												240 container
+													241 container
+														242 toggle button Description: Select an element in the page to inspect it, Value: 0
+														243 tab group Panels
+															244 tab (settable, integer) Description: Wxml, Value: 0
+															245 tab (selected) Description: Console, Value: 1
+															246 tab (settable, integer) Description: Sources, Value: 0
+															247 tab (settable, integer) Description: Network, Value: 0
+															248 tab (settable, integer) Description: Performance, Value: 0
+															249 tab (settable, integer) Description: Memory, Value: 0
+														250 pop up button More tabs
+														251 container
+															252 container 2 warnings
+														253 button Settings
+														254 pop up button Customize and control DevTools
+														255 container Undock into separate window
+														256 container Console panel
+															257 container console
+																258 container
+																	259 button Show console sidebar
+																	260 button Clear console
+																	261 button JavaScript context: top
+																	262 button Create live expression
+																	263 pop up button Log level: Default levels
+																		264 text Default levels
+																	265 toggle button Description: Console settings, Value: 0
+																	266 container
+																		267 container
+																			268 container
+																				269 link WAServiceMainContext…t=wechat&v=3.15.2:1
+																					270 text WAServiceMainContext
+																					271 text …
+																					272 text t=wechat&v=3.15.2:1
+																				273 text [system] WeChatLib: 3.15.2 (2026.5.6 18:15:20)
+																			274 container
+																				275 link WAServiceMainContext…t=wechat&v=3.15.2:1
+																					276 text WAServiceMainContext
+																					277 text …
+																					278 text t=wechat&v=3.15.2:1
+																				279 text autoTestInfo..
+																				280 outline
+																					281 row    {}
+																						282 container
+																							283 text {
+																							284 text }
+																			285 container
+																				286 link WAServiceMainContext…t=wechat&v=3.15.2:1
+																					287 text WAServiceMainContext
+																					288 text …
+																					289 text t=wechat&v=3.15.2:1
+																				290 text [system] No. of subpackages: 33
+																			291 container
+																				292 link WAServiceMainContext…t=wechat&v=3.15.2:1
+																					293 text WAServiceMainContext
+																					294 text …
+																					295 text t=wechat&v=3.15.2:1
+																				296 text [system] LazyCodeLoading: true
+																			297 container
+																				298 link WAServiceMainContext…t=wechat&v=3.15.2:1
+																					299 text WAServiceMainContext
+																					300 text …
+																					301 text t=wechat&v=3.15.2:1
+																				302 text Lazy code loading is enabled. Only injecting required components.
+																			303 container
+																				304 container Warning
+																				305 text The resource
+																				306 link http://127.0.0.1:51389/__dev__/WAAutoService.js?t=wechat&v=3.15.2
+																					307 text http://127.0.0.1:51389/__dev__/WAAutoService.js?t=wechat&v=3.15.2
+																				308 text  was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+																			309 container
+																				310 container Warning
+																				311 text The resource
+																				312 link http://127.0.0.1:51389/__dev__/WAServiceMainContext.js?t=wechat&v=3.15.2
+																					313 text http://127.0.0.1:51389/__dev__/WAServiceMainContext.js?t=wechat&v=3.15.2
+																				314 text  was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+																		315 container
+																			316 container
+																				317 text entry area (settable) Console prompt
+						318 container
+							319 container CISME (Git) - main*, Checkout Branch/Tag...
+								320 button CISME (Git) - main*, Checkout Branch/Tag...
+									321 text 
+									322 text  main*
+							323 container CISME (Git) - Push 63 commits to origin/main
+								324 button CISME (Git) - Push 63 commits to origin/main
+									325 text 
+									326 text  0↓ 63↑
+							327 container 没有问题
+								328 button 没有问题
+									329 text 
+									330 text  0
+									331 text 
+									332 text  0
+							333 container 进度和简要通知
+							334 container undefined
+	335 close button
+	336 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	337 minimize button
+338 menu bar
+	339 Wechat Devtools
+	340 项目
+	341 文件
+	342 编辑
+	343 工具
+	344 跳转
+	345 选择
+	346 界面
+	347 设置
+	348 插件
+	349 帮助
+
+The focused UI element is 1 HTML content file:///Applications/wechatwebdevtools.app/Contents/Resources/app.asar/html/electron-project.html?projectpath=%2FUsers%2Fmini%2FCISME%2Fapps%2Fminiprogram&projectname=miniprogram&projectid=&theme=dark&skeletonPath=%2FUsers%2Fmini%2FLibrary%2FApplication%20Support%2F%E5%BE%AE%E4%BF%A1%E5%BC%80%E5%8F%91%E8%80%85%E5%B7%A5%E5%85%B7%2Fd1e8765721a6c23d43b14c95b1843e6b%2FWeappCache%2FskeletonCache%2F1a9814ab6d38ecb735fa2952f10ff917%2Fpageskeleton.html&appid=wx4eac2d4fb11d299b&isTemp=1&windowMode=fullMode&openSource=wechatide&frame=0&devid=s2&runtimeid=0&devtype=miniprogram&proxyPort=47010&userDataPath=%2FUsers%2Fmini%2FLibrary%2FApplication%2520Support%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%25BC%2580%25E5%258F%2591%25E8%2580%2585%25E5%25B7%25A5%25E5%2585%25B7%2Fd1e8765721a6c23d43b14c95b1843e6b&appVersion=2.02.2608070&appVersionType=0

@@ -74,6 +74,36 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @fastify/merge-json-schemas | 0.2.1 | MIT |
 | @fastify/multipart | 9.3.0 | MIT |
 | @fastify/proxy-addr | 5.1.0 | MIT |
+| @fastify/rate-limit | 11.2.0 | MIT |
+| @fastify/rate-limit/node_modules/fastify-plugin | 6.0.0 | MIT |
+| @img/colour | 1.1.0 | MIT |
+| @img/sharp-darwin-arm64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-darwin-x64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-freebsd-wasm32 | 0.35.4 | Apache-2.0 |
+| @img/sharp-libvips-darwin-arm64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-darwin-x64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-arm | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-arm64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-ppc64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-riscv64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-s390x | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-x64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linuxmusl-arm64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linuxmusl-x64 | 1.3.3 | LGPL-3.0-or-later |
+| @img/sharp-linux-arm | 0.35.4 | Apache-2.0 |
+| @img/sharp-linux-arm64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-linux-ppc64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-linux-riscv64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-linux-s390x | 0.35.4 | Apache-2.0 |
+| @img/sharp-linux-x64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-linuxmusl-arm64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-linuxmusl-x64 | 0.35.4 | Apache-2.0 |
+| @img/sharp-wasm32 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later AND MIT |
+| @img/sharp-wasm32/node_modules/@emnapi/runtime | 1.11.3 | MIT |
+| @img/sharp-webcontainers-wasm32 | 0.35.4 | Apache-2.0 |
+| @img/sharp-win32-arm64 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later |
+| @img/sharp-win32-ia32 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later |
+| @img/sharp-win32-x64 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later |
 | @isaacs/cliui | 8.0.2 | ISC |
 | @isaacs/cliui/node_modules/ansi-regex | 6.3.0 | MIT |
 | @isaacs/cliui/node_modules/ansi-styles | 6.2.3 | MIT |
@@ -87,6 +117,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @jridgewell/resolve-uri | 3.1.2 | MIT |
 | @jridgewell/sourcemap-codec | 1.5.5 | MIT |
 | @jridgewell/trace-mapping | 0.3.31 | MIT |
+| @lukeed/ms | 2.0.2 | MIT |
 | @napi-rs/lzma-linux-x64-gnu | 1.5.1 | MIT |
 | @napi-rs/wasm-runtime | 1.2.3 | MIT |
 | @npmcli/agent | 3.0.0 | ISC |
@@ -155,6 +186,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @types/istanbul-lib-coverage | 2.0.6 | MIT |
 | @types/istanbul-lib-report | 3.0.3 | MIT |
 | @types/istanbul-reports | 3.0.4 | MIT |
+| @types/js-yaml | 4.0.9 | MIT |
 | @types/node | 24.10.1 | MIT |
 | @types/pg | 8.15.6 | MIT |
 | @types/yargs | 15.0.20 | MIT |
@@ -234,6 +266,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | consola | 3.4.2 | MIT |
 | convert-source-map | 2.0.0 | MIT |
 | cookie | 1.1.1 | MIT |
+| copy-anything | 3.0.5 | MIT |
 | core-util-is | 1.0.2 | MIT |
 | cos-fast-xml-parser | 1.0.0 | MIT |
 | cos-nodejs-sdk-v5 | 3.0.0 | ISC |
@@ -320,7 +353,6 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | https-proxy-agent | 7.0.6 | MIT |
 | iconv-lite | 0.6.3 | MIT |
 | ieee754 | 1.2.1 | BSD-3-Clause |
-| image-size | 0.5.5 | MIT |
 | imurmurhash | 0.1.4 | MIT |
 | inflight | 1.0.6 | ISC |
 | inherits | 2.0.4 | ISC |
@@ -330,6 +362,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | is-fullwidth-code-point | 3.0.0 | MIT |
 | is-potential-custom-element-name | 1.0.1 | MIT |
 | is-typedarray | 1.0.0 | MIT |
+| is-what | 4.1.16 | MIT |
 | isexe | 2.0.0 | ISC |
 | isstream | 0.1.2 | MIT |
 | j-component | 1.4.10 | MIT |
@@ -349,6 +382,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | json-schema-traverse | 1.0.0 | MIT |
 | json-stringify-safe | 5.0.1 | ISC |
 | jsprim | 1.4.2 | MIT |
+| less | 4.9.1 | Apache-2.0 |
 | libxmljs2 | 0.37.0 | MIT |
 | light-my-request | 6.6.0 | BSD-3-Clause |
 | light-my-request/node_modules/process-warning | 4.0.1 | MIT |
@@ -366,9 +400,11 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | lightningcss-win32-x64-msvc | 1.33.0 | MPL-2.0 |
 | lines-and-columns | 1.2.4 | MIT |
 | load-tsconfig | 0.2.5 | MIT |
+| lodash.merge | 4.6.2 | MIT |
 | lodash.sortby | 4.7.0 | MIT |
 | lru-cache | 11.5.2 | BlueOak-1.0.0 |
 | magic-string | 0.30.21 | MIT |
+| make-dir | 5.1.0 | MIT |
 | make-fetch-happen | 14.0.3 | ISC |
 | make-fetch-happen/node_modules/http-cache-semantics | 4.2.0 | BSD-2-Clause |
 | math-intrinsics | 1.1.0 | MIT |
@@ -394,14 +430,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | miniprogram-compiler | 0.2.3 | MIT |
 | miniprogram-exparser | 2.29.1 | MIT |
 | miniprogram-simulate | 1.6.2 | MIT |
-| miniprogram-simulate/node_modules/copy-anything | 2.0.6 | MIT |
-| miniprogram-simulate/node_modules/is-what | 3.14.1 | MIT |
-| miniprogram-simulate/node_modules/less | 3.13.1 | Apache-2.0 |
-| miniprogram-simulate/node_modules/make-dir | 2.1.0 | MIT |
-| miniprogram-simulate/node_modules/picocolors | 0.2.1 | ISC |
-| miniprogram-simulate/node_modules/postcss | 7.0.39 | MIT |
-| miniprogram-simulate/node_modules/semver | 5.7.2 | ISC |
-| miniprogram-simulate/node_modules/tslib | 1.14.1 | 0BSD |
+| miniprogram-simulate/node_modules/postcss | 8.5.28 | MIT |
 | minizlib | 3.1.0 | MIT |
 | mkdirp-classic | 0.5.3 | MIT |
 | mlly | 1.8.2 | MIT |
@@ -413,9 +442,9 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | nan | 2.22.2 | MIT |
 | nanoid | 3.3.18 | MIT |
 | napi-build-utils | 2.0.0 | MIT |
-| native-request | 1.1.2 | MIT |
 | nearley | 2.20.1 | MIT |
 | nearley/node_modules/commander | 2.20.3 | MIT |
+| needle | 3.5.0 | MIT |
 | negotiator | 1.0.0 | MIT |
 | node-abi | 3.94.0 | MIT |
 | node-gyp | 11.5.0 | MIT |
@@ -431,6 +460,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | p-map | 7.0.6 | MIT |
 | package-json-from-dist | 1.0.1 | BlueOak-1.0.0 |
 | packageurl-js | 2.0.1 | MIT |
+| parse-node-version | 1.0.1 | MIT |
 | parse5 | 7.3.0 | MIT |
 | path-is-absolute | 1.0.1 | MIT |
 | path-key | 3.1.1 | MIT |
@@ -447,7 +477,6 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | pg-types | 2.2.0 | MIT |
 | pgpass | 1.0.5 | MIT |
 | picocolors | 1.1.1 | ISC |
-| pify | 4.0.1 | MIT |
 | pino | 10.3.1 | MIT |
 | pino-abstract-transport | 3.0.0 | MIT |
 | pino-std-serializers | 7.1.0 | MIT |
@@ -460,6 +489,10 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | postgres-interval | 1.2.0 | MIT |
 | prebuild-install | 7.1.3 | MIT |
 | pretty-format | 26.6.2 | MIT |
+| probe-image-size | 7.4.0 | MIT |
+| probe-image-size/node_modules/debug | 3.2.7 | MIT |
+| probe-image-size/node_modules/iconv-lite | 0.4.24 | MIT |
+| probe-image-size/node_modules/needle | 2.9.1 | MIT |
 | proc-log | 5.0.0 | ISC |
 | process-warning | 5.1.0 | MIT |
 | promise-retry | 2.0.1 | MIT |
@@ -491,11 +524,13 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | safe-regex2 | 5.1.1 | MIT |
 | safe-stable-stringify | 2.5.0 | MIT |
 | safer-buffer | 2.1.2 | MIT |
+| sax | 1.6.1 | BlueOak-1.0.0 |
 | saxes | 6.0.0 | ISC |
 | schemes | 1.4.0 | MIT |
 | secure-json-parse | 4.1.0 | BSD-3-Clause |
 | semver | 7.8.5 | ISC |
 | set-cookie-parser | 2.7.2 | MIT |
+| sharp | 0.35.4 | Apache-2.0 |
 | shebang-command | 2.0.0 | MIT |
 | shebang-regex | 3.0.0 | MIT |
 | side-channel | 1.1.1 | MIT |
@@ -524,6 +559,9 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | ssri | 12.0.0 | ISC |
 | stackback | 0.0.2 | MIT |
 | std-env | 4.2.0 | MIT |
+| stream-parser | 0.3.1 | MIT |
+| stream-parser/node_modules/debug | 2.6.9 | MIT |
+| stream-parser/node_modules/ms | 2.0.0 | MIT |
 | string_decoder | 1.3.0 | MIT |
 | string-width | 4.2.3 | MIT |
 | string-width | 4.2.3 | MIT |

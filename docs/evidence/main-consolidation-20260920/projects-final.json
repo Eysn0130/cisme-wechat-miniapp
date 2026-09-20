@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "tool": "project_list",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "scope": "all",
+    "count": 1,
+    "projects": [
+      {
+        "projectPath": "/Users/mini/CISME/apps/miniprogram",
+        "projectName": "miniprogram",
+        "appId": "wx4eac2d4fb11d299b",
+        "compileType": "weapp"
+      }
+    ]
+  }
+}
