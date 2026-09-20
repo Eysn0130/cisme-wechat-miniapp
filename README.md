@@ -8,7 +8,7 @@ CISME 是一套原生微信小程序与 Node.js/Fastify、PostgreSQL 后端的�
 - 唯一开发主线：[`Eysn0130/cisme-wechat-miniapp/main`](https://github.com/Eysn0130/cisme-wechat-miniapp/tree/main)。后续工作从最新 `origin/main` 开始，不再接旧的串联 PR 分支。
 - 本轮收敛完整提交链至 `71949634d7a0a1fc134a53b17c0fe90cd227187e`，并修复测试工具依赖；最终代码提交与 CI 请以当前 main 的精确 SHA 为准，旧 CI 绿色不能继承。
 - 小程序：37 条原生路由、250 个包文件；源码包 SHA-256 `cf5fe2fd9baadf7a71d8bdfb4629b832ddd44559739c2226d2199d402c83c791`。
-- 本轮本地验证：368 单元测试、562 隔离数据库集成测试通过；72 个 migration、224 个 `/v1` 方法、32 个事件契约。完整 npm 依赖审计 0 漏洞。
+- 本轮本地验证：368 单元测试、562 隔离数据库集成测试通过；72 个 migration、224 个 `/v1` 方法、32 个事件契约。主工程 npm 依赖审计 0 漏洞；独立可选上传工具仍有 80 项上游告警，见 [工具隔离说明](tools/wechat-ci/README.md)，本轮未启用。
 - [当前代码审核及收敛记录](docs/evidence/main-consolidation-20260920/README.md)；[ChatGPT + GitHub 续建提示词](docs/CHATGPT-GITHUB-NEXT-PROMPT.md)。
 
 订单、支付、退款、履约、佣金与结算已有隔离协议和合成回归；真实资金、公众 UGC、正式隐私执行、当前云端 staging、体验版和 iOS/Android 验收仍有独立门禁。同步 main 仅表示源码收敛，不表示商业发布通过。

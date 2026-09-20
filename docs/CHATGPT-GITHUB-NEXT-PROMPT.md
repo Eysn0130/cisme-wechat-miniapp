@@ -14,6 +14,8 @@
 
 验证：`npm ci`、`npm run typecheck`、`npm run miniprogram:package-gate`、`npm run miniprogram:route-audit`、`npm run design:qa:status`、`npm test`、隔离数据库 `npm run test:integration`、`npm run build`、`npm run lint:contracts`、`npm audit --audit-level=high`、`git diff --check`。仅在显式指定的本机 `cisme_*test*` 合成测试库运行重置；不要加载未知 .env 或连接生产库。
 
+依赖范围必须区分：主工程 audit 为 0；独立 `tools/wechat-ci` 的官方当前版本仍有 80 项上游告警且未启用。不要静默安装该工具或注入上传密钥，不要将其告警与主工程混称为已修复；当前原生验收使用微信开发者工具。
+
 每轮重新计算小程序包 SHA-256。源码变更后，用 `scripts/update-current-source-manifest.ts` 重置过期验收绑定，保留旧证据的时间、来源、原 SHA 和适用范围。当前 37 路由只有静态清单和部分历史/默认态证据；WXML/WXSS 编译通过、单个游客页截图、Web build 或历史截图均不能写成完整状态矩阵 PASS。
 
 若 ChatGPT/GitHub 环境没有微信开发者工具或授权真机，继续完成源码、测试、契约和可执行验收脚本，明确列出待本机执行的步骤和预期结果；不得编造运行结果。不要启用真实支付、退款、转账、公开 UGC、正式隐私删除，也不要把 main 同步解释为平台认证、云端部署或体验版发布授权。

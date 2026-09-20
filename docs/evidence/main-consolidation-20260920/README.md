@@ -40,7 +40,8 @@
 | 包 SHA-256 | `cf5fe2fd9baadf7a71d8bdfb4629b832ddd44559739c2226d2199d402c83c791` |
 | 契约 | 224 注册 `/v1` 方法、含 health 共 226 documented methods、32 typed events；`contracts-final.txt` |
 | 路由与 Design QA | 静态 37/37，证据 manifest 与包 SHA 一致；结构 PASS，`releaseReady=false`；`routes-final.json`、`design-final.json` |
-| 依赖审计 | prod/dev 全部 0 漏洞；`audit-final.json` |
+| 主工程依赖审计 | root prod/dev 全部 0 漏洞；`audit-final.json`。不包含独立可选上传工具 |
+| 独立可选微信上传工具 | `miniprogram-ci` 2.1.31 为 registry 当前 latest，80 告警（41 critical/19 high/19 moderate/1 low），direct package 无可用修复；`wechat-ci-audit-summary.json`。本轮未安装、加载或启用其凭据工作流 |
 | 原生编译诊断 | 37 路由的 WXML 与 WXSS 共 74/74 成功；`native-compile.json`。不代表 37 页运行时状态全覆盖 |
 | 原生游客首页 | Stable 2.02.2608070 / 基础库 3.15.2，真实窗口看到“授权身份并开始”、00–03 顺序、Tab Bar；0 Problems、0 Errors；2 条微信基础库 preload 警告仍保留 |
 | diff hygiene | `git diff --check` PASS |
@@ -56,6 +57,7 @@
 - 当前包完整 DevTools 角色×状态矩阵仍 0/37 正式 PASS；iOS 0/37、Android 0/37，当前体验版未验收。`current-source-acceptance.json` 保持 blocked。
 - 224 个方法的主体/对象/字段/动作安全审计尚未全部完成。此前台账的严格授权覆盖 31/224，与 193 个入口×两种未授权凭据的 386 个探针是不同分母；本轮未扩大严格覆盖，不能把 562 测试总数当作全量授权证明。
 - 当前云端独立 staging、微信主体/隐私/域名和正式版本状态未在本轮复核。正式资金、公众 UGC、真实隐私导出/擦除/注销继续受独立门禁约束。
+- 独立 `tools/wechat-ci` 上游漏洞未修复，继续受现有显式风险接受和发布前置门禁限制，不能因 root audit 为 0 而启用。当前可用的原生编译路径是微信开发者工具；本轮未用高风险依赖制造上传/体验版证据。
 - GitHub verify 绿色不证明上述外部验收。源代码同步 main 是 Owner 本轮的单独明确要求，不自动把 `RELEASE_READY` 或历史安全缺口改为通过。
 
 下一轮执行入口：[ChatGPT + GitHub 续建提示词](../../CHATGPT-GITHUB-NEXT-PROMPT.md)。先完善护理关键链的原生全状态证据及发现的缺陷，再按 PRD 推进其他页面和剩余接口授权。

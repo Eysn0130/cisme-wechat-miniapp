@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-09-20T20:50:05.907846+00:00",
+  "scope": "tools/wechat-ci/package-lock.json only; excluded from root dependency audit",
+  "package": "miniprogram-ci",
+  "pinnedVersion": "2.1.31",
+  "registryLatest": "2.1.31",
+  "vulnerabilities": {
+    "info": 0,
+    "low": 1,
+    "moderate": 19,
+    "high": 19,
+    "critical": 41,
+    "total": 80
+  },
+  "directPackageFixAvailable": false,
+  "usedInThisTask": false,
+  "releaseEnabledByThisTask": false
+}
