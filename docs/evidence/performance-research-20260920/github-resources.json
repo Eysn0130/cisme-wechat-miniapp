@@ -1,0 +1,125 @@
+{
+  "retrievedAt": "2026-09-20T21:28:16.567265+00:00",
+  "method": "GitHub REST repository metadata and default-branch commit; snapshot is not a security audit or instruction to install",
+  "resources": [
+    {
+      "repo": "Appllama/appllama-skills",
+      "url": "https://github.com/Appllama/appllama-skills",
+      "description": "A builder, not just a researcher. Agent skills that turn top-grossing app patterns into native-quality mobile screens.",
+      "archived": false,
+      "defaultBranch": "main",
+      "pushedAt": "2026-09-06T09:01:39Z",
+      "license": "MIT",
+      "sha": "dd5caaec3d5d50ad7fc0324da238119c6b7c3707",
+      "commitAt": "2026-09-06T09:01:36Z"
+    },
+    {
+      "repo": "greensock/gsap-skills",
+      "url": "https://github.com/greensock/gsap-skills",
+      "description": "Official AI skills for GSAP. These skills teach AI coding agents how to correctly use GSAP (GreenSock Animation Platform), including best practices, common animation patterns, and plugin usage.",
+      "archived": false,
+      "defaultBranch": "main",
+      "pushedAt": "2026-07-29T17:36:08Z",
+      "license": "MIT",
+      "sha": "aed9cfd3277740755f6bfc1155c7aa645403b760",
+      "commitAt": "2026-04-21T23:47:02Z"
+    },
+    {
+      "repo": "Jakubantalik/transitions.dev",
+      "url": "https://github.com/Jakubantalik/transitions.dev",
+      "description": "Collection of the most essential transitions for web apps, skill for agents and Refine tool for agents",
+      "archived": false,
+      "defaultBranch": "main",
+      "pushedAt": "2026-09-13T12:48:53Z",
+      "license": null,
+      "sha": "598d3d6ad89dabb4bdf742fd2e887ca53914a888",
+      "commitAt": "2026-09-13T12:48:51Z"
+    },
+    {
+      "repo": "wechat-miniprogram/miniprogram-demo",
+      "url": "https://github.com/wechat-miniprogram/miniprogram-demo",
+      "description": "微信小程序组件 / API / 云开发示例",
+      "archived": false,
+      "defaultBranch": "master",
+      "pushedAt": "2026-09-11T11:46:41Z",
+      "license": "MIT",
+      "sha": "0fe5c7df8e90582dd0b89e283df7fe32e04413f9",
+      "commitAt": "2026-09-03T05:27:05Z"
+    },
+    {
+      "repo": "wechat-miniprogram/recycle-view",
+      "url": "https://github.com/wechat-miniprogram/recycle-view",
+      "description": "recycle-view: a wechat miniprogram custom component",
+      "archived": false,
+      "defaultBranch": "master",
+      "pushedAt": "2023-09-11T11:40:37Z",
+      "license": "MIT",
+      "sha": "70a5b5af37c52ad4263d40bb9d5e2b48a7484ced",
+      "commitAt": "2019-10-08T04:30:37Z"
+    },
+    {
+      "repo": "fastify/fastify",
+      "url": "https://github.com/fastify/fastify",
+      "description": "Fast and low overhead web framework, for Node.js",
+      "archived": false,
+      "defaultBranch": "main",
+      "pushedAt": "2026-09-17T07:53:07Z",
+      "license": "MIT",
+      "sha": "630acd0b6cf8a91322ff05c3d95feb991091866d",
+      "commitAt": "2026-09-16T10:20:30Z"
+    },
+    {
+      "repo": "brianc/node-postgres",
+      "url": "https://github.com/brianc/node-postgres",
+      "description": "PostgreSQL client for node.js.",
+      "archived": false,
+      "defaultBranch": "master",
+      "pushedAt": "2026-09-19T21:14:12Z",
+      "license": "MIT",
+      "sha": "2759b2ccf70535d425688dca8a6aec79de49c1ea",
+      "commitAt": "2026-09-19T21:14:12Z"
+    },
+    {
+      "repo": "mcollina/autocannon",
+      "url": "https://github.com/mcollina/autocannon",
+      "archived": false,
+      "defaultBranch": "master",
+      "pushedAt": "2026-05-16T07:48:53Z",
+      "license": "MIT",
+      "sha": "9d645c3ba48bade008f1785991b2c660e0be3b15",
+      "commitAt": "2026-05-16T07:48:47Z"
+    },
+    {
+      "repo": "grafana/k6",
+      "url": "https://github.com/grafana/k6",
+      "description": "A modern load testing tool, using Go and JavaScript",
+      "archived": false,
+      "defaultBranch": "master",
+      "pushedAt": "2026-09-20T09:02:48Z",
+      "license": "AGPL-3.0",
+      "sha": "3fcf5388d78cb382f0c0d42ec556a06bfd1b8dee",
+      "commitAt": "2026-09-18T10:51:21Z"
+    },
+    {
+      "repo": "open-telemetry/opentelemetry-js",
+      "url": "https://github.com/open-telemetry/opentelemetry-js",
+      "description": "OpenTelemetry JavaScript Client",
+      "archived": false,
+      "defaultBranch": "main",
+      "pushedAt": "2026-09-19T13:03:12Z",
+      "license": "Apache-2.0",
+      "sha": "66c04030f8f2cb9c1a05e8dcf63c2ba52ffdc1da",
+      "commitAt": "2026-09-18T09:00:59Z"
+    },
+    {
+      "repo": "wechat-miniprogram/api-typings",
+      "url": "https://github.com/wechat-miniprogram/api-typings",
+      "archived": false,
+      "defaultBranch": "master",
+      "pushedAt": "2026-09-01T12:25:38Z",
+      "license": "MIT",
+      "sha": "6092df9100c73b84e140c20b9a42a8e8799e0660",
+      "commitAt": "2026-09-01T12:25:38Z"
+    }
+  ]
+}

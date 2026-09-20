@@ -1,0 +1,62 @@
+{
+  "kind": "isolated-source-behavior-probes-not-device-or-production-performance",
+  "sourceCommit": "e1d31d877f36d9245c5844786a769319558cb546",
+  "capturedAt": "2026-09-20T21:22:29.979Z",
+  "nodeVersion": "v24.14.0",
+  "fastifyVersion": "5.12.3",
+  "results": {
+    "homeAuxiliaryBarrier": {
+      "bootstrapResolved": true,
+      "supportPending": true,
+      "loading": true,
+      "authorityAvailable": false,
+      "afterSupport": {
+        "loading": false,
+        "authorityAvailable": true
+      }
+    },
+    "guestStepSelection": {
+      "before": "授权身份并开始",
+      "after": "开始今日护理",
+      "needsAuthentication": true
+    },
+    "profileAuxiliaryBarrier": {
+      "bootstrapResolved": true,
+      "commercialPending": true,
+      "loading": true,
+      "memberVisible": false,
+      "afterCommercial": {
+        "loading": false,
+        "memberVisible": true
+      }
+    },
+    "metricsCapacity": {
+      "submittedRoutes": 97,
+      "retainedRoutes": 96,
+      "totalRequests": 97
+    },
+    "transactionBackoff": {
+      "attempts": 2,
+      "connectionReleasedWhenBackoffStarted": false
+    },
+    "transactionDeadline": {
+      "configuredMs": 10,
+      "simulatedWorkMs": 50,
+      "committed": true
+    },
+    "fastifyRequestTimeout": {
+      "configuredMs": 20,
+      "syntheticHandlerDelayMs": 70,
+      "status": 200,
+      "elapsedMs": 87,
+      "workCompleted": true
+    },
+    "fastifyHandlerTimeout": {
+      "configuredMs": 20,
+      "syntheticHandlerDelayMs": 70,
+      "status": 503,
+      "elapsedMs": 25,
+      "workCompleted": true
+    }
+  }
+}

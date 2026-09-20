@@ -1,0 +1,36 @@
+{
+  "retrievedAt": "2026-09-20T21:28:16.571741+00:00",
+  "note": "External content was read as research, not executed or installed. Full external texts remain temporary and are not republished. WeChat pages were retrieved directly after the search browser failed.",
+  "sources": [
+    {
+      "name": "appllama-design",
+      "url": "https://raw.githubusercontent.com/Appllama/appllama-skills/dd5caaec3d5d50ad7fc0324da238119c6b7c3707/skills/appllama-app-design-skill/SKILL.md",
+      "bytes": 20220,
+      "sha256": "be47c957ad097be96916a088a803281c933513fd98a71aedca7cef25a967d7a5"
+    },
+    {
+      "name": "gsap-performance",
+      "url": "https://raw.githubusercontent.com/greensock/gsap-skills/aed9cfd3277740755f6bfc1155c7aa645403b760/skills/gsap-performance/SKILL.md",
+      "bytes": 4139,
+      "sha256": "cb5408d6fba707aabcbfe3320317a14c1f8fca6070074e5261047930f50d441e"
+    },
+    {
+      "name": "transitions",
+      "url": "https://raw.githubusercontent.com/Jakubantalik/transitions.dev/598d3d6ad89dabb4bdf742fd2e887ca53914a888/skills/transitions-dev/SKILL.md",
+      "bytes": 24799,
+      "sha256": "6a8b9a1a49cd392994d8f07714b7fb5cbe138d615f48c2d9215c460619eba1cd"
+    },
+    {
+      "name": "wechat-request",
+      "url": "https://developers.weixin.qq.com/miniprogram/dev/api/network/request/wx.request.html",
+      "bytes": 473029,
+      "sha256": "58f844c68fb8a0bba006670384f0f8cc8babfc3955c8a23fe1b61691f178eaf9"
+    },
+    {
+      "name": "wechat-setdata",
+      "url": "https://developers.weixin.qq.com/miniprogram/dev/framework/performance/tips/runtime_setData.html",
+      "bytes": 141926,
+      "sha256": "7b514fb78e52ca0bed30fbe66f204a7d0f5d219d2b7e4778602fcd3a2ec434b1"
+    }
+  ]
+}

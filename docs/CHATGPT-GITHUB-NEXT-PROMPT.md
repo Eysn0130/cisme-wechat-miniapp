@@ -1,23 +1,70 @@
-# ChatGPT + GitHub 下一轮施工提示词
+# ChatGPT + GitHub 下一轮完整施工提示词
 
-请接管 GitHub 仓库 `Eysn0130/cisme-wechat-miniapp` 的最新 `main`。先获取当前 HEAD、工作树状态和该 SHA 的 Actions 结果，再阅读 `AGENTS.md`、`docs/product/CISME-产品需求文档-PRD-V2.1-R4.md`、`docs/evidence/main-consolidation-20260920/README.md` 及 `docs/evidence/visual/current-source-acceptance.json`。不要使用旧 PR #1/#2/#3 的分支作为施工基线。
+请接管 GitHub 仓库 `Eysn0130/cisme-wechat-miniapp` 的最新 `main`，直接完成正式版前“现有问题与隐患修复、原生小程序关键路径提速、UI/UX 完整状态交付”的施工。先研究、复现，再实现、验证、交付；不要只给建议、装修页面或声称无证据的“丝滑”。
 
-唯一长期本地根目录是 `/Users/mini/CISME`，消费者产品是 `apps/miniprogram` 中的原生微信小程序。不得创建 `cisme-r0-platform` 嵌套项目，不得用网页或独立 App 替代。临时开发分支必须来自最新 main；交付后合并、同步主目录并清理已合并分支，保留唯一有效小程序工程。历史证据和私密备份不得重标为新验收或上传到公共仓库。
+## 一、唯一基线与必读材料
 
-本轮优先完成“游客首页 → 授权入口 → 显式开始护理周期 → 四步护理 → 护理后感受 → 记录回看”的原生交付闭环。先审查现有实现，不重复造页面或推翻已正确的结构。依据 PRD §5.4、§6.3.1、§15.1 的 A20、CARE-01–04 及 AGENTS.md，逐项核对：
+1. 获取最新 main HEAD、工作树/远程差异、该 SHA 的 Actions；保留他人未提交工作。长期唯一根目录 `/Users/mini/CISME`，消费者实现 `apps/miniprogram`，原生 WXML/WXSS/TypeScript。不要创建 `cisme-r0-platform` 嵌套工程、第二个长期微信项目，也不要从旧 PR #1/#2/#3 分支施工。
+2. 先读 `AGENTS.md`、`docs/product/CISME-产品需求文档-PRD-V2.1-R4.md`、`docs/CISME-NATIVE-PERFORMANCE-UX-RESEARCH-2026-09-20.md`、`docs/NFR-MEASUREMENT.md`、`docs/evidence/performance-research-20260920/`、`docs/evidence/main-consolidation-20260920/README.md`、`docs/evidence/visual/current-source-acceptance.json`。历史 G0/架构/性能材料只作追溯，与代码核对后更新，不能覆盖现行 PRD。
+3. 研究定位基线 `e1d31d877f36d9245c5844786a769319558cb546` 不是回退要求；基于最新 main 重定位、重新计算包哈希。研究中的发现尚待修复，已有测试通过不证明这些问题不存在。
+4. 决策顺序：PRD/真实业务 → 微信原生约束 → `mobile-ui-ux-designer` → `design-taste-frontend` → 微信开发者工具/授权真机。Web build、网页或独立 App 截图不能代替微信验收。
 
-1. 游客可停留首页并看见“授权身份并开始”，onShow 不自动赶走游客；授权取消、失败、会话过期、切换账号后可恢复正确入口。
-2. 周期从 planned 开始，显式确认后才激活；到期节点按 00 净澈、01 清洁、02 修护、03 精护顺序完成，选择护理后感受再提交。服务端校验顺序、归属、版本和幂等，持久化每一步事实。
-3. 记录页展示服务器保存的时间、步骤、感受；旧记录如实标注事实缺失。弱网、重试、快速连点、返回、后台恢复、旧请求晚到及账号切换不得串号、重记或丢失已保存事实。
-4. 先列出现状与可复现缺陷，再修复。每个业务修复补有意义的正反向回归；涉及 API 的部分补主体×对象×字段×动作授权测试。现有 562 集成测试、386 入口探针不等于 224 个方法已全部完成对象级授权审计。
-5. UI 决策遵循 PRD → 微信原生约束 → mobile-ui-ux-designer → design-taste-frontend → 开发者工具/真机。核对胶囊、安全区、字号、图片、滚动、键盘、Tab 导航和错误恢复。用户正在操作开发者工具时不抢占页面。
+## 二、必须完成的问题与隐患修复
 
-验证：`npm ci`、`npm run typecheck`、`npm run miniprogram:package-gate`、`npm run miniprogram:route-audit`、`npm run design:qa:status`、`npm test`、隔离数据库 `npm run test:integration`、`npm run build`、`npm run lint:contracts`、`npm audit --audit-level=high`、`git diff --check`。仅在显式指定的本机 `cisme_*test*` 合成测试库运行重置；不要加载未知 .env 或连接生产库。
+建立缺陷表：编号、严重度、最新文件/行、PRD/验收 ID、证据等级（已复现/静态风险/待实测）、用户影响、修复、正反向回归、回滚。逐项处理研究报告 PERF-01–10、DOC-01，并审查相关路径的越权、并发、资源泄漏、未知状态、晚响应、重复提交、缓存串号及媒体/列表开销。不要声称一次审计证明所有代码无隐患。
 
-依赖范围必须区分：主工程 audit 为 0；独立 `tools/wechat-ci` 的官方当前版本仍有 80 项上游告警且未启用。不要静默安装该工具或注入上传密钥，不要将其告警与主工程混称为已修复；当前原生验收使用微信开发者工具。
+- **PERF-01/02：关键内容独立显示。** 首页护理 bootstrap 不等待客服未读；“我的”主快照不等待权限/商业资格/客服/头像。各区独立 loading/unknown/error，头像先中性图。辅助失败不能清空核心内容或伪称未读为零/无资格；保留主快照一致性、session、businessVersion、loadAttempt/pageAlive 守卫。用分别挂起/失败的辅助请求证明核心区域可用。
+- **PERF-03：游客入口。** 修复选护理步骤后把“授权身份并开始”改成“开始今日护理”，实际却仍跳授权的问题。visitorView 支持选步且保持游客语义；onShow、刷新、分钟时钟一致。游客能留首页浏览，只有显式点击才授权；取消、401、换号均可恢复。
+- **PERF-04：真实业务超时。** 当前 requestTimeout 只约束收请求，不能保证 handler 期限。核对锁定 Fastify，分开接收/处理期限并向依赖传剩余预算；只加 handlerTimeout 不够，它返回503后异步工作仍可能继续。协作取消、错误映射、已提交但响应丢失的幂等/查询恢复必须测试。
+- **PERF-05/06：连接释放与事务期限。** 冲突回滚后先释放再退避，恰好释放一次，坏连接不回健康池。一个绝对期限贯穿池排队、SQL、每次尝试、退避、提交前检查；验证当前 pg 的取消能力，不能裸 Promise.race 遗留后台 SQL。覆盖40001/40P01、回滚失败、池耗尽、重试耗尽和提交后断连；不能把未知提交结果当成未执行。
+- **PERF-07：指标覆盖。** 修复最多96条路由后静默丢指标；method+归一化route模板覆盖静态清单，未知路径有界聚合。明确onSend与真正完成的计时差异，识别实际超时错误，包括503 handler timeout。补客户端分阶段、缓存/重试/取消和服务端池/SQL/存储/事件循环；不采集token、openid、正文、手机号或签名URL，不平均实例P95。
+- **PERF-08/09：请求预算、取消、缓存。** 固定12s单次请求加一次重试不是交互总期限。统一错误分类、剩余预算与429策略；只对批准的安全GET自动重试，写操作依赖幂等与查询恢复。共享请求按消费者处理，离开一页不误取消其他页；Cloud HTTP无物理abort则如实保证逻辑取消。保留缓存会话隔离/写后失效；旧权限、价格、库存、积分、护理状态不能授权写操作，未知/陈旧不能包装为最新事实。
+- **PERF-10及媒体/客服：** 实测社区累计feed再发送累计feedColumns的成本。先减少重复数据/setData、缩略图/固定尺寸/按需加载/滚动恢复，再决定虚拟列表。复用已存在头像缓存、消息差量、轮询退避、分包、COS直传与回退，不重造，也不开生产UGC做测试。
+- **DOC-01与依赖：** 修正旧G0/验收口径，保留历史日期与追溯。研究时主工程audit为0；独立未启用的tools/wechat-ci有80项上游告警，分开报告。不要静默安装有风险的上传工具、注入私钥或声称上游风险已修复。
 
-每轮重新计算小程序包 SHA-256。源码变更后，用 `scripts/update-current-source-manifest.ts` 重置过期验收绑定，保留旧证据的时间、来源、原 SHA 和适用范围。当前 37 路由只有静态清单和部分历史/默认态证据；WXML/WXSS 编译通过、单个游客页截图、Web build 或历史截图均不能写成完整状态矩阵 PASS。
+## 三、不得牺牲的业务与交互闭环
 
-若 ChatGPT/GitHub 环境没有微信开发者工具或授权真机，继续完成源码、测试、契约和可执行验收脚本，明确列出待本机执行的步骤和预期结果；不得编造运行结果。不要启用真实支付、退款、转账、公开 UGC、正式隐私删除，也不要把 main 同步解释为平台认证、云端部署或体验版发布授权。
+按 PRD §5.4、§6.3.1、§13、§15.1、A20、CARE-01–04 及相关业务验收 ID，完成“游客首页 → 授权 → 显式开始 planned 周期 → 00净澈 → 01清洁 → 02修护 → 03精护 → 护理后感受 → 保存 → 记录回看”。服务端校验归属、顺序、状态、版本、幂等，持久化每一步事实。记录展示服务器时间/步骤/感受，旧记录诚实标明缺失。
 
-最终交付：本轮 PRD/验收 ID、修复及风险、当前提交/PR/Actions 链接、测试结果、包 SHA、已实测与未实测状态、剩余缺口和下一轮最小施工任务。若可以从现有信息推进，直接完成，不只输出计划。
+未收到权威成功时不得用成功动画、乐观积分或假打卡遮盖未知结果。弱网、连点、后台恢复、离页、换号不能串号、重记、改写历史或丢失已保存事实。API审计覆盖主体×对象×字段×动作；测试数量不等于完整对象级授权证明。
+
+逐页输出 interaction contract：触发/前置状态/API或本地动作/loading/success/empty/error/offline/permission/cancel/resume/navigation/accessibility/事件/验收ID。重点覆盖护理、我的、记录、商品/结算、客服、当前允许的社区状态。保留CISME已接受的品牌视觉，处理胶囊、安全区、字号、图片、键盘、滚动锚点、Tab与返回；空态、无权限、网络错不能混用。忙态只锁冲突动作，不整屏阻断无关操作。
+
+## 四、性能测量与服务器优化完整方案
+
+1. 固化测量合同：核心路由/动作、部署地域、机型/微信/基础库、网络、冷热、数据规模、并发/到达率、样本、窗口、计时边界。PRD目标是核心API P95≤500ms、核心页面可交互P95≤2s（不含第三方支付/媒体上传），不是已有成绩；不能沿用旧写接口800ms或私自放宽。G0高档容量留30%余量；99.9%月可用性仍是有条件候选，签字与运维能力不得伪造。
+2. 分解动作反馈、包加载、请求排队、DNS/TCP/TLS、首字节/接收、数据处理、setData回调、关键操作可用。支持时用wx.request profile / wx.getPerformance，不支持标缺失；不重复相加嵌套区间，不跨机器相减墙钟。直连与Cloud HTTP分开。
+3. 复用perf:smoke、perf:capacity、perf:worker-capacity及隔离数据；app.inject不包含公网与真机。建议每设备×网络×冷热×旅程至少100次有效动作，每核心API场景至少1000次请求，少样本标探索性；受控staging做持续/阶梯负载，设置停止阈值，不对未知/生产环境盲压。
+4. 先修确定的等待与连接问题，再按证据排序：连接复用/实际部署地域；池排队/锁/慢SQL（隔离库EXPLAIN ANALYZE）；事务边界；私有媒体/缩略图；首屏/分包；列表/键盘/滚动。HTTP/2、有限预加载、COS直传、缓存调整均需同环境前后对照和回退，不一律启用。保留包及全局WXSS预算。
+5. 正常网络与至少400ms RTT、5%丢包、断网、传图中断、响应丢失分别测试。同时报告延迟、错误/超时、重复写入、内存/池队列、冷暖差异。不能为提速删鉴权、幂等、审核、事务或真实错误状态。
+
+## 五、Skills与GitHub资源选择
+
+先读研究报告的固定提交、维护、许可证和适配结论；每项资源说明解决的问题、采用/拒绝理由、包/安全成本、收益验证及回滚，不批量安装。
+
+- miniprogram-development：原生能力、请求/分包、开发者工具与真机流程。
+- mobile-ui-ux-designer：主交互设计、逐态合同、渐进加载、中断恢复、无障碍。
+- design-taste-frontend：现有品牌内的版式、字体、间距、层级复核，服从原生约束，不搬Web栈。
+- mobile-app-ux-auditor：完整旅程完成后的阶段性状态/导航/无障碍审计。
+- Apple Design/HIG借鉴加载、真实进度、反馈、可取消/减少动效；Mobbin/Appllama只有合法可访问时才研究完整流程并记录来源，没有访问不得编造案例。
+- Appllama偏Expo/React Native；GSAP Skills和Transitions.dev偏Web。当前不引入React Native/GSAP/ScrollTrigger/DOM动画；借鉴原则并转为WXML/WXSS/平台API。Transitions复制代码前核查许可，不能默认任用。
+- 优先复用微信官方miniprogram-demo、现有api-typings、已锁Fastify/pg文档与测试。OpenTelemetry仅在现有观测不足时用于服务端；k6或autocannon仅在现有脚本不能覆盖真实HTTP场景时择一。recycle-view默认分支代码陈旧，未经适配与实测不引入。
+- 不新增毛玻璃/重动效依赖。按压尽快反馈，固定尺寸占位，局部渐进加载；动效不延迟内容、不阻断返回，离页停并支持减少动效。修改时长要同步既有关闭定时器；骨架出现不等于可交互达标。
+
+云端缺少本地Skill/开发者工具时如实说明，按仓库合同继续源码、测试、可执行验收准备，不能声称已经调用或实测。
+
+## 六、实施、验证、GitHub交付
+
+按A基线/回归 → B首页与资料/游客/未知状态 → C超时/事务/指标/取消 → D实测瓶颈优化 → E原生UI/UX/真机 → F合并交付推进。每段可审查、可回滚，不做不可审的大视觉重构；能自主推进的修复直接完成，不把常规选择退回用户。
+
+执行与改动相应的验证并保存原始结果：npm ci；npm run typecheck；npm run miniprogram:package-gate；npm run miniprogram:route-audit；npm run design:qa:status；npm test；隔离库npm run test:integration；npm run build；npm run lint:contracts；npm audit --audit-level=high；git diff --check；以及性能/故障回归。只在显式指定的本机cisme_*test*合成库重置，不加载未知.env或接触生产数据；缺环境不编造PASS。
+
+每轮复算包SHA-256；小程序源码改变后用scripts/update-current-source-manifest.ts重置过期绑定，保留历史截图的时间/原包/范围，不能把单页默认态扩成37路由全状态通过。代表旅程先开发者工具，再授权iOS/Android真机，检查实际接口与全状态。用户正操作开发者工具时不得抢占页面。
+
+从最新main建codex/临时分支，提交修复和证据，创建可审查PR；按保护规则和既有授权合并，等待对应SHA必需Actions，同步唯一主目录，清理已合并分支。不得强推、覆盖并行改动或制造第二套长期工程。GitHub CI通过不等于真机或发布通过。
+
+## 七、完成条件
+
+交付PERF/DOC逐项状态与证据、PRD验收映射、测试及真实性能前后对比、原生状态矩阵、资源采用/拒绝与理由、新依赖审计/许可证、回滚、提交/PR/Actions链接、包哈希、唯一目录同步状态、剩余环境/账号/真机缺口与准确releaseReady。
+
+完成现有环境可以完成的代码修复和测试，不能以报告代替施工；未解决项给出原因与下一动作。没有真机/合法域名/平台资质/真实业务链路证据时不能自动上线。真实支付、退款、转账、公开UGC、正式隐私删除、发布仍按原有授权与门禁；本提示词不自行开启。目标是可靠、可恢复、流畅的CISME原生微信小程序。

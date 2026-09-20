@@ -1,5 +1,7 @@
 # G0 decision register
 
+> Historical decision snapshot (2026-08-14). Several implementation/version entries below predate the current code. For current product decisions and performance targets, use `docs/product/CISME-产品需求文档-PRD-V2.1-R4.md` and `docs/NFR-MEASUREMENT.md`; verify runtime status against the latest main and evidence. This notice preserves the original record and does not imply new G0 sign-off.
+
 Decision date: 2026-08-14. `Selected` means frozen for this repository; `UNSET` means the corresponding consumer capability must remain closed.
 
 | Decision | Status | Evidence / acceptance condition | Exit path |
