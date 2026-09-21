@@ -21,6 +21,11 @@ describe("integration database isolation", () => {
     expect(query).toHaveBeenCalledTimes(1);
     expect(query.mock.calls[0]![0]).not.toMatch(/DROP|DELETE|TRUNCATE/i);
   });
+  it("validates an explicit exported target before consumers can create their own pools",async()=>{
+    vi.stubEnv("TEST_DATABASE_URL","postgres://localhost/cisme_production");vi.resetModules();
+    try { await expect(import("@cisme/testkit")).rejects.toThrow("TEST_DATABASE_REQUIRED"); }
+    finally { vi.unstubAllEnvs();vi.resetModules(); }
+  });
   it("does not query or reset a pool unless its test target was explicit",async()=>{
     const query=vi.fn();
     await expect(resetDatabase({query} as unknown as pg.Pool,{})).rejects.toThrow("EXPLICIT_TEST_DATABASE_URL_REQUIRED");

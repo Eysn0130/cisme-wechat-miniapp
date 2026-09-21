@@ -16,7 +16,7 @@ export function resolveTestDatabaseUrl(env: NodeJS.ProcessEnv = process.env): st
 }
 
 // Importing helpers must stay side-effect-free; testPool/reset validate before any connection.
-export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? "";
+export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ? resolveTestDatabaseUrl() : "";
 
 export function testPool(env: NodeJS.ProcessEnv = process.env): pg.Pool {
   return new pg.Pool({ connectionString: resolveTestDatabaseUrl(env), max: 12 });
