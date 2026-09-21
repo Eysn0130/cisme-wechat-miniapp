@@ -17,7 +17,7 @@ const env={DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:"synthetic-history-
 const auth=(sessionToken:string)=>({authorization:`Bearer ${sessionToken}`});
 type Actor={memberId:string;principalId:string;sessionToken:string};
 let seed:FastifyInstance,closed:FastifyInstance,owner:Actor,other:Actor,revoked:Actor,empty:Actor;
-let ownerOrder:string,otherOrder:string;
+let ownerOrder:string,otherOrder:string,cancelledOrder:string,cancelledCredit:string;
 const paths=["/v1/me/refund-requests","/v1/me/commission/settlement-requests","/v1/me/commission/credit-conversions"];
 const makeActor=async(name:string):Promise<Actor>=>{
   const response=await seed.inject({method:"POST",url:"/v1/identity/dev",payload:{externalUserId:name,displayName:name,
@@ -60,6 +60,9 @@ beforeAll(async()=>{
     return (await post("/v1/me/orders",{quoteId:quote.id},`history-order-${suffix}`,actor)).id as string;
   }
   ownerOrder=await orderFor(owner,"owner");otherOrder=await orderFor(other,"other");
+  cancelledOrder=await orderFor(owner,"cancel");
+  const pendingOrder=(await seed.inject({method:"GET",url:`/v1/me/orders/${cancelledOrder}`,headers:auth(owner.sessionToken)})).json();
+  await post(`/v1/me/orders/${cancelledOrder}/cancel`,{expectedVersion:pendingOrder.version,reason:"合成取消命令回执测试"},"history-cancel-original",owner);
   for(const [actor,orderId] of [[owner,ownerOrder],[other,otherOrder]] as const){
     for(let i=0;i<3;i++){
       await pool.query(`INSERT INTO commerce_refund_request(order_id,requested_by_member_id,idempotency_key,request_hash,amount_cents,reason)
@@ -71,6 +74,10 @@ beforeAll(async()=>{
         VALUES($1,$2,$3,100,100,'isolated-synthetic-zero-withholding-v1')`,[actor.memberId,`history-credit-${i}`,"a".repeat(64)]);
     }
   }
+  // Deliberately imported history fixture only, not a real credit reversal.
+  const conversion=await pool.query(`UPDATE commission_credit_conversion SET state='cancelled',cancelled_at=clock_timestamp(),
+    cancel_key='history-credit-cancel',cancel_hash=$2 WHERE member_id=$1 AND idempotency_key='history-credit-2' RETURNING id`,[owner.memberId,"b".repeat(64)]);
+  cancelledCredit=conversion.rows[0].id;
   await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[revoked.memberId]);
 },30_000);
 afterAll(async()=>{await closed?.close();await seed?.close();await pool.end();});
@@ -130,4 +137,78 @@ it("does not loosen any money mutation gate or return a confirmation package",as
   }
   const row=(await closed.inject({method:"GET",url:paths[1]!,headers:auth(owner.sessionToken)})).json().items[0];
   expect((await closed.inject({method:"GET",url:`/v1/me/commission/settlement-requests/${row.id}/confirmation`,headers:auth(owner.sessionToken)})).statusCode).toBe(503);
+});
+
+
+// The new endpoint reads existing durable facts; it neither creates facts nor
+// decides a missing command never ran. In particular, no provider is installed.
+const receiptKinds=["refund","settlement","credit","credit-cancel","cancel","cancel-verified"] as const;
+function receiptTarget(kind:typeof receiptKinds[number]){
+  const key=kind==="refund"?"history-refund-0":kind==="settlement"?"history-settlement-0":kind==="credit"?"history-credit-0":kind==="credit-cancel"?"history-credit-cancel":"history-cancel-original";
+  const objectId=kind==="refund"?ownerOrder:kind==="credit-cancel"?cancelledCredit:kind.startsWith("cancel")?cancelledOrder:undefined;
+  return {key,url:`/v1/me/commerce/command-receipts/${kind}${objectId?`?objectId=${objectId}`:""}`};
+}
+describe.each(receiptKinds)("private durable command receipt: %s",kind=>{
+  it("recovers a minimal original receipt even when every outbound gate is closed",async()=>{
+    const target=receiptTarget(kind);
+    const result=await closed.inject({method:"GET",url:target.url,headers:{...auth(owner.sessionToken),"idempotency-key":target.key}});
+    expect(result.statusCode,result.body).toBe(200);expect(result.headers["cache-control"]).toBe("no-store");
+    expect(result.json()).toMatchObject({version:1,memberId:owner.memberId,kind,status:"recorded"});
+    expect(Object.keys(result.json()).sort()).toEqual(["version","memberId","kind","status","record"].sort());
+    const row=result.json().record;expect(row.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(Object.keys(row).every(field=>["id","orderId","state","amountCents"].includes(field))).toBe(true);
+    for(const sensitive of [target.key,"idempotencyKey","reason","payee","package","request_hash","principalId","signature","nonceStr","合成历史记录"])
+      expect(result.body).not.toContain(sensitive);
+    if(["cancel","cancel-verified","credit-cancel"].includes(kind))expect(row.state).toBe("cancelled");
+    else expect(row.amountCents).toBe(100);
+  });
+  it("another member's key/object is not exposed as a receipt",async()=>{
+    const target=receiptTarget(kind);
+    const result=await closed.inject({method:"GET",url:target.url,headers:{...auth(empty.sessionToken),"idempotency-key":target.key}});
+    expect(result.statusCode,result.body).toBe(200);expect(result.json()).toEqual({version:1,memberId:empty.memberId,kind,status:"not_observed",record:null});
+    expect(result.body).not.toContain(owner.memberId);expect(result.body).not.toContain(ownerOrder);
+  });
+  it("missing records are inconclusive, never success or proof of failed execution",async()=>{
+    const target=receiptTarget(kind);
+    const result=await closed.inject({method:"GET",url:target.url,headers:{...auth(owner.sessionToken),"idempotency-key":"history-absent-command"}});
+    expect(result.statusCode,result.body).toBe(200);expect(result.json()).toMatchObject({status:"not_observed",record:null});
+    expect(result.body).not.toContain("retrySafe");expect(result.body).not.toContain("not_executed");
+  });
+  it.each(["missing","forged","revoked","expired"])("rejects %s credentials before returning command facts",async mode=>{
+    const target=receiptTarget(kind),expired=issueSessionToken({principalId:owner.principalId,memberId:owner.memberId,adapter:"dev",provider:"dev_test",appId:"dev"},env.APP_SESSION_SECRET,Date.now()-24*60*60*1000);
+    const token=mode==="missing"?null:mode==="forged"?"forged.invalid":mode==="revoked"?revoked.sessionToken:expired;
+    const result=await closed.inject({method:"GET",url:target.url,headers:{...(token?auth(token):{}),"idempotency-key":target.key}});
+    expect(result.statusCode,result.body).toBe(401);expect(result.body).not.toContain(target.key);
+  });
+  it("rejects owner and role injection rather than widening its lookup",async()=>{
+    const target=receiptTarget(kind);
+    for(const extra of [`memberId=${other.memberId}`,"role=review_lead","recorded=true"]){
+      const result=await closed.inject({method:"GET",url:target.url+(target.url.includes("?")?"&":"?")+extra,
+        headers:{...auth(owner.sessionToken),"idempotency-key":target.key}});
+      expect(result.statusCode,result.body).toBe(422);
+    }
+  });
+  it("requires the original bounded key and validates kind-specific object scope",async()=>{
+    const target=receiptTarget(kind);
+    expect((await closed.inject({method:"GET",url:target.url,headers:auth(owner.sessionToken)})).statusCode).toBe(400);
+    expect((await closed.inject({method:"GET",url:target.url,headers:{...auth(owner.sessionToken),"idempotency-key":"x".repeat(201)}})).statusCode).toBe(400);
+    const bad=`/v1/me/commerce/command-receipts/${kind}?objectId=${["settlement","credit"].includes(kind)?ownerOrder:"not-a-uuid"}`;
+    expect((await closed.inject({method:"GET",url:bad,headers:{...auth(owner.sessionToken),"idempotency-key":target.key}})).statusCode).toBe(422);
+  });
+});
+it("a cancellation receipt is durable beyond frontend retries without releasing inventory again",async()=>{
+  const before=(await pool.query("SELECT count(*)::int AS n FROM commerce_order_transition WHERE order_id=$1 AND to_status='cancelled'",[cancelledOrder])).rows[0].n;
+  for(let i=0;i<3;i++){
+    const target=receiptTarget("cancel");const result=await closed.inject({method:"GET",url:target.url,headers:{...auth(owner.sessionToken),"idempotency-key":target.key}});
+    expect(result.json()).toMatchObject({status:"recorded",record:{id:cancelledOrder,state:"cancelled"}});
+  }
+  const after=(await pool.query("SELECT count(*)::int AS n FROM commerce_order_transition WHERE order_id=$1 AND to_status='cancelled'",[cancelledOrder])).rows[0].n;
+  expect(before).toBe(1);expect(after).toBe(1);
+});
+it("a known cancellation key cannot be retargeted to a different owned or foreign order",async()=>{
+  for(const id of [ownerOrder,otherOrder]){
+    const result=await closed.inject({method:"GET",url:`/v1/me/commerce/command-receipts/cancel?objectId=${id}`,
+      headers:{...auth(owner.sessionToken),"idempotency-key":"history-cancel-original"}});
+    expect(result.json()).toMatchObject({status:"not_observed",record:null});
+  }
 });

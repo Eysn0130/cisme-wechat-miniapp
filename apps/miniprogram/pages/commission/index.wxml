@@ -3,7 +3,16 @@
   <view class="page page--stack commission-page">
     <view wx:if="{{loading}}" class="state">正在核对资格和佣金事实…</view>
     <view wx:if="{{error}}" class="state state--error"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试</button></view>
-    <view class="state" aria-live="polite"><text>{{runtimeCopy}}</text><button wx:if="{{runtimeState==='error'}}" class="text-button {{busy?'text-button--disabled':''}}" bindtap="retryRuntime" disabled="{{busy}}">重新核验操作状态</button></view><view wx:if="{{status&&!coreReady}}" class="state">显示上次读取的内容，正在等待最新核验；暂不可提交资金操作。</view><block wx:if="{{status}}">
+    <view class="state" aria-live="polite"><text>{{runtimeCopy}}</text><button wx:if="{{runtimeState==='error'}}" class="text-button {{busy?'text-button--disabled':''}}" bindtap="retryRuntime" disabled="{{busy}}">重新核验操作状态</button></view>
+<view wx:if="{{recoveryLoading||recoveryError||recoveryRows.length}}" class="state" aria-live="polite">
+  <text wx:if="{{recoveryLoading}}">正在核对上次操作…</text><text wx:if="{{recoveryError}}">{{recoveryError}}</text>
+  <view wx:for="{{recoveryRows}}" wx:key="key"><text>{{item.label}}</text>
+    <button wx:if="{{item.recorded||item.retryable&&(item.kind==='settlement'?isolatedTransfer:isolatedCredit)}}" class="text-button {{busy||!coreReady?'text-button--disabled':''}}" data-key="{{item.key}}" bindtap="resolveRecovery" disabled="{{busy||!coreReady}}">{{item.recorded?'已核对原记录':'重试最初确认的操作'}}</button>
+    <text wx:if="{{!item.recorded&&!item.retryable}}">原填写内容已清除，请联系客服核对；不要新建重复申请。</text>
+  </view>
+  <button class="text-button {{busy||recoveryLoading?'text-button--disabled':''}}" bindtap="loadRecovery" disabled="{{busy||recoveryLoading}}">重新核对原操作</button>
+</view>
+<view wx:if="{{status&&!coreReady}}" class="state">显示上次读取的内容，正在等待最新核验；暂不可提交资金操作。</view><block wx:if="{{status}}">
       <view class="commission-hero"><text>可用佣金</text><strong>¥{{availableLabel}}</strong><small>状态由已核验支付、退款、履约和结算事实重建；不是积分。</small></view>
       <view class="commission-grid">
         <view><text>待释放</text><strong>¥{{pendingLabel}}</strong></view>

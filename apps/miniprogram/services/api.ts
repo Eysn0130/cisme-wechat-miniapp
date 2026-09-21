@@ -1,3 +1,4 @@
+import { invalidateCommerceRecoveryContext, redactCommerceCommandPayloads } from "./commerce-command-store";
 import { measurementClock, metricAction, recordClientMetric } from "./performance-metrics";
 import { clearMemberIdentity } from "./member-identity";
 import { clearMemberAvatarCache } from "./member-avatar";
@@ -17,7 +18,8 @@ function normalizedAuthPath(url: string): string {
 }
 
 export function setSessionToken(token: string): void {
-  if(!token)clearAllUgcBackups();
+  invalidateCommerceRecoveryContext();
+  if(!token){clearAllUgcBackups();try{redactCommerceCommandPayloads();}catch{/* Keep malformed recovery records fail-closed; never retain the auth session. */}}
   clearMemberAvatarCache();
   clearMemberIdentity();
   reads.invalidate();

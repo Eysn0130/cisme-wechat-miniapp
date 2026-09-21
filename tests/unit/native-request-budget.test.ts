@@ -72,3 +72,20 @@ it("projects only supported numeric network phases, never peer IPs, headers or U
   for (let i = 0; i < 300; i++) metrics.recordClientMetric({ action: "home", stage: "set_data", durationMs: i });
   expect(metrics.localMeasurements().samples).toHaveLength(128);
 });
+it("does not coalesce different receipt keys, while same-key subscribers retain independent cancellation", async () => {
+  const { requestCancelable } = await import("../../apps/miniprogram/services/api");
+  const path = "/v1/me/commerce/command-receipts/settlement";
+  const a=requestCancelable({path,idempotencyKey:"synthetic-receipt-a"}), same=requestCancelable({path,idempotencyKey:"synthetic-receipt-a"}), b=requestCancelable({path,idempotencyKey:"synthetic-receipt-b"});
+  expect(requests).toHaveLength(2);
+  const cancelled=a.promise.catch(error=>error);a.abort();expect(abort).not.toHaveBeenCalled();await cancelled;
+  requests[0].success({statusCode:200,data:{record:"first"}});requests[1].success({statusCode:200,data:{record:"second"}});
+  expect(await same.promise).toEqual({record:"first"});expect(await b.promise).toEqual({record:"second"});
+  expect(requests[0].header["Idempotency-Key"]).toBe("synthetic-receipt-a");
+  expect(requests[1].header["Idempotency-Key"]).toBe("synthetic-receipt-b");
+});
+it("session changes advance the recovery context even for A to B to A",async()=>{
+  const {setSessionToken}=await import("../../apps/miniprogram/services/api");
+  const {commerceContextRevision}=await import("../../apps/miniprogram/services/commerce-command-store");
+  const initial=commerceContextRevision();setSessionToken("account-b");setSessionToken("account-a");
+  expect(commerceContextRevision()).toBe(initial+2);expect(state.globalData.sessionToken).toBe("account-a");
+});
