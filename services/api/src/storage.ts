@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual, createHash } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { resolve, basename } from "node:path";
+import { readFileSync,lstatSync } from "node:fs";
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
@@ -171,7 +172,17 @@ function gatewaySignature(payload: string, secret: string): string {
 }
 
 export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
-  const directory = resolve(process.cwd(), "tmp/object-storage");
+  let directory = resolve(process.cwd(), "tmp/object-storage");
+  if(process.env.CISME_TEST_RUN_ID){
+    const runId=process.env.CISME_TEST_RUN_ID,root=process.env.CISME_TEST_OBJECT_ROOT;
+    if(config.databaseUrl!==process.env.CISME_TEST_OWNED_URL||!root||!root.startsWith("/")||!/^cisme-objects-[a-f0-9]{24}-/.test(basename(root))||
+      !basename(root).startsWith(`cisme-objects-${runId}-`)||lstatSync(root).isSymbolicLink())
+      throw new Error("DISPOSABLE_OBJECT_ROOT_REQUIRED");
+    const marker=JSON.parse(readFileSync(resolve(root,".ownership.json"),"utf8"));
+    if(marker.runId!==runId||marker.container!==process.env.CISME_TEST_CONTAINER_ID)
+      throw new Error("DISPOSABLE_OBJECT_ROOT_MISMATCH");
+    directory=resolve(root,"objects");
+  }
   const secret = config.objectStorage.uploadTokenSecret;
   return {
     acceptsGatewayUpload: true,

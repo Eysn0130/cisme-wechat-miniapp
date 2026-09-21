@@ -1,0 +1,21 @@
+import {mkdtemp,writeFile,readdir,rm} from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {afterEach,it,expect,vi} from 'vitest';
+import {loadConfig} from '@cisme/config';
+import {createApiGatewayStorage} from '../../services/api/src/storage';
+const roots:string[]=[];
+afterEach(async()=>{vi.unstubAllEnvs();await Promise.all(roots.splice(0).map(path=>rm(path,{recursive:true,force:true})));});
+it('writes only below the exact run-owned root and refuses mismatched marker or database',async()=>{
+ const runId='1'.repeat(24),container='2'.repeat(64),url='postgres://unused/synthetic';
+ const root=await mkdtemp(join(tmpdir(),`cisme-objects-${runId}-`));roots.push(root);
+ await writeFile(join(root,'.ownership.json'),JSON.stringify({runId,container}));
+ for(const [name,value] of Object.entries({CISME_TEST_RUN_ID:runId,CISME_TEST_OBJECT_ROOT:root,CISME_TEST_CONTAINER_ID:container,CISME_TEST_OWNED_URL:url}))vi.stubEnv(name,value);
+ const config=loadConfig({APP_ENV:'test',DATABASE_URL:url,APP_SESSION_SECRET:'synthetic',ADMIN_API_TOKEN:'synthetic',UPLOAD_TOKEN_SECRET:'synthetic',OBJECT_STORAGE_DRIVER:'api_gateway'});
+ await createApiGatewayStorage(config).ensureReady();expect((await readdir(root)).sort()).toEqual(['.ownership.json','objects']);
+ expect(()=>createApiGatewayStorage({...config,databaseUrl:'postgres://unused/foreign'})).toThrow('DISPOSABLE_OBJECT_ROOT_REQUIRED');
+ await writeFile(join(root,'.ownership.json'),JSON.stringify({runId:'3'.repeat(24),container}));
+ expect(()=>createApiGatewayStorage(config)).toThrow('DISPOSABLE_OBJECT_ROOT_MISMATCH');
+ vi.stubEnv('CISME_TEST_OBJECT_ROOT',undefined);
+ expect(()=>createApiGatewayStorage(config)).toThrow('DISPOSABLE_OBJECT_ROOT_REQUIRED');
+});
