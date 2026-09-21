@@ -486,7 +486,7 @@
     }
   ],
   "migrationSetSha256": "2684ec3eb6d5a47f11e01561630fc60bed479a02cbb8ca514d4e41cc5724947d",
-  "egressSignatureSha256": "2b808ceabdb131059aeb018b33505f705155762763c8655f030c4d002df8b744",
+  "egressSignatureSha256": "957353303464b3c322f0db6eddf41e07ecaf15817dbcdd2d70679d8ad8ae8738",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -500,5 +500,12 @@
     "liveGrantInstalled": false,
     "realChannelCalled": false,
     "businessPolicyApproved": false
+  },
+  "identityExchangeReview": {
+    "date": "2026-09-21",
+    "source": "services/api/src/wechatIdentity.ts",
+    "reviewed": "原 server.ts 的 jscode2session 调用移入有界模块；接收方/目的/字段不变，无新第三方。仅合法 code 出站，HTTPS 固定主机，拒绝重定向，64 KiB 流限制，响应仅提取 openid/unionid 进入既有身份事务，不输出 session_key/平台错误原文。",
+    "realCredentialsUsed": false,
+    "realWeChatLoginVerified": false
   }
 }

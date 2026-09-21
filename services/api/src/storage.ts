@@ -18,7 +18,7 @@ import type { UploadAuthorization } from "@cisme/contracts";
 import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
 import { OperationBudget, assertOperationActive, currentOperationBudget, dependencySignal } from "./operationBudget.js";
-import { recordMetric } from "./observability.js";
+import { recordMetric,recordStorageOutcome } from "./observability.js";
 
 export interface StoredObject {
   bytes: number;
@@ -40,7 +40,8 @@ export interface ObjectStorage {
 function observeStorage(storage: ObjectStorage): ObjectStorage {
   const timed = async <T>(work: () => Promise<T>): Promise<T> => {
     const started = performance.now();
-    try { assertOperationActive(); const result = await work(); assertOperationActive(); return result; }
+    try { assertOperationActive(); const result = await work(); assertOperationActive(); recordStorageOutcome(true); return result; }
+    catch(error){recordStorageOutcome(false);throw error;}
     finally { recordMetric("storage_ms", performance.now() - started); }
   };
   return {

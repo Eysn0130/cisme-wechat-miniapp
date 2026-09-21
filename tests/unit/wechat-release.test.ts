@@ -183,6 +183,15 @@ describe("WeChat release preflight", () => {
     expect(validateInternalTestPackageSafety({ ...safe, testMembersConfigured: false })).toContain("INTERNAL_TEST_MEMBERS_SCOPE_PROOF_REQUIRED");
   });
 
+  it("does not require unrelated CI-tool risk consent for official DevTools safety checks", () => {
+    expect(validateInternalTestPackageSafety({testTargetIsolated:true,paymentsDisabled:true,
+      publicUgcDisabled:true,testMembersConfigured:true})).toEqual([]);
+    expect(validateWeChatCiPreview({projectAppId:'wx0123456789abcdef',expectedAppId:'wx0123456789abcdef',
+      apiOrigin:'https://demo-api.cisme.example',privacyCheckEnabled:true,manualGates:completeGates,
+      riskAccepted:false,testTargetIsolated:true,paymentsDisabled:true,publicUgcDisabled:true,testMembersConfigured:true
+    })).toContain('WECHAT_CI_RISK_ACCEPTANCE_REQUIRED');
+  });
+
   it("requires cloud transport evidence and keeps experience membership scoped to trial", () => {
     const input = {
       target: "release" as const, projectAppId: "wx0123456789abcdef", expectedAppId: "wx0123456789abcdef",

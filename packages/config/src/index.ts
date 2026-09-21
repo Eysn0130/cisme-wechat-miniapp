@@ -57,7 +57,7 @@ export interface AppConfig {
     simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
       transferSceneId?: string };
     formalProtocol?: { appId: string; merchantId: string; merchantSerial: string;
-      merchantPrivateKeyFile: string; apiV3KeyFile: string; platformTrustManifestFile: string;
+      merchantPrivateKeyFile: string; merchantCertificateFile?: string; apiV3KeyFile: string; platformTrustManifestFile: string;
       paymentNotifyUrl: string; refundNotifyUrl: string; recoveryAuthorizationFile?: string;
       transferNotifyUrl?: string; transferSceneId?: string } };
 }
@@ -235,6 +235,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     merchantId:required("COMMERCE_FORMAL_MERCHANT_ID",env.COMMERCE_FORMAL_MERCHANT_ID),
     merchantSerial:required("COMMERCE_FORMAL_MERCHANT_SERIAL",env.COMMERCE_FORMAL_MERCHANT_SERIAL),
     merchantPrivateKeyFile:required("COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE",env.COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE),
+    ...(env.COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE?{merchantCertificateFile:env.COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE}:{}),
     apiV3KeyFile:required("COMMERCE_FORMAL_API_V3_KEY_FILE",env.COMMERCE_FORMAL_API_V3_KEY_FILE),
     platformTrustManifestFile:required("COMMERCE_FORMAL_PLATFORM_TRUST_FILE",env.COMMERCE_FORMAL_PLATFORM_TRUST_FILE),
     paymentNotifyUrl:required("COMMERCE_FORMAL_PAYMENT_NOTIFY_URL",env.COMMERCE_FORMAL_PAYMENT_NOTIFY_URL),

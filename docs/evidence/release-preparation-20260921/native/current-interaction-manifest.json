@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "91a37de8a3572417148929564cfa9cfeea696d73094a60938b6b68d8b45ed3a6",
+  "sourceHead": "17314e3c3255de788179b8da37465291244fbccf",
+  "scope": "actual IDE synthetic interaction, original 242x524 screenshots, not physical or full state acceptance",
+  "releaseReady": false,
+  "files": [
+    {
+      "path": "current-home-member.png",
+      "sha256": "46b949d62d76d66333bac67236dd37f82116d4f3b1534131d7f76192f0914a4c"
+    },
+    {
+      "path": "current-care-assessment-required.png",
+      "sha256": "cc996c4d968753578831f6ca16ac03a65fc5cae67d973a70f14b87a12483c9e5"
+    },
+    {
+      "path": "current-care-record-detail.png",
+      "sha256": "1c8289d1814cfa3fc1d47cc7fc161efcf36b578b58561e57217e892af7ecb2d8"
+    },
+    {
+      "path": "account-expired-session-after.png",
+      "sha256": "b8694a0d38381a1135f294f99cdf076f3a253de764126a85c16f12b66b890d8c"
+    },
+    {
+      "path": "account-expired-session-recovered.png",
+      "sha256": "db343fc09c5739ae6b769a8ae878764640a355cca060644aac912c6fba29a5aa"
+    }
+  ]
+}

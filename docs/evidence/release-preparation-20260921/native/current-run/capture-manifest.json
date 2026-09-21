@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "91a37de8a3572417148929564cfa9cfeea696d73094a60938b6b68d8b45ed3a6",
+  "sourceHead": "17314e3c3255de788179b8da37465291244fbccf",
+  "backendSource": "uncommitted operations batch on 17314e3; not final backend acceptance",
+  "environment": "owned local synthetic API and official native IDE",
+  "runId": "87ef08239acd4617a4f2f800",
+  "routeDenominator": 37,
+  "capturedRoutes": 36,
+  "readySingleState": 30,
+  "fullStateMatrixPassed": 0,
+  "physicalDevicePassed": 0,
+  "releaseReady": false,
+  "rawSize": "242x524; original simulator resolution, not rescaled; below release screenshot size requirement",
+  "files": [
+    {
+      "path": "native/current-run/raw/checkout.png",
+      "sha256": "232edece8a4e4a27263dd8cf525d770f7622ccca1777ac69f2506686c666b6b2"
+    },
+    {
+      "path": "native/current-run/raw/commission.png",
+      "sha256": "4748a72f3680aa6e2d458454147442065ad75dca0a7db5951482fef1540af6ee"
+    },
+    {
+      "path": "native/current-run/raw/community-activity.png",
+      "sha256": "a5ceb3a91bf8cf16cefec7ef9440e6073695876651cba92215f160f18ac0de5b"
+    },
+    {
+      "path": "native/current-run/raw/community-author.png",
+      "sha256": "fa468771ffcf5de13b6d79bd1225e10ddbaa764994061ba02addf4a41dbd18e6"
+    },
+    {
+      "path": "native/current-run/raw/community-compose.png",
+      "sha256": "2c03a95b6fe175d8990a4cf995ed3d5a432e87eaa490ba6ace0d23a471fa45af"
+    },
+    {
+      "path": "native/current-run/raw/community-post.png",
+      "sha256": "f570cf060f81c771248b78a1518d4484993bc28e97ccebb93baecf9678135c2f"
+    },
+    {
+      "path": "native/current-run/raw/community-review.png",
+      "sha256": "6b9538dd87c1982da533b8a739c3bbbe2c8e45c91d6188104c5b6cb6a4d2b9a6"
+    },
+    {
+      "path": "native/current-run/raw/community.png",
+      "sha256": "00a1edb56f1a98a8e0c2f33076dab33c332d538562f933d7070ce762347b9b03"
+    },
+    {
+      "path": "native/current-run/raw/home.png",
+      "sha256": "9a599a4e90a98c6ae08cc803ddba6a0a572d5ef525ebaaebc4e98a87308ce20f"
+    },
+    {
+      "path": "native/current-run/raw/invite.png",
+      "sha256": "bcc523f13210e1a2b44d9fee67c873d639184498072abecd16a7a7f0b9a36b7b"
+    },
+    {
+      "path": "native/current-run/raw/legal.png",
+      "sha256": "d7dc24a505721676711a31acaeeda09604b8b231f41598c8df30b8eb5c6f9327"
+    },
+    {
+      "path": "native/current-run/raw/management-catalog.png",
+      "sha256": "1d34b83ab67668bdbf15c481a1993e12913b58bb2fcc1191580fe4a20930b233"
+    },
+    {
+      "path": "native/current-run/raw/management-finance.png",
+      "sha256": "03c6ac62c22aecc61e7bb91dfde2a95771ff3606253faedc1b9417f673dfd7e9"
+    },
+    {
+      "path": "native/current-run/raw/management-member.png",
+      "sha256": "23a7862b6c68a181d870c85168177cd6ce02fa9352a16e91766a1a12b0f55e60"
+    },
+    {
+      "path": "native/current-run/raw/management-members.png",
+      "sha256": "cedc770c9596fd24b1454a891500bb19d23c8a0f5c2430414e5e2f613bfaa4c9"
+    },
+    {
+      "path": "native/current-run/raw/management-order-detail.png",
+      "sha256": "51d9a6c9113fd64b0c8b431793a0bef810b38e14f44a21cbeaed44a5a002cf48"
+    },
+    {
+      "path": "native/current-run/raw/management-orders.png",
+      "sha256": "42d2e138f75b1519f6a97f22787c851138c35efcde8f4f1b94b865e1f474a457"
+    },
+    {
+      "path": "native/current-run/raw/management-product.png",
+      "sha256": "959fa2e1ead5cc2508247bddc00750d7a1090ec2b017d5b62c99a297144d8b68"
+    },
+    {
+      "path": "native/current-run/raw/management-support-chat.png",
+      "sha256": "c20e4cc29d7322ef54e2f10dd4190c9456e688de4061fabab35190961fd2763f"
+    },
+    {
+      "path": "native/current-run/raw/management-support.png",
+      "sha256": "02e1f8888dd2deae33f922fd1c993724e2d1858af4b262e27b6f3daada27ddda"
+    },
+    {
+      "path": "native/current-run/raw/management.png",
+      "sha256": "ed63cbad740222e56a02c2c56f094daeaf21194bdf2ed1d9e2271c2c86598cd4"
+    },
+    {
+      "path": "native/current-run/raw/order-detail.png",
+      "sha256": "7922dc129f5e258c5777a7d5d856bee85de37c9a0c6c95f5a57be867a2f96b5e"
+    },
+    {
+      "path": "native/current-run/raw/orders.png",
+      "sha256": "e8f509109e9115d9ca67f96c2f55d3f445a774b917e065bd21905b7c2b1a25e2"
+    },
+    {
+      "path": "native/current-run/raw/points.png",
+      "sha256": "41979d9f6e35e13e6d05acc8ae1e01dce209f554ae26de60e0dda36dab151ce7"
+    },
+    {
+      "path": "native/current-run/raw/post.png",
+      "sha256": "8e66241768fdf5cad8dbe50f4ad1cb04f5f4b7c94980e8606230d3055567fb76"
+    },
+    {
+      "path": "native/current-run/raw/privacy-rights.png",
+      "sha256": "58facb8054262e76ad22a6da75230b5636a2461556492f88e0262378cdf6a30d"
+    },
+    {
+      "path": "native/current-run/raw/product.png",
+      "sha256": "261433f62738d7acc5f49fc3da1110abc7eb1ef98c4c4701f9b15a8137f4c4ed"
+    },
+    {
+      "path": "native/current-run/raw/profile.png",
+      "sha256": "a5ed27d29e048c414774e118c39c3d4b64f02f7a4dc40acacd20070602f1200f"
+    },
+    {
+      "path": "native/current-run/raw/progress.png",
+      "sha256": "cdb3f93f39c7cd228d0a5182e7de1b3e841c84aae9db62160f99d830f54ce44a"
+    },
+    {
+      "path": "native/current-run/raw/records.png",
+      "sha256": "cebcefb5664997100d7f22576589e716b000cce3410ca8ea7c4172e7731c5789"
+    },
+    {
+      "path": "native/current-run/raw/referral.png",
+      "sha256": "7ecc637119495cbe9f6b4a1e6ff26fdaed1aabeb159c7e831e8926fb8d3f35fc"
+    },
+    {
+      "path": "native/current-run/raw/settings.png",
+      "sha256": "0818d530780cde33a362e00cbd333e3ed8718d9b8e99195460678a99e467190d"
+    },
+    {
+      "path": "native/current-run/raw/shop.png",
+      "sha256": "c9317b9b759bd80ef6ccb3caa4b7913f2e7cb710bd74ffa42c66e466f57c64b4"
+    },
+    {
+      "path": "native/current-run/raw/submit.png",
+      "sha256": "5f29c1cd806b1dff1d69422140b9fddd7c65437db00a3157f569c43b427c5064"
+    },
+    {
+      "path": "native/current-run/raw/support.png",
+      "sha256": "9355299a086949a43373d348aeac68e185e685291e0be529270ff577097f8794"
+    },
+    {
+      "path": "native/current-run/raw/task.png",
+      "sha256": "fe9d2303f87420d2bccf302eb0929f8ab55e8f4eb15fa3e3cc254617f5b98d6a"
+    }
+  ]
+}

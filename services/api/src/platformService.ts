@@ -1585,6 +1585,12 @@ export class PlatformService {
     });
   }
 
+  async requireOperationsReader(principalId: string) {
+    const client = await this.pool.connect();
+    try { await this.assertAdminRole(client, principalId, ["review_lead", "auditor", "support"]); }
+    finally { client.release(); }
+  }
+
   private async assertAdminRole(client: DbClient, principalId: string, allowed: string[]) {
     const result = await client.query<{ role: string }>("SELECT role FROM principal_role WHERE principal_id=$1", [principalId]);
     if (!result.rows.some((row) => allowed.includes(row.role))) throw new DomainError("RBAC_FORBIDDEN", "Principal lacks the required role", 403);

@@ -1,3 +1,5 @@
+import { operationalSignals } from './operationalSignals.js';
+import { exchangeWechatIdentity } from './wechatIdentity.js';
 import { discoverCommerceCommands } from "./commerceCommandDiscovery.js";
 import { commerceCommandReceipt } from "./commerceCommandReceipt.js";
 import { listMemberRefundRequests, listMemberSettlements } from "./commerceHistory.js";
@@ -346,10 +348,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 
   app.post("/v1/identity/wechat", async (request) => {
     if (!config.wechat.appId || !config.wechat.appSecret) throw new DomainError("WECHAT_NOT_CONFIGURED", "WeChat credentials are not configured", 503);
-    const body = request.body as { code: string; displayName: string; consents: Array<{ documentType: string; version: string }> };
-    const response = await fetch(`https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(config.wechat.appId)}&secret=${encodeURIComponent(config.wechat.appSecret)}&js_code=${encodeURIComponent(body.code)}&grant_type=authorization_code`, { signal: dependencySignal(12_000) });
-    const session = await response.json() as { openid?: string; unionid?: string; errcode?: number; errmsg?: string };
-    if (!response.ok || !session.openid) throw new DomainError("WECHAT_LOGIN_FAILED", session.errmsg ?? "WeChat login failed", 502);
+    const body = (request.body ?? {}) as { code: unknown; displayName: string; consents: Array<{ documentType: string; version: string }> };
+    const session = await exchangeWechatIdentity(config.wechat.appId,config.wechat.appSecret,body.code);
     const now = service.now();
     const result = await service.identity({
       provider: "wechat_miniprogram",
@@ -752,7 +752,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/v1/admin/worker-backlog", async (request) => service.listWorkerBacklog(adminPrincipal(request, config)));
   app.put<{ Params: { key: EmergencySwitchKey } }>("/v1/admin/switches/:key", async (request) => service.setEmergencySwitch(adminPrincipal(request, config), request.params.key, idempotencyKey(request), request.body as { enabled: boolean; reason: string; expectedVersion: number }, service.now(devClock(request))));
   app.get("/v1/admin/worker-failures", async (request) => service.listWorkerFailures(adminPrincipal(request, config)));
-  app.get("/v1/admin/runtime-metrics", async (request) => { adminPrincipal(request, config); return runtimeMetrics(pool); });
+  app.get("/v1/admin/runtime-metrics", async (request) => {
+    await service.requireOperationsReader(adminPrincipal(request, config));
+    return {...runtimeMetrics(pool),operations:await operationalSignals(pool)};
+  });
   app.post<{ Params: { queue: WorkerQueue; itemId: string } }>("/v1/admin/worker-failures/:queue/:itemId/redrive", async (request) => service.redriveWorkerFailure(
     adminPrincipal(request, config),
     request.params.queue,

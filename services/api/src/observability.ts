@@ -66,6 +66,8 @@ function routeFor(key: string) {
   if (!value) { value = routeValue(); routeSeries.set(key, value); }
   return value;
 }
+const storageOutcomes={attempts:0,failures:0};
+export function recordStorageOutcome(success:boolean){storageOutcomes.attempts++;if(!success)storageOutcomes.failures++;}
 export function recordMetric(name: MetricName, value: number): void { series[name].add(value); }
 export function recordHttpRequest(input: { method?: string; route?: string; durationMs: number; responseBytes: number | null; statusCode: number; coldStart: boolean; timedOut?: boolean }): void {
   recordMetric("http_ms", input.durationMs);
@@ -140,6 +142,7 @@ export function installHttpMetrics(app: FastifyInstance): void {
   });
 }
 export function resetRuntimeMetrics(): void {
+  storageOutcomes.attempts=0;storageOutcomes.failures=0;
   for (const metric of Object.values(series)) metric.clear();
   completedSeries.clear(); abortedSeries.clear(); loopDelay.reset();
   for (const key of Object.keys(httpStatuses) as (keyof typeof httpStatuses)[]) httpStatuses[key] = 0;
@@ -154,7 +157,7 @@ export function runtimeMetrics(pool?: pg.Pool) {
     process: { pid: process.pid, rssBytes: memory.rss, heapUsedBytes: memory.heapUsed, cpuMicroseconds: process.cpuUsage(),
       eventLoopDelayMs: { samples: loopDelay.count, p95: loopDelay.count ? ms(loopDelay.percentile(95)) : null, max: loopDelay.count ? ms(loopDelay.max) : null } },
     pool: pool ? { total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount } : null,
-    poolWaitMs: series.pool_wait_ms.snapshot(), sqlMs: series.sql_ms.snapshot(), storageMs: series.storage_ms.snapshot(), transactionRetries: series.transaction_retry.snapshot(),
+    poolWaitMs: series.pool_wait_ms.snapshot(), sqlMs: series.sql_ms.snapshot(), storageMs: series.storage_ms.snapshot(), storageOutcomes:{...storageOutcomes}, transactionRetries: series.transaction_retry.snapshot(),
     http: {
       timingBoundary: "durationMs: onRequest to onSend, before socket completion; completedDurationMs: onRequest to onResponse; neither proves client receipt",
       sampling: "process-local rolling rings: aggregate 2048, per method/template 512; counters cumulative since reset; never average instance percentiles",

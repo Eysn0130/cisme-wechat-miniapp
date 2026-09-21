@@ -12,3 +12,15 @@
 定向修复后 4 文件 14 测试通过；此前完整 706 集成通过发生在原草稿状态修复前，最终准确 HEAD CI 必须另核。补丁中一次范围过宽的替换曾误影响审核路径，测试发现并修正，审核用例已重新通过。
 
 安全边界：没有对生产角色或商户权限进行修改；所有反例仅在本次新建实例的合成主体/对象上执行。原始本机日志位于 `tmp/release-preparation/{upload-revocation-before,ugc-upload-before,authority-before,ugc-source-before,authorization-after-final}.log`，不会把这些日志中的历史失败覆盖成通过。
+
+## 后续复核：私有图片读取撤权
+
+`revokes signed own-image preview URLs when the owning member is blocked` 在修复前实际返回 200（应 404），证明有效期内的本人图片签名 URL 未校验主体停用。现在两种本人预览投影均在读取时检查 active 会员；签名、原作者、原内容状态、原图片关系和期限检查继续保留。定向 `formal-ugc-editor` 全部 5 用例及运维信号用例通过。原始反例日志 `tmp/release-preparation/preview-revocation-before.log`。
+
+## Runtime metrics and WeChat identity input (current operations batch)
+
+`GET /v1/admin/runtime-metrics` accepted an ordinary signed member and exposed aggregate operations facts. The new HTTP counterexample failed with 200 instead of 403 on the pre-fix handler. It now checks the existing operations-reader roles (`review_lead`, `auditor`, `support`), rechecks each read and rejects role revocation; it does not add grants. First attempted runner invocation failed to find `vitest`; the recorded before/after evidence is from the subsequent successful disposable npm launcher.
+
+`POST /v1/identity/wechat` coerced missing/object codes into an external request; the injected-transport counterexample returned 500. Input is now bounded and rejected before dispatch; provider responses are streamed with a 64 KiB limit, redirects denied, and typed identifiers alone passed into the existing identity transaction. Provider error text/session_key never enters the client projection. Synthetic HTTP tests cover malformed input, provider failures, current consent, app binding, three bootstrap projections and no unexpected identity writes. This is not a real WeChat credential/login acceptance.
+
+The five previously unobserved HTTP entry points now have targeted executions, including public capability/UGC status and signed challenge/unsigned scan source. A missing successful status still requires semantic review: a deliberately closed feature can correctly return 503. The executed route report does not close the 13-axis security audit by itself.

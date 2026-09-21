@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/account/index",
+        "loading": false,
+        "error": "登录状态已变化，请重新确认身份。",
+        "identityCommitStarted": false,
+        "hasSession": false
+      }
+    }
+  }
+}

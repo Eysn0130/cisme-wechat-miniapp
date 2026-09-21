@@ -41,6 +41,17 @@ beforeAll(async () => {
 
 afterAll(async () => { await app?.close(); await pool.end(); });
 
+it("keeps runtime metrics behind an explicit operations role and rechecks revocation", async () => {
+  const url = "/v1/admin/runtime-metrics";
+  expect((await app.inject({url,headers:{authorization:`Bearer ${ordinarySession}`}})).statusCode).toBe(403);
+  const allowed=await app.inject({url,headers:{authorization:`Bearer ${leadSession}`}});
+  expect(allowed.statusCode).toBe(200);
+  expect(allowed.json().operations).toHaveProperty('signals');
+  await pool.query("DELETE FROM principal_role WHERE principal_id=$1",[leadPrincipalId]);
+  expect((await app.inject({url,headers:{authorization:`Bearer ${leadSession}`}})).statusCode).toBe(403);
+  await pool.query("INSERT INTO principal_role(principal_id,role) VALUES ($1,'review_lead')",[leadPrincipalId]);
+});
+
 it("requires a signed session on every currently registered admin operation", async () => {
   const operations = registeredSourceOperations(readFileSync("services/api/src/server.ts", "utf8"))
     .filter((operation) => operation.path.startsWith("/v1/admin/"));
