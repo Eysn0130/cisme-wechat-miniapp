@@ -16,11 +16,13 @@ const transaction={appid:binding.appId,mchid:binding.merchantId,out_trade_no:bin
   success_time:"2026-09-12T11:59:30Z",
   amount:{total:binding.totalCents,payer_total:binding.totalCents,currency:"CNY",payer_currency:"CNY"},
   payer:{openid:binding.payerOpenid}};
-function notification(payload:unknown=transaction){
-  const nonce="0123456789ab",associated="transaction";
+function notification(payload:unknown=transaction, associated:unknown="transaction", corruptTag=false){
+  const nonce="0123456789ab";
   const cipher=createCipheriv("aes-256-gcm",Buffer.from(apiV3Key),Buffer.from(nonce));
-  cipher.setAAD(Buffer.from(associated));
-  const ciphertext=Buffer.concat([cipher.update(JSON.stringify(payload)),cipher.final(),cipher.getAuthTag()]).toString("base64");
+  cipher.setAAD(Buffer.from(typeof associated==="string"?associated:""));
+  const encrypted=Buffer.concat([cipher.update(JSON.stringify(payload)),cipher.final(),cipher.getAuthTag()]);
+  if(corruptTag)encrypted[encrypted.length-1]=encrypted[encrypted.length-1]!^1;
+  const ciphertext=encrypted.toString("base64");
   const raw=Buffer.from(JSON.stringify({id:"EV-20260912-0001",event_type:"TRANSACTION.SUCCESS",resource_type:"encrypt-resource",
     resource:{algorithm:"AEAD_AES_256_GCM",ciphertext,associated_data:associated,nonce,original_type:"transaction"}}));
   const timestamp=Math.floor(now.getTime()/1000).toString(),requestNonce=randomBytes(16).toString("hex");
@@ -87,4 +89,50 @@ it("queries the same merchant refund number and keeps PROCESSING distinct from s
   expect((await client.queryRefundByMerchantRefundNumber(refundBinding)).succeededAt).toBeTruthy();
   payerRefund=9_999;
   await expect(client.queryRefundByMerchantRefundNumber(refundBinding)).rejects.toThrow();
+});
+
+function responseHeaders(raw:string, offset=0) {
+  const timestamp=String(Math.floor(Date.now()/1000)+offset),nonce="synthetic-response";
+  return {"Wechatpay-Serial":"PUB_KEY_ID_3000000001","Wechatpay-Timestamp":timestamp,
+    "Wechatpay-Nonce":nonce,"Wechatpay-Signature":sign("RSA-SHA256",Buffer.from(`${timestamp}\n${nonce}\n${raw}\n`),platform.privateKey).toString("base64")};
+}
+it.each(["missing","bad","unknown-key","expired","valid"])("checks %s signatures on empty 204 close responses",async mode=>{
+  const headers=responseHeaders("",mode==="expired"?-600:0);
+  if(mode==="bad")headers["Wechatpay-Signature"]="WECHATPAY/SIGNTEST/bad";
+  if(mode==="unknown-key")headers["Wechatpay-Serial"]="UNKNOWN";
+  const fetcher=(async()=>new Response(null,{status:204,headers:mode==="missing"?{}:headers})) as typeof fetch;
+  const client=new WechatPayV3Client(binding.merchantId,"MERCHANT_SERIAL",merchantPrivate,keys,fetcher);
+  if(mode==="valid")await expect(client.closeByMerchantOrderNumber(binding.outTradeNo)).resolves.toBeUndefined();
+  else await expect(client.closeByMerchantOrderNumber(binding.outTradeNo)).rejects.toThrow();
+});
+it.each(["",undefined])("accepts optional empty callback AAD %s with a valid signature and GCM tag",aad=>{
+  // undefined bypasses the helper default using an explicit omitted sentinel.
+  const input=notification(transaction,aad==undefined?null:aad);
+  if(aad===undefined){
+    const body=JSON.parse(input.rawBody.toString());delete body.resource.associated_data;
+    input.rawBody=Buffer.from(JSON.stringify(body));
+    input.headers["Wechatpay-Signature"]=sign("RSA-SHA256",Buffer.concat([
+      Buffer.from(`${input.headers["Wechatpay-Timestamp"]}\n${input.headers["Wechatpay-Nonce"]}\n`),input.rawBody,Buffer.from("\n")]),platform.privateKey).toString("base64");
+  }
+  expect(verifyPaymentNotification(input).providerTransactionId).toBe(transaction.transaction_id);
+});
+it.each([null,{},7])("rejects invalid callback AAD type %s",aad=>expect(()=>verifyPaymentNotification(notification(transaction,aad))).toThrow());
+it("rejects an authentic envelope with a broken GCM tag",()=>expect(()=>verifyPaymentNotification(notification(transaction,"",true))).toThrow());
+
+it("caps chunked channel responses before buffering an unbounded body",async()=>{
+  let cancelled=false;
+  const stream=new ReadableStream<Uint8Array>({pull(controller){controller.enqueue(new Uint8Array(600_000));},cancel(){cancelled=true;}});
+  const fetcher=(async()=>new Response(stream,{status:200})) as typeof fetch;
+  const client=new WechatPayV3Client(binding.merchantId,"MERCHANT_SERIAL",merchantPrivate,keys,fetcher);
+  await expect(client.queryByMerchantOrderNumber(binding.outTradeNo)).rejects.toMatchObject({code:"WECHAT_PAY_RESPONSE_TOO_LARGE"});
+  expect(cancelled).toBe(true);
+});
+it("refuses transfer without an explicit scene report before any outbound call",async()=>{
+  let calls=0;
+  const fetcher=(async()=>{calls++;throw new Error("unexpected transport");}) as typeof fetch;
+  const client=new WechatPayV3Client(binding.merchantId,"MERCHANT_SERIAL",merchantPrivate,keys,fetcher);
+  await expect(client.createTransfer({appId:binding.appId,merchantId:binding.merchantId,outBillNo:"SYNTHETIC0001",
+    payeeOpenid:"synthetic-payee",amountCents:1,sceneId:"TEST",remark:"synthetic",notifyUrl:"https://example.test/notify"}))
+    .rejects.toMatchObject({code:"WECHAT_TRANSFER_SCENE_REQUIRED"});
+  expect(calls).toBe(0);
 });

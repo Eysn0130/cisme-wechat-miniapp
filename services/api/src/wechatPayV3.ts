@@ -16,7 +16,8 @@ export interface PaymentBinding{appId:string;merchantId:string;outTradeNo:string
 export interface RefundBinding{merchantId:string;outTradeNo:string;providerTransactionId:string;outRefundNo:string;
   totalCents:number;refundCents:number;payerTotalCents:number;payerRefundCents:number;}
 export interface TransferBinding{appId:string;merchantId:string;outBillNo:string;payeeOpenid:string;
-  amountCents:number;sceneId:string;remark:string;notifyUrl:string;}
+  amountCents:number;sceneId:string;remark:string;notifyUrl:string;
+  sceneReportInfos?:ReadonlyArray<{info_type:string;info_content:string}>;}
 export type TransferState="ACCEPTED"|"PROCESSING"|"WAIT_USER_CONFIRM"|"TRANSFERING"|
   "SUCCESS"|"FAIL"|"CANCELING"|"CANCELLED";
 export interface TransferQueryResult{mch_id?:unknown;appid?:unknown;out_bill_no?:unknown;
@@ -56,13 +57,13 @@ function decryptResource<T>(resource:Resource|undefined,apiV3Key:string,
   originalType:"transaction"|"refund"|"mch_payment"):T{
   if(!resource||resource.algorithm!=="AEAD_AES_256_GCM"||resource.original_type!==originalType||
     typeof resource.ciphertext!=="string"||typeof resource.nonce!=="string"||
-    typeof resource.associated_data!=="string"||Buffer.byteLength(apiV3Key)!==32)
+    (resource.associated_data!==undefined&&typeof resource.associated_data!=="string")||Buffer.byteLength(apiV3Key)!==32)
     reject("微信支付加密资源格式无效");
   const cipher=Buffer.from(resource.ciphertext,"base64");
   if(cipher.length<17||Buffer.byteLength(resource.nonce)!==12)reject("微信支付加密资源长度无效");
   const decipher=createDecipheriv("aes-256-gcm",Buffer.from(apiV3Key),Buffer.from(resource.nonce));
   decipher.setAuthTag(cipher.subarray(cipher.length-16));
-  decipher.setAAD(Buffer.from(resource.associated_data));
+  decipher.setAAD(Buffer.from(resource.associated_data??""));
   try{return JSON.parse(Buffer.concat([decipher.update(cipher.subarray(0,-16)),decipher.final()]).toString("utf8")) as T;}
   catch{reject("微信支付加密资源认证失败");}
 }
@@ -193,8 +194,8 @@ export class WechatPayV3Client{
       Authorization:this.authorization(method,path,body),Accept:"application/json",
       ...(body?{"Content-Type":"application/json"}:{}),"User-Agent":"CISME/1.0"},
       ...(body?{body}:{}),redirect:"error",signal:AbortSignal.timeout(10000)});
-    const raw=Buffer.from(await response.arrayBuffer());
-    if(raw.length)validSignature(Object.fromEntries(response.headers.entries()),raw,this.platformKeys,new Date());
+    const raw=await boundedResponseBody(response,1_000_000);
+    validSignature(Object.fromEntries(response.headers.entries()),raw,this.platformKeys,new Date());
     if(!response.ok){
       let code:unknown;
       try{code=(JSON.parse(raw.toString("utf8")) as {code?:unknown}).code;}catch{/* fail closed */}
@@ -276,6 +277,10 @@ export class WechatPayV3Client{
       rawSha256:createHash("sha256").update(raw).digest("hex")};
   }
   async createTransfer(binding:TransferBinding){
+    if(!binding.sceneReportInfos?.length||binding.sceneReportInfos.length>10||
+      binding.sceneReportInfos.some(info=>!info.info_type?.trim()||!info.info_content?.trim()||
+        info.info_type.length>32||info.info_content.length>256))
+      throw new DomainError("WECHAT_TRANSFER_SCENE_REQUIRED","转账须配置已批准场景申报资料",503);
     if(!/^[A-Za-z0-9]{8,32}$/.test(binding.outBillNo)||
       !Number.isSafeInteger(binding.amountCents)||binding.amountCents<1||
       binding.amountCents>9_900_000_000||binding.remark.length<1||binding.remark.length>32||
@@ -284,7 +289,7 @@ export class WechatPayV3Client{
     const body=JSON.stringify({appid:binding.appId,out_bill_no:binding.outBillNo,
       transfer_scene_id:binding.sceneId,openid:binding.payeeOpenid,
       transfer_amount:binding.amountCents,transfer_remark:binding.remark,notify_url:binding.notifyUrl,
-      transfer_scene_report_infos:[{info_type:"活动名称",info_content:"隔离佣金测试"}]});
+      transfer_scene_report_infos:binding.sceneReportInfos});
     const {raw}=await this.request("POST","/v3/fund-app/mch-transfer/transfer-bills",body);
     let result:{out_bill_no?:unknown;transfer_bill_no?:unknown;state?:unknown;package_info?:unknown};
     try{result=JSON.parse(raw.toString("utf8"));}catch{reject("商家转账受理响应无效");}
@@ -336,11 +341,32 @@ export class WechatPayV3Client{
       "User-Agent":"CISME/1.0"},redirect:"error",signal:AbortSignal.timeout(15000)});
     if(!response.ok||Number(response.headers.get("content-length")??0)>10_000_000)
       throw new DomainError("WECHAT_BILL_DOWNLOAD_UNAVAILABLE","交易账单暂时无法下载或超出大小上限",503);
-    const bytes=Buffer.from(await response.arrayBuffer());
+    const bytes=await boundedResponseBody(response,10_000_000);
     if(bytes.length>10_000_000||
       createHash("sha1").update(bytes).digest("hex")!==application.hash_value.toLowerCase())
       reject("交易账单文件摘要不匹配");
     return {bytes,sourceSha1:application.hash_value.toLowerCase(),
       sourceSha256:createHash("sha256").update(bytes).digest("hex")};
   }
+}
+
+/** Enforce the cap while streaming, including chunked bodies without a length
+ * header; a post-allocation check cannot bound a hostile response. */
+async function boundedResponseBody(response:Response,limit:number):Promise<Buffer>{
+  if(Number(response.headers.get("content-length")??0)>limit){
+    await response.body?.cancel();
+    throw new DomainError("WECHAT_PAY_RESPONSE_TOO_LARGE","渠道响应超出大小上限，结果须查单核实",503);
+  }
+  const reader=response.body?.getReader();
+  if(!reader)return Buffer.alloc(0);
+  const chunks:Uint8Array[]=[];let size=0;
+  try{
+    for(;;){
+      const {done,value}=await reader.read();if(done)break;
+      size+=value.byteLength;
+      if(size>limit){await reader.cancel();throw new DomainError("WECHAT_PAY_RESPONSE_TOO_LARGE","渠道响应超出大小上限，结果须查单核实",503);}
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks,size);
+  }finally{reader.releaseLock();}
 }

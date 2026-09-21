@@ -1,7 +1,10 @@
 import pg from "pg";
+import { assertDisposableTarget } from "@cisme/testkit";
 
-const connectionString = process.env.DATABASE_URL ?? "postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme";
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("EXPLICIT_DATABASE_URL_REQUIRED");
 const pool = new pg.Pool({ connectionString });
+await assertDisposableTarget(pool);
 await pool.query(`
   INSERT INTO eligibility_campaign
     (code, qualifying_milestone, capacity, reward_points, starts_at, ends_at, active)

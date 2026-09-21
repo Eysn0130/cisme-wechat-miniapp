@@ -11,8 +11,6 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env:
-      TEST_DATABASE_URL: postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme_test
     defaults:
       run:
         shell: bash
@@ -57,7 +55,7 @@ jobs:
       - name: Create bounded verification evidence directory
         run: mkdir -p "$RUNNER_TEMP/native-validation"
       - run: npm ci 2>&1 | tee "$RUNNER_TEMP/native-validation/ci.log"
-      - run: docker compose -f infra/compose.yaml up -d --wait
+      - run: docker compose -f infra/compose.yaml up -d --wait seaweed
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high 2>&1 | tee "$RUNNER_TEMP/native-validation/audit-omit=dev-audit-level=high.log"
       - name: Development-tool high-severity audit
@@ -72,7 +70,6 @@ jobs:
       - run: npm run lint:contracts 2>&1 | tee "$RUNNER_TEMP/native-validation/lint-contracts.log"
       - name: Isolated same-runner performance comparison (not native acceptance)
         env:
-          TEST_DATABASE_URL: postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme_test
           PERF_ALLOW_RESET: 'true'
           PERF_SAMPLES: '4000'
           PERF_CONCURRENCY: '10'
@@ -112,7 +109,8 @@ jobs:
                 cd "$directory"
                 export CAPACITY_OUTPUT="docs/evidence/performance/ci-$cohort-capacity.json"
                 export WORKER_CAPACITY_OUTPUT="docs/evidence/performance/ci-$cohort-worker.json"
-                npm run "perf:$kind" > "$out/$cohort-$kind.log" 2>&1
+                if [ "$kind" = smoke ]; then harness=performance-smoke; else harness="$kind-benchmark"; fi
+                node "$GITHUB_WORKSPACE/scripts/disposable-test.mjs" ./node_modules/.bin/tsx "scripts/$harness.ts" > "$out/$cohort-$kind.log" 2>&1
               ); then status=0; else status=$?; failed=1; fi
               printf '%s %s %s\n' "$cohort" "$kind" "$status" >> "$out/performance-exit-status.txt"
             done
