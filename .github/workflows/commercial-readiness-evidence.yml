@@ -20,9 +20,15 @@ jobs:
       - run: npm ci
       - name: Current source identity and required page-state inventory
         run: |
-          mkdir -p "$RUNNER_TEMP/commercial-preparation"
-          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/commercial-preparation/checkout-identity.txt"
-          ./node_modules/.bin/tsx scripts/audit-commercial-lifecycle.ts > "$RUNNER_TEMP/commercial-preparation/page-state-matrix.json"
+          set -euo pipefail
+          out="$RUNNER_TEMP/commercial-preparation"
+          mkdir -p "$out"
+          git rev-parse HEAD HEAD^{tree} > "$out/checkout-identity.txt"
+          ./node_modules/.bin/tsx scripts/audit-commercial-lifecycle.ts > "$out/page-state-matrix.json"
+          # Only tracked files from the exact checkout, never .git credentials,
+          # runner environment, build output or a user's local working tree.
+          git archive --format=tar HEAD | gzip -n > "$out/committed-source.tar.gz"
+          (cd "$out" && sha256sum committed-source.tar.gz > committed-source.sha256)
       - name: Recheck public upstream metadata (no code execution or license approval)
         env:
           GITHUB_TOKEN: ${{ github.token }}
