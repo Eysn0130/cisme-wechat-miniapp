@@ -1,0 +1,945 @@
+[
+  {
+    "route": "pages/home/index",
+    "time": "2026-09-21T16:16:35Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/home/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/home.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/home.png",
+      "sha256": "4dde04c8d56a803d3975adf39bf26068c43d7a0d0f98963354c58646844c1842"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/records/index",
+    "time": "2026-09-21T16:16:43Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/records/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/records.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/records.png",
+      "sha256": "4bcd5d441f251eaa0bd683d99bb755350dbfe9abe4d5f6387c7f5716f5b18134"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/community/index",
+    "time": "2026-09-21T16:16:51Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/community/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/community.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/community.png",
+      "sha256": "6320115a28ef5aa9bd6cd8f7cb265d7e928cab41af41b9638fa93eab6cf42c4a"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/profile/index",
+    "time": "2026-09-21T16:16:59Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/profile/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/profile.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/profile.png",
+      "sha256": "951b96c0c8c385ff2f8e0736260e58d3e5483de8de9222a04f7f2c3673bd8c0f"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/task/index",
+    "time": "2026-09-21T16:17:07Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/task/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/task.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/task.png",
+      "sha256": "7859e396a310052178c4d3ae4e9e2d6aee7f63cb11c7da359d8beaa6c86a5bb5"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/submit/index",
+    "time": "2026-09-21T16:17:15Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/submit/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/submit.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/submit.png",
+      "sha256": "ffa1d6bafbedf370ed6d32b8063a0781dbdd05e5ba4a96d1699d75b5f0586e9d"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/progress/index",
+    "time": "2026-09-21T16:17:23Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/progress/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/progress.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/progress.png",
+      "sha256": "f72828d6e47e8061f51f6d1e6a2055f4577c0c18f63787a1d6429f7d9b0ebe3a"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/points/index",
+    "time": "2026-09-21T16:17:31Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/points/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/points.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/points.png",
+      "sha256": "67f42b6207f9ede233e8fbab0abe6817587c32ab7895300ec310f13f2ab787ca"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/post/index",
+    "time": "2026-09-21T16:17:40Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/post/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/post.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/post.png",
+      "sha256": "242b11e7b47527c1c4f69f6f1e26269cb1b619f4c13827185beea86b9d813752"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/shop/index",
+    "time": "2026-09-21T16:17:48Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/shop/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/shop.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/shop.png",
+      "sha256": "e00daf776a802a37e3fe40717fe0f146f9b6bc9463415e2d1228ce21f04f12f5"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/product/index",
+    "time": "2026-09-21T16:17:56Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/product/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/product.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/product.png",
+      "sha256": "cdb140a33d0df710ba5a6d7e0f1297795ba855dbdf1c9ae7685a122737937e2f"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/checkout/index",
+    "time": "2026-09-21T16:18:04Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/checkout/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/checkout.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/checkout.png",
+      "sha256": "68d8ad9d848bd6b8a8c87fc0426b5145ada0ff517c293152d096c96699bc9323"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/orders/index",
+    "time": "2026-09-21T16:18:12Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/orders/index",
+      "loading": false,
+      "error": "",
+      "coreReady": true,
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/orders.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/orders.png",
+      "sha256": "c0e88d04d0d5cf7532468b075b37c8cecdf7a7d90224b992a20d5aa00e8d8f24"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/order-detail/index",
+    "time": "2026-09-21T16:18:20Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/order-detail/index",
+      "loading": false,
+      "error": "",
+      "coreReady": true,
+      "recordedGroups": [
+        {
+          "kind": "refund",
+          "loading": false,
+          "error": "",
+          "count": 0
+        },
+        {
+          "kind": "cancel",
+          "loading": false,
+          "error": "",
+          "count": 0
+        },
+        {
+          "kind": "cancel-verified",
+          "loading": false,
+          "error": "",
+          "count": 0
+        }
+      ]
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/order-detail.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/order-detail.png",
+      "sha256": "6f0ad8b13ae0dca1f6899464bbb349bdf69ebbb33f3b4659a9462a9c73efd2fc"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/settings/index",
+    "time": "2026-09-21T16:18:28Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/settings/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/settings.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/settings.png",
+      "sha256": "404a8407ec6348bdfc4551c374285c7243dc8543753cdab26f5453025d39cdab"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/invite/index",
+    "time": "2026-09-21T16:18:37Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/invite/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/invite.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/invite.png",
+      "sha256": "510458f24e90ec8f47c1229969697fafbeb5a5953a9c6f5eb560f92514f8adee"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/legal/index",
+    "time": "2026-09-21T16:18:45Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/legal/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/legal.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/legal.png",
+      "sha256": "a2dca5a17918058e020927c7ddfef00c1923e7ec6e9497ce5b6b087435c88e4f"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/privacy-rights/index",
+    "time": "2026-09-21T16:18:53Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/privacy-rights/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/privacy-rights.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/privacy-rights.png",
+      "sha256": "2637debed2bafe49cbf01e6f6a18d2df9d3e9504af21745ceb6e5087fec2f38e"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/support/index",
+    "time": "2026-09-21T16:19:01Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/support/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/support.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/support.png",
+      "sha256": "ea85053a9e446db33488f2c524a511630765e2f846d5af687cb9f06869ac31d0"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management/index",
+    "time": "2026-09-21T16:19:10Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management/index",
+      "loading": false,
+      "error": "",
+      "coreReady": true,
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management.png",
+      "sha256": "6f4b6a7bfd56bea74528af2e7d8c347ca4600fe71884db5a00c71d249409c2b5"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-catalog/index",
+    "time": "2026-09-21T16:19:18Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-catalog/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-catalog.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-catalog.png",
+      "sha256": "733b9d94d5cd70c0c32f593b2c1f9519ac3356b3880a0a60a91acbaf8f6c73e4"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-product/index",
+    "time": "2026-09-21T16:19:26Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-product/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-product.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-product.png",
+      "sha256": "f5248ad94b0331893a00960dcb686b3ec0155e13ac39d489e82e739a566d0263"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-orders/index",
+    "time": "2026-09-21T16:19:34Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-orders/index",
+      "loading": false,
+      "error": "",
+      "coreReady": true,
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-orders.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-orders.png",
+      "sha256": "eaaf83c5031b87f51b652e2ae569960c246c7c2ecf91a08a5c2f58ba891d89be"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-order-detail/index",
+    "time": "2026-09-21T16:19:42Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-order-detail/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-order-detail.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-order-detail.png",
+      "sha256": "4ada897b1e39b0799cef51c2e16459fa48da396a954ed67295b8250e4058a502"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-support/index",
+    "time": "2026-09-21T16:19:50Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-support/index",
+      "loading": false,
+      "error": "",
+      "coreReady": true,
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-support.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-support.png",
+      "sha256": "e7b1d22d7474ca1ffd7293897875c0485078993957d8170b23aaa857720b07b5"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-support-chat/index",
+    "time": "2026-09-21T16:19:58Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-support-chat/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-support-chat.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-support-chat.png",
+      "sha256": "660b8dcfcba91e1ed48683880885091d17b7e19f14d26453e8ed39c4dcd6840a"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-members/index",
+    "time": "2026-09-21T16:20:06Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-members/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-members.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-members.png",
+      "sha256": "8a5d207dedbbcf153f29ba6fbeb4b3c40e7f3871336fcbdd3d93744d85318824"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-member/index",
+    "time": "2026-09-21T16:20:15Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-member/index",
+      "loading": false,
+      "error": "会员编号无效",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-member.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-member.png",
+      "sha256": "90919d9e211280afbf673c81126dac9ee885450c9568c09837e6d0a2830164df"
+    },
+    "result": "NEEDS_APPLICABILITY_OR_FAILURE_REVIEW"
+  },
+  {
+    "route": "pages/referral/index",
+    "time": "2026-09-21T16:20:23Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/referral/index",
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/referral.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/referral.png",
+      "sha256": "7566aab50eb3fbd2a9e41828c4c18852353d6247df352be1d4d6f92746332af6"
+    },
+    "result": "NEEDS_APPLICABILITY_OR_FAILURE_REVIEW"
+  },
+  {
+    "route": "pages/community-compose/index",
+    "time": "2026-09-21T16:20:31Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/community-compose/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/community-compose.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/community-compose.png",
+      "sha256": "28d3b17deee272d7f4566ffbe940e94db0ac349e0ccfb6d39e4ee52ed7115984"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/community-post/index",
+    "time": "2026-09-21T16:20:39Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/community-post/index",
+      "loading": false,
+      "error": "内容编号缺失，请返回社区重试。",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/community-post.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/community-post.png",
+      "sha256": "8577ae547758803efde020f3a833e1afa707733944c7a7288e1e010ed114deb5"
+    },
+    "result": "NEEDS_APPLICABILITY_OR_FAILURE_REVIEW"
+  },
+  {
+    "route": "pages/community-author/index",
+    "time": "2026-09-21T16:20:48Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/community-author/index",
+      "loading": false,
+      "error": "作者编号无效，请返回社区。",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/community-author.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/community-author.png",
+      "sha256": "6309323b7db1550617ec2022f8dd34448e41089c420af18fb63e257e821632ea"
+    },
+    "result": "NEEDS_APPLICABILITY_OR_FAILURE_REVIEW"
+  },
+  {
+    "route": "pages/community-review/index",
+    "time": "2026-09-21T16:20:56Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/community-review/index",
+      "loading": false,
+      "error": "内容编号缺失。",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/community-review.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/community-review.png",
+      "sha256": "77c57c219c8e0e5916d6c1876ed685df70cfedf7a468ca47b30a66cc5aa56d39"
+    },
+    "result": "NEEDS_APPLICABILITY_OR_FAILURE_REVIEW"
+  },
+  {
+    "route": "pages/community-activity/index",
+    "time": "2026-09-21T16:21:04Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/community-activity/index",
+      "loading": false,
+      "error": "",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/community-activity.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/community-activity.png",
+      "sha256": "84f96db0fea8619359455b81fdd78f52dfd4b24e05dd8108f368b0358fe2f93d"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  },
+  {
+    "route": "pages/management-finance/index",
+    "time": "2026-09-21T16:21:12Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/management-finance/index",
+      "loading": false,
+      "error": "当前环境没有开放隔离资金核对。",
+      "recordedGroups": null
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/management-finance.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/management-finance.png",
+      "sha256": "6338a47c8f6165ddf6ba40a51f05afcfef67960a14e2d37523a32dee3a9e773a"
+    },
+    "result": "NEEDS_APPLICABILITY_OR_FAILURE_REVIEW"
+  },
+  {
+    "route": "pages/commission/index",
+    "time": "2026-09-21T16:21:20Z",
+    "role": "synthetic_member_with_test_capabilities",
+    "scope": "one_current_state_only",
+    "fullMatrix": "NOT_RUN",
+    "navigationOk": true,
+    "observed": {
+      "route": "pages/commission/index",
+      "loading": false,
+      "error": "",
+      "coreReady": true,
+      "recordedGroups": [
+        {
+          "kind": "settlement",
+          "loading": false,
+          "error": "",
+          "count": 0
+        },
+        {
+          "kind": "credit",
+          "loading": false,
+          "error": "",
+          "count": 0
+        },
+        {
+          "kind": "credit-cancel",
+          "loading": false,
+          "error": "",
+          "count": 0
+        }
+      ]
+    },
+    "screenshotTool": {
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/release-preparation-20260921/native/raw/commission.png",
+      "imageWidth": 242,
+      "imageHeight": 524
+    },
+    "screenshot": {
+      "path": "native/raw/commission.png",
+      "sha256": "3633501e1381b0f18616f23dbc3107675f4db9acc139d9ab505aef6f8080ceef"
+    },
+    "result": "OBSERVED_READY_SINGLE_STATE"
+  }
+]

@@ -1,3 +1,5 @@
+import { loadRecordedCommands, type RecordedGroup } from "../../services/commerce-command-discovery";
+import type { CommerceCommandKind } from "../../services/commerce-command-store";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { acknowledgeCommerceCommand, executeCommerceCommand, readCommerceRecovery, retryCommerceCommand, type RecoveryView } from "../../services/commerce-command-recovery";
 import { cancelPageReads, pageRead } from "../../services/page-requests";
@@ -28,7 +30,7 @@ function yuanToCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
 
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
-  data:{...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),status:null as MemberStatus|null,
+  data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),status:null as MemberStatus|null,
     availableLabel:"",pendingLabel:"",heldLabel:"",settledLabel:"",recoveryLabel:"",
     isolatedTransfer:false,isolatedCredit:false,requests:[] as RequestRow[],totalCount:0,nextCursor:null as string|null,
     creditRows:[] as CreditRow[],creditTotal:0,creditCursor:null as string|null,
@@ -43,7 +45,7 @@ Page({
     if(!requireMemberAccess())return;void this.load();},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken;
     if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;
-      this.setData({...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",coreReady:false,busy:false,isolatedTransfer:false,isolatedCredit:false,status:null,requests:[],totalCount:0,nextCursor:null,formVisible:false,
+      this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",coreReady:false,busy:false,isolatedTransfer:false,isolatedCredit:false,status:null,requests:[],totalCount:0,nextCursor:null,formVisible:false,
         amount:"",reason:"",requestKey:"",actionError:"",actionStatus:"",
         creditRows:[],creditTotal:0,creditCursor:null,creditAvailableCents:0,
         creditAvailableLabel:"0.00",creditAmount:"",creditRequestKey:"",creditCancelKeys:{},
@@ -64,6 +66,16 @@ Page({
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
 
+  refreshRecordedCommands(){
+    if(!this.data.visible||!this.data.coreReady)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    void loadRecordedCommands(this,this.recoveryScope(),()=>this.readCurrent(epoch,token,readEpoch));
+  },
+  moreRecordedCommands(event:WechatMiniprogram.BaseEvent){
+    if(!this.data.visible||!this.data.coreReady)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    void loadRecordedCommands(this,this.recoveryScope(),()=>this.readCurrent(epoch,token,readEpoch),String(event.currentTarget.dataset.kind) as CommerceCommandKind);
+  },
   recoveryScope(){return {group:"commission" as const};},
   async loadRecovery(){if(!this.data.visible||!this.data.coreReady||this.data.busy)return;
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
@@ -104,7 +116,7 @@ Page({
         availableLabel:centsToYuan(amounts.availableCents),pendingLabel:centsToYuan(amounts.pendingCents),
         heldLabel:centsToYuan(amounts.paymentHeldCents),settledLabel:centsToYuan(amounts.settledCents),
         recoveryLabel:centsToYuan(amounts.recoveryCents+amounts.reservedRecoveryCents)});
-      this.applyRuntime();void this.loadRequests(epoch,token);void this.loadCredits(epoch,token);void this.loadRecovery();
+      this.applyRuntime();void this.loadRequests(epoch,token);void this.loadCredits(epoch,token);void this.loadRecovery();this.refreshRecordedCommands();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({status:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.status,coreReady:false,loading:false,error:problem(error,"商业资格与佣金事实暂时无法核对。")});}
   },
   applyRuntime(){const actions=runtimeActions(this.data.runtimeStatus),ready=this.canAct()&&this.data.runtimeState==="ready";

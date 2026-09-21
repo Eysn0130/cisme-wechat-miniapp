@@ -1,3 +1,5 @@
+import { pageRead, cancelPageReads } from "../../services/page-requests";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 import { downloadPrivateMedia, requireMemberAccess, request, retainMemberSnapshot, uploadAuthorized } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
 import { myOrders, type CommerceOrderSummary } from "../../services/orders";
@@ -37,6 +39,7 @@ function memberComposerCanSend(input: string, image: SelectedImage | null, order
 }
 
 Page({
+  readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
   pollInFlight: false,
   pollFailures: 0,
@@ -63,6 +66,7 @@ Page({
   onReady() { this.measureComposer(); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.measureComposer(); },
   onShow() {
+    this.readRevision=commerceContextRevision();
     const preserve = retainMemberSnapshot(this);
     this.lifecycleEpoch += 1;
     this.data.pageAlive = true;
@@ -82,6 +86,7 @@ Page({
     wx.nextTick(() => this.measureComposer());
   },
   onHide() {
+    cancelPageReads(this);
     void this.publishPresence(false, false, true);
     const interruptedUpload = this.data.uploadBusy && this.data.selectedImage
       ? { ...this.data.selectedImage, status: "failed" as const, error: "页面离开时上传已中断，图片和正文仍保留。" }
@@ -95,8 +100,8 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0 });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
-  onUnload() { void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
-  owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken; },
+  onUnload() { cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
+  owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
   abortDownloads() {
     const downloads = this.mediaDownloads ?? [];
     this.mediaDownloads = [];
@@ -167,7 +172,7 @@ Page({
     const ownerToken = sessionToken();
     this.setData({ loading: true, error: "", errorAction: "" });
     try {
-      const page = await request<any>({ path: "/v1/me/support/messages", cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: "/v1/me/support/messages", cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
       const messages = this.normalize(page.messages || []);
@@ -189,7 +194,7 @@ Page({
     const after = this.data.syncCursor;
     this.pollInFlight = true;
     try {
-      const page = await request<any>({ path: `/v1/me/support/messages?after=${after}&limit=50`, cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const presence = { ...emptyPresence, ...(page.presence ?? this.data.presence) } as Presence;
       const incoming = this.normalize(page.messages || []);
@@ -220,7 +225,7 @@ Page({
     const preserve = this.data.messages[0]?.sequence;
     this.setData({ loadingOlder: true, atBottom: false });
     try {
-      const page = await request<any>({ path: `/v1/me/support/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const older = this.normalize(page.messages || []);
       this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null, anchor: preserve ? `support-${preserve}` : "" });

@@ -1,3 +1,4 @@
+<import src="../../templates/recorded-commands.wxml"/>
 <view class="chrome-root" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{busy||navigating?'control--disabled':''}}" bindtap="back" disabled="{{busy||navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">订单详情</text></view><view class="page page--stack detail-page"><view wx:if="{{loading}}" class="state">正在同步订单事实…</view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回订单列表</button><button wx:else class="text-button" bindtap="load">刷新状态</button></view>
 <view class="state" aria-live="polite"><text>{{runtimeCopy}}</text><button wx:if="{{runtimeState==='error'}}" class="text-button {{busy?'text-button--disabled':''}}" bindtap="retryRuntime" disabled="{{busy}}">重新核验操作状态</button></view>
 <view wx:if="{{recoveryLoading||recoveryError||recoveryRows.length}}" class="state" aria-live="polite">
@@ -31,4 +32,5 @@
 <view wx:if="{{actionError}}" class="state state--error" aria-live="assertive">{{actionError}}</view>
 <view class="payment-boundary"><image src="/assets/icons/shield-check-plum.svg"/><text>{{isolatedPayment?'本机仅验证支付、退款协议和服务端状态；不会发生真实资金操作。':'正式微信支付尚未开放。订单状态以服务端记录为准。'}}</text></view>
 <view wx:if="{{order.status==='pending_payment'&&isolatedPayment}}" class="payment-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="preparePayment" disabled="{{busy}}" loading="{{busy}}">建立测试支付意图</button><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="recheckPayment" disabled="{{busy}}">按原单核对</button></view>
-<button wx:if="{{order.status==='pending_payment'&&(order.transactionSourceKind!=='verified_commerce'||isolatedPayment)}}" class="secondary danger-action {{busy?'secondary--disabled':''}}" bindtap="cancel" loading="{{busy}}" disabled="{{busy}}">取消并释放预留库存</button></block></view></view>
+<button wx:if="{{order.status==='pending_payment'&&(order.transactionSourceKind!=='verified_commerce'||isolatedPayment)}}" class="secondary danger-action {{busy?'secondary--disabled':''}}" bindtap="cancel" loading="{{busy}}" disabled="{{busy}}">取消并释放预留库存</button></block></view><template wx:if="{{coreReady}}" is="recorded-commands" data="{{recordedGroups}}"/>
+</view>

@@ -1,3 +1,5 @@
+import { pageRead, cancelPageReads } from "../../services/page-requests";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, uploadAuthorized } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 import { clearUgcBackup, readUgcBackup, writeUgcBackup, type UgcLocalBackup } from "../../services/ugc-local-backup";
@@ -23,6 +25,7 @@ async function mimeOf(path: string): Promise<string> {
 }
 
 Page({
+  readRevision:commerceContextRevision(),resumeReads:false,gateRead:0,
   lastSessionToken: "",
   shown:false,
   mediaVisible:false,
@@ -54,14 +57,17 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.mediaVisible=true;
+    const revision=commerceContextRevision();
     const token=getApp<IAppOption>().globalData.sessionToken;
     void this.refreshPublicGate();
-    if(token===this.lastSessionToken){if(this.shown&&this.data.state==="hidden"&&this.data.postId)void this.loadDraft(this.data.postId);
+    if(token===this.lastSessionToken&&revision===this.readRevision){
+      if(this.resumeReads){this.resumeReads=false;if(this.data.listMode)void this.loadList();else if((this.data.postId||this.data.requestedDraftId)&&!this.data.dirty)void this.loadDraft(this.data.postId||this.data.requestedDraftId);}
+      if(this.shown&&this.data.state==="hidden"&&this.data.postId)void this.loadDraft(this.data.postId);
       this.shown=true;return;}
     this.shown=true;
     const priorPostId=this.data.postId;
     const wasGuest=!this.lastSessionToken;
-    this.lastSessionToken=token;
+    this.lastSessionToken=token;this.readRevision=revision;
     this.mediaEpoch+=1;
     this.mediaAbort?.();
     this.mediaAbort=null;
@@ -75,11 +81,13 @@ Page({
     else void this.loadList();
   },
   async refreshPublicGate(){
-    try{const status=await request<{publicEnabled:boolean}>({path:"/v1/ugc/status",authMode:"public"});
-      this.setData({publicGateEnabled:status.publicEnabled===true});}
-    catch{this.setData({publicGateEnabled:false});}
+    const attempt=++this.gateRead,revision=commerceContextRevision();
+    try{const status=await pageRead<{publicEnabled:boolean}>(this,{path:"/v1/ugc/status",authMode:"public"});
+      if(this.mediaVisible&&attempt===this.gateRead&&revision===commerceContextRevision())this.setData({publicGateEnabled:status.publicEnabled===true});}
+    catch{if(this.mediaVisible&&attempt===this.gateRead&&revision===commerceContextRevision())this.setData({publicGateEnabled:false});}
   },
   onHide(){
+    this.resumeReads=this.data.loading||this.data.listLoadingMore;cancelPageReads(this);
     this.mediaVisible=false;
     this.mediaEpoch+=1;
     this.mediaAbort?.();
@@ -89,7 +97,7 @@ Page({
       error:"图片操作已中断；文字草稿仍保留。返回后可重试图片。"});
     this.flushLocalBackup();
   },
-  onUnload() { this.flushLocalBackup();this.mediaVisible=false;this.mediaEpoch+=1;this.mediaAbort?.();this.mediaAbort=null;this.data.epoch += 1; },
+  onUnload() { cancelPageReads(this); this.flushLocalBackup();this.mediaVisible=false;this.mediaEpoch+=1;this.mediaAbort?.();this.mediaAbort=null;this.data.epoch += 1; },
   queueLocalBackup(){
     if(this.backupTimer)clearTimeout(this.backupTimer);
     this.backupTimer=setTimeout(()=>{this.backupTimer=null;this.flushLocalBackup();},400);
@@ -108,24 +116,24 @@ Page({
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ listMode: true, loading: true, error: "",drafts:[],listTotal:0,listCursor:null,listLoadingMore:false,listMoreError:"" });
     try {
-      const result = await request<{ items: Array<{ id: string; title: string; state: string;version:number; imageCount: number }>;matchingTotal:number;nextCursor:string|null }>({ path: "/v1/me/ugc/posts?limit=30" });
-      if (epoch !== this.data.epoch || token !== getApp<IAppOption>().globalData.sessionToken) return;
+      const result = await pageRead<{ items: Array<{ id: string; title: string; state: string;version:number; imageCount: number }>;matchingTotal:number;nextCursor:string|null }>(this,{ path: "/v1/me/ugc/posts?limit=30" });
+      if (!this.mediaVisible || epoch !== this.data.epoch || (token !== getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision())) return;
       this.setData({ drafts: result.items.map(item => ({ ...item, status: stateLabel(item.state) })),
         listTotal:result.matchingTotal,listCursor:result.nextCursor,loading: false });
-    } catch (error) { if (epoch === this.data.epoch) this.setData({ loading: false, error: message(error, "我的内容暂时无法加载，请重试。") }); }
+    } catch (error) { if (this.mediaVisible && epoch === this.data.epoch) this.setData({ loading: false, error: message(error, "我的内容暂时无法加载，请重试。") }); }
   },
   onReachBottom(){if(this.data.listMode)void this.loadMoreList();},
   async loadMoreList(){
     const cursor=this.data.listCursor;if(!this.data.listMode||!cursor||this.data.listLoadingMore||this.data.loading)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({listLoadingMore:true,listMoreError:""});
-    try{const page=await request<{items:Array<{id:string;title:string;state:string;version:number;imageCount:number}>;matchingTotal:number;nextCursor:string|null}>({
+    try{const page=await pageRead<{items:Array<{id:string;title:string;state:string;version:number;imageCount:number}>;matchingTotal:number;nextCursor:string|null}>(this,{
       path:`/v1/me/ugc/posts?limit=30&cursor=${encodeURIComponent(cursor)}`});
-      if(epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||cursor!==this.data.listCursor)return;
+      if(!this.mediaVisible||epoch!==this.data.epoch||(token!==getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision())||cursor!==this.data.listCursor)return;
       const seen=new Set(this.data.drafts.map(item=>item.id));
       this.setData({drafts:[...this.data.drafts,...page.items.filter(item=>!seen.has(item.id)).map(item=>({...item,status:stateLabel(item.state)}))],
         listTotal:page.matchingTotal,listCursor:page.nextCursor,listLoadingMore:false});
-    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+    }catch(error){if(this.mediaVisible&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
       this.setData({listLoadingMore:false,listMoreError:message(error,"更多内容暂未加载，请重试。")});}
   },
   async createDraft() {
@@ -134,7 +142,7 @@ Page({
     this.setData({ busy: true,operation:"creating", loading: true, error: "", listMode: false });
     try {
       const draft = await request<Draft>({ path: "/v1/me/ugc/posts", method: "POST", idempotencyKey: this.data.createKey, data: {} });
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken) this.applyDraft(draft);
+      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()) this.applyDraft(draft);
     } catch (error) { if (epoch === this.data.epoch) this.setData({ error: message(error, "新建草稿失败，请重试。"), loading: false }); }
     finally { if (epoch === this.data.epoch) this.setData({ busy: false,operation:"idle" }); }
   },
@@ -143,9 +151,9 @@ Page({
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ listMode: false, requestedDraftId:id, postId:"", files:[],title:"",body:"",loading: true, error: "" });
     try {
-      const draft = await request<Draft>({ path: `/v1/me/ugc/posts/${id}` });
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken) this.applyDraft(draft);
-    } catch (error) { if (epoch === this.data.epoch) this.setData({ loading: false, error: message(error, "草稿暂时无法加载，请重试。") }); }
+      const draft = await pageRead<Draft>(this,{ path: `/v1/me/ugc/posts/${id}` });
+      if (this.mediaVisible && epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()) this.applyDraft(draft);
+    } catch (error) { if (this.mediaVisible && epoch === this.data.epoch) this.setData({ loading: false, error: message(error, "草稿暂时无法加载，请重试。") }); }
   },
   applyDraft(draft: Draft) {
     const options = ["none", "assisted", "generated", "unknown"];
@@ -168,7 +176,7 @@ Page({
     if(this.data.state!=="hidden"||this.data.appeal||this.data.busy||!this.data.postId)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,
       postId=this.data.postId,version=this.data.version;
-    const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&
+    const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&
       this.data.postId===postId&&this.data.version===version&&this.data.state==="hidden"&&!this.data.appeal;
     const answer=await wx.showModal({title:"申请复核下架内容",editable:true,
       placeholderText:"说明你希望复核的事实（至少4字）",confirmText:"提交申诉"});
@@ -186,10 +194,10 @@ Page({
   async loadMediaPreviews(ids: string[], epoch: number, token: string,postId:string) {
     await Promise.all(ids.map(async id => {
       try {
-        const preview = await request<{ url: string }>({ path: `/v1/me/ugc/posts/${postId}/media/${id}/preview-url` });
-        if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
+        const preview = await pageRead<{ url: string }>(this,{ path: `/v1/me/ugc/posts/${postId}/media/${id}/preview-url` });
+        if (this.mediaVisible && epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
           this.updateMedia(id, { previewUrl: preview.url });
-      } catch { if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+      } catch { if(this.mediaVisible&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
         this.updateMedia(id,{error:"图片预览已失效，点此重试。"}); }
     }));
   },
@@ -211,7 +219,7 @@ Page({
     const id=String(event.currentTarget.dataset.id||""),item=this.data.drafts.find(row=>row.id===id);
     if(!item||!["draft","rejected"].includes(item.state)||this.data.busy)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&
+    const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&
       this.data.drafts.some(row=>row.id===id&&row.version===item.version);
     const decision=await wx.showModal({title:"删除这篇未公开内容？",content:"服务器上的草稿会删除，无法在小程序内恢复。",confirmText:"删除",confirmColor:"#8c354e"});
     if(!decision.confirm||!current())return;
@@ -238,7 +246,7 @@ Page({
   async uploadImage(id: string, path: string, size: number, epoch: number, token: string, mediaEpoch: number) {
     const postId=this.data.postId;
     const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&
-      token===getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId;
+      token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&postId===this.data.postId;
     try {
       const mimeType = await mimeOf(path);
       if(!current())return;
@@ -266,7 +274,7 @@ Page({
     if (!this.data.postId || this.data.uploadBusy || this.data.busy || this.data.files.length >= 9) return;
     const epoch = this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
     const mediaEpoch=++this.mediaEpoch;
-    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();
     this.setData({uploadBusy:true,error:""});
     try {
       await new Promise<void>((resolve,reject)=>wx.requirePrivacyAuthorize({success:()=>resolve(),fail:reject}));
@@ -293,7 +301,7 @@ Page({
     const item = this.data.files.find(file => file.id === id);
     if (!item || item.state !== "failed" || !item.localPath || this.data.uploadBusy || this.data.busy) return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,mediaEpoch=++this.mediaEpoch;
-    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();
     this.setData({ uploadBusy:true,error:"" });
     try {
       await new Promise<void>((resolve,reject)=>wx.requirePrivacyAuthorize({success:()=>resolve(),fail:reject}));
@@ -329,7 +337,7 @@ Page({
       const draft = await request<Draft>({ path: `/v1/me/ugc/posts/${postId}/draft`, method: "PUT", data: {
         title: this.data.title, body: this.data.body, mediaIds: this.data.files.map(item => item.id), aiUsage: this.data.aiUsage,
         rightsConfirmed: this.data.rightsConfirmed, publicConsentConfirmed: this.data.publicConsentConfirmed, expectedVersion: baseVersion } });
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&postId===this.data.postId){
+      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&postId===this.data.postId){
         this.setData({ version: draft.version, state: draft.state, publicVersionActive: draft.publicVersionActive, dirty: false, notice: "草稿已保存。" });
         clearUgcBackup(ownerId,postId,baseVersion);
       }
@@ -347,7 +355,7 @@ Page({
     this.setData({ busy: true,operation:"submitting", error: "", notice: "" });
     try {
       const sent = await request<Draft>({ path: `/v1/me/ugc/posts/${draft.id}/submit`, method: "POST", data: { expectedVersion: draft.version } });
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
+      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
         this.setData({ state: sent.state, publicVersionActive: sent.publicVersionActive, version: sent.version,
           notice: sent.publicVersionActive ? "新版已提交审核。通过前，公开页面仍显示上一版。" : "已提交审核。通过并完成发布复核后，其他人才能看到。" });
     } catch (error) { if (epoch === this.data.epoch) this.setData({ error: message(error, "提交未完成。草稿已保存，可稍后重试。") }); }
@@ -358,7 +366,7 @@ Page({
     if (this.data.dirty && this.data.postId) {
       const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
       const options=await wx.showActionSheet({itemList:["保存草稿后离开","继续编辑","不保存本机修改并离开"]}).catch(()=>null);
-      if(!options||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(!options||epoch!==this.data.epoch||(token!==getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision()))return;
       if(options.tapIndex===1)return;
       if(options.tapIndex===0){if(!await this.saveDraft())return;}
       else if(options.tapIndex===2){clearUgcBackup(this.data.ownerId,this.data.postId,this.data.version);this.setData({dirty:false});}

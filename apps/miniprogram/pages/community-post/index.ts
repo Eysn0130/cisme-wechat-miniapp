@@ -1,3 +1,5 @@
+import { pageRead, cancelPageReads } from "../../services/page-requests";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 
@@ -10,6 +12,7 @@ const key = () => `ugc-comment-${Date.now().toString(36)}-${Math.random().toStri
 const titleOf = (error: unknown, fallback: string) => (error as { title?: string })?.title || fallback;
 
 Page({
+  readRevision:commerceContextRevision(),readVisible:true,resumeRead:false,
   lastSessionToken:"",
   data: { chromeStyle: currentChromeStyle(), postId: "", post: null as PublicPost | null,
     images: [] as Array<{ id: string; src: string; index: number }>, comment: "", commentKey: key(), commentAttempted: false,
@@ -23,37 +26,39 @@ Page({
     if (id) void this.load(); else this.setData({ loading: false, error: "内容编号缺失，请返回社区重试。" });
   },
   onShow() {
+    this.readVisible=true;this.setData({busy:false,commentsLoadingMore:false});
     const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token!==this.lastSessionToken){
-      this.lastSessionToken=token;this.data.epoch+=1;
+    if(token!==this.lastSessionToken||this.readRevision!==commerceContextRevision()){
+      this.lastSessionToken=token;this.readRevision=commerceContextRevision();this.data.epoch+=1;
       this.setData({post:null,images:[],comment:"",commentKey:key(),commentAttempted:false,replyTo:null,commentsLoadingMore:false,commentsError:"",
         myComments:[],myCommentsError:"",signedIn:Boolean(token),
         busy:false,authorNavigating:false,notice:"",error:"",loading:true});
       if(this.data.postId)void this.load();
-    }else{this.setData({authorNavigating:false});if(this.data.post&&this.data.postId)void this.load();}
+    }else{this.setData({authorNavigating:false});if((this.data.post||this.resumeRead)&&this.data.postId){this.resumeRead=false;void this.load();}}
   },
-  onUnload() { this.data.epoch += 1; },
+  onHide(){this.resumeRead=this.data.loading;this.readVisible=false;this.data.epoch+=1;cancelPageReads(this);},
+  onUnload() { this.onHide(); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   async load() {
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ loading: !this.data.post, error: "" });
     try {
-      const post = await request<PublicPost>({ path: `/v1/ugc/posts/${this.data.postId}`, authMode: "optional" });
-      if (epoch !== this.data.epoch || token !== getApp<IAppOption>().globalData.sessionToken) return;
+      const post = await pageRead<PublicPost>(this,{ path: `/v1/ugc/posts/${this.data.postId}`, authMode: "optional" });
+      if (epoch !== this.data.epoch || (token !== getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision())) return;
       const origin = getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/, "");
       this.setData({ post,commentsLoadingMore:false,commentsError:"",images: post.media.map((item, index) => ({ id: item.id, index: index + 1,
         src: origin ? `${origin}/v1/ugc/media/${item.id}` : "" })), loading: false });
       if(token)void this.loadMyComments(epoch,token,post.id);
-    } catch (error) { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
+    } catch (error) { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
       this.setData({ post:null,images:[],loading: false, error: titleOf(error, "护理故事暂时无法加载，请重试。") }); }
   },
   async loadMyComments(epoch:number,token:string,postId:string){
-    try{const page=await request<{items:Array<{id:string;body:string|null;state:string}>}>({
+    try{const page=await pageRead<{items:Array<{id:string;body:string|null;state:string}>}>(this,{
       path:`/v1/me/ugc/activity/comments?postId=${postId}&limit=30`});
-      if(epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||this.data.post?.id!==postId)return;
+      if(epoch!==this.data.epoch||(token!==getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision())||this.data.post?.id!==postId)return;
       this.setData({myComments:page.items.filter(row=>row.state!=="published").map(row=>({...row,
         stateLabel:row.state==="pending_review"?"审核中":row.state==="rejected"?"未通过":"已删除"})),myCommentsError:""});
-    }catch{if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+    }catch{if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
       this.setData({myComments:[],myCommentsError:"我的评论状态暂未同步，可在“我的社区”查看。"});}
   },
   onReachBottom(){void this.loadMoreComments();},
@@ -62,14 +67,14 @@ Page({
     if(!post||!cursor||this.data.commentsLoadingMore)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({commentsLoadingMore:true,commentsError:""});
-    try{const page=await request<{items:PublicPost["comments"];nextCursor:string|null;matchingTotal:number}>({
+    try{const page=await pageRead<{items:PublicPost["comments"];nextCursor:string|null;matchingTotal:number}>(this,{
       path:`/v1/ugc/posts/${post.id}/comments?limit=30&cursor=${encodeURIComponent(cursor)}`,authMode:"optional"});
-      if(epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||this.data.post?.id!==post.id||
+      if(epoch!==this.data.epoch||(token!==getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision())||this.data.post?.id!==post.id||
         this.data.post.commentsNextCursor!==cursor)return;
       const seen=new Set(this.data.post.comments.map(row=>row.id));
       this.setData({post:{...this.data.post,comments:[...this.data.post.comments,...page.items.filter(row=>!seen.has(row.id))],
         commentsNextCursor:page.nextCursor,commentsTotal:page.matchingTotal},commentsLoadingMore:false});
-    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
       this.setData({commentsLoadingMore:false,commentsError:titleOf(error,"更多评论暂未加载，请重试。")});}
   },
   chooseReply(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id||"");
@@ -91,13 +96,13 @@ Page({
     try {
       const created=await request<{id:string;state:string}>({ path: `/v1/ugc/posts/${this.data.postId}/comments`, method: "POST", idempotencyKey: operationKey,
         data: { body,...(replyTo?{parentId:replyTo.parentId,replyToId:replyTo.id}:{}) } });
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
+      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
         {this.setData({ ...(this.data.comment.trim()===body?{comment:"",replyTo:null}:{}), commentKey:key(),commentAttempted:false,
           notice: created.state==="pending_review"?"评论已提交，审核中；只有你能在此查看状态。":"评论状态已更新。" });
           void this.loadMyComments(epoch,token,this.data.postId);}
-    } catch (error) { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
+    } catch (error) { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
       this.setData({ error: titleOf(error, "评论未提交，请重试。") }); }
-    finally { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ busy: false }); }
+    finally { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()) this.setData({ busy: false }); }
   },
   openMyComments(){
     if(!this.data.signedIn){resumeAuthentication(`/pages/community-post/index?id=${this.data.postId}`);return;}
@@ -113,11 +118,11 @@ Page({
     this.setData({ busy: true, error: "" });
     try {
       const answer = await request<{ count: number }>({ path: `/v1/ugc/posts/${this.data.postId}/reaction`, method: "PUT", data: { kind, active } });
-      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken && this.data.post)
+      if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision() && this.data.post)
         this.setData({ post: { ...this.data.post, ...(kind === "like" ? { liked: active, likeCount: answer.count } : { saved: active, saveCount: answer.count }) } });
-    } catch (error) { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken)
+    } catch (error) { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
       this.setData({ error: titleOf(error, "操作未完成，请重试。") }); }
-    finally { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ busy: false }); }
+    finally { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()) this.setData({ busy: false }); }
   },
   async toggleFollow(){
     const post=this.data.post;
@@ -127,10 +132,10 @@ Page({
     this.setData({busy:true,error:""});
     try{
       await request({path:`/v1/me/ugc/follows/${post.authorId}`,method:"PUT",data:{active:next}});
-      if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.data.post?.authorId===post.authorId)
+      if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&this.data.post?.authorId===post.authorId)
         this.setData({post:{...this.data.post,following:next}});
-    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({error:titleOf(error,"关注操作未完成，请重试。")});}
-    finally{if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({busy:false});}
+    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())this.setData({error:titleOf(error,"关注操作未完成，请重试。")});}
+    finally{if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())this.setData({busy:false});}
   },
   openAuthor(){const id=this.data.post?.authorId;if(!id||this.data.authorNavigating)return;
     this.setData({authorNavigating:true});
@@ -140,7 +145,7 @@ Page({
     const post=this.data.post;if (!post || this.data.busy) return;
     if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication(`/pages/community-post/index?id=${this.data.postId}`); return; }
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.epoch,postId=this.data.postId;
-    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&epoch===this.data.epoch&&
+    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&epoch===this.data.epoch&&
       this.data.postId===postId&&this.data.post?.id===post.id&&this.data.post.version===post.version;
     const categories = ["不当广告", "骚扰", "不安全建议", "违法内容", "侵权", "隐私泄露", "其他"];
     const codes = ["spam", "harassment", "unsafe_advice", "illegal", "intellectual_property", "privacy", "other"];
@@ -158,7 +163,7 @@ Page({
     const post=this.data.post;if (!post || post.isMine || this.data.busy) return;
     if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication(`/pages/community-post/index?id=${this.data.postId}`); return; }
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.epoch,postId=this.data.postId;
-    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&epoch===this.data.epoch&&
+    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&epoch===this.data.epoch&&
       this.data.postId===postId&&this.data.post?.id===post.id&&this.data.post.version===post.version;
     const answer = await wx.showModal({ title: "屏蔽这位作者？", content: "屏蔽后，你的推荐列表中不再显示其内容。", confirmText: "屏蔽" });
     if (!answer.confirm||!current()) return;
@@ -174,7 +179,7 @@ Page({
   async deleteOwn() {
     const post=this.data.post;if (!post?.isMine || this.data.busy) return;
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.epoch,postId=this.data.postId;
-    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&epoch===this.data.epoch&&
+    const current=()=>token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&epoch===this.data.epoch&&
       this.data.postId===postId&&this.data.post?.id===post.id&&this.data.post.version===post.version;
     const answer = await wx.showModal({ title: "删除这篇故事？", content: "删除后不会再公开显示，无法在小程序中恢复。", confirmText: "删除", confirmColor: "#8c354e" });
     if (!answer.confirm || !current()) return;

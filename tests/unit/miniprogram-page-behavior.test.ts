@@ -39,6 +39,7 @@ let wxMock: Record<string, ReturnType<typeof vi.fn>>;
 
 function mountedPage(definition: PageDefinition, overrides: Record<string, any> = {}) {
   const context: Record<string, any> = {
+    ...definition,
     data: { ...definition.data, ...overrides },
     setData(patch: Record<string, any>, callback?: () => void) {
       Object.assign(this.data, patch);
