@@ -110,6 +110,11 @@ export class DeliveryAddressService {
     if (!this.enabled()) throw new DomainError("DELIVERY_ADDRESS_UNAVAILABLE", "地址簿安全存储尚未配置", 503);
   }
 
+  private async lockActiveMember(client: DbClient, owner: string) {
+    const result=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE",[owner]);
+    if(!result.rowCount)throw new DomainError('AUTH_REVOKED','会员账号不可用',401);
+  }
+
   async checkoutSnapshot(client: DbClient, memberId: string | undefined, addressId: string, version: unknown): Promise<{ id: string; version: number; payload: AddressPayload }> {
     const owner = this.requireMember(memberId);
     this.requireEnabled();
@@ -211,17 +216,32 @@ export class DeliveryAddressService {
     const owner = this.requireMember(memberId);
     this.requireEnabled();
     const normalized = normalizeInput(input);
+    if(typeof clientRequestKey!=='string'||clientRequestKey.length<8||clientRequestKey.length>200)
+      throw new DomainError('IDEMPOTENCY_KEY_INVALID','请求键无效',400);
+    // A keyed digest protects low-entropy phone/address content. The common
+    // command receipt stores only an address ID, never plaintext address PII.
+    const fingerprint=createHmac('sha256',Buffer.from(this.config.contacts.hashKey!,'hex'))
+      .update(`address.create:${JSON.stringify(normalized)}`).digest('hex');
     return transaction(this.pool, async (client) => {
-      await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE", [owner]);
-      const replay = await client.query<AddressRow>("SELECT * FROM member_delivery_address WHERE member_id=$1 AND client_request_key=$2", [owner, clientRequestKey]);
-      if (replay.rows[0]) {
-        if (replay.rows[0].deleted_at) throw new DomainError("DELIVERY_ADDRESS_REQUEST_RETIRED", "这次地址保存请求已经删除，请重新新增", 409);
-        return this.view(replay.rows[0]);
+      await this.lockActiveMember(client,owner);
+      const principal=`member:${owner}`;
+      const receipt=(await client.query<{request_hash:string;response_body:{addressId:string}}>(
+        "SELECT request_hash,response_body FROM idempotency_operation WHERE principal_id=$1 AND operation='address.create' AND idempotency_key=$2",
+        [principal,clientRequestKey])).rows[0];
+      if(receipt){
+        if(receipt.request_hash!==fingerprint)throw new DomainError('IDEMPOTENCY_CONFLICT','同一请求键不能用于不同地址内容',409);
+        const replay=(await client.query<AddressRow>('SELECT * FROM member_delivery_address WHERE member_id=$1 AND id=$2',[owner,receipt.response_body.addressId])).rows[0];
+        if(!replay||replay.deleted_at)throw new DomainError('DELIVERY_ADDRESS_REQUEST_RETIRED','这次地址保存请求已经删除，请查看当前地址簿',409);
+        return this.view(replay); // Current authorized object, not stale cached PII.
       }
+      const legacy=await client.query('SELECT 1 FROM member_delivery_address WHERE member_id=$1 AND client_request_key=$2',[owner,clientRequestKey]);
+      if(legacy.rowCount)throw new DomainError('DELIVERY_ADDRESS_LEGACY_REQUEST_REVIEW_REQUIRED','旧请求缺少内容校验凭据，请先查看现有地址后重新确认',409);
+      const saveReceipt=async(addressId:string)=>client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
+        VALUES($1,'address.create',$2,$2,$3,200,$4)`,[principal,clientRequestKey,fingerprint,{addressId}]);
       const active = await client.query<{ count: number }>("SELECT count(*)::int AS count FROM member_delivery_address WHERE member_id=$1 AND deleted_at IS NULL", [owner]);
       if ((active.rows[0]?.count ?? 0) >= 10) throw new DomainError("DELIVERY_ADDRESS_LIMIT", "最多保存 10 个收货地址", 409);
       const duplicate = await client.query<AddressRow>("SELECT * FROM member_delivery_address WHERE member_id=$1 AND payload_hmac=$2 AND deleted_at IS NULL", [owner, this.payloadHmac(owner, normalized.payload)]);
-      if (duplicate.rows[0]) return this.view(duplicate.rows[0]);
+      if (duplicate.rows[0]) { await saveReceipt(duplicate.rows[0].id); return this.view(duplicate.rows[0]); }
       const id = randomUUID();
       const useDefault = normalized.isDefault || (active.rows[0]?.count ?? 0) === 0;
       if (useDefault) await client.query("UPDATE member_delivery_address SET is_default=false,version=version+1,updated_at=now() WHERE member_id=$1 AND is_default AND deleted_at IS NULL", [owner]);
@@ -229,6 +249,7 @@ export class DeliveryAddressService {
         (id,member_id,encrypted_payload,payload_hmac,key_version,label,is_default,client_request_key)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`, [id, owner, this.encrypt(owner, id, normalized.payload), this.payloadHmac(owner, normalized.payload), this.config.contacts.keyVersion, normalized.label, useDefault, clientRequestKey]);
       await this.audit(client, owner, "member.delivery_address_created", id, "USER_ADDRESS_CREATE");
+      await saveReceipt(id);
       return this.view(result.rows[0]!);
     }, "SERIALIZABLE");
   }
@@ -239,6 +260,7 @@ export class DeliveryAddressService {
     const version = expectedVersion(input.expectedVersion);
     const normalized = normalizeInput(input);
     return transaction(this.pool, async (client) => {
+      await this.lockActiveMember(client,owner);
       const current = await client.query<AddressRow>("SELECT * FROM member_delivery_address WHERE id=$1 AND member_id=$2 AND deleted_at IS NULL FOR UPDATE", [addressId, owner]);
       const row = current.rows[0];
       if (!row) throw new DomainError("DELIVERY_ADDRESS_NOT_FOUND", "收货地址不存在", 404);
@@ -256,6 +278,7 @@ export class DeliveryAddressService {
     this.requireEnabled();
     const version = expectedVersion(input.expectedVersion);
     return transaction(this.pool, async (client) => {
+      await this.lockActiveMember(client,owner);
       const current = await client.query<AddressRow>("SELECT * FROM member_delivery_address WHERE id=$1 AND member_id=$2 AND deleted_at IS NULL FOR UPDATE", [addressId, owner]);
       const row = current.rows[0];
       if (!row) throw new DomainError("DELIVERY_ADDRESS_NOT_FOUND", "收货地址不存在", 404);
@@ -275,6 +298,7 @@ export class DeliveryAddressService {
     this.requireEnabled();
     const version = expectedVersion(input.expectedVersion);
     return transaction(this.pool, async (client) => {
+      await this.lockActiveMember(client,owner);
       const current = await client.query<AddressRow>("SELECT * FROM member_delivery_address WHERE id=$1 AND member_id=$2 AND deleted_at IS NULL FOR UPDATE", [addressId, owner]);
       const row = current.rows[0];
       if (!row) return { removed: true, defaultAddressId: null };

@@ -1,5 +1,5 @@
 import { createCipheriv,createHash } from "node:crypto";
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { loadConfig } from "@cisme/config";
 import { TEST_DATABASE_URL, resetDatabase, testPool } from "@cisme/testkit";
 import { createApiGatewayStorage } from "../../services/api/src/storage";
@@ -65,6 +65,7 @@ afterAll(async()=>pool.end());
 it("correlates signed async media results, ignores replay, and never revives deleted posts",async()=>{
   let trace=0,scanSourceUrl="";
   const fetcher=(async(url:string|URL|Request,options?:RequestInit)=>{
+    expect(options?.redirect).toBe("error");
     const target=String(url);
     if(target.includes("/cgi-bin/token"))return new Response(JSON.stringify({access_token:"synthetic-token",expires_in:7200}),{status:200});
     if(target.includes("/msg_sec_check"))return new Response(JSON.stringify({errcode:0,trace_id:"text-trace",result:{suggest:"pass"}}),{status:200});
@@ -74,10 +75,20 @@ it("correlates signed async media results, ignores replay, and never revives del
     }
     throw new Error("Unexpected URL");
   }) as typeof fetch;
-  const service=new UgcSafetyService(pool,config,createApiGatewayStorage(config),fetcher);
+  const storage=createApiGatewayStorage(config);
+  const reader=vi.spyOn(storage,'read').mockResolvedValue({bytes:new Uint8Array([1,2,3]),mimeType:'image/png'});
+  const service=new UgcSafetyService(pool,config,storage,fetcher);
   const started=await service.scanPost(owner,post,"https://scan.example.test");
   expect(started.results).toEqual([{kind:"text",state:"safe"},{kind:"image",id:media,state:"pending"}]);
   expect(scanSourceUrl).toContain(`/v1/ugc/scan-source/${media}`);
+  await service.scanSource(media,new URL(scanSourceUrl).searchParams.get('token'));
+  expect(reader).toHaveBeenCalledTimes(1);
+  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[owner]);
+  try{
+    await expect(service.scanSource(media,new URL(scanSourceUrl).searchParams.get('token')))
+      .rejects.toMatchObject({code:'UGC_SCAN_SOURCE_INVALID',status:404});
+    expect(reader).toHaveBeenCalledTimes(1);
+  }finally{await pool.query("UPDATE member SET status='active' WHERE id=$1",[owner]);}
   await expect(service.scanSource("00000000-0000-4000-8000-000000000001",new URL(scanSourceUrl).searchParams.get("token")))
     .rejects.toMatchObject({code:"UGC_SCAN_SOURCE_INVALID",status:403});
   expect((await pool.query("SELECT scan_result FROM ugc_media_asset WHERE id=$1",[media])).rows[0].scan_result).toEqual({});

@@ -1,5 +1,6 @@
 import {DomainError} from '@cisme/domain';
 import {dependencySignal} from './operationBudget.js';
+import {boundedWechatJson} from './boundedWechatJson.js';
 
 /** jscode2session is an identity exchange only; never expose its response or
  * credentials in an error, and never follow a redirect carrying the secret. */
@@ -10,13 +11,7 @@ export async function exchangeWechatIdentity(appId:string,appSecret:string,code:
  try{
   const response=await fetcher(`https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(appId)}&secret=${encodeURIComponent(appSecret)}&js_code=${encodeURIComponent(code)}&grant_type=authorization_code`,
    {signal:dependencySignal(12_000),redirect:'error'});
-  if(!response.ok){await response.body?.cancel();throw failed();}
-  const reader=response.body?.getReader();if(!reader)throw failed();
-  const chunks:Uint8Array[]=[];let size=0;
-  try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
-   if(size>65_536){await reader.cancel();throw failed();}chunks.push(value);}}
-  finally{reader.releaseLock();}
-  const body=JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string,unknown>;
+  const body=await boundedWechatJson<Record<string,unknown>>(response);
   const valid=(value:unknown):value is string=>typeof value==='string'&&value.length>0&&value.length<=128&&!/[\s\x00-\x1f]/.test(value);
   if(!body||!valid(body.openid)||(body.errcode!==undefined&&body.errcode!==0)||(body.unionid!==undefined&&!valid(body.unionid)))throw failed();
   return {openid:body.openid,...(valid(body.unionid)?{unionid:body.unionid}:{})};

@@ -15,6 +15,7 @@ const config = loadConfig({
 });
 const phoneFetcher = vi.fn<typeof fetch>();
 phoneFetcher.mockImplementation(async (input, init) => {
+  expect(init?.redirect).toBe("error");
   const url = String(input);
   if (url.includes("/stable_token")) return new Response(JSON.stringify({ access_token: "synthetic-token", expires_in: 7200 }));
   const code = JSON.parse(String(init?.body)).code as string;

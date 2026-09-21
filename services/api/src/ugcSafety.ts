@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import {boundedWechatJson} from './boundedWechatJson.js';
 import type pg from "pg";
 import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
@@ -38,17 +39,17 @@ export class UgcSafetyService{
     if(!this.config.wechat.appId||!this.config.wechat.appSecret)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
     if(this.tokenCache&&this.tokenCache.until>Date.now())return this.tokenCache.value;
     const url=`https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${encodeURIComponent(this.config.wechat.appId)}&secret=${encodeURIComponent(this.config.wechat.appSecret)}`;
-    const response=await this.fetcher(url,{signal:AbortSignal.timeout(8000)});
-    const body=await response.json() as {access_token?:string;expires_in?:number};
-    if(!response.ok||!body.access_token)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
+    const response=await this.fetcher(url,{signal:AbortSignal.timeout(8000),redirect:'error'});
+    const body=await boundedWechatJson<{access_token?:string;expires_in?:number}>(response);
+    if(typeof body.access_token!=='string'||!body.access_token||body.access_token.length>4096||(body.expires_in!==undefined&&(!Number.isFinite(body.expires_in)||body.expires_in<0||body.expires_in>7200)))throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
     this.tokenCache={value:body.access_token,until:Date.now()+Math.max(60,(body.expires_in??7200)-120)*1000};
     return body.access_token;
   }
   private async request(path:string,body:Record<string,unknown>):Promise<WechatResult>{
     const token=await this.accessToken();
     const response=await this.fetcher(`https://api.weixin.qq.com/wxa/${path}?access_token=${encodeURIComponent(token)}`,
-      {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
-    const result=await response.json() as WechatResult;
+      {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(12000),redirect:'error'});
+    const result=await boundedWechatJson<WechatResult>(response);
     if(!response.ok||result.errcode!==0)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
     return result;
   }
@@ -84,6 +85,8 @@ export class UgcSafetyService{
       JOIN ugc_post_media b ON b.media_asset_id=a.id JOIN ugc_post p ON p.id=b.post_id
       JOIN ugc_post_revision r ON r.post_id=b.post_id AND r.revision=b.revision
       WHERE a.id=$1 AND b.post_id=$2 AND b.revision=$3 AND a.sha256=$4 AND a.state IN ('uploaded','scanning')
+        AND a.owner_member_id=p.author_member_id
+        AND EXISTS(SELECT 1 FROM member m WHERE m.id=p.author_member_id AND m.status='active')
         AND ${pendingReviewRevisionSql}`,[id,postId,revision,sha256])).rows[0];
     if(!row)throw new DomainError("UGC_SCAN_SOURCE_INVALID","待审图片已失效",404);
     return this.storage.read(row.object_key);
