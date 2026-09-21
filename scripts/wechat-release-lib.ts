@@ -28,8 +28,8 @@ export type WeChatCiPreviewInput = Omit<WeChatReleaseInput, "target" | "devtools
 };
 
 export function validateInternalTestPackageSafety(input: Pick<WeChatCiPreviewInput,
-  "riskAccepted" | "testTargetIsolated" | "paymentsDisabled" | "publicUgcDisabled" | "testMembersConfigured">): string[] {
-  const errors = input.riskAccepted ? [] : ["WECHAT_CI_RISK_ACCEPTANCE_REQUIRED"];
+  "testTargetIsolated" | "paymentsDisabled" | "publicUgcDisabled" | "testMembersConfigured">): string[] {
+  const errors: string[] = [];
   if (!input.testTargetIsolated) errors.push("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
   if (!input.paymentsDisabled) errors.push("INTERNAL_TEST_PAYMENTS_DISABLED_PROOF_REQUIRED");
   if (!input.publicUgcDisabled) errors.push("INTERNAL_TEST_PUBLIC_UGC_DISABLED_PROOF_REQUIRED");
@@ -89,6 +89,9 @@ export function validateWeChatRelease(input: WeChatReleaseInput): string[] {
 
 export function validateWeChatCiPreview(input: WeChatCiPreviewInput): string[] {
   const errors = validateInternalTestPackageSafety(input);
+  // This consent concerns the separate miniprogram-ci toolchain. Official
+  // DevTools does not load that package, but keeps every target safety gate.
+  if (!input.riskAccepted) errors.push("WECHAT_CI_RISK_ACCEPTANCE_REQUIRED");
   return [
     ...errors,
     ...validateWeChatRelease({
