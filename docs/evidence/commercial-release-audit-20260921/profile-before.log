@@ -1,0 +1,222 @@
+
+ RUN  v4.1.11 /Users/mini/CISME
+
+ ❯ tests/unit/native-progressive-load.test.ts (24 tests | 7 failed) 76ms
+     × populates the WXML care card for planned while auxiliary requests remain pending 9ms
+     × populates the WXML care card for active while auxiliary requests remain pending 1ms
+     × populates the WXML care card for paused while auxiliary requests remain pending 1ms
+     × populates the WXML care card for terminated while auxiliary requests remain pending 0ms
+     × populates the WXML care card for completed while auxiliary requests remain pending 0ms
+     × populates the WXML care card for waiting while auxiliary requests remain pending 0ms
+     × populates the WXML care card for null while auxiliary requests remain pending 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/native-progressive-load.test.ts > PERF-02/09: native Profile consistent core, independent auxiliary states > populates the WXML care card for planned while auxiliary requests remain pending
+AssertionError: expected { memberAvatar: 'neutral', …(31) } to match object { loading: false, …(6) }
+(40 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "authorityState": "loading",
+    "avatarState": "loading",
+-   "careStatus": "待用户确认开始",
+-   "careTitle": "护理周期待开始",
++   "careStatus": "",
++   "careTitle": "",
+    "commercialState": "loading",
+    "loading": false,
+    "supportState": "loading",
+  }
+
+ ❯ tests/unit/native-progressive-load.test.ts:113:23
+    111|       : originalRequest(options));
+    112|     await loadPage("profile"); void page.load(); await flush();
+    113|     expect(page.data).toMatchObject({ loading: false, careTitle: title…
+       |                       ^
+    114|     expect(page.data.careCopy).toContain(copy);
+    115|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/unit/native-progressive-load.test.ts > PERF-02/09: native Profile consistent core, independent auxiliary states > populates the WXML care card for active while auxiliary requests remain pending
+AssertionError: expected { memberAvatar: 'neutral', …(31) } to match object { loading: false, …(6) }
+(40 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "authorityState": "loading",
+    "avatarState": "loading",
+-   "careStatus": "护理进行中",
+-   "careTitle": "护理周期进行中",
++   "careStatus": "",
++   "careTitle": "",
+    "commercialState": "loading",
+    "loading": false,
+    "supportState": "loading",
+  }
+
+ ❯ tests/unit/native-progressive-load.test.ts:113:23
+    111|       : originalRequest(options));
+    112|     await loadPage("profile"); void page.load(); await flush();
+    113|     expect(page.data).toMatchObject({ loading: false, careTitle: title…
+       |                       ^
+    114|     expect(page.data.careCopy).toContain(copy);
+    115|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/unit/native-progressive-load.test.ts > PERF-02/09: native Profile consistent core, independent auxiliary states > populates the WXML care card for paused while auxiliary requests remain pending
+AssertionError: expected { memberAvatar: 'neutral', …(31) } to match object { loading: false, …(6) }
+(40 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "authorityState": "loading",
+    "avatarState": "loading",
+-   "careStatus": "护理已暂停",
+-   "careTitle": "护理周期已暂停",
++   "careStatus": "",
++   "careTitle": "",
+    "commercialState": "loading",
+    "loading": false,
+    "supportState": "loading",
+  }
+
+ ❯ tests/unit/native-progressive-load.test.ts:113:23
+    111|       : originalRequest(options));
+    112|     await loadPage("profile"); void page.load(); await flush();
+    113|     expect(page.data).toMatchObject({ loading: false, careTitle: title…
+       |                       ^
+    114|     expect(page.data.careCopy).toContain(copy);
+    115|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/unit/native-progressive-load.test.ts > PERF-02/09: native Profile consistent core, independent auxiliary states > populates the WXML care card for terminated while auxiliary requests remain pending
+AssertionError: expected { memberAvatar: 'neutral', …(31) } to match object { loading: false, …(6) }
+(40 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "authorityState": "loading",
+    "avatarState": "loading",
+-   "careStatus": "周期已终止",
+-   "careTitle": "护理周期已终止",
++   "careStatus": "",
++   "careTitle": "",
+    "commercialState": "loading",
+    "loading": false,
+    "supportState": "loading",
+  }
+
+ ❯ tests/unit/native-progressive-load.test.ts:113:23
+    111|       : originalRequest(options));
+    112|     await loadPage("profile"); void page.load(); await flush();
+    113|     expect(page.data).toMatchObject({ loading: false, careTitle: title…
+       |                       ^
+    114|     expect(page.data.careCopy).toContain(copy);
+    115|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/unit/native-progressive-load.test.ts > PERF-02/09: native Profile consistent core, independent auxiliary states > populates the WXML care card for completed while auxiliary requests remain pending
+AssertionError: expected { memberAvatar: 'neutral', …(31) } to match object { loading: false, …(6) }
+(40 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "authorityState": "loading",
+    "avatarState": "loading",
+-   "careStatus": "周期已完成",
+-   "careTitle": "护理周期已完成",
++   "careStatus": "",
++   "careTitle": "",
+    "commercialState": "loading",
+    "loading": false,
+    "supportState": "loading",
+  }
+
+ ❯ tests/unit/native-progressive-load.test.ts:113:23
+    111|       : originalRequest(options));
+    112|     await loadPage("profile"); void page.load(); await flush();
+    113|     expect(page.data).toMatchObject({ loading: false, careTitle: title…
+       |                       ^
+    114|     expect(page.data.careCopy).toContain(copy);
+    115|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/unit/native-progressive-load.test.ts > PERF-02/09: native Profile consistent core, independent auxiliary states > populates the WXML care card for waiting while auxiliary requests remain pending
+AssertionError: expected { memberAvatar: 'neutral', …(31) } to match object { loading: false, …(6) }
+(40 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "authorityState": "loading",
+    "avatarState": "loading",
+-   "careStatus": "待资格确认",
+-   "careTitle": "护理周期待确认",
++   "careStatus": "",
++   "careTitle": "",
+    "commercialState": "loading",
+    "loading": false,
+    "supportState": "loading",
+  }
+
+ ❯ tests/unit/native-progressive-load.test.ts:113:23
+    111|       : originalRequest(options));
+    112|     await loadPage("profile"); void page.load(); await flush();
+    113|     expect(page.data).toMatchObject({ loading: false, careTitle: title…
+       |                       ^
+    114|     expect(page.data.careCopy).toContain(copy);
+    115|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/unit/native-progressive-load.test.ts > PERF-02/09: native Profile consistent core, independent auxiliary states > populates the WXML care card for null while auxiliary requests remain pending
+AssertionError: expected { memberAvatar: 'neutral', …(31) } to match object { loading: false, …(6) }
+(34 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "authorityState": "loading",
+    "avatarState": "loading",
+-   "careStatus": "待资格确认",
+-   "careTitle": "护理周期待确认",
++   "careStatus": "",
++   "careTitle": "",
+    "commercialState": "loading",
+    "loading": false,
+    "supportState": "loading",
+  }
+
+ ❯ tests/unit/native-progressive-load.test.ts:113:23
+    111|       : originalRequest(options));
+    112|     await loadPage("profile"); void page.load(); await flush();
+    113|     expect(page.data).toMatchObject({ loading: false, careTitle: title…
+       |                       ^
+    114|     expect(page.data.careCopy).toContain(copy);
+    115|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 17 passed (24)
+   Start at  21:30:23
+   Duration  198ms (transform 57ms, setup 0ms, import 50ms, tests 76ms, environment 0ms)

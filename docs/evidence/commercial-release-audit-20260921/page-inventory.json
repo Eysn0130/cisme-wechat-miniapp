@@ -1,0 +1,2426 @@
+{
+  "schemaVersion": 1,
+  "scope": "37 route TS/WXML/WXSS source inventory; regex tokens omit wrapper internals and template scope. Counts do not prove executed requests, styling, state coverage or business correctness.",
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/home/index.ts",
+          "sha256": "9adac969c394911a3df40730608ea57f5f2d9f1fe9a79796f9383e695ba77e24"
+        },
+        {
+          "file": "apps/miniprogram/pages/home/index.wxml",
+          "sha256": "d27440e97ea23b505d8068af25df431c8c739804ce58666fd3020a92f64d6469"
+        },
+        {
+          "file": "apps/miniprogram/pages/home/index.wxss",
+          "sha256": "cf7746f498db8b580701b8e36657f673e7b48f69fc6c78bdf29a2b32feba6b01"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/bootstrap/home",
+        "/v1/care-cycles/${care.id}/activate",
+        "/v1/care-cycles/${care.id}/milestones/${care.due}/complete",
+        "/v1/me/support/summary"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "advanceCareStep",
+        "closeCareSession",
+        "openSupport",
+        "primaryAction",
+        "retryCareMutation",
+        "retryLoad",
+        "selectAssessment",
+        "selectProtocolStep",
+        "stopPropagation",
+        "submitCareSession"
+      ],
+      "buttonCount": 11,
+      "inputCount": 0,
+      "fontSizes": [
+        "20px",
+        "20rpx",
+        "24rpx",
+        "28rpx",
+        "32rpx",
+        "42rpx",
+        "46rpx",
+        "50rpx",
+        "54rpx",
+        "58rpx",
+        "var(--cisme-text-action)",
+        "var(--cisme-text-body)",
+        "var(--cisme-text-micro)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [
+        "active-drop-breathe 2.4s ease-in-out infinite",
+        "blur(10rpx)",
+        "care-console-enter 420ms cubic-bezier(.16, 1, .3, 1) both",
+        "care-cta-highlight 3.8s ease-in-out infinite",
+        "care-step-in 220ms ease-out both",
+        "check-disc-pop 420ms cubic-bezier(.2, 1.4, .35, 1) both",
+        "check-disc-pop 420ms cubic-bezier(.2,1.4,.35,1) both",
+        "check-mark-draw 320ms 100ms cubic-bezier(.16,1,.3,1) both",
+        "check-mark-draw 320ms 80ms cubic-bezier(.16, 1, .3, 1) both",
+        "check-mark-draw 320ms 80ms cubic-bezier(.16,1,.3,1) both",
+        "completion-ring-in 460ms cubic-bezier(.2,1.4,.35,1) both",
+        "home-background-breathe 18s cubic-bezier(.45, 0, .55, 1) infinite alternate",
+        "none",
+        "opacity 180ms ease, transform 180ms cubic-bezier(.16, 1, .3, 1), box-shadow 220ms ease",
+        "opacity 200ms ease-out",
+        "session-current-breathe 2.4s ease-in-out infinite",
+        "transform 260ms cubic-bezier(.16,1,.3,1),background 220ms ease,box-shadow 220ms ease",
+        "transform 320ms cubic-bezier(.16, 1, .3, 1)",
+        "transform 320ms cubic-bezier(.16,1,.3,1),opacity 200ms ease-out"
+      ],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/records/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/records/index.ts",
+          "sha256": "64fbaf93bcfc44269be4c64817197d1516da7a32ecdb2a8aec6cab23cffcc4d0"
+        },
+        {
+          "file": "apps/miniprogram/pages/records/index.wxml",
+          "sha256": "d51821f9e39d84cc0389e65831d8308c28982e0253ba9ce263744df6da51a801"
+        },
+        {
+          "file": "apps/miniprogram/pages/records/index.wxss",
+          "sha256": "e7da4a60ffc683c2b2e76c40efa0a32529b91096105d7accc7805878362bf26c"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/care-cycles/${care.id}/${action}",
+        "/v1/me/care"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "authenticate",
+        "changeCycle",
+        "closeRecordDetail",
+        "goHome",
+        "goShop",
+        "openRecordDetail",
+        "retryLoad",
+        "showEarlierCycles",
+        "stopPropagation"
+      ],
+      "buttonCount": 12,
+      "inputCount": 0,
+      "fontSizes": [
+        "27rpx",
+        "29rpx",
+        "32rpx",
+        "33rpx",
+        "38rpx",
+        "45rpx",
+        "76rpx",
+        "94rpx",
+        "var(--cisme-text-body)",
+        "var(--cisme-text-micro)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [
+        "background 180ms ease-out,opacity 180ms ease-out",
+        "blur(10rpx)",
+        "none",
+        "opacity 160ms ease,transform 160ms ease",
+        "transform 160ms ease",
+        "transform 160ms ease,opacity 160ms ease",
+        "transform 240ms cubic-bezier(.2,.8,.2,1),opacity 180ms ease-out"
+      ],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/community/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/community/index.ts",
+          "sha256": "20c5822ff59d0a275c8ac696eefb0a570bd858c2f82d523b6d8b7feb043d9957"
+        },
+        {
+          "file": "apps/miniprogram/pages/community/index.wxml",
+          "sha256": "dfaab2fb2c2d60a2db68846f09c24879cd5b2f2a4d690cfe62d4a54f28875620"
+        },
+        {
+          "file": "apps/miniprogram/pages/community/index.wxss",
+          "sha256": "cb081bda8536ed4bb4d41876a4eb30838fed192864912e342ca98ea3984acb15"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/capabilities",
+        "/v1/feed/page?limit=30",
+        "/v1/management/ugc/appeals/${id}/decision",
+        "/v1/management/ugc/appeals?limit=30",
+        "/v1/management/ugc/reports/${id}/decision",
+        "/v1/management/ugc/reports?limit=30",
+        "/v1/management/ugc/review-queue",
+        "/v1/me/community-access",
+        "/v1/me/following/page?limit=30",
+        "/v1/me/follows",
+        "/v1/me/tasks",
+        "/v1/team/member-profiles",
+        "/v1/team/member-profiles/${item.member_id}/review",
+        "/v1/team/publications",
+        "/v1/team/reviews",
+        "/v1/team/submissions/${item.id}/publish",
+        "/v1/team/submissions/${item.id}/review",
+        "/v1/ugc/media/${item.coverId}?variant=thumbnail",
+        "/v1/ugc/posts?following=1",
+        "/v1/ugc/posts?limit=30",
+        "/v1/ugc/posts?limit=30${formalQuery}",
+        "/v1/ugc/status"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "clearSearch",
+        "copyPostUrl",
+        "decideFormalAppeal",
+        "decideFormalReport",
+        "load",
+        "loadMoreAppeals",
+        "loadMoreReports",
+        "loadReview",
+        "loadTasks",
+        "onReachBottom",
+        "onSearchInput",
+        "openFormalReview",
+        "openInvite",
+        "openMyPosts",
+        "openPost",
+        "openReportTarget",
+        "publishSubmission",
+        "reviewMemberProfile",
+        "reviewSubmission",
+        "selectMode",
+        "submitSearch"
+      ],
+      "buttonCount": 30,
+      "inputCount": 1,
+      "fontSizes": [
+        "10px",
+        "12px",
+        "14px",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "26rpx",
+        "28rpx",
+        "29rpx",
+        "30rpx",
+        "34rpx",
+        "44rpx",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [
+        "blur(20rpx)"
+      ],
+      "parallelBarriers": [
+        {
+          "line": 195,
+          "expression": "Promise.all("
+        },
+        {
+          "line": 220,
+          "expression": "Promise.all("
+        },
+        {
+          "line": 221,
+          "expression": "Promise.all("
+        },
+        {
+          "line": 397,
+          "expression": "Promise.all("
+        },
+        {
+          "line": 416,
+          "expression": "Promise.all("
+        },
+        {
+          "line": 425,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 22,
+          "expression": "{{item.visible ? '已进入推荐流' : item.publication_queued ? '正在发布' : !item.publication_enabled ? '公开发布尚未开放' : '待另一名审核员完成发布复核'}}"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/profile/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/profile/index.ts",
+          "sha256": "240fbc8c41552754dfd7b71ff84fde83b9066631e89e6fdc0976de6c0cf1ee93"
+        },
+        {
+          "file": "apps/miniprogram/pages/profile/index.wxml",
+          "sha256": "fabf919a83366c278b057a8b25412fe62ee44020cee7f2ed33f8c3dde8aba27c"
+        },
+        {
+          "file": "apps/miniprogram/pages/profile/index.wxss",
+          "sha256": "1fc5593c32c60b4d074482ff25538d649ff3c75a0e4dbee2fb11ddb2f198467c"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/bootstrap/profile",
+        "/v1/me/commercial-membership",
+        "/v1/me/support/summary",
+        "/v1/me/tasks"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "load",
+        "openAccount",
+        "openCommission",
+        "openCommunityActivity",
+        "openInvite",
+        "openManagement",
+        "openOrders",
+        "openPoints",
+        "openRecords",
+        "openSettings",
+        "openShop",
+        "openSupport",
+        "openTasks",
+        "retryAuxiliary",
+        "retryTasks"
+      ],
+      "buttonCount": 16,
+      "inputCount": 0,
+      "fontSizes": [
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "38rpx",
+        "40rpx"
+      ],
+      "motionDeclarations": [
+        "none",
+        "profile-shimmer 1.2s ease-in-out infinite"
+      ],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 36,
+          "expression": "商品可以浏览；微信支付与真实配送尚未开放。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/account/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/account/index.ts",
+          "sha256": "488fd6acea6d2219c820285fe1cf2059c7262f6a1a15c9d1a86e8ffc02389c77"
+        },
+        {
+          "file": "apps/miniprogram/pages/account/index.wxml",
+          "sha256": "b246150ba29d53af9d858f869cdf82e101056a8b2be8b63fcdb5c388006859de"
+        },
+        {
+          "file": "apps/miniprogram/pages/account/index.wxss",
+          "sha256": "6878f2764ca9cbe3cb63f3560a4978d9c212e694d7b8acfe9f6a3910374d4f64"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/identity/capabilities",
+        "/v1/identity/dev",
+        "/v1/identity/wechat",
+        "/v1/legal",
+        "/v1/me",
+        "/v1/me/phone",
+        "/v1/me/profile"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "browseCommunity",
+        "chooseLoginAvatar",
+        "loginTap",
+        "loginWithPhone",
+        "openCrossBorder",
+        "openLegalDocuments",
+        "toggleAgreement",
+        "toggleCrossBorder"
+      ],
+      "buttonCount": 5,
+      "inputCount": 0,
+      "fontSizes": [
+        "26rpx",
+        "50rpx",
+        "var(--cisme-text-action)",
+        "var(--cisme-text-body)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 11,
+          "expression": "{{identityCommitStarted ? '身份请求已提交，本次同意在结果返回前不可更改' : localLegalFixture ? '仅供本地测试，正式协议尚未发布' : legalTextsReady ? '基础服务协议不捆绑公开展示或营销授权' : legalLoading ? '正在读取当前协议…' : '当前协议暂不可用，请稍后重试'}}"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/task/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/task/index.ts",
+          "sha256": "10dce2a7415f4ab233df2efe16ce81fbfbeb347d1969ccc1fbaaf882a3ee443a"
+        },
+        {
+          "file": "apps/miniprogram/pages/task/index.wxml",
+          "sha256": "ca1a7aa69b2491fd1106745ba8fd20109d0105385492df2a642a5b63373a1ca8"
+        },
+        {
+          "file": "apps/miniprogram/pages/task/index.wxss",
+          "sha256": "2994d484ece8ea49d87d1ae6344b691b3203d35668fee4db96fd98a5a630778b"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/tasks/${this.data.taskId}",
+        "/v1/tasks/${this.data.taskId}/claim"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "claim",
+        "continueSubmission",
+        "goCommunity",
+        "load"
+      ],
+      "buttonCount": 8,
+      "inputCount": 0,
+      "fontSizes": [
+        "26rpx",
+        "29rpx",
+        "46rpx",
+        "58rpx",
+        "var(--cisme-text-body)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/submit/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/submit/index.ts",
+          "sha256": "ba87226b6d63b0f9388e5b713d8499b6d8c649751e2dc6fb82028f8c922bccb5"
+        },
+        {
+          "file": "apps/miniprogram/pages/submit/index.wxml",
+          "sha256": "57e05ad8c4d4cebf9c9aa6bd34f05888eaee0ab2de4fdd5b31dd142d997c1315"
+        },
+        {
+          "file": "apps/miniprogram/pages/submit/index.wxss",
+          "sha256": "0d7277904bb3c149a668d67600e8e0ae4a3c50c7b1c867f2c5bf36d198c6b020"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/submissions/${this.data.submissionId}",
+        "/v1/submissions/${this.data.submissionId}/draft",
+        "/v1/submissions/${this.data.submissionId}/media/${authorization.mediaId}/complete",
+        "/v1/submissions/${this.data.submissionId}/media/authorize",
+        "/v1/submissions/${this.data.submissionId}/submit"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "chooseMedia",
+        "copySubmissionId",
+        "focusPostUrl",
+        "load",
+        "openMediaPrivacy",
+        "openMediaSettings",
+        "openProgress",
+        "resolveDraftConflict",
+        "retryDraftSave",
+        "submit",
+        "updateField",
+        "updatePermission"
+      ],
+      "buttonCount": 19,
+      "inputCount": 3,
+      "fontSizes": [
+        "var(--cisme-text-body)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/progress/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/progress/index.ts",
+          "sha256": "a0de3c42b062eee1d5f702e332e1c534b082d5beae5476a34a87da1f3db441db"
+        },
+        {
+          "file": "apps/miniprogram/pages/progress/index.wxml",
+          "sha256": "3f858acb729419916c167cc3eab8f74784faba2e70204b9fa29756dcd53b699a"
+        },
+        {
+          "file": "apps/miniprogram/pages/progress/index.wxss",
+          "sha256": "1eb4824f52ae5ff138c6ad6501549f50117f64c118c7099c6ccb731e15d44242"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/submissions/${this.data.submissionId}",
+        "/v1/submissions/${this.data.submissionId}/appeal"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "appeal",
+        "back",
+        "goCommunity",
+        "load",
+        "revise",
+        "updateAppeal"
+      ],
+      "buttonCount": 10,
+      "inputCount": 1,
+      "fontSizes": [
+        "39rpx",
+        "var(--cisme-text-body)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/points/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/points/index.ts",
+          "sha256": "35c36d8c60cf068c59c53e72b928b3178c6bea2b3c74056e761b8ca5de424dba"
+        },
+        {
+          "file": "apps/miniprogram/pages/points/index.wxml",
+          "sha256": "29f874e5599e3dca870ba982dbfbae895c5e0fb51612164e37414ee1e9b9fabc"
+        },
+        {
+          "file": "apps/miniprogram/pages/points/index.wxss",
+          "sha256": "e283f9f05f7c6e2eb775158bbfbadc8a7a73c3c7b510b91ca0a4e4a4f15238f8"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/points"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load",
+        "openShop"
+      ],
+      "buttonCount": 3,
+      "inputCount": 0,
+      "fontSizes": [
+        "24rpx",
+        "29rpx",
+        "30rpx",
+        "76rpx",
+        "var(--cisme-text-body)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 15,
+          "expression": "{{points.rulesEnabled ? '积分规则已启用 · 购买服务单独开放' : '积分奖励尚未开放 · 当前不新增积分'}}"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/post/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/post/index.ts",
+          "sha256": "d6ef3b8318479353dd8162ec75dcb12239319c3c4f1cd69565781adb7694e338"
+        },
+        {
+          "file": "apps/miniprogram/pages/post/index.wxml",
+          "sha256": "436750539fc2b197fa5e0639ca5bd790d667d2f55635518a642d99d2fdcb9dda"
+        },
+        {
+          "file": "apps/miniprogram/pages/post/index.wxss",
+          "sha256": "83675b819f72c4b261cb48951a159435e770420e875f9d5b00f7f7a17feb58d4"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/capabilities",
+        "/v1/community/${encodeURIComponent",
+        "/v1/feed/${encodeURIComponent",
+        "/v1/me/follows",
+        "/v1/me/follows/${encodeURIComponent"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "blurComment",
+        "cancelReply",
+        "deleteComment",
+        "expandReplies",
+        "focusComment",
+        "inputComment",
+        "keyboardChanged",
+        "likeComment",
+        "load",
+        "loadSocial",
+        "mediaLoaded",
+        "onMediaChange",
+        "previewMedia",
+        "replyComment",
+        "sendComment",
+        "showComments",
+        "toggleFollow",
+        "toggleLike",
+        "toggleSave"
+      ],
+      "buttonCount": 16,
+      "inputCount": 1,
+      "fontSizes": [
+        "20rpx",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "28rpx",
+        "32rpx",
+        "36rpx",
+        "38rpx",
+        "44rpx",
+        "var(--cisme-text-body)",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [
+        "blur(20rpx)"
+      ],
+      "parallelBarriers": [
+        {
+          "line": 161,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 29,
+          "expression": "互动测试预览 · 新评论审核后才会公开"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/shop/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/shop/index.ts",
+          "sha256": "9b8fb4f36603aded343a5f7871244fb20216226eddea06a0b258a2613a16deff"
+        },
+        {
+          "file": "apps/miniprogram/pages/shop/index.wxml",
+          "sha256": "477c7a2b28bdbac4f3816385294811605491b739e316c29981dd2c7a5ed29443"
+        },
+        {
+          "file": "apps/miniprogram/pages/shop/index.wxss",
+          "sha256": "c8afcd2351306ebd73f38ccde1d85403da33854d8413e6ce4587e1103b13ad61"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load",
+        "openProduct"
+      ],
+      "buttonCount": 4,
+      "inputCount": 0,
+      "fontSizes": [
+        "22rpx",
+        "24rpx",
+        "26rpx",
+        "29rpx",
+        "39rpx",
+        "50rpx",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 5,
+          "expression": "button wx:if=\"{{featured}}\" class=\"shop-hero {{navigating ? 'control--disabled' : ''}}\" data-id=\"{{featured.id}}\" bindtap=\"openProduct\" disabled=\"{{navigating}}\" aria-label=\"查看商品详情：{{featured.name}}，价格 {{featured.displayPrice}} 元，交易尚未开放\""
+        },
+        {
+          "line": 11,
+          "expression": "{{purchaseAvailable?'可提交待支付订单；微信支付尚未开放。':'目录可浏览，结算与支付尚未开放。'}}"
+        },
+        {
+          "line": 13,
+          "expression": "button wx:for=\"{{catalog.items}}\" wx:key=\"id\" class=\"product-card {{navigating ? 'control--disabled' : ''}}\" data-id=\"{{item.id}}\" bindtap=\"openProduct\" disabled=\"{{navigating}}\" aria-label=\"查看商品详情：{{item.name}}，价格 {{item.displayPrice}} 元，交易尚未开放\""
+        },
+        {
+          "line": 18,
+          "expression": "暂时没有已完成资质确认并上架的商品。测试预览不会自动公开。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/product/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/product/index.ts",
+          "sha256": "8712b680e4a92f8d260642a08632af6de6a8193c53c95f1e0d0eb5d8e7c7c1e7"
+        },
+        {
+          "file": "apps/miniprogram/pages/product/index.wxml",
+          "sha256": "7ea7cfd4f0bba4d49d3873bb4d132b47d79f7b03559338f25f90ce3b32b11c90"
+        },
+        {
+          "file": "apps/miniprogram/pages/product/index.wxss",
+          "sha256": "34a8922760c7ccfd1510facabf426f3070e82a35733fdc060ac0af8bb12372f9"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "decrease",
+        "galleryChange",
+        "galleryNext",
+        "galleryPrevious",
+        "increase",
+        "load",
+        "openCheckout",
+        "selectSku"
+      ],
+      "buttonCount": 9,
+      "inputCount": 0,
+      "fontSizes": [
+        "21rpx",
+        "22rpx",
+        "24rpx",
+        "25rpx",
+        "28rpx",
+        "29rpx",
+        "32rpx",
+        "34rpx",
+        "40rpx",
+        "var(--cisme-text-small)"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 28,
+          "expression": "{{item.purchaseEnabled&&selectedSku.purchaseEnabled?'前往核对订单':'购买尚未开放'}}"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/checkout/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/checkout/index.ts",
+          "sha256": "0a5b33cedbdb875bc1e51496a664574ccba272f0d2cfa18725516110457d5733"
+        },
+        {
+          "file": "apps/miniprogram/pages/checkout/index.wxml",
+          "sha256": "2da7affbc04fc60ee1448db2a858152cff72942371d0fc44ccfee8d111a590e9"
+        },
+        {
+          "file": "apps/miniprogram/pages/checkout/index.wxss",
+          "sha256": "2a362276887be0377f9d7b26879c4673c6d5bb170497480d83a60d11551196fe"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "confirmOrder",
+        "decrease",
+        "editAddresses",
+        "editCredit",
+        "increase",
+        "refreshQuote",
+        "requestQuote",
+        "selectAddress",
+        "selectSku"
+      ],
+      "buttonCount": 9,
+      "inputCount": 1,
+      "fontSizes": [
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "29rpx",
+        "30rpx",
+        "32rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 91,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 9,
+          "expression": "购物权益 · 仅本机隔离测试"
+        },
+        {
+          "line": 11,
+          "expression": "购物权益 · 隔离测试"
+        },
+        {
+          "line": 12,
+          "expression": "{{isolatedPayment?'本机隔离测试仅模拟微信支付，不会扣取真实款项。':'微信支付正在开通。现在只保存待支付订单，不会自动扣款或显示为已付款。'}}"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/orders/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/orders/index.ts",
+          "sha256": "d8853ac732b1db3462787bb3ea836b8ffd2d50229c8f515beb336e3417837eef"
+        },
+        {
+          "file": "apps/miniprogram/pages/orders/index.wxml",
+          "sha256": "f40c8f702c50ebf6ae359ade3f16d244f8d1d04cee4a6ec6f913b73a628c1422"
+        },
+        {
+          "file": "apps/miniprogram/pages/orders/index.wxss",
+          "sha256": "b343886ce68557b77b3c18fd5bc1cf0e66623d046e3647fbb7e2bf9bbc623020"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load",
+        "loadMore",
+        "open",
+        "openShop"
+      ],
+      "buttonCount": 5,
+      "inputCount": 0,
+      "fontSizes": [
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "26rpx",
+        "32rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 1,
+          "expression": "订单状态以服务端核验的事实为准；正式支付尚未开放。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/order-detail/index.ts",
+          "sha256": "49e5fa208102657187c10fef619c1b0d86244132d7463ccc60fbd0093aaf81f6"
+        },
+        {
+          "file": "apps/miniprogram/pages/order-detail/index.wxml",
+          "sha256": "992bba45a509067f67ce14271a0892c1b66d8cb9c6764de89aa6ef02fcccac23"
+        },
+        {
+          "file": "apps/miniprogram/pages/order-detail/index.wxss",
+          "sha256": "ed71a16fb2d8abeaf66a87cd6504fa183e06430ee05e3ca79266a138afa6355c"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/orders/${id}/cancel-verified",
+        "/v1/me/orders/${id}/payment-intent",
+        "/v1/me/orders/${id}/refund-requests",
+        "/v1/me/refund-requests?orderId=${this.data.id}"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "cancel",
+        "closeRefundForm",
+        "editRefundAmount",
+        "editRefundReason",
+        "load",
+        "loadMoreRefunds",
+        "preparePayment",
+        "recheckPayment",
+        "retryRefunds",
+        "showRefundForm",
+        "submitRefund"
+      ],
+      "buttonCount": 11,
+      "inputCount": 2,
+      "fontSizes": [
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "30rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 33,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 2,
+          "expression": "仅本机隔离协议测试；不会扣取真实款项。订单到期 {{order.expiresLabel}}。"
+        },
+        {
+          "line": 2,
+          "expression": "正式支付尚未开放；订单将在 {{order.expiresLabel}} 后由服务端超时处理。"
+        },
+        {
+          "line": 5,
+          "expression": "购物权益 · 隔离测试"
+        },
+        {
+          "line": 8,
+          "expression": "退款与售后 · 隔离测试"
+        },
+        {
+          "line": 23,
+          "expression": "{{isolatedPayment?'本机仅验证支付、退款协议和服务端状态；不会发生真实资金操作。':'正式微信支付尚未开放。订单状态以服务端记录为准。'}}"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/settings/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/settings/index.ts",
+          "sha256": "15b3ae64893d23a6b79f49d566785bc2742235dc26b255bb5ee54d9f4108dd16"
+        },
+        {
+          "file": "apps/miniprogram/pages/settings/index.wxml",
+          "sha256": "b93f03db4c1832ab0e4b904840e5e82e3797d6822d5761bf8e3a5523abd368e2"
+        },
+        {
+          "file": "apps/miniprogram/pages/settings/index.wxss",
+          "sha256": "b0fed462910e3373eb71f92494da76d414fa4cc7b84b983fbde812f2f916931c"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/bootstrap/settings",
+        "/v1/consents/${id}/revoke",
+        "/v1/me/addresses",
+        "/v1/me/addresses/${draft.id}",
+        "/v1/me/addresses/${item.id}",
+        "/v1/me/addresses/${item.id}/default",
+        "/v1/me/consents",
+        "/v1/me/phone",
+        "/v1/me/profile"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "bindPhone",
+        "cancelAddressEdit",
+        "changeAddressDefault",
+        "changeAddressRegion",
+        "changeCommunityVisibility",
+        "chooseAvatar",
+        "copyMemberId",
+        "deleteAddress",
+        "discardRecoveredAddressDraft",
+        "editAddress",
+        "editAddressField",
+        "editAddressQuickInput",
+        "editDisplayName",
+        "editWechatHandle",
+        "importWechatAddress",
+        "load",
+        "loadAddresses",
+        "loadConflictedAddress",
+        "logout",
+        "newAddress",
+        "openAccount",
+        "openAddresses",
+        "openLegal",
+        "openMemberManagement",
+        "openPrivacyRights",
+        "pasteAndRecognizeAddress",
+        "reauthenticate",
+        "recognizeAddressText",
+        "reloadProfile",
+        "removeAvatar",
+        "restoreAddressDraft",
+        "reviewNickname",
+        "revoke",
+        "saveAddress",
+        "saveConflictedAsNew",
+        "saveProfile",
+        "selectAddressLabel",
+        "setDefaultAddress",
+        "toggleAbout",
+        "unbindPhone"
+      ],
+      "buttonCount": 26,
+      "inputCount": 2,
+      "fontSizes": [
+        "20rpx",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "28rpx",
+        "29rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 48,
+          "expression": "会员编号仅用于客服核验和数据权利申请，请勿公开发布。商品可以浏览；真实支付与配送尚未开放。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/invite/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/invite/index.ts",
+          "sha256": "3fd70dd968c30548e7b9420c044a09b84e54bbfefecc0cf2bb591218a95a54d3"
+        },
+        {
+          "file": "apps/miniprogram/pages/invite/index.wxml",
+          "sha256": "ed0320d51be1a7691362c2f0c686cac617a13eae3c4fcd0777813026945bf763"
+        },
+        {
+          "file": "apps/miniprogram/pages/invite/index.wxss",
+          "sha256": "b01a15c4452ba985ef0d239cbd81160be47a8c0d1e0a20a71cdc056ea60d9ac7"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me",
+        "/v1/me/commercial-membership",
+        "/v1/me/commercial-membership/code",
+        "/v1/me/shares?targetType=invite",
+        "/v1/shares"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "copyReferralCode",
+        "load",
+        "openReferralConfirm",
+        "prepare"
+      ],
+      "buttonCount": 7,
+      "inputCount": 0,
+      "fontSizes": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "30rpx",
+        "40rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 37,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 15,
+          "expression": "仅一级直接推荐。默认比例为 20%，授权调整范围为 20%–35%；退款与结算规则以正式协议为准。真实支付及现金佣金尚未开放。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/legal/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/legal/index.ts",
+          "sha256": "400558d4bf26182984989570b43d6eb26aacf67f417d91a5f21bc734af87322b"
+        },
+        {
+          "file": "apps/miniprogram/pages/legal/index.wxml",
+          "sha256": "3b57c09ecdafd55c737f57e70f6a6d68b7966339da127f8918df6a11a3409fc6"
+        },
+        {
+          "file": "apps/miniprogram/pages/legal/index.wxss",
+          "sha256": "c7c160f040d1cf2a59e4bd4b8339a473289825870822e42732c09dbd6cd8f809"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/legal"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load",
+        "privacyRights"
+      ],
+      "buttonCount": 3,
+      "inputCount": 0,
+      "fontSizes": [
+        "26rpx",
+        "30rpx",
+        "40rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/privacy-rights/index.ts",
+          "sha256": "89bb9c488b8a3c8a5e9309e46916baff7300a1cec17c9db4e650cd972dff24f4"
+        },
+        {
+          "file": "apps/miniprogram/pages/privacy-rights/index.wxml",
+          "sha256": "eb2492ee1b5166cc2e38d610ceb3ec6ae15dd7cf0325e5a8b10d92c0764ac2b5"
+        },
+        {
+          "file": "apps/miniprogram/pages/privacy-rights/index.wxss",
+          "sha256": "8df95034a6245009c00cdb6567ca655eb3537f3c4b5527b7f7d0a9eb894d32ef"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/privacy-requests",
+        "/v1/me/privacy-requests/${requestId}/export",
+        "/v1/me/privacy-requests/${requestId}/export-revoke"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "choose",
+        "input",
+        "load",
+        "login",
+        "revokeExport",
+        "submit",
+        "viewExport"
+      ],
+      "buttonCount": 7,
+      "inputCount": 1,
+      "fontSizes": [
+        "12px",
+        "14px",
+        "18px"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/support/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/support/index.ts",
+          "sha256": "3e370d2b5409826e4b6ee20c783c9b8ff8c0019fde13b3bc9e67619691c2ac0c"
+        },
+        {
+          "file": "apps/miniprogram/pages/support/index.wxml",
+          "sha256": "d62c1df0b29745b255baf1178889a395bfb721cf5ac38a795bc96742da389b81"
+        },
+        {
+          "file": "apps/miniprogram/pages/support/index.wxss",
+          "sha256": "bdd2068a21bbdd08f7e5e95935aada2f7399acc454235a55f10ebc5344e4ebfa"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/support/handoff",
+        "/v1/me/support/media/${mediaId}",
+        "/v1/me/support/media/${mediaId}/complete",
+        "/v1/me/support/media/${replacedMediaId}",
+        "/v1/me/support/media/${selected.mediaId}",
+        "/v1/me/support/media/authorize",
+        "/v1/me/support/messages",
+        "/v1/me/support/messages?after=${after}",
+        "/v1/me/support/messages?before=${this.data.olderCursor}",
+        "/v1/me/support/presence",
+        "/v1/me/support/read"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "chooseImage",
+        "closeAttachmentSheet",
+        "closeOrderPicker",
+        "jumpToLatest",
+        "loadOlder",
+        "onComposerBlur",
+        "onComposerFocus",
+        "onComposerLineChange",
+        "onKeyboardHeightChange",
+        "onThreadBottom",
+        "onThreadScroll",
+        "openAttachmentSheet",
+        "openImageSheet",
+        "openOrder",
+        "openOrderPicker",
+        "previewImage",
+        "removeImage",
+        "removeOrder",
+        "requestHuman",
+        "retry",
+        "retryHandoff",
+        "retryImageUpload",
+        "retrySend",
+        "selectOrder",
+        "send",
+        "stopPropagation",
+        "updateInput"
+      ],
+      "buttonCount": 21,
+      "inputCount": 1,
+      "fontSizes": [
+        "17px",
+        "20rpx",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "28rpx",
+        "32rpx",
+        "34rpx"
+      ],
+      "motionDeclarations": [
+        "blur(20rpx)",
+        "border-color 180ms ease, box-shadow 180ms ease",
+        "opacity 120ms ease, transform 120ms ease, background-color 160ms ease",
+        "support-mask-in 220ms ease-out both",
+        "support-sheet-in 220ms cubic-bezier(.2, .8, .2, 1) both",
+        "support-typing 720ms ease-in-out infinite alternate"
+      ],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management/index.ts",
+          "sha256": "7c2a3c2b7344d795cb9d23e854964ced9182be459c972e444e585ed7946bcf6e"
+        },
+        {
+          "file": "apps/miniprogram/pages/management/index.wxml",
+          "sha256": "284d84effc07c9a03ee72805da0a94efe3b6edca8d050eadcd5a87f928177818"
+        },
+        {
+          "file": "apps/miniprogram/pages/management/index.wxss",
+          "sha256": "0a0d739c5bf0334496b06212d76393aedab77bf106d45462e853152ba086c7f3"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "openCatalog",
+        "openFinance",
+        "openMembers",
+        "openOrders",
+        "openSupport",
+        "retry"
+      ],
+      "buttonCount": 7,
+      "inputCount": 0,
+      "fontSizes": [
+        "23rpx",
+        "24rpx",
+        "32rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 11,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 4,
+          "expression": "资金核对 · 隔离测试"
+        },
+        {
+          "line": 5,
+          "expression": "当前能力已生效，但对应的移动管理入口尚未开放。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-catalog/index.ts",
+          "sha256": "9950799f188163db93df988299a7d83eb610b46fdc7af484e6c42b335d1a1535"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-catalog/index.wxml",
+          "sha256": "1283962a0659f60051c4732cb1f30cda33c46a861c7c35288880d64784955cc3"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-catalog/index.wxss",
+          "sha256": "ca0bb111686d4920b4e9c47657fd586a7f190ba6d4785f3398d1ed9b5db443ed"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "create",
+        "load",
+        "loadMore",
+        "open"
+      ],
+      "buttonCount": 5,
+      "inputCount": 0,
+      "fontSizes": [
+        "20rpx",
+        "23rpx",
+        "28rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-product/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-product/index.ts",
+          "sha256": "3a68e7b3279555262b3a1d718d8a1fbc3a4764b9506c0242c9b3b1fd4bd4a6d8"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-product/index.wxml",
+          "sha256": "260ef452c3316323e5c2f22eb92e4b625bdeab2ce425737120326e4bef6dce26"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-product/index.wxss",
+          "sha256": "a5820c3528c6b561bbe4bf7f4cfba445088f1fdf280e5dfe22e5ec1076e89e0c"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "codeChange",
+        "descriptionChange",
+        "imageChange",
+        "inventory",
+        "keepLocalDraft",
+        "loadRemoteDraft",
+        "nameChange",
+        "priceChange",
+        "publication",
+        "publicationReasonChange",
+        "qualificationEvidenceChange",
+        "qualificationReasonChange",
+        "qualify",
+        "save",
+        "skuCodeChange",
+        "skuLabelChange",
+        "stockDeltaChange",
+        "stockReasonChange",
+        "subtitleChange"
+      ],
+      "buttonCount": 10,
+      "inputCount": 12,
+      "fontSizes": [
+        "20rpx",
+        "21rpx",
+        "23rpx",
+        "24rpx",
+        "27rpx",
+        "30rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-orders/index.ts",
+          "sha256": "5380e199db1ac1a7d634a3131d97e4a22213561864d297c0811e3d8aa924cc80"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-orders/index.wxml",
+          "sha256": "37b41f4f359af94a02fb777ba5eca32b5ecc1856ae08a134a8224814e5c7451c"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-orders/index.wxss",
+          "sha256": "bf86eb768d97da28a2f97b0572b727ad866c632749839b09ccbf6d8161c5c34f"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load",
+        "loadMore",
+        "open"
+      ],
+      "buttonCount": 4,
+      "inputCount": 0,
+      "fontSizes": [
+        "21rpx",
+        "23rpx",
+        "24rpx",
+        "28rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-order-detail/index.ts",
+          "sha256": "2ede48de5f92432c23d82a3b8afca92761332c1b31d81d29f1931625fc28f297"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-order-detail/index.wxml",
+          "sha256": "11f6501d69485902042f490fc1a28e98d229e133e6e2c23c3139cf0e55b11869"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-order-detail/index.wxss",
+          "sha256": "05673d11679420d038384cf7be992fe3486373069e9257bf183e77df66de9c73"
+        }
+      ],
+      "apiPathTokens": [],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load"
+      ],
+      "buttonCount": 3,
+      "inputCount": 0,
+      "fontSizes": [
+        "23rpx",
+        "24rpx",
+        "28rpx",
+        "29rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 1,
+          "expression": "购物权益 · 隔离测试"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-support/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-support/index.ts",
+          "sha256": "5726b6bc12ed5476368ced55f473f29b27a9a5048cbd98d0cb9dbfed93f36435"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-support/index.wxml",
+          "sha256": "58f708e0becb2fa4964c90019dfcf9d5b25562c55abb02f13b26e5a1774d7ead"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-support/index.wxss",
+          "sha256": "755cb76fda1aad57089b3d4a25da8bebb88295839cd1d66e49bdc68fa03e88a9"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/management/support/conversations?limit=30"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "loadMore",
+        "open",
+        "retry"
+      ],
+      "buttonCount": 3,
+      "inputCount": 0,
+      "fontSizes": [
+        "20rpx",
+        "24rpx",
+        "28rpx",
+        "30rpx",
+        "36rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-support-chat/index.ts",
+          "sha256": "6242acd1872a306cf2053a3eca45701ea15a885ac4468d6947daf1105dff1422"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-support-chat/index.wxml",
+          "sha256": "29eb74c1e53ca9dc30f718db950a3f724125f75eda0f2eacc717309e3eea1f1d"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-support-chat/index.wxss",
+          "sha256": "8041233a7d1edf7a0f7c1492601dcdf953b71035d6cd843daca94c675aad389d"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/management/support/ai/status",
+        "/v1/management/support/conversations/${this.data.id}/claim",
+        "/v1/management/support/conversations/${this.data.id}/member-context",
+        "/v1/management/support/conversations/${this.data.id}/messages",
+        "/v1/management/support/conversations/${this.data.id}/messages?after=${after}",
+        "/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}",
+        "/v1/management/support/conversations/${this.data.id}/presence",
+        "/v1/management/support/conversations/${this.data.id}/read",
+        "/v1/management/support/conversations/${this.data.id}/resolve",
+        "/v1/management/support/conversations/${this.data.id}/suggested-reply"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "claim",
+        "closeContext",
+        "jumpToLatest",
+        "loadOlder",
+        "onComposerBlur",
+        "onComposerFocus",
+        "onComposerLineChange",
+        "onKeyboardHeightChange",
+        "onThreadBottom",
+        "onThreadScroll",
+        "openContext",
+        "openOrder",
+        "previewImage",
+        "resolve",
+        "retry",
+        "retrySend",
+        "send",
+        "stopPropagation",
+        "suggest",
+        "updateInput"
+      ],
+      "buttonCount": 13,
+      "inputCount": 1,
+      "fontSizes": [
+        "17px",
+        "20rpx",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "27rpx",
+        "28rpx",
+        "30rpx",
+        "34rpx"
+      ],
+      "motionDeclarations": [
+        "blur(20rpx)",
+        "border-color 180ms ease, box-shadow 180ms ease",
+        "context-mask-in 220ms ease-out both",
+        "context-sheet-in 220ms cubic-bezier(.2, .8, .2, 1) both",
+        "opacity 120ms ease, transform 120ms ease, background-color 160ms ease",
+        "operator-typing 720ms ease-in-out infinite alternate"
+      ],
+      "parallelBarriers": [
+        {
+          "line": 123,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-members/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-members/index.ts",
+          "sha256": "cfa44a309293265abbc98ef1eaef22a4664a31786f1fbc6c064d33cf53587865"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-members/index.wxml",
+          "sha256": "9c735296e9aaab28e396fed1685731401273854b88c2f1449c6a2488cce599dd"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-members/index.wxss",
+          "sha256": "6a3898f3486b6cdf6f6fbe32e9e705795b5a06e7e4665d50c5242c8923f0055a"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/management/commission-rates",
+        "/v1/management/commission-rates/${id}/decision",
+        "/v1/management/commission-rates/by-request/${command.key}",
+        "/v1/management/commission-rates/current",
+        "/v1/management/commission-rates/pending?limit=30",
+        "/v1/management/members${query}"
+      ],
+      "lifecycleHooks": [
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "changeGlobalDate",
+        "changeGlobalTime",
+        "closeGlobalRateForm",
+        "editGlobalReason",
+        "editSearch",
+        "load",
+        "loadMore",
+        "loadMoreRates",
+        "openGlobalRateForm",
+        "openMember",
+        "reviewRate",
+        "search",
+        "selectFilter",
+        "selectGlobalRate",
+        "submitGlobalRateForm",
+        "togglePending"
+      ],
+      "buttonCount": 14,
+      "inputCount": 2,
+      "fontSizes": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "30rpx",
+        "32rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 16,
+          "expression": "订单与推荐金额仅作当前事实核对。真实支付、佣金结算和提现尚未开放。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-member/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-member/index.ts",
+          "sha256": "5b896c2282a8444527fc8b78ef9a6aada8bf77c34f7c44e5af57b5fbb086f6b4"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-member/index.wxml",
+          "sha256": "922bd31467c95114c77348ea3abdeae86ad195592fdee1cbd8cd99db749547d2"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-member/index.wxss",
+          "sha256": "2d842bfeaea7c22771c510c79182cbdc4fc908a9b427656367c865bdc43f5ddb"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/management/commission-rates",
+        "/v1/management/commission-rates/by-request/${command.key}",
+        "/v1/management/members/${id}/membership",
+        "/v1/management/members/${id}/sections/${section}?limit=30${cursor?",
+        "/v1/management/members/${this.data.id}"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "changeMembership",
+        "changeRateDate",
+        "changeRateTime",
+        "closeRateForm",
+        "editRateReason",
+        "load",
+        "loadMoreSection",
+        "openRateForm",
+        "openRow",
+        "retrySection",
+        "selectOrderMode",
+        "selectRateMode",
+        "selectRatePercent",
+        "selectSection",
+        "submitRateForm"
+      ],
+      "buttonCount": 16,
+      "inputCount": 1,
+      "fontSizes": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "29rpx",
+        "32rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/referral/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/referral/index.ts",
+          "sha256": "08e01468e4a4c6a6e230df75e3a5d84c15ca8174bffc38001906479540679e45"
+        },
+        {
+          "file": "apps/miniprogram/pages/referral/index.wxml",
+          "sha256": "cae16f5835f483487ec6d0b0169b328fff4716d67343d5522829ffced3365737"
+        },
+        {
+          "file": "apps/miniprogram/pages/referral/index.wxss",
+          "sha256": "a34f102f334bae13e327f269dbd4181997efc6f2978b0ac9ae6117e63b91094a"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/referral/confirm",
+        "/v1/me/referral/preview?code=${encodeURIComponent"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "confirm",
+        "editCode",
+        "preview"
+      ],
+      "buttonCount": 3,
+      "inputCount": 1,
+      "fontSizes": [
+        "22rpx",
+        "23rpx",
+        "24rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [
+        {
+          "line": 5,
+          "expression": "真实支付和佣金结算尚未开放。推荐资格、费率、退款和结算以正式公布且生效的规则为准。"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/community-compose/index.ts",
+          "sha256": "73e53fd3e57087432a9f13fb7fe0523ab35ada4f0d6b7547aae4477f4eb14fb8"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-compose/index.wxml",
+          "sha256": "215209fbfdecfd7e8eca003d804d3b502a80c5c7163992e8b2bcb8c4e57809a2"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-compose/index.wxss",
+          "sha256": "214324fa7ef07e702378cc18880df63350eba2efea657b4bd7609d8962961ac8"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/ugc/posts",
+        "/v1/me/ugc/posts/${draft.id}/submit",
+        "/v1/me/ugc/posts/${id}",
+        "/v1/me/ugc/posts/${postId}/appeals",
+        "/v1/me/ugc/posts/${postId}/draft",
+        "/v1/me/ugc/posts/${postId}/media/${id}/complete",
+        "/v1/me/ugc/posts/${postId}/media/${id}/preview-url",
+        "/v1/me/ugc/posts/${postId}/media/authorize",
+        "/v1/me/ugc/posts?limit=30",
+        "/v1/ugc/status"
+      ],
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "changeAi",
+        "changeConsent",
+        "changeRights",
+        "chooseImages",
+        "deleteListDraft",
+        "editBody",
+        "editTitle",
+        "loadMoreList",
+        "moveImage",
+        "openDraft",
+        "previewFailed",
+        "previewImage",
+        "removeImage",
+        "retryImage",
+        "retryLoad",
+        "retryPreview",
+        "saveDraft",
+        "startNew",
+        "submit",
+        "submitAppeal",
+        "toggleSorting"
+      ],
+      "buttonCount": 17,
+      "inputCount": 2,
+      "fontSizes": [
+        "20rpx",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "29rpx",
+        "30rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 187,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/community-post/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/community-post/index.ts",
+          "sha256": "babee692a4446efa70c21f1eba0ead7df0cd073464f438ae398189378fe8aa8f"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-post/index.wxml",
+          "sha256": "01003e2b4e78c9790cb77d4b0917097bca7922ddd7deb8000ce8a417c6d20f16"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-post/index.wxss",
+          "sha256": "91e55f02a5d19d7ff65af674de7b48e40705f623a1fe2ed82c7f3b7c95b2ecc5"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/ugc/activity/comments?postId=${postId}",
+        "/v1/me/ugc/blocks/${post.authorId}",
+        "/v1/me/ugc/follows/${post.authorId}",
+        "/v1/me/ugc/posts/${postId}",
+        "/v1/ugc/media/${item.id}",
+        "/v1/ugc/posts/${post.id}/comments?limit=30",
+        "/v1/ugc/posts/${this.data.postId}",
+        "/v1/ugc/posts/${this.data.postId}/comments",
+        "/v1/ugc/posts/${this.data.postId}/reaction",
+        "/v1/ugc/reports/post/${postId}"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "blockAuthor",
+        "cancelReply",
+        "chooseReply",
+        "deleteOwn",
+        "editComment",
+        "editOwn",
+        "load",
+        "loadMoreComments",
+        "openAuthor",
+        "openMyComments",
+        "previewImage",
+        "report",
+        "sendComment",
+        "toggleFollow",
+        "toggleReaction"
+      ],
+      "buttonCount": 16,
+      "inputCount": 1,
+      "fontSizes": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "29rpx",
+        "32rpx",
+        "34rpx",
+        "40rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/community-author/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/community-author/index.ts",
+          "sha256": "2bc4631fbd3e1b9409d3bba029ccabd84dca6048c38e2ef9dc9ae48506485266"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-author/index.wxml",
+          "sha256": "b3d52a7917332be51a4281137842b5f4769ac15e3fda8a20db12f0bdd73c8793"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-author/index.wxss",
+          "sha256": "03ef72f85064402bfd572cb937d7b954ef192d7af491b8fcf11c00c5561553d6"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/ugc/follows/${author.id}",
+        "/v1/ugc/authors/${id}",
+        "/v1/ugc/authors/${this.data.authorId}",
+        "/v1/ugc/media/${item.coverId}?variant=thumbnail",
+        "/v1/ugc/posts?authorId=${id}"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load",
+        "openPost",
+        "toggleFollow"
+      ],
+      "buttonCount": 5,
+      "inputCount": 0,
+      "fontSizes": [
+        "23rpx",
+        "24rpx",
+        "26rpx",
+        "28rpx",
+        "30rpx",
+        "36rpx",
+        "38rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 32,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/community-review/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/community-review/index.ts",
+          "sha256": "d0b8118b8bf951a8a36f6cf385742be65501ddc148941c223158537bac63aa4d"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-review/index.wxml",
+          "sha256": "f80499d5c7e84ad8ff6d0b207591ab55861efeb2b47d7bf4a79c8f8c0eb3d9ac"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-review/index.wxss",
+          "sha256": "afbf9d5d48092760f07a363e0813c7a1150d4810650911d1f189c3dea79336f8"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/management/ugc/media/${id}/review",
+        "/v1/management/ugc/media/${item.id}/preview-url",
+        "/v1/management/ugc/posts/${intent.postId}/publish",
+        "/v1/management/ugc/posts/${intent.postId}/review",
+        "/v1/management/ugc/posts/${this.data.postId}"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "load",
+        "preview",
+        "publish",
+        "reviewMedia",
+        "reviewPost"
+      ],
+      "buttonCount": 9,
+      "inputCount": 0,
+      "fontSizes": [
+        "21rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "28rpx",
+        "37rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 50,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/community-activity/index.ts",
+          "sha256": "9a66ced90bd30f215955cf6dd63d9772608ac347b94f020ecba6457c681b9fba"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-activity/index.wxml",
+          "sha256": "0c142d61b321a0833e6b16cbcc399c3debe33cfaa8ac1a79505eaa1090750f20"
+        },
+        {
+          "file": "apps/miniprogram/pages/community-activity/index.wxss",
+          "sha256": "99dd88b5e3f58c1560f7c9d4d7c58f70efa884bde77026bb82b5a405909ba940"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/ugc/activity/${section}?limit=30${cursor?",
+        "/v1/me/ugc/blocks/${id}",
+        "/v1/ugc/posts/${id}/reaction",
+        "/v1/ugc/posts/${row.postId}/comments/${id}"
+      ],
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "deleteComment",
+        "loadMore",
+        "openAppealedPost",
+        "openPost",
+        "removeSaved",
+        "retry",
+        "selectSection",
+        "unblock"
+      ],
+      "buttonCount": 10,
+      "inputCount": 0,
+      "fontSizes": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "28rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [],
+      "releaseCopyMarkers": [],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/management-finance/index.ts",
+          "sha256": "f9ad4dc84a66d65851e545e383773b5400fa4abcc740c50b68f96ace8eeab3cf"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-finance/index.wxml",
+          "sha256": "a2458464ea3d46fdbae4a042afa1317e747efed11637075c30613bd90a569d85"
+        },
+        {
+          "file": "apps/miniprogram/pages/management-finance/index.wxss",
+          "sha256": "a26ffc62a5f6c1d7652c54dfbc259aeba9f33b3fef6f48dd2a8e442d16e1af4f"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/management/commission/settlement-cycles/${cycle.id}/approve-member",
+        "/v1/management/commission/settlement-cycles/prepare",
+        "/v1/management/commission/settlement-requests/${id}/decision",
+        "/v1/management/commission/settlement-requests/${id}/redrive",
+        "/v1/management/commission/settlement-requests/pending",
+        "/v1/management/fulfillment/${id}/decision",
+        "/v1/management/fulfillment/pending",
+        "/v1/management/money/inboxes/${item.kind===",
+        "/v1/management/money/issues",
+        "/v1/management/money/recheck/${kind}/${item.relatedId}",
+        "/v1/management/money/trade-bills",
+        "/v1/management/money/trade-bills/import",
+        "/v1/management/refund-requests/${id}/decision",
+        "/v1/management/refund-requests/pending",
+        "/v1/management/refund-submissions/${id}/redrive"
+      ],
+      "lifecycleHooks": [
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "approveCycleMember",
+        "back",
+        "chooseBillDate",
+        "chooseCycleMonth",
+        "decide",
+        "importBill",
+        "loadMore",
+        "operateIssue",
+        "prepareCycle",
+        "retry",
+        "selectSection"
+      ],
+      "buttonCount": 13,
+      "inputCount": 0,
+      "fontSizes": [
+        "20rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "28rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 63,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 5,
+          "expression": "仅供隔离测试。支付、退款和转账各自核验；渠道受理不等于资金完成。"
+        },
+        {
+          "line": 16,
+          "expression": "上海自然月 · 周期候选（仅隔离测试）"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    },
+    {
+      "route": "pages/commission/index",
+      "sourceFiles": [
+        {
+          "file": "apps/miniprogram/pages/commission/index.ts",
+          "sha256": "952969ca89a087be7829958dc0d0a8d8ce0683a9b3f70f7ed011163c70370533"
+        },
+        {
+          "file": "apps/miniprogram/pages/commission/index.wxml",
+          "sha256": "119e15ebff72e194352808b001e9aadd67d183ba9679cdb16737a236d1733d04"
+        },
+        {
+          "file": "apps/miniprogram/pages/commission/index.wxss",
+          "sha256": "c880d9c7d2b26fc29c4685fa2ba4bc19c1d09aa37fc7ecfe2b352cc61b1cbca7"
+        }
+      ],
+      "apiPathTokens": [
+        "/v1/me/commercial-membership",
+        "/v1/me/commission/credit-conversions",
+        "/v1/me/commission/credit-conversions/${id}/cancel",
+        "/v1/me/commission/credit-conversions?limit=10${cursor?",
+        "/v1/me/commission/settlement-requests",
+        "/v1/me/commission/settlement-requests/${id}/confirmation",
+        "/v1/me/commission/settlement-requests?limit=10${cursor?"
+      ],
+      "lifecycleHooks": [
+        "onShow",
+        "onUnload"
+      ],
+      "eventHandlerTokens": [
+        "back",
+        "cancelCredit",
+        "closeCreditForm",
+        "closeForm",
+        "confirmReceipt",
+        "editAmount",
+        "editCreditAmount",
+        "editReason",
+        "load",
+        "more",
+        "moreCredits",
+        "retryCredits",
+        "retryList",
+        "showCreditForm",
+        "showForm",
+        "submit",
+        "submitCredit"
+      ],
+      "buttonCount": 14,
+      "inputCount": 3,
+      "fontSizes": [
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "29rpx",
+        "30rpx"
+      ],
+      "motionDeclarations": [],
+      "parallelBarriers": [
+        {
+          "line": 54,
+          "expression": "Promise.all("
+        }
+      ],
+      "releaseCopyMarkers": [
+        {
+          "line": 15,
+          "expression": "正式结算、商户转账、税务与售后规则尚未批准。页面中的隔离测试操作仅供开发者验证协议，不代表可申请真实提现。"
+        },
+        {
+          "line": 17,
+          "expression": "购物权益 · 隔离测试"
+        },
+        {
+          "line": 29,
+          "expression": "仅隔离测试"
+        },
+        {
+          "line": 34,
+          "expression": "textarea value=\"{{reason}}\" placeholder=\"说明这笔隔离测试申请\" maxlength=\"300\" auto-height bindinput=\"editReason\"/"
+        }
+      ],
+      "nativeVisualAcceptance": "not_verified",
+      "businessClosure": "requires_scenario_evidence"
+    }
+  ]
+}

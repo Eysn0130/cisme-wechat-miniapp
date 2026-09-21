@@ -1,0 +1,30 @@
+[
+  {
+    "source": "apple-loading",
+    "url": "https://developer.apple.com/tutorials/data/design/human-interface-guidelines/loading.json",
+    "bytes": 16425,
+    "sha256": "83c69df80cfafd72b1a317d82521f14dfdb415530cdf37c290462eb28673b901",
+    "retrievedAt": "2026-09-21T04:34:09.196716+00:00"
+  },
+  {
+    "source": "apple-motion",
+    "url": "https://developer.apple.com/tutorials/data/design/human-interface-guidelines/motion.json",
+    "bytes": 31108,
+    "sha256": "957268c323af4617dabb6c0449d0920248c995159d54f76c691aa180ceb72a61",
+    "retrievedAt": "2026-09-21T04:34:10.197321+00:00"
+  },
+  {
+    "source": "wechat-setdata",
+    "url": "https://developers.weixin.qq.com/miniprogram/dev/framework/performance/tips/runtime_setData.html",
+    "bytes": 141926,
+    "sha256": "7b514fb78e52ca0bed30fbe66f204a7d0f5d219d2b7e4778602fcd3a2ec434b1",
+    "retrievedAt": "2026-09-21T04:34:10.435070+00:00"
+  },
+  {
+    "source": "wechat-request",
+    "url": "https://developers.weixin.qq.com/miniprogram/dev/api/network/request/wx.request.html",
+    "bytes": 473029,
+    "sha256": "58f844c68fb8a0bba006670384f0f8cc8babfc3955c8a23fe1b61691f178eaf9",
+    "retrievedAt": "2026-09-21T04:34:10.699574+00:00"
+  }
+]
