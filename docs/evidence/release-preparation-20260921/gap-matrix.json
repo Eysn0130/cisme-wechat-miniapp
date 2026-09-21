@@ -5,72 +5,78 @@
     {
       "id": "C",
       "applicable": true,
-      "status": "IN_PROGRESS",
-      "next": "Finalize disposable launcher regressions",
+      "status": "IMPLEMENTED_SYNTHETIC_VERIFIED",
+      "next": "Keep all destructive runs in newly owned DB/S3; old incident impact unknown and unrestored",
       "exit": "Owned instance-only destructive tests"
     },
     {
       "id": "D",
       "applicable": true,
-      "status": "IN_PROGRESS",
-      "next": "Exact HEAD CI for protocol fixes",
+      "status": "IMPLEMENTED_SYNTHETIC_VERIFIED",
+      "next": "Empty signed response / optional AAD / response bounds validated; no live-money acceptance",
       "exit": "Signed empty/AAD negative tests pass"
     },
     {
       "id": "E",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Enumerate actual routes and each authority dimension",
+      "status": "PARTIAL_TECHNICAL_REVIEW",
+      "next": "228 mapped and HTTP-executed; 195 entry rejection pairs; remaining per-route 13-axis and non-route audit",
       "exit": "Per-route reviewed evidence with honest untested fields"
     },
     {
       "id": "F",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Inspect provider/worker gates and controlled assembly",
+      "status": "PARTIAL_SOURCE_AND_EXTERNAL_BLOCKS",
+      "next": "Recovery-only formal assembly and certificate binding complete; new live money/order/fulfillment/shipping source incomplete; binding and grants unknown",
       "exit": "Independent capability scopes with isolated abnormal chains"
     },
     {
       "id": "G",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Wire native readonly command discovery and lifecycle",
+      "status": "IMPLEMENTED_WITH_PARTIAL_NATIVE_EVIDENCE",
+      "next": "Readonly command discovery and Page ownership fixes landed; remaining state/lifecycle and physical cross-device verification",
       "exit": "Page behavior + current package native observations"
     },
     {
       "id": "H",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Controlled preview and applicable state matrix",
+      "status": "PARTIAL_NATIVE_OBSERVATIONS",
+      "next": "Current package 37 routes / 535 applicable cases; 36 single-state captures, 74 template/style compiles; real-device full matrix not accepted",
       "exit": "Actual device evidence or specific external block"
     },
     {
       "id": "I",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Subject linkage/export/retention and UGC gates",
+      "status": "PARTIAL_TECHNICAL_AND_POLICY",
+      "next": "125-table schema subject map and narrow synthetic rights execution; full typed resolver/export/external lifecycle and approved policies remain",
       "exit": "Synthetic rights and governance coverage"
     },
     {
       "id": "J",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Deployment/monitor/recovery/governance",
+      "status": "PARTIAL_ISOLATED_REHEARSAL",
+      "next": "Immutable candidate, 72 migrations + idempotent rerun and bundled runtime smoke; owned DB/S3 restore; actual deployment/proxy/alert delivery/production recovery not run",
       "exit": "Executable templates and isolated rehearsal"
     },
     {
       "id": "K",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Freeze candidate bindings",
+      "status": "NOT_RELEASE_READY",
+      "next": "Candidate source/config/evidence facts separated; release binding awaits technical and external closures",
       "exit": "Exact source/config/evidence matrix remains fail-closed"
     },
     {
       "id": "L",
       "applicable": true,
-      "status": "NOT_RUN",
-      "next": "Scoped PRs and final receipt",
+      "status": "SCOPED_PRS_AND_CURRENT_RECEIPT",
+      "next": "PR10-14 merged after exact-head CI; final audit batch and receipt track exact new HEAD; independent review outstanding",
       "exit": "Exact SHA CI and complete remaining-work ledger"
     }
-  ]
+  ],
+  "currentNativePackageSha256": "91a37de8a3572417148929564cfa9cfeea696d73094a60938b6b68d8b45ed3a6",
+  "oldDatabaseIncident": {
+    "impact": "UNKNOWN",
+    "restored": false
+  },
+  "ownerLedger": "operations/external-and-technical-ledger.md"
 }

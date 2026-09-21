@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "runId": "4feb55600a6fee5cdd2b2fcc",
-  "sourceHead": "9bb4703148bf920fd67d3084457e65a0162abdb1",
+  "runId": "34f714e8e3f8ecb51a67b6b1",
+  "sourceHead": "a067b69973f21f9fd7109533b2ed25442e3d0f19",
   "sourceState": "working-tree",
   "serverSha256": "0df490accacc988e4a50c4ad039f2bdb87001125d03ded049fe45e95cc3ceb7b",
-  "rawEvidenceSha256": "5d35951a559cf9e8d4e6bebcb43bac0e0a53094f00e4fd49d70154d198accac3",
+  "rawEvidenceSha256": "3c6a56dea50c5408295e34628ad34154f18469aad883d9e477929e5d34c4cb37",
   "scope": "HTTP onResponse from an owned synthetic integration run. Status/test occurrence is not proof of object, field, state, concurrency or external-effect correctness. Service-direct tests are outside this measurement.",
   "routes": 228,
   "executedRoutes": 228,
@@ -937,15 +937,15 @@
           "count": 12
         },
         {
-          "status": 409,
-          "test": "keeps formal UGC structurally separate and public publication closed without approval",
-          "file": "tests/integration/formal-ugc-foundation.test.ts",
-          "count": 1
-        },
-        {
           "status": 401,
           "test": "requires a signed session on every currently registered admin operation",
           "file": "tests/integration/legacy-admin-auth.test.ts",
+          "count": 1
+        },
+        {
+          "status": 409,
+          "test": "keeps formal UGC structurally separate and public publication closed without approval",
+          "file": "tests/integration/formal-ugc-foundation.test.ts",
           "count": 1
         },
         {
@@ -1536,12 +1536,6 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
-          "count": 1
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
           "file": "tests/integration/commerce-orders.test.ts",
           "count": 1
         },
@@ -1555,6 +1549,12 @@
           "status": 200,
           "test": "R4-B isolated pending-payment order flow > allows only one buyer to reserve the last available unit",
           "file": "tests/integration/commerce-orders.test.ts",
+          "count": 1
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 1
         },
         {
@@ -1975,14 +1975,14 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/payment-http-simulation.test.ts",
-          "count": 4
+          "file": "tests/integration/support-commercial-chat-performance.test.ts",
+          "count": 2
         },
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat-performance.test.ts",
-          "count": 2
+          "file": "tests/integration/payment-http-simulation.test.ts",
+          "count": 4
         },
         {
           "status": 200,
@@ -2077,24 +2077,6 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/role-aware-support.test.ts",
-          "count": 6
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
-          "count": 4
-        },
-        {
-          "status": 200,
-          "test": "campaign capacity > serializes concurrent D7 decisions without exceeding capacity",
-          "file": "tests/integration/capacity-concurrency.test.ts",
-          "count": 6
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
           "file": "tests/integration/commerce-orders.test.ts",
           "count": 3
         },
@@ -2118,9 +2100,15 @@
         },
         {
           "status": 200,
-          "test": "accepts one first support message from 100 isolated members without failure",
-          "file": "tests/integration/support-performance.test.ts",
-          "count": 100
+          "test": "<fixture/setup>",
+          "file": "tests/integration/role-aware-support.test.ts",
+          "count": 6
+        },
+        {
+          "status": 200,
+          "test": "campaign capacity > serializes concurrent D7 decisions without exceeding capacity",
+          "file": "tests/integration/capacity-concurrency.test.ts",
+          "count": 6
         },
         {
           "status": 200,
@@ -2136,9 +2124,27 @@
         },
         {
           "status": 200,
+          "test": "accepts one first support message from 100 isolated members without failure",
+          "file": "tests/integration/support-performance.test.ts",
+          "count": 100
+        },
+        {
+          "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/invitation-share.test.ts",
-          "count": 2
+          "file": "tests/integration/support-commercial-chat.test.ts",
+          "count": 4
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/member-profile-display.test.ts",
+          "count": 3
+        },
+        {
+          "status": 200,
+          "test": "keeps a stable login identity and rejects stale concurrent profile edits",
+          "file": "tests/integration/member-profile-display.test.ts",
+          "count": 1
         },
         {
           "status": 200,
@@ -2161,31 +2167,7 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/formal-ugc-foundation.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/member-profile-display.test.ts",
-          "count": 3
-        },
-        {
-          "status": 200,
-          "test": "keeps a stable login identity and rejects stale concurrent profile edits",
-          "file": "tests/integration/member-profile-display.test.ts",
-          "count": 1
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
           "file": "tests/integration/commercial-pagination.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/phone-route-authorization.test.ts",
           "count": 2
         },
         {
@@ -2197,7 +2179,25 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
+          "file": "tests/integration/invitation-share.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/phone-route-authorization.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
           "file": "tests/integration/legacy-admin-auth.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/formal-ugc-foundation.test.ts",
           "count": 2
         }
       ],
@@ -2310,13 +2310,13 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
+          "file": "tests/integration/commerce-orders.test.ts",
           "count": 1
         },
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/commerce-orders.test.ts",
+          "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 1
         },
         {
@@ -2458,13 +2458,13 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
+          "file": "tests/integration/commerce-orders.test.ts",
           "count": 1
         },
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/commerce-orders.test.ts",
+          "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 1
         },
         {
@@ -2508,13 +2508,13 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
+          "file": "tests/integration/commerce-orders.test.ts",
           "count": 1
         },
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/commerce-orders.test.ts",
+          "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 1
         },
         {
@@ -2564,12 +2564,6 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
-          "count": 1
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
           "file": "tests/integration/commerce-orders.test.ts",
           "count": 1
         },
@@ -2583,6 +2577,12 @@
           "status": 200,
           "test": "R4-B isolated pending-payment order flow > allows only one buyer to reserve the last available unit",
           "file": "tests/integration/commerce-orders.test.ts",
+          "count": 1
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 1
         },
         {
@@ -4850,7 +4850,7 @@
     {
       "method": "GET",
       "path": "/v1/me/addresses",
-      "requests": 15,
+      "requests": 16,
       "statuses": [
         200,
         401
@@ -4911,6 +4911,12 @@
           "count": 2
         },
         {
+          "status": 200,
+          "test": "does not invent a matching receipt for a historical create key without its original digest",
+          "file": "tests/integration/delivery-address.test.ts",
+          "count": 1
+        },
+        {
           "status": 401,
           "test": "'GET' '/v1/me/addresses' rejects an unauthenticated request at the runtime entry",
           "file": "tests/integration/protected-route-entry.test.ts",
@@ -4929,10 +4935,11 @@
     {
       "method": "POST",
       "path": "/v1/me/addresses",
-      "requests": 28,
+      "requests": 34,
       "statuses": [
         200,
-        401
+        401,
+        409
       ],
       "evidence": [
         {
@@ -5021,12 +5028,6 @@
         },
         {
           "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
           "test": "R4-B isolated pending-payment order flow > quotes server-authoritative CNY totals and rejects idempotency-key drift",
           "file": "tests/integration/commerce-orders.test.ts",
           "count": 1
@@ -5039,13 +5040,43 @@
         },
         {
           "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/support-commercial-chat.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
           "test": "stores address PII encrypted, isolates owners, and replays create requests",
           "file": "tests/integration/delivery-address.test.ts",
           "count": 2
         },
         {
+          "status": 409,
+          "test": "rejects reuse of an address creation key with changed normalized fields",
+          "file": "tests/integration/delivery-address.test.ts",
+          "count": 3
+        },
+        {
           "status": 200,
           "test": "enforces optimistic versions and keeps exactly one default",
+          "file": "tests/integration/delivery-address.test.ts",
+          "count": 1
+        },
+        {
+          "status": 200,
+          "test": "serializes concurrent address create and retains only a keyed digest and owned ID in receipts",
+          "file": "tests/integration/delivery-address.test.ts",
+          "count": 1
+        },
+        {
+          "status": 409,
+          "test": "serializes concurrent address create and retains only a keyed digest and owned ID in receipts",
+          "file": "tests/integration/delivery-address.test.ts",
+          "count": 1
+        },
+        {
+          "status": 409,
+          "test": "does not invent a matching receipt for a historical create key without its original digest",
           "file": "tests/integration/delivery-address.test.ts",
           "count": 1
         },
@@ -5757,12 +5788,6 @@
         },
         {
           "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
           "test": "R4-B isolated pending-payment order flow > quotes server-authoritative CNY totals and rejects idempotency-key drift",
           "file": "tests/integration/commerce-orders.test.ts",
           "count": 2
@@ -5819,6 +5844,12 @@
           "status": 200,
           "test": "R4-B isolated pending-payment order flow > allows only one buyer to reserve the last available unit",
           "file": "tests/integration/commerce-orders.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 2
         },
         {
@@ -6875,12 +6906,6 @@
         },
         {
           "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
           "test": "R4-B isolated pending-payment order flow > creates one immutable order, redacts management address, and releases once on cancel",
           "file": "tests/integration/commerce-orders.test.ts",
           "count": 4
@@ -6932,6 +6957,12 @@
           "test": "R4-B isolated pending-payment order flow > allows only one buyer to reserve the last available unit",
           "file": "tests/integration/commerce-orders.test.ts",
           "count": 1
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/support-commercial-chat.test.ts",
+          "count": 2
         },
         {
           "status": 401,
@@ -8504,6 +8535,12 @@
         },
         {
           "status": 200,
+          "test": "accepts one first support message from 100 isolated members without failure",
+          "file": "tests/integration/support-performance.test.ts",
+          "count": 100
+        },
+        {
+          "status": 200,
           "test": "commercial support conversation facts > creates a real handoff system event and never equates assignment with online presence",
           "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 1
@@ -8531,12 +8568,6 @@
           "test": "commercial support conversation facts > verifies up to three owned images before one immutable binding and serves them only through authenticated conversation access",
           "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 2
-        },
-        {
-          "status": 200,
-          "test": "accepts one first support message from 100 isolated members without failure",
-          "file": "tests/integration/support-performance.test.ts",
-          "count": 100
         },
         {
           "status": 401,
