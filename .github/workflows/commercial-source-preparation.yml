@@ -32,16 +32,27 @@ jobs:
           helpers=(.github/workflows/commercial-source-preparation.yml .github/commercial-candidate.part1.b64 .github/commercial-candidate.part2.b64 .github/commercial-candidate.part3.b64)
           git diff --name-only "$base" HEAD | grep -Ev '^\.github/(workflows/commercial-source-preparation\.yml|commercial-candidate\.part[123]\.b64)$' > "$RUNNER_TEMP/unexpected-paths" || true
           test ! -s "$RUNNER_TEMP/unexpected-paths"
+          python3 - <<'PY'
+          import base64,gzip,hashlib,os,pathlib
+          def blob(b):return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          parts=[pathlib.Path(f'.github/commercial-candidate.part{i}.b64').read_bytes() for i in (1,2,3)]
+          assert [blob(b) for b in parts]==['75fe986fd89bc27441409b615023c2f602fe12e8','078294549ecd2dc07212c2056a0145ecd42d56c2','3f4c548e50e18dc65d42746f7664844fe35188de']
+          # The first strict CRC check caught one duplicated four-byte transfer
+          # group. Correct exactly that known copy error, not the source patch.
+          bad=b'B9fSz'+b'BfSz'*7+b'CHW';good=b'B9fSz'+b'BfSz'*6+b'CHW'
+          assert parts[0].count(bad)==1
+          parts[0]=parts[0].replace(bad,good,1)
+          assert blob(parts[0])=='1ee551e995808506563098be6becf01f4fc9945b'
+          patch=gzip.decompress(base64.b64decode(b''.join(parts),validate=True))
+          assert hashlib.sha256(patch).hexdigest()==os.environ['PATCH_SHA256']
+          pathlib.Path(os.environ['RUNNER_TEMP'],'reviewed-candidate.patch').write_bytes(patch)
+          PY
           patch="$RUNNER_TEMP/reviewed-candidate.patch"
-          cat .github/commercial-candidate.part{1,2,3}.b64 | base64 --decode | gzip --decompress > "$patch"
           echo "$PATCH_SHA256  $patch" | sha256sum --check --strict
           git apply --index --unidiff-zero --whitespace=error "$patch"
           git diff --cached --check
-          # Compute the final source tree without temporary transport helpers.
           git rm --cached -- "${helpers[@]}"
           test "$(git write-tree)" = "$EXPECTED_TREE"
-          # Keep workflow files unchanged in the workflow-token push. The
-          # connector removes the helpers in a separate reviewed commit.
           git reset -q HEAD -- "${helpers[@]}"
           git diff --cached --check
           git config user.name 'ChatGPT CISME delivery'
@@ -50,5 +61,5 @@ jobs:
           git push origin "HEAD:refs/heads/$branch"
           git rev-parse HEAD HEAD^{tree}
           git show --stat --oneline HEAD
-          # No tests are claimed here. The normal PR verify suite must pass
-          # on the final helper-free HEAD before any merge. No deployment.
+          # No tests are claimed here. Normal PR verify must pass on the final
+          # helper-free HEAD before any merge. No deployment or real funds.
