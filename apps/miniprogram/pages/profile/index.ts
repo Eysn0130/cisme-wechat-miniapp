@@ -101,8 +101,9 @@ Page({
       const normalizedMember = known && known.id === member.id && known.profile_revision > member.profile_revision ? { ...member, ...known } : member;
       const { avatar_data_url: _rawAvatar, ...visibleMember } = normalizedMember;
       const normalizedCare = care ?? { phase: "waiting", completed: [], due: null, next: null };
+      const careView = profileCareView(normalizedCare);
       // One authoritative core snapshot; local file work is never on this path.
-      const core = { member:visibleMember, memberAvatar:defaultMemberAvatar, avatarState:"loading" as AuxiliaryState, points, care:normalizedCare, snapshotVersion:snapshot.businessVersion, progressPercent:Math.min(100, normalizedCare.completed.length * 25), pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", ...profileCareView(normalizedCare), loading:false };
+      const core = { member:visibleMember, memberAvatar:defaultMemberAvatar, avatarState:"loading" as AuxiliaryState, points, care:normalizedCare, snapshotVersion:snapshot.businessVersion, progressPercent:Math.min(100, normalizedCare.completed.length * 25), pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, loading:false };
       recordClientMetric({ action: "profile", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
       this.setData(core, () => {

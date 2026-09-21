@@ -96,6 +96,23 @@ describe("PERF-01/03: native Home progressive, session-bound facts", () => {
 });
 
 describe("PERF-02/09: native Profile consistent core, independent auxiliary states", () => {
+  it.each([
+    ["planned", "护理周期待开始", "待用户确认开始", "下一节点 D1"],
+    ["active", "护理周期进行中", "护理进行中", "下一节点 D1"],
+    ["paused", "护理周期已暂停", "护理已暂停", "恢复后继续 D1"],
+    ["terminated", "护理周期已终止", "周期已终止", "历史护理事实已归档"],
+    ["completed", "护理周期已完成", "周期已完成", "护理事实已归档"],
+    ["waiting", "护理周期待确认", "待资格确认", "下一节点 D1"],
+    [null, "护理周期待确认", "待资格确认", "下一节点 待安排"]
+  ])("populates the WXML care card for %s while auxiliary requests remain pending", async (phase, title, status, copy) => {
+    const originalRequest = mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation((options) => options.path === "/v1/bootstrap/profile"
+      ? Promise.resolve({ ...snapshot, care: phase === null ? null : { ...care, phase } })
+      : originalRequest(options));
+    await loadPage("profile"); void page.load(); await flush();
+    expect(page.data).toMatchObject({ loading: false, careTitle: title, careStatus: status, authorityState: "loading", commercialState: "loading", supportState: "loading", avatarState: "loading" });
+    expect(page.data.careCopy).toContain(copy);
+  });
   it("displays member/points/care before permissions, commercial, support and avatar", async () => {
     await loadPage("profile"); void page.load(); await flush();
     expect(page.data).toMatchObject({ loading: false, member: { id: "a" }, points: snapshot.points, care, memberAvatar: "neutral", authorityState: "loading", commercialState: "loading", supportState: "loading", avatarState: "loading" });
