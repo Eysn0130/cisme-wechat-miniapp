@@ -58,7 +58,7 @@ export interface AppConfig {
       transferSceneId?: string };
     formalProtocol?: { appId: string; merchantId: string; merchantSerial: string;
       merchantPrivateKeyFile: string; apiV3KeyFile: string; platformTrustManifestFile: string;
-      paymentNotifyUrl: string; refundNotifyUrl: string;
+      paymentNotifyUrl: string; refundNotifyUrl: string; recoveryAuthorizationFile?: string;
       transferNotifyUrl?: string; transferSceneId?: string } };
 }
 
@@ -231,6 +231,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   // approvals are deliberately not defined by a single catch-all switch.
   const formalProtocol=formalProtocolEnabled?{
     appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),
+    ...(env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE?{recoveryAuthorizationFile:env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE}:{}),
     merchantId:required("COMMERCE_FORMAL_MERCHANT_ID",env.COMMERCE_FORMAL_MERCHANT_ID),
     merchantSerial:required("COMMERCE_FORMAL_MERCHANT_SERIAL",env.COMMERCE_FORMAL_MERCHANT_SERIAL),
     merchantPrivateKeyFile:required("COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE",env.COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE),

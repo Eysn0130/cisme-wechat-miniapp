@@ -3,6 +3,8 @@ import { createPool } from "../../api/src/db.js";
 import { createObjectStorage } from "../../api/src/storage.js";
 import { startBackgroundWorker } from "./jobs.js";
 import { startMoneyBackgroundWorker } from "./moneyJobs.js";
+import { formalPaymentProtocol } from "../../api/src/formalPaymentProtocol.js";
+import { startFormalRecoveryWorker } from "./formalRecovery.js";
 import { isolatedPaymentProtocol } from "../../api/src/isolatedPaymentProtocol.js";
 import { RefundCommandService } from "../../api/src/refundCommand.js";
 import { AuthorityService } from "../../api/src/authority.js";
@@ -17,7 +19,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const storage = createObjectStorage(config);
   const worker = startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
     privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null }, (error) => console.error("CISME_WORKER_TICK_FAILED", safeFailureFields(error)));
-  const paymentProtocol=isolatedPaymentProtocol(config,pool);
+  const isolatedProtocol=isolatedPaymentProtocol(config,pool);
+  const formalProtocol=isolatedProtocol?undefined:formalPaymentProtocol(config,pool);
+  const paymentProtocol=isolatedProtocol??formalProtocol;
   const moneyWorker=paymentProtocol&&config.commerce.simulatedPayment
     ?startMoneyBackgroundWorker(paymentProtocol.inbox,paymentProtocol.refundInbox,
       new RefundCommandService(pool,new AuthorityService(pool,config.env),paymentProtocol.channel,
@@ -31,7 +35,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             notifyUrl:paymentProtocol.transferNotifyUrl}):undefined,
       paymentProtocol.transferInbox,
       error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",safeFailureFields(error))):null;
-  const stop = async () => { moneyWorker?.stop(); await worker.stop(); await pool.end(); };
+  const recoveryWorker=formalProtocol
+    ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>console.error("CISME_FORMAL_RECOVERY_FAILED",safeFailureFields(error))):null;
+  const stop = async () => { recoveryWorker?.stop();moneyWorker?.stop(); await worker.stop(); await pool.end(); };
   process.once("SIGTERM", () => void stop());
   process.once("SIGINT", () => void stop());
 }

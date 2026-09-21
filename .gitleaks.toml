@@ -33,7 +33,7 @@ regexes = [
 description = "Published WeChat Pay bill-download hostname pair"
 regexTarget = "match"
 regexes = [
-  '''api\.mch\.weixin\.qq\.com",\s*"api2\.mch\.weixin\.qq\.com'''
+  '''api\.mch\.weixin\.qq\.com["\'],\s*["\']api2\.mch\.weixin\.qq\.com'''
 ]
 
 [[allowlists]]

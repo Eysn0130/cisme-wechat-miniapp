@@ -1345,9 +1345,13 @@ it("assembles pinned formal trust through isolated payment, callback, refund and
     };
     const protocol=formalPaymentProtocol(config,pool,loopbackOnly)!;
     expect(protocol.networkAuthorized).toBe(false);
-    await expect(createApp({config,pool,storage:createApiGatewayStorage(config),
-      paymentProtocol:formalPaymentProtocol(config,pool)!}))
-      .rejects.toThrow("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
+    const inert=await createApp({config,pool,storage:createApiGatewayStorage(config),
+      paymentProtocol:formalPaymentProtocol(config,pool)!});
+    try{
+      expect((await inert.inject({method:"POST",url:"/v1/payments/wechat/callback",payload:{}})).statusCode).toBe(503);
+      expect((await inert.inject({method:"POST",url:`/v1/me/orders/${randomUUID()}/payment-intent`,
+        headers:auth(buyer.sessionToken),payload:{}})).json().code).toBe("FORMAL_PAYMENT_NEW_COMMAND_DISABLED");
+    }finally{await inert.close();}
     await expect(createApp({config:{...config,env:"staging"},pool,
       storage:createApiGatewayStorage(config),paymentProtocol:protocol}))
       .rejects.toThrow("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
@@ -1364,6 +1368,26 @@ it("assembles pinned formal trust through isolated payment, callback, refund and
     const paid=paidCallback(order.orderNumber);
     expect((await formalApp.inject({method:"POST",url:"/v1/payments/wechat/callback",
       headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
+    const grantPath=join(fixtureDir,"recovery-authorization.json");
+    await writeFile(grantPath,JSON.stringify({schemaVersion:1,mode:"ordinary-merchant-recovery-only",environment:"staging",
+      appId,merchantId,approvalReference:"synthetic-recovery-test",expiresAt:new Date(Date.now()+60000).toISOString(),
+      capabilities:["payment.callback"]}),{mode:0o600});
+    const recoveryConfig={...config,env:"staging" as const,commerce:{...config.commerce,orderFlowEnabled:false,
+      formalProtocol:{...config.commerce.formalProtocol!,recoveryAuthorizationFile:grantPath}}};
+    const recoveryProtocol=formalPaymentProtocol(recoveryConfig,pool)!;
+    const recoveryApp=await createApp({config:recoveryConfig,pool,storage:createApiGatewayStorage(config),paymentProtocol:recoveryProtocol});
+    try{
+      // New orders/money remain closed while an independently authorized historical callback persists.
+      expect((await recoveryApp.inject({method:"POST",url:"/v1/payments/wechat/callback",
+        headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
+      expect((await recoveryApp.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,
+        headers:auth(buyer.sessionToken),payload:{}})).json().code).toBe("FORMAL_PAYMENT_NEW_COMMAND_DISABLED");
+      expect((await recoveryApp.inject({method:"GET",url:`/v1/me/orders/${order.id}/payment-intent`,
+        headers:auth(buyer.sessionToken)})).statusCode).toBe(503);
+      await rm(grantPath);
+      expect((await recoveryApp.inject({method:"POST",url:"/v1/payments/wechat/callback",
+        headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBeGreaterThanOrEqual(500);
+    }finally{await recoveryApp.close();}
     await runMoneyWorkerCycle(protocol.inbox,protocol.refundInbox);
     expect((await pool.query(`SELECT status FROM commerce_order WHERE id=$1`,[order.id])).rows[0].status).toBe("paid");
     const request=await formalApp.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,

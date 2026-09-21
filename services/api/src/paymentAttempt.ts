@@ -17,7 +17,7 @@ type Attempt={id:string;order_id:string;out_trade_no:string;member_id:string;pay
 export class PaymentAttemptService{
   constructor(private readonly pool:pg.Pool,private readonly orders:CommerceOrderService,
     private readonly inbox:VerifiedPaymentInbox,private readonly channel:WechatPayV3Client,
-    private readonly options:{appId:string;merchantId:string;notifyUrl:string}){}
+    private readonly options:{appId:string;merchantId:string;notifyUrl:string;simulation?:boolean}){}
 
   private async attempt(orderId:string,memberId:string):Promise<Attempt>{
     if(!UUID.test(orderId))throw new DomainError("ORDER_ID_INVALID","订单编号无效",422);
@@ -33,7 +33,7 @@ export class PaymentAttemptService{
   private ready(row:Attempt){
     if(!row.prepay_id)throw new DomainError("PAYMENT_PREPAY_MISSING","预支付标识暂不可用",409);
     return {orderId:row.order_id,orderVersion:row.order_version,state:"prepay_ready" as const,
-      simulation:true,expiresAt:row.expires_at.toISOString(),
+      simulation:this.options.simulation??true,expiresAt:row.expires_at.toISOString(),
       requestPayment:this.channel.miniProgramPaymentParams(row.app_id,row.prepay_id)};
   }
 
@@ -81,7 +81,7 @@ export class PaymentAttemptService{
             const persisted=await this.inbox.receiveQueried(this.channel,current.out_trade_no);
             await this.audit(this.pool,principalId,"commerce.payment_intent.query_verified",orderId,
               {state:"unknown"},{state:"verified_pending",inboxId:persisted.inboxId},traceId);
-            return {orderId,state:"verified_pending" as const,simulation:true};
+            return {orderId,state:"verified_pending" as const,simulation:this.options.simulation??true};
           }
           if(queried.trade_state==="CLOSED"){
             await transaction(this.pool,async client=>{
@@ -131,16 +131,16 @@ export class PaymentAttemptService{
   async refresh(memberId:string|undefined,principalId:string|undefined,orderId:string,traceId:string){
     if(!memberId||!principalId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
     const current=await this.attempt(orderId,memberId);
-    if(current.order_status==="paid")return {orderId,state:"paid" as const,simulation:true};
-    if(current.order_status!=="pending_payment")return {orderId,state:current.order_status,simulation:true};
+    if(current.order_status==="paid")return {orderId,state:"paid" as const,simulation:this.options.simulation??true};
+    if(current.order_status!=="pending_payment")return {orderId,state:current.order_status,simulation:this.options.simulation??true};
     const queried=await this.channel.queryByMerchantOrderNumber(current.out_trade_no);
     if(queried.trade_state==="SUCCESS"){
       const persisted=await this.inbox.receiveQueried(this.channel,current.out_trade_no);
       await this.audit(this.pool,principalId,"commerce.payment_intent.refresh_verified",orderId,
         {state:current.state},{state:"verified_pending",inboxId:persisted.inboxId},traceId);
-      return {orderId,state:"verified_pending" as const,inboxId:persisted.inboxId,simulation:true};
+      return {orderId,state:"verified_pending" as const,inboxId:persisted.inboxId,simulation:this.options.simulation??true};
     }
-    return {orderId,state:String(queried.trade_state??"unknown").toLowerCase(),simulation:true};
+    return {orderId,state:String(queried.trade_state??"unknown").toLowerCase(),simulation:this.options.simulation??true};
   }
 
   async cancel(memberId:string|undefined,principalId:string|undefined,orderId:string,
