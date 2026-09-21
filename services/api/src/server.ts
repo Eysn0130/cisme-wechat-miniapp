@@ -799,7 +799,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       error=>app.log.error({ event: "money_worker_tick_failed", ...safeFailureFields(error) })) : null;
   const recoveryWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&formalProtocol
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>app.log.error({event:"formal_recovery_tick_failed",...safeFailureFields(error)})):null;
-  app.addHook("onClose", async () => { recoveryWorker?.stop(); moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
+  app.addHook("onClose", async () => { await recoveryWorker?.stop(); await moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
   const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
