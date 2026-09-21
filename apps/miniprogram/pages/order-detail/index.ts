@@ -122,7 +122,8 @@ Page({
       else if(result.requestPayment&&!this.data.visible){this.setData({actionStatus:"支付意图已返回，请回到订单核对原单后再主动付款。"});return;}
       else if(result.requestPayment){try{await wx.requestPayment(result.requestPayment);}
         catch{if(current())this.setData({actionError:"微信付款未确认，请按原单核对。"});}
-        if(current()){this.setData({busy:false});void this.recheckPayment();}}
+        // The intent action must not release busy while its authoritative follow-up is pending.
+        if(current()){this.setData({busy:false});await this.recheckPayment();}}
     }catch(error){if(current())this.setData({actionError:errorTitle(error,"支付意图暂未建立，请核对原单后重试。")});}
     finally{this.finishAction(epoch,token);}},
   async recheckPayment(){const order=this.data.order;
