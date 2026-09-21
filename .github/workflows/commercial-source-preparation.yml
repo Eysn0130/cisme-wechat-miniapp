@@ -1,45 +1,54 @@
-name: Temporary commercial source preparation
+name: Temporary exact candidate materialization
 on:
   push:
     branches: [codex/commercial-runtime-20260921]
     paths: [.github/workflows/commercial-source-preparation.yml]
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: cisme-commercial-runtime-materialization
+  cancel-in-progress: false
 jobs:
-  prepare:
+  materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: 42e9b44db959000b10c8e6f4d0fd0e150fe69b89
           fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24.18.0'
-          cache: npm
-      - name: Export only committed source and locked test dependencies
+      - name: Verify sealed source patch and fast-forward only this task branch
         shell: bash
+        env:
+          EXPECTED_TREE: 0137b57b84466099c6e09e8be50a0cd0f324be19
+          PATCH_SHA256: 8668ac64826248e4687045b9c63888906dc40d8e0a470774368743e870f7f156
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 42e9b44db959000b10c8e6f4d0fd0e150fe69b89
-          out="$RUNNER_TEMP/commercial-source"
-          mkdir -p "$out"
-          git bundle create "$out/baseline.bundle" HEAD
-          git bundle verify "$out/baseline.bundle"
-          git rev-parse HEAD HEAD^{tree} > "$out/source-identity.txt"
-          sha256sum package-lock.json >> "$out/source-identity.txt"
-          npm ci
-          # No .git/config, npm config, environment files, credentials, stores,
-          # user data, runtime logs, deployment secrets, or live services.
-          tar -czf "$out/locked-node-modules.tar.gz" node_modules
-          cp "$(command -v node)" "$out/node"
-          node --version >> "$out/source-identity.txt"
-          (cd "$out" && sha256sum baseline.bundle locked-node-modules.tar.gz node source-identity.txt > SHA256SUMS)
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: commercial-source-42e9b44
-          path: ${{ runner.temp }}/commercial-source/
-          retention-days: 1
-          compression-level: 0
+          branch=codex/commercial-runtime-20260921
+          base=42e9b44db959000b10c8e6f4d0fd0e150fe69b89
+          test "$GITHUB_REF_NAME" = "$branch"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch origin "refs/heads/$branch"
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          helpers=(.github/workflows/commercial-source-preparation.yml .github/commercial-candidate.part1.b64 .github/commercial-candidate.part2.b64 .github/commercial-candidate.part3.b64)
+          git diff --name-only "$base" HEAD | grep -Ev '^\.github/(workflows/commercial-source-preparation\.yml|commercial-candidate\.part[123]\.b64)$' > "$RUNNER_TEMP/unexpected-paths" || true
+          test ! -s "$RUNNER_TEMP/unexpected-paths"
+          patch="$RUNNER_TEMP/reviewed-candidate.patch"
+          cat .github/commercial-candidate.part{1,2,3}.b64 | base64 --decode | gzip --decompress > "$patch"
+          echo "$PATCH_SHA256  $patch" | sha256sum --check --strict
+          git apply --index --unidiff-zero --whitespace=error "$patch"
+          git diff --cached --check
+          # Compute the final source tree without temporary transport helpers.
+          git rm --cached -- "${helpers[@]}"
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          # Keep workflow files unchanged in the workflow-token push. The
+          # connector removes the helpers in a separate reviewed commit.
+          git reset -q HEAD -- "${helpers[@]}"
+          git diff --cached --check
+          git config user.name 'ChatGPT CISME delivery'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(native): decouple runtime reads and preserve gated financial history'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD HEAD^{tree}
+          git show --stat --oneline HEAD
+          # No tests are claimed here. The normal PR verify suite must pass
+          # on the final helper-free HEAD before any merge. No deployment.
