@@ -1,0 +1,45 @@
+name: Temporary commercial source preparation
+on:
+  push:
+    branches: [codex/commercial-runtime-20260921]
+    paths: [.github/workflows/commercial-source-preparation.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: 42e9b44db959000b10c8e6f4d0fd0e150fe69b89
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.18.0'
+          cache: npm
+      - name: Export only committed source and locked test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 42e9b44db959000b10c8e6f4d0fd0e150fe69b89
+          out="$RUNNER_TEMP/commercial-source"
+          mkdir -p "$out"
+          git bundle create "$out/baseline.bundle" HEAD
+          git bundle verify "$out/baseline.bundle"
+          git rev-parse HEAD HEAD^{tree} > "$out/source-identity.txt"
+          sha256sum package-lock.json >> "$out/source-identity.txt"
+          npm ci
+          # No .git/config, npm config, environment files, credentials, stores,
+          # user data, runtime logs, deployment secrets, or live services.
+          tar -czf "$out/locked-node-modules.tar.gz" node_modules
+          cp "$(command -v node)" "$out/node"
+          node --version >> "$out/source-identity.txt"
+          (cd "$out" && sha256sum baseline.bundle locked-node-modules.tar.gz node source-identity.txt > SHA256SUMS)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: commercial-source-42e9b44
+          path: ${{ runner.temp }}/commercial-source/
+          retention-days: 1
+          compression-level: 0
