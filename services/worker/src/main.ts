@@ -37,7 +37,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",safeFailureFields(error))):null;
   const recoveryWorker=formalProtocol
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>console.error("CISME_FORMAL_RECOVERY_FAILED",safeFailureFields(error))):null;
-  const stop = async () => { recoveryWorker?.stop();moneyWorker?.stop(); await worker.stop(); await pool.end(); };
+  const stop = async () => { await recoveryWorker?.stop();await moneyWorker?.stop(); await worker.stop(); await pool.end(); };
   process.once("SIGTERM", () => void stop());
   process.once("SIGINT", () => void stop());
 }

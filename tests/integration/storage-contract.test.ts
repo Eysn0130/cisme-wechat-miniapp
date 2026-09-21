@@ -2,10 +2,14 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createS3Storage, objectKey } from "../../services/api/src/storage";
 import { loadConfig } from "@cisme/config";
 
+const runId=process.env.CISME_TEST_RUN_ID,endpoint=process.env.CISME_TEST_S3_ENDPOINT;
+if(!runId||!endpoint||!/^http:\/\/127\.0\.0\.1:[0-9]+$/.test(endpoint)||new URL(endpoint).port==='58333'||
+  process.env.CISME_TEST_S3_BUCKET!==`cisme-${runId}`||!process.env.CISME_TEST_S3_ACCESS_KEY||!process.env.CISME_TEST_S3_SECRET)
+  throw new Error('DISPOSABLE_S3_REQUIRED');
 const config = loadConfig({
   APP_ENV: "test", DATABASE_URL: "postgres://unused", APP_SESSION_SECRET: "test-session", ADMIN_API_TOKEN: "test-admin", UPLOAD_TOKEN_SECRET: "test-upload",
-  OBJECT_STORAGE_DRIVER: "s3", S3_ENDPOINT: "http://127.0.0.1:58333", S3_REGION: "us-east-1", S3_BUCKET: "cisme-contract",
-  S3_ACCESS_KEY_ID: "cisme-dev", S3_SECRET_ACCESS_KEY: "cisme-dev-secret-change-me"
+  OBJECT_STORAGE_DRIVER: "s3", S3_ENDPOINT: endpoint, S3_REGION: "us-east-1", S3_BUCKET: process.env.CISME_TEST_S3_BUCKET,
+  S3_ACCESS_KEY_ID: process.env.CISME_TEST_S3_ACCESS_KEY, S3_SECRET_ACCESS_KEY: process.env.CISME_TEST_S3_SECRET
 });
 const storage = createS3Storage(config);
 let key = "";

@@ -1,6 +1,6 @@
 # 2026-09-21 发布准备施工（持续更新）
 
-入场 main/HEAD `9c71c7479890c0d7fee6a7022b51c7f6980feb75`，tree `6fa22c3765b948ff7e4d3765b99cd0c41ffa8153`。唯一工作树 `/Users/mini/CISME`，入场干净，实时无开放 PR，同目录另一 Codex 任务空闲。没有启动 Goal，没有重放 PR4–9，没有操作旧 Docker 目标。
+入场 main/HEAD `9c71c7479890c0d7fee6a7022b51c7f6980feb75`，tree `6fa22c3765b948ff7e4d3765b99cd0c41ffa8153`。唯一工作树 `/Users/mini/CISME`，入场干净，实时无开放 PR，同目录另一 Codex 任务空闲。没有启动 Goal，没有重放 PR4–9，未重置旧 PostgreSQL 目标。本轮隔离修复前的存储契约测试曾连接旧 SeaweedFS（58333），写入、读取并删除随机键的合成对象；现已改为每次独立的对象实例和桶。旧数据库事故的影响未知、未恢复。
 
 本次 ZIP SHA256 `01b0aa8b4783a17190aedc97ed354c0ca4daae8eae545587f1511c0ba8b1047d`：7 个唯一条目，总计 57,016 bytes；无路径穿越、链接、加密条目；6 项 SHA256 清单匹配。直接以 zipfile 读正文，未执行附件或覆盖工程。完整读取执行 A–M、研究记录及 reference 两份报告；附件中的历史统计不是本轮结果，施工授权来自用户本轮请求。
 

@@ -38,3 +38,16 @@ it('does not accept chunks after delete or submit',async()=>{
  const g=await fixture();await pool.query("UPDATE submission SET status='submitted' WHERE id=$1",[g.submissionId]);
  await expect(upload.chunk(g.mediaId,{token:g.token,index:0,totalBytes:3,base64:'/9j/'})).rejects.toMatchObject({code:'UPLOAD_UNAVAILABLE'});
 });
+it('revokes an outstanding upload capability when its owning member is blocked',async()=>{
+ const f=await fixture();const bytes=Buffer.from([255,216,255,0]);
+ const input={token:f.token,index:0,totalBytes:bytes.length,base64:bytes.toString('base64')};
+ await upload.chunk(f.mediaId,input);
+ await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[memberId]);
+ try{
+  await expect(upload.chunk(f.mediaId,input)).rejects.toMatchObject({code:'UPLOAD_OWNER_INACTIVE'});
+  await expect(upload.finish(f.mediaId,f.token)).rejects.toMatchObject({code:'UPLOAD_OWNER_INACTIVE'});
+  await expect(service.gatewayUpload(f.mediaId,{token:f.token,bytes,mimeType:'image/jpeg'},new Date()))
+    .rejects.toMatchObject({code:'UPLOAD_OWNER_INACTIVE'});
+  await expect(storage.read(f.key)).rejects.toThrow();
+ }finally{await pool.query("UPDATE member SET status='active' WHERE id=$1",[memberId]);}
+});

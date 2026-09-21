@@ -339,3 +339,23 @@ it("pages 101 public comments without treating the first page as the whole threa
   expect(new Set(all.map((item:{id:string})=>item.id)).size).toBe(101);
   expect(all[0].body).toBe("分页评论 1");expect(all.at(-1).body).toBe("分页评论 101");
 });
+it('revokes UGC upload chunks and assembly when the author becomes inactive',async()=>{
+ const actor=await identity('ugc-revoked-upload');
+ const draft=(await app.inject({method:'POST',url:'/v1/me/ugc/posts',headers:{...auth(actor),'idempotency-key':'ugc-upload-revocation'},payload:{}})).json();
+ const upload=(await app.inject({method:'POST',url:`/v1/me/ugc/posts/${draft.id}/media/authorize`,headers:auth(actor),payload:{mimeType:'image/jpeg',maxBytes:100}})).json();
+ const input={token:upload.fields.token,index:0,totalBytes:4,base64:Buffer.from([255,216,255,0]).toString('base64')};
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/chunks`,payload:input})).statusCode).toBe(200);
+ await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[actor.memberId]);
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/chunks`,payload:input})).json().code).toBe('UPLOAD_OWNER_INACTIVE');
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/assemble`,payload:{token:upload.fields.token}})).json().code).toBe('UPLOAD_OWNER_INACTIVE');
+});
+it('invalidates unconsumed upload grants when their source draft is deleted',async()=>{
+ const actor=await identity('ugc-deleted-source-upload');
+ const draft=(await app.inject({method:'POST',url:'/v1/me/ugc/posts',headers:{...auth(actor),'idempotency-key':'ugc-source-revocation'},payload:{}})).json();
+ const upload=(await app.inject({method:'POST',url:`/v1/me/ugc/posts/${draft.id}/media/authorize`,headers:auth(actor),payload:{mimeType:'image/jpeg',maxBytes:100}})).json();
+ const input={token:upload.fields.token,index:0,totalBytes:4,base64:Buffer.from([255,216,255,0]).toString('base64')};
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/chunks`,payload:input})).statusCode).toBe(200);
+ expect((await app.inject({method:'DELETE',url:`/v1/me/ugc/posts/${draft.id}`,headers:auth(actor),payload:{expectedVersion:draft.version}})).statusCode).toBe(200);
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/chunks`,payload:input})).json().code).toBe('UGC_POST_LOCKED');
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/assemble`,payload:{token:upload.fields.token}})).json().code).toBe('UGC_POST_LOCKED');
+});

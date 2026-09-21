@@ -55,7 +55,6 @@ jobs:
       - name: Create bounded verification evidence directory
         run: mkdir -p "$RUNNER_TEMP/native-validation"
       - run: npm ci 2>&1 | tee "$RUNNER_TEMP/native-validation/ci.log"
-      - run: docker compose -f infra/compose.yaml up -d --wait seaweed
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high 2>&1 | tee "$RUNNER_TEMP/native-validation/audit-omit=dev-audit-level=high.log"
       - name: Development-tool high-severity audit
@@ -66,6 +65,7 @@ jobs:
       - run: npm run design:qa:status 2>&1 | tee "$RUNNER_TEMP/native-validation/design-qa-status.log"
       - run: npm test 2>&1 | tee "$RUNNER_TEMP/native-validation/test.log"
       - run: npm run test:integration 2>&1 | tee "$RUNNER_TEMP/native-validation/test-integration.log"
+      - run: npm run restore:verify 2>&1 | tee "$RUNNER_TEMP/native-validation/synthetic-restore.log"
       - run: npm run build 2>&1 | tee "$RUNNER_TEMP/native-validation/build.log"
       - run: npm run lint:contracts 2>&1 | tee "$RUNNER_TEMP/native-validation/lint-contracts.log"
       - name: Isolated same-runner performance comparison (not native acceptance)

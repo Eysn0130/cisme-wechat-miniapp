@@ -177,7 +177,7 @@ for (const route of routes) {
     roleFor(route),
     defaultStateFor(route),
     "native WeChat DevTools + local/synthetic boundary",
-    acceptanceFixture ? `Isolated cisme_test fixture; schema ${acceptanceFixture.database.migrationCount}; no production data` : "No production data; authenticated fixture pending",
+    acceptanceFixture ? `Owned disposable fixture ${acceptanceFixture.database.name}; schema ${acceptanceFixture.database.migrationCount}; no production data` : "No production data; authenticated fixture pending",
     screenshotPresent ? screenshotRelative : "",
     sourceRevision,
     screenshotPresent ? "WeChat DevTools simulator" : "capture pending",
@@ -358,7 +358,7 @@ await writeFile(join(outputRoot, "journeys.md"), `# Review journeys\n\n` +
 `Required devices/viewports: 375×812, 393×852, 440×956 and Android 427×952, plus increased system text. Required recordings: user support send/retry, admin claim/reply/revoke, catalog edit conflict, and R4-B quote/create/replay/cancel/expiry.\n`);
 
 await writeFile(join(outputRoot, "capture-manual.md"), `# Bounded native capture procedure\n\n` +
-`1. This procedure is only for the disposable local synthetic boundary. Confirm the configured database is loopback \`cisme_test\`; never point the runner at staging, production or a real-user database.\n` +
+`1. This procedure is only for the disposable local synthetic boundary. Start only through scripts/disposable-test.mjs and verify the generated run/instance/db/role/ownership marker. Never use legacy cisme_test or port 55432, staging, production or a real-user database.\n` +
 `2. Start \`npm run miniprogram:acceptance\`. The command requires an explicit reset, binds only \`127.0.0.1:18080\`, loads schema 35 and synthetic fixtures, keeps payment unavailable, and writes a credential-free fixture manifest under \`tmp/miniprogram-acceptance\`.\n` +
 `3. Open \`${miniProgramRoot}\` in WeChat DevTools, confirm AppID \`${project.appid}\`, base library \`${project.libVersion}\`, develop mode and API origin \`http://127.0.0.1:18080\`. Use the Account page to explicitly accept the local fixture notice and perform the development login; do not inject a session token.\n` +
 `4. Before any screenshot, require ready/legal/order-boundary checks, a stored session, the fixed synthetic development identity and one protected-read proof. Approve the separate project-action permission prompt without changing business authorization, privacy checks or TLS validation.\n` +

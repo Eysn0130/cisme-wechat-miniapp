@@ -44,7 +44,7 @@ describe("media storage and submission locking", () => {
     const replay = service.gatewayUpload(f.mediaId, { ...f.input, bytes: Buffer.from([0xff, 0xd8, 0xff, 99]) }, new Date()).then(value => ({ value }), error => ({ error }));
     try {
       await vi.waitFor(async () => {
-        const result = await pool.query("SELECT count(*)::int n FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT status FROM submission%'");
+        const result = await pool.query("SELECT count(*)::int n FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT status,member_id FROM submission%'");
         expect(result.rows[0].n).toBeGreaterThan(0);
       });
       expect(write).not.toHaveBeenCalled();

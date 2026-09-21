@@ -17,34 +17,34 @@ export class AuthorityService {
   async projection(memberId: string | undefined): Promise<AuthorityProjection> {
     const owner = member(memberId);
     const result = await this.pool.query<{ capability: Capability }>(`SELECT capability FROM authority_grant
-      WHERE member_id=$1 AND environment=$2 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now()) ORDER BY capability`, [owner, this.environment]);
+      WHERE EXISTS(SELECT 1 FROM member m WHERE m.id=member_id AND m.status='active') AND member_id=$1 AND environment=$2 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now()) ORDER BY capability`, [owner, this.environment]);
     const capabilities = result.rows.map((row) => row.capability).filter((value) => capabilitySet.has(value));
     return { version: 1, capabilities, managementAvailable: capabilities.length > 0 };
   }
 
   async require(memberId: string | undefined, capability: Capability): Promise<string> {
     const owner = member(memberId);
-    const result = await this.pool.query("SELECT 1 FROM authority_grant WHERE member_id=$1 AND capability=$2 AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())", [owner, capability, this.environment]);
+    const result = await this.pool.query("SELECT 1 FROM authority_grant WHERE EXISTS(SELECT 1 FROM member m WHERE m.id=member_id AND m.status='active') AND member_id=$1 AND capability=$2 AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())", [owner, capability, this.environment]);
     if (!result.rowCount) throw new DomainError("CAPABILITY_REQUIRED", `Required capability: ${capability}`, 403);
     return owner;
   }
 
   async has(memberId: string | undefined, capability: Capability): Promise<boolean> {
     if (!memberId) return false;
-    const result = await this.pool.query("SELECT 1 FROM authority_grant WHERE member_id=$1 AND capability=$2 AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())", [memberId, capability, this.environment]);
+    const result = await this.pool.query("SELECT 1 FROM authority_grant WHERE EXISTS(SELECT 1 FROM member m WHERE m.id=member_id AND m.status='active') AND member_id=$1 AND capability=$2 AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())", [memberId, capability, this.environment]);
     return Boolean(result.rowCount);
   }
 
   async requireWithClient(client: DbClient, memberId: string | undefined, capability: Capability): Promise<string> {
     const owner = member(memberId);
-    const result = await client.query("SELECT 1 FROM authority_grant WHERE member_id=$1 AND capability=$2 AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())", [owner, capability, this.environment]);
+    const result = await client.query("SELECT 1 FROM authority_grant g JOIN member m ON m.id=g.member_id WHERE g.member_id=$1 AND m.status='active' AND g.capability=$2 AND g.environment=$3 AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>now()) FOR SHARE OF g,m", [owner, capability, this.environment]);
     if (!result.rowCount) throw new DomainError("CAPABILITY_REQUIRED", `Required capability: ${capability}`, 403);
     return owner;
   }
 
   async requireAny(memberId: string | undefined, capabilities: Capability[]): Promise<string> {
     const owner = member(memberId);
-    const result = await this.pool.query("SELECT 1 FROM authority_grant WHERE member_id=$1 AND capability=ANY($2::text[]) AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now()) LIMIT 1", [owner, capabilities, this.environment]);
+    const result = await this.pool.query("SELECT 1 FROM authority_grant WHERE EXISTS(SELECT 1 FROM member m WHERE m.id=member_id AND m.status='active') AND member_id=$1 AND capability=ANY($2::text[]) AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now()) LIMIT 1", [owner, capabilities, this.environment]);
     if (!result.rowCount) throw new DomainError("CAPABILITY_REQUIRED", `One of these capabilities is required: ${capabilities.join(",")}`, 403);
     return owner;
   }

@@ -1,1 +1,2 @@
-CREATE DATABASE cisme_test OWNER cisme;
+-- Legacy persistent databases are not synthetic test targets.
+-- scripts/disposable-test.mjs creates a fresh owned instance per run.
