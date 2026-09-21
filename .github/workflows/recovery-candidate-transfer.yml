@@ -1,0 +1,103 @@
+name: Temporary fixed-tree recovery candidate verification
+on:
+  pull_request:
+    paths: [.github/workflows/recovery-candidate-transfer.yml]
+permissions:
+  contents: read
+jobs:
+  candidate:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/commercial-recovery-20260921'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      BASE_SHA: c841bf51604b577a697643738aaef80290937993
+      BASE_TREE: f4d692ebe57eefbb3c9b4467bfc1dcb438eb344d
+      EXPECTED_TREE: dab0d7a9ef1654e29c61acdb712705396f29cb6e
+      PATCH_SHA: 9b0905de1287eebfec4950b462305e5db40a55ebee87e66b1ad933e9223599a7
+      REVIEW_HEAD: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '24.18.0', cache: npm}
+      - name: Reconstruct only the pre-reviewed exact tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,lzma,os,pathlib,subprocess
+          def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('rev-parse','HEAD')==os.environ['REVIEW_HEAD']
+          expected={f'.github/review-inputs/pr7-candidate-{i}.part' for i in range(6)}|{'.github/workflows/recovery-candidate-transfer.yml'}
+          assert set(git('diff','--name-only',os.environ['BASE_SHA'],'HEAD').splitlines())==expected,'Unexpected parallel changes'
+          packed=b''.join(pathlib.Path(f'.github/review-inputs/pr7-candidate-{i}.part').read_bytes() for i in range(6))
+          assert len(packed)==22868
+          d=lzma.LZMADecompressor(); patch=d.decompress(packed,max_length=500000)
+          assert d.eof and not d.unused_data and len(patch)==101369
+          assert hashlib.sha256(patch).hexdigest()==os.environ['PATCH_SHA']
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'recovery-candidate';out.mkdir()
+          p=out/'reviewed.patch';p.write_bytes(patch)
+          subprocess.run(['git','checkout','--detach',os.environ['BASE_SHA']],check=True)
+          subprocess.run(['git','apply','--unidiff-zero','--check',str(p)],check=True)
+          subprocess.run(['git','apply','--unidiff-zero','--index',str(p)],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          assert git('write-tree')==os.environ['EXPECTED_TREE'],'Candidate tree mismatch'
+          (out/'identity.txt').write_text(os.environ['BASE_SHA']+'\n'+os.environ['EXPECTED_TREE']+'\n'+os.environ['PATCH_SHA']+'\n')
+          p.unlink()
+          PY
+      - name: Lock-pinned source verification (not integration or native acceptance)
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/recovery-candidate"
+          npm ci 2>&1 | tee "$out/npm-ci.log"
+          for script in typecheck test build lint:contracts miniprogram:package-gate miniprogram:route-audit design:qa:status; do
+            name="${script//:/-}"
+            npm run "$script" 2>&1 | tee "$out/$name.log"
+          done
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          git diff --exit-code
+      - name: Create verified Git objects only; never update a branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,json,os,pathlib,subprocess,urllib.request
+          repo='Eysn0130/cisme-wechat-miniapp'
+          assert os.environ['GITHUB_REPOSITORY']==repo
+          def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
+          def api(path,data=None):
+            req=urllib.request.Request('https://api.github.com/repos/'+repo+path,data=None if data is None else json.dumps(data).encode(),headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
+            with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)
+          assert api('/git/ref/heads/codex/commercial-recovery-20260921')['object']['sha']==os.environ['REVIEW_HEAD'],'Branch advanced'
+          assert git('write-tree')==os.environ['EXPECTED_TREE']
+          entries=[]
+          paths=git('diff','--cached','--name-only','--no-renames').splitlines()
+          assert len(paths)==23
+          for path in paths:
+            entry=git('ls-files','--stage','--',path)
+            if not entry:entries.append({'path':path,'mode':'100644','type':'blob','sha':None});continue
+            mode,sha,stage=entry.split('\t',1)[0].split();assert stage=='0' and mode in ['100644','100755']
+            raw=subprocess.check_output(['git','cat-file','blob',sha])
+            actual=api('/git/blobs',{'encoding':'base64','content':base64.b64encode(raw).decode()})['sha']
+            assert actual==sha
+            entries.append({'path':path,'mode':mode,'type':'blob','sha':sha})
+          tree=api('/git/trees',{'base_tree':os.environ['BASE_TREE'],'tree':entries})['sha'];assert tree==os.environ['EXPECTED_TREE']
+          commit=api('/git/commits',{'message':'fix(native): persist original commerce commands and private recovery receipts','tree':tree,'parents':[os.environ['REVIEW_HEAD']]})['sha']
+          result={'commit':commit,'tree':tree,'parent':os.environ['REVIEW_HEAD'],'base':os.environ['BASE_SHA'],'patchSha256':os.environ['PATCH_SHA'],'paths':paths,'branchUpdated':False,'integrationExecuted':False,'nativeExecuted':False,'releaseReady':False}
+          (pathlib.Path(os.environ['RUNNER_TEMP'])/'recovery-candidate'/'candidate-commit.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps({'commit':commit,'tree':tree,'branchUpdated':False}))
+          PY
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verified-recovery-candidate
+          path: ${{ runner.temp }}/recovery-candidate/
+          retention-days: 14
