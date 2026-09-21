@@ -42,7 +42,7 @@ export class UgcSafetyService{
     const response=await this.fetcher(url,{signal:AbortSignal.timeout(8000),redirect:'error'});
     const body=await boundedWechatJson<{access_token?:string;expires_in?:number}>(response);
     if(typeof body.access_token!=='string'||!body.access_token||body.access_token.length>4096||(body.expires_in!==undefined&&(!Number.isFinite(body.expires_in)||body.expires_in<0||body.expires_in>7200)))throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
-    this.tokenCache={value:body.access_token,until:Date.now()+Math.max(60,(body.expires_in??7200)-120)*1000};
+    this.tokenCache={value:body.access_token,until:Date.now()+Math.max(0,(body.expires_in??7200)-120)*1000};
     return body.access_token;
   }
   private async request(path:string,body:Record<string,unknown>):Promise<WechatResult>{

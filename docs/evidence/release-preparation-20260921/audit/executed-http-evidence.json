@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "runId": "34f714e8e3f8ecb51a67b6b1",
-  "sourceHead": "a067b69973f21f9fd7109533b2ed25442e3d0f19",
+  "runId": "291a5def06ddd056e29c27f2",
+  "sourceHead": "a970dca899c3ed1ee4999efd07ef07370d0dfb7c",
   "sourceState": "working-tree",
   "serverSha256": "0df490accacc988e4a50c4ad039f2bdb87001125d03ded049fe45e95cc3ceb7b",
-  "rawEvidenceSha256": "3c6a56dea50c5408295e34628ad34154f18469aad883d9e477929e5d34c4cb37",
+  "rawEvidenceSha256": "05a1b680ca005697e7dc2342adb24a6a420f89fd9b1f1f532dfb31c4cf81c94c",
   "scope": "HTTP onResponse from an owned synthetic integration run. Status/test occurrence is not proof of object, field, state, concurrency or external-effect correctness. Service-direct tests are outside this measurement.",
   "routes": 228,
   "executedRoutes": 228,
@@ -1975,14 +1975,14 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat-performance.test.ts",
-          "count": 2
+          "file": "tests/integration/payment-http-simulation.test.ts",
+          "count": 4
         },
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/payment-http-simulation.test.ts",
-          "count": 4
+          "file": "tests/integration/support-commercial-chat-performance.test.ts",
+          "count": 2
         },
         {
           "status": 200,
@@ -2113,6 +2113,12 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
+          "file": "tests/integration/support-commercial-chat.test.ts",
+          "count": 4
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
           "file": "tests/integration/commercial-membership.test.ts",
           "count": 5
         },
@@ -2131,8 +2137,20 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/support-commercial-chat.test.ts",
-          "count": 4
+          "file": "tests/integration/community.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/commercial-pagination.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/commerce-catalog.test.ts",
+          "count": 2
         },
         {
           "status": 200,
@@ -2149,25 +2167,7 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/community.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/delivery-address.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/commerce-catalog.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/commercial-pagination.test.ts",
+          "file": "tests/integration/phone-route-authorization.test.ts",
           "count": 2
         },
         {
@@ -2179,25 +2179,25 @@
         {
           "status": 200,
           "test": "<fixture/setup>",
-          "file": "tests/integration/invitation-share.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
-          "file": "tests/integration/phone-route-authorization.test.ts",
-          "count": 2
-        },
-        {
-          "status": 200,
-          "test": "<fixture/setup>",
           "file": "tests/integration/legacy-admin-auth.test.ts",
           "count": 2
         },
         {
           "status": 200,
           "test": "<fixture/setup>",
+          "file": "tests/integration/delivery-address.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
           "file": "tests/integration/formal-ugc-foundation.test.ts",
+          "count": 2
+        },
+        {
+          "status": 200,
+          "test": "<fixture/setup>",
+          "file": "tests/integration/invitation-share.test.ts",
           "count": 2
         }
       ],
@@ -8535,12 +8535,6 @@
         },
         {
           "status": 200,
-          "test": "accepts one first support message from 100 isolated members without failure",
-          "file": "tests/integration/support-performance.test.ts",
-          "count": 100
-        },
-        {
-          "status": 200,
           "test": "commercial support conversation facts > creates a real handoff system event and never equates assignment with online presence",
           "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 1
@@ -8568,6 +8562,12 @@
           "test": "commercial support conversation facts > verifies up to three owned images before one immutable binding and serves them only through authenticated conversation access",
           "file": "tests/integration/support-commercial-chat.test.ts",
           "count": 2
+        },
+        {
+          "status": 200,
+          "test": "accepts one first support message from 100 isolated members without failure",
+          "file": "tests/integration/support-performance.test.ts",
+          "count": 100
         },
         {
           "status": 401,

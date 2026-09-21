@@ -22,7 +22,7 @@ export class PhoneBinding {
   const response=await this.fetcher('https://api.weixin.qq.com/cgi-bin/stable_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credential',appid:this.config.wechat.appId,secret:this.config.wechat.appSecret}),signal:dependencySignal(15000),redirect:'error'});
   const result=await boundedWechatJson<{access_token?:string;expires_in?:number}>(response);
   if(typeof result.access_token!=='string' || !result.access_token || result.access_token.length>4096 || (result.expires_in!==undefined && (!Number.isFinite(result.expires_in)||result.expires_in<0||result.expires_in>7200)))throw new DomainError('WECHAT_PHONE_UNAVAILABLE','微信手机号服务暂不可用，请稍后重试',503);
-  this.accessToken={value:result.access_token,expiresAt:Date.now()+Math.max(0,(result.expires_in || 7200)-120)*1000};return result.access_token;
+  this.accessToken={value:result.access_token,expiresAt:Date.now()+Math.max(0,(result.expires_in ?? 7200)-120)*1000};return result.access_token;
  }
  async unbind(memberId:string | undefined) {
   if(!memberId)throw new DomainError('AUTH_REQUIRED','请先登录会员账号',401);
