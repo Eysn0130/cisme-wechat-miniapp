@@ -35,6 +35,15 @@ it("exports only migrated schema metadata as a complete policy-review denominato
     subjectObjectFieldReview:"unreviewed",exportDeletionPolicy:"unreviewed",legalHoldPolicy:"unreviewed"}));
   expect(tables.map(t=>t.table)).toEqual(expect.arrayContaining(["member","member_profile","commerce_order","commerce_refund_request","commission_settlement_request","support_message","legal_hold","privacy_request"]));
   expect(tables.every(t=>t.columns.length>0)).toBe(true);
+  const subjectMap=JSON.parse(await readFile('docs/privacy/subject-data-map.json','utf8')) as {
+    tables:Array<{table:string;exportFields:string[];excludedFields:string[];productionErasure:string}>};
+  expect(subjectMap.tables.map(t=>t.table).sort()).toEqual(tables.map(t=>t.table).sort());
+  for(const table of tables){
+    const policy=subjectMap.tables.find(t=>t.table===table.table)!;
+    expect([...policy.exportFields,...policy.excludedFields].sort(),table.table).toEqual(table.columns.map(c=>c.name).sort());
+    expect(policy.productionErasure).toBe('DISABLED');
+  }
+
   expect(new Set(tables.map(t=>t.table)).size).toBe(tableRows.length);
   const result={schemaVersion:1,kind:"synthetic-migrated-schema-only-NOT-personal-data-export",releaseReady:false,
     privacyPolicyApproved:false,productionInspected:false,memberRowsRead:0,
