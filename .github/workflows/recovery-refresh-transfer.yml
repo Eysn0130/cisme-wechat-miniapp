@@ -1,0 +1,86 @@
+name: Temporary exact recovery refresh review
+on:
+  pull_request:
+    paths: [.github/workflows/recovery-refresh-transfer.yml]
+permissions:
+  contents: read
+jobs:
+  candidate:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/commercial-recovery-20260921'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      BASE_SHA: 9ced9edb1b3a59ff02371b8b4c51d5615bb81e78
+      BASE_TREE: 4d4de049ca70c62ce50811ef8ca5914b32c91a23
+      EXPECTED_TREE: e279bb05971b63a6a956ba79b01733eea0f09d94
+      PATCH_SHA: 7c72a5c6cf64a4363d20de20b346a0a676c511c23522b64d4819225d40332996
+      REVIEW_HEAD: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with: {ref: '${{ github.event.pull_request.head.sha }}', fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '24.18.0', cache: npm}
+      - name: Reconstruct reviewed source only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,lzma,os,pathlib,subprocess
+          def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('rev-parse','HEAD')==os.environ['REVIEW_HEAD']
+          assert set(git('diff','--name-only',os.environ['BASE_SHA'],'HEAD').splitlines())=={'.github/review-inputs/pr7-final-refresh.patch.xz','.github/workflows/recovery-refresh-transfer.yml'}
+          packed=pathlib.Path('.github/review-inputs/pr7-final-refresh.patch.xz').read_bytes()
+          assert len(packed)==2916 and hashlib.sha256(packed).hexdigest()=='3496ddc8cfbe18a02c50e124449eeaa67da53c52ac12453cc05b81ce8cbdb978'
+          d=lzma.LZMADecompressor();patch=d.decompress(packed,max_length=20000)
+          assert d.eof and not d.unused_data and len(patch)==12005 and hashlib.sha256(patch).hexdigest()==os.environ['PATCH_SHA']
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'refresh-candidate';out.mkdir()
+          p=out/'reviewed.patch';p.write_bytes(patch)
+          subprocess.run(['git','checkout','--detach',os.environ['BASE_SHA']],check=True)
+          subprocess.run(['git','apply','--unidiff-zero','--check',str(p)],check=True)
+          subprocess.run(['git','apply','--unidiff-zero','--index',str(p)],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          assert git('write-tree')==os.environ['EXPECTED_TREE'];p.unlink()
+          PY
+      - name: Lock-pinned source validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/refresh-candidate"
+          npm ci > "$out/npm-ci.log" 2>&1
+          for script in typecheck test build lint:contracts miniprogram:package-gate miniprogram:route-audit design:qa:status; do
+            name="${script//:/-}"
+            npm run "$script" 2>&1 | tee "$out/$name.log"
+          done
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          git diff --exit-code
+      - name: Create exact objects; branch update is separate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,json,os,pathlib,subprocess,urllib.request
+          repo='Eysn0130/cisme-wechat-miniapp';assert os.environ['GITHUB_REPOSITORY']==repo
+          def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
+          def api(path,data=None):
+            request=urllib.request.Request('https://api.github.com/repos/'+repo+path,data=None if data is None else json.dumps(data).encode(),headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
+            with urllib.request.urlopen(request,timeout=30) as response:return json.load(response)
+          assert api('/git/ref/heads/codex/commercial-recovery-20260921')['object']['sha']==os.environ['REVIEW_HEAD']
+          assert git('write-tree')==os.environ['EXPECTED_TREE']
+          paths=git('diff','--cached','--name-only','--no-renames').splitlines();assert len(paths)==6
+          entries=[]
+          for path in paths:
+            mode,sha,stage=git('ls-files','--stage','--',path).split('\t',1)[0].split();assert stage=='0' and mode=='100644'
+            raw=subprocess.check_output(['git','cat-file','blob',sha]);assert api('/git/blobs',{'encoding':'base64','content':base64.b64encode(raw).decode()})['sha']==sha
+            entries.append({'path':path,'mode':mode,'type':'blob','sha':sha})
+          tree=api('/git/trees',{'base_tree':os.environ['BASE_TREE'],'tree':entries})['sha'];assert tree==os.environ['EXPECTED_TREE']
+          commit=api('/git/commits',{'message':'fix(native): avoid superseded reads after commerce recovery acknowledgement','tree':tree,'parents':[os.environ['REVIEW_HEAD']]})['sha']
+          result={'commit':commit,'tree':tree,'parent':os.environ['REVIEW_HEAD'],'base':os.environ['BASE_SHA'],'patchSha256':os.environ['PATCH_SHA'],'branchUpdated':False,'integrationExecuted':False,'nativeExecuted':False,'releaseReady':False}
+          (pathlib.Path(os.environ['RUNNER_TEMP'])/'refresh-candidate'/'candidate-commit.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
+          PY
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with: {name: verified-refresh-candidate, path: '${{ runner.temp }}/refresh-candidate/', retention-days: 14}
