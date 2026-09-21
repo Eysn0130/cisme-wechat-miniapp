@@ -42,8 +42,8 @@ Page({
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;
     this.data.refreshOnShow=true;cancelPageReads(this);cancelRuntimeRead(this);},
-  finishAction(epoch:number,token:string){if(!this.current(epoch,token))return;
-    this.setData({busy:false});if(this.data.visible&&this.data.refreshOnShow){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
+  finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
+    this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
 
   recoveryScope(){return {group:"order" as const,objectId:this.data.id};},
   async loadRecovery(){if(!this.data.visible||!this.data.coreReady||this.data.busy)return;
@@ -64,7 +64,7 @@ Page({
     try{if(row.recorded)await acknowledgeCommerceCommand(key,this.recoveryScope(),current);else await retryCommerceCommand(key,this.recoveryScope(),current);
       if(current())this.setData({actionStatus:"原操作已核对，请查看对应记录；这不代表款项已到账。"});
     }catch(error){if(current())this.setData({recoveryError:(error as {title?:string})?.title||"原操作仍未核实，请稍后重查或联系客服。"});}
-    finally{this.finishAction(epoch,token);if(this.current(epoch,token)&&this.data.visible)void this.load();}
+    finally{this.finishAction(epoch,token,true);}
   },
   retryRuntime(){if(!this.data.visible||this.data.busy||this.confirmationPending)return;
     if(this.lastSessionToken!==getApp<IAppOption>().globalData.sessionToken){void this.load();return;}

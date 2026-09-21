@@ -81,3 +81,27 @@ describe("MONEY-RECOVERY-01: existing Page reproduction",()=>{
     expect(writes.length).toBeGreaterThan(0);expect(new Set(writes.map(o=>o.idempotencyKey)).size).toBe(1);
   });
 });
+
+describe.each(["commission","order-detail"] as const)("recovery refresh ownership: %s",name=>{
+  it.each(["foreground","resumed","hidden"])("starts one refresh without a superseded lookup after %s acknowledgement",async state=>{
+    await ready(name);
+    const {putCommerceCommand}=await import("../../apps/miniprogram/services/commerce-command-store");
+    const kind=name==="commission"?"settlement":"refund",key="test-000";
+    putCommerceCommand({version:1,ownerId:id,environment:JSON.stringify(["https://synthetic.invalid",null]),
+      kind,objectId:kind==="refund"?id:null,key,payload:{amountCents:100,reason:"合成原申请"},createdAt:1,dispatched:true});
+    page.setData({recoveryRows:[{key,kind,label:"原申请已记录",recorded:true,retryable:false}]});
+    const pending=deferred(),original=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation(o=>o.path.startsWith("/v1/me/commerce/command-receipts/")?pending.promise:original(o));
+    mocks.request.mockClear();
+    const action=page.resolveRecovery({currentTarget:{dataset:{key}}});await flush();
+    if(state!=="foreground")page.onHide();
+    if(state==="resumed")page.onShow();
+    pending.resolve({version:1,memberId:id,kind,status:"recorded",record:{id,state:"requested",amountCents:100,...(kind==="refund"?{orderId:id}:{})}});
+    await action;await flush();
+    expect(page.data.busy).toBe(false);
+    expect(mocks.request.mock.calls.filter(([o])=>o.path===corePath(name))).toHaveLength(state==="hidden"?0:1);
+    // One profile belongs to receipt acknowledgement, at most one to the new
+    // foreground snapshot. No immediately-cancelled intermediate profile read.
+    expect(mocks.request.mock.calls.filter(([o])=>o.path==="/v1/me/profile")).toHaveLength(state==="hidden"?1:2);
+  });
+});
