@@ -1,3 +1,4 @@
+import { listMemberSettlements } from "./commerceHistory.js";
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { AppEnvironment } from "@cisme/config";
@@ -463,17 +464,7 @@ export class SettlementCommandService{
   }
 
   async listMine(memberId:string|undefined,query:{limit?:string;cursor?:string}={}){
-    this.gate();if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
-    const limit=pageLimit(query.limit),scope=pageScope(["settlement-mine",memberId]),cursor=readPageCursor(query.cursor,scope);
-    const totalCount=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM commission_settlement_request
-      WHERE member_id=$1`,[memberId])).rows[0]?.n??0;
-    const rows=(await this.pool.query<Row>(`SELECT * FROM commission_settlement_request WHERE member_id=$1
-      AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
-      ORDER BY created_at DESC,id DESC LIMIT $4`,[memberId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    return {...finishPage(rows.map(row=>({...this.view(row),cursorAt:new Date(row.created_at).toISOString(),
-      channelState:(row as Row&{channel_state:string|null}).channel_state??null,
-      packageInfo:(row as Row&{package_info:string|null}).package_info??null,
-      createdAt:row.created_at})),limit,scope),totalCount};
+    return listMemberSettlements(this.pool,memberId,query);
   }
 
   async pending(actorId:string|undefined,query:{limit?:string;cursor?:string}={}){

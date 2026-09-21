@@ -1,0 +1,133 @@
+import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import type { FastifyInstance } from "fastify";
+import { loadConfig } from "@cisme/config";
+import { TEST_DATABASE_URL, resetDatabase, testPool } from "@cisme/testkit";
+import { createApp } from "../../services/api/src/server";
+import { createApiGatewayStorage } from "../../services/api/src/storage";
+import { issueSessionToken } from "../../services/api/src/auth";
+
+// This suite only uses a reset-guarded cisme_*test* database. The synthetic
+// imported history below is an ownership fixture, NOT evidence of payment,
+// commission entitlement, a valid refund transition or a production provider.
+const pool=testPool();
+const env={DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:"synthetic-history-session",
+  ADMIN_API_TOKEN:"synthetic-history-admin",UPLOAD_TOKEN_SECRET:"synthetic-history-upload",
+  OBJECT_STORAGE_DRIVER:"api_gateway",CONTACT_ENCRYPTION_KEY:"11".repeat(32),
+  CONTACT_HASH_KEY:"22".repeat(32),CONTACT_KEY_VERSION:"history-test-v1",LOG_LEVEL:"silent"};
+const auth=(sessionToken:string)=>({authorization:`Bearer ${sessionToken}`});
+type Actor={memberId:string;principalId:string;sessionToken:string};
+let seed:FastifyInstance,closed:FastifyInstance,owner:Actor,other:Actor,revoked:Actor,empty:Actor;
+let ownerOrder:string,otherOrder:string;
+const paths=["/v1/me/refund-requests","/v1/me/commission/settlement-requests","/v1/me/commission/credit-conversions"];
+const makeActor=async(name:string):Promise<Actor>=>{
+  const response=await seed.inject({method:"POST",url:"/v1/identity/dev",payload:{externalUserId:name,displayName:name,
+    consents:[{documentType:"privacy",version:"test"},{documentType:"terms",version:"test"}]}});
+  expect(response.statusCode).toBe(200);return response.json();
+};
+beforeAll(async()=>{
+  await resetDatabase(pool);
+  const seedConfig=loadConfig({...env,APP_ENV:"test",COMMERCE_ORDER_FLOW_ENABLED:"true"});
+  seed=await createApp({config:seedConfig,pool,storage:createApiGatewayStorage(seedConfig)});
+  const closedConfig=loadConfig({...env,APP_ENV:"development",COMMERCE_ORDER_FLOW_ENABLED:"false"});
+  // Development here is an isolated injected app, never a deployed target.
+  // No paymentProtocol, merchant key, channel URL, worker or upload is provided.
+  closed=await createApp({config:closedConfig,pool,storage:createApiGatewayStorage(closedConfig)});
+  owner=await makeActor("history-owner");other=await makeActor("history-other");
+  empty=await makeActor("history-empty");revoked=await makeActor("history-revoked");
+  const operator=await makeActor("history-operator");
+  for(const capability of ["commerce.product.manage","commerce.qualification.manage","commerce.inventory.manage"]){
+    await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+      VALUES($1,$2,'fixture','Synthetic history ownership test','test','integration_fixture')`,[operator.memberId,capability]);
+  }
+  async function post(url:string,payload:object,key:string,actor=operator){
+    const response=await seed.inject({method:"POST",url,headers:{...auth(actor.sessionToken),"idempotency-key":key},payload});
+    expect(response.statusCode,response.body).toBe(200);return response.json();
+  }
+  const product=await post("/v1/management/catalog/products",{code:"synthetic-history",name:"合成历史查询商品",subtitle:"仅用于所有权测试",
+    description:"无真实销售含义",imagePath:"/assets/cisme/community-card-purple-bottle-v1.jpg",sourceKind:"synthetic_test",
+    sku:{code:"SYNTH_HISTORY",label:"合成规格",priceCents:10000}},"history-product-create");
+  const qualified=await post(`/v1/management/catalog/products/${product.productId}/qualification`,{expectedVersion:product.version,
+    status:"eligible",reason:"Synthetic history fixture",evidenceRef:"fixture://history/qualification"},"history-product-qualify");
+  const published=await post(`/v1/management/catalog/products/${product.productId}/publication`,{expectedVersion:qualified.version,
+    action:"publish",reason:"Synthetic history fixture"},"history-product-publish");
+  const sku=published.variants[0];
+  await post(`/v1/management/catalog/skus/${sku.id}/inventory-adjustments`,{expectedVersion:sku.inventoryVersion,delta:4,
+    reason:"Synthetic history fixture"},"history-inventory-create");
+  async function orderFor(actor:Actor,suffix:string){
+    const address=await post("/v1/me/addresses",{recipientName:`合成${suffix}`,phone:"13800001001",province:"上海市",city:"上海市",district:"浦东新区",
+      detail:"合成测试路 1 号",postalCode:"200000",nationalCode:"310115",provinceCode:"310000",cityCode:"310100",districtCode:"310115",label:"home",isDefault:true},`history-address-${suffix}`,actor);
+    const quote=await post("/v1/me/commerce/quotes",{skuId:sku.id,quantity:1,addressId:address.id,addressVersion:address.version},`history-quote-${suffix}`,actor);
+    return (await post("/v1/me/orders",{quoteId:quote.id},`history-order-${suffix}`,actor)).id as string;
+  }
+  ownerOrder=await orderFor(owner,"owner");otherOrder=await orderFor(other,"other");
+  for(const [actor,orderId] of [[owner,ownerOrder],[other,otherOrder]] as const){
+    for(let i=0;i<3;i++){
+      await pool.query(`INSERT INTO commerce_refund_request(order_id,requested_by_member_id,idempotency_key,request_hash,amount_cents,reason)
+        VALUES($1,$2,$3,$4,100,'合成历史记录所有权测试')`,[orderId,actor.memberId,`history-refund-${i}`,"a".repeat(64)]);
+      await pool.query(`INSERT INTO commission_settlement_request(member_id,requested_by_member_id,idempotency_key,request_hash,
+        amount_cents,reason,policy_version,payee_openid,package_info) VALUES($1,$1,$2,$3,100,'合成历史记录所有权测试',
+        'isolated-settlement-v1','synthetic-private-payee','synthetic-confirmation-not-for-list')`,[actor.memberId,`history-settlement-${i}`,"a".repeat(64)]);
+      await pool.query(`INSERT INTO commission_credit_conversion(member_id,idempotency_key,request_hash,gross_cents,credit_cents,tax_policy_version)
+        VALUES($1,$2,$3,100,100,'isolated-synthetic-zero-withholding-v1')`,[actor.memberId,`history-credit-${i}`,"a".repeat(64)]);
+    }
+  }
+  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[revoked.memberId]);
+},30_000);
+afterAll(async()=>{await closed?.close();await seed?.close();await pool.end();});
+
+describe.each(paths)("provider-independent private history: %s",path=>{
+  it("reads own history while runtime is disabled without permitting forged owner or role",async()=>{
+    expect((await closed.inject({method:"GET",url:"/v1/commerce/orders/status"})).json()).toMatchObject({scope:"disabled",paymentAvailable:false});
+    const result=await closed.inject({method:"GET",url:`${path}?memberId=${other.memberId}&role=review_lead&limit=2`,headers:auth(owner.sessionToken)});
+    expect(result.statusCode,result.body).toBe(200);expect(result.json()).toMatchObject({totalCount:3,loadedCount:2,hasMore:true});
+    expect(result.body).not.toContain(other.memberId);expect(result.body).not.toContain(otherOrder);
+    for(const secret of ["payee_openid","packageInfo","package_info","synthetic-private-payee","synthetic-confirmation-not-for-list","request_hash","idempotency_key"])
+      expect(result.body).not.toContain(secret);
+  });
+  it("uses an owner-scoped bounded cursor without duplicate rows",async()=>{
+    const first=await closed.inject({method:"GET",url:`${path}?limit=2`,headers:auth(owner.sessionToken)});
+    expect(first.statusCode,first.body).toBe(200);const cursor=first.json().nextCursor;expect(cursor).toBeTruthy();
+    const next=await closed.inject({method:"GET",url:`${path}?limit=2&cursor=${cursor}`,headers:auth(owner.sessionToken)});
+    expect(next.statusCode,next.body).toBe(200);expect(next.json()).toMatchObject({totalCount:3,loadedCount:1,nextCursor:null});
+    expect(new Set([...first.json().items,...next.json().items].map((row:any)=>row.id)).size).toBe(3);
+    const cross=await closed.inject({method:"GET",url:`${path}?cursor=${cursor}`,headers:auth(other.sessionToken)});
+    expect(cross.statusCode).toBe(422);expect(cross.json().code).toBe("PAGE_CURSOR_INVALID");
+  });
+  it("distinguishes a genuine empty result from an unavailable provider",async()=>{
+    const result=await closed.inject({method:"GET",url:path,headers:auth(empty.sessionToken)});
+    expect(result.statusCode,result.body).toBe(200);expect(result.json()).toMatchObject({items:[],totalCount:0,nextCursor:null});
+  });
+  it.each([undefined,"Bearer forged.invalid"])("rejects missing or forged authentication %s",async authorization=>{
+    expect((await closed.inject({method:"GET",url:path,headers:authorization?{authorization}:{}})).statusCode).toBe(401);
+  });
+  it("rejects expired authentication and a blocked member",async()=>{
+    const expired=issueSessionToken({principalId:owner.principalId,memberId:owner.memberId,adapter:"dev",provider:"dev_test",appId:"dev"},
+      env.APP_SESSION_SECRET,Date.now()-24*60*60*1000);
+    expect((await closed.inject({method:"GET",url:path,headers:auth(expired)})).statusCode).toBe(401);
+    expect((await closed.inject({method:"GET",url:path,headers:auth(revoked.sessionToken)})).statusCode).toBe(401);
+  });
+  it.each(["0","51","1.5"])("bounds the page size %s",async limit=>{
+    expect((await closed.inject({method:"GET",url:`${path}?limit=${limit}`,headers:auth(owner.sessionToken)})).statusCode).toBe(422);
+  });
+});
+it("cannot filter into someone else's refunds or reuse an order-scoped cursor",async()=>{
+  const first=await closed.inject({method:"GET",url:`/v1/me/refund-requests?orderId=${ownerOrder}&limit=2`,headers:auth(owner.sessionToken)});
+  expect(first.statusCode,first.body).toBe(200);expect(first.json().items.every((row:any)=>row.orderId===ownerOrder)).toBe(true);
+  const cross=await closed.inject({method:"GET",url:`/v1/me/refund-requests?orderId=${otherOrder}`,headers:auth(owner.sessionToken)});
+  expect(cross.statusCode).toBe(200);expect(cross.json()).toMatchObject({items:[],totalCount:0});
+  expect((await closed.inject({method:"GET",url:`/v1/me/refund-requests?cursor=${first.json().nextCursor}`,headers:auth(owner.sessionToken)})).statusCode).toBe(422);
+});
+it("readable credit history does not grant live spend or cancellation permission",async()=>{
+  const result=await closed.inject({method:"GET",url:paths[2]!,headers:auth(owner.sessionToken)});
+  expect(result.statusCode,result.body).toBe(200);expect(result.json()).toMatchObject({checkoutAvailableCents:0,spendable:false,redemptionStatus:"ISOLATED_TEST_ONLY"});
+  expect(result.json().items.every((row:any)=>row.cancellable===false)).toBe(true);
+});
+it("does not loosen any money mutation gate or return a confirmation package",async()=>{
+  for(const url of [`/v1/me/orders/${ownerOrder}/payment-intent`,`/v1/me/orders/${ownerOrder}/refund-requests`,
+    "/v1/me/commission/settlement-requests","/v1/me/commission/credit-conversions"]){
+    const result=await closed.inject({method:"POST",url,headers:{...auth(owner.sessionToken),"idempotency-key":"history-write-closed"},payload:{amountCents:100,reason:"合成测试申请"}});
+    expect(result.statusCode,result.body).toBe(503);
+  }
+  const row=(await closed.inject({method:"GET",url:paths[1]!,headers:auth(owner.sessionToken)})).json().items[0];
+  expect((await closed.inject({method:"GET",url:`/v1/me/commission/settlement-requests/${row.id}/confirmation`,headers:auth(owner.sessionToken)})).statusCode).toBe(503);
+});

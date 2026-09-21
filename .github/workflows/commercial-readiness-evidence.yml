@@ -1,0 +1,51 @@
+name: Commercial preparation evidence (not release authorization)
+on:
+  pull_request:
+    paths:
+      - scripts/audit-commercial-lifecycle.ts
+      - scripts/audit-commercial-resources.py
+      - .github/workflows/commercial-readiness-evidence.yml
+  workflow_dispatch:
+    inputs:
+      include_source:
+        description: Archive exact tracked source for an explicit review (no credentials)
+        type: boolean
+        default: false
+        required: false
+permissions:
+  contents: read
+jobs:
+  source-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '24.18.0', cache: npm}
+      - run: npm ci
+      - name: Current source identity and required page-state inventory
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/commercial-preparation"
+          mkdir -p "$out"
+          git rev-parse HEAD HEAD^{tree} > "$out/checkout-identity.txt"
+          ./node_modules/.bin/tsx scripts/audit-commercial-lifecycle.ts > "$out/page-state-matrix.json"
+      - name: Optional exact committed source for explicit review
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.include_source == true }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/commercial-preparation"
+          # Only tracked files; no .git credentials, runner environment or local
+          # working tree. Do not add this large archive to routine PR artifacts.
+          git archive --format=tar HEAD | gzip -n > "$out/committed-source.tar.gz"
+          (cd "$out" && sha256sum committed-source.tar.gz > committed-source.sha256)
+      - name: Recheck public upstream metadata (no code execution or license approval)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/audit-commercial-resources.py > "$RUNNER_TEMP/commercial-preparation/github-resources.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: commercial-preparation-evidence
+          path: ${{ runner.temp }}/commercial-preparation/
+          retention-days: 14

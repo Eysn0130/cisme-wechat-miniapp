@@ -214,12 +214,13 @@ export class ShoppingCreditService{
     createdAt:row.created_at,cancelledAt:row.cancelled_at};}
 
   async listMine(memberId:string|undefined,query:{limit?:string;cursor?:string}={}){
-    this.gate();if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
+    if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
     const limit=pageLimit(query.limit),scope=pageScope(["credit-conversion",memberId]),
       cursor=readPageCursor(query.cursor,scope);
-    const count=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n
+    return transaction(this.pool,async client=>{
+    const count=(await client.query<{n:number}>(`SELECT count(*)::int AS n
       FROM commission_credit_conversion WHERE member_id=$1`,[memberId])).rows[0]?.n??0;
-    const rows=(await this.pool.query<Conversion>(`SELECT c.*,
+    const rows=(await client.query<Conversion>(`SELECT c.*,
       COALESCE((SELECT sum(e.amount_cents) FROM commission_credit_source s
         JOIN commission_credit_entry e ON e.source_id=s.id WHERE s.conversion_id=c.id),0)::text AS available_cents,
       (SELECT count(*)::int FROM commission_credit_source s
@@ -228,7 +229,7 @@ export class ShoppingCreditService{
       FROM commission_credit_conversion c
       WHERE c.member_id=$1 AND ($2::timestamptz IS NULL OR (c.created_at,c.id)<($2::timestamptz,$3::uuid))
       ORDER BY c.created_at DESC,c.id DESC LIMIT $4`,[memberId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    const available=(await this.pool.query<{amount_cents:string;checkout_cents:string}>(`WITH balance AS (
+    const available=(await client.query<{amount_cents:string;checkout_cents:string}>(`WITH balance AS (
       SELECT s.order_id,sum(e.amount_cents) AS amount_cents
       FROM commission_credit_source s JOIN commission_credit_conversion c ON c.id=s.conversion_id
       JOIN commission_credit_entry e ON e.source_id=s.id
@@ -248,10 +249,11 @@ export class ShoppingCreditService{
     ) SELECT COALESCE(sum(amount_cents),0)::text AS amount_cents,
       COALESCE(sum(amount_cents) FILTER (WHERE can_checkout AND amount_cents>0),0)::text AS checkout_cents
       FROM eligible`,[memberId])).rows[0]!;
-    return {...finishPage(rows.map(row=>({...this.view(row),cursorAt:row.created_at.toISOString()})),limit,scope),
+    return {...finishPage(rows.map(row=>({...this.view(row),cancellable:this.environment==="test"&&this.view(row).cancellable,cursorAt:row.created_at.toISOString()})),limit,scope),
       totalCount:count,availableCents:Number(available.amount_cents),
-      checkoutAvailableCents:Number(available.checkout_cents),spendable:Number(available.checkout_cents)>0,
+      checkoutAvailableCents:this.environment==="test"?Number(available.checkout_cents):0,spendable:this.environment==="test"&&Number(available.checkout_cents)>0,
       redemptionStatus:"ISOLATED_TEST_ONLY" as const};
+    },"REPEATABLE READ");
   }
 
   async convert(memberId:string|undefined,requestKeyInput:string,input:Record<string,unknown>){

@@ -1,4 +1,5 @@
 import { request } from "./api";
+import { pageRead } from "./page-requests";
 
 export type PendingOrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 export interface CheckoutAddress {
@@ -48,8 +49,9 @@ export function clientOperationKey(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function orderRuntimeStatus(): Promise<CommerceOrderRuntimeStatus> {
-  return request<CommerceOrderRuntimeStatus>({ path: "/v1/commerce/orders/status", authMode: "public", cacheTags: ["catalog"] });
+export function orderRuntimeStatus(page?: object): Promise<CommerceOrderRuntimeStatus> {
+  const options = { path: "/v1/commerce/orders/status", authMode: "public" as const, cacheTags: ["catalog"] };
+  return page ? pageRead<CommerceOrderRuntimeStatus>(page, options) : request<CommerceOrderRuntimeStatus>(options);
 }
 export function memberAddresses(): Promise<{ enabled: boolean; maxAddresses: number; addresses: CheckoutAddress[] }> {
   return request({ path: "/v1/me/addresses", cacheTags: ["member"] });
@@ -64,8 +66,9 @@ export function createPendingOrder(quoteId: string, idempotencyKey: string): Pro
 export function myOrders(cursor?: string): Promise<CommerceOrderPage> {
   return request({ path: `/v1/me/orders?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, cacheTags: ["orders"] });
 }
-export function myOrder(id: string): Promise<CommerceOrder<MemberOrderAddress>> {
-  return request({ path: `/v1/me/orders/${encodeURIComponent(id)}`, cacheTags: ["orders"] });
+export function myOrder(id: string, page?: object): Promise<CommerceOrder<MemberOrderAddress>> {
+  const options = { path: `/v1/me/orders/${encodeURIComponent(id)}`, cacheTags: ["orders"] };
+  return page ? pageRead<CommerceOrder<MemberOrderAddress>>(page, options) : request<CommerceOrder<MemberOrderAddress>>(options);
 }
 export function cancelMyOrder(id: string, expectedVersion: number, reason: string, idempotencyKey: string): Promise<CommerceOrder<MemberOrderAddress>> {
   return request({ path: `/v1/me/orders/${encodeURIComponent(id)}/cancel`, method: "POST", data: { expectedVersion, reason }, idempotencyKey, cacheTags: ["orders", "catalog"] });

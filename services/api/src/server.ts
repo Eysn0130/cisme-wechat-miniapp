@@ -1,3 +1,4 @@
+import { listMemberRefundRequests, listMemberSettlements } from "./commerceHistory.js";
 import { MemberProfile, type MemberProfileInput } from "./memberProfile.js";
 import { startBackgroundWorker } from "../../worker/src/jobs.js";
 import { startMoneyBackgroundWorker } from "../../worker/src/moneyJobs.js";
@@ -518,7 +519,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     refundRequired().request(request.memberId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{limit?:string;cursor?:string;orderId?:string}}>("/v1/me/refund-requests",async request=>
-    refundRequired().listMine(request.memberId,request.query));
+    listMemberRefundRequests(pool,request.memberId,request.query));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/refund-requests/pending",async request=>
     refundRequired().pending(request.memberId,request.query));
   app.post<{Params:{requestId:string}}>("/v1/management/refund-requests/:requestId/decision",async request=>
@@ -544,7 +545,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     settlementRequired().request(request.memberId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/commission/settlement-requests",async request=>
-    settlementRequired().listMine(request.memberId,request.query));
+    listMemberSettlements(pool,request.memberId,request.query));
   app.post("/v1/me/commission/credit-conversions",async request=>
     shoppingCredit.convert(request.memberId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));

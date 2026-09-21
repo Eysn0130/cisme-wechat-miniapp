@@ -18,7 +18,9 @@ describe("R4-A native commerce boundary",()=>{
     const orderSources=await Promise.all(["services/orders.ts","pages/checkout/index.ts","pages/order-detail/index.ts"].map(path=>readFile(resolve(root,"apps/miniprogram",path),"utf8")));
     expect(orderSources.join("\n")).not.toContain("payment-success");
     expect(orderSources[2]).toContain('else if(result.requestPayment){try{await wx.requestPayment(result.requestPayment);}')
-    expect(orderSources[2]).toContain('if(current()){this.setData({busy:false});void this.recheckPayment();}')
+    // Payment callback is not authoritative; the parent must await the server query.
+    expect(orderSources[2]).toContain('if(current()){this.setData({busy:false});await this.recheckPayment();}')
+    expect(orderSources[2]).not.toContain('void this.recheckPayment();')
     expect(orderSources[2]).not.toMatch(/requestPayment[\s\S]*?setData\(\{[^}]*status:\s*["']paid/);
   });
   it("keeps qualification, publication and inventory as separate mobile commands",async()=>{
