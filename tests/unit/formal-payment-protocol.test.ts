@@ -83,3 +83,29 @@ it("pins independent public keys, validates a signed response and never uses a l
   expect(()=>formalPaymentProtocol({...config,env:"production"},pool,fake))
     .toThrow("FAIL_CLOSED:FORMAL_WECHAT_PAY_TEST_TRANSPORT_ONLY");
 });
+
+it('binds certificate merchant CN, serial, validity and private key before authorizing recovery network',async()=>{
+  const {execFileSync}=await import('node:child_process');
+  const {X509Certificate}=await import('node:crypto');
+  const {readFile,chmod}=await import('node:fs/promises');
+  const f=await fixture(),certificate=join(f.paths.merchant,'../merchant-certificate.pem');
+  execFileSync('openssl',['req','-new','-x509','-key',f.paths.merchant,'-subj','/CN=1900000001','-days','1',
+    '-set_serial','0xAABBCCDD00112233','-out',certificate],{stdio:'ignore'});
+  await chmod(certificate,0o600);
+  const config=loadConfig({...f.environment,COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE:certificate});
+  expect(formalPaymentProtocol(config,{} as pg.Pool)!.networkAuthorized).toBe(false); // credential presence is not a grant
+  const cert=new X509Certificate(await readFile(certificate));expect(cert.serialNumber).toBe(f.serial);
+  const other=await fixture();
+  for(const patch of [{merchantPrivateKeyFile:other.paths.merchant},{merchantId:'1900000002'},{merchantSerial:'AABBCCDD00112234'},{merchantPrivateKeyFile:f.paths.platform}]){
+    expect(()=>formalPaymentProtocol({...config,commerce:{...config.commerce,formalProtocol:{...config.commerce.formalProtocol!,...patch}}},{} as pg.Pool)).toThrow();
+  }
+  const grantPath=join(f.paths.merchant,'../grant.json');
+  await writeFile(grantPath,JSON.stringify({schemaVersion:1,mode:'ordinary-merchant-recovery-only',environment:'staging',
+    appId:config.wechat.appId,merchantId:'1900000001',approvalReference:'synthetic-cert-approval',
+    expiresAt:new Date(Date.now()+60000).toISOString(),capabilities:['payment.query','payment.callback']}),{mode:0o600});
+  const noCert={...config,env:'staging' as const,commerce:{...config.commerce,formalProtocol:{...config.commerce.formalProtocol!,recoveryAuthorizationFile:grantPath}}};
+  delete noCert.commerce.formalProtocol.merchantCertificateFile;
+  const protocol=formalPaymentProtocol(noCert,{} as pg.Pool)!;
+  expect(()=>protocol.authorizeRecovery('payment.callback')).not.toThrow();
+  expect(()=>protocol.authorizeRecovery('payment.query')).toThrow('MERCHANT_CERTIFICATE_REQUIRED');
+});

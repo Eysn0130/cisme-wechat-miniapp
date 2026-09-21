@@ -18,3 +18,5 @@
 [W9 山西通知](https://sxca.miit.gov.cn/zwgk/tzgg/art/2024/art_2ab1282ce0a941caafe53eebf15f45d5.html)本轮读取超时。已补核[工信部 2023 年 105 号通知原文](https://www.miit.gov.cn/zwgk/zcwj/wjfb/tz/art/2023/art_920db564162e4312916a01bed6540ad8.html)及[官方解读](https://www.miit.gov.cn/jgsj/xgj/hlwgl/art/2023/art_564bf0759d7e41d5b4aa8ce4996b9e84.html)：备案与公开运营前置关系适用，历史过渡日期不作为本轮排期。用户报告“备案审核中”，未推断后台具体上传/提审按钮可用；其等待不阻塞安全工程、隔离测试和材料制作。微信备案操作正文及本 AppID 当前状态仍须获授权渠道核实。
 
 以上资料不证明实际商户绑定、平台权限、回调可达、真实支付/退款或发布批准。没有一般性 APIv3 sandbox 的假设，也没有把 staging、小金额或 APP_ENV=test 视为不动真钱的保证。
+
+补核 [商户号、商户 API 证书与序列号匹配排错](https://pay.wechatpay.cn/doc/v3/merchant/4012365345)（2024-12-12）：官方明确用证书 CN 查看对应商户号，并核对商户 API 证书 serial。正式恢复装配新增私钥/证书/CN/serial/有效期本地精确绑定；不以平台证书替代商户证书，不以本地一致性宣称商户绑定/权限或证书线上有效。
