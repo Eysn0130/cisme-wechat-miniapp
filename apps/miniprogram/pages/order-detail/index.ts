@@ -1,8 +1,10 @@
+import { commerceContextRevision } from "../../services/commerce-command-store";
+import { acknowledgeCommerceCommand, executeCommerceCommand, readCommerceRecovery, retryCommerceCommand, type RecoveryView } from "../../services/commerce-command-recovery";
 import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner, runtimeView, validateRuntime } from "../../services/commerce-runtime";
 import { request, requireMemberAccess } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
-import { cancelMyOrder, clientOperationKey, myOrder, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
+import { clientOperationKey, myOrder, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付，待履约"};
 type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundState:string|null;reason:string;createdAt:string;
@@ -15,8 +17,8 @@ const errorTitle=(error:unknown,fallback:string)=>(error as {title?:string})?.ti
 function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
   return match?Number(match[1])*100+Number((match[2]??"").padEnd(2,"0")):NaN;}
 Page({
-  lastSessionToken:"",
-  data:{...initialRuntimeView(),coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
+  lastSessionToken:"",lastSessionRevision:-1,
+  data:{...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
     isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0},
@@ -25,23 +27,45 @@ Page({
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
     if(!requireMemberAccess())return;void this.load();},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token!==this.lastSessionToken){this.lastSessionToken=token;this.data.epoch+=1;this.setData({...initialRuntimeView(),busy:false,coreReady:false,isolatedPayment:false,order:null,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
+    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,order:null,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     },
   confirmationPending:false,
-  canAct(){return this.data.visible&&this.data.coreReady&&!this.confirmationPending&&this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken;},
+  canAct(){return this.data.visible&&this.data.coreReady&&!this.confirmationPending&&this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
   async confirmOperation(options:WechatMiniprogram.ShowModalOption):Promise<{confirm:boolean;cancel?:boolean}>{
     if(this.confirmationPending)return {confirm:false};this.confirmationPending=true;
     try{return await wx.showModal(options);}catch{return {confirm:false};}finally{this.confirmationPending=false;}
   },
   onUnload(){this.onHide();this.data.pageAlive=false;this.data.epoch+=1;},
   normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
-  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
+  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;
     this.data.refreshOnShow=true;cancelPageReads(this);cancelRuntimeRead(this);},
-  finishAction(epoch:number,token:string){if(!this.current(epoch,token))return;
-    this.setData({busy:false});if(this.data.visible&&this.data.refreshOnShow){this.data.refreshOnShow=false;void this.load();}},
+  finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
+    this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
+
+  recoveryScope(){return {group:"order" as const,objectId:this.data.id};},
+  async loadRecovery(){if(!this.data.visible||!this.data.coreReady||this.data.busy)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>this.readCurrent(epoch,token,readEpoch);
+    this.setData({recoveryLoading:true,recoveryError:""});
+    try{const recoveryRows=await readCommerceRecovery(this,this.recoveryScope(),current);if(current())this.setData({recoveryRows,recoveryLoading:false});}
+    catch{if(current())this.setData({recoveryLoading:false,recoveryError:"原操作暂时无法核对；请重试核对，不要重新创建重复申请。"});}
+  },
+  async resolveRecovery(event:WechatMiniprogram.BaseEvent){
+    const key=String(event.currentTarget.dataset.key??""),row=this.data.recoveryRows.find(item=>item.key===key);
+    if(!row||!this.canAct()||this.data.busy||!row.recorded&&!(row.kind==="cancel"||this.data.isolatedPayment))return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>this.current(epoch,token)&&this.data.visible&&this.data.coreReady&&(row.recorded||(row.kind==="cancel"||this.data.isolatedPayment));
+    const answer=await this.confirmOperation({title:row.recorded?"确认已核对原操作？":"重试原操作？",content:row.recorded?"原申请已由服务端记录。确认后才可开始新的申请；付款、退款和到账仍分别按权威状态展示。":"只使用最初确认的金额、原因、版本和请求编号，先查询原结果；不会使用后来修改的内容，也不会开启真实资金操作。",confirmText:row.recorded?"已核对":"重试原操作"});
+    if(!answer.confirm||!current()||this.data.busy)return;
+    this.setData({busy:true,recoveryError:""});
+    try{if(row.recorded)await acknowledgeCommerceCommand(key,this.recoveryScope(),current);else await retryCommerceCommand(key,this.recoveryScope(),current);
+      if(current())this.setData({actionStatus:"原操作已核对，请查看对应记录；这不代表款项已到账。"});
+    }catch(error){if(current())this.setData({recoveryError:(error as {title?:string})?.title||"原操作仍未核实，请稍后重查或联系客服。"});}
+    finally{this.finishAction(epoch,token,true);}
+  },
   retryRuntime(){if(!this.data.visible||this.data.busy||this.confirmationPending)return;
     if(this.lastSessionToken!==getApp<IAppOption>().globalData.sessionToken){void this.load();return;}
     void this.loadRuntime(this.data.epoch,getApp<IAppOption>().globalData.sessionToken);},
@@ -56,7 +80,7 @@ Page({
     try{const order=await myOrder(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
-      this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadRefunds(epoch,token);
+      this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadRefunds(epoch,token);void this.loadRecovery();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({order:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.order,coreReady:false,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}
   },
   applyRuntime(){const isolatedPayment=this.canAct()&&this.data.runtimeState==="ready"&&runtimeActions(this.data.runtimeStatus).money&&this.data.order?.transactionSourceKind==="verified_commerce";
@@ -104,7 +128,7 @@ Page({
     const answer=await this.confirmOperation({title:"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,refundKey:key,actionError:"",actionStatus:""});
-    try{await request({path:`/v1/me/orders/${id}/refund-requests`,method:"POST",idempotencyKey:key,data:{amountCents,reason}});
+    try{await executeCommerceCommand({kind:"refund",objectId:id,key,payload:{amountCents,reason}},()=>current()&&this.data.visible&&this.data.isolatedPayment);
       if(current()){this.setData({busy:false,refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",
         actionStatus:"申请已记录，请在下方查看复核和渠道结果。"});void this.loadRefunds(epoch,token);}}
     catch(error){if(current())this.setData({busy:false,actionError:errorTitle(error,"退款申请结果暂不确定；再次提交会使用同一请求编号。")});}
@@ -146,11 +170,11 @@ Page({
       content:this.data.isolatedPayment?"系统会先按原商户订单号查询并关闭测试渠道订单；未知支付状态不会释放库存。":"取消后将释放本单预留库存，订单记录仍保留。",
       confirmText:"确认取消",confirmColor:"#8d3150"}).catch(()=>({confirm:false}));if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     const cancelKey=this.data.cancelKey||clientOperationKey("order-cancel");this.setData({busy:true,error:"",actionError:"",cancelKey});
-    try{const updated=this.data.isolatedPayment?await request<CommerceOrder<MemberOrderAddress>>({
-      path:`/v1/me/orders/${id}/cancel-verified`,method:"POST",idempotencyKey:cancelKey,data:{expectedVersion:version,reason:"用户确认取消待支付订单"}})
-      :await cancelMyOrder(id,version,"用户确认取消待支付订单",cancelKey);
+    try{const result=await executeCommerceCommand<CommerceOrder<MemberOrderAddress>>({kind:this.data.isolatedPayment?"cancel-verified":"cancel",objectId:id,key:cancelKey,
+      payload:{expectedVersion:version,reason:"用户确认取消待支付订单"}},()=>current()&&this.data.visible&&(order.transactionSourceKind!=="verified_commerce"||this.data.isolatedPayment));
+      const updated=result.result??await myOrder(id,this);
       if(current())this.setData({order:this.normalize(updated),busy:false,cancelKey:"",actionStatus:"订单已取消，预留库存及测试购物权益已释放。"});}
-    catch(error){if(current())this.setData({busy:false,actionError:errorTitle(error,"取消未完成，请刷新订单状态后重试。")});}
+    catch(error){if(current())this.setData({busy:false,actionError:errorTitle(error,"取消结果暂未核实，请核对原单后重试原操作。")});}
     finally{this.finishAction(epoch,token);}},
   back(){if(this.data.busy||this.data.navigating)return;this.setData({navigating:true});wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/orders/index"})});}
 });

@@ -26,7 +26,14 @@ export async function auditCommercialLifecycle(root=resolve(".")) {
     const markers=(pattern:RegExp)=>[...logic.matchAll(pattern)].map(match=>({line:logic.slice(0,match.index).split("\n").length,token:match[0]}));
     const contract=byRoute.get(route.route);
     const directReadOwner=/\b(?:pageRead|cancelPageReads|runtimeReadOwner)\s*(?:<[^;]*?>)?\(/.test(logic);
-    const batch=["pages/management/index","pages/commission/index","pages/order-detail/index"].includes(route.route);
+    const behaviorTests:Record<string,string>={
+      "pages/management/index":"tests/unit/native-commerce-runtime.test.ts",
+      "pages/commission/index":"tests/unit/native-commerce-runtime.test.ts;tests/unit/native-commerce-recovery.test.ts",
+      "pages/order-detail/index":"tests/unit/native-commerce-runtime.test.ts;tests/unit/native-commerce-recovery.test.ts;tests/unit/native-payment-followup.test.ts",
+      "pages/orders/index":"tests/unit/native-order-list-lifecycle.test.ts",
+      "pages/management-orders/index":"tests/unit/native-order-list-lifecycle.test.ts",
+      "pages/records/index":"tests/unit/native-records-lifecycle.test.ts"
+    };
     return {...route,sourceFiles:sourceFiles.map(({text,...identity})=>identity),
       observedOnly:{directReadOwner,readCancellation:markers(/\b(?:cancelPageReads|cancelRuntimeRead)\s*\(/g),
         timers:markers(/\b(?:setTimeout|setInterval|clearTimeout|clearInterval)\s*\(/g),
@@ -39,7 +46,7 @@ export async function auditCommercialLifecycle(root=resolve(".")) {
           ...(route.route.includes("management")||route.route.includes("community-review")?["current_capability","revoked_capability"]:[])],
       requirement:{source:baseline,primaryContract:contract?.primaryContract??null,acceptanceReferences:contract?.acceptanceReferences??[],
         states:contract?.statesRequired??Object.keys(requirements.commonRequiredStates),needsRequirementReview:!contract},
-      behaviorEvidenceScope:batch?"tests/unit/native-commerce-runtime.test.ts: synthetic Page logic; see exact-head test logs, not native rendering":"existing tests require scenario-level mapping; not re-accepted by this inventory",
+      behaviorEvidenceScope:behaviorTests[route.route]?`${behaviorTests[route.route]}: synthetic Page logic; see exact-head test logs, not native rendering`:"existing tests require scenario-level mapping; not re-accepted by this inventory",
       lifecycleAssessment:directReadOwner?"Owner/cancel callsites observed; wrapper, transport and shared-consumer behavior still need trace evidence":"No direct page-read owner marker; inspect wrappers/polls before classifying as a defect",
       nativeAcceptance:{devtools:"not_executed_this_round",iOS:"not_executed_this_round",Android:"not_executed_this_round",allStatesPassed:false},
       uiReviewRequired:["card/type/spacing","button-text/line-height/touch-target","long-text/amount/narrow-screen","keyboard/safe-area/focus","reduce-motion/offline/resume"]};

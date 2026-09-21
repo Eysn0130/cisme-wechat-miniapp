@@ -196,7 +196,7 @@ describe("native mini program boundary", () => {
     const expected: Record<string, string[]> = {
       account: ["back", "openLegalDocuments", "openCrossBorder", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
-      commission: ["back", "load", "retryRuntime", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
+      commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
       "community-compose": ["back", "retryLoad", "startNew", "openDraft", "deleteListDraft", "loadMoreList", "submitAppeal", "retryPreview", "toggleSorting", "chooseImages", "retryImage", "retryPreview", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
@@ -221,7 +221,7 @@ describe("native mini program boundary", () => {
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
       checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
-      "order-detail": ["back", "back", "load", "retryRuntime", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
+      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
       profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "load", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
       records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],

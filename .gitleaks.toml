@@ -35,3 +35,11 @@ regexTarget = "match"
 regexes = [
   '''api\.mch\.weixin\.qq\.com",\s*"api2\.mch\.weixin\.qq\.com'''
 ]
+
+[[allowlists]]
+description = "Reviewed PR7 literal synthetic recovery identifier; not an authentication credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/unit/commerce-command-store\.test\.ts$''']
+regexTarget = "match"
+regexes = ['''key:\s*"synthetic-refund-1"''']

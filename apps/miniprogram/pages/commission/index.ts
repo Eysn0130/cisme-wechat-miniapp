@@ -1,3 +1,5 @@
+import { commerceContextRevision } from "../../services/commerce-command-store";
+import { acknowledgeCommerceCommand, executeCommerceCommand, readCommerceRecovery, retryCommerceCommand, type RecoveryView } from "../../services/commerce-command-recovery";
 import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner, runtimeView, validateRuntime } from "../../services/commerce-runtime";
 import { request, requireMemberAccess } from "../../services/api";
@@ -25,8 +27,8 @@ function yuanToCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
   return parts?Number(parts[1])*100+Number((parts[2]??"").padEnd(2,"0")):NaN;}
 
 Page({
-  lastSessionToken:"",
-  data:{...initialRuntimeView(),coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),status:null as MemberStatus|null,
+  lastSessionToken:"",lastSessionRevision:-1,
+  data:{...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),status:null as MemberStatus|null,
     availableLabel:"",pendingLabel:"",heldLabel:"",settledLabel:"",recoveryLabel:"",
     isolatedTransfer:false,isolatedCredit:false,requests:[] as RequestRow[],totalCount:0,nextCursor:null as string|null,
     creditRows:[] as CreditRow[],creditTotal:0,creditCursor:null as string|null,
@@ -40,27 +42,49 @@ Page({
     this.syncSession();
     if(!requireMemberAccess())return;void this.load();},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token!==this.lastSessionToken){this.lastSessionToken=token;this.data.epoch+=1;
-      this.setData({...initialRuntimeView(),coreReady:false,busy:false,isolatedTransfer:false,isolatedCredit:false,status:null,requests:[],totalCount:0,nextCursor:null,formVisible:false,
+    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;
+      this.setData({...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",coreReady:false,busy:false,isolatedTransfer:false,isolatedCredit:false,status:null,requests:[],totalCount:0,nextCursor:null,formVisible:false,
         amount:"",reason:"",requestKey:"",actionError:"",actionStatus:"",
         creditRows:[],creditTotal:0,creditCursor:null,creditAvailableCents:0,
         creditAvailableLabel:"0.00",creditAmount:"",creditRequestKey:"",creditCancelKeys:{},
         creditActionError:"",creditActionStatus:"",creditFormVisible:false});}
     },
   confirmationPending:false,
-  canAct(){return this.data.visible&&this.data.coreReady&&!this.confirmationPending&&this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken;},
+  canAct(){return this.data.visible&&this.data.coreReady&&!this.confirmationPending&&this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
   async confirmOperation(options:WechatMiniprogram.ShowModalOption):Promise<{confirm:boolean;cancel?:boolean}>{
     if(this.confirmationPending)return {confirm:false};this.confirmationPending=true;
     try{return await wx.showModal(options);}catch{return {confirm:false};}finally{this.confirmationPending=false;}
   },
   onUnload(){this.onHide();this.data.alive=false;this.data.epoch+=1;},
   current(epoch:number,token:string){return this.data.alive&&this.data.epoch===epoch&&
-    token===getApp<IAppOption>().globalData.sessionToken;},
+    token===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;
     this.data.refreshOnShow=true;cancelPageReads(this);cancelRuntimeRead(this);},
-  finishAction(epoch:number,token:string){if(!this.current(epoch,token))return;
-    this.setData({busy:false});if(this.data.visible&&this.data.refreshOnShow){this.data.refreshOnShow=false;void this.load();}},
+  finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
+    this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
+
+  recoveryScope(){return {group:"commission" as const};},
+  async loadRecovery(){if(!this.data.visible||!this.data.coreReady||this.data.busy)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>this.readCurrent(epoch,token,readEpoch);
+    this.setData({recoveryLoading:true,recoveryError:""});
+    try{const recoveryRows=await readCommerceRecovery(this,this.recoveryScope(),current);if(current())this.setData({recoveryRows,recoveryLoading:false});}
+    catch{if(current())this.setData({recoveryLoading:false,recoveryError:"原操作暂时无法核对；请重试核对，不要重新创建重复申请。"});}
+  },
+  async resolveRecovery(event:WechatMiniprogram.BaseEvent){
+    const key=String(event.currentTarget.dataset.key??""),row=this.data.recoveryRows.find(item=>item.key===key);
+    if(!row||!this.canAct()||this.data.busy||!row.recorded&&!(row.kind==="settlement"?this.data.isolatedTransfer:this.data.isolatedCredit))return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>this.current(epoch,token)&&this.data.visible&&this.data.coreReady&&(row.recorded||(row.kind==="settlement"?this.data.isolatedTransfer:this.data.isolatedCredit));
+    const answer=await this.confirmOperation({title:row.recorded?"确认已核对原操作？":"重试原操作？",content:row.recorded?"原申请已由服务端记录。确认后才可开始新的申请；付款、退款和到账仍分别按权威状态展示。":"只使用最初确认的金额、原因、版本和请求编号，先查询原结果；不会使用后来修改的内容，也不会开启真实资金操作。",confirmText:row.recorded?"已核对":"重试原操作"});
+    if(!answer.confirm||!current()||this.data.busy)return;
+    this.setData({busy:true,recoveryError:""});
+    try{if(row.recorded)await acknowledgeCommerceCommand(key,this.recoveryScope(),current);else await retryCommerceCommand(key,this.recoveryScope(),current);
+      if(current())this.setData({actionStatus:"原操作已核对，请查看对应记录；这不代表款项已到账。"});
+    }catch(error){if(current())this.setData({recoveryError:(error as {title?:string})?.title||"原操作仍未核实，请稍后重查或联系客服。"});}
+    finally{this.finishAction(epoch,token,true);}
+  },
   retryRuntime(){if(!this.data.visible||this.data.busy||this.confirmationPending)return;
     if(this.lastSessionToken!==getApp<IAppOption>().globalData.sessionToken){void this.load();return;}
     void this.loadRuntime(this.data.epoch,getApp<IAppOption>().globalData.sessionToken);},
@@ -80,7 +104,7 @@ Page({
         availableLabel:centsToYuan(amounts.availableCents),pendingLabel:centsToYuan(amounts.pendingCents),
         heldLabel:centsToYuan(amounts.paymentHeldCents),settledLabel:centsToYuan(amounts.settledCents),
         recoveryLabel:centsToYuan(amounts.recoveryCents+amounts.reservedRecoveryCents)});
-      this.applyRuntime();void this.loadRequests(epoch,token);void this.loadCredits(epoch,token);
+      this.applyRuntime();void this.loadRequests(epoch,token);void this.loadCredits(epoch,token);void this.loadRecovery();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({status:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.status,coreReady:false,loading:false,error:problem(error,"商业资格与佣金事实暂时无法核对。")});}
   },
   applyRuntime(){const actions=runtimeActions(this.data.runtimeStatus),ready=this.canAct()&&this.data.runtimeState==="ready";
@@ -149,8 +173,7 @@ Page({
       confirmText:"确认测试"}).catch(()=>({confirm:false}));
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,creditRequestKey:key,creditActionError:"",creditActionStatus:""});
-    try{await request({path:"/v1/me/commission/credit-conversions",method:"POST",idempotencyKey:key,
-      data:{amountCents,confirmed:true,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"}});
+    try{await executeCommerceCommand({kind:"credit",key,payload:{amountCents,confirmed:true,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"}},()=>current()&&this.data.visible);
       if(current()){this.setData({busy:false,creditFormVisible:false,creditAmount:"",creditRequestKey:"",
         creditActionStatus:"隔离测试转换已记录，原现金来源和权益分录可分别核对。"});void this.load();}}
     catch(error){if(current())this.setData({creditActionError:problem(error,"转换结果不确定；重试会使用同一请求编号。")});}
@@ -168,7 +191,7 @@ Page({
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,creditCancelKeys:{...this.data.creditCancelKeys,[id]:key},
       creditActionError:"",creditActionStatus:""});
-    try{await request({path:`/v1/me/commission/credit-conversions/${id}/cancel`,method:"POST",idempotencyKey:key});
+    try{await executeCommerceCommand({kind:"credit-cancel",objectId:id,key,payload:{}},()=>current()&&this.data.visible);
       if(current()){const keys={...this.data.creditCancelKeys};delete keys[id];
         this.setData({busy:false,creditCancelKeys:keys,creditActionStatus:"未使用的测试权益已撤销，原佣金来源已恢复。"});void this.load();}}
     catch(error){if(current())this.setData({creditActionError:problem(error,"撤销结果暂不确定，可沿原请求编号重试。")});}
@@ -218,8 +241,7 @@ Page({
       confirmText:"登记意向"});
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,requestKey:key,actionError:"",actionStatus:""});
-    try{await request({path:"/v1/me/commission/settlement-requests",method:"POST",idempotencyKey:key,
-      data:{amountCents,reason:why}});
+    try{await executeCommerceCommand({kind:"settlement",key,payload:{amountCents,reason:why}},()=>current()&&this.data.visible);
       if(current()){this.setData({busy:false,formVisible:false,amount:"",reason:"",requestKey:"",
         actionStatus:"结算意向已记录；它不会绕开周期候选和独立复核。"});void this.loadRequests(epoch,token);}}
     catch(error){if(current())this.setData({busy:false,

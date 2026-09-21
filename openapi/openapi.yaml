@@ -16,6 +16,69 @@ tags:
   - name: Authority
   - name: Support
 paths:
+  /v1/me/commerce/command-receipts/{kind}:
+    get:
+      operationId: getOwnCommerceCommandReceipt
+      summary: Query a minimal owner-scoped durable command receipt without enabling money operations
+      description: >-
+        Reads existing local business records, independent of provider availability.
+        The Idempotency-Key header is required but never echoed. A not_observed result
+        is not proof of failure or permission to create a new command: an earlier
+        transaction can still be in flight. Only the original key and normalized
+        payload may be retried under each command's unchanged server-side gates.
+        No payment/transfer package, recipient identity or free-text reason is returned.
+      security:
+        - session: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - in: path
+          name: kind
+          required: true
+          schema:
+            type: string
+            enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified]
+        - in: query
+          name: objectId
+          description: Required for refund and cancellation kinds; disallowed for settlement and credit
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Authoritative minimal receipt, or explicitly inconclusive not_observed
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [version, memberId, kind, status, record]
+                properties:
+                  version: {type: integer, const: 1}
+                  memberId: {type: string, format: uuid}
+                  kind:
+                    type: string
+                    enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified]
+                  status: {type: string, enum: [recorded, not_observed]}
+                  record:
+                    oneOf:
+                      - type: 'null'
+                      - type: object
+                        additionalProperties: false
+                        required: [id, state]
+                        properties:
+                          id: {type: string, format: uuid}
+                          state: {type: string}
+                          orderId: {type: string, format: uuid}
+                          amountCents: {type: integer}
+        '400':
+          description: Missing idempotency key
+        '401':
+          description: Missing, invalid or revoked identity
+        '422':
+          description: Invalid kind, key or object scope; unsupported query fields
   /v1/capabilities:
     get:
       operationId: runtimeCapabilities

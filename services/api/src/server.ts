@@ -1,3 +1,4 @@
+import { commerceCommandReceipt } from "./commerceCommandReceipt.js";
 import { listMemberRefundRequests, listMemberSettlements } from "./commerceHistory.js";
 import { MemberProfile, type MemberProfileInput } from "./memberProfile.js";
 import { startBackgroundWorker } from "../../worker/src/jobs.js";
@@ -493,6 +494,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/catalog", async request => catalog.publicList(request.query));
   app.get<{Params:{productCode:string}}>("/v1/catalog/:productCode", async request => catalog.publicDetail(request.params.productCode));
   app.get("/v1/commerce/orders/status", async () => orders.status());
+  app.get<{Params:{kind:string};Querystring:Record<string,unknown>}>("/v1/me/commerce/command-receipts/:kind", async (request,reply) => {
+    reply.header("Cache-Control", "no-store");
+    return commerceCommandReceipt(pool,request.memberId,request.principalId,request.params.kind,idempotencyKey(request),request.query);
+  });
   app.post("/v1/me/commerce/quotes", async request => orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
   app.post("/v1/me/orders", async request => orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query));

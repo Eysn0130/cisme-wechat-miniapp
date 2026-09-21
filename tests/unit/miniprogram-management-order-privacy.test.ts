@@ -4,12 +4,14 @@ const requireCapabilityMock=vi.hoisted(()=>vi.fn());
 const managementOrderMock=vi.hoisted(()=>vi.fn());
 const managementOrdersMock=vi.hoisted(()=>vi.fn());
 const managementCatalogMock=vi.hoisted(()=>vi.fn());
-vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock}));
+vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock,authorityProjection:()=>requireCapabilityMock("commerce.order.read")}));
 vi.mock("../../apps/miniprogram/services/orders",()=>({managementOrder:managementOrderMock,
   managementOrders:managementOrdersMock}));
 vi.mock("../../apps/miniprogram/services/commerce",()=>({centsToYuan:(n:number)=>(n/100).toFixed(2),
   managementCatalog:managementCatalogMock}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
+
+vi.mock("../../apps/miniprogram/services/api",()=>({request:vi.fn(),requireMemberAccess:()=>Boolean(session),retainMemberSnapshot:()=>false,clearAuthenticationRedirectSuppression:vi.fn()}));
 
 type PageDefinition=Record<string,any>&{data:Record<string,any>};
 let definition:PageDefinition|null=null,session="operator-a";
@@ -43,7 +45,7 @@ it("clears prior operator order data before a denied authority check returns",as
 });
 
 it("ignores an old account's delayed order response after the new account reloads",async()=>{
-  requireCapabilityMock.mockResolvedValue({capabilities:["commerce.order.read"]});
+  requireCapabilityMock.mockResolvedValue({version:1,managementAvailable:true,capabilities:["commerce.order.read"]});
   let resolveOld!:(value:unknown)=>void,resolveNew!:(value:unknown)=>void;
   managementOrderMock
     .mockImplementationOnce(()=>new Promise(resolve=>{resolveOld=resolve;}))
@@ -67,7 +69,7 @@ it("ignores an old account's delayed order response after the new account reload
 it("clears the order queue before a new operator's authority check and drops delayed pages",async()=>{
   await vi.importActual("../../apps/miniprogram/pages/management-orders/index");
   let resolveOld!:(value:unknown)=>void,resolveNew!:(value:unknown)=>void;
-  requireCapabilityMock.mockResolvedValue({capabilities:["commerce.order.read"]});
+  requireCapabilityMock.mockResolvedValue({version:1,managementAvailable:true,capabilities:["commerce.order.read"]});
   managementOrdersMock.mockImplementationOnce(()=>new Promise(resolve=>{resolveOld=resolve;}))
     .mockImplementationOnce(()=>new Promise(resolve=>{resolveNew=resolve;}));
   const page=mount({items:[{id:"old-sensitive-order"}],nextCursor:"private-cursor",loading:false});

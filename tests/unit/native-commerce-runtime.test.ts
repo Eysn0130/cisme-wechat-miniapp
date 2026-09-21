@@ -9,6 +9,7 @@ const deferred = <T = any>() => {
   return { promise, resolve, reject };
 };
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
+const storage = new Map<string, unknown>();
 const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const authority = { version: 1, managementAvailable: true, capabilities: ["support.read", "commerce.refund.approve"] };
 const membership = { eligible: true, membershipState: "active", expiresAt: null, directReferralCount: 0, verifiedOrderCount: 1, settlementAvailable: false,
@@ -35,9 +36,11 @@ const closed = (name: Name) => {
   else expect(page.data.isolatedPayment).toBe(false);
 };
 beforeEach(() => {
-  vi.resetModules(); vi.clearAllMocks(); mocks.token = "member-a"; core = deferred(); auxiliary = deferred(); aborts = new Map();
+  vi.resetModules(); vi.clearAllMocks(); mocks.token = "member-a"; storage.clear(); core = deferred(); auxiliary = deferred(); aborts = new Map();
   mocks.request.mockImplementation((options: any) => {
     const abort = vi.fn(); aborts.set(options.path, abort); options.registerAbort?.(abort);
+    if (options.path === "/v1/me/profile") return Promise.resolve({ id });
+    if (options.path.startsWith("/v1/me/commerce/command-receipts/")) return Promise.resolve({ version: 1, memberId: id, kind: options.path.split("/").pop().split("?")[0], status: "not_observed", record: null });
     if (options.path === "/v1/commerce/orders/status") return auxiliary.promise;
     if (["/v1/me/authority", "/v1/me/commercial-membership", `/v1/me/orders/${id}`].includes(options.path)) return core.promise;
     if (options.path.includes("refund-requests")) return Promise.resolve({ items: [], totalCount: 0, nextCursor: null });
@@ -45,8 +48,8 @@ beforeEach(() => {
     if (options.path.includes("credit-conversions")) return Promise.resolve({ items: [], totalCount: 0, availableCents: 0, nextCursor: null });
     throw new Error(`Unexpected synthetic request: ${options.path}`);
   });
-  (globalThis as any).getApp = () => ({ globalData: { sessionToken: mocks.token } });
-  (globalThis as any).wx = { navigateTo: vi.fn(), navigateBack: vi.fn(), switchTab: vi.fn(), showToast: vi.fn(), showModal: vi.fn().mockResolvedValue({ confirm: true }) };
+  (globalThis as any).getApp = () => ({ globalData: { sessionToken: mocks.token, apiBaseUrl: "https://synthetic.invalid", cloudFunction: null } });
+  (globalThis as any).wx = { getStorageSync: (key: string) => storage.get(key), setStorageSync: (key: string, value: unknown) => storage.set(key, structuredClone(value)), removeStorageSync: (key: string) => storage.delete(key), navigateTo: vi.fn(), navigateBack: vi.fn(), switchTab: vi.fn(), showToast: vi.fn(), showModal: vi.fn().mockResolvedValue({ confirm: true }) };
   (globalThis as any).Page = (definition: any) => { page = { ...definition, data: structuredClone(definition.data), setData(patch: any, callback?: () => void) { Object.assign(this.data, patch); callback?.(); } }; };
 });
 describe.each<Name>(["management", "commission", "order-detail"])("PERF-11/12: %s", name => {
