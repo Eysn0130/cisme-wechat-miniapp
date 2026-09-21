@@ -1,3 +1,4 @@
+import { listMemberRefundRequests } from "./commerceHistory.js";
 import { createHash } from "node:crypto";
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
@@ -35,7 +36,7 @@ function reason(value:unknown){
 }
 function hash(value:unknown){return createHash("sha256").update(JSON.stringify(value)).digest("hex");}
 
-/** All routes are test-only until merchant authorization and commercial
+/** Command routes are test-only until merchant authorization and commercial
  * policies are approved. Approval reserves a fixed CNY allocation before any
  * channel request. Channel acceptance is never treated as refund success. */
 export class RefundCommandService{
@@ -219,25 +220,7 @@ export class RefundCommandService{
   }
 
   async listMine(memberId:string|undefined,query:{limit?:string;cursor?:string;orderId?:string}={}){
-    if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
-    const orderId=query.orderId?id(query.orderId):null;
-    const limit=pageLimit(query.limit),scope=pageScope(["refund-mine",memberId,orderId]),cursor=readPageCursor(query.cursor,scope);
-    const count=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request
-      WHERE requested_by_member_id=$1 AND ($2::uuid IS NULL OR order_id=$2)`,[memberId,orderId])).rows[0]?.n??0;
-    const rows=(await this.pool.query(`SELECT r.id,r.order_id,r.amount_cents,r.state,r.reason,
-      r.created_at,i.state AS refund_state,i.payer_refund_cents,
-      (SELECT COALESCE(sum(a.amount_cents),0)::text FROM commission_credit_refund_allocation a
-        WHERE a.refund_intent_id=i.id) AS credit_refund_cents FROM commerce_refund_request r
-      LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-      WHERE r.requested_by_member_id=$1 AND ($2::uuid IS NULL OR r.order_id=$2)
-        AND ($3::timestamptz IS NULL OR (r.created_at,r.id)<($3::timestamptz,$4::uuid))
-      ORDER BY r.created_at DESC,r.id DESC LIMIT $5`,[memberId,orderId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    const page=finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
-      orderId:row.order_id,amountCents:Number(row.amount_cents),state:row.state,
-      refundState:row.refund_state??null,reason:row.reason,createdAt:row.created_at,
-      cashRefundCents:row.payer_refund_cents===null?null:Number(row.payer_refund_cents),
-      creditReturnCents:row.payer_refund_cents===null?null:Number(row.credit_refund_cents)})),limit,scope);
-    return {...page,totalCount:count};
+    return listMemberRefundRequests(this.pool,memberId,query);
   }
 
   async pending(memberId:string|undefined,query:{limit?:string;cursor?:string}={}){
