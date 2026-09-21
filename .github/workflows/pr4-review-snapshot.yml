@@ -1,0 +1,36 @@
+name: PR4 pinned review inputs
+# Temporary read-only review transport; remove before the repair is merged.
+on:
+  push:
+    branches: [codex/native-perf-ux-repair-20260920]
+    paths: [.github/workflows/pr4-review-snapshot.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: 3442d385d3aa64541c6ea8d486cf07147e7b0575
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export exact reviewed patch and public Git history only
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/pr4-review-inputs"
+          mkdir -p "$out"
+          test "$(git rev-parse HEAD)" = 3442d385d3aa64541c6ea8d486cf07147e7b0575
+          git diff --binary --full-index 56432fb9b42777ffd4b3aeaf17134a666c7f243c HEAD > "$out/candidate.patch"
+          git ls-tree -r HEAD > "$out/TREE"
+          git rev-parse HEAD HEAD^{tree} > "$out/COMMIT-TREE"
+          git bundle create "$out/review.bundle" HEAD refs/remotes/origin/main
+          cd "$out"
+          sha256sum candidate.patch TREE COMMIT-TREE review.bundle > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr4-pinned-review-inputs
+          path: ${{ runner.temp }}/pr4-review-inputs
+          retention-days: 3
+          if-no-files-found: error
