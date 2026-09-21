@@ -359,3 +359,16 @@ it('invalidates unconsumed upload grants when their source draft is deleted',asy
  expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/chunks`,payload:input})).json().code).toBe('UGC_POST_LOCKED');
  expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/assemble`,payload:{token:upload.fields.token}})).json().code).toBe('UGC_POST_LOCKED');
 });
+it('revokes signed own-image preview URLs when the owning member is blocked',async()=>{
+ const actor=await identity('ugc-revoked-private-preview');
+ const draft=(await app.inject({method:'POST',url:'/v1/me/ugc/posts',headers:{...auth(actor),'idempotency-key':'ugc-preview-revocation'},payload:{}})).json();
+ const upload=(await app.inject({method:'POST',url:`/v1/me/ugc/posts/${draft.id}/media/authorize`,headers:auth(actor),payload:{mimeType:'image/jpeg',maxBytes:100}})).json();
+ const input={token:upload.fields.token,index:0,totalBytes:4,base64:Buffer.from([255,216,255,0]).toString('base64')};
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/chunks`,payload:input})).statusCode).toBe(200);
+ expect((await app.inject({method:'POST',url:`/v1/uploads/${upload.mediaId}/assemble`,payload:{token:upload.fields.token}})).statusCode).toBe(200);
+ expect((await app.inject({method:'POST',url:`/v1/me/ugc/posts/${draft.id}/media/${upload.mediaId}/complete`,headers:auth(actor),payload:{}})).statusCode).toBe(200);
+ const url=new URL((await app.inject({method:'GET',url:`/v1/me/ugc/posts/${draft.id}/media/${upload.mediaId}/preview-url`,headers:auth(actor)})).json().url);
+ expect((await app.inject({method:'GET',url:url.pathname+url.search})).statusCode).toBe(200);
+ await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[actor.memberId]);
+ expect((await app.inject({method:'GET',url:url.pathname+url.search})).statusCode).toBe(404);
+});

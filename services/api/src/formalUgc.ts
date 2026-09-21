@@ -523,9 +523,9 @@ export class FormalUgcService{
       throw new DomainError("UGC_PREVIEW_INVALID","草稿图片预览无效",403);
     const row=sourcePost
       ?(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a JOIN ugc_post p ON p.id=a.source_post_id
-        WHERE a.id=$1 AND a.owner_member_id=$2 AND a.source_post_id=$3 AND p.author_member_id=$2
+        WHERE a.id=$1 AND a.owner_member_id=$2 AND EXISTS(SELECT 1 FROM member m WHERE m.id=$2 AND m.status='active') AND a.source_post_id=$3 AND p.author_member_id=$2
           AND p.state<>'deleted' AND a.state IN ('uploaded','scanning','approved')`,[id,owner,sourcePost])).rows[0]
-      :(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a WHERE a.id=$1 AND a.owner_member_id=$2
+      :(await this.pool.query(`SELECT a.object_key FROM ugc_media_asset a WHERE a.id=$1 AND a.owner_member_id=$2 AND EXISTS(SELECT 1 FROM member m WHERE m.id=$2 AND m.status='active')
         AND a.state IN ('uploaded','scanning','approved')
         AND EXISTS(SELECT 1 FROM ugc_post_media b JOIN ugc_post p ON p.id=b.post_id
           WHERE b.media_asset_id=a.id AND p.author_member_id=$2 AND p.current_revision=b.revision
