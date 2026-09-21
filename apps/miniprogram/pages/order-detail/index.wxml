@@ -13,7 +13,7 @@
     <text class="refund-label">退款原因</text><textarea value="{{refundReason}}" placeholder="简要说明原因" bindinput="editRefundReason" maxlength="500" auto-height/>
     <view class="refund-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeRefundForm" disabled="{{busy}}">取消填写</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitRefund" loading="{{busy}}" disabled="{{busy}}">提交申请</button></view>
   </view>
-  <view class="refund-history"><text>本单申请 {{refundTotal}} 项</text><text wx:if="{{refundLoading}}">正在读取…</text></view>
+  <view class="refund-history"><text>{{refundCountLabel}}</text><text wx:if="{{refundLoading}}">正在读取…</text></view>
   <view wx:for="{{refunds}}" wx:key="id" class="refund-row"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.stateLabel}}</text></view><text wx:if="{{item.cashRefundCents!==null}}">原路现金 ¥{{item.cashLabel}} · 原批次权益 ¥{{item.creditLabel}}</text><text>{{item.reason}}</text></view>
   <view wx:if="{{refundError}}" class="state state--error"><text class="state-error__copy">{{refundError}}</text><button class="text-button state-error__action" bindtap="retryRefunds">重试</button></view>
   <button wx:if="{{refundCursor}}" class="secondary {{refundMoreLoading?'secondary--disabled':''}}" bindtap="loadMoreRefunds" loading="{{refundMoreLoading}}" disabled="{{refundMoreLoading}}">加载更多退款记录</button>

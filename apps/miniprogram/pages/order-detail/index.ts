@@ -17,7 +17,7 @@ function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
 Page({
   lastSessionToken:"",
   data:{...initialRuntimeView(),coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
-    isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
+    isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
@@ -25,7 +25,7 @@ Page({
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
     if(!requireMemberAccess())return;void this.load();},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token!==this.lastSessionToken){this.lastSessionToken=token;this.data.epoch+=1;this.setData({...initialRuntimeView(),busy:false,coreReady:false,isolatedPayment:false,order:null,refunds:[],refundTotal:0,refundCursor:null,
+    if(token!==this.lastSessionToken){this.lastSessionToken=token;this.data.epoch+=1;this.setData({...initialRuntimeView(),busy:false,coreReady:false,isolatedPayment:false,order:null,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     },
   confirmationPending:false,
@@ -73,7 +73,7 @@ Page({
     if(!this.data.visible||!this.data.coreReady||!this.data.order)return;
     const readEpoch=this.data.readEpoch;
     if(cursor)this.setData({refundMoreLoading:true,refundError:""});
-    else this.setData({refundLoading:true,refundError:""});
+    else this.setData({refundLoading:true,refundError:"",refundCountLabel:"正在核对记录数量"});
     try{const page=await pageRead<RefundPage>(this,{path:`/v1/me/refund-requests?orderId=${this.data.id}&limit=10${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`});
       if(!this.readCurrent(epoch,token,readEpoch)||this.data.order?.id!==this.data.id||cursor&&this.data.refundCursor!==cursor)return;
       const rows=page.items.map(row=>({...row,amountLabel:centsToYuan(row.amountCents),
@@ -82,9 +82,9 @@ Page({
         stateLabel:refundLabels[row.refundState??""]??refundLabels[row.state]??row.state}));
       const seen=new Set(cursor?this.data.refunds.map(row=>row.id):[]);
       this.setData({refunds:[...(cursor?this.data.refunds:[]),...rows.filter(row=>!seen.has(row.id))],
-        refundTotal:page.totalCount,refundCursor:page.nextCursor,refundLoading:false,refundMoreLoading:false});
+        refundTotal:page.totalCount,refundCountLabel:`本单申请 ${page.totalCount} 项`,refundCursor:page.nextCursor,refundLoading:false,refundMoreLoading:false});
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({refundLoading:false,refundMoreLoading:false,
-      refundError:errorTitle(error,"退款记录暂时无法同步，请重试。")});}},
+      refundCountLabel:"记录数量暂未核实",refundError:errorTitle(error,"退款记录暂时无法同步，请重试。")});}},
   loadMoreRefunds(){const cursor=this.data.refundCursor;if(cursor&&!this.data.refundLoading&&!this.data.refundMoreLoading)
     void this.loadRefunds(this.data.epoch,getApp<IAppOption>().globalData.sessionToken,cursor);},
   retryRefunds(){void this.loadRefunds(this.data.epoch,getApp<IAppOption>().globalData.sessionToken);},

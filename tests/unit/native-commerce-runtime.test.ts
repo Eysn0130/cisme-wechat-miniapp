@@ -235,3 +235,19 @@ it("never launches transfer confirmation UI from a response received while hidde
   confirmation.resolve({requestId:id,state:"WAIT_USER_CONFIRM",appId:"synthetic-app",mchId:"synthetic-merchant",package:"synthetic-package",simulation:true});await pending;
   expect((globalThis as any).wx.requestMerchantTransfer).not.toHaveBeenCalled();expect(page.data.busy).toBe(false);
 });
+it("order-detail renders an unknown refund count while history is pending, not a false zero",async()=>{
+  const history=deferred(),fallback=mocks.request.getMockImplementation()!;
+  mocks.request.mockImplementation((options:any)=>options.path.startsWith("/v1/me/refund-requests?")?history.promise:fallback(options));
+  await loadPage("order-detail");void page.load();core.resolve(order);await flush();
+  expect(page.data.refundCountLabel).toBe("正在核对记录数量");
+  expect(readFileSync("apps/miniprogram/pages/order-detail/index.wxml","utf8")).toContain("{{refundCountLabel}}");
+  history.resolve({items:[],totalCount:0,nextCursor:null});await flush();
+  expect(page.data.refundCountLabel).toBe("本单申请 0 项");
+});
+it("order-detail does not present a failed refund-history read as zero requests",async()=>{
+  const history=deferred(),fallback=mocks.request.getMockImplementation()!;
+  mocks.request.mockImplementation((options:any)=>options.path.startsWith("/v1/me/refund-requests?")?history.promise:fallback(options));
+  await loadPage("order-detail");void page.load();core.resolve(order);await flush();
+  history.reject({status:503,title:"合成历史读取失败"});await flush();
+  expect(page.data.refundCountLabel).toBe("记录数量暂未核实");expect(page.data.refundError).toBeTruthy();
+});
