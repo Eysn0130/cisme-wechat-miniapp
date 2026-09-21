@@ -1,3 +1,4 @@
+import { requireActiveUploadOwner } from "./uploadAuthority.js";
 import { createHash } from 'node:crypto';
 import type pg from 'pg';
 import type { AppConfig } from '@cisme/config';
@@ -18,10 +19,12 @@ export class CloudUpload {
    const parent = await client.query('SELECT submission_id,support_conversation_id,support_expires_at FROM media_object WHERE id=$1',[mediaId]);
    const parentRow=parent.rows[0];
    if(parentRow?.submission_id){
-    const submission = await client.query('SELECT status FROM submission WHERE id=$1 FOR UPDATE',[parentRow.submission_id]);
+    const submission = await client.query('SELECT status,member_id FROM submission WHERE id=$1 FOR UPDATE',[parentRow.submission_id]);
+    await requireActiveUploadOwner(client,submission.rows[0]?.member_id);
     if (!['draft','needs_changes','appealed'].includes(submission.rows[0]?.status)) throw new DomainError('UPLOAD_UNAVAILABLE','该投稿不再接受上传',409);
    }else if(parentRow?.support_conversation_id){
-    const conversation=await client.query('SELECT status FROM support_conversation WHERE id=$1 FOR UPDATE',[parentRow.support_conversation_id]);
+    const conversation=await client.query('SELECT status,member_id FROM support_conversation WHERE id=$1 FOR UPDATE',[parentRow.support_conversation_id]);
+    await requireActiveUploadOwner(client,conversation.rows[0]?.member_id);
     if(!conversation.rows[0]||!parentRow.support_expires_at||new Date(parentRow.support_expires_at)<=now)throw new DomainError('UPLOAD_UNAVAILABLE','客服图片授权已失效',409);
    }else throw new DomainError('MEDIA_NOT_FOUND','上传授权已失效',404);
    const media = await client.query("SELECT object_key,mime_type FROM media_object WHERE id=$1 AND upload_state='authorized' FOR UPDATE",[mediaId]);

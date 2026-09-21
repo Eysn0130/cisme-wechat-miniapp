@@ -1,3 +1,4 @@
+import { requireActiveUploadOwner } from "./uploadAuthority.js";
 import { communityAuthors } from './memberProfile.js';
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
@@ -792,10 +793,12 @@ export class PlatformService {
         "SELECT submission_id,support_conversation_id,support_expires_at FROM media_object WHERE id=$1", [mediaId]);
       const parentRow = parent.rows[0];
       if (parentRow?.submission_id) {
-        const submission = await client.query<{ status: string }>("SELECT status FROM submission WHERE id=$1 FOR UPDATE", [parentRow.submission_id]);
+        const submission = await client.query<{ status: string;member_id:string }>("SELECT status,member_id FROM submission WHERE id=$1 FOR UPDATE", [parentRow.submission_id]);
+        await requireActiveUploadOwner(client,submission.rows[0]?.member_id);
         if (!["draft", "needs_changes", "appealed"].includes(submission.rows[0]?.status ?? "")) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
       } else if (parentRow?.support_conversation_id) {
-        const supportConversation = await client.query<{ status: string }>("SELECT status FROM support_conversation WHERE id=$1 FOR UPDATE", [parentRow.support_conversation_id]);
+        const supportConversation = await client.query<{ status: string;member_id:string }>("SELECT status,member_id FROM support_conversation WHERE id=$1 FOR UPDATE", [parentRow.support_conversation_id]);
+        await requireActiveUploadOwner(client,supportConversation.rows[0]?.member_id);
         if (!supportConversation.rows[0] || !parentRow.support_expires_at || parentRow.support_expires_at <= now) {
           throw new DomainError("UPLOAD_UNAVAILABLE", "Support image authorization has expired", 409);
         }

@@ -1,3 +1,4 @@
+import { requireActiveUploadOwner } from "./uploadAuthority.js";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import type pg from "pg";
 import sharp from "sharp";
@@ -136,16 +137,29 @@ export class FormalUgcService{
     const result=await this.pool.query<{id:string;object_key:string}>("SELECT id,object_key FROM ugc_media_asset WHERE id=$1 AND state='authorized' AND authorization_expires_at>now()",[uuid(mediaId)]);
     return result.rows[0]??null;
   }
+  private async lockUploadSource(client:DbClient,mediaId:string){
+    // Same post -> asset lock order as completeMedia/submit. A deleted or
+    // submitted source revokes an unused capability even before its expiry.
+    const post=(await client.query(`SELECT p.state FROM ugc_post p JOIN ugc_media_asset a
+      ON a.source_post_id=p.id AND a.owner_member_id=p.author_member_id
+      WHERE a.id=$1 FOR SHARE OF p`,[mediaId])).rows[0];
+    if(!post||!["draft","rejected","published"].includes(post.state))
+      throw new DomainError("UGC_POST_LOCKED","当前内容不能继续上传图片",409);
+    const uploads=await client.query("SELECT 1 FROM emergency_switch WHERE key='uploads' AND enabled FOR SHARE");
+    if(!uploads.rowCount)throw new DomainError("UPLOADS_PAUSED","图片上传暂时不可用，请稍后重试",503);
+  }
   async gatewayUpload(mediaId:string,input:{token:string;bytes:Uint8Array;mimeType:string}){
     const id=uuid(mediaId);
     if(!this.storage.writeGatewayObject)throw new DomainError("UGC_MEDIA_NOT_FOUND","图片上传入口不可用",404);
     return transaction(this.pool,async client=>{
+      await this.lockUploadSource(client,id);
       // Hold the same asset lock used by completeMedia. Once a checksum is
       // finalized, even a still-valid gateway token cannot overwrite bytes.
-      const row=(await client.query(`SELECT id,object_key,state,authorization_expires_at FROM ugc_media_asset
+      const row=(await client.query(`SELECT id,object_key,state,authorization_expires_at,owner_member_id FROM ugc_media_asset
         WHERE id=$1 FOR UPDATE`,[id])).rows[0];
       if(!row||row.state!=="authorized"||new Date(row.authorization_expires_at)<=new Date())
         throw new DomainError("UGC_MEDIA_NOT_FOUND","图片上传授权不存在或已过期",404);
+      await requireActiveUploadOwner(client,row.owner_member_id);
       const stored=await this.storage.writeGatewayObject!({token:input.token,mediaId:id,objectKey:row.object_key,
         bytes:input.bytes,mimeType:input.mimeType,now:new Date()});
       return {mediaId:id,bytes:stored.bytes,uploaded:true};
@@ -161,9 +175,11 @@ export class FormalUgcService{
       bytes.length!==(index===count-1?total-index*chunkBytes:chunkBytes))
       throw new DomainError("UGC_CHUNK_INVALID","图片分块大小或顺序无效",422);
     return transaction(this.pool,async client=>{
+      await this.lockUploadSource(client,id);
       const asset=(await client.query("SELECT * FROM ugc_media_asset WHERE id=$1 FOR UPDATE",[id])).rows[0];
       if(!asset||asset.state!=="authorized"||new Date(asset.authorization_expires_at)<=new Date())
         throw new DomainError("UGC_MEDIA_EXPIRED","图片上传授权已过期",409);
+      await requireActiveUploadOwner(client,asset.owner_member_id);
       const claims=validateGatewayUpload({token,mediaId:id,objectKey:asset.object_key,mimeType:asset.mime_type,
         bytes:new Uint8Array(1),now:new Date()},this.config.objectStorage.uploadTokenSecret);
       if(total>claims.maxBytes||total>asset.authorized_max_bytes)throw new DomainError("UGC_MEDIA_MISMATCH","图片超出授权大小",422);
