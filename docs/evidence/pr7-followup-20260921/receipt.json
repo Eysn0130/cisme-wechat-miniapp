@@ -1,0 +1,178 @@
+{
+  "recordedAt": "2026-09-21T13:48:03.955599+00:00",
+  "releaseReady": false,
+  "baseMain": "1ec6ad4d01552c722432f47516989aee579570c2",
+  "branch": "codex/pr7-native-followup-20260921",
+  "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+  "zipSha256": "b97acef66a02160a8206d731b2bb86178e420cb69384102557762613a3c2f2fa",
+  "zipIntegrity": {
+    "entries": 91,
+    "sha256sumEntriesMatched": 90,
+    "unsafePaths": 0,
+    "uncompressedBytes": 9843489,
+    "executedArchivePrograms": false
+  },
+  "package": {
+    "files": 257,
+    "routes": 37,
+    "totalBytes": 2214308,
+    "mainPackageBytes": 1453097,
+    "subpackageBytes": {
+      "pages/account": 31008,
+      "pages/task": 17503,
+      "pages/submit": 44514,
+      "pages/progress": 23389,
+      "pages/points": 12348,
+      "pages/post": 31539,
+      "pages/shop": 9059,
+      "pages/product": 14403,
+      "pages/checkout": 22720,
+      "pages/orders": 8618,
+      "pages/order-detail": 30694,
+      "pages/settings": 70574,
+      "pages/invite": 14723,
+      "pages/legal": 2630,
+      "pages/privacy-rights": 10817,
+      "pages/support": 61837,
+      "pages/management": 10444,
+      "pages/management-catalog": 6949,
+      "pages/management-product": 20898,
+      "pages/management-orders": 8908,
+      "pages/management-order-detail": 5905,
+      "pages/management-support": 10727,
+      "pages/management-support-chat": 51963,
+      "pages/management-members": 30685,
+      "pages/management-member": 30696,
+      "pages/referral": 6710,
+      "pages/community-compose": 41610,
+      "pages/community-post": 24028,
+      "pages/community-author": 9755,
+      "pages/community-review": 15667,
+      "pages/community-activity": 16450,
+      "pages/management-finance": 28456,
+      "pages/commission": 34984
+    },
+    "globalStyleBytes": 8137,
+    "sourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6"
+  },
+  "apiDenominators": {
+    "v1Methods": 226,
+    "includingHealth": 228,
+    "sessionRequired": 195,
+    "events": 32,
+    "fullObjectAuthorizationCoverage": false
+  },
+  "validationLogs": [
+    {
+      "file": "unit.txt",
+      "sha256": "43a60bb4d82cae24f143e9c5f92a862952ee1687d1889e126a695ca49b1a7fac",
+      "bytes": 302,
+      "originalLogSha256": "34ab4b64dea947fb93a29c9a9693a21778f75bb640d1ffa9e550f68bb3fe09c7",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    },
+    {
+      "file": "integration.txt",
+      "sha256": "a5923fca98dada9626783fdc98684f911536a5f0e7433f3bf81cb595e8cc105f",
+      "bytes": 336,
+      "originalLogSha256": "177b6f9aed6619eb49c674d29e4698523e049df4870c4074c02b4277c9851ab3",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    },
+    {
+      "file": "typecheck.txt",
+      "sha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433",
+      "bytes": 105,
+      "originalLogSha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    },
+    {
+      "file": "build.txt",
+      "sha256": "567ed111ec922ca15c0064472f689a0a90fed5f2844a69e575942b915cddf439",
+      "bytes": 1020,
+      "originalLogSha256": "567ed111ec922ca15c0064472f689a0a90fed5f2844a69e575942b915cddf439",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    },
+    {
+      "file": "contracts.txt",
+      "sha256": "14a8c60aa8250c57e56c37dd5e90c594a32199a6875555589a5f6ad55a118bb6",
+      "bytes": 262,
+      "originalLogSha256": "14a8c60aa8250c57e56c37dd5e90c594a32199a6875555589a5f6ad55a118bb6",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    },
+    {
+      "file": "audit-production.txt",
+      "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+      "bytes": 24,
+      "originalLogSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    },
+    {
+      "file": "audit-all.txt",
+      "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+      "bytes": 24,
+      "originalLogSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    },
+    {
+      "file": "database-guard-green-final.txt",
+      "sha256": "197e8c88d5653d08db9e3d0e12482eab312c964698e3cfe9eb8e8af3a4468110",
+      "bytes": 197,
+      "originalLogSha256": "8c50effdb2a27be3f00cbdd0ad7ce85077240a054a3ac3fff05d71f4ade939e0",
+      "normalization": "Only trailing whitespace/blank lines removed from committed transcript; original .log retained in tmp/pr7-followup."
+    }
+  ],
+  "redAndDiagnosticLogs": [
+    {
+      "localFile": "/Users/mini/CISME/tmp/pr7-followup/support-red.log",
+      "sha256": "db45c64bbf47aace794cc257a8138ed68d142d08deeeb834d77d7a62817f8d64",
+      "bytes": 12128
+    },
+    {
+      "localFile": "/Users/mini/CISME/tmp/pr7-followup/support-auth-red.log",
+      "sha256": "8dacbfb1cb434e8f21b66f7499bbf794286e78a80726713daeccd5a9ff4c3175",
+      "bytes": 2891
+    },
+    {
+      "localFile": "/Users/mini/CISME/tmp/pr7-followup/discovery-red.log",
+      "sha256": "084e5372e2c6fc65e00e48e435f7352e9f6489efd2e0aa0d61bb9c0998148940",
+      "bytes": 10962
+    },
+    {
+      "localFile": "/Users/mini/CISME/tmp/pr7-followup/database-guard-red.log",
+      "sha256": "2b8833406c93ed2af858eb2b5fb1ef510498e99f7ad1eecc7a84e3ca0c3d2915",
+      "bytes": 3191
+    },
+    {
+      "localFile": "/Users/mini/CISME/tmp/pr7-followup/database-guard-green.log",
+      "sha256": "7cf8f7fb87cfbb02027d71b7d6db6749bb7b7f4a4748d4a529a6850d6c6d3f40",
+      "bytes": 8382
+    },
+    {
+      "localFile": "/Users/mini/CISME/tmp/pr7-followup/build-typecheck-failure.log",
+      "sha256": "4d91b8dda7e6e294bffa1aef7cd162ca518fffaf1595a7d48d6358c375821b10",
+      "bytes": 539
+    },
+    {
+      "localFile": "/Users/mini/CISME/tmp/pr7-followup/unused-env-check.log",
+      "sha256": "f0e3b5d9ef9a62f519e74ac991f7005227463bd455b2593b116a27e0ac0c0b05",
+      "bytes": 206
+    }
+  ],
+  "nativeCompileCalls": 74,
+  "completeNativeMatrices": 0,
+  "governance": {
+    "rulesets": [],
+    "environments": [],
+    "mainProtected": false,
+    "changedSettings": false,
+    "independentReviewNotClaimed": true
+  },
+  "deliveryStates": {
+    "sourceBatch": "locally_validated; GitHub PR and CI are separate evidence",
+    "native": "partial_observations_only",
+    "physicalDevices": "not_run",
+    "staging": "not_deployed",
+    "trialVersion": "not_uploaded",
+    "formalRelease": "blocked"
+  },
+  "incident": "See TEST-DATABASE-INCIDENT.md; an unintended reset of the existing default local test database occurred. The isolated 702-test run does not erase this incident."
+}

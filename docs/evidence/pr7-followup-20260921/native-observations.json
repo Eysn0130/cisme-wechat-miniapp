@@ -1,0 +1,154 @@
+{
+  "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+  "capturedEnvironment": {
+    "runtime": {
+      "route": "pages/home/index",
+      "guest": true,
+      "apiOrigin": "http://127.0.0.1:18080"
+    },
+    "backendOwnershipReverified": false,
+    "productionOrStagingAcceptance": false,
+    "systemInfo": {
+      "brand": "devtools",
+      "model": "iPhone 12/13 (Pro)",
+      "system": "iOS 10.0.1",
+      "platform": "devtools",
+      "SDKVersion": "3.15.2",
+      "screenWidth": 390,
+      "screenHeight": 844,
+      "fontSizeSetting": 16,
+      "safeArea": {
+        "top": 47,
+        "left": 0,
+        "right": 390,
+        "bottom": 810,
+        "width": 390,
+        "height": 763
+      }
+    }
+  },
+  "captures": [
+    {
+      "file": "records-final.png",
+      "sha256": "323d79a8122c273e13baf81d7db4cebd3baec595ae3587bc8130fe9b45b97f6a",
+      "bytes": 49396,
+      "requestedRoute": "pages/records/index",
+      "actualRoute": "pages/account/index",
+      "entryParameters": {
+        "intent": "login"
+      },
+      "capturedAt": "2026-09-21T13:39:38.299756+00:00",
+      "role": "guest",
+      "fixture": false,
+      "state": "login; consent unchecked",
+      "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+      "widthPx": 242,
+      "heightPx": 524,
+      "designGateEligible": false,
+      "reason": "Original 62% simulator capture is below the existing 320px minimum; not upscaled."
+    },
+    {
+      "file": "community-final.png",
+      "sha256": "9b581f9ec571c2669ff0d4efe24639659f5a6c844244c004ef7b75bd6649935d",
+      "bytes": 127033,
+      "requestedRoute": "pages/community/index",
+      "actualRoute": "pages/community/index",
+      "entryParameters": {},
+      "capturedAt": "2026-09-21T13:39:42.700495+00:00",
+      "role": "guest",
+      "fixture": false,
+      "state": "API read error; local editorial fallback",
+      "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+      "widthPx": 242,
+      "heightPx": 524,
+      "designGateEligible": false,
+      "reason": "Original 62% simulator capture is below the existing 320px minimum; not upscaled."
+    },
+    {
+      "file": "profile-final.png",
+      "sha256": "5d3cc52640d6030a72b724ca94f1960a1286a280a5320e55a848357f15dcc215",
+      "bytes": 48384,
+      "requestedRoute": "pages/profile/index",
+      "actualRoute": "pages/account/index",
+      "entryParameters": {
+        "intent": "login"
+      },
+      "capturedAt": "2026-09-21T13:39:47.071261+00:00",
+      "role": "guest",
+      "fixture": false,
+      "state": "login; consent unchecked",
+      "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+      "widthPx": 242,
+      "heightPx": 524,
+      "designGateEligible": false,
+      "reason": "Original 62% simulator capture is below the existing 320px minimum; not upscaled."
+    },
+    {
+      "file": "home-final.png",
+      "sha256": "4483285afde50dc1c1ee19a333ef086323ab5550b40fa5de56655148d3b1bf75",
+      "bytes": 152750,
+      "requestedRoute": "pages/home/index",
+      "actualRoute": "pages/home/index",
+      "entryParameters": {},
+      "capturedAt": "2026-09-21T13:39:51.235537+00:00",
+      "role": "guest",
+      "fixture": false,
+      "state": "guest CTA visible; no automatic redirect",
+      "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+      "widthPx": 242,
+      "heightPx": 524,
+      "designGateEligible": false,
+      "reason": "Original 62% simulator capture is below the existing 320px minimum; not upscaled."
+    },
+    {
+      "file": "queue-guest-final.png",
+      "sha256": "5230d99133f48a1214abf4d89a5e80c8b02a9e379ab270b5cfadc87b646ade8c",
+      "bytes": 15985,
+      "requestedRoute": "pages/management-support/index",
+      "actualRoute": "pages/management-support/index",
+      "entryParameters": {},
+      "capturedAt": "2026-09-21T13:40:14.300210+00:00",
+      "role": "guest",
+      "fixture": false,
+      "state": "guest denied; empty sensitive rows; retry",
+      "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+      "widthPx": 242,
+      "heightPx": 524,
+      "designGateEligible": false,
+      "reason": "Original 62% simulator capture is below the existing 320px minimum; not upscaled."
+    },
+    {
+      "file": "queue-readonly-fixture.png",
+      "sha256": "e74e6b147f1ae4cdeb2333fc490746c8d77e1f6f587cfba8c7f9f17f8abeefdf",
+      "bytes": 21502,
+      "requestedRoute": "pages/management-support/index",
+      "actualRoute": "pages/management-support/index",
+      "entryParameters": {},
+      "capturedAt": "2026-09-21T13:40:47.532344+00:00",
+      "role": "guest",
+      "fixture": true,
+      "state": "synthetic rendered long nickname/read-only refresh; not server role acceptance",
+      "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+      "widthPx": 242,
+      "heightPx": 524,
+      "designGateEligible": false,
+      "reason": "Original 62% simulator capture is below the existing 320px minimum; not upscaled."
+    }
+  ],
+  "fixtureCleanup": "load() called on guest queue; synthetic rows cleared by guest denial; switchTab restored home",
+  "rateLimitFailure": {
+    "code": "APPID_ERROR -80408",
+    "message": "60 calls/minute; earlier capture stopped; not counted as success",
+    "historicalPackageSourceSha256": "8743c9290a131f713aac488c7adf936246434feb5de4e78c4bb687777a625f38"
+  },
+  "notCovered": [
+    "authenticated member/manager rendering",
+    "all required states",
+    "physical iOS/Android",
+    "keyboard",
+    "large font",
+    "weak network",
+    "real wx storage recovery",
+    "end-to-end recovery"
+  ]
+}

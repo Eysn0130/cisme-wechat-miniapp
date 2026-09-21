@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requestMock = vi.hoisted(() => vi.fn());
 vi.mock("../../apps/miniprogram/services/api", () => ({ request: requestMock }));
-vi.mock("../../apps/miniprogram/services/authority", () => ({ requireCapability: vi.fn(async () => ({ capabilities: ["support.read"] })) }));
+vi.mock("../../apps/miniprogram/services/authority", () => ({ authorityProjection: vi.fn(async () => ({ version: 1, managementAvailable: true, capabilities: ["support.read"] })), hasCapability: () => true }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "" }));
 
 let definition: Record<string, any>;
@@ -11,6 +11,7 @@ beforeEach(() => {
   requestMock.mockReset();
   (globalThis as any).Page = (page: Record<string, any>) => { definition = page; };
   (globalThis as any).wx = { showToast: vi.fn() };
+  (globalThis as any).getApp = () => ({ globalData: { sessionToken: "synthetic-operator" } });
 });
 
 describe("management support queue lifecycle", () => {
@@ -18,7 +19,8 @@ describe("management support queue lifecycle", () => {
     await import("../../apps/miniprogram/pages/management-support/index");
     const page: Record<string, any> = {
       ...definition,
-      data: { ...definition.data, items: [{ id: "old" }], nextCursor: "older", loading: false },
+      lastToken: "synthetic-operator", lastRevision: 0,
+      data: { ...definition.data, visible: true, coreReady: true, items: [{ id: "old" }], nextCursor: "older", loading: false },
       setData(patch: Record<string, unknown>) { Object.assign(this.data, patch); },
       startPolling: vi.fn(), stopPolling: vi.fn()
     };

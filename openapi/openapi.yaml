@@ -79,6 +79,74 @@ paths:
           description: Missing, invalid or revoked identity
         '422':
           description: Invalid kind, key or object scope; unsupported query fields
+  /v1/me/commerce/recorded-commands/{kind}:
+    get:
+      operationId: discoverOwnRecordedCommerceCommands
+      summary: Discover retained owned command facts after local key loss
+      description: >-
+        Reads existing records without an original key, independently of Provider availability.
+        This is read-only discovery, not replay, unlock, proof of funds, or permission to retry.
+        Absence is inconclusive and only retained records are covered; no retention policy changes.
+        No original keys, request payloads, amounts, payees, confirmation packages, or internal responses are exposed.
+        Cancellation kinds are aliases of the same recorded order-cancellation fact, not proof of which UI initiated it.
+        Cursors bind environment, principal, member, kind and optional object; each page rechecks ownership.
+        States and recordVersion describe the current domain record. Unversioned conversions return null.
+      security:
+        - session: []
+      parameters:
+        - in: path
+          name: kind
+          required: true
+          schema:
+            type: string
+            enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified]
+        - in: query
+          name: objectId
+          description: Optional order ID for refund/order cancellation, settlement ID for settlement, conversion ID for credit kinds
+          schema: {type: string, format: uuid}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 50, default: 30}
+        - in: query
+          name: cursor
+          schema: {type: string, maxLength: 600}
+      responses:
+        '200':
+          description: Bounded recorded facts; an empty page never proves failure
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [version, kind, coverage, absenceIsFailure, items, loadedCount, hasMore, nextCursor]
+                properties:
+                  version: {type: integer, const: 1}
+                  kind: {type: string, enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified]}
+                  coverage: {type: string, const: retained_recorded_facts_only}
+                  absenceIsFailure: {type: boolean, const: false}
+                  loadedCount: {type: integer, minimum: 0, maximum: 50}
+                  hasMore: {type: boolean}
+                  nextCursor: {type: [string, 'null']}
+                  items:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, objectId, state, recordVersion, commandCreatedAt]
+                      properties:
+                        id: {type: string, format: uuid}
+                        objectId: {type: string, format: uuid}
+                        state: {type: string}
+                        recordVersion: {type: [integer, 'null'], minimum: 1}
+                        commandCreatedAt: {type: string, format: date-time}
+        '401':
+          description: Missing, invalid, expired or revoked identity
+        '422':
+          description: Invalid kind/object/page/cursor or unsupported query fields
   /v1/capabilities:
     get:
       operationId: runtimeCapabilities

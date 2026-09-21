@@ -1,0 +1,12 @@
+
+> cisme-wechat-miniapp@0.1.0 test:integration
+> vitest run tests/integration --exclude 'dist/**' --pool=forks --maxWorkers=1
+
+
+ RUN  v4.1.11 /Users/mini/CISME
+
+
+ Test Files  39 passed (39)
+      Tests  702 passed (702)
+   Start at  06:46:18
+   Duration  52.83s (transform 558ms, setup 0ms, import 4.99s, tests 45.65s, environment 2ms)

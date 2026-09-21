@@ -9,20 +9,24 @@ function assertTestDatabaseName(name: string): void {
 }
 
 export function resolveTestDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
-  const url = env.TEST_DATABASE_URL ?? env.DATABASE_URL ?? "postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme_test";
+  const url = env.TEST_DATABASE_URL;
+  if (!url) throw new Error("EXPLICIT_TEST_DATABASE_URL_REQUIRED");
   assertTestDatabaseName(decodeURIComponent(new URL(url).pathname.slice(1)));
   return url;
 }
 
-export const TEST_DATABASE_URL = resolveTestDatabaseUrl();
+// Importing helpers must stay side-effect-free; testPool/reset validate before any connection.
+export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? "";
 
-export function testPool(): pg.Pool {
-  return new pg.Pool({ connectionString: TEST_DATABASE_URL, max: 12 });
+export function testPool(env: NodeJS.ProcessEnv = process.env): pg.Pool {
+  return new pg.Pool({ connectionString: resolveTestDatabaseUrl(env), max: 12 });
 }
 
-export async function resetDatabase(pool: pg.Pool): Promise<void> {
+export async function resetDatabase(pool: pg.Pool, env: NodeJS.ProcessEnv = process.env): Promise<void> {
+  const expectedName = decodeURIComponent(new URL(resolveTestDatabaseUrl(env)).pathname.slice(1));
   const target = await pool.query<{ name: string }>("SELECT current_database() AS name");
   assertTestDatabaseName(target.rows[0]?.name ?? "");
+  if (target.rows[0]?.name !== expectedName) throw new Error("TEST_DATABASE_TARGET_MISMATCH");
   await pool.query("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public");
   await pool.query("CREATE TABLE schema_migration(version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
   const directory = resolve(process.cwd(), "db/migrations");

@@ -212,3 +212,74 @@ it("a known cancellation key cannot be retargeted to a different owned or foreig
     expect(result.json()).toMatchObject({status:"not_observed",record:null});
   }
 });
+
+const discoveryPath=(kind:string)=>`/v1/me/commerce/recorded-commands/${kind}`;
+describe.each(receiptKinds)("recorded command discovery without local keys: %s",kind=>{
+  it("finds only owned retained facts without returning keys, payloads or money permission",async()=>{
+    const result=await closed.inject({method:"GET",url:discoveryPath(kind),headers:auth(owner.sessionToken)});
+    expect(result.statusCode,result.body).toBe(200);expect(result.headers["cache-control"]).toBe("no-store");
+    const body=result.json();expect(body).toMatchObject({version:1,kind,coverage:"retained_recorded_facts_only",absenceIsFailure:false});
+    expect(body.items.length).toBeGreaterThan(0);
+    expect(Object.keys(body).sort()).toEqual(["version","kind","coverage","absenceIsFailure","items","nextCursor","loadedCount","hasMore"].sort());
+    for(const row of body.items){
+      expect(Object.keys(row).sort()).toEqual(["id","objectId","state","recordVersion","commandCreatedAt"].sort());
+      expect(row.id).toMatch(/^[0-9a-f-]{36}$/);expect(row.commandCreatedAt).toMatch(/\.\d{6}Z$/);
+    }
+    for(const secret of ["history-",other.memberId,otherOrder,"payee","package","reason","principalId","request_hash","retrySafe","amountCents"])
+      expect(result.body).not.toContain(secret);
+    const another=await closed.inject({method:"GET",url:discoveryPath(kind),headers:auth(empty.sessionToken)});
+    expect(another.statusCode,another.body).toBe(200);expect(another.json()).toMatchObject({items:[],nextCursor:null,absenceIsFailure:false});
+  });
+  it.each(["missing","forged","revoked","expired"])("rejects %s authentication",async mode=>{
+    const expired=issueSessionToken({principalId:owner.principalId,memberId:owner.memberId,adapter:"dev",provider:"dev_test",appId:"dev"},env.APP_SESSION_SECRET,Date.now()-24*60*60*1000);
+    const token=mode==="missing"?null:mode==="forged"?"forged.invalid":mode==="revoked"?revoked.sessionToken:expired;
+    expect((await closed.inject({method:"GET",url:discoveryPath(kind),headers:token?auth(token):{}})).statusCode).toBe(401);
+  });
+  it("rejects unknown fields, malformed objects, and excessive page size",async()=>{
+    for(const query of ["memberId="+other.memberId,"role=review_lead","key=history-refund-0","objectId=invalid","limit=51","limit=0","limit=1.5"]){
+      expect((await closed.inject({method:"GET",url:discoveryPath(kind)+"?"+query,headers:auth(owner.sessionToken)})).statusCode).toBe(422);
+    }
+  });
+});
+it("paginates exact database timestamps and scopes discovery cursors to actor, environment, kind and object",async()=>{
+  const path=discoveryPath("refund"),headers=auth(owner.sessionToken);
+  const first=await closed.inject({method:"GET",url:path+"?limit=1",headers});
+  expect(first.statusCode,first.body).toBe(200);const cursor=first.json().nextCursor;expect(cursor).toBeTruthy();
+  const seen=first.json().items.map((r:any)=>r.id);let next=cursor;
+  while(next){const result=await closed.inject({method:"GET",url:path+"?limit=1&cursor="+next,headers});expect(result.statusCode,result.body).toBe(200);seen.push(...result.json().items.map((r:any)=>r.id));next=result.json().nextCursor;expect(seen.length).toBeLessThanOrEqual(3);}
+  expect(seen).toHaveLength(3);expect(new Set(seen).size).toBe(3);
+  for(const [app,url,actor] of [[closed,path+"?cursor="+cursor,other],[seed,path+"?cursor="+cursor,owner],
+    [closed,discoveryPath("settlement")+"?cursor="+cursor,owner],[closed,path+"?objectId="+ownerOrder+"&cursor="+cursor,owner]] as const){
+    const result=await app.inject({method:"GET",url,headers:auth(actor.sessionToken)});expect(result.statusCode,result.body).toBe(422);expect(result.json().code).toBe("PAGE_CURSOR_INVALID");
+  }
+  const foreign=await closed.inject({method:"GET",url:path+"?objectId="+otherOrder,headers});
+  expect(foreign.statusCode,foreign.body).toBe(200);expect(foreign.json().items).toEqual([]);
+});
+it("never discovers an order cancellation without matching original principal/object/version facts",async()=>{
+  const before=await closed.inject({method:"GET",url:discoveryPath("cancel")+"?objectId="+ownerOrder,headers:auth(owner.sessionToken)});
+  expect(before.statusCode,before.body).toBe(200);expect(before.json().items).toEqual([]);
+  const countBefore=(await pool.query("SELECT count(*)::int AS n FROM commerce_order_transition WHERE order_id=$1",[cancelledOrder])).rows[0].n;
+  for(let i=0;i<2;i++)expect((await closed.inject({method:"GET",url:discoveryPath("cancel")+"?objectId="+cancelledOrder,headers:auth(owner.sessionToken)})).json().items).toHaveLength(1);
+  const countAfter=(await pool.query("SELECT count(*)::int AS n FROM commerce_order_transition WHERE order_id=$1",[cancelledOrder])).rows[0].n;
+  expect(countAfter).toBe(countBefore);
+});
+it("does not skip discovery records within the same millisecond",async()=>{
+  const inserted:string[]=[];
+  for(let i=1;i<=3;i++){
+    const row=await pool.query(`INSERT INTO commerce_refund_request(order_id,requested_by_member_id,idempotency_key,request_hash,amount_cents,reason,created_at)
+      VALUES($1,$2,$3,$4,100,'合成微秒分页测试','2030-01-01T00:00:00Z'::timestamptz + $5 * interval '100 microseconds') RETURNING id`,
+      [ownerOrder,owner.memberId,`history-microsecond-${i}`,"c".repeat(64),i]);inserted.push(row.rows[0].id);
+  }
+  let cursor:string|null=null;const found:string[]=[];
+  do{
+    const url:string=discoveryPath("refund")+"?limit=1"+(cursor?"&cursor="+cursor:"");
+    const result=await closed.inject({method:"GET",url,headers:auth(owner.sessionToken)});
+    expect(result.statusCode,result.body).toBe(200);found.push(...result.json().items.map((r:any)=>r.id));cursor=result.json().nextCursor;
+    expect(found.length).toBeLessThanOrEqual(6);
+  }while(cursor);
+  expect(found).toHaveLength(6);expect(found).toEqual(expect.arrayContaining(inserted));
+});
+it("rejects unknown discovery kinds",async()=>{
+  const result=await closed.inject({method:"GET",url:discoveryPath("arbitrary"),headers:auth(owner.sessionToken)});
+  expect(result.statusCode,result.body).toBe(422);
+});

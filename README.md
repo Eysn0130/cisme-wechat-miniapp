@@ -25,10 +25,13 @@ npm run miniprogram:package-gate
 npm run miniprogram:route-audit
 npm run design:qa:status
 npm test
-npm run test:integration
+: "${TEST_DATABASE_URL:?请先显式指定并核对一次性合成测试库地址}"
+TEST_DATABASE_URL="$TEST_DATABASE_URL" npm run test:integration
 npm run build
 npm run lint:contracts
 ```
+
+`test:integration`、`db:reset:test` 和原生合成验收会重置目标测试库。必须显式提供已确认可重置的 `TEST_DATABASE_URL`；不会回退到 `DATABASE_URL` 或默认端口，连接后的库名也须与指定目标一致。
 
 `design:qa:status` 的结构校验通过不代表正式发布门禁通过；iOS、Android、完整交互状态矩阵和远端 staging 仍需独立证据。
 
