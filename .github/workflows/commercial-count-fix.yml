@@ -56,7 +56,8 @@ jobs:
           });
           ''')
           root=Path('apps/miniprogram');h=hashlib.sha256()
-          for f in sorted(root.rglob('*')):
+          # Native inspector sorts full file-path strings, not Path components.
+          for f in sorted(root.rglob('*'),key=lambda path:str(path)):
               if f.is_file() and not f.name.endswith('project.private.config.json'):
                   h.update(str(f.relative_to(root)).encode());h.update(b'\0');h.update(f.read_bytes())
           assert h.hexdigest()=='8fca4a19907fb7d5d57463c367d63aa2f407d0c490d3b32351d599599e4b91d5'
