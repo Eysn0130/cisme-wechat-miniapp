@@ -15,6 +15,7 @@ const config = loadConfig({
 });
 const phoneFetcher = vi.fn<typeof fetch>();
 phoneFetcher.mockImplementation(async (input, init) => {
+  expect(init?.redirect).toBe("error");
   const url = String(input);
   if (url.includes("/stable_token")) return new Response(JSON.stringify({ access_token: "synthetic-token", expires_in: 7200 }));
   const code = JSON.parse(String(init?.body)).code as string;
@@ -82,4 +83,15 @@ it("binds, reads and unbinds phones only for the signed member despite forged bo
     { principal_id: `member:${memberB.memberId}`, action: "member.phone_unbound", object_id: memberB.memberId }
   ]));
   expect(audit).not.toContainEqual({ principal_id: `member:${memberA.memberId}`, action: "member.phone_unbound", object_id: memberA.memberId });
+});
+
+it('does not reuse a provider token whose supplied lifetime is zero',async()=>{
+ const {PhoneBinding}=await import('../../services/api/src/phoneBinding');
+ const fetcher=vi.fn<typeof fetch>().mockImplementation(async(input)=>new Response(JSON.stringify(
+  String(input).includes('/stable_token')?{access_token:'synthetic-short-lived',expires_in:0}:
+   {errcode:0,phone_info:{purePhoneNumber:'13800000001',countryCode:'86',watermark:{appid:config.wechat.appId}}})));
+ const phone=new PhoneBinding(pool,config,fetcher);
+ await phone.bind(memberA.memberId,'synthetic-zero-token-first');
+ await phone.bind(memberA.memberId,'synthetic-zero-token-second');
+ expect(fetcher.mock.calls.filter(([input])=>String(input).includes('/stable_token'))).toHaveLength(2);
 });

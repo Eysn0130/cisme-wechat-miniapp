@@ -67,6 +67,15 @@ it("stores address PII encrypted, isolates owners, and replays create requests",
   expect(JSON.stringify(rows)).not.toContain("护理路");
 });
 
+it("rejects reuse of an address creation key with changed normalized fields",async()=>{
+  const before=(await pool.query("SELECT count(*)::int n FROM member_delivery_address")).rows[0].n;
+  for(const changed of [{detail:"Different synthetic address"},{label:"company"},{isDefault:false}]){
+    const result=await app.inject({method:"POST",url:"/v1/me/addresses",headers:{...auth(ownerToken),"idempotency-key":"address-create-owner-1"},payload:{...address,...changed}});
+    expect(result.statusCode,result.body).toBe(409);expect(result.json().code).toBe("IDEMPOTENCY_CONFLICT");
+  }
+  expect((await pool.query("SELECT count(*)::int n FROM member_delivery_address")).rows[0].n).toBe(before);
+});
+
 it("enforces optimistic versions and keeps exactly one default", async () => {
   const first = (await app.inject({ url: "/v1/me/addresses", headers: auth(ownerToken) })).json().addresses[0];
   const secondResponse = await app.inject({ method: "POST", url: "/v1/me/addresses", headers: { ...auth(ownerToken), "idempotency-key": "address-create-owner-2" }, payload: { ...address, phone: "13900000002", detail: "科苑路 9 号", label: "company", isDefault: false } });
@@ -104,4 +113,25 @@ it("soft-deletes an address and promotes a remaining address when needed", async
   expect(remaining[0].isDefault).toBe(true);
   expect((await pool.query("SELECT count(*)::int AS count FROM member_delivery_address WHERE deleted_at IS NOT NULL")).rows[0].count).toBe(1);
   expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE object_type='member_delivery_address'")).rows[0].count).toBeGreaterThanOrEqual(4);
+});
+
+it('serializes concurrent address create and retains only a keyed digest and owned ID in receipts',async()=>{
+ const headers={...auth(otherToken),'idempotency-key':'address-concurrent-synthetic'};
+ const results=await Promise.all([app.inject({method:'POST',url:'/v1/me/addresses',headers,payload:{...address,detail:'Synthetic concurrent first'}}),
+  app.inject({method:'POST',url:'/v1/me/addresses',headers,payload:{...address,detail:'Synthetic concurrent second'}})]);
+ expect(results.map(r=>r.statusCode).sort()).toEqual([200,409]);
+ expect((await pool.query('SELECT 1 FROM member_delivery_address WHERE member_id=$1',[otherMemberId])).rowCount).toBe(1);
+ const receipts=(await pool.query("SELECT request_hash,response_body FROM idempotency_operation WHERE principal_id=$1 AND operation='address.create'",[`member:${otherMemberId}`])).rows;
+ expect(receipts).toHaveLength(1);expect(receipts[0].request_hash).toMatch(/^[0-9a-f]{64}$/);
+ expect(Object.keys(receipts[0].response_body)).toEqual(['addressId']);
+ expect(JSON.stringify(receipts)).not.toMatch(/林女士|13800000001|Synthetic concurrent/);
+});
+
+it('does not invent a matching receipt for a historical create key without its original digest',async()=>{
+ const row=(await pool.query('SELECT id,client_request_key FROM member_delivery_address WHERE member_id=$1',[otherMemberId])).rows[0];
+ await pool.query("DELETE FROM idempotency_operation WHERE principal_id=$1 AND operation='address.create'",[`member:${otherMemberId}`]);
+ const response=await app.inject({method:'POST',url:'/v1/me/addresses',headers:{...auth(otherToken),'idempotency-key':row.client_request_key},payload:address});
+ expect(response.statusCode).toBe(409);expect(response.json().code).toBe('DELIVERY_ADDRESS_LEGACY_REQUEST_REVIEW_REQUIRED');
+ expect((await pool.query('SELECT 1 FROM member_delivery_address WHERE member_id=$1',[otherMemberId])).rowCount).toBe(1);
+ expect((await app.inject({url:'/v1/me/addresses',headers:auth(otherToken)})).json().addresses[0].id).toBe(row.id);
 });
