@@ -1,0 +1,81 @@
+name: Temporary sealed refund-count correction
+on:
+  push:
+    branches: [codex/commercial-runtime-20260921]
+    paths: [.github/workflows/commercial-count-fix.yml]
+permissions:
+  contents: write
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with: {fetch-depth: 0}
+      - name: Materialize locally tested source with unchanged exact-tree check
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch=codex/commercial-runtime-20260921
+          helper=.github/workflows/commercial-count-fix.yml
+          test "$GITHUB_REF_NAME" = "$branch"
+          git fetch origin "refs/heads/$branch"
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          test "$(git diff --name-only 15af7703ca38b3c19ddbd5f5fbfe7f5fc3f5d04d HEAD)" = "$helper"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          p=Path('apps/miniprogram/pages/order-detail/index.ts');s=p.read_text()
+          replacements=[('refundTotal:0,refundCursor:', 'refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:',2),
+          ('else this.setData({refundLoading:true,refundError:""});','else this.setData({refundLoading:true,refundError:"",refundCountLabel:"正在核对记录数量"});',1),
+          ('refundTotal:page.totalCount,refundCursor:','refundTotal:page.totalCount,refundCountLabel:`本单申请 ${page.totalCount} 项`,refundCursor:',1),
+          ('refundError:errorTitle(error,"退款记录暂时无法同步，请重试。")','refundCountLabel:"记录数量暂未核实",refundError:errorTitle(error,"退款记录暂时无法同步，请重试。")',1)]
+          for before,after,count in replacements:
+              assert s.count(before)==count
+              s=s.replace(before,after)
+          p.write_text(s)
+          p=Path('apps/miniprogram/pages/order-detail/index.wxml');s=p.read_text()
+          assert s.count('本单申请 {{refundTotal}} 项')==1
+          p.write_text(s.replace('本单申请 {{refundTotal}} 项','{{refundCountLabel}}'))
+          p=Path('tests/unit/native-commerce-runtime.test.ts')
+          p.write_text(p.read_text()+'''it("order-detail renders an unknown refund count while history is pending, not a false zero",async()=>{
+            const history=deferred(),fallback=mocks.request.getMockImplementation()!;
+            mocks.request.mockImplementation((options:any)=>options.path.startsWith("/v1/me/refund-requests?")?history.promise:fallback(options));
+            await loadPage("order-detail");void page.load();core.resolve(order);await flush();
+            expect(page.data.refundCountLabel).toBe("正在核对记录数量");
+            expect(readFileSync("apps/miniprogram/pages/order-detail/index.wxml","utf8")).toContain("{{refundCountLabel}}");
+            history.resolve({items:[],totalCount:0,nextCursor:null});await flush();
+            expect(page.data.refundCountLabel).toBe("本单申请 0 项");
+          });
+          it("order-detail does not present a failed refund-history read as zero requests",async()=>{
+            const history=deferred(),fallback=mocks.request.getMockImplementation()!;
+            mocks.request.mockImplementation((options:any)=>options.path.startsWith("/v1/me/refund-requests?")?history.promise:fallback(options));
+            await loadPage("order-detail");void page.load();core.resolve(order);await flush();
+            history.reject({status:503,title:"合成历史读取失败"});await flush();
+            expect(page.data.refundCountLabel).toBe("记录数量暂未核实");expect(page.data.refundError).toBeTruthy();
+          });
+          ''')
+          root=Path('apps/miniprogram');h=hashlib.sha256()
+          for f in sorted(root.rglob('*')):
+              if f.is_file() and not f.name.endswith('project.private.config.json'):
+                  h.update(str(f.relative_to(root)).encode());h.update(b'\0');h.update(f.read_bytes())
+          assert h.hexdigest()=='8fca4a19907fb7d5d57463c367d63aa2f407d0c490d3b32351d599599e4b91d5'
+          p=Path('docs/evidence/visual/current-source-acceptance.json');old=p.read_text();manifest=json.loads(old)
+          assert manifest['packageSourceSha256']=='4476797a9e9691c126a5dd967ef18c6bd065e11d0a283dd5bfb24dc5159b215c'
+          assert manifest['finalResult']=='blocked' and not manifest['evidenceIndex']
+          Path('docs/evidence/visual/source-acceptance-4476797a9e96.json').write_text(old)
+          manifest['packageSourceSha256']=h.hexdigest()
+          p.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git add apps/miniprogram/pages/order-detail/index.ts apps/miniprogram/pages/order-detail/index.wxml tests/unit/native-commerce-runtime.test.ts docs/evidence/visual/current-source-acceptance.json docs/evidence/visual/source-acceptance-4476797a9e96.json
+          git diff --cached --check
+          git rm --cached -- "$helper"
+          test "$(git write-tree)" = 114f89f4c012fce78e56fd7bfdd2d0267e4159d0
+          git reset -q HEAD -- "$helper"
+          git config user.name 'ChatGPT CISME delivery'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(native): distinguish pending and failed refund counts from zero'
+          git push origin "HEAD:refs/heads/$branch"
+          git rev-parse HEAD HEAD^{tree}
+          # No main, release, deployment, secret, real-money or database access.
+          # Final normal CI must rerun after the connector removes this helper.
