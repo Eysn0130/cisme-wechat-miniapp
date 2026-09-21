@@ -1,0 +1,34 @@
+name: Commercial preparation evidence (not release authorization)
+on:
+  pull_request:
+    paths:
+      - scripts/audit-commercial-lifecycle.ts
+      - scripts/audit-commercial-resources.py
+      - .github/workflows/commercial-readiness-evidence.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '24.18.0', cache: npm}
+      - run: npm ci
+      - name: Current source identity and required page-state inventory
+        run: |
+          mkdir -p "$RUNNER_TEMP/commercial-preparation"
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/commercial-preparation/checkout-identity.txt"
+          ./node_modules/.bin/tsx scripts/audit-commercial-lifecycle.ts > "$RUNNER_TEMP/commercial-preparation/page-state-matrix.json"
+      - name: Recheck public upstream metadata (no code execution or license approval)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/audit-commercial-resources.py > "$RUNNER_TEMP/commercial-preparation/github-resources.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: commercial-preparation-evidence
+          path: ${{ runner.temp }}/commercial-preparation/
+          retention-days: 14
