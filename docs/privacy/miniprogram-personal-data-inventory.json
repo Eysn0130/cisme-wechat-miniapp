@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-20",
+  "inventoryDate": "2026-09-21",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -437,6 +437,20 @@
       "activation": "手动读取本机 localMeasurements；网络与页面样本默认1/16且最多128条",
       "serverStorage": "无；不自动上传、不持久化；退出进程消失",
       "currentGate": "源码诊断用途；设备/网络/冷热/包哈希由获授权验收人另行绑定"
+    },
+    {
+      "surface": "cisme.commerce-command-recovery.v1",
+      "informationType": "本机恢复提示：已认证会员内部编号、配置的API环境、操作种类/对象编号、原请求键、原金额/填写理由或版本、创建时间和可能已发送标记",
+      "purpose": "退款申请、结算意向、测试购物权益转换/撤销、订单取消丢失回执后，按原键和原载荷核对；不是新的资金账本",
+      "activation": "用户明确确认对应操作后，发送前同步保存并读取校验；页面重开只查询，不自动重放写入",
+      "serverStorage": "只按原命令发送至既有CISME接口；回执接口仅查询既有本人记录。请求键放Idempotency-Key header，不放URL；没有新增外部接收方",
+      "currentGate": "同主体/环境/对象隔离，最多16条和64000 UTF-16序列化单元；损坏/版本未知/容量不足均阻止新发送；资金权限与原生产开关不变",
+      "authority": "CISME既有领域表/幂等记录；本机提示不用于授权或判断到账",
+      "visibleTo": "当前已认证主体的页面恢复入口；本机存储不是应用另行加密的保险库，不存token/OpenID/支付收款参数/完整响应",
+      "retention": "未核实原操作不按TTL静默丢弃；收到完整权威回执或本人明确核对已记录结果后清除。产品/隐私负责人须在正式发布前批准保留口径",
+      "userDeletionOrClosure": "退出身份时尝试清除金额和填写理由，保留最小未知键提示供核对。损坏或存储失败时仍退出登录，不能声称原字节已被抹除；清除小程序数据或换设备不保证恢复",
+      "legalHold": "服务端原申请、订单、资金和审计保留规则独立；清除本机提示不撤回申请或删除服务端事实",
+      "audit": "回执返回最小状态/id/金额，不返回原理由、支付参数、收款标识或任意response_body；无需新增逐次本机日志"
     }
   ],
   "runtimeDataEgress": [

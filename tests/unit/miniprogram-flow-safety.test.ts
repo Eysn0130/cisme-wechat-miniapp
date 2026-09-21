@@ -143,8 +143,9 @@ describe("mini program submission flow safety", () => {
     expect(home).toContain("const refreshed = await this.load(true)");
     expect(homeView).toContain('disabled="{{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable}}"');
     expect(records).toContain("care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary");
-    expect(records).toContain("onUnload() { this.data.pageAlive = false");
-    expect(records).toContain("if (!this.data.pageAlive) return");
+    expect(records).toContain("onUnload() { this.onHide(); this.data.pageAlive = false");
+    expect(records).toContain("if (!current()) return");
+    expect(records).toContain("return this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken && revision === commerceContextRevision()");
     expect(recordsView).toContain("authorityAvailable && care");
     expect(recordsView).toContain("authorityAvailable && !care");
   });
@@ -427,8 +428,9 @@ describe("mini program submission flow safety", () => {
     const progressLogic = await source("apps/miniprogram/pages/progress/index.ts");
     const progress = await source("apps/miniprogram/pages/progress/index.wxml");
 
-    expect(records.match(/loading="\{\{workingAction === '(?:pause|resume)'\}\}" disabled="\{\{working \|\| confirmingCycleAction\}\}"/g)).toHaveLength(2);
-    expect(records.match(/\{\{working \|\| confirmingCycleAction \? 'control--disabled' : ''\}\}/g)).toHaveLength(6);
+    expect(records.match(/loading="\{\{workingAction === '(?:pause|resume)'\}\}" disabled="\{\{!writeReady \|\| working \|\| confirmingCycleAction\}\}"/g)).toHaveLength(2);
+    expect(records.match(/\{\{!writeReady \|\| working \|\| confirmingCycleAction \? 'control--disabled' : ''\}\}/g)).toHaveLength(3);
+    expect(records.match(/\{\{working \|\| confirmingCycleAction \? 'control--disabled' : ''\}\}/g)).toHaveLength(3);
     expect(progressLogic).toContain("未找到这份投稿记录");
     expect(progress).toContain("返回投稿来源");
     expect(progress).toContain("重新加载审核进度");

@@ -1,3 +1,5 @@
+import { cancelPageReads, pageRead } from "../../services/page-requests";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication } from "../../services/api";
 import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../services/layout";
@@ -9,7 +11,7 @@ function scrollToRecordsError() {
 
 function isAuthenticationFailure(error: unknown): boolean {
   const problem = error as { status?: number; statusCode?: number; code?: string };
-  return problem.status === 401 || problem.statusCode === 401 || problem.code === "AUTHENTICATION_REQUIRED" || problem.code === "MEMBER_NOT_FOUND";
+  return [401, 403, 404].includes(problem.status ?? problem.statusCode ?? 0) || problem.code === "AUTHENTICATION_REQUIRED" || problem.code === "MEMBER_NOT_FOUND";
 }
 
 function syncedAtLabel(): string {
@@ -20,7 +22,7 @@ function syncedAtLabel(): string {
 const archivePageSize = 3;
 const recordDetailExitMs = 240;
 const careMilestones = ["D1", "D7", "D14", "D28"] as const;
-let recordDetailCloseTimer: ReturnType<typeof setTimeout> | null = null;
+const detailTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
 
 const emptySummary = { completed: 0, totalRecords: 0, cycleCount: 0, recordCountClass: "", headlineLine1: "你的护理档案，", headlineLine2: "等待第一个周期。", phaseLabel: "尚无护理周期", protocol: "", cycleSummary: "" };
 
@@ -173,7 +175,8 @@ function timelineStatus(care: CareCycleApi, milestone: string, done: boolean, cu
   if (care.phase === "terminated") return "已终止";
   if (current) return "今日";
   const milestoneOffsets: Record<string, number> = { D1: 0, D7: 6, D14: 13, D28: 27 };
-  return startedOn ? addCalendarDays(startedOn, milestoneOffsets[milestone] + (care.scheduleOffsetDays ?? 0)) : "待安排";
+  const offset = milestoneOffsets[milestone];
+  return startedOn && offset !== undefined ? addCalendarDays(startedOn, offset + (care.scheduleOffsetDays ?? 0)) : "待安排";
 }
 
 function cycleSummary(care: CareCycleApi): string {
@@ -191,6 +194,8 @@ function recordCountClass(total: number): string {
 }
 
 Page({
+  lastSessionToken: undefined as string | undefined,
+  lastSessionRevision: 0,
   data: {
     care: null as any,
     timeline: [] as Array<{ milestone: string; done: boolean; current: boolean; status: string }>,
@@ -217,15 +222,33 @@ Page({
     lastSyncedLabel: "",
     loadAttempt: 0,
     pageAlive: true,
+    visible: true,
+    writeReady: false,
+    refreshOnShow: false,
     operationStatus: "",
     error: ""
+  },
+  syncSession() {
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
+    if (this.lastSessionToken !== undefined && (this.lastSessionToken !== token || this.lastSessionRevision !== revision)) {
+      cancelPageReads(this); this.data.loadAttempt += 1; this.dismissRecordDetailImmediately();
+      this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [],
+        visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null,
+        working: false, workingAction: "", confirmingCycleAction: false, writeReady: false,
+        authorityAvailable: false, accessRequired: !token, operationStatus: "", error: "", lastSyncedLabel: "" });
+      this.getTabBar?.()?.setData({ externalBusy: false }); wx.disableAlertBeforeUnload();
+    }
+    this.lastSessionToken = token; this.lastSessionRevision = revision;
+  },
+  sameSession(token: string, revision: number) {
+    return this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken && revision === commerceContextRevision();
   },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
   onShow() {
-    this.data.pageAlive = true;
+    this.data.pageAlive = true; this.data.visible = true; this.syncSession();
     const tab = this.getTabBar?.();
-    if (tab) tab.setData({ active: 1 });
+    if (tab) tab.setData({ active: 1, externalBusy: this.data.working });
     tab?.syncActive?.(1);
     tab?.setPresentation?.("record-detail", false);
     if (!requireMemberAccess()) {
@@ -233,13 +256,21 @@ Page({
       this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, loading: false, refreshing: false, authorityAvailable: false, accessRequired: true, operationStatus: "", error: "" });
       return;
     }
-    if (!this.data.working) this.setData({ operationStatus: "" });
+    if (this.data.working) { this.data.refreshOnShow = true; return; }
+    this.setData({ operationStatus: "" });
     void this.load(retainMemberSnapshot(this));
   },
-  onHide() { this.data.loadAttempt += 1; this.getTabBar?.()?.setPresentation?.("record-detail", false); if (this.data.recordDetailClosing) this.finishRecordDetailClose(); },
-  onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; this.clearRecordDetailCloseTimer(); this.getTabBar?.()?.setPresentation?.("record-detail", false); wx.disableAlertBeforeUnload(); },
+  onHide() {
+    this.data.visible = false; this.data.loadAttempt += 1; this.data.refreshOnShow = true;
+    cancelPageReads(this); this.dismissRecordDetailImmediately();
+    this.getTabBar?.()?.setData({ externalBusy: false });
+    this.setData({ writeReady: false, confirmingCycleAction: false });
+  },
+  onUnload() { this.onHide(); this.data.pageAlive = false; wx.disableAlertBeforeUnload(); },
   async onPullDownRefresh() {
     try {
+      if (!this.data.visible) return;
+      this.syncSession();
       if (!requireMemberAccess()) {
         this.setData({ loading: false, refreshing: false, authorityAvailable: false, accessRequired: true, error: "" });
         return;
@@ -248,14 +279,18 @@ Page({
     } finally { wx.stopPullDownRefresh(); }
   },
   async load(preserveSnapshot = false, failClosed = false): Promise<boolean> {
-    this.dismissRecordDetailImmediately();
+    this.syncSession();
+    if (!this.data.pageAlive || !this.data.visible || this.data.working && !failClosed) { this.data.refreshOnShow = true; return false; }
+    cancelPageReads(this); this.data.refreshOnShow = false;
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
+    this.setData({ writeReady: false, confirmingCycleAction: false }); this.dismissRecordDetailImmediately();
     const attempt = this.data.loadAttempt + 1;
     this.setData(preserveSnapshot && this.data.authorityAvailable
       ? { loadAttempt: attempt, loading: true, refreshing: true, accessRequired: false, error: "" }
       : { loadAttempt: attempt, care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, loading: true, refreshing: false, authorityAvailable: false, accessRequired: false, error: "" });
     try {
-      const care = await request<CareCycleApi | null>({ path: "/v1/me/care" });
-      if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return false;
+      const care = await pageRead<CareCycleApi | null>(this, { path: "/v1/me/care" });
+      if (!this.sameSession(token, revision) || !this.data.visible || this.data.loadAttempt !== attempt) return false;
       const completed = care ? careMilestones.filter((milestone) => (care.completed ?? []).includes(milestone)) : [];
       const timeline = careMilestones.map((milestone) => ({
         milestone,
@@ -264,15 +299,15 @@ Page({
         status: care ? timelineStatus(care, milestone, completed.includes(milestone), care.due === milestone, care.startedOn) : "待确认"
       }));
       const currentPhaseLabel = care ? phaseLabel(care.phase) : "尚无护理周期";
-      const headline = care ? headlineForPhase(care.phase) : [emptySummary.headlineLine1, emptySummary.headlineLine2];
+      const headline: [string, string] = care ? headlineForPhase(care.phase) : [emptySummary.headlineLine1, emptySummary.headlineLine2];
       const archive = care ? recordGroups(care) : { groups: [], records: [] };
       const cycleCount = care ? archive.groups.length : 0;
       const visibleCycleCount = Math.min(cycleCount, Math.max(archivePageSize, this.data.visibleCycleCount || archivePageSize));
-      this.setData({ care, timeline, records: archive.records, recordGroups: archive.groups, visibleRecordGroups: archive.groups.slice(0, visibleCycleCount), visibleCycleCount, hiddenCycleCount: Math.max(0, cycleCount - visibleCycleCount), selectedRecord: null, recordDetailOpen: false, summary: { completed: completed.length, totalRecords: archive.records.length, cycleCount, recordCountClass: recordCountClass(archive.records.length), headlineLine1: headline[0], headlineLine2: headline[1], phaseLabel: currentPhaseLabel, protocol: care?.protocolVersion ?? "", cycleSummary: care ? cycleSummary(care) : "" }, authorityAvailable: true, accessRequired: false, lastSyncedLabel: syncedAtLabel(), error: "" });
+      this.setData({ care, timeline, records: archive.records, recordGroups: archive.groups, visibleRecordGroups: archive.groups.slice(0, visibleCycleCount), visibleCycleCount, hiddenCycleCount: Math.max(0, cycleCount - visibleCycleCount), selectedRecord: null, recordDetailOpen: false, summary: { completed: completed.length, totalRecords: archive.records.length, cycleCount, recordCountClass: recordCountClass(archive.records.length), headlineLine1: headline[0], headlineLine2: headline[1], phaseLabel: currentPhaseLabel, protocol: care?.protocolVersion ?? "", cycleSummary: care ? cycleSummary(care) : "" }, authorityAvailable: true, writeReady: true, accessRequired: false, lastSyncedLabel: syncedAtLabel(), error: "" });
       return true;
     }
     catch (error) {
-      if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return false;
+      if (!this.sameSession(token, revision) || !this.data.visible || this.data.loadAttempt !== attempt) return false;
       if (isAuthenticationFailure(error)) {
         this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, accessRequired: true, error: "" });
       } else if (preserveSnapshot && this.data.authorityAvailable && !failClosed) {
@@ -282,9 +317,9 @@ Page({
       }
       return false;
     }
-    finally { if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ loading: false, refreshing: false }); }
+    finally { if (this.sameSession(token, revision) && this.data.visible && this.data.loadAttempt === attempt) this.setData({ loading: false, refreshing: false }); }
   },
-  retryLoad() { clearAuthenticationRedirectSuppression(); if (this.data.accessRequired) { this.authenticate(); return; } if (this.data.authorityAvailable) void this.load(true); else void this.load(); },
+  retryLoad() { if (!this.data.visible) return; clearAuthenticationRedirectSuppression(); if (this.data.accessRequired) { this.authenticate(); return; } if (this.data.authorityAvailable) void this.load(true); else void this.load(); },
   authenticate() { resumeAuthentication("/pages/records/index"); },
   showEarlierCycles() {
     if (this.data.hiddenCycleCount <= 0) return;
@@ -292,6 +327,9 @@ Page({
     this.setData({ visibleCycleCount, visibleRecordGroups: this.data.recordGroups.slice(0, visibleCycleCount), hiddenCycleCount: this.data.recordGroups.length - visibleCycleCount });
   },
   openRecordDetail(event: WechatMiniprogram.TouchEvent) {
+    if (!this.data.visible || !this.data.pageAlive || this.lastSessionToken !== undefined &&
+      !this.sameSession(this.lastSessionToken, this.lastSessionRevision)) return;
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = this.data.loadAttempt;
     const recordKey = String(event.currentTarget.dataset.key || "");
     const record = this.data.records.find((item) => item.recordKey === recordKey);
     if (!record) return;
@@ -300,7 +338,7 @@ Page({
     this.setData({ selectedRecord: record, recordDetailMounted: true, recordDetailOpen: true, recordDetailVisible: this.data.reducedMotion, recordDetailClosing: false }, () => {
       if (this.data.reducedMotion) return;
       wx.nextTick(() => {
-        if (this.data.recordDetailMounted && !this.data.recordDetailClosing) this.setData({ recordDetailVisible: true });
+        if (this.sameSession(token, revision) && this.data.visible && this.data.loadAttempt === attempt && this.data.recordDetailMounted && !this.data.recordDetailClosing) this.setData({ recordDetailVisible: true });
       });
     });
   },
@@ -310,11 +348,11 @@ Page({
     this.setData({ recordDetailOpen: false, recordDetailVisible: false, recordDetailClosing: true });
     if (this.data.reducedMotion) { this.finishRecordDetailClose(); return; }
     this.clearRecordDetailCloseTimer();
-    recordDetailCloseTimer = setTimeout(() => this.finishRecordDetailClose(), recordDetailExitMs);
+    detailTimers.set(this, setTimeout(() => this.finishRecordDetailClose(), recordDetailExitMs));
   },
   clearRecordDetailCloseTimer() {
-    if (recordDetailCloseTimer) clearTimeout(recordDetailCloseTimer);
-    recordDetailCloseTimer = null;
+    const timer = detailTimers.get(this); if (timer) clearTimeout(timer);
+    detailTimers.delete(this);
   },
   finishRecordDetailClose() {
     this.clearRecordDetailCloseTimer();
@@ -335,9 +373,16 @@ Page({
     wx.navigateTo({ url: "/pages/shop/index", fail: () => wx.showToast({ title: "护理商品暂时无法打开", icon: "none" }) });
   },
   async changeCycle(event: WechatMiniprogram.TouchEvent) {
-    if (!this.data.care || !this.data.authorityAvailable || this.data.working || this.data.confirmingCycleAction) return;
+    if (!this.data.visible || !this.data.pageAlive || !this.data.writeReady || !this.data.care || !this.data.authorityAvailable || this.data.working || this.data.confirmingCycleAction) return;
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = this.data.loadAttempt;
+    if (this.lastSessionToken !== token || this.lastSessionRevision !== revision) return;
+    const current = () => this.sameSession(token, revision);
+    const confirmationCurrent = () => current() && this.data.visible && this.data.loadAttempt === attempt;
     const action = String(event.currentTarget.dataset.action) as "pause" | "resume" | "terminate";
+    if (!["pause", "resume", "terminate"].includes(action)) return;
     const care = this.data.care;
+    if (action === "pause" ? care.phase !== "active" || !care.pausePolicy?.enabled :
+      action === "resume" ? care.phase !== "paused" : !["active", "paused"].includes(care.phase)) return;
     const copy = action === "pause"
       ? { title: "暂停当前护理周期？", content: "已保存记录不会丢失；恢复后未来提醒将重新计算。" }
       : action === "resume"
@@ -348,13 +393,13 @@ Page({
     try {
       confirmation = await wx.showModal({ ...copy, confirmText: action === "pause" ? "确认暂停" : action === "resume" ? "确认恢复" : "确认终止" });
     } catch {
-      if (this.data.pageAlive) this.setData({ error: "周期操作确认弹层暂时无法打开，请重新选择操作。" }, scrollToRecordsError);
+      if (confirmationCurrent()) this.setData({ error: "周期操作确认弹层暂时无法打开，请重新选择操作。" }, scrollToRecordsError);
       return;
     } finally {
-      if (this.data.pageAlive) this.setData({ confirmingCycleAction: false });
+      if (confirmationCurrent()) this.setData({ confirmingCycleAction: false });
     }
-    if (!this.data.pageAlive || !confirmation.confirm) return;
-    if (this.data.working || !this.data.authorityAvailable || !this.data.care || this.data.care.id !== care.id || this.data.care.version !== care.version) {
+    if (!confirmationCurrent() || !confirmation.confirm) return;
+    if (this.data.working || !this.data.writeReady || !this.data.authorityAvailable || !this.data.care || this.data.care.id !== care.id || this.data.care.version !== care.version) {
       this.setData({ operationStatus: "", error: "护理周期状态已变化，请核对最新状态后重新选择操作。" }, scrollToRecordsError);
       return;
     }
@@ -363,21 +408,31 @@ Page({
     wx.enableAlertBeforeUnload({ message: "护理周期操作已经发送，离开不会撤回服务端处理。请等待最新状态确认。" });
     const reasonCode = action === "pause" ? "MEMBER_REQUEST" : action === "resume" ? "MEMBER_RESUME" : "MEMBER_TERMINATION";
     const successCopy = action === "pause" ? "护理周期已暂停" : action === "resume" ? "护理周期已恢复" : "护理周期已终止";
+    let acknowledged = false;
     try {
-      await request({ path: `/v1/care-cycles/${care.id}/${action}`, method: "POST", idempotencyKey: `care-${care.id}-${action}-v${care.version}`, data: { reasonCode, expectedVersion: care.version } });
-      if (!this.data.pageAlive) return;
+      try {
+        await request({ path: `/v1/care-cycles/${care.id}/${action}`, method: "POST", idempotencyKey: `care-${care.id}-${action}-v${care.version}`, data: { reasonCode, expectedVersion: care.version } });
+        acknowledged = true;
+      } catch { /* A lost write response is unknown, not proof of failure. */ }
+      if (!current()) return;
+      if (!this.data.visible) {
+        this.data.refreshOnShow = true;
+        this.setData({ writeReady: false, operationStatus: "原周期操作结果待核对，请返回后刷新。" }); return;
+      }
       const refreshed = await this.load(true, true);
-      if (this.data.pageAlive) this.setData({ operationStatus: refreshed ? successCopy : "", ...(refreshed ? {} : { error: "周期操作已受理，但最新状态暂时无法确认。页面已锁定周期操作，请刷新后核对。" }) }, refreshed ? undefined : scrollToRecordsError);
-    }
-    catch (error) {
-      if (!this.data.pageAlive) return;
-      const refreshed = await this.load(true, true);
-      if (this.data.pageAlive) this.setData({ operationStatus: "", error: refreshed ? "周期状态更新未完成。已重新核对当前状态，请确认后再试。" : "周期操作结果与最新状态均暂时无法确认。页面已锁定周期操作，请刷新后核对。" }, scrollToRecordsError);
-    }
-    finally {
-      if (this.data.pageAlive) this.setData({ working: false, workingAction: "" });
-      const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false });
-      wx.disableAlertBeforeUnload();
+      if (!current() || !this.data.visible) return;
+      const target = action === "pause" ? "paused" : action === "resume" ? "active" : "terminated";
+      const verified = refreshed && this.data.care?.id === care.id && this.data.care.phase === target &&
+        Number.isSafeInteger(this.data.care.version) && this.data.care.version > care.version;
+      this.setData({ operationStatus: verified ? successCopy : "", writeReady: Boolean(refreshed),
+        error: verified ? "" : acknowledged ? "周期操作已受理，但预期状态尚未核实。请核对当前周期后再操作。" :
+          "原周期操作结果暂未核实。当前显示最新可确认事实，不表示原操作未执行。" }, verified ? undefined : scrollToRecordsError);
+    } finally {
+      if (current()) {
+        this.setData({ working: false, workingAction: "" });
+        if (this.data.visible) { this.getTabBar?.()?.setData({ externalBusy: false }); wx.disableAlertBeforeUnload(); }
+        if (this.data.visible && this.data.refreshOnShow) void this.load(true, true);
+      }
     }
   }
 });
