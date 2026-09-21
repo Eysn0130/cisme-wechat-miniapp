@@ -1,0 +1,5457 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "91a37de8a3572417148929564cfa9cfeea696d73094a60938b6b68d8b45ed3a6",
+  "routeCount": 37,
+  "applicableCases": 535,
+  "acceptedCases": 0,
+  "scope": "Executable case specification, not a claim that all roles/states have been exercised. Missing device/target evidence does not waive local implementation.",
+  "configuration": "Current source release-environments.json; loopback devtools only, no authorized remote isolated target verified",
+  "releaseReady": false,
+  "entries": [
+    {
+      "route": "pages/home/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/records/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/community/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/profile/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/account/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/task/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/submit/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Cause actual wx storage loss/write failure in disposable app context; do not invent absence-as-failure or unlock.",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/progress/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/points/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/post/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/shop/index",
+      "prd": "§6.8 / §8.2 / §8.4 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/product/index",
+      "prd": "§6.8 / §8.2 / §8.4 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/checkout/index",
+      "prd": "§6.8 / §8.2 / §8.4 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Cause actual wx storage loss/write failure in disposable app context; do not invent absence-as-failure or unlock.",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/orders/index",
+      "prd": "§6.8 / §8.2 / §8.4 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/order-detail/index",
+      "prd": "§6.8 / §8.2 / §8.4 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Cause actual wx storage loss/write failure in disposable app context; do not invent absence-as-failure or unlock.",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use a second authorized device for same account, discover server facts without replaying commands.",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/settings/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [
+        "member.profile.read"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/invite/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/legal/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/support/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Cause actual wx storage loss/write failure in disposable app context; do not invent absence-as-failure or unlock.",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "support.read",
+        "commerce.product.manage",
+        "commerce.qualification.manage",
+        "commerce.inventory.manage",
+        "commerce.order.read",
+        "member.profile.read",
+        "commerce.refund.approve",
+        "commerce.fulfillment.manage",
+        "commission.settlement.approve",
+        "commerce.money.reconcile"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "commerce.product.manage"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-product/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "commerce.product.manage",
+        "commerce.qualification.manage",
+        "commerce.inventory.manage"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-orders/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "commerce.order.read"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "commerce.order.read"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Read/navigation only in this route",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-support/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "support.read"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "support.read",
+        "support.assign",
+        "support.reply"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Cause actual wx storage loss/write failure in disposable app context; do not invent absence-as-failure or unlock.",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-members/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "member.profile.read",
+        "commission.rate.approve",
+        "commission.read",
+        "commission.rate.manage"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-member/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "member.profile.read",
+        "commission.rate.manage",
+        "member.manage"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/referral/index",
+      "prd": "§5.1 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/community-compose/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Cause actual wx storage loss/write failure in disposable app context; do not invent absence-as-failure or unlock.",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/community-post/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/community-author/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "view approved public projection; protected action requests login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/community-review/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No collection empty state; missing object is tested by error cases",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No paginated list in this Page source",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/community-activity/index",
+      "prd": "§6.6.2 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "No editable input in the selected route",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/management-finance/index",
+      "prd": "§3 / §11 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "deny without each required capability",
+        "management": "current server capability AND object/action constraints required"
+      },
+      "capabilityReferences": [
+        "commerce.refund.approve",
+        "commerce.fulfillment.manage",
+        "commission.settlement.approve",
+        "commerce.money.reconcile"
+      ],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Persistent-command recovery belongs to linked command page; session loss is covered by expired/switch cases",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": false,
+          "status": "N_A",
+          "reason": "Cross-device command discovery is exercised on order-detail/commission; other routes use fresh authenticated reads",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    },
+    {
+      "route": "pages/commission/index",
+      "prd": "§6.8 / §8.2 / §8.4 / §15.6",
+      "roles": {
+        "guest": "deny sensitive access; offer explicit login",
+        "member": "own objects only; another member object denied",
+        "management": "same member scope; management role does not widen consumer ownership"
+      },
+      "capabilityReferences": [],
+      "checks": [
+        {
+          "id": "normal",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Load a fresh authorized object; verify current facts, capsule/safe area, image and scroll layout.",
+          "evidence": []
+        },
+        {
+          "id": "loading",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay an owned test response; no false success, old sensitive data or available write control.",
+          "evidence": []
+        },
+        {
+          "id": "empty",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use an actual empty collection/absent optional state; preserve relevant next action.",
+          "evidence": []
+        },
+        {
+          "id": "offline",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Disconnect local test API; readable failure and explicit retry, no stale authorization.",
+          "evidence": []
+        },
+        {
+          "id": "weak-network",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Delay/interleave real test responses; preserve input and discard obsolete responses.",
+          "evidence": []
+        },
+        {
+          "id": "timeout-5xx",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Return controlled timeout/5xx; no invented terminal money outcome.",
+          "evidence": []
+        },
+        {
+          "id": "expired-revoked",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Expire session or revoke capability/object; clear sensitive data and deny its actions.",
+          "evidence": []
+        },
+        {
+          "id": "retry",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Restore dependency and explicitly retry; only current session/page can commit response.",
+          "evidence": []
+        },
+        {
+          "id": "pagination",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Read all seeded pages, reject foreign cursor, no missing/duplicate items; cancel on hide.",
+          "evidence": []
+        },
+        {
+          "id": "background-return",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Hide/show during GET and in-flight writes; reads cancel, uncertain commands retain recovery.",
+          "evidence": []
+        },
+        {
+          "id": "back-reenter",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Navigate away and back, including interrupted first load; initialize current Page only.",
+          "evidence": []
+        },
+        {
+          "id": "kill-restart",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Kill and reopen actual runtime; restore only authorized retained facts.",
+          "evidence": []
+        },
+        {
+          "id": "account-switch-ABA",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Switch A→B→A while requests are pending; old receipt cannot populate a new session.",
+          "evidence": []
+        },
+        {
+          "id": "double-submit",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Double tap with same intent; one economic/business effect, conflicting payload rejected.",
+          "evidence": []
+        },
+        {
+          "id": "keyboard",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Focus actual input with keyboard, selection and multiline text; composer/actions remain reachable.",
+          "evidence": []
+        },
+        {
+          "id": "small-screen-large-text",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Observe native small-screen/large-text clipping, tap areas, capsule and bottom safe area.",
+          "evidence": []
+        },
+        {
+          "id": "storage-loss-write-failure",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Cause actual wx storage loss/write failure in disposable app context; do not invent absence-as-failure or unlock.",
+          "evidence": []
+        },
+        {
+          "id": "second-device-readonly",
+          "applicable": true,
+          "status": "NOT_RUN",
+          "expected": "Use a second authorized device for same account, discover server facts without replaying commands.",
+          "evidence": []
+        }
+      ],
+      "acceptance": "NOT_RUN",
+      "layers": {
+        "template": "NOT_RUN",
+        "pageBehavior": "NOT_RUN",
+        "devtools": "NOT_RUN",
+        "ios": "BLOCKED_DEVICE",
+        "android": "BLOCKED_DEVICE"
+      }
+    }
+  ]
+}

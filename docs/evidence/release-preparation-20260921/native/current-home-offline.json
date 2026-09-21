@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-21T17:03:14.744678+00:00",
+  "sourceHead": "5976a906836cfd2a92a3eeaa931f309152a5dc2f",
+  "packageSourceSha256": "003a1a24ce2e13fe4303c8bcad4456dc6263fc8b5d6319e04fff7f1d3b67dcdf",
+  "route": "pages/home/index",
+  "role": "previous synthetic member session; owned API stopped",
+  "case": "offline",
+  "expected": "explicit sync error and retry; no stale care action",
+  "actual": "visible care status unavailable; retry button; no care action shown",
+  "status": "PASS",
+  "scope": "single visible devtools state only; does not prove retry recovery, real weak network or physical device",
+  "tools": {
+    "wechatide": "0.3.9",
+    "DevTools": "2.02.2608070",
+    "baseLibrary": "3.15.2",
+    "simulator": "iPhone 12/13 Pro",
+    "imageWidth": 242,
+    "imageHeight": 524
+  },
+  "image": {
+    "path": "current-home-offline.png",
+    "sha256": "6f1d8196330f110f58642bc107786ccc93904077f109f92fa893549ca62dd339"
+  },
+  "releaseReady": false
+}

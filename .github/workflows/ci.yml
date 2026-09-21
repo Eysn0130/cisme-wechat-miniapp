@@ -65,6 +65,12 @@ jobs:
       - run: npm run design:qa:status 2>&1 | tee "$RUNNER_TEMP/native-validation/design-qa-status.log"
       - run: npm test 2>&1 | tee "$RUNNER_TEMP/native-validation/test.log"
       - run: npm run test:integration 2>&1 | tee "$RUNNER_TEMP/native-validation/test-integration.log"
+        env:
+          CISME_CAPTURE_API_EVIDENCE: 'true'
+      - name: Summarize executed HTTP evidence (not full security acceptance)
+        run: |
+          npx tsx scripts/audit-api-surface.ts
+          npx tsx scripts/summarize-api-evidence.ts "$RUNNER_TEMP/native-validation/api-request-evidence.jsonl" "$RUNNER_TEMP/native-validation/executed-http-evidence.json"
       - run: npm run restore:verify 2>&1 | tee "$RUNNER_TEMP/native-validation/synthetic-restore.log"
       - run: npm run build 2>&1 | tee "$RUNNER_TEMP/native-validation/build.log"
       - run: npm run lint:contracts 2>&1 | tee "$RUNNER_TEMP/native-validation/lint-contracts.log"

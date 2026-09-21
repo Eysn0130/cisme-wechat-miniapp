@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "routeCount": 228,
-  "sourceSha256": "a40e12fcd896ab45670364b2527509188c80fb7639b8ae430773f2675fbd0af0",
+  "sourceSha256": "0df490accacc988e4a50c4ad039f2bdb87001125d03ded049fe45e95cc3ceb7b",
   "releaseReady": false,
   "scope": "Exact method denominator. Candidate references are discovery aids, not per-axis security proof. Service source review and executed semantic tests must supply acceptance.",
   "nonRouteSurfaces": [
@@ -655,10 +655,17 @@
       "path": "/v1/admin/runtime-metrics",
       "family": "care-platform",
       "handler": "services/api/src/server.ts:755",
-      "handlerSliceSha256": "65864cedd0bc0eb5eb740c7244ed909f161bcf325ac0eb3139bec1c8e4c7670b",
-      "serviceCalls": [],
+      "handlerSliceSha256": "ffa3d5656a8efcd6581630dd92004d5f9b39aeea432a8b3b99bc1e3f7c976435",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/platformService.ts",
+          "method": "requireOperationsReader"
+        }
+      ],
       "nativeReferenceCandidates": [],
-      "testReferenceCandidates": [],
+      "testReferenceCandidates": [
+        "tests/integration/legacy-admin-auth.test.ts"
+      ],
       "commonControls": [
         "server preHandler identity/active member or explicit public/callback exception",
         "rateLimits.ts",
@@ -969,7 +976,7 @@
       "method": "POST",
       "path": "/v1/admin/worker-failures/{queue}/{itemId}/redrive",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:756",
+      "handler": "services/api/src/server.ts:759",
       "handlerSliceSha256": "2d63595e22a18ed44463f2a08dcfc4c689c80965d31f2b0cd92b40ff1dc0cf47",
       "serviceCalls": [
         {
@@ -1142,7 +1149,7 @@
       "method": "GET",
       "path": "/v1/capabilities",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:245",
+      "handler": "services/api/src/server.ts:247",
       "handlerSliceSha256": "a00637ab8298f9f7047f00785d90e2e7d9e09280e9e947830663900b3c332a7f",
       "serviceCalls": [
         {
@@ -1159,7 +1166,9 @@
         "apps/miniprogram/pages/post/index.ts",
         "apps/miniprogram/services/api.ts"
       ],
-      "testReferenceCandidates": [],
+      "testReferenceCandidates": [
+        "tests/integration/identity-public-boundary.test.ts"
+      ],
       "commonControls": [
         "server preHandler identity/active member or explicit public/callback exception",
         "rateLimits.ts",
@@ -1971,7 +1980,7 @@
       "method": "GET",
       "path": "/v1/identity/capabilities",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:345",
+      "handler": "services/api/src/server.ts:347",
       "handlerSliceSha256": "cfd7513f43dd3694cd9fd6ebe07194f52589113134964567103d53191be513bf",
       "serviceCalls": [
         {
@@ -2012,7 +2021,7 @@
       "method": "POST",
       "path": "/v1/identity/dev",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:337",
+      "handler": "services/api/src/server.ts:339",
       "handlerSliceSha256": "6274a1c89a592555bd21d6f954bc8478e23b7038c1530cbfa7ba961c435ba1fb",
       "serviceCalls": [
         {
@@ -2078,8 +2087,8 @@
       "method": "POST",
       "path": "/v1/identity/wechat",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:347",
-      "handlerSliceSha256": "f9e73aa81963ed1353e88fb3220256b7c295e501df1e578706a15e504965f32e",
+      "handler": "services/api/src/server.ts:349",
+      "handlerSliceSha256": "cd4ceafc94a10a4a36bf271e3e13518e097d0b5a75d24989cc727097662ab018",
       "serviceCalls": [
         {
           "owner": "services/api/src/platformService.ts",
@@ -2097,7 +2106,9 @@
       "nativeReferenceCandidates": [
         "apps/miniprogram/pages/account/index.ts"
       ],
-      "testReferenceCandidates": [],
+      "testReferenceCandidates": [
+        "tests/integration/identity-public-boundary.test.ts"
+      ],
       "commonControls": [
         "server preHandler identity/active member or explicit public/callback exception",
         "rateLimits.ts",
@@ -4120,7 +4131,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/appeals",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:322",
+      "handler": "services/api/src/server.ts:324",
       "handlerSliceSha256": "6b8aa5d0ce2e961c7027d3913a12f8c9cb2585e9dcb953440a541faa9e870cad",
       "serviceCalls": [
         {
@@ -4160,7 +4171,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/appeals/{appealId}/decision",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:324",
+      "handler": "services/api/src/server.ts:326",
       "handlerSliceSha256": "665985b33b2cbf2ab4bb1bbe193d2c90a8489da6c4ed90eb84862e7fba1c6a0f",
       "serviceCalls": [
         {
@@ -4200,7 +4211,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/comments/{commentId}/review",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:332",
+      "handler": "services/api/src/server.ts:334",
       "handlerSliceSha256": "8945137c9bdef8ec65816dd7bf6a29695dabf144c49496dab91044b6daa37fcc",
       "serviceCalls": [
         {
@@ -4238,7 +4249,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/media/{mediaId}/preview-url",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:327",
+      "handler": "services/api/src/server.ts:329",
       "handlerSliceSha256": "94453aca2c87617d8ea9a8f7414a066011fddc772a6ab156815479f07b8b87eb",
       "serviceCalls": [
         {
@@ -4278,7 +4289,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/media/{mediaId}/review",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:326",
+      "handler": "services/api/src/server.ts:328",
       "handlerSliceSha256": "84373979cd07e660ad025e1bf2b132ff998411cddfd0160b0e0e577db1a8870c",
       "serviceCalls": [
         {
@@ -4318,7 +4329,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:331",
+      "handler": "services/api/src/server.ts:333",
       "handlerSliceSha256": "c559185f4a651798ebfd4918f267b66f16243c3eaf73cfc09d3ef0c3a0902193",
       "serviceCalls": [
         {
@@ -4358,7 +4369,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/posts/{postId}/hide",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:335",
+      "handler": "services/api/src/server.ts:337",
       "handlerSliceSha256": "affe0d04ca142e8fb923a890f044fece8f796e42d7fdb74083566f0b4f300cfa",
       "serviceCalls": [
         {
@@ -4398,7 +4409,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/posts/{postId}/publish",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:334",
+      "handler": "services/api/src/server.ts:336",
       "handlerSliceSha256": "146758ee73a4e21fea11be8a859ac9970c58bf2348b6d59c92424d9d4ebcfe74",
       "serviceCalls": [
         {
@@ -4438,7 +4449,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/posts/{postId}/review",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:333",
+      "handler": "services/api/src/server.ts:335",
       "handlerSliceSha256": "727be897757bf9b9f58029ef1ea1643f58693d4bcd6a5982ea7ecf40da499bf8",
       "serviceCalls": [
         {
@@ -4478,7 +4489,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/reports",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:318",
+      "handler": "services/api/src/server.ts:320",
       "handlerSliceSha256": "82cc8417fa9f1b9b414efe5b2c5c94a06bcfac73f49c56f97216c4c81cee6e2c",
       "serviceCalls": [
         {
@@ -4518,7 +4529,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/reports/{reportId}/decision",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:320",
+      "handler": "services/api/src/server.ts:322",
       "handlerSliceSha256": "66f4c698b2e274112c9f303db0f6da6fa2a1ed539626f362369e48233b99488a",
       "serviceCalls": [
         {
@@ -4558,7 +4569,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/review-queue",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:317",
+      "handler": "services/api/src/server.ts:319",
       "handlerSliceSha256": "97beb5959ac53222958e00955080f3f6beb2179bd544921b8010a71993ddeff4",
       "serviceCalls": [
         {
@@ -7061,7 +7072,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/activity/{section}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:275",
+      "handler": "services/api/src/server.ts:277",
       "handlerSliceSha256": "a8e82a0b9b25a74056d16f005ec8bb6dec05842a728303f74278db239018b711",
       "serviceCalls": [
         {
@@ -7102,7 +7113,7 @@
       "method": "PUT",
       "path": "/v1/me/ugc/blocks/{memberId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:316",
+      "handler": "services/api/src/server.ts:318",
       "handlerSliceSha256": "9d111383c3fbc026f3c3e414b7135d6a4dce61b2f6a1dcce2d8f1364c5ee11c0",
       "serviceCalls": [
         {
@@ -7143,7 +7154,7 @@
       "method": "PUT",
       "path": "/v1/me/ugc/follows/{memberId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:312",
+      "handler": "services/api/src/server.ts:314",
       "handlerSliceSha256": "8a9dbf713adf6a588dcc283345b34ab07dfeecdf14f0d78785e06ae30445309b",
       "serviceCalls": [
         {
@@ -7184,7 +7195,7 @@
       "method": "DELETE",
       "path": "/v1/me/ugc/media/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:310",
+      "handler": "services/api/src/server.ts:312",
       "handlerSliceSha256": "d800ed05eee59dba3d1f9616b9be17ad50fbc2bdcf7f3c0b8c874096ffd2a679",
       "serviceCalls": [
         {
@@ -7222,7 +7233,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/media/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:298",
+      "handler": "services/api/src/server.ts:300",
       "handlerSliceSha256": "1f8d017005c66172b3d1524da404a683b443a4d2c473c0e829d4d1e24faa71b8",
       "serviceCalls": [
         {
@@ -7260,7 +7271,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/media/{mediaId}/preview-url",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:302",
+      "handler": "services/api/src/server.ts:304",
       "handlerSliceSha256": "4fc1d921a0837e55ec144264d4b3e35051d948347abd40284da25dfe2fc52e7a",
       "serviceCalls": [
         {
@@ -7298,7 +7309,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/posts",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:274",
+      "handler": "services/api/src/server.ts:276",
       "handlerSliceSha256": "9743236386dd0d92513da9b53fa780b07c238feb5433760e632426563330a2f0",
       "serviceCalls": [
         {
@@ -7340,7 +7351,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:277",
+      "handler": "services/api/src/server.ts:279",
       "handlerSliceSha256": "6624e310c8b2f7cc22ad7a26d906275ac7c4d4e3f2d9f80bceb129597af665e0",
       "serviceCalls": [
         {
@@ -7382,7 +7393,7 @@
       "method": "DELETE",
       "path": "/v1/me/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:291",
+      "handler": "services/api/src/server.ts:293",
       "handlerSliceSha256": "edb38d27fe49a8beab6d9fb703b5c49d6b1f96e84a5e4e88631d64916471a615",
       "serviceCalls": [
         {
@@ -7424,7 +7435,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:278",
+      "handler": "services/api/src/server.ts:280",
       "handlerSliceSha256": "d550e388078809f21c1c040a43b31cd4e138e855251a12f53eee63b2dcfb623a",
       "serviceCalls": [
         {
@@ -7466,7 +7477,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/appeals",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:279",
+      "handler": "services/api/src/server.ts:281",
       "handlerSliceSha256": "54a6ab34ecf31ce439f2765e35dcfe9553575b40b748e030176a4e6e60aab299",
       "serviceCalls": [
         {
@@ -7508,7 +7519,7 @@
       "method": "PUT",
       "path": "/v1/me/ugc/posts/{postId}/draft",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:281",
+      "handler": "services/api/src/server.ts:283",
       "handlerSliceSha256": "5d980333808492f443366823977a40779e760ee6071bf63edd164e2fcf31d140",
       "serviceCalls": [
         {
@@ -7550,7 +7561,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/media/{mediaId}/complete",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:297",
+      "handler": "services/api/src/server.ts:299",
       "handlerSliceSha256": "fc4a71ade1bc21d8c5d1602bd13df158e8f54b9178b86137cde76cbff8e8887e",
       "serviceCalls": [
         {
@@ -7592,7 +7603,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/posts/{postId}/media/{mediaId}/preview-url",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:306",
+      "handler": "services/api/src/server.ts:308",
       "handlerSliceSha256": "f402485142d002ef8ac616ca6c9b82fedc61a2d6e0efeda527205f235fff17fe",
       "serviceCalls": [
         {
@@ -7634,7 +7645,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/media/authorize",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:292",
+      "handler": "services/api/src/server.ts:294",
       "handlerSliceSha256": "1fae7805964027e4483f8536f2548ac524ba1f05b64c87651d3355e5b0f1c138",
       "serviceCalls": [
         {
@@ -7676,7 +7687,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/scan",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:286",
+      "handler": "services/api/src/server.ts:288",
       "handlerSliceSha256": "8f9fbeb35e360d5b81504d3babb14195b89b04d2ebea7c83a31a82f0686a3ed0",
       "serviceCalls": [
         {
@@ -7718,7 +7729,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/submit",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:282",
+      "handler": "services/api/src/server.ts:284",
       "handlerSliceSha256": "ae4a40b4c2563e26d4c07749a5ace5d2b5915be71db873828af314642f7fb551",
       "serviceCalls": [
         {
@@ -8755,7 +8766,7 @@
       "method": "GET",
       "path": "/v1/ugc/authors/{authorId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:250",
+      "handler": "services/api/src/server.ts:252",
       "handlerSliceSha256": "b684d835db008a09df4b28a22e6d4fc73478e4617004147a954e5240019b9cd1",
       "serviceCalls": [
         {
@@ -8795,7 +8806,7 @@
       "method": "GET",
       "path": "/v1/ugc/media/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:254",
+      "handler": "services/api/src/server.ts:256",
       "handlerSliceSha256": "489974514121cbe2b65dafffc6c3e93d4deb12c3010d5c1f4bc0c970cb9eaa0b",
       "serviceCalls": [
         {
@@ -8837,7 +8848,7 @@
       "method": "GET",
       "path": "/v1/ugc/own-preview/{ownerId}/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:262",
+      "handler": "services/api/src/server.ts:264",
       "handlerSliceSha256": "3f1aeed489421c70e6821f4b830f164df5177cb6966efa5da87fd809e122de29",
       "serviceCalls": [
         {
@@ -8873,7 +8884,7 @@
       "method": "GET",
       "path": "/v1/ugc/posts",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:249",
+      "handler": "services/api/src/server.ts:251",
       "handlerSliceSha256": "985460595f590e97dc2cc9548074ecb0b9848aba480205bfa6f472bb17c0e8e5",
       "serviceCalls": [
         {
@@ -8917,7 +8928,7 @@
       "method": "GET",
       "path": "/v1/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:251",
+      "handler": "services/api/src/server.ts:253",
       "handlerSliceSha256": "e72cad65994e9f02a8cb74b8fab7d8676233fb218f431dfca79d1cb85dc24d52",
       "serviceCalls": [
         {
@@ -8961,7 +8972,7 @@
       "method": "GET",
       "path": "/v1/ugc/posts/{postId}/comments",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:252",
+      "handler": "services/api/src/server.ts:254",
       "handlerSliceSha256": "e787f31b38774be48a1d82435d6641a57bfdf5970f13117320d418c338280ffb",
       "serviceCalls": [
         {
@@ -9005,7 +9016,7 @@
       "method": "POST",
       "path": "/v1/ugc/posts/{postId}/comments",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:313",
+      "handler": "services/api/src/server.ts:315",
       "handlerSliceSha256": "1e72de4a5b783fdd43c6df6a80046f96e60fa300146c196405a3ad216e483b2a",
       "serviceCalls": [
         {
@@ -9049,7 +9060,7 @@
       "method": "DELETE",
       "path": "/v1/ugc/posts/{postId}/comments/{commentId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:314",
+      "handler": "services/api/src/server.ts:316",
       "handlerSliceSha256": "b990c2572c6cc82d4a4e0869d43b565338264fe4a526d72cddc2b0300e680e1e",
       "serviceCalls": [
         {
@@ -9093,7 +9104,7 @@
       "method": "PUT",
       "path": "/v1/ugc/posts/{postId}/reaction",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:311",
+      "handler": "services/api/src/server.ts:313",
       "handlerSliceSha256": "31b704ba0347ef4040fc5d70a31e4c9a9ce7386cc4c1212c2ed6938c5483fdd2",
       "serviceCalls": [
         {
@@ -9137,7 +9148,7 @@
       "method": "POST",
       "path": "/v1/ugc/reports/{targetType}/{targetId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:315",
+      "handler": "services/api/src/server.ts:317",
       "handlerSliceSha256": "905458dbaa2ac68b66c78a7353a2b66da5f7d9067249526f432f46ee64e598f5",
       "serviceCalls": [
         {
@@ -9177,7 +9188,7 @@
       "method": "GET",
       "path": "/v1/ugc/review-preview/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:258",
+      "handler": "services/api/src/server.ts:260",
       "handlerSliceSha256": "668c4778b36bd5994de9a504c4ef4c407c47f505d1af9099c069fda6a023865a",
       "serviceCalls": [
         {
@@ -9213,7 +9224,7 @@
       "method": "GET",
       "path": "/v1/ugc/safety-callback",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:270",
+      "handler": "services/api/src/server.ts:272",
       "handlerSliceSha256": "823adc98bd41651c7904f3619bdefa86729b1bb313a734765fcd7fd0d04485cb",
       "serviceCalls": [
         {
@@ -9223,6 +9234,7 @@
       ],
       "nativeReferenceCandidates": [],
       "testReferenceCandidates": [
+        "tests/integration/identity-public-boundary.test.ts",
         "tests/integration/rate-limits.test.ts"
       ],
       "commonControls": [
@@ -9251,7 +9263,7 @@
       "method": "POST",
       "path": "/v1/ugc/safety-callback",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:272",
+      "handler": "services/api/src/server.ts:274",
       "handlerSliceSha256": "41eba107e681b96cf37d934f0d7a132f296a673e835336b9f44d4b57e6748e68",
       "serviceCalls": [
         {
@@ -9261,6 +9273,7 @@
       ],
       "nativeReferenceCandidates": [],
       "testReferenceCandidates": [
+        "tests/integration/identity-public-boundary.test.ts",
         "tests/integration/rate-limits.test.ts"
       ],
       "commonControls": [
@@ -9289,7 +9302,7 @@
       "method": "GET",
       "path": "/v1/ugc/scan-source/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:266",
+      "handler": "services/api/src/server.ts:268",
       "handlerSliceSha256": "56cfd85477a8130b1ec1f03b8282041d1927e2d8418ca28e9f9f83dc8f7c859b",
       "serviceCalls": [
         {
@@ -9299,6 +9312,7 @@
       ],
       "nativeReferenceCandidates": [],
       "testReferenceCandidates": [
+        "tests/integration/identity-public-boundary.test.ts",
         "tests/integration/ugc-safety.test.ts"
       ],
       "commonControls": [
@@ -9327,7 +9341,7 @@
       "method": "GET",
       "path": "/v1/ugc/status",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:248",
+      "handler": "services/api/src/server.ts:250",
       "handlerSliceSha256": "5fb45dfd9799651d5cfc0b956786e0fd446104410e16881ce99895a815252bf4",
       "serviceCalls": [
         {
@@ -9339,7 +9353,9 @@
         "apps/miniprogram/pages/community/index.ts",
         "apps/miniprogram/pages/community-compose/index.ts"
       ],
-      "testReferenceCandidates": [],
+      "testReferenceCandidates": [
+        "tests/integration/identity-public-boundary.test.ts"
+      ],
       "commonControls": [
         "server preHandler identity/active member or explicit public/callback exception",
         "rateLimits.ts",
@@ -9519,7 +9535,7 @@
       "method": "GET",
       "path": "/health/live",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:239",
+      "handler": "services/api/src/server.ts:241",
       "handlerSliceSha256": "a2be3edb63190b6b33b567d4a8f706ac55698cc237f2f942c94d31e3f63a7feb",
       "serviceCalls": [],
       "nativeReferenceCandidates": [],
@@ -9552,7 +9568,7 @@
       "method": "GET",
       "path": "/health/ready",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:240",
+      "handler": "services/api/src/server.ts:242",
       "handlerSliceSha256": "311f36c42f82a65b53f3bc47e7ec78bbe51b8f87a836c40c484786af0a528db1",
       "serviceCalls": [],
       "nativeReferenceCandidates": [],

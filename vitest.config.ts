@@ -1,3 +1,3 @@
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({ test: { include: ['tests/**/*.test.ts'], setupFiles: ['tests/setup/database-target.ts'] } });
+export default defineConfig({ test: { include: ['tests/**/*.test.ts'], setupFiles: ['tests/setup/database-target.ts', 'tests/setup/api-evidence.ts'] } });
