@@ -1,5 +1,5 @@
 <view class="home-page {{reducedMotion ? 'home-page--reduced' : ''}}" style="{{chromeStyle}}">
-  <button class="home-support {{accountOpening || sessionMounted ? 'control--disabled' : ''}}" bindtap="openSupport" disabled="{{accountOpening || sessionMounted}}" aria-hidden="{{sessionMounted}}" aria-label="打开 CISME 客服{{supportUnread ? '，有 ' + supportUnread + ' 条未读消息' : ''}}"><image src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><text wx:if="{{supportUnread}}" class="home-support__badge">{{supportUnread > 99 ? '99+' : supportUnread}}</text></button>
+  <button class="home-support {{accountOpening || sessionMounted ? 'control--disabled' : ''}}" bindtap="openSupport" disabled="{{accountOpening || sessionMounted}}" aria-hidden="{{sessionMounted}}" aria-label="打开 CISME 客服{{supportState === 'ready' ? (supportUnread ? '，有 ' + supportUnread + ' 条未读消息' : '，没有未读消息') : supportState === 'error' ? '，未读数量暂未确认' : '，未读数量同步中'}}"><image src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><text wx:if="{{supportUnread}}" class="home-support__badge">{{supportUnread > 99 ? '99+' : supportUnread}}</text></button>
   <image class="home-background" src="/assets/cisme/cisme-home-background-v1.jpg" mode="aspectFill" />
   <view class="care-console" aria-hidden="{{sessionMounted}}">
     <view class="brand-wordmark">CISME</view>
@@ -10,7 +10,7 @@
         <view class="protocol-icon"><image class="protocol-icon__asset" src="/assets/icons/spray-bottle-plum.svg" mode="aspectFit" /></view>
         <view class="protocol-title__copy"><view><text class="protocol-number">{{view.protocolCode}}</text><text> {{view.protocolLabel}}</text></view><text class="protocol-title__hint">{{view.protocolHint}}</text></view>
       </view>
-      <button class="care-cta {{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable}}" bindtap="primaryAction"><view class="care-cta__highlight"></view><text class="care-cta__label">{{view.action}}</text></button>
+      <button class="care-cta {{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable}}" bindtap="primaryAction"><view class="care-cta__highlight"></view><text class="care-cta__label">{{working ? '正在保存…' : mutationState === 'unknown' ? '重试原保存' : view.action}}</text></button>
       <view class="protocol-rail" aria-label="四段护理步骤">
         <view class="protocol-line"><view class="protocol-line__fill" style="{{view.progressStyle}}"></view></view>
         <button wx:for="{{view.steps}}" wx:key="code" class="protocol-step {{item.done ? 'is-done' : ''}} {{item.active ? 'is-active' : ''}} {{item.justDone ? 'is-just-done' : ''}}" data-index="{{index}}" bindtap="selectProtocolStep" aria-label="{{item.code}} {{item.label}}，{{item.done ? '已完成' : item.active ? '当前查看' : '点击查看'}}">
@@ -22,12 +22,17 @@
     <view wx:elif="{{loading}}" class="home-authority-state" aria-live="polite">正在同步护理状态…</view>
     <view wx:else class="home-authority-state" aria-live="assertive">护理状态暂不可用，请重试。</view>
   </view>
-  <view wx:if="{{error}}" class="home-error" aria-live="assertive"><text class="home-error__copy">{{error}}</text><button class="text-button" bindtap="retryLoad">重试</button></view>
+  <view wx:if="{{error && !sessionMounted}}" class="home-error" aria-live="assertive"><text class="home-error__copy">{{error}}</text><button class="text-button" bindtap="retryLoad">重新同步</button><button wx:if="{{mutationState === 'unknown'}}" class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryCareMutation" disabled="{{working || loading}}">重试原保存</button></view>
 
   <view wx:if="{{sessionMounted}}" class="care-session {{sessionVisible ? 'care-session--visible' : ''}} {{sessionClosing ? 'care-session--closing' : ''}} {{reducedMotion ? 'care-session--reduced' : ''}}" catchtap="closeCareSession" aria-label="本次护理步骤" aria-role="dialog" aria-modal="true">
     <view class="care-session__sheet" catchtap="stopPropagation">
       <view class="care-session__handle"></view>
       <view class="care-session__topline"><view class="care-session__summary"><text class="care-session__milestone">{{sessionLabel}}</text><text class="care-session__progress" aria-live="polite">{{sessionProgressLabel}}</text></view><button class="care-session__close {{working ? 'control--disabled' : ''}}" bindtap="closeCareSession" disabled="{{working}}" aria-label="关闭护理步骤">关闭</button></view>
+      <view wx:if="{{error || mutationState === 'unknown'}}" class="session-error" aria-live="assertive">
+        <text>{{error || '保存结果待确认；不会把未知结果显示成成功。'}}</text>
+        <button class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryLoad" disabled="{{working || loading}}">只同步服务器记录</button>
+        <button wx:if="{{mutationState === 'unknown'}}" class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryCareMutation" disabled="{{working || loading}}">重试原保存</button>
+      </view>
       <view class="session-rail">
         <view class="session-rail__line"><view class="session-rail__fill" style="{{sessionProgressStyle}}"></view></view>
         <view wx:for="{{sessionSteps}}" wx:key="code" class="session-node {{item.done ? 'is-done' : ''}} {{item.current ? 'is-current' : ''}} {{item.justDone ? 'is-just-done' : ''}}"><view class="session-node__disc"><image wx:if="{{item.done}}" class="session-node__check" src="/assets/icons/check-white.svg" mode="aspectFit"/><text wx:else class="session-node__code">{{item.code}}</text></view><small class="session-node__label">{{item.label}}</small></view>
@@ -49,10 +54,10 @@
           <strong class="session-step__title">护理后感觉如何？</strong>
           <text class="session-step__instruction">选择最接近此刻的真实感受，这会随本次护理事实一起保存。</text>
           <view class="assessment-list">
-            <button wx:for="{{assessments}}" wx:key="value" class="assessment-option {{sessionAssessment === item.value ? 'is-selected' : ''}}" data-value="{{item.value}}" bindtap="selectAssessment"><view><strong class="assessment-option__title">{{item.label}}</strong><small class="assessment-option__note">{{item.note}}</small></view><view class="assessment-option__check"><image wx:if="{{sessionAssessment === item.value}}" class="assessment-option__check-icon" src="/assets/icons/check-white.svg" mode="aspectFit"/></view></button>
+            <button wx:for="{{assessments}}" wx:key="value" class="assessment-option {{sessionAssessment === item.value ? 'is-selected' : ''}} {{working || mutationState === 'unknown' ? 'control--disabled' : ''}}" data-value="{{item.value}}" disabled="{{working || mutationState === 'unknown'}}" bindtap="selectAssessment"><view><strong class="assessment-option__title">{{item.label}}</strong><small class="assessment-option__note">{{item.note}}</small></view><view class="assessment-option__check"><image wx:if="{{sessionAssessment === item.value}}" class="assessment-option__check-icon" src="/assets/icons/check-white.svg" mode="aspectFit"/></view></button>
           </view>
         </view>
-        <button class="session-primary {{!sessionAssessment || working ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{!sessionAssessment || working}}" bindtap="submitCareSession">{{sessionSubmitLabel}}</button>
+        <button class="session-primary {{!sessionAssessment || working || mutationState === 'unknown' ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{!sessionAssessment || working || mutationState === 'unknown'}}" bindtap="submitCareSession">{{working ? '正在保存…' : mutationState === 'unknown' ? '保存结果待确认' : sessionSubmitLabel}}</button>
         <text wx:if="{{sessionRecordable}}" class="session-footnote">提交后将保存完成时间、四个步骤与本次自我感受。积分仅在已批准的护理节点显示和入账。</text>
         <text wx:else class="session-footnote">本次日常护理会在当前页面完成；专属周期开通后，D1 等节点护理才会保存为护理记录。</text>
       </block>

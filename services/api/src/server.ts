@@ -11,7 +11,8 @@ import { loadConfig, type AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
 import type { CareMilestoneCommandInput, CareVersionCommandInput, EmergencySwitchKey, WorkerQueue } from "@cisme/contracts";
 import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
-import { createPool } from "./db.js";
+import { installRequestBudgets, dependencySignal } from "./operationBudget.js";
+import { createPool, requestBudgetPool } from "./db.js";
 import { PrivacyRights } from "./privacyRights.js";
 import { SyntheticPrivacyExecution } from "./privacyExecution.js";
 import { PhoneBinding } from "./phoneBinding.js";
@@ -44,7 +45,7 @@ import { ApprovedKnowledgeRegistry, DisabledSupportAiProvider, SupportAiBoundary
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
 import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
-import { recordHttpRequest, runtimeMetrics, safeFailureFields, safeLoggerOptions } from "./observability.js";
+import { installHttpMetrics, registerHttpRoute, runtimeMetrics, safeFailureFields, safeLoggerOptions } from "./observability.js";
 import { createRateLimitChecks } from "./rateLimits.js";
 
 declare module "fastify" {
@@ -89,15 +90,17 @@ function idempotencyKey(request: FastifyRequest): string {
 }
 
 export async function createApp(dependencies: AppDependencies): Promise<FastifyInstance> {
-  const { config, pool, storage } = dependencies;
+  const { config, storage } = dependencies;
+  const pool = requestBudgetPool(dependencies.pool, config.database);
   const app = Fastify({ ...(dependencies.loggerInstance && config.env === "test"
     ? { loggerInstance: dependencies.loggerInstance } : { logger: safeLoggerOptions(config.observability.logLevel) }),
     logController: new LogController({ disableRequestLogging: true }),
     // Trace IDs are server-owned. A caller-controlled x-request-id could be
     // a phone number, token, or signed URL and would otherwise enter logs.
     genReqId: () => randomUUID(),
-    bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.routeDeadlineMs });
-  let coldStart = true;
+    bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.receiveTimeoutMs, handlerTimeout: 0 });
+  installRequestBudgets(app, config.api.routeDeadlineMs);
+  app.addHook("onRoute", route => registerHttpRoute(route.method, route.url));
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
@@ -171,22 +174,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   await app.register(rateLimit, { global: false, cache: config.api.rateLimit.cacheSize });
   const rateChecks = createRateLimitChecks(app, config.api.rateLimit);
 
-  app.addHook("onRequest", async (request, reply) => {
-    (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeStartedAt = performance.now();
-    (request as FastifyRequest & { cismeStartedAt?: number; cismeColdStart?: boolean }).cismeColdStart = coldStart;
-    coldStart = false;
-    await rateChecks.onRequest(request, reply);
-  });
-  app.addHook("onSend", async (request, reply, payload) => {
-    const started = (request as FastifyRequest & { cismeStartedAt?: number }).cismeStartedAt ?? performance.now();
-    const bytes = typeof payload === "string" ? Buffer.byteLength(payload) : Buffer.isBuffer(payload) ? payload.length : 0;
-    const durationMs = performance.now() - started;
-    const cold = Boolean((request as FastifyRequest & { cismeColdStart?: boolean }).cismeColdStart);
-    recordHttpRequest({ ...(request.routeOptions.url ? { route: request.routeOptions.url } : {}), durationMs, responseBytes: bytes, statusCode: reply.statusCode, coldStart: cold, timedOut: reply.statusCode === 408 || reply.statusCode === 504 });
-    request.log.info({ event: "http_request", request_id: request.id, method: request.method, route: request.routeOptions.url, status_code: reply.statusCode,
-      duration_ms: Math.round(durationMs * 100) / 100, response_bytes: bytes, cold_start: cold });
-    return payload;
-  });
+  installHttpMetrics(app);
+  app.addHook("onRequest", async (request, reply) => { await rateChecks.onRequest(request, reply); });
 
   app.setErrorHandler((error, request, reply) => {
     const pgCode = (error as { code?: string }).code;
@@ -197,7 +186,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       : pgCode === "57014" ? new DomainError("DATABASE_DEADLINE_EXCEEDED", "Database deadline exceeded", 504)
       : pgCode === "53300" || message === "timeout exceeded when trying to connect" ? new DomainError("DATABASE_SATURATED", "Database capacity is temporarily saturated", 503)
       : null;
-    const domain = error instanceof DomainError ? error : databaseDomain;
+    const domain = error instanceof DomainError ? error : pgCode === "FST_ERR_HANDLER_TIMEOUT"
+      ? new DomainError("HANDLER_DEADLINE_EXCEEDED", "处理超时；写入结果待查询确认，请保留原幂等键", 503) : databaseDomain;
     const status = domain?.status ?? ((error as { statusCode?: number }).statusCode ?? 500);
     const retryAfter = Number(reply.getHeader("Retry-After"));
     if (status >= 500) request.log.error({ event: "http_failure", request_id: request.id,
@@ -351,7 +341,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post("/v1/identity/wechat", async (request) => {
     if (!config.wechat.appId || !config.wechat.appSecret) throw new DomainError("WECHAT_NOT_CONFIGURED", "WeChat credentials are not configured", 503);
     const body = request.body as { code: string; displayName: string; consents: Array<{ documentType: string; version: string }> };
-    const response = await fetch(`https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(config.wechat.appId)}&secret=${encodeURIComponent(config.wechat.appSecret)}&js_code=${encodeURIComponent(body.code)}&grant_type=authorization_code`, { signal: AbortSignal.timeout(12_000) });
+    const response = await fetch(`https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(config.wechat.appId)}&secret=${encodeURIComponent(config.wechat.appSecret)}&js_code=${encodeURIComponent(body.code)}&grant_type=authorization_code`, { signal: dependencySignal(12_000) });
     const session = await response.json() as { openid?: string; unionid?: string; errcode?: number; errmsg?: string };
     if (!response.ok || !session.openid) throw new DomainError("WECHAT_LOGIN_FAILED", session.errmsg ?? "WeChat login failed", 502);
     const now = service.now();

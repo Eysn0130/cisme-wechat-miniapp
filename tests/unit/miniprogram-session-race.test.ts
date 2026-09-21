@@ -16,7 +16,8 @@ describe("native delayed authentication responses", () => {
   it("keeps a renewed session when an old authenticated request fails", async () => {
     const api = await vi.importActual<any>("../../apps/miniprogram/services/api");
     const result = api.request({ path: "/v1/me" }).catch((error: unknown) => error);
-    expect(wxMock.request.mock.calls[0]![0].timeout).toBe(12_000);
+    expect(wxMock.request.mock.calls[0]![0].timeout).toBeLessThanOrEqual(12_000);
+    expect(wxMock.request.mock.calls[0]![0].timeout).toBeGreaterThan(11_900);
     api.setSessionToken("new-session");
     wxMock.request.mock.calls[0]![0].success({ statusCode: 401, data: { code: "SESSION_EXPIRED" } });
     await result;
@@ -120,7 +121,7 @@ it('cancels a queued 429 retry after identity or page changes',async()=>{
   wxMock.request.mock.calls[0]![0].success({statusCode:429,data:{code:'RATE_LIMITED',retryAfterSeconds:1}});
   api.setSessionToken('new-member');
   await vi.advanceTimersByTimeAsync(100);
-  expect(await switched).toMatchObject({code:'REQUEST_CONTEXT_CHANGED'});
+  expect(await switched).toMatchObject({code:'REQUEST_SESSION_CHANGED'});
   expect(wxMock.request).toHaveBeenCalledTimes(1);
 
   const departed=api.request({path:'/v1/me'}).catch((error:unknown)=>error);

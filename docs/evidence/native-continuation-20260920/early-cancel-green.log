@@ -1,0 +1,11 @@
+
+ RUN  v4.1.11 /mnt/data/cisme
+
+ ✓ tests/integration/native-operation-budget.test.ts (8 tests) 445ms
+ ✓ tests/unit/transaction-budget.test.ts (13 tests) 245ms
+ ✓ tests/integration/native-savepoint-recovery.test.ts (1 test) 26ms
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  02:25:23
+   Duration  1.31s (transform 176ms, setup 0ms, import 292ms, tests 716ms, environment 0ms)

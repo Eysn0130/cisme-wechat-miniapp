@@ -1,3 +1,6 @@
+import { careCommandConfirmed, type CareCommand } from "../../services/care-command-state";
+import { pageRead, cancelPageReads } from "../../services/page-requests";
+import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { memberIdentity } from "../../services/member-identity";
 import { requireMemberAccess, retainMemberSnapshot, request } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
@@ -42,7 +45,7 @@ function homeView(care: CareView | null, displayName = "CISME 会员", selectedI
   const selected = boundedStepIndex(selectedIndex);
   const completed = phase === "completed";
   const transientCompleted = new Set(transientCompletedCodes);
-  const activeStep = careProtocolSteps[selected];
+  const activeStep = careProtocolSteps[selected] ?? careProtocolSteps[0];
   const steps = careProtocolSteps.map((step, index) => ({ ...step, done: completed || transientCompleted.has(step.code), active: index === selected, justDone: step.code === justCompletedCode }));
   const completedStepCount = completed ? careProtocolSteps.length : transientCompleted.size;
   const daypart = careDaypart(now, care?.timezone || "Asia/Shanghai");
@@ -82,22 +85,29 @@ function homeView(care: CareView | null, displayName = "CISME 会员", selectedI
   };
 }
 
-function visitorView() {
-  return { ...homeView(null, "CISME 会员", 0), greeting: "欢迎来到 CISME", action: "授权身份并开始", signalTitle: "先看看今天的护理方法", signalMeta: "确认身份后可保存你的专属周期与记录" };
+const snapshotOwners = new WeakMap<object, string>();
+const pendingCareCommands = new WeakMap<object, CareCommand>();
+const writeOwners = new WeakMap<object, object>();
+const careSessionTargets = new WeakMap<object, { token: string; cycleId: string | null; version: number | null; due: string | null }>();
+
+function visitorView(selectedIndex = 0) {
+  return { ...homeView(null, "CISME 会员", selectedIndex), greeting: "欢迎来到 CISME", action: "授权身份并开始", signalTitle: "先看看今天的护理方法", signalMeta: "确认身份后可保存你的专属周期与记录" };
 }
 
 Page({
   data: {
-    chromeStyle: currentChromeStyle(), accountOpening: false, supportUnread: 0, care: null as CareView | null, view: homeView(null), selectedProtocolIndex: 0,
+    chromeStyle: currentChromeStyle(), accountOpening: false, supportUnread: null as number | null, supportState: "unknown" as "unknown" | "loading" | "ready" | "error", care: null as CareView | null, view: homeView(null), selectedProtocolIndex: 0,
     loading: true, working: false, activationConfirming: false, authorityAvailable: false, needsAuthentication: false,
-    loadAttempt: 0, snapshotVersion: 0, pageAlive: true, error: "", reducedMotion: shouldReduceMotion(),
+    loadAttempt: 0, snapshotVersion: 0, pageAlive: true, pageVisible: true, lifecycleEpoch: 0, mutationState: "idle" as "idle" | "sending" | "unknown" | "confirmed", error: "", reducedMotion: shouldReduceMotion(),
     sessionMounted: false, sessionOpen: false, sessionVisible: false, sessionClosing: false, sessionRecordable: false, sessionLabel: "DAILY CARE", sessionSubmitLabel: "完成本次护理", sessionStage: "steps" as "steps" | "assessment", sessionStepIndex: 0, sessionStep: careProtocolSteps[0] as CareProtocolStepView,
     sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [] as string[], sessionAssessment: "" as CareSelfAssessmentValue | "", assessments: careSelfAssessments
   },
   onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; void registerIncomingShare(query.share_id, "invite", "home"); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
   onShow() {
-    this.setData({ accountOpening: false });
+    const pending = pendingCareCommands.get(this);
+    this.setData({ pageVisible: true, accountOpening: false, working: false, activationConfirming: false,
+      mutationState: pending?.token === getApp<IAppOption>().globalData.sessionToken ? "unknown" : "idle" });
     const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 0 }); tab?.syncActive?.(0);
     tab?.setPresentation?.("care-sheet", this.data.sessionMounted);
     const identity = memberIdentity();
@@ -106,12 +116,15 @@ Page({
     void this.load(retainMemberSnapshot(this));
   },
   onHide() {
+    cancelPageReads(this);
+    this.data.pageVisible = false; this.data.lifecycleEpoch++;
+    writeOwners.delete(this);
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
     this.getTabBar?.()?.setPresentation?.("care-sheet", false);
     if (this.data.sessionClosing) this.finishCareSessionClose();
   },
-  onUnload() { this.data.pageAlive = false;
+  onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.pageVisible = false; this.data.lifecycleEpoch++; writeOwners.delete(this);
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
     this.clearCareSessionCloseTimer();
@@ -125,33 +138,83 @@ Page({
   refreshDaypart() {
     if (!this.data.pageAlive || this.data.loading) return;
     const identity = memberIdentity();
-    this.setData({ view: this.data.needsAuthentication ? visitorView() : homeView(this.data.care, identity?.display_name || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
+    this.setData({ view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, identity?.display_name || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
+  },
+  isCurrentUi(epoch: number, token: string): boolean {
+    return this.data.pageAlive && this.data.pageVisible && this.data.lifecycleEpoch === epoch && getApp<IAppOption>().globalData.sessionToken === token;
+  },
+  isCurrentLoad(attempt: number, token: string): boolean {
+    return this.data.pageAlive && this.data.loadAttempt === attempt && getApp<IAppOption>().globalData.sessionToken === token;
+  },
+  restoreGuestIfExpired(attempt: number) {
+    if (!this.data.pageAlive || this.data.loadAttempt !== attempt || getApp<IAppOption>().globalData.sessionToken) return;
+    this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "" });
+  },
+  async loadSupport(attempt: number, token: string) {
+    this.setData({ supportUnread: null, supportState: "loading" });
+    try {
+      const support = await pageRead<{ unreadCount: number }>(this, { path: "/v1/me/support/summary", authMode: "optional", cacheTags: ["support"] });
+      if (!Number.isSafeInteger(support.unreadCount) || support.unreadCount < 0) throw new Error("INVALID_UNREAD_COUNT");
+      if (this.isCurrentLoad(attempt, token)) this.setData({ supportUnread: support.unreadCount, supportState: "ready" });
+      else this.restoreGuestIfExpired(attempt);
+    } catch {
+      if (this.isCurrentLoad(attempt, token)) this.setData({ supportUnread: null, supportState: "error" });
+      else this.restoreGuestIfExpired(attempt);
+    }
   },
   async load(preserveSnapshot = false): Promise<boolean> {
+    cancelPageReads(this);
+    const loadStarted = measurementClock();
     const attempt = this.data.loadAttempt + 1;
-    this.setData(preserveSnapshot && this.data.authorityAvailable
-      ? { loadAttempt: attempt, loading: true, error: "" }
-      : { loadAttempt: attempt, care: null, supportUnread: 0, view: homeView(null, memberIdentity()?.display_name, this.data.selectedProtocolIndex), loading: true, authorityAvailable: false, needsAuthentication: false, error: "" });
-    if (!getApp<IAppOption>().globalData.sessionToken) {
-      this.setData({ care: null, supportUnread: 0, view: visitorView(), loading: false, authorityAvailable: false, needsAuthentication: true, error: "" });
-      return false;
+    const token = getApp<IAppOption>().globalData.sessionToken;
+    const sameSession = snapshotOwners.get(this) === token;
+    snapshotOwners.set(this, token);
+    if (!sameSession) {
+      this.data.lifecycleEpoch++;
+      writeOwners.delete(this); pendingCareCommands.delete(this); careSessionTargets.delete(this);
+      this.setData({ working: false, activationConfirming: false, mutationState: "idle" });
+      wx.disableAlertBeforeUnload();
+      this.getTabBar?.()?.setPresentation?.("care-sheet", false);
+      this.finishCareSessionClose();
+      this.setData({ snapshotVersion: 0 });
     }
+    this.setData(preserveSnapshot && sameSession && this.data.authorityAvailable
+      ? { loadAttempt: attempt, loading: true, error: "" }
+      : { loadAttempt: attempt, care: null, supportUnread: null, supportState: "unknown", view: token ? homeView(null, memberIdentity()?.display_name, this.data.selectedProtocolIndex) : visitorView(this.data.selectedProtocolIndex), loading: true, authorityAvailable: false, needsAuthentication: !token, error: "" });
+    if (!token) { this.restoreGuestIfExpired(attempt); return false; }
+    // Unread is independent: it must neither hold the care snapshot nor invent zero.
+    void this.loadSupport(attempt, token);
     try {
-      const [snapshot,support] = await Promise.all([
-        request<{ member: MemberView; care: CareView | null; businessVersion: number }>({ path: "/v1/bootstrap/home", cacheTags: ["member", "care"] }),
-        request<{unreadCount:number}>({path:"/v1/me/support/summary",cacheTags:["support"]}).catch(()=>({unreadCount:0}))
-      ]);
+      const snapshot = await pageRead<{ member: MemberView; care: CareView | null; businessVersion: number }>(this, { path: "/v1/bootstrap/home", authMode: "optional", cacheTags: ["member", "care"] });
+      if (!this.isCurrentLoad(attempt, token)) { this.restoreGuestIfExpired(attempt); return false; }
+      if (!Number.isSafeInteger(snapshot.businessVersion) || snapshot.businessVersion < 0 || !snapshot.member?.id
+        || (snapshot.care && (!snapshot.care.id || !Number.isSafeInteger(snapshot.care.version)))) throw new Error("INVALID_CARE_SNAPSHOT");
+      if (snapshot.businessVersion < this.data.snapshotVersion) return this.data.authorityAvailable;
+      const processingStarted = measurementClock();
       const { member, care } = snapshot;
-      if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return false;
-      if (snapshot.businessVersion < this.data.snapshotVersion) return true;
       const known = memberIdentity();
       const displayName = known && known.id === member.id && known.profile_revision > (member.profile_revision || 0) ? known.display_name : member.display_name;
-      this.setData({ care, supportUnread:Math.max(0,Number(support.unreadCount)||0), snapshotVersion: snapshot.businessVersion, view: homeView(care, displayName || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes), authorityAvailable: true, needsAuthentication: false });
+      const core = { care, snapshotVersion: snapshot.businessVersion, view: homeView(care, displayName || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes), authorityAvailable: true, needsAuthentication: false, loading: false };
+      recordClientMetric({ action: "home", stage: "data_processing", durationMs: measurementClock() - processingStarted });
+      const bridgeStarted = measurementClock();
+      this.setData(core, () => {
+        if (this.isCurrentLoad(attempt, token)) {
+          recordClientMetric({ action: "home", stage: "set_data", durationMs: measurementClock() - bridgeStarted });
+          recordClientMetric({ action: "home", stage: "critical_ready", durationMs: measurementClock() - loadStarted });
+        }
+      });
+      const pending = pendingCareCommands.get(this);
+      if (pending?.token === token && careCommandConfirmed(pending, care)) {
+        pendingCareCommands.delete(this);
+        this.setData({ mutationState: "confirmed", error: "已在服务器事实中确认保存，可到护理记录回看。" });
+        if (!this.data.working) this.resetCareSession();
+      }
       return true;
     } catch {
-      if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ care: null, supportUnread: 0, view: homeView(null), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法同步，请检查网络后重试。页面不会用旧状态开放护理操作。" });
+      if (this.isCurrentLoad(attempt, token)) this.setData({ care: null, view: homeView(null), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法同步，请检查网络后重试。页面不会用旧状态开放护理操作。" });
+      else this.restoreGuestIfExpired(attempt);
       return false;
-    } finally { if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ loading: false }); }
+    } finally { if (this.isCurrentLoad(attempt, token)) this.setData({ loading: false }); }
   },
   openAccount() {
     if (this.data.accountOpening) return;
@@ -168,10 +231,11 @@ Page({
   selectProtocolStep(event: WechatMiniprogram.TouchEvent) {
     if (this.data.sessionOpen) return;
     const index = boundedStepIndex(Number(event.currentTarget.dataset.index));
-    this.setData({ selectedProtocolIndex: index, view: homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", index, new Date(), this.data.sessionCompletedCodes) });
+    this.setData({ selectedProtocolIndex: index, view: this.data.needsAuthentication ? visitorView(index) : homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", index, new Date(), this.data.sessionCompletedCodes) });
   },
   async primaryAction() {
     if (this.data.needsAuthentication) { this.openAccount(); return; }
+    if (this.data.mutationState === "unknown") { void this.retryCareMutation(); return; }
     if (this.data.loading || !this.data.authorityAvailable) { wx.showToast({ title: "护理状态尚未确认，请重试", icon: "none" }); return; }
     const care = this.data.care;
     if (!care) { this.openCareSession(); return; }
@@ -182,20 +246,22 @@ Page({
   async confirmCycleStart() {
     const care = this.data.care;
     if (!care || this.data.activationConfirming || this.data.working) return;
+    const epoch = this.data.lifecycleEpoch, token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ activationConfirming: true });
     try {
       const result = await wx.showModal({ title: "从今天开始护理周期？", content: "确认后，今天将记为开始日并开放 D1。护理记录只在你完成四个步骤后保存。", confirmText: "确认开始" });
-      if (!this.data.pageAlive || !result.confirm) return;
+      if (!this.isCurrentUi(epoch, token) || !result.confirm) return;
       if (!this.data.care || this.data.care.id !== care.id || this.data.care.version !== care.version) { this.setData({ error: "护理周期状态已变化，请刷新后重新确认。" }); return; }
       await this.act(`/v1/care-cycles/${care.id}/activate`, `care-activate-${care.id}-v${care.version}`, { expectedVersion: care.version });
     } catch {
-      if (this.data.pageAlive) this.setData({ error: "开始确认窗口暂时无法打开，请重试。" });
-    } finally { if (this.data.pageAlive) this.setData({ activationConfirming: false }); }
+      if (this.isCurrentUi(epoch, token)) this.setData({ error: "开始确认窗口暂时无法打开，请重试。" });
+    } finally { if (this.isCurrentUi(epoch, token)) this.setData({ activationConfirming: false }); }
   },
   openCareSession() {
     const care = this.data.care;
     const recordable = Boolean(care && care.phase === "active" && care.due);
-    if (this.data.working || this.data.sessionMounted || (care && !recordable)) return;
+    if (this.data.working || this.data.mutationState === "unknown" || this.data.sessionMounted || (care && !recordable)) return;
+    careSessionTargets.set(this, { token: getApp<IAppOption>().globalData.sessionToken, cycleId: care?.id ?? null, version: care?.version ?? null, due: care?.due ?? null });
     this.clearCareSessionCloseTimer();
     wx.enableAlertBeforeUnload({ message: "本次四步护理尚未保存，离开后需要重新确认未提交的步骤。" });
     this.getTabBar?.()?.setPresentation?.("care-sheet", true);
@@ -209,11 +275,12 @@ Page({
   stopPropagation() {},
   async closeCareSession() {
     if (this.data.working || this.data.sessionClosing) return;
+    const epoch = this.data.lifecycleEpoch, token = getApp<IAppOption>().globalData.sessionToken, target = careSessionTargets.get(this);
     if (this.data.sessionCompletedCodes.length > 0) {
       try {
-        const result = await wx.showModal({ title: "退出本次护理？", content: "尚未提交的步骤只保存在当前页面，退出后需要重新开始。", confirmText: "确认退出" });
-        if (!result.confirm) return;
-      } catch { this.setData({ error: "退出确认窗口暂时无法打开，请继续护理或稍后再试。" }); return; }
+        const result = await wx.showModal({ title: "退出本次护理？", content: this.data.mutationState === "unknown" ? "原操作已发送，结果仍待确认。退出不会撤回服务端处理，返回后请先核对记录。" : "尚未提交的步骤只保存在当前页面，退出后需要重新开始。", confirmText: "确认退出" });
+        if (!this.isCurrentUi(epoch, token) || careSessionTargets.get(this) !== target || !result.confirm) return;
+      } catch { if (this.isCurrentUi(epoch, token)) this.setData({ error: "退出确认窗口暂时无法打开，请继续护理或稍后再试。" }); return; }
     }
     this.resetCareSession();
   },
@@ -231,6 +298,7 @@ Page({
     careSessionCloseTimer = setTimeout(() => this.finishCareSessionClose(), careSessionExitMs);
   },
   finishCareSessionClose() {
+    careSessionTargets.delete(this);
     this.clearCareSessionCloseTimer();
     this.setData({ sessionMounted: false, sessionOpen: false, sessionVisible: false, sessionClosing: false, sessionRecordable: false, sessionLabel: "DAILY CARE", sessionSubmitLabel: "完成本次护理", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "" });
   },
@@ -245,9 +313,10 @@ Page({
       return;
     }
     const nextIndex = index + 1;
-    this.setData({ sessionCompletedCodes: completedCodes, sessionStepIndex: nextIndex, sessionStep: careProtocolSteps[nextIndex], sessionSteps: sessionRail(nextIndex, completedCodes.length, false, completedCode), sessionProgressStyle: progressStyle(completedCodes.length), sessionProgressLabel: `${completedCodes.length} / 4`, selectedProtocolIndex: nextIndex, view: homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", nextIndex, new Date(), completedCodes, completedCode) });
+    this.setData({ sessionCompletedCodes: completedCodes, sessionStepIndex: nextIndex, sessionStep: careProtocolSteps[nextIndex] ?? careProtocolSteps[0], sessionSteps: sessionRail(nextIndex, completedCodes.length, false, completedCode), sessionProgressStyle: progressStyle(completedCodes.length), sessionProgressLabel: `${completedCodes.length} / 4`, selectedProtocolIndex: nextIndex, view: homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", nextIndex, new Date(), completedCodes, completedCode) });
   },
   selectAssessment(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.working || this.data.mutationState === "unknown") return;
     const value = String(event.currentTarget.dataset.value) as CareSelfAssessmentValue;
     if (!careSelfAssessments.some((item) => item.value === value)) return;
     lightHaptic(this.data.reducedMotion);
@@ -255,16 +324,20 @@ Page({
   },
   async submitCareSession() {
     const care = this.data.care;
-    if (this.data.sessionCompletedCodes.length !== careProtocolSteps.length || !this.data.sessionAssessment || this.data.working) return;
+    if (this.data.sessionCompletedCodes.length !== careProtocolSteps.length || !this.data.sessionAssessment || this.data.working || this.data.mutationState === "unknown") return;
+    const target = careSessionTargets.get(this), token = getApp<IAppOption>().globalData.sessionToken, epoch = this.data.lifecycleEpoch;
+    if (!target || target.token !== token || target.cycleId !== (care?.id ?? null) || target.version !== (care?.version ?? null) || target.due !== (care?.due ?? null)) {
+      this.setData({ error: "护理目标或状态已变化。请退出未提交的步骤，核对记录后重新开始；不会把旧步骤写到新节点。" }); return;
+    }
     if (!this.data.sessionRecordable) {
       this.resetCareSession();
       lightHaptic(this.data.reducedMotion);
-      wx.showToast({ title: "本次护理已完成", icon: "success" });
+      wx.showToast({ title: "四步练习已完成，未生成记录", icon: "none" });
       return;
     }
     if (!care || !care.due) return;
     const completed = await this.act<CareCompletionResponse>(`/v1/care-cycles/${care.id}/milestones/${care.due}/complete`, `care-milestone-${care.id}-${care.due}-v${care.version}`, { expectedVersion: care.version, stepCodes: this.data.sessionCompletedCodes, selfAssessment: this.data.sessionAssessment });
-    if (!completed || !this.data.pageAlive) return;
+    if (!completed || !this.isCurrentUi(epoch, token)) return;
     this.resetCareSession();
     lightHaptic(this.data.reducedMotion);
     if (!completed.task?.id) {
@@ -276,29 +349,58 @@ Page({
       : "是否参与完全由你决定。";
     try {
       const decision = await wx.showModal({ title: "护理记录已点亮", content: `你已解锁一项自愿分享邀请。${rewardCopy}`, confirmText: "查看邀请", cancelText: "稍后再说" });
-      if (this.data.pageAlive && decision.confirm) wx.navigateTo({ url: `/pages/task/index?id=${completed.task.id}`, fail: () => wx.showToast({ title: "邀请暂时无法打开", icon: "none" }) });
-    } catch { wx.showToast({ title: `${care.due} 护理记录已点亮`, icon: "success" }); }
+      if (this.isCurrentUi(epoch, token) && decision.confirm) wx.navigateTo({ url: `/pages/task/index?id=${completed.task.id}`, fail: () => wx.showToast({ title: "邀请暂时无法打开", icon: "none" }) });
+    } catch { if (this.isCurrentUi(epoch, token)) wx.showToast({ title: `${care.due} 护理记录已点亮`, icon: "success" }); }
   },
-  async act<T = Record<string, unknown>>(path: string, idempotencyKey: string, data: WechatMiniprogram.IAnyObject): Promise<T | null> {
-    if (this.data.working || !this.data.authorityAvailable) return null;
-    this.setData({ working: true, error: "" });
-    const tab = this.getTabBar?.(); if (tab) tab.setData({ externalBusy: true });
-    wx.enableAlertBeforeUnload({ message: "护理操作已经发送，离开不会撤回服务端处理。请等待最新周期状态确认。" });
+  async retryCareMutation() {
+    const pending = pendingCareCommands.get(this);
+    if (!pending || pending.token !== getApp<IAppOption>().globalData.sessionToken || this.data.working) return;
+    const epoch = this.data.lifecycleEpoch, token = pending.token;
+    const refreshed = await this.load(true);
+    if (!this.isCurrentUi(epoch, token) || !refreshed || pendingCareCommands.get(this) !== pending) return;
+    // Explicit user action replays exactly the original key and payload. It
+    // never invents a new write intent after a lost response.
+    const result = await this.act(pending.path, pending.key, pending.data, true);
+    if (result && this.isCurrentUi(epoch, token)) {
+      this.resetCareSession();
+      wx.showToast({ title: "原操作已由服务器确认", icon: "success" });
+    }
+  },
+  async act<T = Record<string, unknown>>(path: string, idempotencyKey: string, data: WechatMiniprogram.IAnyObject, replay = false): Promise<T | null> {
+    if (this.data.working || !this.data.authorityAvailable || (this.data.mutationState === "unknown" && !replay)) return null;
+    const epoch = this.data.lifecycleEpoch, token = getApp<IAppOption>().globalData.sessionToken;
+    if (!token || !this.isCurrentUi(epoch, token)) return null;
+    const owner = {}, command: CareCommand = { path, key: idempotencyKey, data: { ...data, ...(Array.isArray(data.stepCodes) ? { stepCodes: [...data.stepCodes] } : {}) }, token };
+    writeOwners.set(this, owner); pendingCareCommands.set(this, command);
+    const current = () => writeOwners.get(this) === owner && this.isCurrentUi(epoch, token);
+    this.setData({ working: true, mutationState: "sending", error: "" });
+    wx.enableAlertBeforeUnload({ message: "护理操作已经发送，离开不会撤回服务端处理。返回后请核对服务器记录。" });
     try {
-      const response = await request({ path, method: "POST", idempotencyKey, data }) as T;
-      if (!this.data.pageAlive) return null;
+      const response = await request<T>({ path, method: "POST", idempotencyKey, data: command.data });
+      if (!current()) return null;
+      pendingCareCommands.delete(this);
+      this.setData({ mutationState: "confirmed" });
       const refreshed = await this.load(true);
-      if (this.data.pageAlive && !refreshed) this.setData({ error: "护理操作已受理，但最新周期暂时无法确认。页面已锁定护理动作，请刷新后核对。" });
+      if (!current()) return null;
+      if (!refreshed) this.setData({ error: "服务端已确认保存，但最新周期暂未同步。请刷新或到护理记录核对。" });
       return refreshed ? response : null;
-    } catch {
-      if (!this.data.pageAlive) return null;
+    } catch (error) {
+      if (!current()) return null;
+      const status = (error as { status?: number } | null)?.status;
+      const rejected = typeof status === "number" && status >= 400 && status < 500;
+      if (rejected) pendingCareCommands.delete(this);
+      this.setData({ mutationState: rejected ? "idle" : "unknown" });
       const refreshed = await this.load(true);
-      if (this.data.pageAlive) this.setData({ error: refreshed ? "护理操作未完成。已重新核对当前周期，请确认状态后再试。" : "护理操作结果与最新周期均暂时无法确认。页面已锁定护理动作，请刷新后核对。" });
+      if (!current()) return null;
+      if (this.data.mutationState === "confirmed") {
+        this.resetCareSession();
+      } else this.setData({ error: rejected
+        ? "请求未被接受。请核对服务器记录与当前周期后再操作，不会覆盖既有护理事实。"
+        : refreshed ? "保存结果待确认。已同步服务器周期；可查看记录，或核对原操作。不要更换幂等键再次保存。"
+          : "保存结果与最新周期均待确认。请恢复网络后核对原操作；不会显示虚假的成功记录。" });
       return null;
     } finally {
-      if (this.data.pageAlive) this.setData({ working: false });
-      const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false });
-      wx.disableAlertBeforeUnload();
+      if (current()) { writeOwners.delete(this); this.setData({ working: false }); wx.disableAlertBeforeUnload(); }
     }
   }
 });

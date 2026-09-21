@@ -1,9 +1,10 @@
+import { localPerformanceDatabase, loopbackPopulation, timeoutResponse } from "./performance-measurement.js";
 import { availableParallelism } from "node:os";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { loadConfig } from "@cisme/config";
-import { resetDatabase, resolveTestDatabaseUrl } from "@cisme/testkit";
+import { resetDatabase } from "@cisme/testkit";
 import { issueSessionToken } from "../services/api/src/auth.js";
 import { createPool } from "../services/api/src/db.js";
 import { resetRuntimeMetrics, runtimeMetrics } from "../services/api/src/observability.js";
@@ -37,7 +38,7 @@ function summarize(values: number[]) {
 }
 
 if (process.env.CAPACITY_ALLOW_RESET !== "true") throw new Error("CAPACITY_ALLOW_RESET_REQUIRED: benchmark resets a dedicated cisme_*test* database");
-const databaseUrl = resolveTestDatabaseUrl();
+const databaseUrl = localPerformanceDatabase();
 const fixtureUsers = integer("CAPACITY_FIXTURE_USERS", 1_000, 100, 100_000);
 if (![100, 1_000, 10_000, 100_000].includes(fixtureUsers)) throw new Error("CAPACITY_OPTION_INVALID:CAPACITY_FIXTURE_USERS");
 const rounds = integer("CAPACITY_ROUNDS", 3, 2, 10);
@@ -115,6 +116,9 @@ const startupStarted = performance.now();
 const app = await createApp({ config, pool, storage: createApiGatewayStorage(config) });
 const address = await app.listen({ host: "127.0.0.1", port: 0 });
 const startupMs = performance.now() - startupStarted;
+const populationMode = process.env.CAPACITY_CLIENT_MODE ?? "single-origin";
+if (!["single-origin", "loopback-population"].includes(populationMode)) throw new Error("CAPACITY_CLIENT_MODE_INVALID");
+const population = populationMode === "loopback-population" ? loopbackPopulation(tokens.length) : undefined;
 
 function requestFor(index: number, selected: Scenario): { path: string; init?: RequestInit } {
   const token = tokens[index % tokens.length]!;
@@ -135,15 +139,19 @@ function requestFor(index: number, selected: Scenario): { path: string; init?: R
   return { path: "/v1/community/brand-scalp-ritual/reaction", init: { method: "PUT", headers: { ...authenticated, "content-type": "application/json" }, body: JSON.stringify({ kind: "like", active: index % 48 !== 23 }) } };
 }
 
-async function one(index: number, selected: Scenario): Promise<{ latencyMs: number; status: number; bytes: number }> {
-  const request = requestFor(index, selected);
+async function one(index: number, selected: Scenario) {
+  const input = requestFor(index, selected);
+  const route = `${input.init?.method ?? "GET"} ${input.path.split("?")[0]}`;
   const started = performance.now();
   try {
-    const response = await fetch(`${address}${request.path}`, request.init);
-    const bytes = (await response.arrayBuffer()).byteLength;
-    return { latencyMs: performance.now() - started, status: response.status, bytes };
+    const response = population ? await population.send(`${address}${input.path}`, index, input.init) : await (async () => {
+      const value = await fetch(`${address}${input.path}`, { ...input.init, signal: AbortSignal.timeout(12_000) });
+      const body = await value.text(); return { status: value.status, body, bytes: Buffer.byteLength(body) };
+    })();
+    return { route, latencyMs: performance.now() - started, status: response.status, bytes: response.bytes,
+      timeout: timeoutResponse(response.status, response.body) };
   } catch {
-    return { latencyMs: performance.now() - started, status: 0, bytes: 0 };
+    return { route, latencyMs: performance.now() - started, status: 0, bytes: 0, timeout: true };
   }
 }
 
@@ -151,6 +159,8 @@ async function load(concurrency: number, targetRequests: number | null, selected
   let cursor = 0;
   const latencies: number[] = [], bytes: number[] = [];
   const statuses = new Map<number, number>();
+  const byRoute: Record<string, { latencies: number[]; successes: number[]; errors: number; timeouts: number; statuses: Record<string, number> }> = {};
+  let timeoutCount = 0;
   let peakRss = process.memoryUsage().rss, peakPoolTotal = pool.totalCount, peakPoolWaiting = pool.waitingCount;
   const sampler = setInterval(() => {
     peakRss = Math.max(peakRss, process.memoryUsage().rss);
@@ -168,6 +178,12 @@ async function load(concurrency: number, targetRequests: number | null, selected
       if (deadline !== null && performance.now() >= deadline && index >= concurrency) return;
       const result = await one(index, selected);
       latencies.push(result.latencyMs); bytes.push(result.bytes);
+      if (result.timeout) timeoutCount++;
+      const bucket = byRoute[result.route] ??= { latencies: [], successes: [], errors: 0, timeouts: 0, statuses: {} };
+      bucket.latencies.push(result.latencyMs);
+      if (result.status < 200 || result.status >= 300) bucket.errors++; else bucket.successes.push(result.latencyMs);
+      if (result.timeout) bucket.timeouts++;
+      bucket.statuses[result.status] = (bucket.statuses[result.status] ?? 0) + 1;
       statuses.set(result.status, (statuses.get(result.status) ?? 0) + 1);
     }
   }
@@ -176,15 +192,21 @@ async function load(concurrency: number, targetRequests: number | null, selected
   const cpu = process.cpuUsage(cpuBefore);
   const elu = performance.eventLoopUtilization(eluBefore);
   clearInterval(sampler);
-  const failures = [...statuses].filter(([status]) => status < 200 || status >= 400).reduce((total, [, count]) => total + count, 0);
+  const failures = [...statuses].filter(([status]) => status < 200 || status >= 300).reduce((total, [, count]) => total + count, 0);
   const requests = latencies.length;
   const snapshot = runtimeMetrics(pool);
   const errorRate = failures / requests;
-  const timeoutCount = (statuses.get(0) ?? 0) + (statuses.get(408) ?? 0) + (statuses.get(504) ?? 0);
+  const routes = Object.fromEntries(Object.entries(byRoute).map(([route, bucket]) => [route, {
+    samples: bucket.latencies.length, successfulSamples: bucket.successes.length,
+    latencyMs: summarize(bucket.latencies), successfulLatencyMs: bucket.successes.length ? summarize(bucket.successes) : null,
+    errors: bucket.errors, errorRate: bucket.errors / bucket.latencies.length, timeouts: bucket.timeouts, statuses: bucket.statuses,
+    exploratory: bucket.latencies.length < 1_000
+  }]));
+  const routeTargetsMet = Object.values(routes).every(route => route.latencyMs.p95 <= 500 && route.errorRate <= .01);
   const serverErrorCount = [...statuses].filter(([status]) => status >= 500).reduce((total, [, count]) => total + count, 0);
   const latency = summarize(latencies);
   return {
-    requests, concurrency, durationTargetMs: durationMs ?? null, elapsedMs: round(elapsedMs), latencyMs: latency, responseBytes: summarize(bytes),
+    routes, requests, concurrency, durationTargetMs: durationMs ?? null, elapsedMs: round(elapsedMs), latencyMs: latency, responseBytes: summarize(bytes),
     requestsPerSecond: round(requests / elapsedMs * 1000), requestsPerLogicalCpuSecond: round(requests / elapsedMs * 1000 / availableParallelism()),
     cpuMs: round((cpu.user + cpu.system) / 1000), cpuMsPerRequest: round((cpu.user + cpu.system) / 1000 / requests),
     eventLoopUtilization: round(elu.utilization * 100) / 100, rssPeakBytes: peakRss, pool: { peakTotal: peakPoolTotal, peakWaiting: peakPoolWaiting },
@@ -192,13 +214,14 @@ async function load(concurrency: number, targetRequests: number | null, selected
     failures, errorRate: round(errorRate * 10000) / 10000, timeoutRate: round(timeoutCount / requests * 10000) / 10000,
     serverErrorRate: round(serverErrorCount / requests * 10000) / 10000, runtime: snapshot,
     slo: {
-      latencyP95: latency.p95 <= 400, latencyP99: latency.p99 <= 800, poolWaitP95: snapshot.poolWaitMs.p95 <= 50,
+      coreApiP95TargetMs: 500, routeTargetsMet, totalErrorRate: errorRate <= .01, latencyP95: latency.p95 <= 400, latencyP99: latency.p99 <= 800, poolWaitP95: snapshot.poolWaitMs.p95 <= 50,
       sqlP95: snapshot.sqlMs.p95 <= 50, timeoutRate: timeoutCount / requests <= 0.001, serverErrorRate: serverErrorCount / requests <= 0.005,
-      met: latency.p95 <= 400 && latency.p99 <= 800 && snapshot.poolWaitMs.p95 <= 50 && snapshot.sqlMs.p95 <= 50 && timeoutCount / requests <= 0.001 && serverErrorCount / requests <= 0.005
+      met: errorRate <= .01 && routeTargetsMet && latency.p95 <= 400 && latency.p99 <= 800 && snapshot.poolWaitMs.p95 <= 50 && snapshot.sqlMs.p95 <= 50 && timeoutCount / requests <= 0.001 && serverErrorCount / requests <= 0.005
     }
   };
 }
 
+try {
 const cold = await one(0, scenario);
 const warm = await one(1, scenario);
 const results: Array<Record<string, unknown>> = [];
@@ -260,6 +283,8 @@ const aggregateExact = reconciliation.stats_likes === reconciliation.source_like
 if (!aggregateExact) throw new Error("COMMUNITY_POST_STATS_RECONCILIATION_FAILED");
 
 const report = {
+  clientPopulation: { mode: populationMode, syntheticMembers: tokens.length, rateLimitsUnchanged: true },
+  timingBoundary: "real loopback HTTP/1.1 + isolated DB; no public DNS/TLS or native rendering",
   schemaVersion: 1, generatedAt: new Date().toISOString(), mode: "local_tcp_isolated_postgresql", scenario, pattern, fixtureUsers,
   fixtureCaps: { feedItems: Math.min(fixtureUsers, 5_000), commentsAndLikes: Math.min(fixtureUsers, 20_000) },
   host: { logicalCpuCount: availableParallelism(), memoryLimit: "UNVERIFIED_NO_CONTAINER_QUOTA" },
@@ -278,5 +303,13 @@ if (process.env.CAPACITY_OUTPUT) {
   await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 }
 
-await app.close();
-await pool.end();
+// Exploratory capacity reports now fail on actual request failures instead of
+// silently treating fast 429s as healthy throughput. Saturation is intentional;
+// its recovery plus the separate fault assertions remain the relevant gates.
+const checks = results.flatMap((entry: any) => entry.rounds ?? (pattern === "pool_saturation" ? [entry.recovery] : [entry.baseline, entry.spike, entry.recovery, entry.measured].filter(Boolean)));
+if (checks.some((entry: any) => !entry.slo.met)) process.exitCode = 1;
+} finally {
+  population?.close();
+  await app.close();
+  await pool.end();
+}

@@ -1,8 +1,9 @@
+import { localPerformanceDatabase } from "./performance-measurement.js";
 import { availableParallelism } from "node:os";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
-import { resetDatabase, resolveTestDatabaseUrl } from "@cisme/testkit";
+import { resetDatabase } from "@cisme/testkit";
 import { createPool } from "../services/api/src/db.js";
 import { processOutboxBatch } from "../services/worker/src/jobs.js";
 
@@ -13,12 +14,13 @@ function integer(name: string, fallback: number, minimum: number, maximum: numbe
 }
 function round(value: number) { return Math.round(value * 100) / 100; }
 if (process.env.CAPACITY_ALLOW_RESET !== "true") throw new Error("CAPACITY_ALLOW_RESET_REQUIRED: benchmark resets a dedicated cisme_*test* database");
-const databaseUrl = resolveTestDatabaseUrl();
+const databaseUrl = localPerformanceDatabase();
 const events = integer("WORKER_CAPACITY_EVENTS", 10_000, 100, 100_000);
 const rounds = integer("WORKER_CAPACITY_ROUNDS", 3, 2, 10);
 const levels = [...new Set((process.env.WORKER_CAPACITY_LEVELS ?? "1,2,4,8").split(",").map(Number))];
 if (levels.some((value) => !Number.isInteger(value) || value < 1 || value > 20)) throw new Error("WORKER_CAPACITY_OPTION_INVALID:WORKER_CAPACITY_LEVELS");
 const pool = createPool(databaseUrl, { poolMax: 20, globalConnectionBudget: 40, instanceCount: 1, poolAcquireTimeoutMs: 2_000, statementTimeoutMs: 2_500, lockTimeoutMs: 750, idleTransactionTimeoutMs: 5_000, transactionDeadlineMs: 4_000, transactionMaxAttempts: 6 });
+try {
 await resetDatabase(pool);
 
 const results = [];
@@ -71,4 +73,5 @@ if (process.env.WORKER_CAPACITY_OUTPUT) {
   await mkdir(dirname(output), { recursive: true });
   await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 }
-await pool.end();
+if (results.some(result => result.processed !== events || result.state.total !== events || result.state.pending !== 0 || result.state.dead !== 0)) process.exitCode = 1;
+} finally { await pool.end(); }

@@ -16,8 +16,8 @@ describe("mini program user-perceived performance guardrails", () => {
   it("starts Profile secondary tasks without waiting for bootstrap and avatar file work", async () => {
     const profile = await source("apps/miniprogram/pages/profile/index.ts");
     const tasks = profile.indexOf("void this.loadTasks(attempt)");
-    const bootstrap = profile.indexOf('request<any>({ path: "/v1/bootstrap/profile"');
-    const avatar = profile.indexOf("await localMemberAvatar", bootstrap);
+    const bootstrap = profile.indexOf('pageRead<any>(this, { path: "/v1/bootstrap/profile"');
+    const avatar = profile.indexOf("void this.loadAvatar", bootstrap);
     expect(tasks).toBeGreaterThan(0);
     expect(tasks).toBeLessThan(bootstrap);
     expect(bootstrap).toBeLessThan(avatar);
@@ -27,7 +27,7 @@ describe("mini program user-perceived performance guardrails", () => {
     const logic = await source("apps/miniprogram/pages/community/index.ts");
     const view = await source("apps/miniprogram/pages/community/index.wxml");
     expect(logic).not.toMatch(/\bdisplayFeed:/);
-    expect(logic).toContain("displayFeedCount: items.length");
+    expect(logic).toContain("patch.displayFeedCount = items.length");
     expect(view).toContain("!displayFeedCount");
     expect(view.match(/lazy-load="\{\{true\}\}"/g)?.length).toBeGreaterThanOrEqual(2);
   });

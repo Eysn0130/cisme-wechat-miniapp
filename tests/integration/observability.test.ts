@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { loadConfig } from "@cisme/config";
 import { TEST_DATABASE_URL } from "@cisme/testkit";
 import { createPool } from "../../services/api/src/db.js";
-import { recordHttpRequest, resetRuntimeMetrics, runtimeMetrics } from "../../services/api/src/observability.js";
+import { registerHttpRoute, recordHttpRequest, resetRuntimeMetrics, runtimeMetrics } from "../../services/api/src/observability.js";
 import { createApp } from "../../services/api/src/server.js";
 import { createApiGatewayStorage } from "../../services/api/src/storage.js";
 
@@ -33,7 +33,8 @@ describe("bounded runtime observability", () => {
   it("tracks aggregate HTTP latency, bytes and failure classes", () => {
     resetRuntimeMetrics();
     const before = runtimeMetrics(pool).http;
-    recordHttpRequest({ route: "/v1/test/:id", durationMs: 12, responseBytes: 128, statusCode: 503, coldStart: true, timedOut: true });
+    registerHttpRoute("GET", "/v1/test/:id");
+    recordHttpRequest({ method: "GET", route: "/v1/test/:id", durationMs: 12, responseBytes: 128, statusCode: 503, coldStart: true, timedOut: true });
     const after = runtimeMetrics(pool).http;
     expect(after.total).toBe(before.total + 1);
     expect(after.serverErrors).toBe(before.serverErrors + 1);
@@ -41,7 +42,7 @@ describe("bounded runtime observability", () => {
     expect(after.durationMs.count).toBeGreaterThan(before.durationMs.count);
     expect(after.coldDurationMs.count).toBeGreaterThan(before.coldDurationMs.count);
     expect(after.responseBytes.max).toBeGreaterThanOrEqual(128);
-    expect(after.routes["/v1/test/:id"]).toMatchObject({ total: 1, errors: 1 });
+    expect(after.routes["GET /v1/test/:id"]).toMatchObject({ total: 1, errors: 1 });
   });
 
   it("uses a bounded ring buffer under sustained metric volume", () => {

@@ -46,7 +46,7 @@ export interface AppConfig {
     transactionDeadlineMs: number;
     transactionMaxAttempts: number;
   };
-  api: { routeDeadlineMs: number; rateLimit: {
+  api: { receiveTimeoutMs: number; routeDeadlineMs: number; rateLimit: {
     windowMs: number; cacheSize: number; ingressMax: number; loginMax: number;
     shareVisitMax: number; callbackMax: number; uploadMax: number; readyMax: number; memberMax: number;
     adminWriteMax: number; moneyWriteMax: number; ugcWriteMax: number;
@@ -292,7 +292,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pointsExpiryDays,
     carePausePolicy: { version: carePausePolicyVersion, maxDays: carePauseMaxDays, reasonCodes: carePauseReasonCodes },
     database,
-    api: { routeDeadlineMs: integer("API_ROUTE_DEADLINE_MS", env.API_ROUTE_DEADLINE_MS, 8_000, 250, 120_000),
+    api: { receiveTimeoutMs: integer("API_RECEIVE_TIMEOUT_MS", env.API_RECEIVE_TIMEOUT_MS, 30_000, 250, 120_000), routeDeadlineMs: integer("API_ROUTE_DEADLINE_MS", env.API_ROUTE_DEADLINE_MS, 8_000, 250, 120_000),
       rateLimit: {
         windowMs: integer("API_RATE_WINDOW_MS", env.API_RATE_WINDOW_MS, 60_000, 1_000, 3_600_000),
         cacheSize: integer("API_RATE_CACHE_SIZE", env.API_RATE_CACHE_SIZE, 10_000, 100, 100_000),

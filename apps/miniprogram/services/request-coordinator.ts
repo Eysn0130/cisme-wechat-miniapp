@@ -7,6 +7,37 @@ export class RequestCoordinator {
   private readonly maxEntries = 256;
   private generation = 0;
   private tagGeneration = new Map<string, number>();
+  private flights = new WeakMap<Promise<unknown>, { consumers: number; settled: boolean; abort(): void }>();
+  /** Each view owns a subscription, not the underlying shared transport. */
+  acquire<T>(key: string, execute: () => { promise: Promise<T>; abort(): void }, policy: CachePolicy = {}): { promise: Promise<T>; abort(reason?: unknown): void; coalesced: boolean } {
+    let started = false;
+    const shared = this.read(key, () => {
+      started = true;
+      const task = execute();
+      const flight = { consumers: 0, settled: false, abort: task.abort };
+      this.flights.set(task.promise, flight);
+      void task.promise.then(() => { flight.settled = true; }, () => { flight.settled = true; });
+      return task.promise;
+    }, policy);
+    const flight = this.flights.get(shared);
+    if (flight) flight.consumers++;
+    let active = true, rejectOwn: (reason: unknown) => void = () => {};
+    const leave = () => { if (flight) flight.consumers--; };
+    const promise = new Promise<T>((resolve, reject) => {
+      rejectOwn = reject;
+      void shared.then(value => { if (active) { active = false; leave(); resolve(value); } }, error => { if (active) { active = false; leave(); reject(error); } });
+    });
+    return { promise, coalesced: !started, abort: (reason = { code: "REQUEST_ABORTED", title: "请求已取消" }) => {
+      if (!active) return;
+      active = false; leave(); rejectOwn(reason);
+      if (flight && !flight.settled && flight.consumers === 0) {
+        // Evict before abort: an immediate new reader must not join this dying
+        // flight, and late rejection must not delete the new entry.
+        for (const [cacheKey, entry] of this.cache) if (entry.pending === shared) this.cache.delete(cacheKey);
+        flight.abort();
+      }
+    } };
+  }
   private enforceCapacity(now: number): void {
     if (this.cache.size <= this.maxEntries) return;
     for (const [key, entry] of this.cache) {

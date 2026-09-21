@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /mnt/data/cisme
+
+ ✓ tests/unit/http-metrics-budget.test.ts (6 tests) 298ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  02:30:14
+   Duration  574ms (transform 102ms, setup 0ms, import 167ms, tests 298ms, environment 0ms)

@@ -1,0 +1,2611 @@
+{
+  "schemaVersion": 1,
+  "dateLosAngeles": "2026-09-20",
+  "verifiedAtUtc": "2026-09-21T02:41:25.496914+00:00",
+  "baselineMain": "56432fb9b42777ffd4b3aeaf17134a666c7f243c",
+  "inheritedCandidate": "3442d385d3aa64541c6ea8d486cf07147e7b0575",
+  "pr": 4,
+  "newDependencies": 0,
+  "lockSha256": "09d4a7746029d61ae3db73514b730794f906360aea6c2290753b2c01740905d9",
+  "packageSha256": "ce7c06c1bac5e3efaaf6151783e2353cb896f1ed7087a2c0b97ab1cf71e19b3e",
+  "releaseReady": false,
+  "macRootSync": "unverified-no-access",
+  "nativeDeviceAcceptance": "not-executed",
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "87cabbb7741a1b1e04880eae0e6729ae1701722e6a45724f0c30931fa8493f49"
+    },
+    {
+      "path": "scripts/capacity-benchmark.ts",
+      "sha256": "15c9ae51a8ecced76cf8317eb2eafc6b9cae20a0332980ab6d4280cb5f010d56"
+    },
+    {
+      "path": "scripts/performance-measurement.ts",
+      "sha256": "495a83ac0826dba8558687188d4c4d84d211646a90ea3aa4ee04baad46bdcc83"
+    },
+    {
+      "path": "scripts/performance-smoke.ts",
+      "sha256": "994f118fff73d4e82065b34dcdc8be4c26d2ae501b600d7260d45b235ed591ba"
+    },
+    {
+      "path": "scripts/worker-capacity-benchmark.ts",
+      "sha256": "c746d89d57d8cae78bc31245ca560bfd8663d1e2456150d3072fcded0c322973"
+    },
+    {
+      "path": "services/api/src/db.ts",
+      "sha256": "8a437894fc36d66ab6f1a3497715dc770a646fd47cecf02ae0bdb8af5a95d84b"
+    },
+    {
+      "path": "services/api/src/operationBudget.ts",
+      "sha256": "1030235396b11d302dc25131fc42b728e7721abcc1b514ae95b708661a49c181"
+    },
+    {
+      "path": "services/api/src/pgCancellation.ts",
+      "sha256": "e710858e806eb71659e6cb7addaf106717b3baaced8b8815d5d2ccd7d2173ac1"
+    },
+    {
+      "path": "services/api/src/server.ts",
+      "sha256": "21b912c580250033fe405ef94dc45e219775cfba321f14a94b29f85b5fc47b83"
+    },
+    {
+      "path": "tests/integration/native-operation-budget.test.ts",
+      "sha256": "1894c5eb8461986277406f3afe9719a9aae920203eb9d783bdcd9e46970b7e3f"
+    },
+    {
+      "path": "tests/unit/http-metrics-budget.test.ts",
+      "sha256": "9da4b3c1bedf948f9f553c32d61d04c82636c3bdc380f2577e14adcf27b695c4"
+    },
+    {
+      "path": "tests/unit/performance-measurement.test.ts",
+      "sha256": "769df8357967cb126355e8df41672420f3b50cff94f592d908c315a58dd5d03c"
+    },
+    {
+      "path": "tests/unit/pg-cancellation.test.ts",
+      "sha256": "4256c00343758c34b8f020304b229632c771d30866a15e48d920fbce2a5f58cb"
+    },
+    {
+      "path": "tests/unit/transaction-budget.test.ts",
+      "sha256": "e72af6ed71b4eeb4eb46877363ae3ac8ad9acac0e242173de846f6c6a5e27b26"
+    }
+  ],
+  "localVerification": {
+    "runtime": "Node 24.18.0 / Linux x64",
+    "database": "PostgreSQL 18.4 / explicit local cisme_native_pr4_test",
+    "objectStorage": "SeaweedFS 4.29 / loopback synthetic contract",
+    "unit": {
+      "passed": 443,
+      "files": 68
+    },
+    "integration": {
+      "passed": 571,
+      "files": 37
+    },
+    "commandsPassed": [
+      "typecheck",
+      "miniprogram:package-gate",
+      "miniprogram:route-audit",
+      "design:qa:status (structure only; release blocked)",
+      "npm test",
+      "test:integration",
+      "build",
+      "lint:contracts",
+      "git diff --check"
+    ],
+    "freshInstallAudit": "local network unavailable; restored verified lock-bound npm-ci artifact; fresh candidate npm ci/audits await exact-SHA Actions"
+  },
+  "regressions": [
+    {
+      "id": "PERF-06-R1",
+      "severity": "P1",
+      "before": "Early cancel rejected but pg_stat_activity still had one active SQL",
+      "after": "CancelRequest + original-query drain + channel barrier before rollback/release; no active late SQL",
+      "negative": "lost acknowledgement bounded by statement remainder + 500ms cleanup grace; DATABASE_CANCELLATION_UNCONFIRMED, no automatic retry; COMMIT uncertainty preserved"
+    },
+    {
+      "id": "PERF-04-R1",
+      "severity": "P1",
+      "before": "Fastify 5.12.3 IncomingMessage normal body close aborted request.signal and cleared handler timer; real HTTP PUTs returned 503",
+      "after": "owned monotonic deadline, normal body completion ignored; actual disconnect cancels; deadline response before held handler resumes"
+    },
+    {
+      "id": "MEAS-01",
+      "severity": "P1",
+      "before": "4000 requests on one source/member hit 600/180 per-route limits; 3220 errors in old CI baseline",
+      "after": "100 bounded synthetic sources/members, unchanged limits; explicit 429/all errors/statuses; identical measurement code for both runtimes"
+    },
+    {
+      "id": "MEAS-02",
+      "severity": "P1",
+      "before": "Capacity SLO ignored client errors and CI used forbidden output directory",
+      "after": "all request errors and per-route 500ms targets gate results; protected output root retained; failure does not prevent other cohort collection"
+    },
+    {
+      "id": "MEAS-03",
+      "severity": "P2",
+      "before": "worker success not asserted; test-looking remote DB accepted by name alone",
+      "after": "processed/pending/dead counts asserted; explicit local-only benchmark DB URL"
+    }
+  ],
+  "smoke": {
+    "baseline": {
+      "population": {
+        "syntheticMembers": 100,
+        "rateLimitsUnchanged": true,
+        "setupExcluded": true
+      },
+      "timingBoundary": "server app.inject + isolated DB; no DNS/TLS/mobile/rendering",
+      "routes": {
+        "GET /v1/capabilities": {
+          "samples": 1000,
+          "latencyMs": {
+            "p50": 0.12140300000010029,
+            "p95": 0.2717200000001867,
+            "p99": 0.36421900000004825,
+            "max": 4.296851000000061
+          },
+          "errors": 0,
+          "timeouts": 0,
+          "statuses": {
+            "200": 1000
+          },
+          "rateLimited": 0,
+          "successfulSamples": 1000,
+          "errorRate": 0
+        },
+        "GET /v1/bootstrap/home": {
+          "samples": 3000,
+          "latencyMs": {
+            "p50": 4.873790000000099,
+            "p95": 10.033582000000024,
+            "p99": 15.345573999999942,
+            "max": 29.917199999999866
+          },
+          "errors": 0,
+          "timeouts": 0,
+          "statuses": {
+            "200": 3000
+          },
+          "rateLimited": 0,
+          "successfulSamples": 3000,
+          "errorRate": 0
+        }
+      },
+      "mode": "in_process_isolated_db_smoke",
+      "samples": 4000,
+      "concurrency": 10,
+      "elapsedMs": 1672.7,
+      "requestsPerSecond": 2391.34,
+      "latencyMs": {
+        "p50": 4.256260000000111,
+        "p95": 9.271562999999787,
+        "p99": 14.440117999999984,
+        "max": 29.917199999999866
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "thresholds": {
+        "p95Ms": 500,
+        "errorRate": 0.01
+      }
+    },
+    "candidate": {
+      "population": {
+        "syntheticMembers": 100,
+        "rateLimitsUnchanged": true,
+        "setupExcluded": true
+      },
+      "timingBoundary": "server app.inject + isolated DB; no DNS/TLS/mobile/rendering",
+      "routes": {
+        "GET /v1/capabilities": {
+          "samples": 1000,
+          "latencyMs": {
+            "p50": 0.1501559999996971,
+            "p95": 0.29736900000079913,
+            "p99": 0.4877649999998539,
+            "max": 5.918296999999711
+          },
+          "errors": 0,
+          "timeouts": 0,
+          "statuses": {
+            "200": 1000
+          },
+          "rateLimited": 0,
+          "successfulSamples": 1000,
+          "errorRate": 0
+        },
+        "GET /v1/bootstrap/home": {
+          "samples": 3000,
+          "latencyMs": {
+            "p50": 8.680242999999791,
+            "p95": 16.655119999999897,
+            "p99": 22.830465000000004,
+            "max": 34.73711899999989
+          },
+          "errors": 0,
+          "timeouts": 0,
+          "statuses": {
+            "200": 3000
+          },
+          "rateLimited": 0,
+          "successfulSamples": 3000,
+          "errorRate": 0
+        }
+      },
+      "mode": "in_process_isolated_db_smoke",
+      "samples": 4000,
+      "concurrency": 10,
+      "elapsedMs": 2893.92,
+      "requestsPerSecond": 1382.21,
+      "latencyMs": {
+        "p50": 7.2401400000007925,
+        "p95": 15.485687999999755,
+        "p99": 21.370408000000225,
+        "max": 34.73711899999989
+      },
+      "errors": 0,
+      "errorRate": 0,
+      "thresholds": {
+        "p95Ms": 500,
+        "errorRate": 0.01
+      }
+    }
+  },
+  "capacity": {
+    "mode": "real loopback HTTP/1.1",
+    "population": "100 real Linux loopback source addresses, no proxy-header spoofing",
+    "baseline": [
+      {
+        "concurrency": 10,
+        "round": 1,
+        "requests": 500,
+        "latencyMs": {
+          "p50": 6.66,
+          "p90": 11.36,
+          "p95": 12.46,
+          "p99": 15.53,
+          "max": 19.35
+        },
+        "statuses": {
+          "200": 500
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 10,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 2.36,
+              "p90": 3.05,
+              "p95": 3.28,
+              "p99": 3.39,
+              "max": 3.39
+            },
+            "successfulLatencyMs": {
+              "p50": 2.36,
+              "p90": 3.05,
+              "p95": 3.28,
+              "p99": 3.39,
+              "max": 3.39
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 5.73,
+              "p90": 7.92,
+              "p95": 8.3,
+              "p99": 9.26,
+              "max": 11.36
+            },
+            "successfulLatencyMs": {
+              "p50": 5.73,
+              "p90": 7.92,
+              "p95": 8.3,
+              "p99": 9.26,
+              "max": 11.36
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 6.39,
+              "p90": 10.49,
+              "p95": 10.83,
+              "p99": 15.32,
+              "max": 15.32
+            },
+            "successfulLatencyMs": {
+              "p50": 6.39,
+              "p90": 10.49,
+              "p95": 10.83,
+              "p99": 15.32,
+              "max": 15.32
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 63,
+            "successfulSamples": 63,
+            "latencyMs": {
+              "p50": 10.04,
+              "p90": 13.07,
+              "p95": 14.3,
+              "p99": 17.63,
+              "max": 17.63
+            },
+            "successfulLatencyMs": {
+              "p50": 10.04,
+              "p90": 13.07,
+              "p95": 14.3,
+              "p99": 17.63,
+              "max": 17.63
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 63
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 21,
+            "successfulSamples": 21,
+            "latencyMs": {
+              "p50": 6.63,
+              "p90": 8.42,
+              "p95": 8.57,
+              "p99": 11.91,
+              "max": 11.91
+            },
+            "successfulLatencyMs": {
+              "p50": 6.63,
+              "p90": 8.42,
+              "p95": 8.57,
+              "p99": 11.91,
+              "max": 11.91
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 21
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 8.84,
+              "p90": 11.57,
+              "p95": 12.69,
+              "p99": 15.53,
+              "max": 15.53
+            },
+            "successfulLatencyMs": {
+              "p50": 8.84,
+              "p90": 11.57,
+              "p95": 12.69,
+              "p99": 15.53,
+              "max": 15.53
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 5.89,
+              "p90": 7.37,
+              "p95": 7.78,
+              "p99": 7.95,
+              "max": 7.95
+            },
+            "successfulLatencyMs": {
+              "p50": 5.89,
+              "p90": 7.37,
+              "p95": 7.78,
+              "p99": 7.95,
+              "max": 7.95
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 6.1,
+              "p90": 8.98,
+              "p95": 9.67,
+              "p99": 9.96,
+              "max": 9.96
+            },
+            "successfulLatencyMs": {
+              "p50": 6.1,
+              "p90": 8.98,
+              "p95": 9.67,
+              "p99": 9.96,
+              "max": 9.96
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 11.49,
+              "p90": 13.45,
+              "p95": 14.55,
+              "p99": 19.35,
+              "max": 19.35
+            },
+            "successfulLatencyMs": {
+              "p50": 11.49,
+              "p90": 13.45,
+              "p95": 14.55,
+              "p99": 19.35,
+              "max": 19.35
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          }
+        }
+      },
+      {
+        "concurrency": 10,
+        "round": 2,
+        "requests": 500,
+        "latencyMs": {
+          "p50": 7.87,
+          "p90": 12.41,
+          "p95": 13.59,
+          "p99": 15.06,
+          "max": 19.06
+        },
+        "statuses": {
+          "200": 500
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 10,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 2.48,
+              "p90": 3.12,
+              "p95": 3.19,
+              "p99": 3.54,
+              "max": 3.54
+            },
+            "successfulLatencyMs": {
+              "p50": 2.48,
+              "p90": 3.12,
+              "p95": 3.19,
+              "p99": 3.54,
+              "max": 3.54
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 6.03,
+              "p90": 9.31,
+              "p95": 9.55,
+              "p99": 11.27,
+              "max": 11.81
+            },
+            "successfulLatencyMs": {
+              "p50": 6.03,
+              "p90": 9.31,
+              "p95": 9.55,
+              "p99": 11.27,
+              "max": 11.81
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 7.64,
+              "p90": 9.77,
+              "p95": 10.39,
+              "p99": 14.07,
+              "max": 14.07
+            },
+            "successfulLatencyMs": {
+              "p50": 7.64,
+              "p90": 9.77,
+              "p95": 10.39,
+              "p99": 14.07,
+              "max": 14.07
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 63,
+            "successfulSamples": 63,
+            "latencyMs": {
+              "p50": 10.81,
+              "p90": 13.71,
+              "p95": 14.25,
+              "p99": 19.06,
+              "max": 19.06
+            },
+            "successfulLatencyMs": {
+              "p50": 10.81,
+              "p90": 13.71,
+              "p95": 14.25,
+              "p99": 19.06,
+              "max": 19.06
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 63
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 9.84,
+              "p90": 13.04,
+              "p95": 13.24,
+              "p99": 15.06,
+              "max": 15.06
+            },
+            "successfulLatencyMs": {
+              "p50": 9.84,
+              "p90": 13.04,
+              "p95": 13.24,
+              "p99": 15.06,
+              "max": 15.06
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 21,
+            "successfulSamples": 21,
+            "latencyMs": {
+              "p50": 7.81,
+              "p90": 9.2,
+              "p95": 9.62,
+              "p99": 13.49,
+              "max": 13.49
+            },
+            "successfulLatencyMs": {
+              "p50": 7.81,
+              "p90": 9.2,
+              "p95": 9.62,
+              "p99": 13.49,
+              "max": 13.49
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 21
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 8.46,
+              "p90": 10.68,
+              "p95": 12.37,
+              "p99": 14.59,
+              "max": 14.59
+            },
+            "successfulLatencyMs": {
+              "p50": 8.46,
+              "p90": 10.68,
+              "p95": 12.37,
+              "p99": 14.59,
+              "max": 14.59
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 7.03,
+              "p90": 8.9,
+              "p95": 9.36,
+              "p99": 11.86,
+              "max": 11.86
+            },
+            "successfulLatencyMs": {
+              "p50": 7.03,
+              "p90": 8.9,
+              "p95": 9.36,
+              "p99": 11.86,
+              "max": 11.86
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 12.43,
+              "p90": 14.72,
+              "p95": 15.21,
+              "p99": 16.18,
+              "max": 16.18
+            },
+            "successfulLatencyMs": {
+              "p50": 12.43,
+              "p90": 14.72,
+              "p95": 15.21,
+              "p99": 16.18,
+              "max": 16.18
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          }
+        }
+      },
+      {
+        "concurrency": 20,
+        "round": 1,
+        "requests": 1000,
+        "latencyMs": {
+          "p50": 11.61,
+          "p90": 17,
+          "p95": 18.94,
+          "p99": 21.81,
+          "max": 25.12
+        },
+        "statuses": {
+          "200": 1000
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 3.49,
+              "p90": 4.03,
+              "p95": 4.16,
+              "p99": 7.76,
+              "max": 7.76
+            },
+            "successfulLatencyMs": {
+              "p50": 3.49,
+              "p90": 4.03,
+              "p95": 4.16,
+              "p99": 7.76,
+              "max": 7.76
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 12.28,
+              "p90": 14.67,
+              "p95": 16.17,
+              "p99": 18.36,
+              "max": 18.36
+            },
+            "successfulLatencyMs": {
+              "p50": 12.28,
+              "p90": 14.67,
+              "p95": 16.17,
+              "p99": 18.36,
+              "max": 18.36
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 168,
+            "successfulSamples": 168,
+            "latencyMs": {
+              "p50": 11.01,
+              "p90": 15.43,
+              "p95": 16.72,
+              "p99": 18.03,
+              "max": 18.28
+            },
+            "successfulLatencyMs": {
+              "p50": 11.01,
+              "p90": 15.43,
+              "p95": 16.72,
+              "p99": 18.03,
+              "max": 18.28
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 168
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 252,
+            "successfulSamples": 252,
+            "latencyMs": {
+              "p50": 10.24,
+              "p90": 13.47,
+              "p95": 15.61,
+              "p99": 16.91,
+              "max": 18.33
+            },
+            "successfulLatencyMs": {
+              "p50": 10.24,
+              "p90": 13.47,
+              "p95": 15.61,
+              "p99": 16.91,
+              "max": 18.33
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 252
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 41,
+            "successfulSamples": 41,
+            "latencyMs": {
+              "p50": 11.16,
+              "p90": 12.97,
+              "p95": 14.19,
+              "p99": 15.71,
+              "max": 15.71
+            },
+            "successfulLatencyMs": {
+              "p50": 11.16,
+              "p90": 12.97,
+              "p95": 14.19,
+              "p99": 15.71,
+              "max": 15.71
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 41
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 83,
+            "successfulSamples": 83,
+            "latencyMs": {
+              "p50": 13.71,
+              "p90": 16.77,
+              "p95": 18.36,
+              "p99": 21.32,
+              "max": 21.32
+            },
+            "successfulLatencyMs": {
+              "p50": 13.71,
+              "p90": 16.77,
+              "p95": 18.36,
+              "p99": 21.32,
+              "max": 21.32
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 83
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 14.65,
+              "p90": 17.72,
+              "p95": 19.46,
+              "p99": 21.6,
+              "max": 21.78
+            },
+            "successfulLatencyMs": {
+              "p50": 14.65,
+              "p90": 17.72,
+              "p95": 19.46,
+              "p99": 21.6,
+              "max": 21.78
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 11.03,
+              "p90": 13.08,
+              "p95": 15.32,
+              "p99": 17.43,
+              "max": 17.43
+            },
+            "successfulLatencyMs": {
+              "p50": 11.03,
+              "p90": 13.08,
+              "p95": 15.32,
+              "p99": 17.43,
+              "max": 17.43
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 18.57,
+              "p90": 22.07,
+              "p95": 23.12,
+              "p99": 25.12,
+              "max": 25.12
+            },
+            "successfulLatencyMs": {
+              "p50": 18.57,
+              "p90": 22.07,
+              "p95": 23.12,
+              "p99": 25.12,
+              "max": 25.12
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          }
+        }
+      },
+      {
+        "concurrency": 20,
+        "round": 2,
+        "requests": 1000,
+        "latencyMs": {
+          "p50": 11.69,
+          "p90": 17.04,
+          "p95": 20.03,
+          "p99": 24.19,
+          "max": 32.82
+        },
+        "statuses": {
+          "200": 1000
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 3.51,
+              "p90": 4.41,
+              "p95": 5.92,
+              "p99": 9.92,
+              "max": 9.92
+            },
+            "successfulLatencyMs": {
+              "p50": 3.51,
+              "p90": 4.41,
+              "p95": 5.92,
+              "p99": 9.92,
+              "max": 9.92
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 12.41,
+              "p90": 16.27,
+              "p95": 17.58,
+              "p99": 21.4,
+              "max": 21.4
+            },
+            "successfulLatencyMs": {
+              "p50": 12.41,
+              "p90": 16.27,
+              "p95": 17.58,
+              "p99": 21.4,
+              "max": 21.4
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 10.74,
+              "p90": 13.17,
+              "p95": 14.87,
+              "p99": 16.91,
+              "max": 16.91
+            },
+            "successfulLatencyMs": {
+              "p50": 10.74,
+              "p90": 13.17,
+              "p95": 14.87,
+              "p99": 16.91,
+              "max": 16.91
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 41,
+            "successfulSamples": 41,
+            "latencyMs": {
+              "p50": 11.56,
+              "p90": 13.06,
+              "p95": 14.8,
+              "p99": 20.03,
+              "max": 20.03
+            },
+            "successfulLatencyMs": {
+              "p50": 11.56,
+              "p90": 13.06,
+              "p95": 14.8,
+              "p99": 20.03,
+              "max": 20.03
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 41
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 252,
+            "successfulSamples": 252,
+            "latencyMs": {
+              "p50": 10.22,
+              "p90": 13.96,
+              "p95": 16.71,
+              "p99": 30.09,
+              "max": 30.59
+            },
+            "successfulLatencyMs": {
+              "p50": 10.22,
+              "p90": 13.96,
+              "p95": 16.71,
+              "p99": 30.09,
+              "max": 30.59
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 252
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 168,
+            "successfulSamples": 168,
+            "latencyMs": {
+              "p50": 11.33,
+              "p90": 15.28,
+              "p95": 17.34,
+              "p99": 23.94,
+              "max": 32.82
+            },
+            "successfulLatencyMs": {
+              "p50": 11.33,
+              "p90": 15.28,
+              "p95": 17.34,
+              "p99": 23.94,
+              "max": 32.82
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 168
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 14.48,
+              "p90": 17.43,
+              "p95": 19.14,
+              "p99": 24.14,
+              "max": 30.26
+            },
+            "successfulLatencyMs": {
+              "p50": 14.48,
+              "p90": 17.43,
+              "p95": 19.14,
+              "p99": 24.14,
+              "max": 30.26
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 83,
+            "successfulSamples": 83,
+            "latencyMs": {
+              "p50": 14.04,
+              "p90": 17.42,
+              "p95": 19.06,
+              "p99": 23.5,
+              "max": 23.5
+            },
+            "successfulLatencyMs": {
+              "p50": 14.04,
+              "p90": 17.42,
+              "p95": 19.06,
+              "p99": 23.5,
+              "max": 23.5
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 83
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 17.82,
+              "p90": 22.63,
+              "p95": 23.97,
+              "p99": 29.57,
+              "max": 29.57
+            },
+            "successfulLatencyMs": {
+              "p50": 17.82,
+              "p90": 22.63,
+              "p95": 23.97,
+              "p99": 29.57,
+              "max": 29.57
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          }
+        }
+      }
+    ],
+    "candidate": [
+      {
+        "concurrency": 10,
+        "round": 1,
+        "requests": 500,
+        "latencyMs": {
+          "p50": 11.54,
+          "p90": 18.41,
+          "p95": 20.23,
+          "p99": 26.27,
+          "max": 27.8
+        },
+        "statuses": {
+          "200": 500
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 10,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 2.22,
+              "p90": 3.17,
+              "p95": 3.31,
+              "p99": 5.41,
+              "max": 5.41
+            },
+            "successfulLatencyMs": {
+              "p50": 2.22,
+              "p90": 3.17,
+              "p95": 3.31,
+              "p99": 5.41,
+              "max": 5.41
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 9.7,
+              "p90": 15.71,
+              "p95": 18.31,
+              "p99": 21.08,
+              "max": 22.13
+            },
+            "successfulLatencyMs": {
+              "p50": 9.7,
+              "p90": 15.71,
+              "p95": 18.31,
+              "p99": 21.08,
+              "max": 22.13
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 10.98,
+              "p90": 17.07,
+              "p95": 18.56,
+              "p99": 20.02,
+              "max": 20.02
+            },
+            "successfulLatencyMs": {
+              "p50": 10.98,
+              "p90": 17.07,
+              "p95": 18.56,
+              "p99": 20.02,
+              "max": 20.02
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 14.3,
+              "p90": 18.27,
+              "p95": 19.91,
+              "p99": 26.27,
+              "max": 26.27
+            },
+            "successfulLatencyMs": {
+              "p50": 14.3,
+              "p90": 18.27,
+              "p95": 19.91,
+              "p99": 26.27,
+              "max": 26.27
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 10.37,
+              "p90": 14.92,
+              "p95": 16.07,
+              "p99": 20.23,
+              "max": 20.23
+            },
+            "successfulLatencyMs": {
+              "p50": 10.37,
+              "p90": 14.92,
+              "p95": 16.07,
+              "p99": 20.23,
+              "max": 20.23
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 12.4,
+              "p90": 16.37,
+              "p95": 19.95,
+              "p99": 23.03,
+              "max": 23.03
+            },
+            "successfulLatencyMs": {
+              "p50": 12.4,
+              "p90": 16.37,
+              "p95": 19.95,
+              "p99": 23.03,
+              "max": 23.03
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 63,
+            "successfulSamples": 63,
+            "latencyMs": {
+              "p50": 14.51,
+              "p90": 18.7,
+              "p95": 20.1,
+              "p99": 27.55,
+              "max": 27.55
+            },
+            "successfulLatencyMs": {
+              "p50": 14.51,
+              "p90": 18.7,
+              "p95": 20.1,
+              "p99": 27.55,
+              "max": 27.55
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 63
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 21,
+            "successfulSamples": 21,
+            "latencyMs": {
+              "p50": 9.88,
+              "p90": 14.46,
+              "p95": 17.72,
+              "p99": 18.14,
+              "max": 18.14
+            },
+            "successfulLatencyMs": {
+              "p50": 9.88,
+              "p90": 14.46,
+              "p95": 17.72,
+              "p99": 18.14,
+              "max": 18.14
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 21
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 19.3,
+              "p90": 25.98,
+              "p95": 26.61,
+              "p99": 27.8,
+              "max": 27.8
+            },
+            "successfulLatencyMs": {
+              "p50": 19.3,
+              "p90": 25.98,
+              "p95": 26.61,
+              "p99": 27.8,
+              "max": 27.8
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          }
+        }
+      },
+      {
+        "concurrency": 10,
+        "round": 2,
+        "requests": 500,
+        "latencyMs": {
+          "p50": 11.32,
+          "p90": 17.57,
+          "p95": 19.47,
+          "p99": 25.76,
+          "max": 35.31
+        },
+        "statuses": {
+          "200": 500
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 10,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 2.18,
+              "p90": 3.6,
+              "p95": 10.02,
+              "p99": 13.21,
+              "max": 13.21
+            },
+            "successfulLatencyMs": {
+              "p50": 2.18,
+              "p90": 3.6,
+              "p95": 10.02,
+              "p99": 13.21,
+              "max": 13.21
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 9.06,
+              "p90": 13.62,
+              "p95": 18.07,
+              "p99": 24.33,
+              "max": 25.46
+            },
+            "successfulLatencyMs": {
+              "p50": 9.06,
+              "p90": 13.62,
+              "p95": 18.07,
+              "p99": 24.33,
+              "max": 25.46
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 10.9,
+              "p90": 13.68,
+              "p95": 15.12,
+              "p99": 25.03,
+              "max": 25.03
+            },
+            "successfulLatencyMs": {
+              "p50": 10.9,
+              "p90": 13.68,
+              "p95": 15.12,
+              "p99": 25.03,
+              "max": 25.03
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 63,
+            "successfulSamples": 63,
+            "latencyMs": {
+              "p50": 14.21,
+              "p90": 18.41,
+              "p95": 20.77,
+              "p99": 29.81,
+              "max": 29.81
+            },
+            "successfulLatencyMs": {
+              "p50": 14.21,
+              "p90": 18.41,
+              "p95": 20.77,
+              "p99": 29.81,
+              "max": 29.81
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 63
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 21,
+            "successfulSamples": 21,
+            "latencyMs": {
+              "p50": 10.44,
+              "p90": 13.3,
+              "p95": 13.98,
+              "p99": 16.56,
+              "max": 16.56
+            },
+            "successfulLatencyMs": {
+              "p50": 10.44,
+              "p90": 13.3,
+              "p95": 13.98,
+              "p99": 16.56,
+              "max": 16.56
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 21
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 13.42,
+              "p90": 14.93,
+              "p95": 16.09,
+              "p99": 25.76,
+              "max": 25.76
+            },
+            "successfulLatencyMs": {
+              "p50": 13.42,
+              "p90": 14.93,
+              "p95": 16.09,
+              "p99": 25.76,
+              "max": 25.76
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 10.79,
+              "p90": 12.72,
+              "p95": 12.81,
+              "p99": 20.75,
+              "max": 20.75
+            },
+            "successfulLatencyMs": {
+              "p50": 10.79,
+              "p90": 12.72,
+              "p95": 12.81,
+              "p99": 20.75,
+              "max": 20.75
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 42,
+            "successfulSamples": 42,
+            "latencyMs": {
+              "p50": 11.87,
+              "p90": 14.82,
+              "p95": 15.15,
+              "p99": 19.38,
+              "max": 19.38
+            },
+            "successfulLatencyMs": {
+              "p50": 11.87,
+              "p90": 14.82,
+              "p95": 15.15,
+              "p99": 19.38,
+              "max": 19.38
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 42
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 40,
+            "successfulSamples": 40,
+            "latencyMs": {
+              "p50": 18.06,
+              "p90": 25.37,
+              "p95": 31.6,
+              "p99": 35.31,
+              "max": 35.31
+            },
+            "successfulLatencyMs": {
+              "p50": 18.06,
+              "p90": 25.37,
+              "p95": 31.6,
+              "p99": 35.31,
+              "max": 35.31
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 40
+            },
+            "exploratory": true
+          }
+        }
+      },
+      {
+        "concurrency": 20,
+        "round": 1,
+        "requests": 1000,
+        "latencyMs": {
+          "p50": 23.93,
+          "p90": 36.8,
+          "p95": 42.01,
+          "p99": 51.79,
+          "max": 58.6
+        },
+        "statuses": {
+          "200": 1000
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 4.94,
+              "p90": 6.97,
+              "p95": 7.38,
+              "p99": 14.05,
+              "max": 14.05
+            },
+            "successfulLatencyMs": {
+              "p50": 4.94,
+              "p90": 6.97,
+              "p95": 7.38,
+              "p99": 14.05,
+              "max": 14.05
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 252,
+            "successfulSamples": 252,
+            "latencyMs": {
+              "p50": 21.4,
+              "p90": 26.41,
+              "p95": 28.28,
+              "p99": 31.23,
+              "max": 33.15
+            },
+            "successfulLatencyMs": {
+              "p50": 21.4,
+              "p90": 26.41,
+              "p95": 28.28,
+              "p99": 31.23,
+              "max": 33.15
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 252
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 168,
+            "successfulSamples": 168,
+            "latencyMs": {
+              "p50": 22.26,
+              "p90": 29.42,
+              "p95": 30.17,
+              "p99": 36.44,
+              "max": 36.8
+            },
+            "successfulLatencyMs": {
+              "p50": 22.26,
+              "p90": 29.42,
+              "p95": 30.17,
+              "p99": 36.44,
+              "max": 36.8
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 168
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 26.66,
+              "p90": 35.58,
+              "p95": 37.56,
+              "p99": 43.16,
+              "max": 43.32
+            },
+            "successfulLatencyMs": {
+              "p50": 26.66,
+              "p90": 35.58,
+              "p95": 37.56,
+              "p99": 43.16,
+              "max": 43.32
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 41,
+            "successfulSamples": 41,
+            "latencyMs": {
+              "p50": 22.45,
+              "p90": 31.06,
+              "p95": 32.45,
+              "p99": 37.31,
+              "max": 37.31
+            },
+            "successfulLatencyMs": {
+              "p50": 22.45,
+              "p90": 31.06,
+              "p95": 32.45,
+              "p99": 37.31,
+              "max": 37.31
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 41
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 28.19,
+              "p90": 38.09,
+              "p95": 39.63,
+              "p99": 43.49,
+              "max": 43.49
+            },
+            "successfulLatencyMs": {
+              "p50": 28.19,
+              "p90": 38.09,
+              "p95": 39.63,
+              "p99": 43.49,
+              "max": 43.49
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 23,
+              "p90": 31.9,
+              "p95": 34.1,
+              "p99": 36.93,
+              "max": 36.93
+            },
+            "successfulLatencyMs": {
+              "p50": 23,
+              "p90": 31.9,
+              "p95": 34.1,
+              "p99": 36.93,
+              "max": 36.93
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 83,
+            "successfulSamples": 83,
+            "latencyMs": {
+              "p50": 29.71,
+              "p90": 38.86,
+              "p95": 41.3,
+              "p99": 45.86,
+              "max": 45.86
+            },
+            "successfulLatencyMs": {
+              "p50": 29.71,
+              "p90": 38.86,
+              "p95": 41.3,
+              "p99": 45.86,
+              "max": 45.86
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 83
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 41.74,
+              "p90": 53.37,
+              "p95": 54.9,
+              "p99": 58.6,
+              "max": 58.6
+            },
+            "successfulLatencyMs": {
+              "p50": 41.74,
+              "p90": 53.37,
+              "p95": 54.9,
+              "p99": 58.6,
+              "max": 58.6
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          }
+        }
+      },
+      {
+        "concurrency": 20,
+        "round": 2,
+        "requests": 1000,
+        "latencyMs": {
+          "p50": 19.57,
+          "p90": 29.75,
+          "p95": 33.41,
+          "p99": 41.56,
+          "max": 47.6
+        },
+        "statuses": {
+          "200": 1000
+        },
+        "errorRate": 0,
+        "timeoutRate": 0,
+        "pool": {
+          "peakTotal": 20,
+          "peakWaiting": 0
+        },
+        "slo": {
+          "coreApiP95TargetMs": 500,
+          "routeTargetsMet": true,
+          "totalErrorRate": true,
+          "latencyP95": true,
+          "latencyP99": true,
+          "poolWaitP95": true,
+          "sqlP95": true,
+          "timeoutRate": true,
+          "serverErrorRate": true,
+          "met": true
+        },
+        "routes": {
+          "GET /v1/capabilities": {
+            "samples": 84,
+            "successfulSamples": 84,
+            "latencyMs": {
+              "p50": 3.84,
+              "p90": 5.11,
+              "p95": 6.24,
+              "p99": 11.92,
+              "max": 11.92
+            },
+            "successfulLatencyMs": {
+              "p50": 3.84,
+              "p90": 5.11,
+              "p95": 6.24,
+              "p99": 11.92,
+              "max": 11.92
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 84
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/home": {
+            "samples": 252,
+            "successfulSamples": 252,
+            "latencyMs": {
+              "p50": 17.04,
+              "p90": 21.67,
+              "p95": 23.99,
+              "p99": 28.35,
+              "max": 34.16
+            },
+            "successfulLatencyMs": {
+              "p50": 17.04,
+              "p90": 21.67,
+              "p95": 23.99,
+              "p99": 28.35,
+              "max": 34.16
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 252
+            },
+            "exploratory": true
+          },
+          "GET /v1/community/brand-scalp-ritual": {
+            "samples": 126,
+            "successfulSamples": 126,
+            "latencyMs": {
+              "p50": 22.9,
+              "p90": 28.5,
+              "p95": 31.28,
+              "p99": 33.76,
+              "max": 34.18
+            },
+            "successfulLatencyMs": {
+              "p50": 22.9,
+              "p90": 28.5,
+              "p95": 31.28,
+              "p99": 33.76,
+              "max": 34.18
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 126
+            },
+            "exploratory": true
+          },
+          "GET /v1/feed/page": {
+            "samples": 168,
+            "successfulSamples": 168,
+            "latencyMs": {
+              "p50": 18.87,
+              "p90": 22.87,
+              "p95": 26.03,
+              "p99": 28.88,
+              "max": 30.62
+            },
+            "successfulLatencyMs": {
+              "p50": 18.87,
+              "p90": 22.87,
+              "p95": 26.03,
+              "p99": 28.88,
+              "max": 30.62
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 168
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/settings": {
+            "samples": 41,
+            "successfulSamples": 41,
+            "latencyMs": {
+              "p50": 18.03,
+              "p90": 25.15,
+              "p95": 27.07,
+              "p99": 28.33,
+              "max": 28.33
+            },
+            "successfulLatencyMs": {
+              "p50": 18.03,
+              "p90": 25.15,
+              "p95": 27.07,
+              "p99": 28.33,
+              "max": 28.33
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 41
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/care": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 19.67,
+              "p90": 27.44,
+              "p95": 28.2,
+              "p99": 29.68,
+              "max": 29.68
+            },
+            "successfulLatencyMs": {
+              "p50": 19.67,
+              "p90": 27.44,
+              "p95": 28.2,
+              "p99": 29.68,
+              "max": 29.68
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "GET /v1/me/points": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 23.35,
+              "p90": 30.15,
+              "p95": 30.83,
+              "p99": 32.78,
+              "max": 32.78
+            },
+            "successfulLatencyMs": {
+              "p50": 23.35,
+              "p90": 30.15,
+              "p95": 30.83,
+              "p99": 32.78,
+              "max": 32.78
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          },
+          "GET /v1/bootstrap/profile": {
+            "samples": 83,
+            "successfulSamples": 83,
+            "latencyMs": {
+              "p50": 24.42,
+              "p90": 31.36,
+              "p95": 33.13,
+              "p99": 35.15,
+              "max": 35.15
+            },
+            "successfulLatencyMs": {
+              "p50": 24.42,
+              "p90": 31.36,
+              "p95": 33.13,
+              "p99": 35.15,
+              "max": 35.15
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 83
+            },
+            "exploratory": true
+          },
+          "PUT /v1/community/brand-scalp-ritual/reaction": {
+            "samples": 82,
+            "successfulSamples": 82,
+            "latencyMs": {
+              "p50": 33.96,
+              "p90": 42.59,
+              "p95": 44.87,
+              "p99": 47.6,
+              "max": 47.6
+            },
+            "successfulLatencyMs": {
+              "p50": 33.96,
+              "p90": 42.59,
+              "p95": 44.87,
+              "p99": 47.6,
+              "max": 47.6
+            },
+            "errors": 0,
+            "errorRate": 0,
+            "timeouts": 0,
+            "statuses": {
+              "200": 82
+            },
+            "exploratory": true
+          }
+        }
+      }
+    ]
+  },
+  "worker": {
+    "baseline": {
+      "schemaVersion": 1,
+      "generatedAt": "2026-09-21T02:35:48.064Z",
+      "mode": "local_isolated_postgresql_audit_only_outbox",
+      "events": 1000,
+      "host": {
+        "logicalCpuCount": 4,
+        "memoryLimit": "UNVERIFIED_NO_CONTAINER_QUOTA"
+      },
+      "batchSize": 50,
+      "rounds": 2,
+      "results": [
+        {
+          "workers": 1,
+          "round": 1,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            1000
+          ],
+          "elapsedMs": 354.86,
+          "eventsPerSecond": 2817.99,
+          "eventsPerLogicalCpuSecond": 704.5,
+          "cpuMs": 207.93,
+          "cpuMsPerEvent": 0.21,
+          "eventLoopUtilization": 0.427962,
+          "peakRssBytes": 106508288,
+          "pool": {
+            "total": 1,
+            "idle": 1,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        },
+        {
+          "workers": 1,
+          "round": 2,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            1000
+          ],
+          "elapsedMs": 274.52,
+          "eventsPerSecond": 3642.68,
+          "eventsPerLogicalCpuSecond": 910.67,
+          "cpuMs": 143.33,
+          "cpuMsPerEvent": 0.14,
+          "eventLoopUtilization": 0.35631799999999997,
+          "peakRssBytes": 109596672,
+          "pool": {
+            "total": 1,
+            "idle": 1,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        },
+        {
+          "workers": 2,
+          "round": 1,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            500,
+            500
+          ],
+          "elapsedMs": 165.64,
+          "eventsPerSecond": 6037.26,
+          "eventsPerLogicalCpuSecond": 1509.32,
+          "cpuMs": 131.6,
+          "cpuMsPerEvent": 0.13,
+          "eventLoopUtilization": 0.63035,
+          "peakRssBytes": 123498496,
+          "pool": {
+            "total": 2,
+            "idle": 2,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        },
+        {
+          "workers": 2,
+          "round": 2,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            500,
+            500
+          ],
+          "elapsedMs": 185.59,
+          "eventsPerSecond": 5388.34,
+          "eventsPerLogicalCpuSecond": 1347.08,
+          "cpuMs": 172.4,
+          "cpuMsPerEvent": 0.17,
+          "eventLoopUtilization": 0.642551,
+          "peakRssBytes": 129867776,
+          "pool": {
+            "total": 2,
+            "idle": 2,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        }
+      ],
+      "limitations": [
+        "Audit-only events measure claim/finalize throughput, not publication SQL or external I/O.",
+        "Loopback PostgreSQL and an unconstrained workstation are not staging or production capacity evidence.",
+        "Process-kill recovery is covered by functional tests, not timed by this harness."
+      ]
+    },
+    "candidate": {
+      "schemaVersion": 1,
+      "generatedAt": "2026-09-21T02:35:51.782Z",
+      "mode": "local_isolated_postgresql_audit_only_outbox",
+      "events": 1000,
+      "host": {
+        "logicalCpuCount": 4,
+        "memoryLimit": "UNVERIFIED_NO_CONTAINER_QUOTA"
+      },
+      "batchSize": 50,
+      "rounds": 2,
+      "results": [
+        {
+          "workers": 1,
+          "round": 1,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            1000
+          ],
+          "elapsedMs": 767.91,
+          "eventsPerSecond": 1302.24,
+          "eventsPerLogicalCpuSecond": 325.56,
+          "cpuMs": 538.92,
+          "cpuMsPerEvent": 0.54,
+          "eventLoopUtilization": 0.49551300000000004,
+          "peakRssBytes": 108761088,
+          "pool": {
+            "total": 1,
+            "idle": 1,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        },
+        {
+          "workers": 1,
+          "round": 2,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            1000
+          ],
+          "elapsedMs": 515.9,
+          "eventsPerSecond": 1938.36,
+          "eventsPerLogicalCpuSecond": 484.59,
+          "cpuMs": 320.54,
+          "cpuMsPerEvent": 0.32,
+          "eventLoopUtilization": 0.44423599999999996,
+          "peakRssBytes": 125554688,
+          "pool": {
+            "total": 1,
+            "idle": 1,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        },
+        {
+          "workers": 2,
+          "round": 1,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            500,
+            500
+          ],
+          "elapsedMs": 438.25,
+          "eventsPerSecond": 2281.8,
+          "eventsPerLogicalCpuSecond": 570.45,
+          "cpuMs": 444.12,
+          "cpuMsPerEvent": 0.44,
+          "eventLoopUtilization": 0.7300949999999999,
+          "peakRssBytes": 138940416,
+          "pool": {
+            "total": 2,
+            "idle": 2,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        },
+        {
+          "workers": 2,
+          "round": 2,
+          "events": 1000,
+          "processed": 1000,
+          "perWorker": [
+            500,
+            500
+          ],
+          "elapsedMs": 331.8,
+          "eventsPerSecond": 3013.86,
+          "eventsPerLogicalCpuSecond": 753.47,
+          "cpuMs": 274.89,
+          "cpuMsPerEvent": 0.27,
+          "eventLoopUtilization": 0.657353,
+          "peakRssBytes": 157155328,
+          "pool": {
+            "total": 2,
+            "idle": 2,
+            "waiting": 0
+          },
+          "state": {
+            "total": 1000,
+            "pending": 0,
+            "dead": 0,
+            "oldest_seconds": null
+          }
+        }
+      ],
+      "limitations": [
+        "Audit-only events measure claim/finalize throughput, not publication SQL or external I/O.",
+        "Loopback PostgreSQL and an unconstrained workstation are not staging or production capacity evidence.",
+        "Process-kill recovery is covered by functional tests, not timed by this harness."
+      ]
+    }
+  },
+  "limitations": [
+    "Backend budget protection adds local round trips; no blanket backend speedup claim.",
+    "Separate baseline/candidate process order can bias caches; no averaged P95.",
+    "Capacity per-route samples under 1000 are exploratory, not G0 capacity evidence.",
+    "Smoke app.inject excludes public transport. Capacity uses actual loopback HTTP, not app.inject.",
+    "No actual wx.request profile, DevTools, iOS/Android, weak mobile network, staging, qualifications, signatures or money/public UGC evidence.",
+    "TLS negotiation/CA/key/cancel ordering is unit-tested; real cancel integration is plain loopback PostgreSQL, not deployed mTLS acceptance.",
+    "Old interrupted broad Vitest invocation is retained as invalid exploratory evidence; it is not the test result."
+  ]
+}

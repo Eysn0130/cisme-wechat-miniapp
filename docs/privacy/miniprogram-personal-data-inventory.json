@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-14",
+  "inventoryDate": "2026-09-20",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -16,6 +16,7 @@
     "wx.getDeviceInfo",
     "wx.getFileSystemManager",
     "wx.getMenuButtonBoundingClientRect",
+    "wx.getPerformance",
     "wx.getStorageSync",
     "wx.getWindowInfo",
     "wx.hideKeyboard",
@@ -428,6 +429,14 @@
       "serverStorage": "CISME PostgreSQL privacy_export_artifact，使用独立测试密钥的 AES-GCM 密文；真实环境执行仍关闭",
       "currentGate": "schema 的 syntheticOnly/dev_test 守卫与应用/worker 的 test-only 密钥双重限制；成员会话+对象归属+到期/撤销核验；未覆盖完整账号导出或真实环境 apply",
       "retention": "真实保存期限 POLICY PENDING；合成测试的短期到期不是对外承诺"
+    },
+    {
+      "surface": "wx.getPerformance",
+      "informationType": "仅白名单性能条目名称和数值时长；不含条目URL、设备标识或用户身份",
+      "purpose": "本机原生性能诊断；不构成真机验收",
+      "activation": "手动读取本机 localMeasurements；网络与页面样本默认1/16且最多128条",
+      "serverStorage": "无；不自动上传、不持久化；退出进程消失",
+      "currentGate": "源码诊断用途；设备/网络/冷热/包哈希由获授权验收人另行绑定"
     }
   ],
   "runtimeDataEgress": [
@@ -463,5 +472,11 @@
     }
   ],
   "migrationSetSha256": "2684ec3eb6d5a47f11e01561630fc60bed479a02cbb8ca514d4e41cc5724947d",
-  "egressSignatureSha256": "8965fbe8964fa81c097c5c88908df9f7e32c2bae8a1bf9982e45dc5d82e4f39e"
+  "egressSignatureSha256": "c883a739331e55f0e1c7a78248bfba113bda4ee7b1232f6671b9f13719209971",
+  "performanceRepairReview": {
+    "date": "2026-09-20",
+    "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
+    "localMetricProjection": "category/stage/numeric duration/status; direct/cloud allowlist; numeric network-phase whitelist; missing=null; bounded local memory; no raw URL/body/token/openid/phone/signed URL.",
+    "notBusinessSignoff": true
+  }
 }

@@ -1,3 +1,4 @@
+import { preserveHttpBusinessStatus } from "./observability.js";
 import type { FastifyInstance } from "fastify";
 
 /** The native cloud SDK discards non-2xx response bodies. Keep business errors
@@ -9,6 +10,7 @@ export function registerCloudHttpTransport(app: FastifyInstance): void {
     if (request.headers["x-cisme-transport"] !== "cloud-http-v1" || reply.statusCode < 400) return payload;
     if (typeof payload !== "string" || !String(reply.getHeader("content-type")).includes("json")) return payload;
     const statusCode = reply.statusCode;
+    preserveHttpBusinessStatus(request, statusCode);
     const data: unknown = JSON.parse(payload);
     reply.code(200).type("application/json");
     reply.removeHeader("content-length");

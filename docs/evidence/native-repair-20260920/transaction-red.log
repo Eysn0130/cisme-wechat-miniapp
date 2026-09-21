@@ -1,0 +1,133 @@
+
+ RUN  v4.1.11 /mnt/data/cisme-repair
+
+ ❯ tests/unit/transaction-budget.test.ts (12 tests | 6 failed | 6 skipped) 48ms
+     × releases before backoff, retries 40001 and releases each lease once 28ms
+     × releases before backoff, retries 40P01 and releases each lease once 14ms
+     × does not commit when work consumes the absolute budget 2ms
+     ↓ returns a late queued grant without running SQL after the pool-wait deadline
+     ↓ discards an active query on cancellation and waits for its rejection, not a naked race
+     × discards a rollback failure, preserves a distinct error and never retries it 1ms
+     × never retries or labels an unacknowledged COMMIT as not executed 1ms
+     ↓ retains bounded retries for a server-confirmed serialization failure at COMMIT
+     ↓ releases all attempts once when conflicts are exhausted
+     × shrinks statement and lock timeouts across queries without restarting the budget 1ms
+     ↓ applies the same deadline and rollback discipline to consistent read snapshots
+     ↓ inherits a parent's deadline for both SQL and external dependencies without leaking context
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/transaction-budget.test.ts > PERF-05/06 bounded transaction ownership > releases before backoff, retries 40001 and releases each lease once
+ FAIL  tests/unit/transaction-budget.test.ts > PERF-05/06 bounded transaction ownership > releases before backoff, retries 40P01 and releases each lease once
+AssertionError: expected [ +0 ] to deeply equal [ 1 ]
+
+- Expected
++ Received
+
+  [
+-   1,
++   0,
+  ]
+
+ ❯ tests/unit/transaction-budget.test.ts:27:23
+     25|     }) as typeof setTimeout);
+     26|     expect(await transaction(f.pool, async () => { if (++attempts === …
+     27|     expect(atBackoff).toEqual([1]); expect(f.releases).toEqual([false,…
+       |                       ^
+     28|   });
+     29|   it("does not commit when work consumes the absolute budget", async (…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/unit/transaction-budget.test.ts > PERF-05/06 bounded transaction ownership > does not commit when work consumes the absolute budget
+AssertionError: promise resolved "'uncommitted'" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+"uncommitted"
+
+ ❯ tests/unit/transaction-budget.test.ts:32:113
+     30|     let now = 100; vi.spyOn(performance, "now").mockImplementation(() …
+     31|     const f = fixture();
+     32|     await expect(transaction(f.pool, async () => { now += 50; return "…
+       |                                                                                                                 ^
+     33|     expect(f.queries).not.toContain("COMMIT"); expect(f.queries).toCon…
+     34|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/unit/transaction-budget.test.ts > PERF-05/06 bounded transaction ownership > discards a rollback failure, preserves a distinct error and never retries it
+AssertionError: expected Error: synthetic rollback disconnect to match object { code: 'TRANSACTION_ROLLBACK_FAILED' }
+
+- Expected
++ Received
+
+- {
+-   "code": "TRANSACTION_ROLLBACK_FAILED",
++ Error {
++   "message": "synthetic rollback disconnect",
+  }
+
+ ❯ tests/unit/transaction-budget.test.ts:53:80
+     51|   it("discards a rollback failure, preserves a distinct error and neve…
+     52|     const f = fixture(async text => { if (text === "ROLLBACK") throw n…
+     53|     await expect(transaction(f.pool, async () => { throw { code: "4000…
+       |                                                                                ^
+     54|     expect(f.releases).toEqual([true]); expect(f.pool.connect).toHaveB…
+     55|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/unit/transaction-budget.test.ts > PERF-05/06 bounded transaction ownership > never retries or labels an unacknowledged COMMIT as not executed
+AssertionError: expected { code: 'ECONNRESET' } to match object { …(2) }
+
+- Expected
++ Received
+
+  {
+-   "code": "TRANSACTION_OUTCOME_UNKNOWN",
+-   "status": 503,
++   "code": "ECONNRESET",
+  }
+
+ ❯ tests/unit/transaction-budget.test.ts:58:87
+     56|   it("never retries or labels an unacknowledged COMMIT as not executed…
+     57|     const f = fixture(async text => { if (text === "COMMIT") throw { c…
+     58|     await expect(transaction(f.pool, client => client.query("INSERT sy…
+       |                                                                                       ^
+     59|     expect(f.releases).toEqual([true]); expect(f.pool.connect).toHaveB…
+     60|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/unit/transaction-budget.test.ts > PERF-05/06 bounded transaction ownership > shrinks statement and lock timeouts across queries without restarting the budget
+AssertionError: expected [] to deeply equal [ 100, 70 ]
+
+- Expected
++ Received
+
+- [
+-   100,
+-   70,
+- ]
++ []
+
+ ❯ tests/unit/transaction-budget.test.ts:76:21
+     74|     const f = fixture(async (text, values) => { if (text.includes("set…
+     75|     await transaction(f.pool, async client => { await client.query("SE…
+     76|     expect(budgets).toEqual([100, 70]); expect(f.releases).toEqual([fa…
+       |                     ^
+     77|   });
+     78|   it("applies the same deadline and rollback discipline to consistent …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 6 skipped (12)
+   Start at  21:59:07
+   Duration  242ms (transform 59ms, setup 0ms, import 88ms, tests 48ms, environment 0ms)
