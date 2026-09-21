@@ -7,7 +7,7 @@ import { registerCloudHttpTransport } from "../../services/api/src/cloudHttpTran
 const apps: FastifyInstance[] = [];
 afterEach(async () => { await Promise.all(apps.splice(0).map(app => app.close())); });
 function app() {
-  const result = Fastify({ handlerTimeout: 30 }); apps.push(result);
+  const result = Fastify({ handlerTimeout: 0 }); apps.push(result);
   installRequestBudgets(result, 30);
   result.addHook("onRoute", route => metrics.registerHttpRoute(route.method, route.url));
   registerCloudHttpTransport(result);
@@ -58,6 +58,55 @@ describe("route-complete, bounded and phase-labelled HTTP metrics", () => {
     expect(result.timeouts).toBe(1); expect(result.serverErrors).toBe(1);
     expect(result.completedDurationMs.count).toBe(1);
     expect(result.timingBoundary).toContain("onSend");
+  });
+  it("keeps a normally completed HTTP request body alive through its handler", async () => {
+    const server = app();
+    server.post("/body-complete", async () => {
+      await new Promise(resolve => setTimeout(resolve, 8));
+      currentOperationBudget()?.check();
+      return { saved: true };
+    });
+    const address = await server.listen({ host: "127.0.0.1", port: 0 });
+    const response = await fetch(`${address}/body-complete`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ saved: true });
+  });
+  it("keeps the business deadline after a complete HTTP body and cancels late work", async () => {
+    const server = app(); let lateWrite = false;
+    let resume!: () => void;
+    const held = new Promise<void>(resolve => { resume = resolve; });
+    server.post("/body-slow", async () => {
+      await held;
+      currentOperationBudget()?.check(); lateWrite = true;
+      return { saved: true };
+    });
+    const address = await server.listen({ host: "127.0.0.1", port: 0 });
+    try {
+      // The response must arrive while the handler is still held, not only
+      // after a late handler happens to check an already-aborted signal.
+      const response = await fetch(`${address}/body-slow`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(1_000) });
+      expect(response.status).toBe(503); await response.text();
+    } finally { resume(); }
+    await new Promise(resolve => setTimeout(resolve, 5));
+    expect(lateWrite).toBe(false);
+  });
+  it("cancels work on a real disconnected client, not on normal body completion", async () => {
+    const server = app();
+    let entered!: () => void, settled!: () => void;
+    const entry = new Promise<void>(resolve => { entered = resolve; });
+    const stop = new Promise<void>(resolve => { settled = resolve; });
+    let reason: unknown;
+    server.post("/client-disconnect", async () => {
+      const budget = currentOperationBudget()!;
+      budget.signal.addEventListener("abort", () => { reason = budget.signal.reason; settled(); }, { once: true });
+      entered(); await stop;
+      budget.check(); return { saved: true };
+    });
+    const address = await server.listen({ host: "127.0.0.1", port: 0 });
+    const cancel = new AbortController();
+    const response = fetch(`${address}/client-disconnect`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal: cancel.signal }).catch(() => null);
+    await entry; cancel.abort(); await response; await stop;
+    expect(reason).toMatchObject({ code: "OPERATION_CANCELLED" });
   });
   it("isolates concurrent request budgets and does not cancel successful work", async () => {
     const server = app();

@@ -1,0 +1,34 @@
+
+ RUN  v4.1.11 /mnt/data/cisme
+
+ ❯ tests/integration/native-operation-budget.test.ts (8 tests | 1 failed) 1791ms
+     ✓ cancels pg_sleep, leaves no committed insert or active late SQL, and restores pool availability 270ms
+     × confirms early cancellation before rejecting, without leaving backend SQL or a queued write 14ms
+     ✓ expires a pool queue before BEGIN, returns a late grant once, and never starts its work 94ms
+     ✓ releases and rolls back before retrying actual SQLSTATE 40001 17ms
+     ✓ releases and rolls back before retrying actual SQLSTATE 40P01 20ms
+     ✓ does not mistake COMMIT returning ROLLBACK after a swallowed SQL error for success 2ms
+     ✓ classifies an injected lost acknowledgement AFTER real COMMIT as unknown; query recovers one fact 2ms
+     ✓ discards a terminated connection when rollback cannot be confirmed 17ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/native-operation-budget.test.ts > real PostgreSQL transaction deadlines / pg 8.23.0 > confirms early cancellation before rejecting, without leaving backend SQL or a queued write
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ tests/integration/native-operation-budget.test.ts:58:203
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  02:24:47
+   Duration  2.06s (transform 134ms, setup 0ms, import 174ms, tests 1.79s, environment 0ms)

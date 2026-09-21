@@ -1,4 +1,5 @@
 import pg from "pg";
+import { requestPgCancellation } from "./pgCancellation.js";
 import { DomainError } from "@cisme/domain";
 import { OperationBudget, currentOperationBudget, runWithOperationBudget } from "./operationBudget.js";
 import type { AppConfig } from "@cisme/config";
@@ -99,10 +100,10 @@ export function createPool(connectionString: string, supplied?: DatabaseOptions)
   return observe(pool);
 }
 
-/** pg 8.23 has no public AbortSignal query API. Its query_timeout only stops
- * waiting. We instead set server-side timeouts, and release(true) destroys a
- * non-pipelined active connection on cancellation. No SQL is left in a raced
- * promise and no such connection is returned to the healthy pool. */
+/** pg 8.23 has no public AbortSignal query API. A timed-out acquisition
+ * never starts SQL; a late grant is returned exactly once. Active leases use
+ * a separate CancelRequest and retain the original connection until its query
+ * settles. Closing a socket alone does not cancel backend work. */
 async function acquireWithinBudget(pool: pg.Pool, budget: OperationBudget): Promise<pg.PoolClient> {
   budget.check();
   return new Promise((resolve, reject) => {
@@ -134,22 +135,48 @@ interface BudgetLease {
   raw: pg.PoolClient;
   released(): boolean;
   drain(): Promise<void>;
+  settleCancellation(): Promise<void>;
+  cancellationUnconfirmed(): boolean;
   release(discard?: boolean): Promise<void>;
 }
 async function leaseWithinBudget(pool: pg.Pool, budget: OperationBudget, options: DatabaseOptions, local: boolean): Promise<BudgetLease> {
   const raw = await acquireWithinBudget(pool, budget);
   let released = false, closing = false;
   let tail = Promise.resolve();
+  let cancellation: Promise<void> | undefined;
+  let cancellationWatchdog: ReturnType<typeof setTimeout> | undefined;
+  let cancellationUnconfirmed = false, queriesInFlight = 0;
   let cleanup: Promise<void> | undefined;
-  const rawQuery = raw.query.bind(raw) as (...args: any[]) => Promise<any>;
+  const originalRawQuery = raw.query.bind(raw) as (...args: any[]) => Promise<any>;
+  const rawQuery = async (...args: any[]) => {
+    queriesInFlight++;
+    try { return await originalRawQuery(...args); } finally { queriesInFlight--; }
+  };
   const releaseOnce = (discard: boolean) => {
     if (released) return;
     released = true;
+    clearTimeout(cancellationWatchdog);
     budget.signal.removeEventListener("abort", cancel);
     raw.removeListener?.("error", connectionFailed);
     raw.release(discard);
   };
-  const cancel = () => releaseOnce(true);
+  const cancel = () => {
+    // Never turn socket destruction into a false "SQL stopped" acknowledgement.
+    // If the cancel transport fails, the server-side statement timeout remains
+    // the fallback and the original query is still awaited, not Promise.raced.
+    if (cancellation) return;
+    cancellation = requestPgCancellation(raw);
+    // A partition can hide the server's cancellation/timeout acknowledgement.
+    // Bound transport cleanup too, but NEVER label its forced socket retirement
+    // as proof that SQL did not execute. The original query still settles via
+    // driver teardown; there is no detached Promise.race query.
+    const remainingStatement = Math.min(options.statementTimeoutMs, Math.max(0, budget.deadline - performance.now()));
+    cancellationWatchdog = setTimeout(() => {
+      const driver = raw as pg.PoolClient & { _getActiveQuery?: () => unknown };
+      cancellationUnconfirmed = queriesInFlight > 0 || Boolean(driver._getActiveQuery?.());
+      releaseOnce(true);
+    }, Math.ceil(remainingStatement) + 500);
+  };
   const connectionFailed = () => releaseOnce(true);
   raw.on?.("error", connectionFailed);
   budget.signal.addEventListener("abort", cancel, { once: true });
@@ -184,6 +211,7 @@ async function leaseWithinBudget(pool: pg.Pool, budget: OperationBudget, options
     closing = true;
     cleanup = (async () => {
       await tail;
+      await cancellation;
       if (released) return;
       if (discard || budget.signal.aborted) { releaseOnce(true); return; }
       if (!local) {
@@ -202,7 +230,7 @@ async function leaseWithinBudget(pool: pg.Pool, budget: OperationBudget, options
     const value = Reflect.get(target, property, target) as unknown;
     return typeof value === "function" ? value.bind(target) : value;
   } });
-  return { client, raw, released: () => released, drain: () => tail, release };
+  return { client, raw, released: () => released, drain: () => tail, settleCancellation: async () => { await cancellation; }, cancellationUnconfirmed: () => cancellationUnconfirmed, release };
 }
 
 const underlyingPools = new WeakMap<object, pg.Pool>();
@@ -226,7 +254,11 @@ export function requestBudgetPool(pool: pg.Pool, options: DatabaseOptions): pg.P
         const lease = await leaseWithinBudget(target, budget, options, false);
         let discard = false;
         try { return await (lease.client.query as (...args: any[]) => Promise<unknown>)(...input); }
-        catch (error) { discard = true; throw error; }
+        catch (error) {
+          discard = true;
+          if (lease.cancellationUnconfirmed()) throw new DomainError("DATABASE_CANCELLATION_UNCONFIRMED", "未收到数据库终止确认，连接已隔离；请用原幂等键查询最终状态", 503);
+          throw error;
+        }
         finally { await lease.release(discard); }
       })();
       if (callback) { void pending.then(value => callback(null, value), error => callback(error)); return; }
@@ -256,6 +288,7 @@ export async function transaction<T>(pool: pg.Pool, work: (client: DbClient) => 
         try {
           budget.check();
           await lease.raw.query(`BEGIN ISOLATION LEVEL ${isolation}`);
+          budget.check();
           const result = await work(lease.client);
           await lease.drain();
           budget.check(); // Work, SQL, pool waiting and retries share this deadline.
@@ -275,6 +308,9 @@ export async function transaction<T>(pool: pg.Pool, work: (client: DbClient) => 
             discard = true;
             throw new DomainError("TRANSACTION_OUTCOME_UNKNOWN", "提交结果待确认；请用原幂等键或查询接口恢复，不要当作未执行", 503);
           }
+          await lease.drain();
+          await lease.settleCancellation();
+          if (lease.cancellationUnconfirmed()) throw new DomainError("DATABASE_CANCELLATION_UNCONFIRMED", "未收到数据库终止确认，连接已隔离；请用原幂等键查询最终状态", 503);
           if (!lease.released()) {
             try { await lease.raw.query("ROLLBACK"); }
             catch { discard = true; throw new DomainError("TRANSACTION_ROLLBACK_FAILED", "事务回滚未确认，连接已隔离；请查询最终业务状态", 503); }

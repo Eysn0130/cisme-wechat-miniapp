@@ -38,15 +38,29 @@ describe("PERF-05/06 bounded transaction ownership", () => {
     await expect(transaction(f.pool, async () => "late", "READ COMMITTED", 1, 20)).rejects.toMatchObject({ code: "OPERATION_DEADLINE_EXCEEDED" });
     await sleep(75); expect(f.queries).toEqual([]); expect(f.releases).toEqual([false]);
   });
-  it("discards an active query on cancellation and waits for its rejection, not a naked race", async () => {
-    let rejectQuery: ((error: unknown) => void) | undefined;
+  it("awaits the backend timeout fallback before discarding an unsupported cancel transport", async () => {
     const f = fixture(async text => {
-      if (text === "SELECT synthetic_slow") return new Promise((_resolve, reject) => { rejectQuery = reject; });
+      if (text === "SELECT synthetic_slow") { await sleep(45); throw { code: "57014" }; }
       return { rows: [] };
     });
-    f.client.release.mockImplementation(discard => { f.releases.push(Boolean(discard)); if (discard) rejectQuery?.({ code: "CONNECTION_ENDED" }); });
+    const started = performance.now();
     await expect(transaction(f.pool, client => client.query("SELECT synthetic_slow"), "READ COMMITTED", 1, 25)).rejects.toMatchObject({ code: "OPERATION_DEADLINE_EXCEEDED" });
-    expect(f.releases).toEqual([true]); expect(f.queries).not.toContain("COMMIT"); expect(f.queries).not.toContain("ROLLBACK");
+    expect(performance.now() - started).toBeGreaterThanOrEqual(40);
+    expect(f.releases).toEqual([true]); expect(f.queries).not.toContain("COMMIT"); expect(f.queries).toContain("ROLLBACK");
+  });
+  it("bounds a lost cancellation acknowledgement and reports uncertainty rather than pretending SQL stopped", async () => {
+    let rejectQuery: ((error: unknown) => void) | undefined;
+    const f = fixture(async text => {
+      if (text === "SELECT lost_ack") return new Promise((_resolve, reject) => { rejectQuery = reject; });
+      return { rows: [] };
+    });
+    f.client.release.mockImplementation(discard => {
+      f.releases.push(Boolean(discard)); if (discard) rejectQuery?.({ code: "CONNECTION_ENDED" });
+    });
+    await expect(transaction(f.pool, client => client.query("SELECT lost_ack"), "READ COMMITTED", 1, 15))
+      .rejects.toMatchObject({ code: "DATABASE_CANCELLATION_UNCONFIRMED" });
+    expect(f.releases).toEqual([true]); expect(f.queries).not.toContain("COMMIT");
+    expect(f.pool.connect).toHaveBeenCalledOnce();
   });
   it("discards a rollback failure, preserves a distinct error and never retries it", async () => {
     const f = fixture(async text => { if (text === "ROLLBACK") throw new Error("synthetic rollback disconnect"); return { rows: [] }; });

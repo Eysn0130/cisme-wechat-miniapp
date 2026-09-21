@@ -42,11 +42,34 @@ export function dependencySignal(maximumMs: number): AbortSignal {
 }
 
 export function installRequestBudgets(app: FastifyInstance, milliseconds: number): void {
-  // Callback-style run(done) deliberately includes the rest of Fastify's chain
-  // in ALS; enterWith would leak one request's context into another request.
+  // pg and external dependencies inherit this one operation clock via ALS.
+  // Fastify 5.12.3 request.signal treats IncomingMessage's normal body-complete
+  // `close` as an abort and clears its handler timer (verified with real HTTP).
+  // Do not bind business cancellation to that signal. The factory disables the
+  // built-in handler timer; this hook owns the deadline and true disconnects.
   app.addHook("onRequest", (request, reply, done) => {
-    const budget = new OperationBudget(request.routeOptions.handlerTimeout || milliseconds, undefined, request.signal);
-    const close = () => { budget.abort(new DomainError("OPERATION_CANCELLED", "请求已结束；未确认的写入请查询结果", 503)); budget.dispose(); };
+    const budget = new OperationBudget(milliseconds, undefined);
+    const expire = () => {
+      if (budget.signal.reason instanceof DomainError && budget.signal.reason.code === "OPERATION_DEADLINE_EXCEEDED"
+        && !reply.sent && !reply.raw.destroyed) {
+        const error = new DomainError("HANDLER_DEADLINE_EXCEEDED", "处理超时；写入结果待查询确认，请保留原幂等键", 503);
+        // Fastify's default error handler uses statusCode; the application also
+        // maps DomainError.status. Both paths must preserve the 503 contract.
+        Object.assign(error, { statusCode: 503 });
+        void reply.send(error);
+      }
+    };
+    const close = () => {
+      budget.signal.removeEventListener("abort", expire);
+      request.raw.removeListener("close", requestClosed);
+      reply.raw.removeListener("finish", close);
+      reply.raw.removeListener("close", close);
+      budget.abort(new DomainError("OPERATION_CANCELLED", "请求已结束；未确认的写入请查询结果", 503));
+      budget.dispose();
+    };
+    const requestClosed = () => { if (request.raw.aborted || !request.raw.complete) close(); };
+    budget.signal.addEventListener("abort", expire, { once: true });
+    request.raw.once("close", requestClosed);
     reply.raw.once("finish", close);
     reply.raw.once("close", close);
     runWithOperationBudget(budget, done);

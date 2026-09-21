@@ -1,0 +1,49 @@
+
+ RUN  v4.1.11 /mnt/data/cisme
+
+ ❯ tests/unit/http-metrics-budget.test.ts (6 tests | 2 failed) 255ms
+     ✓ does not silently drop the 97th route and distinguishes methods 16ms
+     ✓ aggregates unregistered URLs without storing their IDs, paths or methods 11ms
+     ✓ counts 503 handler timeouts and Cloud business status, with completion separate from onSend 101ms
+     × keeps a normally completed HTTP request body alive through its handler 47ms
+     × keeps the business deadline after a complete HTTP body and cancels late work 75ms
+     ✓ isolates concurrent request budgets and does not cancel successful work 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/http-metrics-budget.test.ts > route-complete, bounded and phase-labelled HTTP metrics > keeps a normally completed HTTP request body alive through its handler
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ tests/unit/http-metrics-budget.test.ts:71:29
+     69|     const address = await server.listen({ host: "127.0.0.1", port: 0 }…
+     70|     const response = await fetch(`${address}/body-complete`, { method:…
+     71|     expect(response.status).toBe(200);
+       |                             ^
+     72|     expect(await response.json()).toEqual({ saved: true });
+     73|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/unit/http-metrics-budget.test.ts > route-complete, bounded and phase-labelled HTTP metrics > keeps the business deadline after a complete HTTP body and cancels late work
+AssertionError: expected 71.23643500000003 to be less than 60
+ ❯ tests/unit/http-metrics-budget.test.ts:85:41
+     83|     const response = await fetch(`${address}/body-slow`, { method: "PO…
+     84|     expect(response.status).toBe(503);
+     85|     expect(performance.now() - started).toBeLessThan(60);
+       |                                         ^
+     86|     await response.text(); await new Promise(resolve => setTimeout(res…
+     87|     expect(lateWrite).toBe(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 4 passed (6)
+   Start at  02:29:41
+   Duration  554ms (transform 117ms, setup 0ms, import 182ms, tests 255ms, environment 0ms)

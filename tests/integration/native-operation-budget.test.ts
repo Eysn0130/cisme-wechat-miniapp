@@ -1,6 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { setTimeout as sleep } from "node:timers/promises";
 import pg from "pg";
+import { DomainError } from "@cisme/domain";
+import { OperationBudget, runWithOperationBudget } from "../../services/api/src/operationBudget.js";
 import { loadConfig } from "@cisme/config";
 import { TEST_DATABASE_URL } from "@cisme/testkit";
 import { createPool, transaction } from "../../services/api/src/db.js";
@@ -30,6 +32,33 @@ describe("real PostgreSQL transaction deadlines / pg 8.23.0",()=>{
     const running=await control.query("SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND state='active' AND query LIKE '%native_budget_probe_sleep%'");
     expect(running.rowCount).toBe(0);
     expect((await pool.query("SELECT 1 AS healthy")).rows[0].healthy).toBe(1);
+  });
+  it("confirms early cancellation before rejecting, without leaving backend SQL or a queued write", async () => {
+    const parent = new OperationBudget(4_000);
+    let entered = false;
+    const outcome = runWithOperationBudget(parent, () => transaction(pool, async client => {
+      await client.query("INSERT INTO native_budget_test_probe VALUES ('early-cancel',1)");
+      entered = true;
+      await client.query("SELECT pg_sleep(1.5) /* early_cancel_regression */");
+      await client.query("INSERT INTO native_budget_test_probe VALUES ('late-write',1)");
+    }, "READ COMMITTED", 1, 3_000)).then(() => null, error => error);
+    try {
+      let active = false;
+      for (let i = 0; i < 100; i++) {
+        const running = await control.query("SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND state='active' AND query LIKE '%early_cancel_regression%'");
+        if (running.rowCount) { active = true; break; }
+        await sleep(5);
+      }
+      expect(entered && active).toBe(true);
+      const started = performance.now();
+      parent.abort(new DomainError("OPERATION_CANCELLED", "Synthetic explicit cancellation", 503));
+      expect(await outcome).toMatchObject({ code: "OPERATION_CANCELLED" });
+      expect(performance.now() - started).toBeLessThan(1_000);
+      // No grace sleep: the operation's rejection is the cleanup boundary.
+      expect((await control.query("SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND state='active' AND query LIKE '%early_cancel_regression%'")).rowCount).toBe(0);
+      expect((await control.query("SELECT * FROM native_budget_test_probe")).rowCount).toBe(0);
+      expect((await pool.query("SELECT 1 AS healthy")).rows[0].healthy).toBe(1);
+    } finally { parent.dispose(); await outcome; }
   });
   it("expires a pool queue before BEGIN, returns a late grant once, and never starts its work",async()=>{
     const held=await pool.connect();let entered=false;

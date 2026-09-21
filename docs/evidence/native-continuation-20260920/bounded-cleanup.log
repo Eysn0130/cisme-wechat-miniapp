@@ -1,0 +1,11 @@
+
+ RUN  v4.1.11 /mnt/data/cisme
+
+ ✓ tests/unit/transaction-budget.test.ts (14 tests) 761ms
+     ✓ bounds a lost cancellation acknowledgement and reports uncertainty rather than pretending SQL stopped  517ms
+ ✓ tests/unit/http-metrics-budget.test.ts (7 tests) 228ms
+
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+   Start at  02:33:56
+   Duration  1.52s (transform 208ms, setup 0ms, import 318ms, tests 990ms, environment 0ms)

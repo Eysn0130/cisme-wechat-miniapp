@@ -98,7 +98,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     // Trace IDs are server-owned. A caller-controlled x-request-id could be
     // a phone number, token, or signed URL and would otherwise enter logs.
     genReqId: () => randomUUID(),
-    bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.receiveTimeoutMs, handlerTimeout: config.api.routeDeadlineMs });
+    bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.receiveTimeoutMs, handlerTimeout: 0 });
   installRequestBudgets(app, config.api.routeDeadlineMs);
   app.addHook("onRoute", route => registerHttpRoute(route.method, route.url));
   const service = new PlatformService(pool, config, storage);

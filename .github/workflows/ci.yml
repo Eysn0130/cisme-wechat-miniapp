@@ -11,6 +11,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      TEST_DATABASE_URL: postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme_test
     defaults:
       run:
         shell: bash
@@ -80,6 +82,7 @@ jobs:
           CAPACITY_LEVELS: '10,20'
           CAPACITY_ROUNDS: '2'
           CAPACITY_REQUESTS_PER_WORKER: '50'
+          CAPACITY_CLIENT_MODE: loopback-population
           WORKER_CAPACITY_EVENTS: '1000'
           WORKER_CAPACITY_LEVELS: '1,2'
           WORKER_CAPACITY_ROUNDS: '2'
@@ -93,20 +96,30 @@ jobs:
           mkdir -p "$baseline"
           git archive 56432fb9b42777ffd4b3aeaf17134a666c7f243c | tar -x -C "$baseline"
           cmp package-lock.json "$baseline/package-lock.json"
-          # Identical measurement harness; baseline runtime is unchanged.
-          cp scripts/performance-smoke.ts "$baseline/scripts/performance-smoke.ts"
-          sha256sum scripts/performance-smoke.ts > "$out/smoke-harness-sha256.txt"
+          # Same measurement code on both runtimes; no copied runtime fixes.
+          for harness in performance-smoke.ts capacity-benchmark.ts worker-capacity-benchmark.ts performance-measurement.ts; do
+            cp "scripts/$harness" "$baseline/scripts/$harness"
+            sha256sum "scripts/$harness" >> "$out/harness-sha256.txt"
+          done
           (cd "$baseline" && npm ci > "$out/baseline-npm-ci.log" 2>&1)
+          failed=0
           for cohort in baseline candidate; do
             if [ "$cohort" = baseline ]; then directory="$baseline"; else directory="$GITHUB_WORKSPACE"; fi
-            (
-              cd "$directory"
-              npm run perf:smoke > "$out/$cohort-smoke.log" 2>&1
-              CAPACITY_OUTPUT="$out/$cohort-capacity.json" npm run perf:capacity > "$out/$cohort-capacity.log" 2>&1
-              WORKER_CAPACITY_OUTPUT="$out/$cohort-worker.json" npm run perf:worker-capacity > "$out/$cohort-worker.log" 2>&1
-            )
+            for kind in smoke capacity worker-capacity; do
+              # Keep output inside the scripts' existing protected evidence root.
+              # A failed cohort must not prevent collecting the other cohort.
+              if (
+                cd "$directory"
+                export CAPACITY_OUTPUT="docs/evidence/performance/ci-$cohort-capacity.json"
+                export WORKER_CAPACITY_OUTPUT="docs/evidence/performance/ci-$cohort-worker.json"
+                npm run "perf:$kind" > "$out/$cohort-$kind.log" 2>&1
+              ); then status=0; else status=$?; failed=1; fi
+              printf '%s %s %s\n' "$cohort" "$kind" "$status" >> "$out/performance-exit-status.txt"
+            done
+            cp "$directory/docs/evidence/performance/ci-$cohort-"*.json "$out/" || failed=1
           done
           rm -rf "$baseline"
+          test "$failed" = 0
       - run: npm run sbom
       - run: npm run license:report
       - if: always()
