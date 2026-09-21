@@ -40,6 +40,8 @@ import { MoneyOperationsService } from "./moneyOperations.js";
 import { TradeBillReconciliationService } from "./tradeBillReconciliation.js";
 import { WechatPayV3Client } from "./wechatPayV3.js";
 import { isolatedPaymentProtocol } from "./isolatedPaymentProtocol.js";
+import type { RecoveryCapability } from "./formalPaymentAuthorization.js";
+import { startFormalRecoveryWorker } from "../../worker/src/formalRecovery.js";
 import { formalPaymentProtocol } from "./formalPaymentProtocol.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { FormalUgcService } from "./formalUgc.js";
@@ -65,7 +67,7 @@ interface AppDependencies {
   paymentProtocol?: { channel: WechatPayV3Client; inbox: VerifiedPaymentInbox;
     refundInbox: VerifiedRefundInbox; paymentNotifyUrl: string; refundNotifyUrl: string;
     transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox;
-    isolatedSyntheticTransport?: boolean };
+    isolatedSyntheticTransport?: boolean; formalRecovery?: boolean; authorizeRecovery?:(capability:RecoveryCapability)=>string };
   legacyDirectSettlementFixture?: boolean;
   loggerInstance?: FastifyBaseLogger;
   phoneFetcher?: typeof fetch;
@@ -117,12 +119,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
   const deliveryAddresses = new DeliveryAddressService(pool, config);
-  // A formal profile can exercise the complete command/inbox route only in
-  // APP_ENV=test with an injected synthetic transport. Real environments
-  // merely validate pinned trust; no config file grants outbound authority.
+  // Complete money commands remain isolated-test only. Formal recovery uses
+  // separate per-call grants, preserving historical facts with new money off.
   const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
     ?config.commerce.formalProtocol:undefined;
-  const paymentProfile=config.commerce.simulatedPayment??formalTestProfile;
+  const formalRecoveryProfile=dependencies.paymentProtocol?.formalRecovery===true ? config.commerce.formalProtocol : undefined;
+  const paymentProfile=config.commerce.simulatedPayment??formalTestProfile??formalRecoveryProfile;
   if(dependencies.paymentProtocol&&!paymentProfile)
     throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_NO_ISOLATED_PROFILE");
   if(dependencies.legacyDirectSettlementFixture&&
@@ -145,7 +147,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const payment= paymentProfile&&dependencies.paymentProtocol
     ? new PaymentAttemptService(pool,orders,dependencies.paymentProtocol.inbox,
       dependencies.paymentProtocol.channel,{appId:paymentProfile.appId,
-        merchantId:paymentProfile.merchantId,notifyUrl:dependencies.paymentProtocol.paymentNotifyUrl})
+        merchantId:paymentProfile.merchantId,notifyUrl:dependencies.paymentProtocol.paymentNotifyUrl,
+        simulation:!formalRecoveryProfile})
     : null;
   const refunds=paymentProfile&&dependencies.paymentProtocol
     ?new RefundCommandService(pool,authority,dependencies.paymentProtocol.channel,
@@ -508,12 +511,22 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId", async request => orders.detailMine(request.memberId,request.params.orderId));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel", async request => orders.cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
-  const paymentRequired=()=>{
+  const recoveryGate=(capability:RecoveryCapability)=>{
+    if(formalRecoveryProfile){
+      if(!dependencies.paymentProtocol?.authorizeRecovery)throw new DomainError("FORMAL_PAYMENT_RECOVERY_NOT_AUTHORIZED","正式支付恢复尚未授权",503);
+      dependencies.paymentProtocol.authorizeRecovery(capability);
+    }
+  };
+  const paymentRequired=(mode:"new"|"query"|"callback"="new")=>{
+    if(formalRecoveryProfile&&mode==="new")throw new DomainError("FORMAL_PAYMENT_NEW_COMMAND_DISABLED","正式资金新命令尚未批准",503);
+    if(mode!=="new")recoveryGate(mode==="query"?"payment.query":"payment.callback");
     if(!payment||!dependencies.paymentProtocol)throw new DomainError("PAYMENT_SIMULATION_DISABLED",
       "支付协议测试仅在隔离环境可用",503);
     return payment;
   };
-  const refundRequired=()=>{
+  const refundRequired=(mode:"new"|"callback"="new")=>{
+    if(formalRecoveryProfile&&mode==="new")throw new DomainError("FORMAL_REFUND_NEW_COMMAND_DISABLED","正式退款新命令尚未批准",503);
+    if(mode==="callback")recoveryGate("refund.callback");
     if(!refunds||!dependencies.paymentProtocol)throw new DomainError("REFUND_SIMULATION_DISABLED",
       "退款协议测试仅在隔离环境可用",503);
     return refunds;
@@ -521,7 +534,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
     paymentRequired().prepare(request.memberId,request.principalId,request.params.orderId,request.id));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
-    paymentRequired().refresh(request.memberId,request.principalId,request.params.orderId,request.id));
+    paymentRequired("query").refresh(request.memberId,request.principalId,request.params.orderId,request.id));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
     paymentRequired().cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>,request.id));
@@ -600,13 +613,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   await app.register(async callbackScope=>{
     callbackScope.addContentTypeParser("application/json",{parseAs:"buffer"},(_request,body,done)=>done(null,body));
     callbackScope.post("/v1/payments/wechat/callback",async(request,reply)=>{
-      paymentRequired();
+      paymentRequired("callback");
       if(!Buffer.isBuffer(request.body))throw new DomainError("PAYMENT_CALLBACK_RAW_REQUIRED","支付通知原文缺失",400);
       await dependencies.paymentProtocol!.inbox.receive(request.body,request.headers as Record<string,string|undefined>);
       return reply.status(204).send();
     });
     callbackScope.post("/v1/payments/wechat/refund-callback",async(request,reply)=>{
-      refundRequired();
+      refundRequired("callback");
       if(!Buffer.isBuffer(request.body))throw new DomainError("REFUND_CALLBACK_RAW_REQUIRED","退款通知原文缺失",400);
       await dependencies.paymentProtocol!.refundInbox.receive(request.body,request.headers as Record<string,string|undefined>);
       return reply.status(204).send();
@@ -757,11 +770,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const pool = createPool(config.databaseUrl, config.database);
   const storage = createObjectStorage(config);
   const isolatedProtocol=isolatedPaymentProtocol(config,pool);
-  // Always validate pinned trust. A configured formal profile alone never
-  // installs routes or a worker; only a test-injected loopback transport may
-  // exercise the formal wire contract through createApp.
-  formalPaymentProtocol(config,pool);
-  const paymentProtocol=isolatedProtocol;
+  // Validate pinned trust and assemble inert recovery lanes. A profile alone
+  // grants neither outbound traffic nor callback processing.
+  const formalProtocol=isolatedProtocol?undefined:formalPaymentProtocol(config,pool);
+  const paymentProtocol=isolatedProtocol??formalProtocol;
   const app = await createApp({ config, pool, storage,
     ...(paymentProtocol?{paymentProtocol}:{}) });
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
@@ -785,7 +797,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             notifyUrl:paymentProtocol.transferNotifyUrl}):undefined,
       paymentProtocol.transferInbox,
       error=>app.log.error({ event: "money_worker_tick_failed", ...safeFailureFields(error) })) : null;
-  app.addHook("onClose", async () => { moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
+  const recoveryWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&formalProtocol
+    ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>app.log.error({event:"formal_recovery_tick_failed",...safeFailureFields(error)})):null;
+  app.addHook("onClose", async () => { recoveryWorker?.stop(); moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
   const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);

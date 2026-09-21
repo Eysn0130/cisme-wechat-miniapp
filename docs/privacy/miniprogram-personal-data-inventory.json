@@ -398,7 +398,7 @@
       "surface": "commerce_trade_bill_evidence",
       "informationType": "隔离渠道交易账单中的商户订单号、退款单号、渠道单号、付款标识及人民币金额；导入时临时核对身份，文件原文不落库",
       "purpose": "逐行比对签名账单申请及摘要校验后的外部交易/退款受理事实与内部意图及账本，向授权人员显示差异摘要",
-      "activation": "仅隔离测试商户渠道由具有 commerce.money.reconcile 的人员按日期主动导入；正式商户账单未接入",
+      "activation": "合成渠道，或受保护正式恢复授权包含 bill.read 且操作者具有 commerce.money.reconcile 时按日期主动核对；本轮未安装正式授权/未读真实账单。",
       "serverStorage": "CISME PostgreSQL commerce_trade_bill_batch/row 保存文件 SHA1/SHA256、必要单号、整数分金额和差异码；commission_refund_channel_observation 追加保存已验签退款受理时间、渠道退款单号和响应哈希；不保存账单原文或付款 OpenID",
       "currentGate": "签名申请、渠道限定的下载地址、文件摘要、单次大小和行数上限、日期/类型唯一幂等；REFUND 账单按渠道受理时间而非到账时间双向核对，缺可信受理证据保持异常；导入不改变支付、退款或佣金终态",
       "retention": "POLICY PENDING；正式账单保存期需与财务、争议和隐私负责人批准"
@@ -480,17 +480,25 @@
     },
     {
       "recipient": "微信支付 API v3",
-      "data": "测试协议的预支付、原商户订单号/退款单号/转账单号、历史交易账单日期与必要的 AppID、商户号、收付款 OpenID、整数分金额；正式协议仅本机验证静态信任配置，默认无出网；本轮交易仅发送到本机回环模拟渠道",
-      "purpose": "验证支付、退款、转账、账单申请与下载的签名请求、签名回包或文件摘要、未知结果按原单查询和持久化事实；未向微信真实商户接口发起资金操作",
-      "state": "isolated_loopback_http_protocol_and_inert_formal_trust_assembly_production_closed"
+      "data": "合成完整协议仅进入隔离回环渠道；可选正式恢复仅在保护文件的独立能力授权后发送原商户订单/退款号及账单日期，使用绑定商户签名头，不发送新资金命令。通知来自微信并在本机验签解密。",
+      "purpose": "历史支付/退款查单、账单核对与验签回调；每次重新校验环境/AppID/mchid/能力/有效期，HTTPS 域名和 GET 路径白名单、禁重定向，日志只留审批引用、能力、状态、Request-ID、耗时。",
+      "state": "controlled_formal_recovery_source_wired_no_live_grant_installed_no_real_channel_calls"
     }
   ],
   "migrationSetSha256": "2684ec3eb6d5a47f11e01561630fc60bed479a02cbb8ca514d4e41cc5724947d",
-  "egressSignatureSha256": "c883a739331e55f0e1c7a78248bfba113bda4ee7b1232f6671b9f13719209971",
+  "egressSignatureSha256": "2b808ceabdb131059aeb018b33505f705155762763c8655f030c4d002df8b744",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
     "localMetricProjection": "category/stage/numeric duration/status; direct/cloud allowlist; numeric network-phase whitelist; missing=null; bounded local memory; no raw URL/body/token/openid/phone/signed URL.",
     "notBusinessSignoff": true
+  },
+  "formalRecoveryReview": {
+    "date": "2026-09-21",
+    "source": "services/api/src/formalPaymentAuthorization.ts",
+    "reviewed": "新增 fetch 仅精确 HTTPS 域/GET 路径；保护文件每次授权；未授权拒绝网络；新资金与自动发送仍关闭；不记录请求/响应正文、URL、Token。",
+    "liveGrantInstalled": false,
+    "realChannelCalled": false,
+    "businessPolicyApproved": false
   }
 }
