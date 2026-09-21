@@ -15,12 +15,6 @@ describe("integration database isolation", () => {
   it("prefers an explicitly isolated test connection over application configuration", () => {
     expect(resolveTestDatabaseUrl({ TEST_DATABASE_URL: "postgres://localhost/cisme_test", DATABASE_URL: "postgres://localhost/cisme" })).toBe("postgres://localhost/cisme_test");
   });
-  it("checks the connected database before issuing destructive SQL", async () => {
-    const query = vi.fn().mockResolvedValue({ rows: [{ name: "cisme" }] });
-    await expect(resetDatabase({ query } as unknown as pg.Pool, {TEST_DATABASE_URL:"postgres://localhost/cisme_test"})).rejects.toThrow("TEST_DATABASE_REQUIRED");
-    expect(query).toHaveBeenCalledTimes(1);
-    expect(query.mock.calls[0]![0]).not.toMatch(/DROP|DELETE|TRUNCATE/i);
-  });
   it("validates an explicit exported target before consumers can create their own pools",async()=>{
     vi.stubEnv("TEST_DATABASE_URL","postgres://localhost/cisme_production");vi.resetModules();
     try { await expect(import("@cisme/testkit")).rejects.toThrow("TEST_DATABASE_REQUIRED"); }
@@ -31,9 +25,9 @@ describe("integration database isolation", () => {
     await expect(resetDatabase({query} as unknown as pg.Pool,{})).rejects.toThrow("EXPLICIT_TEST_DATABASE_URL_REQUIRED");
     expect(query).not.toHaveBeenCalled();
   });
-  it("rejects a different connected test database before destructive SQL",async()=>{
-    const query=vi.fn().mockResolvedValue({rows:[{name:"cisme_other_test"}]});
-    await expect(resetDatabase({query} as unknown as pg.Pool,{TEST_DATABASE_URL:"postgres://localhost/cisme_expected_test"})).rejects.toThrow("TEST_DATABASE_TARGET_MISMATCH");
-    expect(query).toHaveBeenCalledTimes(1);
+  it("refuses even an explicit legacy test target before connecting",async()=>{
+    const connect=vi.fn();
+    await expect(resetDatabase({connect} as unknown as pg.Pool,{TEST_DATABASE_URL:"postgres://localhost/cisme_test"})).rejects.toThrow("DISPOSABLE_TEST_ENDPOINT_REQUIRED");
+    expect(connect).not.toHaveBeenCalled();
   });
 });

@@ -236,7 +236,8 @@ export class SettlementCommandService{
       !row.transfer_remark)throw new DomainError("SETTLEMENT_BINDING_INVALID","转账意图绑定不完整",409);
     return {appId:row.app_id,merchantId:row.merchant_id,outBillNo:row.out_bill_no,
       payeeOpenid:row.payee_openid,amountCents:amount(row.amount_cents),sceneId:row.scene_id,
-      remark:row.transfer_remark,notifyUrl:this.options.notifyUrl};
+      remark:row.transfer_remark,notifyUrl:this.options.notifyUrl,
+      ...(this.environment==="test"?{sceneReportInfos:[{info_type:"活动名称",info_content:"隔离佣金测试"}]}:{})};
   }
 
   private async requireCycleApproval(row:Row,db:pg.Pool|pg.PoolClient=this.pool){

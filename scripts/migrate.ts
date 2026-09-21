@@ -4,7 +4,8 @@ import { createPool } from "../services/api/src/db.js";
 
 const direction = process.argv[2] ?? "up";
 if (direction !== "up" && direction !== "down") throw new Error("Usage: migrate.ts up|down");
-const connectionString = process.env.DATABASE_URL ?? "postgres://cisme:cisme-dev-only@127.0.0.1:55432/cisme";
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("EXPLICIT_DATABASE_URL_REQUIRED");
 const pool = createPool(connectionString);
 await pool.query(`CREATE TABLE IF NOT EXISTS schema_migration (
   version text PRIMARY KEY,

@@ -19,19 +19,18 @@ CISME 是一套原生微信小程序与 Node.js/Fastify、PostgreSQL 后端的�
 
 ```bash
 npm ci
-docker compose -f infra/compose.yaml up -d --wait
+docker compose -f infra/compose.yaml up -d --wait seaweed
 npm run typecheck
 npm run miniprogram:package-gate
 npm run miniprogram:route-audit
 npm run design:qa:status
 npm test
-: "${TEST_DATABASE_URL:?请先显式指定并核对一次性合成测试库地址}"
-TEST_DATABASE_URL="$TEST_DATABASE_URL" npm run test:integration
+npm run test:integration
 npm run build
 npm run lint:contracts
 ```
 
-`test:integration`、`db:reset:test` 和原生合成验收会重置目标测试库。必须显式提供已确认可重置的 `TEST_DATABASE_URL`；不会回退到 `DATABASE_URL` 或默认端口，连接后的库名也须与指定目标一致。
+`test:integration`、`db:reset:test` 和原生合成验收会重置目标测试库。默认入口通过 `scripts/disposable-test.mjs` 创建一次性 Docker 目标，生成独立端口、库、角色与重置能力，验证实例归属后传给子进程，退出时仅清理本次目标。手写 URL 不再是重置许可；旧 55432/cisme_test 禁用。定向测试使用 `npm run test:disposable -- ./node_modules/.bin/vitest run tests/integration/文件.test.ts --exclude 'dist/**' --maxWorkers=1`。迁移必须显式指定目标，合成 seed 仅允许一次性实例。原测试数据事故影响仍未知、未恢复。
 
 `design:qa:status` 的结构校验通过不代表正式发布门禁通过；iOS、Android、完整交互状态矩阵和远端 staging 仍需独立证据。
 

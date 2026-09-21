@@ -109,7 +109,7 @@ async function channelHandler(request:IncomingMessage,response:ServerResponse){
   if(method==="POST"&&close){
     const order=channelOrders.get(decodeURIComponent(close[1]!));
     if(!order||order.state!=="NOTPAY"){sendSigned(response,409,{code:"ORDER_STATE_ERROR"});return;}
-    order.state="CLOSED";response.writeHead(204);response.end();return;
+    order.state="CLOSED";response.writeHead(204,signedHeaders(Buffer.alloc(0)));response.end();return;
   }
   if(method==="POST"&&path==="/v3/refund/domestic/refunds"){
     const input=JSON.parse(raw.toString("utf8")) as {transaction_id:string;out_refund_no:string;

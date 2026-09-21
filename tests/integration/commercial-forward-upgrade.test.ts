@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { TEST_DATABASE_URL } from "@cisme/testkit";
+import { TEST_DATABASE_URL, assertDisposableTarget, testPool } from "@cisme/testkit";
 import { assertFinalSchemaContract } from "../../scripts/final-schema-contract";
 
 const exec=promisify(execFile);
@@ -19,6 +19,8 @@ const db=new pg.Pool({connectionString:databaseUrl.toString()});
 let created=false;
 
 beforeAll(async()=>{
+  const owned = testPool();
+  try { await assertDisposableTarget(owned); } finally { await owned.end(); }
   await admin.query(`CREATE DATABASE ${databaseName}`);
   created=true;
 });

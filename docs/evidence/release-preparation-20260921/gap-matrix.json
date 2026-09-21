@@ -1,0 +1,76 @@
+{
+  "baseline": "9c71c7479890c0d7fee6a7022b51c7f6980feb75",
+  "releaseReady": false,
+  "items": [
+    {
+      "id": "C",
+      "applicable": true,
+      "status": "IN_PROGRESS",
+      "next": "Finalize disposable launcher regressions",
+      "exit": "Owned instance-only destructive tests"
+    },
+    {
+      "id": "D",
+      "applicable": true,
+      "status": "IN_PROGRESS",
+      "next": "Exact HEAD CI for protocol fixes",
+      "exit": "Signed empty/AAD negative tests pass"
+    },
+    {
+      "id": "E",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Enumerate actual routes and each authority dimension",
+      "exit": "Per-route reviewed evidence with honest untested fields"
+    },
+    {
+      "id": "F",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Inspect provider/worker gates and controlled assembly",
+      "exit": "Independent capability scopes with isolated abnormal chains"
+    },
+    {
+      "id": "G",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Wire native readonly command discovery and lifecycle",
+      "exit": "Page behavior + current package native observations"
+    },
+    {
+      "id": "H",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Controlled preview and applicable state matrix",
+      "exit": "Actual device evidence or specific external block"
+    },
+    {
+      "id": "I",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Subject linkage/export/retention and UGC gates",
+      "exit": "Synthetic rights and governance coverage"
+    },
+    {
+      "id": "J",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Deployment/monitor/recovery/governance",
+      "exit": "Executable templates and isolated rehearsal"
+    },
+    {
+      "id": "K",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Freeze candidate bindings",
+      "exit": "Exact source/config/evidence matrix remains fail-closed"
+    },
+    {
+      "id": "L",
+      "applicable": true,
+      "status": "NOT_RUN",
+      "next": "Scoped PRs and final receipt",
+      "exit": "Exact SHA CI and complete remaining-work ledger"
+    }
+  ]
+}
