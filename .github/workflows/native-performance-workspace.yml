@@ -15,37 +15,25 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24.18.0'
-          cache: npm
-      - name: Install only the root locked test environment
-        run: npm ci
-      - name: Archive tracked public source and isolated test tools
+      - name: Export only existing compose test dependencies
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/native-source" "$RUNNER_TEMP/native-tools"
-          git archive --format=tar.gz HEAD > "$RUNNER_TEMP/native-source/source.tar.gz"
-          git rev-parse HEAD > "$RUNNER_TEMP/native-source/COMMIT"
-          git -c core.quotePath=false ls-tree -r HEAD > "$RUNNER_TEMP/native-source/TREE"
-          cd "$RUNNER_TEMP/native-source"
-          sha256sum source.tar.gz > SHA256SUMS
-          cd "$GITHUB_WORKSPACE"
-          tar -czf "$RUNNER_TEMP/native-tools/node_modules.tar.gz" node_modules
-          cp "$(command -v node)" "$RUNNER_TEMP/native-tools/node"
-          node --version > "$RUNNER_TEMP/native-tools/NODE_VERSION"
-          cp package-lock.json "$RUNNER_TEMP/native-tools/package-lock.json"
-          cd "$RUNNER_TEMP/native-tools"
-          sha256sum node_modules.tar.gz node package-lock.json > SHA256SUMS
+          mkdir -p "$RUNNER_TEMP/native-database"
+          docker pull postgres:18.4-alpine
+          docker image inspect postgres:18.4-alpine > "$RUNNER_TEMP/native-database/postgres-image.json"
+          id="$(docker create postgres:18.4-alpine)"
+          docker export "$id" | gzip -1 > "$RUNNER_TEMP/native-database/postgres-rootfs.tar.gz"
+          docker rm "$id"
+          docker pull chrislusf/seaweedfs:4.29
+          docker image inspect chrislusf/seaweedfs:4.29 > "$RUNNER_TEMP/native-database/seaweed-image.json"
+          id="$(docker create chrislusf/seaweedfs:4.29)"
+          docker cp "$id:/usr/bin/weed" "$RUNNER_TEMP/native-database/weed"
+          docker rm "$id"
+          cd "$RUNNER_TEMP/native-database"
+          sha256sum postgres-rootfs.tar.gz weed postgres-image.json seaweed-image.json > SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: native-performance-source
-          path: ${{ runner.temp }}/native-source
-          retention-days: 2
-          if-no-files-found: error
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: native-performance-tools
-          path: ${{ runner.temp }}/native-tools
+          name: native-performance-database
+          path: ${{ runner.temp }}/native-database
           retention-days: 2
           if-no-files-found: error
