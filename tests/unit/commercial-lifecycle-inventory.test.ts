@@ -17,7 +17,7 @@ it("binds every source file to the actual current bytes",async()=>{
   }
 });
 it("records the repaired pages' hide/unload ownership without claiming native PASS",()=>{
-  for(const name of ["management","commission","order-detail","orders","management-orders","records"]){
+  for(const name of ["management","commission","order-detail","orders","management-orders","management-support","records"]){
     const row=audit.routes.find(item=>item.route===`pages/${name}/index`)!;
     expect(row.observedOnly.directReadOwner).toBe(true);
     expect(row.lifecycleHooks).toEqual(expect.arrayContaining(["onShow","onHide","onUnload"]));

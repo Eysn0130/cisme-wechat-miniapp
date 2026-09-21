@@ -1,0 +1,95 @@
+{
+  "releaseReady": false,
+  "defects": [
+    {
+      "id": "PERF-12-SUPPORT-QUEUE",
+      "severity": "P1",
+      "status": "source_fixed_native_partial",
+      "owner": "native implementation / QA",
+      "evidence": [
+        "native-support-queue-ownership.test.ts",
+        "native-observations.json"
+      ],
+      "next": "authenticated/denial/slow polling states on isolated API and authorized devices"
+    },
+    {
+      "id": "MONEY-RECOVERY-01-B",
+      "severity": "P1",
+      "status": "partial",
+      "owner": "API / native / finance owner",
+      "done": "bounded owner-only retained command discovery, no keys or payloads",
+      "open": "native discovery entry, cross-device journey, authoritative absent-command facts, approved manual release"
+    },
+    {
+      "id": "TEST-TARGET-EXPLICIT",
+      "severity": "P1",
+      "status": "guard_fixed_incident_impact_unknown",
+      "owner": "implementation / existing local test database user",
+      "evidence": [
+        "TEST-DATABASE-INCIDENT.md",
+        "database-guard-green-final.txt"
+      ],
+      "next": "review existing default test database dependency; restore only from known fixture/backup with its user"
+    },
+    {
+      "id": "NATIVE-37-CURRENT",
+      "severity": "P1",
+      "status": "open",
+      "owner": "native QA",
+      "evidence": [
+        "route-matrix.json",
+        "native-compile.json"
+      ],
+      "next": "full roles/states and iOS/Android; 74 template checks and 6 observations are not full acceptance"
+    },
+    {
+      "id": "PERF-12-REMAINING",
+      "severity": "P2",
+      "status": "open",
+      "owner": "implementation",
+      "next": "remaining management/community/draft/chat lifecycle behavior"
+    },
+    {
+      "id": "SEC-OBJECT-FIELD-ACTION",
+      "severity": "P1",
+      "status": "open",
+      "owner": "API / security",
+      "next": "remaining object/field/action matrix across 228 documented methods"
+    },
+    {
+      "id": "FORMAL-PROVIDER-FULFILLMENT",
+      "severity": "P1",
+      "status": "open",
+      "owner": "API / merchant owner",
+      "next": "credential-independent transport/fulfillment gaps and redacted merchant/platform proof; real outbound stays closed"
+    },
+    {
+      "id": "PRIVACY-EXECUTION",
+      "severity": "P1",
+      "status": "open",
+      "owner": "privacy implementation / legal / business",
+      "next": "subject-linked full catalog, approved retention/hold, bounded export and revocation; no real deletion"
+    },
+    {
+      "id": "PLATFORM-OPS-GOVERNANCE",
+      "severity": "P1",
+      "status": "blocked_on_owner_evidence",
+      "owner": "platform / repository / operations owners",
+      "next": "redacted platform snapshot, isolated environments, reviewer identity and protection proposal"
+    },
+    {
+      "id": "IMMUTABLE-RELEASE-SCOPE",
+      "severity": "P1",
+      "status": "blocked_on_owner_decision",
+      "owner": "product owner",
+      "next": "sign fixed release manifest; not infer formal release from CI"
+    },
+    {
+      "id": "NFR-G0",
+      "severity": "P1",
+      "status": "blocked_for_formal_acceptance",
+      "owner": "G0 / QA",
+      "next": "approve environment/sample contract; native/public HTTPS measurements still open"
+    }
+  ]
+}

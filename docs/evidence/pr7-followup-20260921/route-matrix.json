@@ -1,0 +1,1238 @@
+{
+  "packageSourceSha256": "8f52c46a8bac5ba83021788de1b21ca24093f843f9b74b8610756b6e2e5fdcd6",
+  "routeCount": 37,
+  "completeNativeRouteMatrices": 0,
+  "releaseReady": false,
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A20",
+        "CARE-01",
+        "CARE-02",
+        "CARE-03",
+        "CARE-04"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [
+        "home-final.png"
+      ],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/records/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A20",
+        "CARE-01",
+        "CARE-02",
+        "CARE-03",
+        "CARE-04"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/community/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A16",
+        "COM-02"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [
+        "community-final.png"
+      ],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/profile/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "ME-01"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/account/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A21"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [
+        "records-final.png",
+        "profile-final.png"
+      ],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/task/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A14",
+        "EXT-01"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/submit/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A02",
+        "EXT-03"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/progress/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "EXT-04",
+        "EXT-05"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/points/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A03",
+        "A05",
+        "A06"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/post/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "COM-02"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/shop/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§8",
+        "§6.3.1"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/product/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§8",
+        "§6.3.1"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/checkout/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A07",
+        "WX-PAY-MAKE-01"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/orders/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A04",
+        "A05",
+        "A13"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A04",
+        "A05",
+        "A13"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/settings/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A11",
+        "LIC-01",
+        "LIC-02"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/invite/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A01",
+        "SHARE-01"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/legal/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§11"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A11"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/support/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§6",
+        "§11"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-product/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-support/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [
+        "queue-guest-final.png",
+        "queue-readonly-fixture.png"
+      ],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-members/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-member/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/referral/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§7",
+        "A01"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A16",
+        "AIGC-01"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/community-post/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "COM-02"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/community-author/index",
+      "rolesToVerify": [
+        "visitor",
+        "member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A10"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/community-review/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "A09",
+        "A15",
+        "A16"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "MYCONTENT-01"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed",
+        "current_capability",
+        "revoked_capability"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§3",
+        "§6.3.1",
+        "§11",
+        "A09",
+        "A15"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    },
+    {
+      "route": "pages/commission/index",
+      "rolesToVerify": [
+        "member_self",
+        "other_object_denied",
+        "expired_session",
+        "blocked_member",
+        "session_changed"
+      ],
+      "requiredStates": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events"
+      ],
+      "acceptanceReferences": [
+        "§7",
+        "§8",
+        "§11"
+      ],
+      "wxmlWxssDiagnostics": "passed",
+      "nativeObservations": [],
+      "matrixComplete": false,
+      "iOS": "not_run",
+      "Android": "not_run"
+    }
+  ]
+}

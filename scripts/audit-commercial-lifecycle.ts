@@ -32,6 +32,7 @@ export async function auditCommercialLifecycle(root=resolve(".")) {
       "pages/order-detail/index":"tests/unit/native-commerce-runtime.test.ts;tests/unit/native-commerce-recovery.test.ts;tests/unit/native-payment-followup.test.ts",
       "pages/orders/index":"tests/unit/native-order-list-lifecycle.test.ts",
       "pages/management-orders/index":"tests/unit/native-order-list-lifecycle.test.ts",
+      "pages/management-support/index":"tests/unit/native-support-queue-ownership.test.ts;tests/unit/management-support-queue-lifecycle.test.ts",
       "pages/records/index":"tests/unit/native-records-lifecycle.test.ts"
     };
     return {...route,sourceFiles:sourceFiles.map(({text,...identity})=>identity),

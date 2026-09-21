@@ -1,0 +1,5 @@
+
+> cisme-wechat-miniapp@0.1.0 lint:contracts
+> tsx scripts/validate-contracts.ts
+
+226 registered /v1 methods match OpenAPI; 228 documented methods include health; 32 typed events match catalog. Final database schema is checked after isolated forward migrations.
