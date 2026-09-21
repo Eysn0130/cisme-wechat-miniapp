@@ -1,3 +1,4 @@
+<import src="../../templates/recorded-commands.wxml"/>
 <view class="chrome-root" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">商业资格与佣金</text></view>
   <view class="page page--stack commission-page">
@@ -53,4 +54,5 @@
       </view>
     </block>
   </view>
+<template wx:if="{{coreReady}}" is="recorded-commands" data="{{recordedGroups}}"/>
 </view>

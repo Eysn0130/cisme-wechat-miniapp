@@ -1,3 +1,5 @@
+import { pageRead, cancelPageReads } from "../../services/page-requests";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 import { authorityProjection, hasCapability, requireCapability } from "../../services/authority";
 import { downloadPrivateMedia, request, retainMemberSnapshot } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
@@ -29,6 +31,7 @@ const orderStatusLabels: Record<string, string> = { pending_payment: "待支付"
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 
 Page({
+  readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
   pollInFlight: false,
   pollFailures: 0,
@@ -92,6 +95,7 @@ Page({
     this.measureActions();
   },
   async onShow() {
+    this.readRevision=commerceContextRevision();
     this.lifecycleEpoch += 1;
     const epoch = this.lifecycleEpoch;
     this.data.pageAlive = true;
@@ -110,7 +114,7 @@ Page({
       return;
     }
     if (!this.owns(epoch, ownerToken)) return;
-    const authority = await authorityProjection();
+    const authority = await authorityProjection(this);
     if (!this.owns(epoch, ownerToken)) return;
     const canAssign = hasCapability(authority, "support.assign");
     const canReply = hasCapability(authority, "support.reply");
@@ -125,6 +129,7 @@ Page({
     wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
   },
   onHide() {
+    cancelPageReads(this);
     void this.publishPresence(false, false, true);
     this.data.visible = false;
     this.lifecycleEpoch += 1;
@@ -133,7 +138,7 @@ Page({
     this.abortDownloads();
     this.setData({ composerFocused: false, keyboardHeight: 0 });
   },
-  onUnload() {
+  onUnload() { cancelPageReads(this);
     void this.publishPresence(false, false, true);
     this.data.pageAlive = false;
     this.data.visible = false;
@@ -144,7 +149,7 @@ Page({
   },
 
   owns(epoch: number, ownerToken: string) {
-    return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken;
+    return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision();
   },
   abortDownloads() {
     const downloads = this.mediaDownloads ?? [];
@@ -280,7 +285,7 @@ Page({
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     try {
-      const status = await request<any>({ path: "/v1/management/support/ai/status", cacheTags: ["support"] });
+      const status = await pageRead<any>(this,{ path: "/v1/management/support/ai/status", cacheTags: ["support"] });
       if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: status.status || "PROVIDER INTEGRATION PENDING", aiProviderAvailable: status.providerAvailable === true && status.autoSendEnabled === false });
     } catch {
       if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: "PROVIDER INTEGRATION PENDING", aiProviderAvailable: false });
@@ -295,7 +300,7 @@ Page({
     const ownerToken = sessionToken();
     this.setData({ loading: true, error: "" });
     try {
-      const page = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const memberDisplayName = page.memberDisplayName || "CISME 会员";
       const conversation = page.conversation as Conversation;
@@ -333,7 +338,7 @@ Page({
     const after = this.data.syncCursor;
     this.pollInFlight = true;
     try {
-      const page = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/messages?after=${after}&limit=50`, cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const conversation = (page.conversation ?? this.data.conversation) as Conversation;
       const presence = { ...emptyPresence, ...(page.presence ?? this.data.presence) } as Presence;
@@ -378,7 +383,7 @@ Page({
     const preserve = this.data.messages[0]?.sequence;
     this.setData({ loadingOlder: true, atBottom: false });
     try {
-      const page = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const older = this.normalize(page.messages || []);
       this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null, anchor: preserve ? `operator-${preserve}` : "" });

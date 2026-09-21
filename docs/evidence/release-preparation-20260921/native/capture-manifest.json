@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "27528d936edccf2d744c81c4fd70cff23c22d12d384956b0cd376bfb5208766b",
+  "baseCommit": "3c9da5eb18972858df376dc0f7cc89c6343c6006",
+  "sourceState": "uncommitted native batch before two resume fixes",
+  "environment": "local IDE + owned disposable synthetic API; no real funds",
+  "routeDenominator": 37,
+  "capturedRoutes": 36,
+  "fullStateMatrixPassed": 0,
+  "physicalDevicePassed": 0,
+  "releaseReady": false,
+  "rawSize": "242x524; below release screenshot size gate; never rescaled",
+  "excludedRoute": {
+    "route": "pages/account/index",
+    "reason": "local synthetic consent/login exercised separately; no screenshot in this sweep"
+  },
+  "countsBeforeRelabel": {
+    "PASS": 30,
+    "FAIL_OR_NOT_APPLICABLE_STATE": 6
+  }
+}

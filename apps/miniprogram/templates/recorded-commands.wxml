@@ -1,0 +1,15 @@
+<template name="recorded-commands">
+  <view class="state" aria-live="polite">
+    <text>本人历史操作 · 只读核对</text>
+    <text>这里只显示服务端保留的记录。没有记录不代表操作失败；付款、退款和到账请查看对应权威状态。</text>
+    <view wx:for="{{recordedGroups}}" wx:key="kind" wx:for-item="group">
+      <text>{{group.title}}</text>
+      <view wx:for="{{group.rows}}" wx:key="id" wx:for-item="fact"><text>{{fact.createdLabel}} · {{fact.label}}</text><text selectable="{{true}}">记录编号 {{fact.id}}</text></view>
+      <text wx:if="{{group.loading}}">正在核对…</text>
+      <text wx:elif="{{group.error}}">{{group.error}}</text>
+      <text wx:elif="{{!group.rows.length}}">未发现保留记录；未知操作仍需核对。</text>
+      <button wx:if="{{group.nextCursor}}" class="text-button" data-kind="{{group.kind}}" bindtap="moreRecordedCommands" disabled="{{group.loading}}">继续查看{{group.title}}</button>
+    </view>
+    <button class="text-button" bindtap="refreshRecordedCommands">重新查询历史记录</button>
+  </view>
+</template>

@@ -1,3 +1,5 @@
+import { loadRecordedCommands, type RecordedGroup } from "../../services/commerce-command-discovery";
+import type { CommerceCommandKind } from "../../services/commerce-command-store";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { acknowledgeCommerceCommand, executeCommerceCommand, readCommerceRecovery, retryCommerceCommand, type RecoveryView } from "../../services/commerce-command-recovery";
 import { cancelPageReads, pageRead } from "../../services/page-requests";
@@ -18,7 +20,7 @@ function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
   return match?Number(match[1])*100+Number((match[2]??"").padEnd(2,"0")):NaN;}
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
-  data:{...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
+  data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
     isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0},
@@ -27,7 +29,7 @@ Page({
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
     if(!requireMemberAccess())return;void this.load();},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,order:null,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
+    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,order:null,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     },
   confirmationPending:false,
@@ -45,6 +47,16 @@ Page({
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
 
+  refreshRecordedCommands(){
+    if(!this.data.visible||!this.data.coreReady)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    void loadRecordedCommands(this,this.recoveryScope(),()=>this.readCurrent(epoch,token,readEpoch));
+  },
+  moreRecordedCommands(event:WechatMiniprogram.BaseEvent){
+    if(!this.data.visible||!this.data.coreReady)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    void loadRecordedCommands(this,this.recoveryScope(),()=>this.readCurrent(epoch,token,readEpoch),String(event.currentTarget.dataset.kind) as CommerceCommandKind);
+  },
   recoveryScope(){return {group:"order" as const,objectId:this.data.id};},
   async loadRecovery(){if(!this.data.visible||!this.data.coreReady||this.data.busy)return;
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
@@ -80,7 +92,7 @@ Page({
     try{const order=await myOrder(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
-      this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadRefunds(epoch,token);void this.loadRecovery();
+      this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadRefunds(epoch,token);void this.loadRecovery();this.refreshRecordedCommands();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({order:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.order,coreReady:false,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}
   },
   applyRuntime(){const isolatedPayment=this.canAct()&&this.data.runtimeState==="ready"&&runtimeActions(this.data.runtimeStatus).money&&this.data.order?.transactionSourceKind==="verified_commerce";
