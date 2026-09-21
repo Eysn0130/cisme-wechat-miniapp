@@ -86,3 +86,16 @@ it('keeps an avatar save conflict visible and does not navigate as if saved',asy
  await page.chooseLoginAvatar({detail:{avatarUrl:'wxfile://chosen.jpg'}});
  expect(page.data.error).toBe('资料已更新，请重试');expect(mocks.navigate).not.toHaveBeenCalled();expect(mocks.publish).not.toHaveBeenCalled();
 });
+it('unblocks explicit login when the retained session expires during profile verification',async()=>{
+ mocks.token='expired-session';page.data.pendingDestination='/pages/profile/index';
+ mocks.request.mockImplementation(async()=>{mocks.token='';throw {status:401};});
+ await page.login();
+ expect(page.data.loading).toBe(false);expect(page.data.loginStage).toBe('login');
+ expect(page.data.error).toContain('登录状态');expect(mocks.navigate).not.toHaveBeenCalled();
+});
+it('does not mistake an unavailable profile for a missing avatar during retained-session login',async()=>{
+ mocks.token='valid-session';page.data.pendingDestination='/pages/profile/index';
+ mocks.request.mockRejectedValue({status:503});await page.login();
+ expect(page.data.loading).toBe(false);expect(page.data.loginStage).toBe('login');expect(page.data.error).toContain('资料');
+ expect(mocks.navigate).not.toHaveBeenCalled();
+});

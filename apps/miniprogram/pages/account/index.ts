@@ -190,13 +190,23 @@ Page({
   async login(phoneCode?:string) {
     if (this.data.loading || this.data.leaving || this.data.avatarBusy || !this.data.pageAlive) return;
     if (this.data.pendingDestination && getApp<IAppOption>().globalData.sessionToken) {
+      const attempt=++this.data.authAttempt;
       this.setData({ loading: true, error: "" });
       const token=getApp<IAppOption>().globalData.sessionToken;
-      const me=await this.loadMemberIdentity();
-      if(!this.data.pageAlive || this.data.leaving || token!==getApp<IAppOption>().globalData.sessionToken)return;
-      if(!me?.avatar_data_url) { this.setData({loading:false,loginStage:"avatar"}); return; }
-      const landed = await navigateAfterAuthentication(this.data.pendingDestination);
-      if (this.data.pageAlive) this.setData({ loading: false, error: landed === "target" ? "" : "身份已经确认，但原目标页面仍未打开。请稍后再次尝试。" });
+      try {
+        const me=await this.loadMemberIdentity();
+        if(!this.data.pageAlive || this.data.leaving || this.data.authAttempt!==attempt)return;
+        if(token!==getApp<IAppOption>().globalData.sessionToken){
+          this.setData({loginStage:"login",error:"登录状态已变化，请重新确认身份。"});return;
+        }
+        if(!me){this.setData({error:"会员资料暂时无法读取，请重试。"});return;}
+        if(!me.avatar_data_url) { this.setData({loginStage:"avatar"}); return; }
+        const landed = await navigateAfterAuthentication(this.data.pendingDestination);
+        if(this.data.pageAlive && this.data.authAttempt===attempt && token===getApp<IAppOption>().globalData.sessionToken)
+          this.setData({error:landed === "target" ? "" : "身份已经确认，但原目标页面仍未打开。请稍后再次尝试。"});
+      } finally {
+        if(this.data.pageAlive && this.data.authAttempt===attempt)this.setData({loading:false});
+      }
       return;
     }
     if (!this.data.agreementAccepted) {
@@ -246,7 +256,8 @@ Page({
       if(!this.data.pageAlive || this.data.authAttempt !== attempt || result.sessionToken !== getApp<IAppOption>().globalData.sessionToken)return;
       const me=await this.loadMemberIdentity();
       if(!this.data.pageAlive || this.data.authAttempt !== attempt || result.sessionToken !== getApp<IAppOption>().globalData.sessionToken)return;
-      if(!me?.avatar_data_url) { this.setData({loginStage:"avatar",avatarUrl:defaultMemberAvatar}); return; }
+      if(!me){this.setData({error:"身份已确认，会员资料暂时无法读取，请重试。"});return;}
+      if(!me.avatar_data_url) { this.setData({loginStage:"avatar",avatarUrl:defaultMemberAvatar}); return; }
       if(this.data.notice)wx.showToast({title:"已登录，手机号可稍后在设置中确认",icon:"none"});
       const landed = await navigateAfterAuthentication(pendingDestination);
       if (this.data.pageAlive && landed !== "target") this.setData({ error: "身份已经确认，但原目标页面暂时无法打开。请点击主按钮再次打开，不会重复创建会员身份。" }, scrollToAccountError);
