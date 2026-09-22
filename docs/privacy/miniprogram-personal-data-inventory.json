@@ -486,7 +486,7 @@
     }
   ],
   "migrationSetSha256": "732a85d527d74155c090f5805f77e692edda61c9cb06520ae2475df5d4afd02a",
-  "egressSignatureSha256": "44075515587c9e3253529b37c1ae14188e5aa343fd682b4365ea64f89213daa4",
+  "egressSignatureSha256": "ea59b0de054c6bacef6c3a166792d581b6a5e6ff51144cdbafcd5050df8ddc56",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -568,5 +568,16 @@
     "execution": "仅当前 commerce.fulfillment.manage 可查询；Provider I/O 后重检权限；查询不重传、不重置发送历史，不写入退款或签收事实。",
     "retention": "沿用原订单与管理审计保留规则，正式批准仍待核验；本次无新增存储表或独立保留周期。",
     "external": "复用已有微信 get_order 查询能力；无新外部接收方、无 PC Session。"
+  },
+  "formalCommerceCommandReview20260922": {
+    "source": "services/api/src/formalCommerceAuthorization.ts",
+    "recipient": "微信支付 api.mch.weixin.qq.com",
+    "purpose": "经独立正式批准后的 JSAPI 下单、关单和原单退款；历史查单与回调独立授权",
+    "sent": "复用既有普通商户签名协议、AppID/商户号、原订单号、绑定付款者 OpenID、整数分金额、商品摘要及配置回调 URL；退款关联原支付事实，不发送收货地址/手机号",
+    "storage": "日志仅能力、批准引用、状态码、已校验 Request-ID 和耗时；不输出头、正文、连接串或原始异常。沿用订单及资金审计保留政策，正式保留规则待批准。",
+    "network": "逐次读取保护文件；只允许三类固定 HTTPS POST 路径，拒绝重定向、15 秒超时；GET 仍经独立恢复授权。无新第三方依赖。",
+    "liveGrantInstalled": false,
+    "realPlatformCalled": false,
+    "requiresFormalPrivacyApproval": true
   }
 }

@@ -32,7 +32,7 @@ export interface CheckoutQuote {
   id: string; status: "active" | "consumed" | "expired"; currency: "CNY"; quantity: number; unitPriceCents: number;
   subtotalCents: number; memberDiscountCents: number; shippingCents: number; totalCents: number;
   creditTenderCents:number;cashPayableCents:number;pricingRuleVersion: string;
-  addressId: string; addressVersion: number; expiresAt: string; serverTime: string; paymentAvailable: false;
+  addressId: string; addressVersion: number; expiresAt: string; serverTime: string; paymentAvailable: boolean;
   item: { productId: string; productCode: string; productName: string; image: string | null; skuId: string; skuCode: string; skuLabel: string };
 }
 export interface OrderLine {
@@ -50,15 +50,16 @@ export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAd
   shippingCents: number; totalCents: number; creditTenderCents:number;cashPayableCents:number;
   pricingRuleVersion: string; version: number; expiresAt: string;
   cancelledAt: string | null; expiredAt: string | null; terminalReason: string | null; createdAt: string; updatedAt: string;
-  paymentAvailable: false; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
+  paymentAvailable: boolean; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
 }
 export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null };
 export interface CommerceOrderPage {
   items: CommerceOrderSummary[]; nextCursor: string | null;
 }
 export interface CommerceOrderRuntimeStatus {
-  version: 1; orderFlowEnabled: boolean; paymentAvailable: false; paymentOnboarding: "IN_PROGRESS"; currency: "CNY";
-  scope: "synthetic_nonproduction" | "verified_isolated_test" | "formal_protocol_synthetic_test" | "disabled";
+  version: 1|2; orderFlowEnabled: boolean; paymentAvailable: boolean; paymentOnboarding: "IN_PROGRESS"|"READY"; currency: "CNY";
+  scope: "synthetic_nonproduction" | "verified_isolated_test" | "formal_protocol_synthetic_test" | "formal_commerce" | "disabled";
+  formalMoneyOperationsAvailable?:boolean; formalRecoveryAvailable?:boolean;
   isolatedMoneyOperationsAvailable: boolean; isolatedTransferAvailable: boolean; isolatedCreditCheckoutAvailable:boolean;
 }
 export interface IsolatedCreditSummary{availableCents:number;checkoutAvailableCents:number;spendable:boolean;

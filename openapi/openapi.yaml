@@ -689,16 +689,16 @@ paths:
       tags: [Commerce]
       operationId: commerceOrderStatus
       security: []
-      responses: {'200': {description: Explicit order-flow and payment availability; payment remains unavailable and onboarding is IN_PROGRESS}}
+      responses: {'200': {description: Version 1 isolated capability envelope always has paymentAvailable=false. Version 2 formal_commerce separates revocable formalMoneyOperationsAvailable from formalRecoveryAvailable. Missing production command approval keeps new money closed; history and independent recovery remain readable.}}
   /v1/me/commerce/quotes:
     post:
       tags: [Commerce]
       operationId: createCommerceQuote
       security: [{session: []}]
-      description: Creates an expiring server-authoritative CNY quote for one eligible published synthetic SKU and an owned versioned address. Optional creditCents is test-only, requires a positive cash leg and is checked again at order creation. No inventory or credit is reserved by a quote.
+      description: Creates an expiring server-authoritative CNY quote for one eligible published SKU (admin source for explicitly approved formal commands; synthetic_test otherwise) and an owned versioned address. Optional creditCents is test-only, requires a positive cash leg and is checked again at order creation. No inventory or credit is reserved by a quote.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceQuoteInput'}}}}
-      responses: {'200': {description: Quote or exact replay}, '409': {description: stock, sellability or idempotency conflict}, '422': {$ref: '#/components/responses/Problem'}, '503': {description: isolated order gate closed}}
+      responses: {'200': {description: Quote or exact replay}, '409': {description: stock, sellability or idempotency conflict}, '422': {$ref: '#/components/responses/Problem'}, '503': {description: order-flow or exact-environment commerce approval closed}}
   /v1/me/orders:
     get:
       tags: [Commerce]
@@ -713,7 +713,7 @@ paths:
       description: Revalidates quote, current sellability, price, address version and available stock in one transaction; creates pending_payment and reserves inventory. Isolated split-tender orders also reserve exact credit source lots; gross price, credit leg and channel cash amount remain separate.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCreateInput'}}}}
-      responses: {'200': {description: Pending-payment order or exact replay}, '409': {description: quote stale or expired, address changed, or inventory unavailable}, '503': {description: isolated order gate closed}}
+      responses: {'200': {description: Pending-payment order or exact replay}, '409': {description: quote stale or expired, address changed, or inventory unavailable}, '503': {description: order-flow or exact-environment commerce approval closed}}
   /v1/me/orders/{orderId}:
     get:
       tags: [Commerce]

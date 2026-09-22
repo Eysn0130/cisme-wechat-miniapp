@@ -59,7 +59,7 @@ export interface AppConfig {
       transferSceneId?: string };
     formalProtocol?: { appId: string; merchantId: string; merchantSerial: string;
       merchantPrivateKeyFile: string; merchantCertificateFile?: string; apiV3KeyFile: string; platformTrustManifestFile: string;
-      paymentNotifyUrl: string; refundNotifyUrl: string; recoveryAuthorizationFile?: string;
+      paymentNotifyUrl: string; refundNotifyUrl: string; recoveryAuthorizationFile?: string; commerceAuthorizationFile?: string;
       transferNotifyUrl?: string; transferSceneId?: string } };
 }
 
@@ -210,7 +210,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (directUploadEnabled && storageDriver !== "cos_gateway") throw new Error("FAIL_CLOSED:COS_DIRECT_UPLOAD_REQUIRES_COS_GATEWAY");
   if (directUploadEnabled && (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY)) throw new Error("FAIL_CLOSED:COS_DIRECT_UPLOAD_CREDENTIALS_REQUIRED");
   const orderFlowEnabled = bool(env.COMMERCE_ORDER_FLOW_ENABLED);
-  if (orderFlowEnabled && appEnv === "production") throw new Error("FAIL_CLOSED:COMMERCE_ORDER_FLOW_NONPRODUCTION_ONLY");
+  if (orderFlowEnabled && appEnv === "production" &&
+    (!bool(env.COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED)||!env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE||!env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE))
+    throw new Error("FAIL_CLOSED:COMMERCE_ORDER_FLOW_FORMAL_APPROVAL_REQUIRED");
   const simulatedPaymentEnabled=bool(env.COMMERCE_SIMULATED_PAYMENT_ENABLED);
   if(simulatedPaymentEnabled && (appEnv!=="test"||!orderFlowEnabled))
     throw new Error("FAIL_CLOSED:COMMERCE_SIMULATED_PAYMENT_TEST_ONLY");
@@ -230,8 +232,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   // This configuration prepares trust and transport binding; it never grants
   // permission for orders, refunds or transfers. Independent live-capability
   // approvals are deliberately not defined by a single catch-all switch.
+  if(env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE&&(!formalProtocolEnabled||appEnv!=="production"))
+    throw new Error("FAIL_CLOSED:FORMAL_COMMERCE_PRODUCTION_ONLY");
   const formalProtocol=formalProtocolEnabled?{
     appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),
+    ...(env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE?{commerceAuthorizationFile:env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE}:{}),
     ...(env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE?{recoveryAuthorizationFile:env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE}:{}),
     merchantId:required("COMMERCE_FORMAL_MERCHANT_ID",env.COMMERCE_FORMAL_MERCHANT_ID),
     merchantSerial:required("COMMERCE_FORMAL_MERCHANT_SERIAL",env.COMMERCE_FORMAL_MERCHANT_SERIAL),

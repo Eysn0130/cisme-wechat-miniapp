@@ -1,3 +1,4 @@
+import {validateRuntime} from "../../services/commerce-runtime";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { catalogDetail, centsToYuan, type CatalogProduct, type CatalogSku } from "../../services/commerce";
 import {
@@ -35,7 +36,7 @@ Page({
   data: {
     chromeStyle: currentChromeStyle(), productCode: "", requestedSkuId: "", quantity: 1, product: null as CatalogProduct | null,
     selectedSku: null as CatalogSku | null, addresses: [] as CheckoutAddress[], selectedAddressId: "", runtimeEnabled: false,
-    isolatedPayment:false,creditEnabled:false,creditAvailableCents:0,creditAvailableYuan:"0.00",
+    formalPayment:false,isolatedPayment:false,creditEnabled:false,creditAvailableCents:0,creditAvailableYuan:"0.00",
     creditInput:"",creditReadError:"",
     loading: true, busy: false, navigating: false, error: "", syncError: "", quote: null as CheckoutQuote | null,
     quoteClock: null as QuoteClock | null, quoteExpired: false, unitPriceYuan: "", subtotalYuan: "", discountYuan: "",
@@ -88,7 +89,8 @@ Page({
     const ownerToken = currentSessionToken();
     this.setData({ loading: true, syncError: "" });
     try {
-      const [product, addressBook, runtime] = await Promise.all([catalogDetail(this.data.productCode), memberAddresses(), orderRuntimeStatus()]);
+      const [product, addressBook, runtimeResponse] = await Promise.all([catalogDetail(this.data.productCode), memberAddresses(), orderRuntimeStatus()]);
+      const runtime=validateRuntime(runtimeResponse);
       const credit=runtime.isolatedCreditCheckoutAvailable?await isolatedCreditSummary().catch(()=>null):null;
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const selected = product.variants.find((item) => item.id === this.data.requestedSkuId && item.active) ?? product.variants.find((item) => item.active) ?? null;
@@ -109,7 +111,7 @@ Page({
         product, selectedSku: selected, requestedSkuId: selected?.id ?? "",
         quantity: selected ? Math.min(this.data.quantity, Math.max(1, selected.availableQuantity)) : 1,
         addresses, selectedAddressId: preferred?.id ?? "", runtimeEnabled: runtime.orderFlowEnabled,
-        isolatedPayment:runtime.isolatedMoneyOperationsAvailable,
+        isolatedPayment:runtime.isolatedMoneyOperationsAvailable,formalPayment:runtime.scope==="formal_commerce"&&runtime.paymentAvailable,
         creditEnabled:runtime.isolatedCreditCheckoutAvailable&&credit!==null,
         creditAvailableCents:credit?.checkoutAvailableCents??0,
         creditAvailableYuan:centsToYuan(credit?.checkoutAvailableCents??0),

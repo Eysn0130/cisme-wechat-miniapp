@@ -1,3 +1,4 @@
+import {DomainError} from "@cisme/domain";
 import { createCipheriv, createHash, generateKeyPairSync, randomBytes, randomUUID, sign, verify } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -1418,6 +1419,42 @@ it("assembles pinned formal trust through isolated payment, callback, refund and
     await runMoneyWorkerCycle(protocol.inbox,protocol.refundInbox,formalRefund);
     expect((await pool.query(`SELECT state FROM commission_refund_inbox WHERE refund_intent_id=$1`,
       [approved.json().intent.id])).rows[0].state).toBe("applied");
+    // Exercise the v2 command composition on the SAME owned isolated DB and
+    // signed loopback provider. These injected approvals are never runtime files.
+    let commandsEnabled=true;
+    const commandCaps:string[]=[];
+    const commandApp=await createApp({config,pool,storage:createApiGatewayStorage(config),paymentProtocol:{...protocol,
+      isolatedSyntheticTransport:false,formalRecovery:true,
+      authorizeRecovery:()=>"synthetic-recovery-only",
+      authorizeCommerce:(capability)=>{commandCaps.push(capability);if(!commandsEnabled)throw new DomainError('FORMAL_COMMERCE_NOT_AUTHORIZED','Synthetic command revoked',503);return "synthetic-command-only";}}});
+    try{
+      expect((await commandApp.inject({method:'GET',url:'/v1/commerce/orders/status'})).json())
+        .toMatchObject({version:2,scope:'formal_commerce',paymentAvailable:true,formalMoneyOperationsAvailable:true,isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false});
+      await pool.query("UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1",[skuId]);
+      const addressId=(await pool.query('SELECT address_id FROM commerce_checkout_quote WHERE id=(SELECT source_quote_id FROM commerce_order WHERE id=$1)',[order.id])).rows[0].address_id;
+      const rejected=await commandApp.inject({method:'POST',url:'/v1/me/commerce/quotes',headers:{...auth(buyer.sessionToken),'idempotency-key':'formal-reject-synthetic'},payload:{skuId,quantity:1,addressId,addressVersion:1}});
+      expect(rejected.json().code).toBe('COMMERCE_FORMAL_PRODUCT_REQUIRED');
+      // Fixture-only source change in this run's disposable DB; no live product is published.
+      await pool.query("UPDATE catalog_product SET source_kind='admin' WHERE id=(SELECT product_id FROM catalog_sku WHERE id=$1)",[skuId]);
+      const productCode=(await pool.query('SELECT code FROM catalog_product WHERE id=(SELECT product_id FROM catalog_sku WHERE id=$1)',[skuId])).rows[0].code;
+      expect((await commandApp.inject({method:'GET',url:`/v1/catalog/${productCode}`})).json().purchaseEnabled).toBe(true);
+      const liveShape=await createOrder('formal-command-local',commandApp);
+      expect((await pool.query('SELECT transaction_source_kind FROM commerce_order WHERE id=$1',[liveShape.id])).rows[0].transaction_source_kind).toBe('verified_commerce');
+      const liveIntent=await commandApp.inject({method:'POST',url:`/v1/me/orders/${liveShape.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
+      expect(liveIntent.statusCode,JSON.stringify(liveIntent.json())).toBe(200);
+      expect(liveIntent.json()).toMatchObject({simulation:false,state:'prepay_ready',requestPayment:{signType:'RSA'}});
+      expect(commandCaps).toContain('payment.prepare');
+      commandsEnabled=false;
+      expect((await commandApp.inject({method:'GET',url:`/v1/catalog/${productCode}`})).json().purchaseEnabled).toBe(false);
+      expect((await commandApp.inject({method:'GET',url:'/v1/commerce/orders/status'})).json())
+        .toMatchObject({paymentAvailable:false,orderFlowEnabled:false,formalRecoveryAvailable:true});
+      expect((await commandApp.inject({method:'POST',url:`/v1/me/orders/${liveShape.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(503);
+      expect((await commandApp.inject({method:'GET',url:`/v1/me/orders/${liveShape.id}`,headers:auth(buyer.sessionToken)})).statusCode).toBe(200);
+      const completed=paidCallback(liveShape.orderNumber);
+      expect((await commandApp.inject({method:'POST',url:'/v1/payments/wechat/callback',headers:{...completed.headers,'Content-Type':'application/json'},payload:completed.raw})).statusCode).toBe(204);
+      await runMoneyWorkerCycle(protocol.inbox,protocol.refundInbox);
+      expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[liveShape.id])).rows[0].status).toBe('paid');
+    }finally{await commandApp.close();await pool.query("UPDATE catalog_product SET source_kind='synthetic_test' WHERE id=(SELECT product_id FROM catalog_sku WHERE id=$1)",[skuId]);}
     expect(syntheticCalls).toBeGreaterThanOrEqual(2);
   }finally{
     await formalApp?.close();

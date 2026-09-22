@@ -131,7 +131,7 @@ describe("U0 native page lifecycle regressions", () => {
     requestMock
       .mockResolvedValueOnce(product)
       .mockResolvedValueOnce({ enabled: true, addresses: [{ id: "address-1", version: 2, isDefault: true }] })
-      .mockResolvedValueOnce({ orderFlowEnabled: true });
+      .mockResolvedValueOnce({version:1,orderFlowEnabled:true,paymentAvailable:false,paymentOnboarding:"IN_PROGRESS",currency:"CNY",scope:"synthetic_nonproduction",isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false});
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       productCode: "product-1", requestedSkuId: "sku-1", quantity: 1,

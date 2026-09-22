@@ -88,7 +88,7 @@ describe("production configuration fails closed", () => {
 
   it("keeps the pending-payment order slice isolated from production", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "production", WECHAT_APP_ID:"wx4eac2d4fb11d299b", WECHAT_APP_SECRET:"secret", OBJECT_STORAGE_PROFILE:"production-reviewed", COMMERCE_ORDER_FLOW_ENABLED: "true" }))
-      .toThrow("COMMERCE_ORDER_FLOW_NONPRODUCTION_ONLY");
+      .toThrow("COMMERCE_ORDER_FLOW_FORMAL_APPROVAL_REQUIRED");
     const isolated = loadConfig({ ...base, APP_ENV: "test", COMMERCE_ORDER_FLOW_ENABLED: "true" });
     expect(isolated.commerce).toEqual({ orderFlowEnabled: true, quoteTtlMinutes: 10, pendingOrderTtlMinutes: 30 });
   });

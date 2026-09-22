@@ -103,10 +103,16 @@ export class CommerceOrderService {
     private readonly commercial: CommercialMembershipService,
     private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
       simulatedPayment?: { appId: string; merchantId: string; transferSceneId?: string };
-      formalTestPayment?: { appId: string; merchantId: string }; isolatedCreditCheckout?:boolean }
+      formalTestPayment?: { appId: string; merchantId: string };
+      formalPayment?: { appId:string; merchantId:string; authorize:()=>void; recoveryAvailable:()=>boolean }; isolatedCreditCheckout?:boolean }
   ) {}
 
   status() {
+    if(this.options.formalPayment){
+      let available=false;try{this.options.formalPayment.authorize();available=this.options.enabled;}catch{/* Remain closed without live approval. */}
+      return {version:2,orderFlowEnabled:available,paymentAvailable:available,paymentOnboarding:available?"READY":"IN_PROGRESS",currency:"CNY" as const,
+        scope:"formal_commerce",formalMoneyOperationsAvailable:available,formalRecoveryAvailable:this.options.formalPayment.recoveryAvailable(),isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false};
+    }
     return { version: 1, orderFlowEnabled: this.options.enabled, paymentAvailable: false, paymentOnboarding: "IN_PROGRESS", currency: "CNY" as const,
       scope: this.options.simulatedPayment?"verified_isolated_test":
         this.options.formalTestPayment?"formal_protocol_synthetic_test":
@@ -117,6 +123,7 @@ export class CommerceOrderService {
   }
 
   private requireEnabled(): void {
+    this.options.formalPayment?.authorize();
     if (!this.options.enabled) throw new DomainError("COMMERCE_ORDER_FLOW_DISABLED", "待支付订单流程尚未在当前环境开放", 503);
   }
 
@@ -130,7 +137,9 @@ export class CommerceOrderService {
       JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.id=$1${suffix}`, [skuId]);
     const row = result.rows[0];
     if (!row) throw new DomainError("CATALOG_SKU_NOT_FOUND", "商品规格不存在", 404);
-    if (requireSellable && row.source_kind !== "synthetic_test") throw new DomainError("COMMERCE_ORDER_SYNTHETIC_ONLY", "当前待支付订单流程仅供隔离合成测试", 409);
+    if(requireSellable&&this.options.formalPayment&&row.source_kind!=="admin")
+      throw new DomainError("COMMERCE_FORMAL_PRODUCT_REQUIRED","正式订单只能使用已审核的正式商品",409);
+    if (requireSellable && !this.options.formalPayment && row.source_kind !== "synthetic_test") throw new DomainError("COMMERCE_ORDER_SYNTHETIC_ONLY", "当前待支付订单流程仅供隔离合成测试", 409);
     if (requireSellable && (row.qualification_status !== "eligible" || row.publication_status !== "published" || !row.sku_active)) {
       throw new DomainError("CATALOG_PRODUCT_NOT_SELLABLE", "商品或规格当前不可售，请返回商品页刷新", 409);
     }
@@ -143,7 +152,7 @@ export class CommerceOrderService {
       totalCents: money(row.total_cents),creditTenderCents:money(row.credit_tender_cents),
       cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
       fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, addressId: row.address_id,
-      addressVersion: row.address_version, expiresAt: row.expires_at.toISOString(), serverTime: new Date().toISOString(), paymentAvailable: false,
+      addressVersion: row.address_version, expiresAt: row.expires_at.toISOString(), serverTime: new Date().toISOString(), paymentAvailable: this.status().paymentAvailable,
       item: { productId: item.product_id, productCode: item.product_code, productName: item.product_name, image: item.product_image,
         skuId: item.sku_id, skuCode: item.sku_code, skuLabel: item.sku_label } };
   }
@@ -178,7 +187,7 @@ export class CommerceOrderService {
         throw new DomainError("CREDIT_CASH_COMPONENT_REQUIRED","隔离测试订单至少保留一分渠道现金支付",422);
       // Launch freight is owner-approved as zero. Sales/payment remain gated;
       // no member discount or carrier reachability is inferred from this policy.
-      const pricingRuleVersion = "r4b-synthetic-base-price-v1";
+      const pricingRuleVersion = this.options.formalPayment?"launch-base-price-free-shipping-v1":"r4b-synthetic-base-price-v1";
       const expiresAt = new Date(now.getTime() + this.options.quoteTtlMinutes * 60_000);
       const inserted = await client.query<QuoteRow>(`INSERT INTO commerce_checkout_quote(member_id,product_id,sku_id,address_id,address_version,quantity,currency,
         unit_price_cents,subtotal_cents,member_discount_cents,shipping_cents,total_cents,credit_tender_cents,
@@ -207,7 +216,7 @@ export class CommerceOrderService {
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
       fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
-      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: this.status().paymentAvailable,
       transactionSourceKind:row.transaction_source_kind,
       lines: lines.rows.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
@@ -223,7 +232,7 @@ export class CommerceOrderService {
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
       fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
-      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: this.status().paymentAvailable,
       transactionSourceKind:row.transaction_source_kind,
       lines: lines.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
@@ -293,7 +302,8 @@ export class CommerceOrderService {
       if (available < quote.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
       const orderId = randomUUID(); const expiresAt = new Date(now.getTime() + this.options.pendingOrderTtlMinutes * 60_000);
       const number = orderNumber(now); const sealed = this.addresses.sealOrderSnapshot(owner,orderId,address.payload);
-      const paymentBinding=this.options.simulatedPayment??this.options.formalTestPayment;
+      this.options.formalPayment?.authorize();
+      const paymentBinding=this.options.simulatedPayment??this.options.formalTestPayment??this.options.formalPayment;
       const transactionSource=paymentBinding?"verified_commerce":"synthetic_nonproduction";
       const creditCents=money(quote.credit_tender_cents),cashPayable=money(quote.total_cents)-creditCents;
       if(creditCents&&(!this.options.isolatedCreditCheckout||!paymentBinding||cashPayable<1))
@@ -309,7 +319,7 @@ export class CommerceOrderService {
         const identity=(await client.query<{openid:string}>(`SELECT openid FROM wechat_identity
           WHERE member_id=$1 AND provider='wechat_miniprogram' AND app_id=$2
           ORDER BY created_at DESC,id DESC LIMIT 1`,[owner,paymentBinding.appId])).rows[0];
-        if(!identity)throw new DomainError("PAYMENT_PAYER_IDENTITY_REQUIRED","当前微信身份不可用于支付测试",409);
+        if(!identity)throw new DomainError("PAYMENT_PAYER_IDENTITY_REQUIRED","当前微信身份不可用于此订单支付",409);
         await client.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,
           app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
           VALUES($1,$2,$3,$4,$5,$6,$7,'CNY',$8,$9,$10,$11)`,

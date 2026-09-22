@@ -177,7 +177,7 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,id=order.id,
       key=this.data.refundKey||clientOperationKey("refund-request");
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.status==="paid";
-    const answer=await this.confirmOperation({title:"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
+    const answer=await this.confirmOperation({title:this.data.runtimeMode==="formal"?"提交退款申请？":"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,refundKey:key,actionError:"",actionStatus:""});
     try{await executeCommerceCommand({kind:"refund",objectId:id,key,payload:{amountCents,reason}},()=>current()&&this.data.visible&&this.data.isolatedPayment);

@@ -298,3 +298,18 @@ describe('native shipment and explicit receipt boundaries',()=>{
     expect(calls).toHaveLength(2);expect(calls[0].idempotencyKey).toBe(calls[1].idempotencyKey);expect(calls[1].data).toEqual({expectedVersion:1});expect(page.data.isolatedPayment).toBe(false);
   });
 });
+
+const formalRuntime={version:2,scope:'formal_commerce',currency:'CNY',orderFlowEnabled:true,paymentAvailable:true,paymentOnboarding:'READY',formalMoneyOperationsAvailable:true,formalRecoveryAvailable:true,isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false};
+it('opens only explicit v2 formal actions without automatically invoking WeChat payment',async()=>{
+ await loadPage('order-detail');void page.load();core.resolve({...order,status:'pending_payment'});auxiliary.resolve(formalRuntime);await flush();
+ (wx as any).requestPayment=vi.fn();expect(page.data).toMatchObject({runtimeMode:'formal',isolatedPayment:true});expect(wx.requestPayment).not.toHaveBeenCalled();
+ const {validateRuntime,runtimeActions}=await import('../../apps/miniprogram/services/commerce-runtime');
+ expect(runtimeActions(validateRuntime(formalRuntime))).toEqual({money:true,recovery:true,transfer:false,credit:false});
+ for(const bad of [{...formalRuntime,version:1},{...formalRuntime,isolatedMoneyOperationsAvailable:true},{...formalRuntime,formalMoneyOperationsAvailable:false},{...formalRuntime,formalRecoveryAvailable:undefined}])expect(()=>validateRuntime(bad)).toThrow();
+});
+it('retains formal historical management reads when new money commands are suspended',async()=>{
+ await loadPage('management');void page.load();core.resolve(authority);auxiliary.resolve({...formalRuntime,orderFlowEnabled:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',formalMoneyOperationsAvailable:false});await flush();
+ expect(page.data.canFinance).toBe(true);expect(page.data.canSupport).toBe(true);
+ const {runtimeActions,validateRuntime}=await import('../../apps/miniprogram/services/commerce-runtime');
+ expect(runtimeActions(validateRuntime({...formalRuntime,orderFlowEnabled:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',formalMoneyOperationsAvailable:false}))).toMatchObject({money:false,recovery:true,transfer:false,credit:false});
+});

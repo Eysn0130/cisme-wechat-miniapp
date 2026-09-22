@@ -28,7 +28,7 @@ Page({
       if (raw && displayPrice === null) throw new Error("CATALOG_PRICE_INVALID");
       const item = raw ? { ...raw, image: nativeCatalogImage(raw.image ?? "/assets/cisme/community-card-purple-bottle-v1.jpg"), displayPrice,
         contractCopy:raw.purchaseEnabled?"购买前会重新确认价格与库存":raw.sourceKind==="synthetic_test"?"测试商品 · 暂不可购买":"企业自营目录 · 暂不可购买",
-        purchaseCopy:raw.purchaseEnabled?"微信支付正在开通；确认后可先保存待支付订单。":"当前只提供商品资料浏览，购买入口尚未开放。" } : null;
+        purchaseCopy:raw.purchaseEnabled?(raw.sourceKind==="synthetic_test"?"隔离测试商品，不发生真实扣款。":"确认价格、收货地址与配送承诺后，可创建订单并使用微信支付。"):"当前只提供商品资料浏览，购买入口尚未开放。" } : null;
       const selectedSku=item?.variants.find((sku:any)=>sku.active&&sku.inStock)??item?.variants.find((sku:any)=>sku.active)??null;
       this.setData({ gallery: item ? [item.image] : [], galleryIndex: 0, catalog: {items:[item]}, item, selectedSku, quantity:1, navigating:false, loading: false, errorKind: item ? "none" : "missing", errorTitle: item ? "" : "这件商品暂不可用", error: item ? "" : "商品不存在、已下架，或当前目录不再展示它。请返回商品目录重新选择。" });
       if (item) {

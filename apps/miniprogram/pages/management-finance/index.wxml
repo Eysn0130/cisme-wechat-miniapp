@@ -1,8 +1,8 @@
 <view class="management-shell" style="{{chromeStyle}}">
-  <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">隔离资金核对</text></view>
+  <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">{{formalMode?'资金核对':'隔离资金核对'}}</text></view>
   <view class="page page--stack finance-page">
     <view class="page-title">待处理事项</view>
-    <text class="subtitle">仅供隔离测试。支付、退款和转账各自核验；渠道受理不等于资金完成。</text>
+    <text class="subtitle">{{formalMode?'微信支付、退款和账单分别核验；渠道受理不等于退款完成。':'仅供隔离测试。支付、退款和转账各自核验；渠道受理不等于资金完成。'}}</text>
     <scroll-view wx:if="{{sections.length}}" class="finance-tabs" scroll-x enhanced show-scrollbar="false">
       <button wx:for="{{sections}}" wx:key="id" class="finance-tab {{section===item.id?'is-active':''}} {{busy?'control--disabled':''}}" data-section="{{item.id}}" bindtap="selectSection" disabled="{{busy}}">{{item.label}}</button>
     </scroll-view>
@@ -37,14 +37,14 @@
       <text wx:if="{{item.sourceReference}}" class="finance-copy">凭据 {{item.sourceReference}} · 签收 {{item.deliveredAt}}</text>
       <text wx:if="{{item.code}}" class="finance-copy">{{item.code}} · 已尝试 {{item.attempts}} 次</text>
       <text class="finance-id">{{item.orderId||item.memberId||item.relatedId||item.id}}</text>
-      <view wx:if="{{section!=='issues'&&section!=='bills'}}" class="finance-actions">
+      <view wx:if="{{section!=='issues'&&section!=='bills'&&(!formalMode||moneyEnabled)}}" class="finance-actions">
         <button class="finance-action {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="reject" bindtap="decide" disabled="{{busy}}">退回</button>
         <button wx:if="{{section==='fulfillment'}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="verify" bindtap="decide" disabled="{{busy}}">核验通过</button>
         <button wx:elif="{{section==='refund'}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="approve" bindtap="decide" disabled="{{busy}}">核准</button>
       </view>
       <view wx:elif="{{section==='issues'&&item.kind!=='trade_bill'}}" class="finance-actions">
         <button class="finance-action {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-action="recheck" bindtap="operateIssue" disabled="{{busy}}">查原单</button>
-        <button wx:if="{{item.canRedrive}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-action="redrive" bindtap="operateIssue" disabled="{{busy}}">核对后重驱</button>
+        <button wx:if="{{item.canRedrive&&(!formalMode||moneyEnabled)}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-action="redrive" bindtap="operateIssue" disabled="{{busy}}">核对后重驱</button>
       </view>
     </view>
     <view wx:if="{{section!=='cycles'&&!loading&&!error&&!items.length}}" class="state">这一类目前没有待办。</view>

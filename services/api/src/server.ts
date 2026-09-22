@@ -1,3 +1,4 @@
+import type { CommerceCapability } from "./formalCommerceAuthorization.js";
 import { operationalSignals } from './operationalSignals.js';
 import { exchangeWechatIdentity } from './wechatIdentity.js';
 import { discoverCommerceCommands } from "./commerceCommandDiscovery.js";
@@ -72,7 +73,7 @@ interface AppDependencies {
   paymentProtocol?: { channel: WechatPayV3Client; inbox: VerifiedPaymentInbox;
     refundInbox: VerifiedRefundInbox; paymentNotifyUrl: string; refundNotifyUrl: string;
     transferNotifyUrl?: string; transferInbox?: TransferCallbackInbox;
-    isolatedSyntheticTransport?: boolean; formalRecovery?: boolean; authorizeRecovery?:(capability:RecoveryCapability)=>string };
+    isolatedSyntheticTransport?: boolean; formalRecovery?: boolean; authorizeRecovery?:(capability:RecoveryCapability)=>string; authorizeCommerce?:(capability:CommerceCapability)=>string };
   legacyDirectSettlementFixture?: boolean;
   loggerInstance?: FastifyBaseLogger;
   phoneFetcher?: typeof fetch;
@@ -124,14 +125,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
   const support = new SupportService(pool, authority, service, storage);
-  const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled);
   const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
   const access = new CommunityAccess(pool, config, authority);
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
   const deliveryAddresses = new DeliveryAddressService(pool, config);
-  // Complete money commands remain isolated-test only. Formal recovery uses
-  // separate per-call grants, preserving historical facts with new money off.
+  // Formal commands require separate revocable per-capability approvals.
   const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
     ?config.commerce.formalProtocol:undefined;
   const formalRecoveryProfile=dependencies.paymentProtocol?.formalRecovery===true ? config.commerce.formalProtocol : undefined;
@@ -145,14 +144,26 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     enabled: config.commerce.orderFlowEnabled,
     quoteTtlMinutes: config.commerce.quoteTtlMinutes,
     pendingOrderTtlMinutes: config.commerce.pendingOrderTtlMinutes,
-    isolatedCreditCheckout:config.env==="test"&&Boolean(paymentProfile),
+    isolatedCreditCheckout:config.env==="test"&&!formalRecoveryProfile&&Boolean(paymentProfile),
     ...(config.commerce.simulatedPayment?{simulatedPayment:{appId:config.commerce.simulatedPayment.appId,
       merchantId:config.commerce.simulatedPayment.merchantId,
       ...(config.commerce.simulatedPayment.transferSceneId
         ?{transferSceneId:config.commerce.simulatedPayment.transferSceneId}:{})}}:{}),
     ...(formalTestProfile?{formalTestPayment:{appId:formalTestProfile.appId,
-      merchantId:formalTestProfile.merchantId}}:{})
+      merchantId:formalTestProfile.merchantId}}:{}),
+    ...(formalRecoveryProfile?{formalPayment:{appId:formalRecoveryProfile.appId,merchantId:formalRecoveryProfile.merchantId,
+      recoveryAvailable:()=>{try{for(const cap of ['payment.query','refund.query','bill.read'] as const){
+        if(!dependencies.paymentProtocol?.authorizeRecovery)return false;
+        dependencies.paymentProtocol.authorizeRecovery(cap);
+      }return true;}catch{return false;}},
+      authorize:()=>{
+        if(!dependencies.paymentProtocol?.authorizeCommerce)throw new DomainError("FORMAL_COMMERCE_NOT_AUTHORIZED","正式交易尚未授权",503);
+        for(const capability of ['order.create','payment.prepare','payment.close','refund.request','refund.approve','refund.submit'] as const)
+          dependencies.paymentProtocol.authorizeCommerce(capability);
+      }}}:{})
   });
+  const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled,
+    formalRecoveryProfile?()=>orders.status().paymentAvailable:undefined);
   if(paymentProfile&&!dependencies.paymentProtocol)
     throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_REQUIRED");
   const payment= paymentProfile&&dependencies.paymentProtocol
@@ -530,15 +541,20 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       dependencies.paymentProtocol.authorizeRecovery(capability);
     }
   };
-  const paymentRequired=(mode:"new"|"query"|"callback"="new")=>{
-    if(formalRecoveryProfile&&mode==="new")throw new DomainError("FORMAL_PAYMENT_NEW_COMMAND_DISABLED","正式资金新命令尚未批准",503);
-    if(mode!=="new")recoveryGate(mode==="query"?"payment.query":"payment.callback");
+  const commerceGate=(capability:CommerceCapability)=>{
+    if(!formalRecoveryProfile)return;
+    if(!dependencies.paymentProtocol?.authorizeCommerce)throw new DomainError("FORMAL_PAYMENT_NEW_COMMAND_DISABLED","正式资金新命令尚未批准",503);
+    dependencies.paymentProtocol.authorizeCommerce(capability);
+  };
+  const paymentRequired=(mode:"new"|"close"|"query"|"callback"="new")=>{
+    if(mode==="new"||mode==="close")commerceGate(mode==="close"?"payment.close":"payment.prepare");
+    if(mode==="query"||mode==="callback")recoveryGate(mode==="query"?"payment.query":"payment.callback");
     if(!payment||!dependencies.paymentProtocol)throw new DomainError("PAYMENT_SIMULATION_DISABLED",
       "支付协议测试仅在隔离环境可用",503);
     return payment;
   };
-  const refundRequired=(mode:"new"|"callback"="new")=>{
-    if(formalRecoveryProfile&&mode==="new")throw new DomainError("FORMAL_REFUND_NEW_COMMAND_DISABLED","正式退款新命令尚未批准",503);
+  const refundRequired=(mode:"new"|"approve"|"submit"|"read"|"callback"="new")=>{
+    if(mode==="new"||mode==="approve"||mode==="submit")commerceGate(mode==="approve"?"refund.approve":mode==="submit"?"refund.submit":"refund.request");
     if(mode==="callback")recoveryGate("refund.callback");
     if(!refunds||!dependencies.paymentProtocol)throw new DomainError("REFUND_SIMULATION_DISABLED",
       "退款协议测试仅在隔离环境可用",503);
@@ -549,7 +565,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
     paymentRequired("query").refresh(request.memberId,request.principalId,request.params.orderId,request.id));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
-    paymentRequired().cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
+    paymentRequired("close").cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>,request.id));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/refund-requests",async request=>
     refundRequired().request(request.memberId,request.params.orderId,idempotencyKey(request),
@@ -557,12 +573,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string;orderId?:string}}>("/v1/me/refund-requests",async request=>
     listMemberRefundRequests(pool,request.memberId,request.query));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/refund-requests/pending",async request=>
-    refundRequired().pending(request.memberId,request.query));
+    refundRequired("read").pending(request.memberId,request.query));
   app.post<{Params:{requestId:string}}>("/v1/management/refund-requests/:requestId/decision",async request=>
-    refundRequired().decide(request.memberId,request.params.requestId,idempotencyKey(request),
+    refundRequired("approve").decide(request.memberId,request.params.requestId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));
   app.post<{Params:{intentId:string}}>("/v1/management/refund-submissions/:intentId/redrive",async request=>
-    refundRequired().redrive(request.memberId,request.params.intentId,
+    refundRequired("submit").redrive(request.memberId,request.params.intentId,
       (request.body??{}) as Record<string,unknown>));
   app.post<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/fulfillment",async request=>
     fulfillment.submit(request.memberId,request.params.orderId,idempotencyKey(request),

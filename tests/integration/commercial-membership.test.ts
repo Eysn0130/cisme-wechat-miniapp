@@ -88,7 +88,9 @@ it("separates ordinary accounts, commercial qualification, management scope and 
 });
 
 it("rejects invalid rates and enforces a separate approver",async()=>{
-  const effectiveAt=new Date(Date.now()+3600_000).toISOString();
+  // Farther than the next Shanghai midnight at every runner time of day.
+  // A future requested time is retained; only an earlier time is postponed.
+  const effectiveAt=new Date(Date.now()+48*3600_000).toISOString();
   const payload=(basisPoints:unknown)=>({memberId:a.memberId,basisPoints,effectiveAt,reason:"合成费率调整测试"});
   expect((await app.inject({method:"POST",url:"/v1/management/commission-rates",headers:auth(manager),payload:payload(3500)})).statusCode).toBe(403);
   await grant(manager,"commission.rate.manage");
@@ -114,7 +116,7 @@ it("rejects invalid rates and enforces a separate approver",async()=>{
     headers:{...auth(checker),"idempotency-key":"rate-approval-0001"},
     payload:{decision:"active",expectedVersion:1,reason:"独立批准会员费率"}});
   expect(approval.json()).toMatchObject({basis_points:3500,state:"active"});
-  expect(new Date(approval.json().effective_at).getTime()).toBeGreaterThan(new Date(effectiveAt).getTime());
+  expect(new Date(approval.json().effective_at).getTime()).toBe(new Date(effectiveAt).getTime());
   expect((await app.inject({method:"POST",url:`/v1/management/commission-rates/${proposal.json().id}/decision`,
     headers:{...auth(checker),"idempotency-key":"rate-approval-0001"},
     payload:{decision:"active",expectedVersion:1,reason:"独立批准会员费率"}})).json()).toMatchObject({alreadyDecided:true});

@@ -24,7 +24,7 @@ Page({
     this.applyRuntime();
   }catch{if(this.current(epoch,token))this.setData({authority:null,coreReady:false,loading:false,error:"管理权限暂时无法核验，所有管理入口保持关闭。"});}},
  applyRuntime(){const actions=runtimeActions(this.data.runtimeStatus);
-  this.setData({canFinance:this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken&&this.data.coreReady&&this.data.runtimeState==="ready"&&actions.money&&[
+  this.setData({canFinance:this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken&&this.data.coreReady&&this.data.runtimeState==="ready"&&(actions.money||actions.recovery)&&[
     "commerce.refund.approve","commerce.fulfillment.manage","commission.settlement.approve","commerce.money.reconcile"
   ].some(capability=>hasCapability(this.data.authority,capability as Parameters<typeof hasCapability>[1]))});},
  async loadRuntime(epoch:number,token:string){cancelRuntimeRead(this);const attempt=++this.data.runtimeEpoch;
