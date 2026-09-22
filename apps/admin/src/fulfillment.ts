@@ -5,7 +5,7 @@ export function mountFulfillment(root:HTMLElement,api:(path:string,init?:Request
     <label>物流状态<select data-state><option value="awaiting_dispatch">待发货</option><option value="shipped">已发货</option><option value="delivered">快递已签收</option><option value="exception">物流异常</option><option value="all">全部已支付</option></select></label>
     <label>精确订单号<input data-number maxlength="32"/></label><div class="actions"><button data-load>查询订单</button><button data-next disabled>下一页</button><button data-export>导出当前筛选 Excel</button></div>
     <p>导出含姓名、手机与地址，只限授权履约用途；下载前会记录操作员、时间、筛选条件和数量。请按团队个人信息规定妥善保管和删除本地文件。</p>
-    <div data-orders></div><h3>登记单笔或批量物流</h3><p>从 Excel 复制 5 列，按顺序：订单号、快递公司代码、快递公司名称、运单号、实际交寄时间（ISO UTC，如 2026-09-22T10:00:00.000Z）。每次最多 25 行，不含表头。仅支持本单全部商品一次发货。</p>
+    <button data-logistics>只读核验微信物流能力</button><div data-logistics-result aria-live="polite"></div><div data-orders></div><h3>登记单笔或批量物流</h3><p>从 Excel 复制 5 列，按顺序：订单号、快递公司代码、快递公司名称、运单号、实际交寄时间（ISO UTC，如 2026-09-22T10:00:00.000Z）。每次最多 25 行，不含表头。仅支持本单全部商品一次发货。</p>
     <textarea data-rows rows="5" maxlength="16000" aria-label="待登记物流行"></textarea>
     <label><input data-confirm type="checkbox"/>已核对订单、运单和实际交寄事实</label>
     <div class="actions"><button data-submit>确认登记物流</button><button data-new>开始另一批</button></div><p data-status role="status" aria-live="polite"></p>`;
@@ -22,6 +22,14 @@ export function mountFulfillment(root:HTMLElement,api:(path:string,init?:Request
     for(const order of page.items){const row=document.createElement('p');row.textContent=`${order.orderNumber} · ${order.items} · ${order.logisticsState}${order.receiptConfirmedAt?' · 用户已确认收货':''}`;area.append(row);}
     status(page.items.length?`本页 ${page.items.length} 单${cursor?'，还有下一页':''}`:'当前筛选没有订单。');
   }catch(error){cursor=null;q('[data-orders]').replaceChildren();status((error as Error).message);}finally{if(root.isConnected)lock(false);}}
+  q('[data-logistics]').onclick=async()=>{if(busy)return;lock(true);status('正在读取微信物流账号与承运商…');
+    try{const result=await api('/v1/management/logistics/capabilities');if(!root.isConnected)return;
+      const area=q('[data-logistics-result]');area.replaceChildren();
+      const summary=document.createElement('p');summary.textContent=`查询时间 ${result.observedAt}；绑定记录 ${result.accounts.length}，平台支持 ${result.carriers.length} 家。支持列表不代表本账号已签约；散单能力不代表免费。`;area.append(summary);
+      for(const account of result.accounts){const row=document.createElement('p');row.textContent=`${account.carrierCode} · 绑定状态原码 ${account.bindingStatusCode} · 面单余额${account.quotaAvailable===null?'未知':account.quotaAvailable?'有可用余额':'暂无可用余额'}`;area.append(row);}
+      status('只读核验完成；未绑定账号或下物流订单。');
+    }catch(error){q('[data-logistics-result]').replaceChildren();status((error as Error).message);}finally{if(root.isConnected)lock(false);}
+  };
   q('[data-load]').onclick=()=>void load();q('[data-next]').onclick=()=>void load(true);
   q('[data-export]').onclick=async()=>{if(busy)return;lock(true);status('正在生成并审计导出…');try{
     const blob=await download(`/v1/management/shipments/export?${filters()}&limit=500`);

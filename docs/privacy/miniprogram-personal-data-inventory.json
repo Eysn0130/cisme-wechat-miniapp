@@ -486,7 +486,7 @@
     }
   ],
   "migrationSetSha256": "2c09be368ba8efc83ac9c9c5c73483fa50497d5614eb93ed217938c68779ad5d",
-  "egressSignatureSha256": "68976862ee310c520488ab586fe79b29644d572a0e37f618e7746c82f09c34a1",
+  "egressSignatureSha256": "beede9d88635eb06ccda3502189a852583eb00e9c9c092d9b78c7da3bacf10bd",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -540,6 +540,20 @@
     "export": "履约权限并发锁+提交前复核；xlsx 内存生成，不落服务器磁盘；审计导出人、时间、筛选、数量、摘要，不含明文姓名/手机/地址；no-store",
     "egress": "新增官方 stable_token 凭据交换，保护文件逐次授权、固定 HTTPS 主机、拒绝重定向、有界解析；管理导出仅既有配置 API。未安装微信出站授权文件。",
     "retention": "未新增自动删除或期限，保留法律留置；生产完整主体导出/删除仍未完成",
-    "approval": "首发经营规则由用户任务回复批准，不等于整体生产隐私批准"
+    "approval": "首发经营规则由用户任务回复批准，不等于整体生产隐私批准",
+    "importReplay": "commerce.shipment.import_plan 在既有 idempotency_operation 中只保存原订单ID/版本及内容摘要；不存导入明文；重试沿用原版本。"
+  },
+  "logisticsReadReview20260922": {
+    "source": "services/api/src/wechatLogistics.ts",
+    "recipient": "微信 api.weixin.qq.com 物流助手",
+    "purpose": "订单本人查询原运单轨迹，履约管理员读取现有物流账号状态与承运商支持列表",
+    "sent": "固定 app 的凭据；轨迹只发送绑定付款者 OpenID、原承运商代码、原运单号；保护授权含 app/merchant/environment，staging 白名单隔离订单",
+    "returned": "轨迹时间/原码/消息仅本人瞬时显示，可能含快递员联系信息；管理能力只显示承运商、原绑定状态码、余额是否可用；不返回客户编码、别名或备注",
+    "storage": "不存原始平台响应或轨迹消息；审计只有操作者、shipment 对象、计数；响应 no-store，页面取消/账号切换丢弃迟到结果",
+    "network": "事务外；授权/token 前后复核；固定官方 HTTPS、拒绝重定向、15 秒预算、64KiB JSON、最多100轨迹节点；无新增第三方依赖或付费服务",
+    "liveGrantInstalled": false,
+    "realPlatformCalled": false,
+    "productionErasureEnabled": false,
+    "requiresFormalPrivacyApproval": true
   }
 }

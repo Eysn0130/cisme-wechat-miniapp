@@ -6,7 +6,7 @@ import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner, runtimeView, validateRuntime } from "../../services/commerce-runtime";
 import { request, requireMemberAccess } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
-import { clientOperationKey, myOrder, myShipment, confirmMyReceipt, type OrderShipment, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
+import { clientOperationKey, myOrder, myShipment, myTracking, confirmMyReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付"};
 type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundState:string|null;reason:string;createdAt:string;
@@ -21,7 +21,7 @@ function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
   data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
-    shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
+    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
@@ -29,10 +29,11 @@ Page({
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
     if(!requireMemberAccess())return;void this.load();},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,order:null,shipment:null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
+    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     },
   confirmationPending:false,
+  trackingAttempt:0,
   canAct(){return this.data.visible&&this.data.coreReady&&!this.confirmationPending&&this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
   async confirmOperation(options:WechatMiniprogram.ShowModalOption):Promise<{confirm:boolean;cancel?:boolean}>{
     if(this.confirmationPending)return {confirm:false};this.confirmationPending=true;
@@ -97,6 +98,7 @@ Page({
   },
   async loadShipment(){
     if(!this.canAct()||this.data.busy)return;
+    this.trackingAttempt+=1;this.setData({tracking:null,trackingLoading:false,trackingError:""});
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({shipmentLoading:true,shipmentError:""});
     try{const row=await myShipment(this.data.id,this);
@@ -106,6 +108,20 @@ Page({
       this.setData({shipment:{...row,stateLabel:row.receiptConfirmedAt?"你已确认收货":labels[row.logisticsState]!},shipmentLoading:false,
         ...(row.receiptConfirmedAt?{receiptKey:"",receiptVersion:0}:{})});
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({shipment:null,shipmentLoading:false,shipmentError:errorTitle(error,"物流记录暂时无法读取，请重试或联系客服。")});}
+  },
+  async loadTracking(){
+    if(!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken,
+      shipmentId=this.data.shipment.id,attempt=++this.trackingAttempt;
+    const current=()=>this.readCurrent(epoch,token,readEpoch)&&attempt===this.trackingAttempt&&this.data.shipment?.id===shipmentId;
+    this.setData({tracking:null,trackingLoading:true,trackingError:""});
+    try{const row=await myTracking(this.data.id,this);
+      if(!current())return;
+      if(row.orderId!==this.data.id||row.shipmentId!==shipmentId||row.source!=="wechat_logistics"||!Number.isFinite(Date.parse(row.observedAt))
+        ||!Array.isArray(row.events)||row.events.length>100||row.events.some(e=>!Number.isFinite(Date.parse(e.time))||typeof e.message!=="string"||e.message.length>2000))throw Error("Invalid tracking");
+      this.setData({tracking:{...row,observedLabel:new Date(row.observedAt).toLocaleString("zh-CN",{hour12:false}),
+        events:row.events.map(e=>({...e,timeLabel:new Date(e.time).toLocaleString("zh-CN",{hour12:false})}))},trackingLoading:false});
+    }catch{if(current())this.setData({tracking:null,trackingLoading:false,trackingError:"暂时无法提供物流轨迹。已记录的运单仍可查看，请稍后重试或联系客服。"});}
   },
   async confirmReceipt(){
     if(!this.canAct()||this.data.busy||this.data.shipmentLoading||!this.data.shipment?.id||!this.data.shipment.version||this.data.shipment.receiptConfirmedAt)return;

@@ -10,6 +10,7 @@ import { DeliveryAddressService } from './deliveryAddress.js';
 import { OrderFulfillmentService } from './orderFulfillment.js';
 import { ShippingSyncService } from './shippingSync.js';
 import { WechatOrderShippingClient, type ShippingBinding, type ShippingCapability } from './wechatOrderShipping.js';
+import { WechatLogisticsClient, type LogisticsCapability } from './wechatLogistics.js';
 
 function denied():never{throw new DomainError('SHIPPING_OUTBOUND_NOT_AUTHORIZED','微信发货同步权限待核验，本地发货记录已保留',503);}
 export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
@@ -24,16 +25,16 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
       || typeof grant.approvalReference!=='string'||!/^[-A-Za-z0-9_:.]{8,120}$/.test(grant.approvalReference)
       || typeof grant.expiresAt!=='string'||!Number.isFinite(Date.parse(grant.expiresAt))||Date.parse(grant.expiresAt)<=now()
       || !Array.isArray(grant.capabilities)||!grant.capabilities.length
-      || grant.capabilities.some(x=>!['shipping.query','shipping.upload'].includes(String(x)))
+      || grant.capabilities.some(x=>!['shipping.query','shipping.upload','logistics.accounts.read','logistics.tracking.read'].includes(String(x)))
       || new Set(grant.capabilities).size!==grant.capabilities.length
       || (config.env==='staging'&&(grant.dataScope!=='isolated-test-only'||!Array.isArray(grant.orderNumbers)
         || !grant.orderNumbers.length||grant.orderNumbers.length>100||grant.orderNumbers.some(x=>typeof x!=='string'||!/^[A-Za-z0-9_*-]{1,32}$/.test(x)))))denied();
     return grant;
   };
   if(profile?.authorizationFile)read();
-  return (capability:ShippingCapability,binding?:ShippingBinding)=>{
+  return (capability:ShippingCapability|LogisticsCapability,binding?:ShippingBinding&{appId?:string})=>{
     const grant=read();
-    if(!(grant.capabilities as string[]).includes(capability)||binding&&binding.merchantId!==profile!.merchantId
+    if(!(grant.capabilities as string[]).includes(capability)||capability==='logistics.tracking.read'&&binding?.appId!==profile!.appId||binding&&binding.merchantId!==profile!.merchantId
       || binding&&config.env==='staging'&&!(grant.orderNumbers as string[]).includes(binding.merchantOrderNumber))denied();
     return String(grant.approvalReference);
   };
@@ -66,7 +67,8 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
     encryptionKey:derive(config.contacts.encryptionKey!,'cisme-shipping-encryption-v1'),
     hashKey:derive(config.contacts.hashKey!,'cisme-shipping-request-v1'),keyVersion:config.contacts.keyVersion},
     testChannel??new WechatOrderShippingClient(token,authorize));
-  const service=new OrderFulfillmentService(pool,authority,new DeliveryAddressService(pool,config),sync,true);
+  const service=new OrderFulfillmentService(pool,authority,new DeliveryAddressService(pool,config),sync,true,
+    new WechatLogisticsClient(token,authorize));
   const runCycle=async()=>{
     if(!testChannel){try{authorize('shipping.query');}catch{return {processed:0,status:'not_authorized'};}}
     const rows=(await pool.query(`SELECT id FROM commerce_shipping_sync WHERE state IN ('prepared','dispatching','verifying')

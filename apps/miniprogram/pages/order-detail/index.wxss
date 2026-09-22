@@ -9,3 +9,6 @@
 .refund-history{display:flex;justify-content:space-between;margin-top:22rpx;padding-top:18rpx;border-top:1rpx solid var(--cisme-line);font-size:24rpx;color:var(--cisme-muted)}
 .refund-row{display:flex;flex-direction:column;gap:8rpx;padding:16rpx 0;border-bottom:1rpx solid var(--cisme-line);font-size:24rpx;color:var(--cisme-muted)}
 .refund-row view{display:flex;justify-content:space-between;color:var(--cisme-ink)}
+.tracking{margin-top:18rpx;border-top:1rpx solid var(--cisme-line)}
+.tracking-row{padding:16rpx 0;border-bottom:1rpx solid var(--cisme-line)}
+.tracking-message{display:block;margin-top:8rpx;color:var(--cisme-ink);font-size:24rpx;line-height:1.55;overflow-wrap:anywhere}

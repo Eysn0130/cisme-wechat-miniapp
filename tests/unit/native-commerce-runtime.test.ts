@@ -257,6 +257,23 @@ it("order-detail does not present a failed refund-history read as zero requests"
 
 describe('native shipment and explicit receipt boundaries',()=>{
   async function ready(){await loadPage('order-detail');void page.load();core.resolve(order);await flush();}
+  it.each(['hide','session','shipment'])('rejects a late provider trajectory after %s changes',async kind=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    const tracking=deferred(),base=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/tracking')?tracking.promise:base(o));
+    const pending=page.loadTracking();
+    if(kind==='hide')page.onHide();else if(kind==='session')mocks.token='member-b';else page.setData({shipment:null});
+    tracking.resolve({orderId:id,shipmentId:id,source:'wechat_logistics',observedAt:new Date().toISOString(),events:[]});await pending;
+    expect(page.data.tracking).toBeNull();
+  });
+  it('shows no invented events for an empty response and permits retry after failure',async()=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    const base=mocks.request.getMockImplementation()!;let fail=true;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/tracking')?fail?Promise.reject(Error('offline')):Promise.resolve({orderId:id,shipmentId:id,source:'wechat_logistics',observedAt:new Date().toISOString(),events:[]}):base(o));
+    await page.loadTracking();expect(page.data.trackingError).toContain('暂时无法');expect(page.data.trackingLoading).toBe(false);
+    fail=false;await page.loadTracking();expect(page.data.tracking.events).toEqual([]);expect(page.data.trackingError).toBe('');
+    expect(page.data.shipment.logisticsState).toBe('shipped');expect(page.data.shipment.receiptConfirmedAt).toBeUndefined();
+  });
   it.each(['hide','session'])('does not reveal late tracking after %s',async kind=>{
     const shipping=deferred();const base=mocks.request.getMockImplementation()!;
     mocks.request.mockImplementation((o:any)=>o.path.endsWith('/shipment')?shipping.promise:base(o));

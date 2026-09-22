@@ -19,6 +19,11 @@ export interface OrderShipment {
 export function myShipment(id:string,page:object):Promise<OrderShipment>{
   return pageRead<OrderShipment>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders"]});
 }
+export interface OrderTracking {orderId:string;shipmentId:string;source:"wechat_logistics";observedAt:string;
+  events:Array<{time:string;code:number;state:string;message:string}>}
+export function myTracking(id:string,page:object):Promise<OrderTracking>{
+  return pageRead<OrderTracking>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment/tracking`});
+}
 export function confirmMyReceipt(id:string,expectedVersion:number,idempotencyKey:string){
   return request({path:`/v1/me/orders/${encodeURIComponent(id)}/confirm-receipt`,method:"POST",data:{expectedVersion},idempotencyKey,cacheTags:["orders"]});
 }

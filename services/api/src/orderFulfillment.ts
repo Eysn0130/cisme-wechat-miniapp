@@ -6,6 +6,8 @@ import { AuthorityService, requireActiveMemberWithClient } from './authority.js'
 import { transaction, type DbClient } from './db.js';
 import { DeliveryAddressService } from './deliveryAddress.js';
 import { ShippingSyncService } from './shippingSync.js';
+import type { WechatLogisticsClient, LogisticsBinding } from './wechatLogistics.js';
+import { validateShippingBinding } from './wechatOrderShipping.js';
 
 type Dispatch = { carrierCode: string; carrierName: string; trackingNumber: string;
   shippedAt: string; evidenceReference: string; expectedOrderVersion: number };
@@ -35,7 +37,8 @@ function dispatchInput(raw: Record<string,unknown>): Dispatch {
  * job. No network call occurs in these transactions. R0 ships all lines together. */
 export class OrderFulfillmentService {
   constructor(private pool:pg.Pool,private authority:AuthorityService,private addresses:DeliveryAddressService,
-    private sync:ShippingSyncService,private enabled:boolean) {}
+    private sync:ShippingSyncService,private enabled:boolean,
+    private logistics?:Pick<WechatLogisticsClient,'query'|'capabilities'>) {}
   private gate(){if(!this.enabled)fail('FULFILLMENT_NOT_ENABLED',503);}
   private async projection(client:DbClient,row:Shipment){
     const parcel=await this.sync.parcelWithClient(client,row.shipping_sync_id);
@@ -105,6 +108,49 @@ export class OrderFulfillmentService {
       return row?this.projection(client,row):{orderId,logisticsState:order.status==='paid'?'awaiting_dispatch':'not_ready',shipment:null};
     });
   }
+  async trackingMine(actor:string|undefined,orderId:string){
+    this.gate();if(!uuid.test(orderId))fail('ORDER_NOT_FOUND',404);
+    const source=await transaction(this.pool,async client=>{
+      const owner=await requireActiveMemberWithClient(client,actor);
+      const order=(await client.query('SELECT id,order_number FROM commerce_order WHERE id=$1 AND member_id=$2',[orderId,owner])).rows[0];
+      if(!order)fail('ORDER_NOT_FOUND',404);
+      const row=(await client.query<Shipment>('SELECT * FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
+      if(!row)fail('SHIPMENT_NOT_FOUND',404);
+      const payments=(await client.query(`SELECT p.app_id,p.merchant_id,p.payer_openid,p.out_trade_no,
+        i.provider_transaction_id,i.payer_total_cents FROM commerce_payment_attempt p
+        JOIN commission_payment_inbox i ON i.order_id=p.order_id AND i.app_id=p.app_id AND i.merchant_id=p.merchant_id
+        WHERE p.order_id=$1 AND p.state='paid' AND i.state='applied' AND i.composition_status='full_cash'`,[orderId])).rows;
+      if(payments.length!==1||payments[0].out_trade_no!==order.order_number)fail('LOGISTICS_PAYMENT_BINDING_REQUIRED');
+      const paid=payments[0];
+      const binding:LogisticsBinding={appId:paid.app_id,merchantId:paid.merchant_id,merchantOrderNumber:paid.out_trade_no,
+        transactionId:paid.provider_transaction_id,payerOpenid:paid.payer_openid,payerTotalCents:Number(paid.payer_total_cents)};
+      validateShippingBinding(binding);
+      return {owner,shipmentId:row.id,binding,parcel:await this.sync.parcelWithClient(client,row.shipping_sync_id)};
+    });
+    if(!this.logistics)fail('LOGISTICS_NOT_ENABLED',503);
+    // No transaction/authority lock is held over this provider call.
+    const result=await this.logistics.query(source.binding,source.parcel.carrierCode,source.parcel.trackingNumber);
+    return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,actor);
+      if(!(await client.query('SELECT 1 FROM commerce_order WHERE id=$1 AND member_id=$2',[orderId,source.owner])).rowCount)fail('ORDER_NOT_FOUND',404);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
+        VALUES($1,'commerce.shipment.tracking_read','commerce_shipment',$2,$3,$4)`,
+        [`member:${source.owner}`,source.shipmentId,{source:'wechat_logistics',eventCount:result.events.length},`tracking:${source.shipmentId}`]);
+      return {orderId,shipmentId:source.shipmentId,source:'wechat_logistics' as const,...result};
+    });
+  }
+  async logisticsCapabilities(actor:string|undefined){
+    this.gate();await this.authority.require(actor,'commerce.fulfillment.manage');
+    if(!this.logistics)fail('LOGISTICS_NOT_ENABLED',503);
+    const result=await this.logistics.capabilities();
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
+        VALUES($1,'commerce.logistics.capabilities_read','fulfillment_capabilities',gen_random_uuid(),$2,$3)`,
+        [`member:${actor}`,{accountCount:result.accounts.length,carrierCount:result.carriers.length},`logistics-capabilities:${actor}`]);
+      return result;
+    });
+  }
   async detailManagement(actor:string|undefined,orderId:string){
     this.gate();if(!uuid.test(orderId))fail('ORDER_NOT_FOUND',404);
     return transaction(this.pool,async client=>{
@@ -158,6 +204,7 @@ export class OrderFulfillmentService {
   }
   async importRows(actor:string|undefined,batchKey:string,raw:unknown){
     this.gate();await this.authority.require(actor,'commerce.fulfillment.manage');
+    if(!key.test(batchKey)||batchKey.length>50)fail('SHIPMENT_BATCH_INVALID',422);
     if(typeof raw!=='string'||Buffer.byteLength(raw)>16000||raw.includes('\0'))fail('SHIPMENT_IMPORT_INVALID',422);
     const lines=raw.trim().split(/\r?\n/);
     if(lines.length<1||lines.length>25)fail('SHIPMENT_IMPORT_INVALID',422);
@@ -168,16 +215,26 @@ export class OrderFulfillmentService {
       seen.add(orderNumber);
       return {orderNumber,input:dispatchInput({carrierCode,carrierName,trackingNumber,shippedAt,expectedOrderVersion:1,evidenceReference:`batch:${batchKey}`})};
     });
-    const entries=await transaction(this.pool,async client=>{
+    const fingerprint=digest(parsed);
+    const plan=await transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
-      const result=[];
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`shipment-import:${actor}:${batchKey}`]);
+      const prior=(await client.query(`SELECT request_hash,response_body FROM idempotency_operation
+        WHERE principal_id=$1 AND operation='commerce.shipment.import_plan' AND idempotency_key=$2`,[`member:${actor}`,batchKey])).rows[0];
+      if(prior){if(prior.request_hash!==fingerprint)fail('SHIPMENT_IMPORT_IDEMPOTENCY_CONFLICT');return prior.response_body as Array<{orderId:string;expectedOrderVersion:number}>;}
+      const result:Array<{orderId:string;expectedOrderVersion:number}>=[];
       for(const row of parsed){
         const order=(await client.query('SELECT id,version FROM commerce_order WHERE order_number=$1',[row.orderNumber])).rows[0];
         if(!order)fail('SHIPMENT_IMPORT_ORDER_NOT_FOUND',422);
-        result.push({orderId:order.id,...row.input,expectedOrderVersion:order.version});
+        result.push({orderId:order.id,expectedOrderVersion:order.version});
       }
+      // Persist only IDs/versions, never the imported tracking/contact text.
+      // A retry uses this original plan even after later order-version changes.
+      await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
+        VALUES($1,'commerce.shipment.import_plan',$2,$3,$4,200,$5)`,[`member:${actor}`,batchKey,`shipment-import:${batchKey}`,fingerprint,JSON.stringify(result)]);
       return result;
     });
+    const entries=plan.map((entry,index)=>({...parsed[index]!.input,...entry}));
     return this.dispatchBatch(actor,batchKey,entries);
   }
   async dispatchBatch(actor:string|undefined,batchKey:string,entries:unknown){

@@ -21,7 +21,7 @@ const entries=operations.map(operation=>{
   if(!chunk)throw new Error(`UNMAPPED_HANDLER:${operation.method} ${operation.path}`);
   const calls=[...chunk.text.matchAll(/\b(\w+)(?:Required\(\))?\.(\w+)\(/g)].filter(m=>owners.has(m[1]));
   const stem=literal.split('/:')[0]!;
-  const family=/ugc|community/.test(literal)?'UGC':/orders|catalog|commerce|commission|money|payments|refund|fulfillment/.test(literal)?'commerce':/support/.test(literal)?'support':/privacy|export|erasure/.test(literal)?'privacy':/identity|phone|profile|member|bootstrap/.test(literal)?'identity-member':'care-platform';
+  const family=/ugc|community/.test(literal)?'UGC':/orders|catalog|commerce|commission|money|payments|refund|fulfillment|logistics|shipment/.test(literal)?'commerce':/support/.test(literal)?'support':/privacy|export|erasure/.test(literal)?'privacy':/identity|phone|profile|member|bootstrap/.test(literal)?'identity-member':'care-platform';
   return {...operation,family,handler:`services/api/src/server.ts:${source.slice(0,chunk.start).split('\n').length}`,
     handlerSliceSha256:createHash('sha256').update(chunk.text).digest('hex'),
     serviceCalls:[...new Map(calls.map(m=>[`${m[1]}.${m[2]}`,{owner:owners.get(m[1]),method:m[2]}])).values()],

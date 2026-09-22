@@ -1386,6 +1386,19 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/OrderId'}]
       responses: {'200': {description: Owner-only physical shipment and independent WeChat sync status}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/shipment/tracking:
+    get:
+      operationId: myShipmentTracking
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      description: Owner-only bound waybill query with post-network active-member recheck, no-store response and count-only audit. Requires a separately approved logistics grant; no local receipt, delivery, refund or settlement mutation.
+      responses: {'200': {description: At most 100 timestamped WeChat logistics observations}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/logistics/capabilities:
+    get:
+      operationId: managementLogisticsCapabilities
+      security: [{session: []}]
+      description: Current commerce.fulfillment.manage authority before and after network. Read-only carrier and account status projection; omits customer codes, aliases and remarks. Does not bind accounts or purchase logistics services.
+      responses: {'200': {description: Supported carriers and existing account status observations}, '403': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/me/orders/{orderId}/confirm-receipt:
     post:
       tags: [Commerce]

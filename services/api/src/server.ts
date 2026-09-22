@@ -571,6 +571,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     fulfillment.pending(request.memberId,request.query));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment",async request=>
     shipmentRequired().detailMine(request.memberId,request.params.orderId));
+  app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment/tracking",async(request,reply)=>{
+    reply.header('Cache-Control','no-store, private');
+    return shipmentRequired().trackingMine(request.memberId,request.params.orderId);
+  });
+  app.get("/v1/management/logistics/capabilities",async(request,reply)=>{
+    reply.header('Cache-Control','no-store, private');
+    return shipmentRequired().logisticsCapabilities(request.memberId);
+  });
   app.post<{Params:{orderId:string};Body:{expectedVersion:number}}>("/v1/me/orders/:orderId/confirm-receipt",async request=>
     shipmentRequired().confirmReceipt(request.memberId,request.params.orderId,idempotencyKey(request),request.body?.expectedVersion));
   app.get<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment",async request=>

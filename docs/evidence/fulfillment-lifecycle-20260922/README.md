@@ -32,7 +32,7 @@
 
 ## 原生证据
 
-当前源码包SHA256 `dda91b4f41eff04665bcd52717bd950c50f23be0284cea45c0ad60ebffa35644`；259文件/37路由。
+原两张截图对应源码包SHA256 `dda91b4f41eff04665bcd52717bd950c50f23be0284cea45c0ad60ebffa35644`；259文件/37路由。
 原生截图时API源为249efe38a08953f94611dc155a9f48be37a79842；随后仅后端退款拦截修复到0f1b4c3，小程序包哈希未变。截图不冒充该后端修复的端到端原生验收。官方wechatide CLI实际连接IDE内置skill0.3.9。真实模拟器、真实本机API `127.0.0.1:18082`、本轮合成DB `cisme_test_895ea1f7428eae68e3cd1131`，74迁移。没有setData伪造页面状态、没有mock接口。
 
 - native-order-pending.jpg：真实待支付订单、not_ready履约状态、固化承诺，coreReady=true，shipmentError为空。
@@ -55,3 +55,7 @@
 [微信发货信息管理](https://developers.weixin.qq.com/miniprogram/dev/server/API/order_shipping/api_uploadshippinginfo.html)、[查询订单](https://developers.weixin.qq.com/miniprogram/dev/server/API/order_shipping/api_getorder.html)、[订单列表](https://developers.weixin.qq.com/miniprogram/dev/server/API/order_shipping/api_getorderlist.html)、[提醒确认收货](https://developers.weixin.qq.com/miniprogram/dev/server/API/order_shipping/api_notifyconfirmreceive.html)、[物流助手轨迹](https://developers.weixin.qq.com/miniprogram/dev/server/API/express/express-by-business/api_getpath.html)。真实签收后才能发送提醒，提醒不是自动确认；未因SDK存在引入付费Provider。
 
 [Microsoft SpreadsheetML结构](https://learn.microsoft.com/en-us/office/open-xml/spreadsheet/structure-of-a-spreadsheetml-document)、[Node zlib CRC32](https://nodejs.org/api/zlib.html)。仅实现有界输出，无第三方SDK源码复制/依赖新增。
+
+## 后续源码补充
+
+[微信物流只读接线及批量恢复](LOGISTICS-READ.md)记录新增两个方法、小程序轨迹入口及导入重放修复；此部分尚未部署，原staging部署与旧图保持原范围。
