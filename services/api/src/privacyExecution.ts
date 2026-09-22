@@ -276,13 +276,20 @@ export class SyntheticPrivacyExecution {
       if(!subject.rowCount)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
       // A revocation already holding the artifact row must commit before this
       // read can authorize delivery. Audit and authorization commit together.
-      const found=await client.query<{ciphertext:Buffer;iv:Buffer;auth_tag:Buffer}>(`SELECT a.ciphertext,a.iv,a.auth_tag FROM privacy_export_artifact a
+      const found=await client.query<{ciphertext:Buffer;iv:Buffer;auth_tag:Buffer;artifact_expires_at:Date;archive_expires_at:Date}>(`SELECT a.ciphertext,a.iv,a.auth_tag,
+        a.expires_at AS artifact_expires_at,j.archive_expires_at FROM privacy_export_artifact a
         JOIN data_export_job j ON j.id=a.job_id JOIN privacy_request pr ON pr.id=j.privacy_request_id
         WHERE j.privacy_request_id=$1 AND j.member_id=$2 AND pr.member_id=$2
         AND a.member_id=$2 AND j.status='succeeded' AND a.revoked_at IS NULL AND a.expires_at>clock_timestamp()
         AND j.archive_expires_at>clock_timestamp() FOR SHARE OF a,j,pr`,[requestId,memberId]);
       const artifact=found.rows[0];
       if(!artifact)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
+      // A SELECT predicate may have been evaluated before a row-lock wait.
+      // Recheck database wall time after all delivery locks are held.
+      const valid=(await client.query<{valid:boolean}>(
+        'SELECT LEAST($1::timestamptz,$2::timestamptz)>clock_timestamp() AS valid',
+        [artifact.artifact_expires_at,artifact.archive_expires_at])).rows[0]?.valid;
+      if(!valid)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
       try{
         const decipher=createDecipheriv('aes-256-gcm',key,artifact.iv);
         decipher.setAuthTag(artifact.auth_tag);

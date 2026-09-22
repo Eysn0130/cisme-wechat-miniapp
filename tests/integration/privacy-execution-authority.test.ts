@@ -102,3 +102,28 @@ it('keeps approved scope immutable at the database boundary',async()=>{
  await expect(pool.query("UPDATE data_export_job SET scope='{}' WHERE privacy_request_id=$1",[id])).rejects.toMatchObject({code:'55000'});
  await pool.query("UPDATE data_export_job SET next_attempt_at=now()+interval '1 day' WHERE privacy_request_id=$1",[id]);
 });
+
+it('rejects an archive that expires while delivery waits for a job lock without a row update',async()=>{
+  const id=await approved();await executor.runExportOnce();
+  const blocker=await pool.connect();let pending:Promise<unknown>|undefined;
+  try{
+    await pool.query(`UPDATE privacy_export_artifact a SET expires_at=clock_timestamp()+interval '250 milliseconds'
+      FROM data_export_job j WHERE a.job_id=j.id AND j.privacy_request_id=$1`,[id]);
+    await blocker.query('BEGIN');
+    await blocker.query('SELECT id FROM data_export_job WHERE privacy_request_id=$1 FOR UPDATE',[id]);
+    let settled=false;
+    pending=executor.download(memberId,id).then(()=>({delivered:true}),error=>({code:error.code})).finally(()=>{settled=true;});
+    for(let i=0;i<50;i++){
+      const waiting=await pool.query(`SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
+        AND wait_event_type='Lock' AND query LIKE '%FROM privacy_export_artifact a%'`);
+      if(waiting.rowCount)break;
+      if(i===49)throw new Error('download did not reach expected lock');
+      await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    expect(settled).toBe(false);
+    await pool.query('SELECT pg_sleep(0.35)');
+    await blocker.query('COMMIT');
+    expect(await pending).toEqual({code:'PRIVACY_EXPORT_NOT_FOUND'});
+    expect((await pool.query("SELECT 1 FROM audit_log WHERE object_id=$1 AND action='privacy.export.download'",[id])).rowCount).toBe(0);
+  }finally{await blocker.query('ROLLBACK');blocker.release();await pending;}
+});
