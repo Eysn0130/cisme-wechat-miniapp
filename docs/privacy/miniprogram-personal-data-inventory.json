@@ -485,8 +485,8 @@
       "state": "controlled_formal_recovery_source_wired_no_live_grant_installed_no_real_channel_calls"
     }
   ],
-  "migrationSetSha256": "2684ec3eb6d5a47f11e01561630fc60bed479a02cbb8ca514d4e41cc5724947d",
-  "egressSignatureSha256": "25131e41a8b7d66b2025d856c5885eb0c35cab99f4ec9dc3e564df1bd73d1dd3",
+  "migrationSetSha256": "644ceec561226533224cf4761b72881e41a0168b3c2a624137353f32a53b4d57",
+  "egressSignatureSha256": "5031a306d66bdcd3fd87ab4fcc3b54f719706c09f6199663699ab4d211c74d44",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -513,5 +513,20 @@
     "reviewed": "既有微信手机号与内容安全接收方不变；统一 64 KiB 流式 JSON 对象解析，拒绝重定向，token 类型及期限有界，手机号字段不接受隐式类型转换。地址 common receipt 仅含地址 ID 与 keyed HMAC，无明文 PII。",
     "realPlatformCalled": false,
     "newRecipient": false
+  },
+  "shippingSyncReview": {
+    "date": "2026-09-22",
+    "sources": [
+      "services/api/src/wechatOrderShipping.ts",
+      "services/api/src/shippingSync.ts"
+    ],
+    "recipient": "微信 api.weixin.qq.com 小程序订单发货管理",
+    "data": "支付交易号、商户号/订单号、付款者 OpenID、承运商/物流单号、商品简述、仅末四位的掩码联系方式、固定上传时间；认证 token 仅用于受控请求，不进入日志或持久化记录",
+    "purpose": "一次统一实物发货的信息同步与独立查单核对；不据此认定用户签收、交易完成或退款",
+    "storage": "commerce_shipping_sync 包裹内容 AES-256-GCM 加密，HMAC 请求指纹；订单买家与操作员为不同主体；原始平台响应不持久化",
+    "runtimeWired": false,
+    "liveGrantInstalled": false,
+    "realPlatformCalled": false,
+    "productionErasureEnabled": false
   }
 }

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "routeDenominator": 228,
+  "fullyAcceptedMethods": 0,
+  "scope": "new internal shipping component; no additional registered HTTP route",
+  "axes": {
+    "prdBusinessId": "PRD V2.1-R4 §8.2 / WX-PAY-MAKE-01; unified physical parcel shipping synchronization, not receipt or financial completion",
+    "identity": "prepare and pre-dispatch recheck current actor via AuthorityService; recovery is internal and not an HTTP entry",
+    "roleCapability": "commerce.fulfillment.manage; revocation before dispatch is tested; transport grant is denied by default",
+    "objectRow": "paid verified_commerce order; unique proposal per order; exact applied full_cash payment identity and amount; unresolved refunds/composition observations block",
+    "fieldProjection": "id/orderId/state/queryAttempts only; parcel encrypted AES-GCM with id/order/key-version AAD; no raw upstream errors or access-token URL",
+    "actionState": "prepared→dispatching→verifying→synced/manual_review; query matching can recognize prior completed upload; no automatic reupload after dispatch",
+    "environment": "no HTTP/worker composition or live grant installed; synthetic transport tests only; no real funds; staging ae314 does not contain this code",
+    "inputBoundary": "UUID/request/evidence identifiers; trimmed bounded UTF-8 parcel values; masked SF contact; canonical persisted RFC3339 time; bounded upstream JSON",
+    "idempotencyVersion": "actor/request HMAC and order uniqueness; immutable proposal and dispatched_at; no terminal rewrites; no manual-redrive facility yet",
+    "concurrency": "database claim token, one-minute lease, SKIP LOCKED; dispatch committed before network; refund/authority rechecked before dispatch; stale claims cannot finalize",
+    "databaseExternalEffects": "one proposal/audit row; irreversible dispatch marker; fixed official query/upload URLs, TLS redirects denied; no local receipt/refund/commission state write",
+    "limitsTimeoutPagination": "15s outbound dependency budget, 64KiB response, max5 query attempts and bounded backoff; no scheduling/list HTTP endpoint yet",
+    "positiveNegativeEvidence": "unit transport/payload/binding/error cases; real isolated PG tests unauthorized/unpaid/replay/conflict/encryption/concurrent claim/uncertain upload/crash recovery/revocation; official production platform not called"
+  },
+  "status": "REVIEWED_COMPONENT_NOT_FULL_RELEASE_ACCEPTANCE",
+  "remaining": [
+    "HTTP/worker/grant composition",
+    "manual review and redrive",
+    "daily reconciliation",
+    "carrier/receipt/after-sales and customer presentation",
+    "live platform binding and permitted acceptance",
+    "remaining HTTP methods"
+  ]
+}

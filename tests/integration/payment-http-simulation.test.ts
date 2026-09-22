@@ -1181,8 +1181,12 @@ it("downloads a hash-checked trade bill, imports once, and exposes amount confli
     payload:{billDate:billOne,billType:"SUCCESS"}});
   expect(tampered.statusCode).toBe(422);
   corruptBillHash=false;
-  const imported=await app.inject({method:"POST",url:path,headers:auth(operator.sessionToken),
-    payload:{billDate:billOne,billType:"SUCCESS"}});
+  const simultaneous=await Promise.all([0,1].map(()=>app.inject({method:"POST",url:path,
+    headers:auth(operator.sessionToken),payload:{billDate:billOne,billType:"SUCCESS"}})));
+  expect(simultaneous.map(response=>response.statusCode)).toEqual([200,200]);
+  expect(simultaneous.map(response=>response.json().replayed).sort()).toEqual([false,true]);
+  expect(simultaneous[0]!.json().id).toBe(simultaneous[1]!.json().id);
+  const imported=simultaneous.find(response=>!response.json().replayed)!;
   expect(imported.statusCode,JSON.stringify(imported.json())).toBe(200);
   expect(imported.json()).toMatchObject({rowCount:1,matchedCount:1,exceptionCount:0,replayed:false});
   const replay=await app.inject({method:"POST",url:path,headers:auth(operator.sessionToken),

@@ -22,18 +22,19 @@ function clean(value:string){return value.trim().replace(/^`/,"");}
 /** CSV quote handling is strict because imported bill columns carry identifiers and money. */
 function csv(raw:string){
   if(raw.length>10_000_000||raw.includes("\0"))invalid("交易账单文件过大或格式无效");
-  const rows:string[][]=[];let row:string[]=[],field="",quoted=false;
+  const rows:string[][]=[];let row:string[]=[],field="",quoted=false,closedQuote=false;
   for(let i=0;i<raw.length;i++){
     const char=raw[i]!;
+    if(closedQuote&&char!==","&&char!=="\n"&&char!=="\r")invalid("交易账单结束引号后存在多余内容");
     if(char==='"'){
       if(quoted&&raw[i+1]==='"'){field+='"';i++;}
       else if(!quoted&&field.length===0)quoted=true;
-      else if(quoted)quoted=false;
+      else if(quoted){quoted=false;closedQuote=true;}
       else invalid("交易账单引号格式无效");
-    }else if(char===","&&!quoted){row.push(clean(field));field="";}
+    }else if(char===","&&!quoted){row.push(clean(field));field="";closedQuote=false;}
     else if((char==="\n"||char==="\r")&&!quoted){
       if(char==="\r"&&raw[i+1]==="\n")i++;
-      row.push(clean(field));if(row.some(Boolean))rows.push(row);row=[];field="";
+      row.push(clean(field));if(row.some(Boolean))rows.push(row);row=[];field="";closedQuote=false;
     }else field+=char;
   }
   if(quoted)invalid("交易账单引号未闭合");
@@ -41,10 +42,15 @@ function csv(raw:string){
   return rows;
 }
 export function parseTradeBill(bytes:Uint8Array,type:BillType):BillRow[]{
-  const all=csv(Buffer.from(bytes).toString("utf8").replace(/^\uFEFF/,""));
+  if(bytes.byteLength>10_000_000)invalid("交易账单文件过大");
+  let decoded:string;
+  try{decoded=new TextDecoder("utf-8",{fatal:true}).decode(bytes);}
+  catch{invalid("交易账单字符编码无效");}
+  const all=csv(decoded.replace(/^\uFEFF/,""));
   const headerIndex=all.findIndex(row=>row.includes("商户订单号")&&row.includes("商户号"));
   if(headerIndex<0)invalid("交易账单缺少明细表头");
   const header=all[headerIndex]!;
+  if(new Set(header).size!==header.length)invalid("交易账单存在重复字段");
   const required=[columns.trade,columns.merchant,columns.currency,
     ...(type==="SUCCESS"?[columns.provider,columns.amount,columns.app,columns.payer]:
       [columns.refund,columns.providerRefund,columns.refundAmount,columns.cashRefund,columns.refundRequestedAt])];
@@ -110,6 +116,10 @@ export class TradeBillReconciliationService{
     const known=new Set<string>();
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actorId,"commerce.money.reconcile");
+      // A row lock cannot serialize the first import when no batch exists.
+      // Scope the lock to the same merchant/date/type as the unique batch key.
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',
+        [JSON.stringify(['trade-bill',this.merchantId,date,type])]);
       const existing=(await client.query(`SELECT id,source_sha256,row_count,matched_count,exception_count
         FROM commerce_trade_bill_batch WHERE bill_date=$1 AND bill_type=$2 AND merchant_id=$3 FOR UPDATE`,
         [date,type,this.merchantId])).rows[0];

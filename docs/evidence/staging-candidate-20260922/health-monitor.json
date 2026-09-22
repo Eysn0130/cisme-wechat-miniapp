@@ -1,0 +1,19 @@
+{
+  "environment": "staging",
+  "instanceId": "lhins-ei4hz4fi",
+  "sourceHead": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+  "timer": "cisme-staging-health-20260922.timer",
+  "timerActiveState": "active",
+  "observedJournalAtUtc": "2026-09-22T09:28:25Z",
+  "journal": {
+    "host": "VM-4-15-ubuntu",
+    "httpsReady": 200,
+    "api": "active",
+    "worker": "active",
+    "freeBytes": 41836859392,
+    "healthy": true
+  },
+  "automaticRepair": false,
+  "externalNotificationConfigured": false,
+  "source": "sanitized transcription of existing Tencent TAT terminal output"
+}

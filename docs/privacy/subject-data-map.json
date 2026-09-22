@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "cff18db8c76aa76f182c7e2c3451af8fd8e8c25f8e266a66998a5a7a405b8772",
+  "migrationSetSha256": "246afc9c7870016c92dddf8a498ba10c8f727c5d9641e42118530b5f3b14296c",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -839,6 +839,63 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "commerce_shipping_sync",
+      "subjectPaths": [
+        [
+          "commerce_shipping_sync.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "created_by_member_id"
+      ],
+      "specialHandling": "order_id resolves the buyer via commerce_order; created_by_member_id is a separate operator actor. encrypted_parcel contains tracking and masked contact, never raw-export ciphertext. Shipping synchronization does not prove receipt or authorize deletion; apply object-specific retention and legal holds.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "order_id",
+        "created_by_member_id",
+        "request_key",
+        "request_hmac",
+        "encrypted_parcel",
+        "key_version",
+        "evidence_reference",
+        "upload_time",
+        "state",
+        "query_attempts",
+        "dispatched_at",
+        "claim_token",
+        "lease_until",
+        "next_attempt_at",
+        "last_code",
+        "platform_order_state",
+        "created_at",
+        "updated_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
     },
     {
       "table": "commerce_trade_bill_batch",

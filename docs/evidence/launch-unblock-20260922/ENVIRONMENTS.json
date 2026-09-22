@@ -50,7 +50,7 @@
     },
     "health": {
       "verifiedTlsLoopback": 200,
-      "publicHttps": "not yet verified; firewall lacks 443 rule"
+      "publicHttps": "connection timeout from staging public-DNS probe 2026-09-22T09:01:23Z; curl28/http000; no TLS bypass"
     },
     "certificate": {
       "subject": "api.cisme.cn",
@@ -84,23 +84,24 @@
     "purpose": "isolated testing/acceptance; no real funds",
     "domain": "staging-api.cisme.cn",
     "dnsA": "150.158.39.74",
-    "releaseDirectory": "/opt/cisme/releases/20260911T051500Z-p0p1-staging",
-    "deployedGitSha": null,
-    "gitShaReason": "legacy release manifest has no sourceHead; use artifact SHA until candidate replaces it",
-    "apiSha256": "7df242062417c1190b5c714ba4a34fb46cf927508989514d9e9aa5c088ed7f8b",
-    "manifestGeneratedAt": "2026-09-10T17:05:09.435Z",
+    "releaseDirectory": "/opt/cisme/releases/rc20260922-8d13f6a2-ae31437652e2",
+    "deployedGitSha": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+    "gitShaReason": "verified pinned release manifest after candidate activation",
+    "apiSha256": "af0f835d072413add731f818b6fe9c71e93b7ff7ae6a283c992356c5e0b48cc0",
+    "manifestGeneratedAt": "2026-09-22T07:27:52.943Z",
     "database": {
       "host": "127.0.0.1",
-      "name": "cisme_staging",
+      "name": "cisme_accept_rc20260922_8d13f6a2",
       "role": "cisme_staging",
-      "dataClassification": "existing staging; not this-run disposable; preserve"
+      "dataClassification": "this-run isolated acceptance; no real funds",
+      "restoreCopy": "cisme_accept_rc20260922_8d13f6a2_restore"
     },
     "objects": {
       "driver": "api_gateway",
-      "localRootDerivedFromCode": "/opt/cisme/releases/20260911T051500Z-p0p1-staging/tmp/object-storage",
+      "localRoot": "/opt/cisme/tmp/rc20260922-8d13f6a2/object-storage",
       "s3EndpointConfigured": false,
       "s3BucketConfigured": false,
-      "objectsRead": false
+      "cosS3RecoveryVerified": false
     },
     "firewall": {
       "tcpPublicIpv4": [
@@ -122,10 +123,9 @@
       "releaseBlockerByItself": false
     },
     "legal": {
-      "deployedPrivacy": "2026-09-11-v5-staging",
-      "candidatePrivacy": "2026-09-11-v7-staging-support",
+      "deployedPrivacy": "2026-09-11-v7-staging-support",
       "terms": "2026-09-11-v4-staging",
-      "formalProductionApproval": false
+      "formalProductionApprovalVerified": false
     },
     "expiresAsDisplayed": "2026-10-10 09:14:34",
     "autoRenew": false,
@@ -150,7 +150,43 @@
     ],
     "renewalOrderSubmitted": false,
     "renewalPaid": false,
-    "firewallChanged": false
+    "firewallChanged": false,
+    "followUpEvidence": "../staging-candidate-20260922/deployment.json",
+    "previousDeployment": {
+      "releaseDirectory": "/opt/cisme/releases/20260911T051500Z-p0p1-staging",
+      "deployedGitSha": null,
+      "gitShaReason": "legacy release manifest has no sourceHead; use artifact SHA until candidate replaces it",
+      "apiSha256": "7df242062417c1190b5c714ba4a34fb46cf927508989514d9e9aa5c088ed7f8b",
+      "manifestGeneratedAt": "2026-09-10T17:05:09.435Z",
+      "database": {
+        "host": "127.0.0.1",
+        "name": "cisme_staging",
+        "role": "cisme_staging",
+        "dataClassification": "existing staging; not this-run disposable; preserve"
+      },
+      "objects": {
+        "driver": "api_gateway",
+        "localRootDerivedFromCode": "/opt/cisme/releases/20260911T051500Z-p0p1-staging/tmp/object-storage",
+        "s3EndpointConfigured": false,
+        "s3BucketConfigured": false,
+        "objectsRead": false
+      },
+      "legal": {
+        "deployedPrivacy": "2026-09-11-v5-staging",
+        "candidatePrivacy": "2026-09-11-v7-staging-support",
+        "terms": "2026-09-11-v4-staging",
+        "formalProductionApproval": false
+      }
+    },
+    "mutatedThisRun": true,
+    "oldDatabaseAndObjectsPreserved": true,
+    "acceptanceScope": "migration72/repeat0, HTTPS200, unauthorized401, isolated DB restore and local object marker, short stability sample; not full business or devices",
+    "healthMonitor": {
+      "timer": "cisme-staging-health-20260922.timer",
+      "active": true,
+      "externalNotificationConfigured": false,
+      "evidence": "../staging-candidate-20260922/health-monitor.json"
+    }
   },
   "dns": {
     "api.cisme.cn": "124.223.74.198",
@@ -160,10 +196,14 @@
   },
   "filing": {
     "wechat": {
-      "userReported": "待审核",
+      "userReported": "小程序备案 管局审核中",
       "exactPlatformState": "unread",
       "reason": "site-safety tool policy blocks mp.weixin.qq.com; not login failure",
-      "workflowChanged": false
+      "workflowChanged": false,
+      "userReportRecordedAtUtc": "2026-09-22T09:02:00.588833+00:00",
+      "category": "mini-program ICP filing authority review",
+      "directConsoleRead": false,
+      "codeVersionReviewState": "not inferred from filing state"
     },
     "miitDomain": {
       "domain": "cisme.cn",
@@ -186,5 +226,6 @@
     "impact": "UNKNOWN",
     "restored": false,
     "touchedThisRun": false
-  }
+  },
+  "updatedAtUtc": "2026-09-22T09:23:47.427755+00:00"
 }

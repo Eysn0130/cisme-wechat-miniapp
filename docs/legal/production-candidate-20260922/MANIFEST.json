@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "version": "2026-09-22-prod-candidate-v1",
+  "environment": "production",
+  "status": "DRAFT_NOT_APPROVED_NOT_EFFECTIVE",
+  "operatorCandidate": "熹芃（上海）生物科技有限公司",
+  "operatorEvidence": "matches currently served production/staging documents; platform subject binding not directly read",
+  "approved": false,
+  "publishable": false,
+  "wechatAuditModified": false,
+  "stagingDocumentReusedAsProduction": false,
+  "missingBusinessValues": [
+    "verified return contact and return address",
+    "handling hours and fallback contact",
+    "object-specific retention and hold rules"
+  ],
+  "requiredEngineering": [
+    "complete privacy subject/object execution beyond profile subset",
+    "final payment/fulfillment/aftersales wiring and acceptance",
+    "verify actual production configuration and third-party/data scopes",
+    "match WeChat privacy guide to released binary and approved versions"
+  ],
+  "checksums": {
+    "微信隐私保护指引填写候选.md": "2d570ba4fc1b1744adcf1e3789864c0d8c209dbf73ff6d37841526702b0fa9d1",
+    "用户协议.md": "21c5666a2bceff3d0903f4cd91e7cea4385831a330daedc1d9ca82b6c5264614",
+    "隐私政策.md": "96e22235eac8a46b106f031ed183c28e8ebb092f6928697a712b2cf295c083fd"
+  },
+  "fulfillmentBusinessRulesApprovedByOwner": true,
+  "businessRuleApprovalSource": "2026-09-22 current task user reply: CISME 首发履约方案",
+  "remainingBusinessConfiguration": [
+    "真实退货联系电话",
+    "真实退货地址"
+  ]
+}
