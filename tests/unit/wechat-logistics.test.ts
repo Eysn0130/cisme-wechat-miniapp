@@ -57,6 +57,12 @@ describe('official WeChat logistics read boundary',()=>{
   expect(JSON.stringify(result)).not.toContain('PRIVATE');
   expect(fetcher.mock.calls.every(([,init])=>init.method==='GET'&&init.body===undefined)).toBe(true);
  });
+ it('preserves an omitted carrier capability as unknown rather than unsupported',async()=>{
+  const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({count:0,list:[]})))
+    .mockResolvedValueOnce(new Response(JSON.stringify({count:1,data:[{delivery_id:'SF',delivery_name:'顺丰速运'}]})));
+  const result=await new WechatLogisticsClient(async()=>'synthetic-token',()=>{},fetcher).capabilities();
+  expect(result.carriers[0]!.cashOrdersSupported).toBeNull();
+ });
  it('treats provider token URL failures as redacted errors',async()=>{
   const fetcher=vi.fn().mockRejectedValue(Error('https://api.weixin.qq.com/?access_token=SENSITIVE'));
   const error=await new WechatLogisticsClient(async()=>'synthetic-token',()=>{},fetcher).query(binding,'SF','SF123456789').catch(e=>e);

@@ -93,7 +93,7 @@ export class WechatLogisticsClient {
       const item=object(raw);
       if(!text(item.delivery_id,32)||!text(item.delivery_name,240)
         ||item.can_use_cash!==undefined&&item.can_use_cash!==0&&item.can_use_cash!==1)fail('LOGISTICS_RESPONSE_INVALID');
-      return {carrierCode:item.delivery_id,name:item.delivery_name,cashOrdersSupported:item.can_use_cash===1};
+      return {carrierCode:item.delivery_id,name:item.delivery_name,cashOrdersSupported:item.can_use_cash===undefined?null:item.can_use_cash===1};
     })};
   }
 }
