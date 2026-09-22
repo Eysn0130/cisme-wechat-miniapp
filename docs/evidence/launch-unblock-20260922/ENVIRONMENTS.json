@@ -84,21 +84,21 @@
     "purpose": "isolated testing/acceptance; no real funds",
     "domain": "staging-api.cisme.cn",
     "dnsA": "150.158.39.74",
-    "releaseDirectory": "/opt/cisme/releases/rc20260922-8d13f6a2-ae31437652e2",
-    "deployedGitSha": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+    "releaseDirectory": "/opt/cisme/releases/rc20260922-9ac72e41-0f1b4c346173",
+    "deployedGitSha": "0f1b4c346173ed26d6ffd3d6e3612ef893b14212",
     "gitShaReason": "verified pinned release manifest after candidate activation",
-    "apiSha256": "af0f835d072413add731f818b6fe9c71e93b7ff7ae6a283c992356c5e0b48cc0",
-    "manifestGeneratedAt": "2026-09-22T07:27:52.943Z",
+    "apiSha256": "37d3fdbe92006a42e6d3b9a037e4cec55e1f433f78d0ee404096fb57d72dfe4f",
+    "manifestGeneratedAt": "2026-09-22T10:21:23.578Z",
     "database": {
       "host": "127.0.0.1",
-      "name": "cisme_accept_rc20260922_8d13f6a2",
+      "name": "cisme_accept_rc20260922_9ac72e41",
       "role": "cisme_staging",
       "dataClassification": "this-run isolated acceptance; no real funds",
-      "restoreCopy": "cisme_accept_rc20260922_8d13f6a2_restore"
+      "restoreCopy": "cisme_accept_rc20260922_9ac72e41_restore"
     },
     "objects": {
       "driver": "api_gateway",
-      "localRoot": "/opt/cisme/tmp/rc20260922-8d13f6a2/object-storage",
+      "localRoot": "/opt/cisme/tmp/rc20260922-9ac72e41/object-storage",
       "s3EndpointConfigured": false,
       "s3BucketConfigured": false,
       "cosS3RecoveryVerified": false
@@ -151,31 +151,24 @@
     "renewalOrderSubmitted": false,
     "renewalPaid": false,
     "firewallChanged": false,
-    "followUpEvidence": "../staging-candidate-20260922/deployment.json",
+    "followUpEvidence": "../fulfillment-lifecycle-20260922/STAGING-DEPLOYMENT.json",
     "previousDeployment": {
-      "releaseDirectory": "/opt/cisme/releases/20260911T051500Z-p0p1-staging",
-      "deployedGitSha": null,
-      "gitShaReason": "legacy release manifest has no sourceHead; use artifact SHA until candidate replaces it",
-      "apiSha256": "7df242062417c1190b5c714ba4a34fb46cf927508989514d9e9aa5c088ed7f8b",
-      "manifestGeneratedAt": "2026-09-10T17:05:09.435Z",
+      "releaseDirectory": "/opt/cisme/releases/rc20260922-8d13f6a2-ae31437652e2",
+      "deployedGitSha": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+      "apiSha256": "af0f835d072413add731f818b6fe9c71e93b7ff7ae6a283c992356c5e0b48cc0",
       "database": {
         "host": "127.0.0.1",
-        "name": "cisme_staging",
+        "name": "cisme_accept_rc20260922_8d13f6a2",
         "role": "cisme_staging",
-        "dataClassification": "existing staging; not this-run disposable; preserve"
+        "dataClassification": "this-run isolated acceptance; no real funds",
+        "restoreCopy": "cisme_accept_rc20260922_8d13f6a2_restore"
       },
       "objects": {
         "driver": "api_gateway",
-        "localRootDerivedFromCode": "/opt/cisme/releases/20260911T051500Z-p0p1-staging/tmp/object-storage",
+        "localRoot": "/opt/cisme/tmp/rc20260922-8d13f6a2/object-storage",
         "s3EndpointConfigured": false,
         "s3BucketConfigured": false,
-        "objectsRead": false
-      },
-      "legal": {
-        "deployedPrivacy": "2026-09-11-v5-staging",
-        "candidatePrivacy": "2026-09-11-v7-staging-support",
-        "terms": "2026-09-11-v4-staging",
-        "formalProductionApproval": false
+        "cosS3RecoveryVerified": false
       }
     },
     "mutatedThisRun": true,
@@ -186,7 +179,54 @@
       "active": true,
       "externalNotificationConfigured": false,
       "evidence": "../staging-candidate-20260922/health-monitor.json"
-    }
+    },
+    "deploymentHistory": [
+      {
+        "releaseDirectory": "/opt/cisme/releases/20260911T051500Z-p0p1-staging",
+        "deployedGitSha": null,
+        "gitShaReason": "legacy release manifest has no sourceHead; use artifact SHA until candidate replaces it",
+        "apiSha256": "7df242062417c1190b5c714ba4a34fb46cf927508989514d9e9aa5c088ed7f8b",
+        "manifestGeneratedAt": "2026-09-10T17:05:09.435Z",
+        "database": {
+          "host": "127.0.0.1",
+          "name": "cisme_staging",
+          "role": "cisme_staging",
+          "dataClassification": "existing staging; not this-run disposable; preserve"
+        },
+        "objects": {
+          "driver": "api_gateway",
+          "localRootDerivedFromCode": "/opt/cisme/releases/20260911T051500Z-p0p1-staging/tmp/object-storage",
+          "s3EndpointConfigured": false,
+          "s3BucketConfigured": false,
+          "objectsRead": false
+        },
+        "legal": {
+          "deployedPrivacy": "2026-09-11-v5-staging",
+          "candidatePrivacy": "2026-09-11-v7-staging-support",
+          "terms": "2026-09-11-v4-staging",
+          "formalProductionApproval": false
+        }
+      },
+      {
+        "releaseDirectory": "/opt/cisme/releases/rc20260922-8d13f6a2-ae31437652e2",
+        "deployedGitSha": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+        "apiSha256": "af0f835d072413add731f818b6fe9c71e93b7ff7ae6a283c992356c5e0b48cc0",
+        "database": {
+          "host": "127.0.0.1",
+          "name": "cisme_accept_rc20260922_8d13f6a2",
+          "role": "cisme_staging",
+          "dataClassification": "this-run isolated acceptance; no real funds",
+          "restoreCopy": "cisme_accept_rc20260922_8d13f6a2_restore"
+        },
+        "objects": {
+          "driver": "api_gateway",
+          "localRoot": "/opt/cisme/tmp/rc20260922-8d13f6a2/object-storage",
+          "s3EndpointConfigured": false,
+          "s3BucketConfigured": false,
+          "cosS3RecoveryVerified": false
+        }
+      }
+    ]
   },
   "dns": {
     "api.cisme.cn": "124.223.74.198",
@@ -227,5 +267,5 @@
     "restored": false,
     "touchedThisRun": false
   },
-  "updatedAtUtc": "2026-09-22T09:23:47.427755+00:00"
+  "updatedAtUtc": "2026-09-22T10:32:09.945685+00:00"
 }

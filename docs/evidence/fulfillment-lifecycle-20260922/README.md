@@ -20,6 +20,8 @@
 
 ## 已执行验证
 
+准确源码HEAD `0f1b4c346173ed26d6ffd3d6e3612ef893b14212` 的 [CI35715524252](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/35715524252) verify SUCCESS：1023单元、800集成。条件设计/凭据预览任务SKIPPED，不算原生/真机通过。
+
 - 本机全量集成：45文件、800测试通过；run `a054ef5659f43f048446ef44`，本轮新DB/S3已按归属删除。
 - 全量单元：1018通过、1跳过；新增原生生命周期4例后定向82例全部通过。最终CI以准确HEAD为准。
 - typecheck/build、234个/v1方法、236个含健康方法与OpenAPI一致；32事件。
@@ -31,7 +33,7 @@
 ## 原生证据
 
 当前源码包SHA256 `dda91b4f41eff04665bcd52717bd950c50f23be0284cea45c0ad60ebffa35644`；259文件/37路由。
-官方wechatide CLI实际连接IDE内置skill0.3.9。真实模拟器、真实本机API `127.0.0.1:18082`、本轮合成DB `cisme_test_895ea1f7428eae68e3cd1131`，74迁移。没有setData伪造页面状态、没有mock接口。
+原生截图时API源为249efe38a08953f94611dc155a9f48be37a79842；随后仅后端退款拦截修复到0f1b4c3，小程序包哈希未变。截图不冒充该后端修复的端到端原生验收。官方wechatide CLI实际连接IDE内置skill0.3.9。真实模拟器、真实本机API `127.0.0.1:18082`、本轮合成DB `cisme_test_895ea1f7428eae68e3cd1131`，74迁移。没有setData伪造页面状态、没有mock接口。
 
 - native-order-pending.jpg：真实待支付订单、not_ready履约状态、固化承诺，coreReady=true，shipmentError为空。
 - native-checkout-policy.jpg：点击报价按钮后真实报价、运费0、包邮/72h/退货承诺、环境支付关闭提示、底部按钮与滚动布局。
@@ -41,7 +43,7 @@
 ## 环境与未完成项
 
 - production `lhins-61ikz4mi` /124.223.74.198 维持只读，版本Git SHA仍UNKNOWN。不得套用staging版本结论。
-- staging `lhins-ei4hz4fi` /150.158.39.74 当前仍ae31437652e2fe3fbb24e7ac493d3b60ad747d27。本批尚未部署；后续必须更新准确部署账本和监控hash绑定。
+- staging `lhins-ei4hz4fi` /150.158.39.74 已部署 `0f1b4c346173ed26d6ffd3d6e3612ef893b14212`；74迁移/重复0，HTTPS200，监控绑定已更新，74迁移/129表恢复计数一致。详见 STAGING-DEPLOYMENT.json。全部交易/物流真实账号与真机验收仍未完成。
 - 微信原文由用户提供：**小程序备案 管局审核中**，非代码版本审核结论。未改审核流程。
 - 腾讯云控制通道已可用；私有微信平台受工具站点策略限制，合法域名四栏、物流助手开通/承运商绑定仍待平台证据；不认定服务未开通。
 - 仍有源码技术项：正式商品/订单/支付启动门的完整接线，非隔离售后工单与退款闭环，物流助手轨迹/事件/确认收货提醒，微信同步人工复核恢复，管理端正式操作员登录；全接口13维逐项验收、全面隐私执行、74迁移候选staging验收与物理设备验收。
