@@ -48,6 +48,9 @@ export class OrderFulfillmentService {
       shippedAt:row.shipped_at.toISOString(),deliveredAt:row.delivered_at?.toISOString()??null,
       receiptConfirmedAt:row.receipt_confirmed_at?.toISOString()??null,wechatSyncState:sync.state};
   }
+  async reconcileShipping(actor:string|undefined,orderId:string,requestKey:string,raw:Record<string,unknown>){
+    this.gate(); return this.sync.reconcile(actor,orderId,requestKey,raw);
+  }
   async dispatch(actor:string|undefined,orderId:string,requestKey:string,raw:Record<string,unknown>){
     this.gate();await this.authority.require(actor,'commerce.fulfillment.manage');
     if(!uuid.test(orderId)||!key.test(requestKey))fail('SHIPMENT_ID_INVALID',422);

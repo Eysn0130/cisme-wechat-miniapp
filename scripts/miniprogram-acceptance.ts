@@ -1,3 +1,5 @@
+import { fulfillmentRuntime } from "../services/api/src/fulfillmentRuntime.js";
+import { nativeFulfillmentFixture } from "./native-fulfillment-fixture.js";
 import { randomBytes } from "node:crypto";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -15,6 +17,7 @@ const acceptanceHost = "127.0.0.1";
 const externalUserId = "cisme-mini-acceptance-member";
 const outputDirectory = resolve(process.cwd(), acceptancePort===18080?"tmp/miniprogram-acceptance":`tmp/miniprogram-acceptance-${acceptancePort}`);
 const fixturePath = resolve(outputDirectory, "fixture.json");
+const syntheticFulfillment = process.argv.includes("--synthetic-fulfillment");
 const syntheticCommunity = process.argv.includes("--synthetic-community");
 
 function fail(message: string): never {
@@ -98,7 +101,7 @@ async function seedFixtures() {
   await resetDatabase(pool);
   await seedTestCampaign(pool);
   await storage.ensureReady();
-  app = await createApp({ config, pool, storage });
+  app = await createApp({ config, pool, storage, ...(syntheticFulfillment?{shippingTestChannel:{query:async()=>({decision:"matched" as const,platformOrderState:2,inComplaint:false}),uploadOnce:async()=>{throw Error("SYNTHETIC_QUERY_ONLY");}}}:{}) });
 
   await pool.query(`INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active)
     VALUES
@@ -240,6 +243,23 @@ async function seedFixtures() {
     payload: { quoteId: quote.id }
   }), "ORDER_PENDING");
 
+  const paidFixture = syntheticFulfillment ? await nativeFulfillmentFixture(pool,config,pendingOrder.id) : null;
+  let recoveryFixture:null|{id:string;number:string;paymentEvidence:string}=null;
+  if(syntheticFulfillment){
+    recoveryFixture=await nativeFulfillmentFixture(pool,config,pendingOrder.id);
+    const failed=fulfillmentRuntime(config,pool,{query:async()=>{throw Error('Synthetic provider outage');},uploadOnce:async()=>{throw Error('Synthetic upload forbidden');}})!;
+    const version=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[recoveryFixture.id])).rows[0].version;
+    const serverTime=(await pool.query('SELECT clock_timestamp() time')).rows[0].time.toISOString();
+    const shipment=await failed.service.dispatch(identity.memberId,recoveryFixture.id,'synthetic-recovery-dispatch',{
+      carrierCode:'SF',carrierName:'合成承运商',trackingNumber:'SYNTHETICRECOVERY01',shippedAt:serverTime,evidenceReference:'synthetic-recovery-proof',expectedOrderVersion:version});
+    const job=(await pool.query('SELECT shipping_sync_id FROM commerce_shipment WHERE id=$1',[shipment.id])).rows[0].shipping_sync_id;
+    for(let attempt=0;attempt<5;attempt++){
+      await pool.query("UPDATE commerce_shipping_sync SET next_attempt_at=clock_timestamp()-interval '1 second' WHERE id=$1",[job]);
+      await failed.sync.processOne(job);
+    }
+  }
+
+
   const cancelledQuote = body<any>(await app.inject({
     method: "POST",
     url: "/v1/me/commerce/quotes",
@@ -359,6 +379,7 @@ async function seedFixtures() {
     developmentIdentity: { externalUserId },
     routes: {
       ...communityRoutes,
+      ...(paidFixture?{managementPaidOrder:{path:"pages/management-order-detail/index",query:`id=${paidFixture.id}`}}:{}),
       managementMember: { path: "pages/management-member/index", query: `id=${identity.memberId}` },
       product: { path: "pages/product/index", query: `id=${createdProduct.code}` },
       checkout: { path: "pages/checkout/index", query: `product=${createdProduct.code}&sku=${sku.id}&quantity=1` },
@@ -374,6 +395,8 @@ async function seedFixtures() {
     },
     facts: {
       pendingOrderId: pendingOrder.id,
+      ...(paidFixture?{paidFixture}:{}),
+      ...(recoveryFixture?{recoveryFixture}:{}),
       cancelledOrderId: cancelledOrder.id,
       productId: createdProduct.productId,
       productCode: createdProduct.code,

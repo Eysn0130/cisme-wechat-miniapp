@@ -61,7 +61,9 @@ jobs:
         run: npm audit --audit-level=high 2>&1 | tee "$RUNNER_TEMP/native-validation/audit-audit-level=high.log"
       - run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/native-validation/typecheck.log"
       - name: Offline staging deployment and monitor guards
-        run: python3 -m unittest discover -s infra/tencent -p 'test_staging_*.py' -v
+        run: |
+          python3 -m unittest discover -s infra/tencent -p 'test_staging_*.py' -v
+          python3 -m unittest discover -s infra/tencent -p 'test_production_*.py' -v
       - run: npm run miniprogram:package-gate 2>&1 | tee "$RUNNER_TEMP/native-validation/miniprogram-package-gate.log"
       - run: npm run miniprogram:route-audit 2>&1 | tee "$RUNNER_TEMP/native-validation/miniprogram-route-audit.log"
       - run: npm run design:qa:status 2>&1 | tee "$RUNNER_TEMP/native-validation/design-qa-status.log"

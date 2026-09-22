@@ -485,7 +485,7 @@
       "state": "controlled_formal_recovery_source_wired_no_live_grant_installed_no_real_channel_calls"
     }
   ],
-  "migrationSetSha256": "2c09be368ba8efc83ac9c9c5c73483fa50497d5614eb93ed217938c68779ad5d",
+  "migrationSetSha256": "732a85d527d74155c090f5805f77e692edda61c9cb06520ae2475df5d4afd02a",
   "egressSignatureSha256": "44075515587c9e3253529b37c1ae14188e5aa343fd682b4365ea64f89213daa4",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -556,5 +556,17 @@
     "productionErasureEnabled": false,
     "requiresFormalPrivacyApproval": true,
     "operatorContext": "管理端查询和导出绑定请求开始时 API/操作员会话；输入更改立即清空旧投影，迟到结果不得显示或下载；清空输入不复用旧凭据。未改变目的服务器，无新增外发接收方。"
+  },
+  "shippingManualQueryReview": {
+    "date": "2026-09-22",
+    "source": [
+      "db/migrations/202609220003_shipping_manual_query.sql",
+      "services/api/src/shippingSync.ts",
+      "apps/miniprogram/pages/management-order-detail/index.ts"
+    ],
+    "fields": "复用加密包裹、支付主体绑定；新增审计仅记录订单/同步ID、操作员、核对编号、匹配结论和平台状态。不记录原始平台响应、OpenID、完整联系方式或运单副本。",
+    "execution": "仅当前 commerce.fulfillment.manage 可查询；Provider I/O 后重检权限；查询不重传、不重置发送历史，不写入退款或签收事实。",
+    "retention": "沿用原订单与管理审计保留规则，正式批准仍待核验；本次无新增存储表或独立保留周期。",
+    "external": "复用已有微信 get_order 查询能力；无新外部接收方、无 PC Session。"
   }
 }

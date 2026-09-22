@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "baseHead": "bc7a14ae94c9f182b2a55783369019b57f2324c0",
+  "scope": "uncommitted candidate at execution, CI must bind resulting commit",
+  "unit": {
+    "passed": 1066,
+    "skipped": 1,
+    "filesPassed": 96
+  },
+  "integration": {
+    "passed": 806,
+    "filesPassed": 45,
+    "ownedRun": "fe6cfaf2a90aaefbd03e1721",
+    "resourcesRemoved": true
+  },
+  "python": {
+    "deploymentGuardsPassed": 43,
+    "secretSafeAuditPassed": 4
+  },
+  "typecheck": "passed",
+  "build": "passed (includes historical Admin build, excluded from production artifact)",
+  "contracts": "passed",
+  "nativeSourceSha256": "13039faab73b2a6c15e832b409aea6c93641e1ab379ed1b980af03ea7a52e917",
+  "productionCredentialsRotated": false,
+  "productionNetworkChanged": false,
+  "productionDeployed": false
+}

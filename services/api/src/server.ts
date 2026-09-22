@@ -585,6 +585,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     shipmentRequired().detailManagement(request.memberId,request.params.orderId));
   app.post<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment",async request=>
     shipmentRequired().dispatch(request.memberId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+  app.post<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment/reconcile",async request=>
+    shipmentRequired().reconcileShipping(request.memberId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:Record<string,unknown>}>("/v1/management/shipments",async request=>
     shipmentRequired().managementList(request.memberId,request.query));
   app.get<{Querystring:Record<string,unknown>}>("/v1/management/shipments/export",async(request,reply)=>{

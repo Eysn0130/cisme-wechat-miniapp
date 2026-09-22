@@ -114,6 +114,57 @@ export class ShippingSyncService {
     return this.open(row);
   }
 
+  /** Explicit operator recovery is QUERY ONLY. Never resets attempts or enables upload.
+   * Provider I/O is outside DB transactions; authority/binding are rechecked on return. */
+  async reconcile(actor: string | undefined, orderId: string, requestKey: string, raw: Record<string, unknown>) {
+    this.gate(); await this.authority.require(actor, 'commerce.fulfillment.manage');
+    if (!UUID.test(orderId) || !/^[A-Za-z0-9._:-]{8,100}$/.test(requestKey)
+      || Object.keys(raw).some(key => key !== 'evidenceReference')
+      || typeof raw.evidenceReference !== 'string' || !/^[A-Za-z0-9._:-]{8,120}$/.test(raw.evidenceReference))
+      fail('SHIPPING_RECOVERY_INPUT_INVALID', 422);
+    const fingerprint = createHmac('sha256', Buffer.from(this.options.hashKey, 'hex'))
+      .update(JSON.stringify({ orderId, evidenceReference: raw.evidenceReference })).digest('hex');
+    const replay = async (client: DbClient) => {
+      const record = (await client.query(`SELECT request_hash,response_body FROM idempotency_operation
+        WHERE principal_id=$1 AND operation='commerce.shipping.reconcile' AND idempotency_key=$2`,
+        [`member:${actor}`, requestKey])).rows[0];
+      if (record && record.request_hash !== fingerprint) fail('SHIPPING_RECOVERY_IDEMPOTENCY_CONFLICT');
+      return record?.response_body;
+    };
+    const source = await transaction(this.pool, async client => {
+      await this.authority.requireWithClient(client, actor, 'commerce.fulfillment.manage');
+      const prior = await replay(client); if (prior) return { prior };
+      const binding = await this.binding(client, orderId);
+      const row = (await client.query<Row>('SELECT * FROM commerce_shipping_sync WHERE order_id=$1', [orderId])).rows[0];
+      if (!row || row.state !== 'manual_review') fail('SHIPPING_MANUAL_REVIEW_REQUIRED');
+      return { row, binding, parcel: this.open(row) };
+    });
+    if (source.prior) return source.prior;
+    const observation = await this.channel.query(source.binding!, source.parcel!);
+    return transaction(this.pool, async client => {
+      await this.authority.requireWithClient(client, actor, 'commerce.fulfillment.manage');
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`shipping-reconcile:${actor}:${requestKey}`]);
+      const prior = await replay(client); if (prior) return prior;
+      const currentBinding = await this.binding(client, orderId);
+      if (JSON.stringify(currentBinding) !== JSON.stringify(source.binding)) fail('SHIPPING_RECOVERY_BINDING_CHANGED');
+      const row = (await client.query<Row>('SELECT * FROM commerce_shipping_sync WHERE id=$1 FOR UPDATE', [source.row!.id])).rows[0]!;
+      if (!['manual_review', 'synced'].includes(row.state)) fail('SHIPPING_RECOVERY_STATE_CHANGED');
+      if (row.state === 'manual_review' && observation.decision === 'matched') {
+        await client.query(`UPDATE commerce_shipping_sync SET state='synced',last_code='MANUAL_QUERY_MATCHED',
+          platform_order_state=$2,updated_at=clock_timestamp() WHERE id=$1`, [row.id, observation.platformOrderState]);
+      }
+      const result = { id: row.id, orderId, state: row.state === 'synced' || observation.decision === 'matched' ? 'synced' : 'manual_review',
+        queryOutcome: observation.decision, queryOnly: true };
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
+        VALUES($1,'commerce.shipping.reconcile','commerce_shipping_sync',$2,$3,$4)`,
+        [`member:${actor}`,row.id,{...result,evidenceReference:raw.evidenceReference,platformOrderState:observation.platformOrderState},`shipping-reconcile:${row.id}`]);
+      await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,request_hash,response_status,response_body,business_key)
+        VALUES($1,'commerce.shipping.reconcile',$2,$3,200,$4,$5)`,
+        [`member:${actor}`,requestKey,fingerprint,result,`shipping-reconcile:${row.id}:${requestKey}`]);
+      return result;
+    });
+  }
+
   async processOne(id: string): Promise<string> {
     this.gate(); if (!UUID.test(id)) fail('SHIPPING_ID_INVALID', 422);
     const claim = await transaction(this.pool, async client => {

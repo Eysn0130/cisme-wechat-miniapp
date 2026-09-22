@@ -1422,6 +1422,24 @@ paths:
       parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShipmentDispatchInput'}}}}
       responses: {'200': {description: Local shipped fact and durable WeChat pending sync or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/commerce/orders/{orderId}/shipment/reconcile:
+    post:
+      tags: [Commerce]
+      operationId: reconcileShipmentShipping
+      security: [{session: []}]
+      description: Query-only manual recovery. Never uploads or resets attempts; only a bound matching platform parcel can resolve manual_review. Authority is checked again after external I/O, with an audit and idempotent response.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [evidenceReference]
+              properties:
+                evidenceReference: {type: string, minLength: 8, maxLength: 120, pattern: '^[A-Za-z0-9._:-]+$'}
+      responses: {'200': {description: Audited matched or unresolved query result; never confirms physical receipt or refund}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/management/shipments:
     get:
       security: [{session: []}]

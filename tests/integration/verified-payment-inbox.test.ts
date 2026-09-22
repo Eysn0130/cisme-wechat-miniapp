@@ -637,11 +637,38 @@ it('durably fences shipping dispatch, reconciles uncertain uploads and preserves
   }
   expect(uploaded).toBe(1);
 
+  await expect(service.reconcile(buyer,crashed.id,'manual-query-denied-01',{evidenceReference:'synthetic-case-001'})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  const missing=await service.reconcile(actor,crashed.id,'manual-query-missing-01',{evidenceReference:'synthetic-case-001'});
+  expect(missing).toMatchObject({state:'manual_review',queryOutcome:'not_uploaded',queryOnly:true});
+  const beforeReplay=queries;
+  expect(await service.reconcile(actor,crashed.id,'manual-query-missing-01',{evidenceReference:'synthetic-case-001'})).toEqual(missing);
+  expect(queries).toBe(beforeReplay);
+  await expect(service.reconcile(actor,crashed.id,'manual-query-missing-01',{evidenceReference:'synthetic-case-002'})).rejects.toMatchObject({code:'SHIPPING_RECOVERY_IDEMPOTENCY_CONFLICT'});
+  await expect(pool.query("UPDATE commerce_shipping_sync SET query_attempts=0,state='prepared' WHERE id=$1",[crashJob.id])).rejects.toThrow('SHIPPING_SYNC_HISTORY_IMMUTABLE');
+  await expect(pool.query("UPDATE commerce_shipping_sync SET last_code=NULL WHERE id=$1",[crashJob.id])).rejects.toThrow('SHIPPING_SYNC_HISTORY_IMMUTABLE');
+  seen=true;
+  // Provider calls execute with no authority locks held; revoke during response.
+  const revokedQuery=new ShippingSyncService(pool,new AuthorityService(pool,'test'),options,{
+    ...channel,query:async()=>{
+      await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
+      return {decision:'matched' as const,platformOrderState:2,inComplaint:false};
+    }
+  });
+  await expect(revokedQuery.reconcile(actor,crashed.id,'manual-query-revoked-01',{evidenceReference:'synthetic-case-003'})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  expect((await pool.query('SELECT state FROM commerce_shipping_sync WHERE id=$1',[crashJob.id])).rows[0].state).toBe('manual_review');
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.fulfillment.manage','fixture','Synthetic regrant','test','integration_fixture')`,[actor]);
+  expect(await service.reconcile(actor,crashed.id,'manual-query-matched-01',{evidenceReference:'synthetic-case-004'}))
+    .toMatchObject({state:'synced',queryOutcome:'matched',queryOnly:true});
+  expect(uploaded).toBe(1);
+  expect((await pool.query('SELECT query_attempts,state FROM commerce_shipping_sync WHERE id=$1',[crashJob.id])).rows[0]).toEqual({query_attempts:5,state:'synced'});
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipping.reconcile' AND object_id=$1",[crashJob.id])).rows[0].n).toBe(2);
+
   const next=await seedOrder('SHIP02',null);
   const event=notification(next.number,'42000000000000000000SHIP02','EV-SHIPPING-000002',new Date().toISOString());
   const received=await processor.receive(event.rawBody,event.headers);expect(await processor.processOne(received.inboxId)).toBe('applied');
   const pending=await service.prepare(actor,next.id,'shipping-revoke-role-01',parcel,'carrier-proof-fixture');
-  await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture',revoke_reason='Synthetic revocation' WHERE member_id=$1 AND capability='commerce.fulfillment.manage'",[actor]);
+  await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture',revoke_reason='Synthetic revocation' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
   expect(await service.processOne(pending.id)).toBe('manual_review');expect(uploaded).toBe(1);
 });
 
@@ -767,7 +794,7 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   await expect(pool.query('DELETE FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rejects.toThrow();
   await expect(pool.query('UPDATE commerce_shipment SET receipt_confirmed_at=NULL,version=version+1 WHERE id=$1',[one.id])).rejects.toThrow();
   const revoke=await pool.connect();await revoke.query('BEGIN');
-  await revoke.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture' WHERE member_id=$1 AND capability='commerce.fulfillment.manage'",[actor]);
+  await revoke.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
   const racing=service.managementList(actor,{state:'all'},true);
   const denied=expect(racing).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   await revoke.query('COMMIT');revoke.release();await denied;

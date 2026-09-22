@@ -103,3 +103,14 @@ export function managementOrders(cursor?: string, page?: object): Promise<Commer
 export function managementOrder(id: string): Promise<CommerceOrder<ManagementOrderAddress>> {
   return request({ path: `/v1/management/commerce/orders/${encodeURIComponent(id)}`, cacheTags: ["orders", "authority"] });
 }
+export function managementShipment(id:string):Promise<OrderShipment>{
+  return request({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders","authority"]});
+}
+export interface ShipmentDispatchInput{carrierCode:string;carrierName:string;trackingNumber:string;shippedAt:string;evidenceReference:string;expectedOrderVersion:number}
+export function dispatchShipment(id:string,input:ShipmentDispatchInput,idempotencyKey:string){
+  return request({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment`,method:"POST",data:input,idempotencyKey,cacheTags:["orders","authority"]});
+}
+
+export function reconcileShipment(id:string,evidenceReference:string,idempotencyKey:string){
+  return request<{state:string;queryOutcome:string;queryOnly:true}>({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment/reconcile`,method:"POST",data:{evidenceReference},idempotencyKey,cacheTags:["orders","authority"]});
+}
