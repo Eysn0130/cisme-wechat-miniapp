@@ -31,5 +31,23 @@
   "networkChanged": false,
   "productionMigrated": false,
   "productionDeployed": false,
-  "oldCismeTestIncident": "UNKNOWN / 未恢复"
+  "oldCismeTestIncident": "UNKNOWN / 未恢复",
+  "postgresVersion": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+  "runtimeRole": {
+    "name": "cisme",
+    "superuser": false,
+    "createRole": false,
+    "createDatabase": false,
+    "replication": false,
+    "bypassRls": false,
+    "canLogin": true
+  },
+  "productionActivePolicies": {
+    "terms": "2026-09-09-v3-profile",
+    "privacy": "2026-09-09-v3-profile",
+    "crossBorderActive": false,
+    "approvalRevalidated": false,
+    "placeholderPatternDetected": false
+  },
+  "policyBoundary": "This is independently observed production v3; staging v5/v7 drift is separate. Absence of placeholder text is not a current policy approval."
 }
