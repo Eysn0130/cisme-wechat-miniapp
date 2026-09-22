@@ -289,6 +289,11 @@ export class SyntheticPrivacyExecution {
     const key=this.key();
     if(!memberId||!uuid.test(requestId))throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在',404);
     return transaction(this.pool,async client=>{
+      // Workers/cleanup take job before artifact. Do not let the joined read
+      // take artifact first and then wait for a job held by its own cleanup.
+      const job=await client.query('SELECT id FROM data_export_job WHERE privacy_request_id=$1 AND member_id=$2 FOR SHARE',
+        [requestId,memberId]);
+      if(!job.rowCount)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
       const subject=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[memberId]);
       if(!subject.rowCount)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
       // A revocation already holding the artifact row must commit before this

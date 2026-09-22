@@ -36,6 +36,8 @@ const channelTransfers=new Map<string,{openid:string;amount:number;state:"WAIT_U
   transferBillNo:string;remark:string}>();
 const tradeBillFixtures=new Map<string,Buffer>();
 let missingQueryBarrier:{orderNumber:string;entered:()=>void;wait:Promise<void>}|undefined;
+let channelRequestCount=0;
+let recheckAdmissionObservation:{target:string;visible:boolean[]}|undefined;
 let corruptBillHash=false;
 let loseNextRefundResponse=false;
 let loseNextTransferResponse=false;
@@ -64,6 +66,10 @@ async function body(request:IncomingMessage){
   return Buffer.concat(chunks);
 }
 async function channelHandler(request:IncomingMessage,response:ServerResponse){
+  channelRequestCount++;
+  if(recheckAdmissionObservation)recheckAdmissionObservation.visible.push(Boolean((await pool.query(
+    "SELECT 1 FROM audit_log WHERE action='commerce.money.recheck_admitted' AND object_id=$1",
+    [recheckAdmissionObservation.target])).rowCount));
   const raw=await body(request),path=request.url??"",method=request.method??"";
   const authorization=String(request.headers.authorization??"");
   const timestamp=authorization.match(/timestamp="(\d+)"/)?.[1],nonce=authorization.match(/nonce_str="([^"]+)"/)?.[1],
@@ -1537,4 +1543,69 @@ for(const surface of ['refund','settlement'] as const)it(`denies own ${surface} 
   }
   await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
  }finally{await blocker.query('ROLLBACK');blocker.release();await pending;await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer.memberId]);}
+});
+
+
+for(const kind of ['payment','refund','transfer'] as const)for(const withdrawal of ['grant','member'] as const)
+it(`denies ${kind} management recheck after concurrent ${withdrawal} withdrawal without querying the channel`,async()=>{
+ const actor=(await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:`recheck-${kind}-${withdrawal}`,
+  displayName:'synthetic recheck operator',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}})).json();
+ await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+  VALUES($1,'commerce.money.reconcile','fixture','synthetic recheck withdrawal','test','integration_fixture')`,[actor.memberId]);
+ const target=kind==='payment'?(await pool.query('SELECT order_id AS id FROM commerce_payment_attempt LIMIT 1')).rows[0].id:
+  kind==='refund'?(await pool.query('SELECT id FROM commission_refund_intent LIMIT 1')).rows[0].id:
+  (await pool.query('SELECT id FROM commission_settlement_request LIMIT 1')).rows[0].id;
+ const beforeChannel=channelRequestCount;
+ const beforeFacts=(await pool.query(`SELECT (SELECT count(*) FROM commission_payment_inbox) AS payments,
+  (SELECT count(*) FROM commission_refund_inbox) AS refunds,(SELECT count(*) FROM commission_transfer_fact) AS transfers,
+  (SELECT count(*) FROM audit_log WHERE action='commerce.money.recheck_admitted') AS admissions`)).rows[0];
+ const holder=await pool.connect();let pending:Promise<{statusCode:number;json:()=>{code?:string}}>|undefined;
+ try{
+  await holder.query('BEGIN');
+  if(withdrawal==='grant')await holder.query(`UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',
+   revoke_reason='synthetic withdrawal' WHERE member_id=$1`,[actor.memberId]);
+  else await holder.query("UPDATE member SET status='blocked' WHERE id=$1",[actor.memberId]);
+  let settled=false;pending=app.inject({method:'POST',url:`/v1/management/money/recheck/${kind}/${target}`,
+   headers:auth(actor.sessionToken),payload:{}}).finally(()=>{settled=true;});
+  for(let n=0;n<50&&!settled;n++){
+   if((await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'")).rowCount)break;
+   await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  await holder.query('COMMIT');const response=await pending;
+  expect(response.statusCode).toBe(403);expect(response.json().code).toBe('CAPABILITY_REQUIRED');
+  expect(channelRequestCount).toBe(beforeChannel);
+  expect((await pool.query(`SELECT (SELECT count(*) FROM commission_payment_inbox) AS payments,
+   (SELECT count(*) FROM commission_refund_inbox) AS refunds,(SELECT count(*) FROM commission_transfer_fact) AS transfers,
+   (SELECT count(*) FROM audit_log WHERE action='commerce.money.recheck_admitted') AS admissions`)).rows[0]).toEqual(beforeFacts);
+ }finally{await holder.query('ROLLBACK');holder.release();await pending;}
+});
+
+
+for(const kind of ['payment','refund','transfer'] as const)it(`commits ${kind} recheck admission before signed channel I/O`,async()=>{
+ const target=kind==='payment'?(await pool.query(`SELECT o.id FROM commerce_order o JOIN commerce_payment_attempt a ON a.order_id=o.id
+   WHERE o.order_number=ANY($1::text[]) AND o.status='paid' ORDER BY o.created_at LIMIT 1`,
+   [[...channelOrders].filter(([,v])=>v.state==='SUCCESS').map(([k])=>k)])).rows[0].id:
+  kind==='refund'?(await pool.query('SELECT id FROM commission_refund_intent WHERE out_refund_no=ANY($1::text[]) LIMIT 1',
+   [[...channelRefunds].filter(([,v])=>v.status==='SUCCESS').map(([k])=>k)])).rows[0].id:
+  (await pool.query('SELECT id FROM commission_settlement_request WHERE out_bill_no=ANY($1::text[]) LIMIT 1',[[...channelTransfers.keys()]])).rows[0].id;
+ const beforeChannel=channelRequestCount;
+ recheckAdmissionObservation={target,visible:[]};
+ try{
+  const response=await app.inject({method:'POST',url:`/v1/management/money/recheck/${kind}/${target}`,
+   headers:auth(operator.sessionToken),payload:{}});
+  expect(response.statusCode,JSON.stringify(response.json())).toBe(200);
+  expect(channelRequestCount).toBe(beforeChannel+1);expect(recheckAdmissionObservation.visible).toEqual([true]);
+  const audit=(await pool.query("SELECT principal_id,reason_code,after_state FROM audit_log WHERE action='commerce.money.recheck_admitted' AND object_id=$1",[target])).rows;
+  expect(audit).toEqual([{principal_id:`member:${operator.memberId}`,reason_code:'SIGNED_ORIGINAL_QUERY',after_state:{kind}}]);
+ }finally{recheckAdmissionObservation=undefined;}
+});
+it('does not admit an invalid kind or missing original money intent',async()=>{
+ const beforeChannel=channelRequestCount,target=randomUUID();
+ for(const kind of ['invalid','payment','refund','transfer']){
+  const response=await app.inject({method:'POST',url:`/v1/management/money/recheck/${kind}/${target}`,
+   headers:auth(operator.sessionToken),payload:{}});
+  expect(response.statusCode).toBe(kind==='invalid'?422:404);
+ }
+ expect(channelRequestCount).toBe(beforeChannel);
+ expect((await pool.query("SELECT 1 FROM audit_log WHERE action='commerce.money.recheck_admitted' AND object_id=$1",[target])).rowCount).toBe(0);
 });
