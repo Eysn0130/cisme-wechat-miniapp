@@ -1,5 +1,7 @@
 # 发布环境核验：2026-09-22
 
+本记录保留部署前快照；staging 后续已部署 ae31437652e2 并完成隔离恢复，见 [新部署证据](../staging-candidate-20260922/deployment.json)。微信用户补充原文为“小程序备案 管局审核中”，并非代码版本审核；未直接读取后台。
+
 后续两环境复核以 [ENVIRONMENTS.json](ENVIRONMENTS.json) 为准。production 与 staging 的实例、域名、制品哈希、数据归属、防火墙、证书、政策和到期时间已分开记录。下文原始旧版本/隐私 v5/HTTP-01/10 月到期观察均只属于 staging，不推断 production。
 
 production 实时记录：`lhins-61ikz4mi / 124.223.74.198 / api.cisme.cn`，运行目录 `20260909-native-login`；数据库 `127.0.0.1/cisme`、上海 COS `lhcos-81ddf-1257392443`。旧 APP_ENV=staging 标签不改变其 production 归属。production manifest 缺 Git SHA，已记录实际 API SHA256；本机校验 HTTPS 200，但 production 防火墙没有 443 规则。production 的政策实际为 `2026-09-09-v3-profile`，不同于 staging 的 v5。production 全程只读，无迁移或切换。

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "sanitized transcription of Tencent TAT terminal output; original JSON remains root-only on staging",
+  "instanceId": "lhins-ei4hz4fi",
+  "sourceHead": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+  "runId": "rc20260922-8d13f6a2",
+  "releaseDirectory": "/opt/cisme/releases/rc20260922-8d13f6a2-ae31437652e2",
+  "database": "cisme_accept_rc20260922_8d13f6a2",
+  "restoreDatabase": "cisme_accept_rc20260922_8d13f6a2_restore",
+  "objectRoot": "/opt/cisme/tmp/rc20260922-8d13f6a2/object-storage",
+  "oldReleaseDirectory": "/opt/cisme/releases/20260911T051500Z-p0p1-staging",
+  "oldDatabase": "cisme_staging",
+  "oldDatabasePreserved": true,
+  "migrationApplied": 72,
+  "migrationRepeated": 0,
+  "activated": true,
+  "publicHttps": 200,
+  "publicMetricsUnauthenticated": 401,
+  "privacyVersion": "2026-09-11-v7-staging-support",
+  "termsVersion": "2026-09-11-v4-staging",
+  "restoreCounts": {
+    "migrations": {
+      "source": 72,
+      "restored": 72
+    },
+    "tables": {
+      "source": 125,
+      "restored": 125
+    },
+    "legalDocuments": {
+      "source": 2,
+      "restored": 2
+    },
+    "marker": {
+      "source": 1,
+      "restored": 1
+    }
+  },
+  "backupSha256": "082702e89c91c64ee9528a23d6c5e96729f658cd2c121531f21ec228dab0ac3c",
+  "localObjectRestoreSha256": "b00959607d7845a15cd0aca72b5e032f35ca6869332f45bdbf8093b753168f69",
+  "publicChecks": {
+    "/health/ready": 200,
+    "/v1/legal": 200,
+    "/v1/capabilities": 200,
+    "/v1/admin/runtime-metrics": 401,
+    "/v1/me": 401
+  },
+  "stabilitySamplesUtc": [
+    "2026-09-22T08:55:50Z",
+    "2026-09-22T08:55:56Z",
+    "2026-09-22T08:56:02Z",
+    "2026-09-22T08:56:08Z",
+    "2026-09-22T08:56:14Z",
+    "2026-09-22T08:56:20Z"
+  ],
+  "stabilityResult": "6/6 health200; both units active/running; NRestarts=0",
+  "backupLocation": "/opt/cisme/staging-acceptance/rc20260922-8d13f6a2 (root only, not exported)",
+  "productionTouched": false,
+  "oldCismeTestImpact": "UNKNOWN",
+  "oldCismeTestRestored": false,
+  "realFundsExecuted": false,
+  "s3CosRestoreVerified": false,
+  "fullAcceptanceComplete": false,
+  "releaseReady": false
+}

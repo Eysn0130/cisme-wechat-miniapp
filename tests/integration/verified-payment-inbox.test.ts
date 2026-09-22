@@ -590,3 +590,57 @@ it("converts only released source lots 1:1, arbitrates cash reservation, and res
   await expect(credit.cancel(referrer,later.id,"credit-frozen-cancel-0001"))
     .rejects.toMatchObject({code:"CREDIT_ALREADY_USED_OR_FROZEN"});
 });
+
+it('durably fences shipping dispatch, reconciles uncertain uploads and preserves independent order facts',async()=>{
+  const {ShippingSyncService}=await import('../../services/api/src/shippingSync.js');
+  const actor=(await pool.query("INSERT INTO member(display_name) VALUES('Synthetic shipping operator') RETURNING id")).rows[0].id;
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.fulfillment.manage','fixture','Synthetic shipping sync','test','integration_fixture')`,[actor]);
+  const options={enabled:true,appId,merchantId,encryptionKey:'71'.repeat(32),hashKey:'82'.repeat(32),keyVersion:'shipping-test-v1'};
+  const parcel={trackingNumber:'SYNTHETIC-SHIP-0001',carrierCode:'SF',description:'合成商品 × 1',receiverContactMasked:'****1234'};
+  let uploaded=0,queries=0,seen=false;
+  const channel={query:async()=>{queries++;return {decision:seen?'matched' as const:'not_uploaded' as const,platformOrderState:seen?2:1,inComplaint:false};},
+    uploadOnce:async()=>{uploaded++;seen=true;throw new Error('Synthetic response lost after platform commit');}};
+  const service=new ShippingSyncService(pool,new AuthorityService(pool,'test'),options,channel);
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+20 WHERE sku_id=$1',[sku]);
+  const order=await seedOrder('SHIP01',null);
+  await expect(service.prepare(actor,order.id,'shipping-before-paid-01',parcel,'carrier-proof-fixture'))
+    .rejects.toMatchObject({code:'SHIPPING_SETTLED_ORDER_REQUIRED'});
+  const paid=notification(order.number,'42000000000000000000SHIP01','EV-SHIPPING-000001',new Date().toISOString());
+  const inbox=await processor.receive(paid.rawBody,paid.headers);expect(await processor.processOne(inbox.inboxId)).toBe('applied');
+  await expect(service.prepare(buyer,order.id,'shipping-no-role-0001',parcel,'carrier-proof-fixture')).rejects.toThrow();
+  const proposal=await service.prepare(actor,order.id,'shipping-idempotent-01',parcel,'carrier-proof-fixture');
+  expect(await service.prepare(actor,order.id,'shipping-idempotent-01',parcel,'carrier-proof-fixture')).toEqual(proposal);
+  await expect(service.prepare(actor,order.id,'shipping-idempotent-01',{...parcel,trackingNumber:'OTHER'},'carrier-proof-fixture'))
+    .rejects.toMatchObject({code:'SHIPPING_PROPOSAL_CONFLICT'});
+  const stored=(await pool.query('SELECT encrypted_parcel FROM commerce_shipping_sync WHERE id=$1',[proposal.id])).rows[0];
+  expect(stored.encrypted_parcel).not.toContain(parcel.trackingNumber);expect(stored.encrypted_parcel).not.toContain('1234');
+  const concurrent=await Promise.all([service.processOne(proposal.id),service.processOne(proposal.id)]);
+  expect(concurrent).toContain('verifying');expect(uploaded).toBe(1);
+  await pool.query("UPDATE commerce_shipping_sync SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[proposal.id]);
+  expect(await service.processOne(proposal.id)).toBe('synced');expect(uploaded).toBe(1);expect(queries).toBe(2);
+  expect(await service.processOne(proposal.id)).toBe('idle');
+  await expect(pool.query("UPDATE commerce_shipping_sync SET state='prepared',dispatched_at=NULL WHERE id=$1",[proposal.id])).rejects.toThrow();
+  expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[order.id])).rows[0].status).toBe('paid');
+  expect((await pool.query('SELECT count(*)::int n FROM commerce_fulfillment_attestation WHERE order_id=$1',[order.id])).rows[0].n).toBe(0);
+
+  const crashed=await seedOrder('SHIP03',null);
+  const crashEvent=notification(crashed.number,'42000000000000000000SHIP03','EV-SHIPPING-000003',new Date().toISOString());
+  const crashPaid=await processor.receive(crashEvent.rawBody,crashEvent.headers);expect(await processor.processOne(crashPaid.inboxId)).toBe('applied');
+  const crashJob=await service.prepare(actor,crashed.id,'shipping-crash-recovery-01',parcel,'carrier-proof-fixture');
+  await pool.query(`UPDATE commerce_shipping_sync SET state='dispatching',dispatched_at=now(),
+    claim_token=gen_random_uuid(),lease_until=now()-interval '1 minute' WHERE id=$1`,[crashJob.id]);
+  seen=false; // Even a lagging provider read must never authorize a second upload.
+  for(let attempt=1;attempt<=5;attempt++){
+    await pool.query("UPDATE commerce_shipping_sync SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[crashJob.id]);
+    expect(await service.processOne(crashJob.id)).toBe(attempt<5?'verifying':'manual_review');
+  }
+  expect(uploaded).toBe(1);
+
+  const next=await seedOrder('SHIP02',null);
+  const event=notification(next.number,'42000000000000000000SHIP02','EV-SHIPPING-000002',new Date().toISOString());
+  const received=await processor.receive(event.rawBody,event.headers);expect(await processor.processOne(received.inboxId)).toBe('applied');
+  const pending=await service.prepare(actor,next.id,'shipping-revoke-role-01',parcel,'carrier-proof-fixture');
+  await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture',revoke_reason='Synthetic revocation' WHERE member_id=$1 AND capability='commerce.fulfillment.manage'",[actor]);
+  expect(await service.processOne(pending.id)).toBe('manual_review');expect(uploaded).toBe(1);
+});

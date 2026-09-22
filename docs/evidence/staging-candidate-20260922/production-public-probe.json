@@ -1,0 +1,10 @@
+{
+  "environment": "production",
+  "domain": "api.cisme.cn",
+  "probeSource": "staging server via public DNS; independent production target",
+  "timeUtc": "2026-09-22T09:01:23.487432+00:00",
+  "curlExit": 28,
+  "httpStatus": "000",
+  "tlsVerificationDisabled": false,
+  "result": "connection timeout; local production TLS200 and missing production443 rule documented separately"
+}

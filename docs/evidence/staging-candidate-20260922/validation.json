@@ -1,0 +1,31 @@
+{
+  "sourceBase": "547c9e64e8eca5c0e8a2fd150f42d2c52d3c9d4b",
+  "scope": "working source of this PR; not deployed staging source",
+  "unit": {
+    "passed": 997,
+    "skipped": 1,
+    "files": 89
+  },
+  "integration": {
+    "passed": 783,
+    "files": 45,
+    "ownedRunId": "1dc52c6f29526ed3bc7cc807",
+    "resourcesRemovedByOwnershipHarness": true
+  },
+  "offlinePythonTests": 9,
+  "typecheck": "pass",
+  "contracts": "pass",
+  "packageGate": "pass",
+  "logs": {
+    "unit": {
+      "localPath": "tmp/dual-environment-20260922/unit.log",
+      "sha256": "0e134b4d7b9996e1966a48e7350068a99ab9876f57175de243aa24c61e3ff296"
+    },
+    "integration": {
+      "localPath": "tmp/dual-environment-20260922/integration.log",
+      "sha256": "b33bc205a30626dbe5324c23b83998d2d5eaaa1f93668f7b0a9b6d3308695cfe"
+    }
+  },
+  "remoteCi": "resolve against actual PR head; not claimed here",
+  "releaseReady": false
+}

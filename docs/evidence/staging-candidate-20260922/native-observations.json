@@ -1,0 +1,36 @@
+{
+  "environment": "staging",
+  "backendSourceHead": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+  "packageSourceSha256": "a296da16a0edafe3d1fc988b94539a52a23f2d7e8b1fa85d9702e96b4276161c",
+  "surface": "WeChat DevTools Nightly simulator",
+  "temporaryRuntimeOriginOverride": true,
+  "originRestored": "http://127.0.0.1:18080",
+  "restoredSessionPresent": true,
+  "tokenRecorded": false,
+  "observations": [
+    {
+      "file": "native-home.jpg",
+      "outcome": "guest CTA visible; no automatic redirect"
+    },
+    {
+      "file": "native-privacy.jpg",
+      "outcome": "initial load error; root cause unresolved"
+    },
+    {
+      "file": "native-privacy-loaded.jpg",
+      "outcome": "retry loaded v7-staging-support from real staging API"
+    },
+    {
+      "file": "native-terms.jpg",
+      "outcome": "v4-staging from real staging API"
+    },
+    {
+      "file": "native-account.jpg",
+      "outcome": "guest consent unchecked; login disabled; no login submitted"
+    }
+  ],
+  "physicalIosTested": false,
+  "physicalAndroidTested": false,
+  "all78StatesAccepted": false,
+  "reviewWorkflowChanged": false
+}
