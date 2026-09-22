@@ -80,6 +80,11 @@ function devClock(request: FastifyRequest): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+function privacyActor(request: FastifyRequest): string {
+  if(!request.memberId)throw new DomainError("PRIVACY_ACTOR_REQUIRED","数据权利受理需要有效账号会话",403);
+  return request.memberId;
+}
+
 function adminPrincipal(request: FastifyRequest, _config: AppConfig): string {
   // The legacy shared secret is not an actor credential. Only the signed
   // session resolved by the common preHandler may select an audit principal.
@@ -379,27 +384,26 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/v1/me/privacy-requests", async request => privacyRights.list(request.memberId));
   app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
   app.get("/v1/admin/privacy-requests", async request => {
-    await privacyRights.requireOperator(adminPrincipal(request, config));
-    return privacyRights.queue();
+    return privacyRights.queue(adminPrincipal(request, config),privacyActor(request));
   });
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/response", async request => {
     const principal = adminPrincipal(request, config);
     await privacyRights.requireOperator(principal);
-    return privacyRights.respond(principal, request.params.requestId, request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown});
+    return privacyRights.respond(principal, request.params.requestId, request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown},privacyActor(request));
   });
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/execution-plan", async request => {
     const principal = adminPrincipal(request, config);
-    return privacyRights.planExecution(principal, request.params.requestId, idempotencyKey(request), request.body as {expectedVersion?:unknown;reasonCode?:unknown});
+    return privacyRights.planExecution(principal, request.params.requestId, idempotencyKey(request), request.body as {expectedVersion?:unknown;reasonCode?:unknown},privacyActor(request));
   });
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/export-approval", async request =>
     privacyExecution.approveExport(adminPrincipal(request,config),request.params.requestId,
-      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined,privacyActor(request)));
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/erasure-approval", async request =>
     privacyExecution.approveProfileErasure(adminPrincipal(request,config),request.params.requestId,
-      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined,privacyActor(request)));
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/execution-redrive", async request =>
     privacyExecution.redrive(adminPrincipal(request,config),request.params.requestId,
-      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined));
+      request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined,privacyActor(request)));
   app.get<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export", async (request,reply) => {
     const bytes=await privacyExecution.download(request.memberId,request.params.requestId);
     return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment; filename="cisme-profile.json"')

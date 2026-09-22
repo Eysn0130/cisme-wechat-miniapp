@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
+import { requirePrivacyActor } from './privacyAuthority.js';
 
 const kinds = new Set(['access','correct','delete','close_account','withdraw','other']);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -41,9 +42,14 @@ export class PrivacyRights {
   constructor(private pool: pg.Pool, private environment='production') {}
 
   async list(memberId: string | undefined) {
-    return (await this.pool.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+    const id=owner(memberId);
+    return transaction(this.pool,async client=>{
+      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[id]);
+      if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可访问数据权利记录',403);
+      return (await client.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       ${executionProjection}
-      FROM privacy_request pr WHERE pr.member_id=$1 ORDER BY pr.created_at DESC LIMIT 100`,[owner(memberId)])).rows;
+      FROM privacy_request pr WHERE pr.member_id=$1 ORDER BY pr.created_at DESC LIMIT 100`,[id])).rows;
+    });
   }
 
   async submit(memberId: string | undefined, input: {kind?:unknown;message?:unknown;scopeCode?:unknown}) {
@@ -57,7 +63,8 @@ export class PrivacyRights {
     const message=input.message.trim();
     return transaction(this.pool,async client=>{
       // Prevent duplicate taps and unbounded per-account submission bursts.
-      await client.query('SELECT id FROM member WHERE id=$1 FOR UPDATE',[id]);
+      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE",[id]);
+      if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可提交数据权利请求',403);
       if(scopeCode!==null){
         const identity=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test'",[id]);
         if(!identity.rowCount)throw new DomainError('PRIVACY_SYNTHETIC_IDENTITY_REQUIRED','此精确数据范围仅供合成测试身份使用',403);
@@ -74,23 +81,27 @@ export class PrivacyRights {
     });
   }
 
-  async requireOperator(principalId:string) {
-    const result=await this.pool.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role IN ('support','review_lead')",[principalId]);
+  async requireOperator(principalId:string,client?:DbClient) {
+    const result=await (client??this.pool).query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role IN ('support','review_lead')"+(client?' FOR SHARE':''),[principalId]);
     if(!result.rowCount)throw new DomainError('PRIVACY_OPERATOR_REQUIRED','仅授权受理人员可访问数据权利请求',403);
   }
 
-  async requireExecutor(principalId:string) {
-    const result=await this.pool.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead'",[principalId]);
+  async requireExecutor(principalId:string,client?:DbClient) {
+    const result=await (client??this.pool).query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead'"+(client?' FOR SHARE':''),[principalId]);
     if(!result.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可建立数据权利执行计划',403);
   }
 
-  async queue() {
-    return (await this.pool.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+  async queue(principalId:string,actorMemberId?:string) {
+    return transaction(this.pool,async client=>{
+      await requirePrivacyActor(client,actorMemberId);
+      await this.requireOperator(principalId,client);
+      return (await client.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       ${executionProjection}
       FROM privacy_request pr ORDER BY (pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at LIMIT 100`)).rows;
+    });
   }
 
-  async respond(principalId:string,id:string,input:{status?:unknown;response?:unknown;expectedVersion?:unknown}) {
+  async respond(principalId:string,id:string,input:{status?:unknown;response?:unknown;expectedVersion?:unknown},actorMemberId?:string) {
     await this.requireOperator(principalId);
     if(!uuidPattern.test(id))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
     if(!input || !['reviewing','responded'].includes(String(input.status)) || typeof input.response!=='string' || !input.response.trim() || Array.from(input.response).length>4000 || !Number.isInteger(input.expectedVersion) || Number(input.expectedVersion)<1) {
@@ -99,6 +110,8 @@ export class PrivacyRights {
     const response=input.response.trim();
     return transaction(this.pool,async client=>{
       const current=await client.query<{status:string;version:number}>('SELECT status,version FROM privacy_request WHERE id=$1 FOR UPDATE',[id]);
+      await requirePrivacyActor(client,actorMemberId);
+      await this.requireOperator(principalId,client);
       if(!current.rowCount)throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
       if(current.rows[0]!.version!==input.expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);
       if(['completed','partially_completed','rejected','canceled'].includes(current.rows[0]!.status))throw new DomainError('PRIVACY_REQUEST_CLOSED','受理记录已关闭，不可覆盖结果',409);
@@ -114,7 +127,7 @@ export class PrivacyRights {
     });
   }
 
-  async planExecution(principalId:string,id:string,idempotencyKey:string,input:{expectedVersion?:unknown;reasonCode?:unknown}) {
+  async planExecution(principalId:string,id:string,idempotencyKey:string,input:{expectedVersion?:unknown;reasonCode?:unknown},actorMemberId?:string) {
     await this.requireExecutor(principalId);
     if(!uuidPattern.test(id))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
     if(!Number.isInteger(input?.expectedVersion) || Number(input.expectedVersion)<1 || typeof input?.reasonCode!=='string' || !/^[A-Z][A-Z0-9_]{2,79}$/.test(input.reasonCode)) {
@@ -125,13 +138,18 @@ export class PrivacyRights {
     const operation='privacy.execution.plan';
     const hash=requestDigest({id,expectedVersion,reasonCode});
     return transaction(this.pool,async client=>{
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${operation}:${principalId}:${idempotencyKey}`]);
       const replay=await client.query<{request_hash:string;response_body:Record<string,unknown>}>(`SELECT request_hash,response_body FROM idempotency_operation
         WHERE principal_id=$1 AND operation=$2 AND idempotency_key=$3`,[principalId,operation,idempotencyKey]);
       if(replay.rows[0]) {
+        await requirePrivacyActor(client,actorMemberId);
+        await this.requireExecutor(principalId,client);
         if(replay.rows[0].request_hash!==hash)throw new DomainError('IDEMPOTENCY_CONFLICT','幂等键已用于不同的执行计划',409);
         return replay.rows[0].response_body;
       }
       const current=await client.query<{member_id:string;kind:string;status:string;version:number;scope_code:string|null}>('SELECT member_id,kind,status,version,scope_code FROM privacy_request WHERE id=$1 FOR UPDATE',[id]);
+      await requirePrivacyActor(client,actorMemberId);
+      await this.requireExecutor(principalId,client);
       if(!current.rowCount)throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
       const row=current.rows[0]!;
       if(row.version!==expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);

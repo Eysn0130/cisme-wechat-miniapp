@@ -7,7 +7,7 @@ if(!process.env.DATABASE_URL || !principal || !['list','respond','plan'].include
 const pool=createPool(process.env.DATABASE_URL);const rights=new PrivacyRights(pool);
 try{
  await rights.requireOperator(principal);
- if(action==='list')console.log(JSON.stringify(await rights.queue(),null,2));
+ if(action==='list')console.log(JSON.stringify(await rights.queue(principal),null,2));
  else{
   if(!id || !inputFile)throw new Error('Request ID and input JSON file required');
   const body=JSON.parse(await readFile(inputFile,'utf8'));

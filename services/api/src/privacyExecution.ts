@@ -2,6 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
+import { requirePrivacyActor } from './privacyAuthority.js';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const reason=/^[A-Z][A-Z0-9_]{2,79}$/;
@@ -22,7 +23,7 @@ export class SyntheticPrivacyExecution {
     return Buffer.from(this.keyHex,'hex');
   }
 
-  async approveExport(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined) {
+  async approveExport(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined,actorMemberId?:string) {
     this.key();
     if(!uuid.test(requestId))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
     if(typeof input?.reasonCode!=='string'||!reason.test(input.reasonCode)||!Number.isInteger(input.expectedVersion)||Number(input.expectedVersion)<1)
@@ -31,8 +32,12 @@ export class SyntheticPrivacyExecution {
     return transaction(this.pool,async client=>{
       const role=await client.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead'",[principalId]);
       if(!role.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可批准',403);
+      // Match worker lock order: job, request, then current authority.
+      await client.query('SELECT id FROM data_export_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId]);
       const found=await client.query<ExportJob&{request_status:string;request_version:number;scope:Record<string,unknown>}>(`SELECT j.id,j.privacy_request_id,j.member_id,j.requested_by,j.status,j.attempts,j.scope,pr.status AS request_status,pr.version AS request_version
         FROM data_export_job j JOIN privacy_request pr ON pr.id=j.privacy_request_id WHERE pr.id=$1 FOR UPDATE OF j,pr`,[requestId]);
+      await requirePrivacyActor(client,actorMemberId);
+      await this.requireReviewer(client,principalId);
       const job=found.rows[0];
       if(!job)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出计划不存在',404);
       if(job.requested_by===principalId)throw new DomainError('PRIVACY_DUAL_REVIEW_REQUIRED','计划人与复核人必须不同',403);
@@ -53,7 +58,7 @@ export class SyntheticPrivacyExecution {
     });
   }
 
-  async approveProfileErasure(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined) {
+  async approveProfileErasure(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined,actorMemberId?:string) {
     this.key();
     if(!uuid.test(requestId))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
     if(typeof input?.reasonCode!=='string'||!reason.test(input.reasonCode)||!Number.isInteger(input.expectedVersion)||Number(input.expectedVersion)<1)
@@ -61,9 +66,12 @@ export class SyntheticPrivacyExecution {
     return transaction(this.pool,async client=>{
       const role=await client.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead'",[principalId]);
       if(!role.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可批准',403);
+      await client.query('SELECT id FROM data_erasure_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId]);
       const job=(await client.query<ErasureJob>(`SELECT j.id,j.privacy_request_id,j.member_id,j.requested_by,j.status,j.attempts,j.dry_run,j.erasure_mode,j.scope,
         pr.status AS request_status,pr.version AS request_version,pr.scope_code FROM data_erasure_job j
         JOIN privacy_request pr ON pr.id=j.privacy_request_id WHERE pr.id=$1 FOR UPDATE OF j,pr`,[requestId])).rows[0];
+      await requirePrivacyActor(client,actorMemberId);
+      await this.requireReviewer(client,principalId);
       if(!job)throw new DomainError('PRIVACY_ERASURE_NOT_FOUND','删除计划不存在',404);
       if(job.requested_by===principalId)throw new DomainError('PRIVACY_DUAL_REVIEW_REQUIRED','计划人与复核人必须不同',403);
       if(job.request_version!==input.expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);
@@ -89,6 +97,11 @@ export class SyntheticPrivacyExecution {
           {jobStatus:'approved',scopeCode:job.scope_code}]);
       return {requestId,jobId:job.id,status:'approved',scopeCode:job.scope_code};
     });
+  }
+
+  private async requireReviewer(client:DbClient,principalId:string) {
+    const role=await client.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead' FOR SHARE",[principalId]);
+    if(!role.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','复核权限已变化，请刷新后重试',403);
   }
 
   private async archive(client:DbClient,memberId:string):Promise<Buffer> {
@@ -224,7 +237,7 @@ export class SyntheticPrivacyExecution {
     });
   }
 
-  async redrive(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined) {
+  async redrive(principalId:string,requestId:string,input:{reasonCode?:unknown;expectedVersion?:unknown}|undefined,actorMemberId?:string) {
     this.key();
     if(!uuid.test(requestId))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
     if(typeof input?.reasonCode!=='string'||!reason.test(input.reasonCode)||!Number.isInteger(input.expectedVersion)||Number(input.expectedVersion)<1)
@@ -232,17 +245,19 @@ export class SyntheticPrivacyExecution {
     return transaction(this.pool,async client=>{
       const role=await client.query("SELECT 1 FROM principal_role WHERE principal_id=$1 AND role='review_lead'",[principalId]);
       if(!role.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可恢复执行',403);
+      const exportJob=(await client.query<{id:string;status:string;attempts:number;execution_mode:string;scope:Record<string,unknown>}>(
+        'SELECT id,status,attempts,execution_mode,scope FROM data_export_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId])).rows[0];
+      const erasureJob=exportJob?null:(await client.query<{id:string;status:string;attempts:number;dry_run:boolean;scope:Record<string,unknown>}>(
+        'SELECT id,status,attempts,dry_run,scope FROM data_erasure_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId])).rows[0];
       const request=(await client.query<{status:string;version:number;member_id:string;scope_code:string|null}>(
         'SELECT status,version,member_id,scope_code FROM privacy_request WHERE id=$1 FOR UPDATE',[requestId])).rows[0];
+      await requirePrivacyActor(client,actorMemberId);
+      await this.requireReviewer(client,principalId);
       if(!request)throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
       if(request.version!==input.expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);
       if(request.status!=='failed')throw new DomainError('PRIVACY_REDRIVE_NOT_READY','请求尚未进入终止失败状态',409);
       const dev=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test'",[request.member_id]);
       if(!dev.rowCount)throw new DomainError('PRIVACY_SYNTHETIC_IDENTITY_REQUIRED','仅合成身份可执行',403);
-      const exportJob=(await client.query<{id:string;status:string;attempts:number;execution_mode:string;scope:Record<string,unknown>}>(
-        'SELECT id,status,attempts,execution_mode,scope FROM data_export_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId])).rows[0];
-      const erasureJob=exportJob?null:(await client.query<{id:string;status:string;attempts:number;dry_run:boolean;scope:Record<string,unknown>}>(
-        'SELECT id,status,attempts,dry_run,scope FROM data_erasure_job WHERE privacy_request_id=$1 FOR UPDATE',[requestId])).rows[0];
       let type:'export'|'erasure',jobId:string;
       if(exportJob && exportJob.status==='failed' && exportJob.attempts>=3 && exportJob.execution_mode==='generate_archive' &&
         exportJob.scope.syntheticOnly===true && exportJob.scope.profile==='member_portable_copy_v1') {
@@ -311,6 +326,8 @@ export class SyntheticPrivacyExecution {
     this.key();
     if(!memberId||!uuid.test(requestId))throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在',404);
     return transaction(this.pool,async client=>{
+      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[memberId]);
+      if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可变更导出结果',403);
       const result=await client.query<{privacy_request_id:string;job_id:string}>(`UPDATE privacy_export_artifact a SET revoked_at=now()
         FROM data_export_job j WHERE a.job_id=j.id AND j.privacy_request_id=$1 AND j.member_id=$2
         AND a.member_id=$2 AND a.revoked_at IS NULL RETURNING j.privacy_request_id,a.job_id`,[requestId,memberId]);

@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "base": "302d0f602a407e9dd512c2c0fb69bc14a22793c4",
+  "routeDenominator": 228,
+  "fullyAcceptedMethods": 0,
+  "scope": "Ten privacy HTTP method slices. No blanket security acceptance; not a complete account-rights executor.",
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/v1/me/privacy-requests",
+      "service": "PrivacyRights.list",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "本人 active member，共享锁持续到查询提交",
+        "roleCapability": "本人 active member，共享锁持续到查询提交",
+        "objectRow": "WHERE pr.member_id=session.memberId",
+        "fieldProjection": "显式列出请求及执行状态，不含制品密文/密钥/审批人内部身份",
+        "actionState": "所有本人的请求状态；只读",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "显式列出请求及执行状态，不含制品密文/密钥/审批人内部身份",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "WHERE pr.member_id=session.memberId；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "无写副作用",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "member block vs list; privacy-rights 双主体隔离"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/privacy-requests",
+      "service": "PrivacyRights.submit",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "本人 active member，更新锁序列化重复提交",
+        "roleCapability": "本人 active member，更新锁序列化重复提交",
+        "objectRow": "新建请求 member_id 固定为会话主体",
+        "fieldProjection": "输入 kind/message/scopeCode；返回请求编号/状态/版本/期限",
+        "actionState": "合法kind；精确删除scope仅 test/dev_test/delete",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "输入 kind/message/scopeCode；返回请求编号/状态/版本/期限",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "新建请求 member_id 固定为会话主体；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "请求和received事件同事务；相同未终止请求复用",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "member block vs submit; privacy-rights 重复提交/限流/非法scope"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/privacy-requests",
+      "service": "PrivacyRights.queue",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "签名会话 active actor + 当前 support/review_lead，均共享锁",
+        "roleCapability": "签名会话 active actor + 当前 support/review_lead，均共享锁",
+        "objectRow": "受理角色可读取跨主体队列，上限100",
+        "fieldProjection": "请求文本属于受理用途；执行projection无制品密文",
+        "actionState": "只读；role-only受保护运维CLI仍使用角色检查",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "请求文本属于受理用途；执行projection无制品密文",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "受理角色可读取跨主体队列，上限100；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "无写副作用",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "queue role revoke + actor block，拒绝响应不含私有marker"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/privacy-requests/{requestId}/response",
+      "service": "PrivacyRights.respond",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "active actor + 当前 support/review_lead，同事务重查",
+        "roleCapability": "active actor + 当前 support/review_lead，同事务重查",
+        "objectRow": "先锁指定request，再锁actor/role；不能以请求body指定actor",
+        "fieldProjection": "状态、回复≤4000字符、整数expectedVersion；响应不冒充执行",
+        "actionState": "已完成/部分完成/拒绝/取消不能覆盖；其余原状态规则仍需业务收紧审阅",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "状态、回复≤4000字符、整数expectedVersion；响应不冒充执行",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "先锁指定request，再锁actor/role；不能以请求body指定actor；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "request/version、事件、审计同事务",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "response role revoke + actor block；数据库原status/version/response不变，无audit"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/privacy-requests/{requestId}/execution-plan",
+      "service": "PrivacyRights.planExecution",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "active actor + 当前 review_lead；重放也重新核权",
+        "roleCapability": "active actor + 当前 review_lead；重放也重新核权",
+        "objectRow": "request ID锁；按申请主体/类型建对应作业",
+        "fieldProjection": "UUID、原因码、expectedVersion；返回jobID/type/mode，不返回数据",
+        "actionState": "只生成plan_only/dry_run；已有计划和关闭状态拒绝",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "UUID、原因码、expectedVersion；返回jobID/type/mode，不返回数据",
+        "idempotencyVersion": "计划按operation/principal/key串行，hash冲突409，版本锁内验证",
+        "concurrency": "request ID锁；按申请主体/类型建对应作业；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "advisory锁 operation+principal+key；持久化hash/response、job、事件、审计同事务",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "plan role revoke + actor block；同键并发两个200同body，仅一job/audit"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/privacy-requests/{requestId}/export-approval",
+      "service": "SyntheticPrivacyExecution.approveExport",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "active actor + 当前review_lead；不得与maker相同",
+        "roleCapability": "active actor + 当前review_lead；不得与maker相同",
+        "objectRow": "按request找到job，锁job→request→actor→role",
+        "fieldProjection": "原因码、expectedVersion；scope固定 member_portable_copy_v1",
+        "actionState": "planned/reviewing+dev_test；test key gate",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "原因码、expectedVersion；scope固定 member_portable_copy_v1",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "按request找到job，锁job→request→actor→role；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "job批准、request/version、事件/审计同事务",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "export approval role revoke + actor block；job仍planned/approved_by null"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/privacy-requests/{requestId}/erasure-approval",
+      "service": "SyntheticPrivacyExecution.approveProfileErasure",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "active actor + 当前review_lead；maker/checker不同",
+        "roleCapability": "active actor + 当前review_lead；maker/checker不同",
+        "objectRow": "job→request→actor→role；删除范围来自申请scope",
+        "fieldProjection": "仅member_profile.wechat_handle；不是删除整个profile",
+        "actionState": "test/dev_test、planned/reviewing、明确scope、有效policy、无active hold",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "仅member_profile.wechat_handle；不是删除整个profile",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "job→request→actor→role；删除范围来自申请scope；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "job批准/request/version、事件/审计同事务；生产删除仍关闭",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "erasure approval role revoke + actor block；既有policy/hold/双主体/字段保留回归"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/privacy-requests/{requestId}/execution-redrive",
+      "service": "SyntheticPrivacyExecution.redrive",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "active actor + 当前review_lead",
+        "roleCapability": "active actor + 当前review_lead",
+        "objectRow": "先job再request，匹配worker锁序；再actor/role",
+        "fieldProjection": "UUID/原因码/expectedVersion；不能更换作业或范围",
+        "actionState": "failed且attempts>=3；dev_test和原scope；erasure检查policy/hold",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "UUID/原因码/expectedVersion；不能更换作业或范围",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "先job再request，匹配worker锁序；再actor/role；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "同原job重置attempts、request批准及审计，无换号新建",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "redrive role revoke + actor block；真实三次worker失败后拒绝，保持attempts3"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/privacy-requests/{requestId}/export",
+      "service": "SyntheticPrivacyExecution.download",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "本人active member，锁到交付审计提交",
+        "roleCapability": "本人active member，锁到交付审计提交",
+        "objectRow": "request/job/artifact三者member_id均等于会话主体",
+        "fieldProjection": "固定加密profile子集解密；no-store响应，无外部签名链接",
+        "actionState": "succeeded、未撤销且双期限有效；锁后重查数据库当前时间",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "固定加密profile子集解密；no-store响应，无外部签名链接",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "request/job/artifact三者member_id均等于会话主体；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "只写download审计；与锁定授权同事务",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "PR16 retained: revoke contention、expiry during lock、blocked/other subject"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/privacy-requests/{requestId}/export-revoke",
+      "service": "SyntheticPrivacyExecution.revoke",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20、§10.3、§11.3；不是A11/LIC全许可撤回验收",
+        "identity": "本人active member共享锁，本轮新增服务内复核",
+        "roleCapability": "本人active member共享锁，本轮新增服务内复核",
+        "objectRow": "artifact和job member_id为会话主体，requestId关联限定",
+        "fieldProjection": "只返回requestId/revoked",
+        "actionState": "未撤销；重复404；test key gate",
+        "environment": "请求/受理沿既有环境；可执行export/erasure/revoke/download仅test+显式合成key，生产执行关闭",
+        "inputBoundary": "只返回requestId/revoked",
+        "idempotencyVersion": "保持既有请求去重/expectedVersion/作业状态约束；未宣称所有写接口具通用幂等键",
+        "concurrency": "artifact和job member_id为会话主体，requestId关联限定；本轮真实独立PostgreSQL事务，不使用mock撤权",
+        "databaseExternalEffects": "artifact revoked_at和audit同事务；不能召回已下载字节",
+        "limitsTimeoutPagination": "保留750ms锁等待与总操作预算；请求10/日，列表最多100；未实现完整隐私列表游标",
+        "positiveNegativeEvidence": "member block vs revoke；artifact未撤销且无audit；既有下载撤销反例"
+      }
+    }
+  ],
+  "remaining": [
+    "全125表显式主体resolver和全范围执行",
+    "完整撤回/注销/二次验证",
+    "政策驱动媒体/链接/缓存/日志/备份执行",
+    "受理状态机与游标继续审阅",
+    "完整后台任务锁顺序和purge/download交错继续审阅",
+    "其余方法13维仍未关闭"
+  ]
+}
