@@ -1,7 +1,7 @@
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, requireMemberAccess } from "../../services/api";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 
 type Section="comments"|"saves"|"reports"|"appeals"|"blocks";
 type ActivityRow={id:string;postId?:string;postTitle?:string|null;body?:string|null;state?:string;
@@ -27,7 +27,7 @@ const timeLabel=(value:string)=>{
 };
 
 Page({
-  data:{chromeStyle:currentChromeStyle(),tabs,section:"comments" as Section,items:[] as ActivityRow[],
+  data:{chromeStyle:currentChromeStyle(),reduceMotion:shouldReduceMotion(),tabs,section:"comments" as Section,items:[] as ActivityRow[],
     nextCursor:null as string|null,matchingTotal:0,loading:true,loadingMore:false,busy:false,error:"",notice:"",epoch:0},
   sessionToken:"",alive:true,visible:true,shown:false,
   contextRevision:commerceContextRevision(),mutationSerial:0,mutationPending:false,
@@ -63,11 +63,16 @@ Page({
       token===getApp<IAppOption>().globalData.sessionToken&&revision===commerceContextRevision();
   },
   // A tab/read epoch must not own the lifetime of an already dispatched write.
-  releaseMutation(serial:number,token:string,revision:number){
+  releaseMutation(serial:number,token:string,revision:number,epoch:number,succeeded:boolean){
     if(serial!==this.mutationSerial)return;
     this.mutationPending=false;
-    if(this.alive&&this.visible&&token===getApp<IAppOption>().globalData.sessionToken&&revision===commerceContextRevision())
+    if(this.alive&&this.visible&&token===this.sessionToken&&revision===this.contextRevision&&
+      token===getApp<IAppOption>().globalData.sessionToken&&revision===commerceContextRevision()){
       this.setData({busy:false});
+      // A resume/tab read may have observed the database before this write settled.
+      // Supersede it, including uncertain failures, without replaying the command.
+      if(succeeded||epoch!==this.data.epoch)void this.load(true);
+    }
   },
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   selectSection(event:WechatMiniprogram.TouchEvent){
@@ -119,13 +124,14 @@ Page({
     const answer=await wx.showModal({title:"移除收藏？",content:"这篇内容会从我的收藏中移除。",confirmText:"移除"}).catch(()=>({confirm:false}));
     if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.postId===id))return;
-    const serial=++this.mutationSerial;this.mutationPending=true;
+    const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
     this.setData({busy:true,error:""});
     try{await request({path:`/v1/ugc/posts/${id}/reaction`,method:"PUT",data:{kind:"save",active:false}});
-      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"已移除收藏。"});void this.load(true);}
+      succeeded=true;
+      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"已移除收藏。"});}
     }catch(error){if(this.isCurrent(epoch,token,revision))
       this.setData({error:titleOf(error,"收藏未移除，请重试。")});}
-    finally{this.releaseMutation(serial,token,revision);}
+    finally{this.releaseMutation(serial,token,revision,epoch,succeeded);}
   },
   async unblock(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.memberId===id);
@@ -134,13 +140,14 @@ Page({
     const answer=await wx.showModal({title:"解除屏蔽？",content:"解除后，对方公开的内容会再次出现在可见范围内。",confirmText:"解除"}).catch(()=>({confirm:false}));
     if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.memberId===id))return;
-    const serial=++this.mutationSerial;this.mutationPending=true;
+    const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
     this.setData({busy:true,error:""});
     try{await request({path:`/v1/me/ugc/blocks/${id}`,method:"PUT",data:{active:false}});
-      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"已解除屏蔽。"});void this.load(true);}
+      succeeded=true;
+      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"已解除屏蔽。"});}
     }catch(error){if(this.isCurrent(epoch,token,revision))
       this.setData({error:titleOf(error,"屏蔽状态未更新，请重试。")});}
-    finally{this.releaseMutation(serial,token,revision);}
+    finally{this.releaseMutation(serial,token,revision,epoch,succeeded);}
   },
   async deleteComment(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.id===id);
@@ -149,13 +156,14 @@ Page({
     const answer=await wx.showModal({title:"删除这条评论？",content:"删除后正文无法恢复，审核事实会保留。",confirmText:"删除"}).catch(()=>({confirm:false}));
     if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.id===id))return;
-    const serial=++this.mutationSerial;this.mutationPending=true;
+    const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
     this.setData({busy:true,error:""});
     try{await request({path:`/v1/ugc/posts/${row.postId}/comments/${id}`,method:"DELETE"});
-      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"评论已删除。"});void this.load(true);}
+      succeeded=true;
+      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"评论已删除。"});}
     }catch(error){if(this.isCurrent(epoch,token,revision))
       this.setData({error:titleOf(error,"评论未删除，请重试。")});}
-    finally{this.releaseMutation(serial,token,revision);}
+    finally{this.releaseMutation(serial,token,revision,epoch,succeeded);}
   },
   back(){wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/profile/index"})});}
 });

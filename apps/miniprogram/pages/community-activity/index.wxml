@@ -1,7 +1,7 @@
 <view class="chrome-root" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回我的"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">我的社区</text></view>
   <view class="page page--stack activity-page">
-    <view class="activity-tabs" role="tablist" aria-label="我的社区记录">
+    <view class="activity-tabs {{reduceMotion?'activity-tabs--reduce-motion':''}}" role="tablist" aria-label="我的社区记录">
       <button wx:for="{{tabs}}" wx:key="key" data-section="{{item.key}}" bindtap="selectSection"
         class="activity-tab {{section===item.key?'activity-tab--active':''}}" role="tab" hover-class="activity-tab--pressed" aria-label="查看我的{{item.label}}" aria-selected="{{section===item.key}}">{{item.label}}</button>
       <view class="activity-tabs__indicator" aria-hidden="true" style="transform:translateX({{section==='saves'?100:section==='reports'?200:section==='appeals'?300:section==='blocks'?400:0}}%);"><view class="activity-tabs__line"/></view>

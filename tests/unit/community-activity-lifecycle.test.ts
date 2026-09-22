@@ -19,7 +19,7 @@ function fixture(){
   const helpers=runInNewContext(source("apps/miniprogram/services/page-requests.ts")+"\n;({pageRead,cancelPageReads});",{request});
   const wx={showModal:()=>new Promise((resolve,reject)=>modals.push({resolve,reject})),showToast:()=>{},navigateTo:()=>{}};
   runInNewContext(source("apps/miniprogram/pages/community-activity/index.ts"),{
-    ...helpers,request,requireMemberAccess:()=>state.access,currentChromeStyle:()=>"",
+    ...helpers,request,requireMemberAccess:()=>state.access,currentChromeStyle:()=>"",shouldReduceMotion:()=>false,
     commerceContextRevision:()=>state.revision,getApp:()=>({globalData:{sessionToken:state.token}}),
     wx,Page:(value:any)=>{definition=value;}
   });
@@ -38,6 +38,30 @@ const writes=[
 ];
 
 describe("community activity request and mutation ownership",()=>{
+  for(const action of writes){
+    for(const readFirst of [true,false])it(`${action.method}: reconciles a resumed read after write settlement (read first: ${readFirst})`,async()=>{
+      const f=fixture();f.page.data.section=action.section;f.page.data.items=[row];
+      const operation=f.page[action.method](event("id",action.key));
+      f.modals[0].resolve({confirm:true});await flush();const write=f.calls[0];
+      f.page.onHide();f.page.onShow();const staleRead=f.calls[1];
+      if(readFirst){staleRead.resolve({items:[row],nextCursor:null,matchingTotal:1});await flush();}
+      write.resolve({});await operation;
+      const reconciliation=f.calls[2];assert.ok(reconciliation,"settled write must supersede the pre-settlement read");
+      reconciliation.resolve(empty);await flush();
+      if(!readFirst){staleRead.resolve({items:[row],nextCursor:null,matchingTotal:1});await flush();}
+      assert.equal(f.page.data.items.length,0);assert.equal(f.page.data.busy,false);
+      assert.equal(f.calls.filter(call=>call.method).length,1);
+    });
+    it(`${action.method}: reconciles after tab ABA without replaying the write`,async()=>{
+      const f=fixture();f.page.data.section=action.section;f.page.data.items=[row];
+      const operation=f.page[action.method](event("id",action.key));f.modals[0].resolve({confirm:true});await flush();
+      f.page.selectSection(event("section","reports"));f.page.selectSection(event("section",action.section));
+      f.calls[2].resolve({items:[row],nextCursor:null,matchingTotal:1});await flush();
+      f.calls[0].resolve({});await operation;
+      assert.ok(f.calls[3],"tab ABA must converge from a new read");f.calls[3].resolve(empty);await flush();
+      assert.equal(f.page.data.items.length,0);assert.equal(f.calls.filter(call=>call.method).length,1);
+    });
+  }
   for(const action of writes){
     for(const fail of [false,true])it(`${action.method}: releases its lock after a tab change and ${fail?"failure":"success"}`,async()=>{
       const f=fixture();f.page.data.section=action.section;f.page.data.items=[row];

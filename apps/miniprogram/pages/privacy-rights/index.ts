@@ -6,14 +6,24 @@ const statuses:Record<string,string>={received:'已受理',verifying:'身份核�
 const executionStatuses:Record<string,string>={planned:'已建立计划，尚未执行',approved:'已复核待执行',running:'正在执行',succeeded:'执行成功',partially_succeeded:'部分执行成功',failed:'执行失败待处理',expired:'导出已过期',canceled:'计划已取消'};
 const deliveryStatuses:Record<string,string>={available:'合成会员资料子集可查看',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
 Page({
- data:{chromeStyle:currentChromeStyle(),authenticated:false,labels,selected:0,message:'',records:[] as any[],busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string}},
- onShow(){this.data.alive=true;this.setData({authenticated:Boolean(getApp<IAppOption>().globalData.sessionToken)});void this.load();},
- onHide(){this.data.alive=false;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null});},
- onUnload(){this.data.alive=false;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string}},
+ onShow(){this.data.alive=true;this.setData({authenticated:Boolean(getApp<IAppOption>().globalData.sessionToken)});void this.loadLegalIdentity();void this.load();},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null});},
+ onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){this.setData({selected:Number(e.detail.value)});},
  input(e:WechatMiniprogram.TextareaInput){this.setData({message:e.detail.value});},
  login(){resumeAuthentication('/pages/privacy-rights/index');},
+ async loadLegalIdentity(){
+  const attempt=++this.data.legalAttempt;
+  this.setData({legalIdentity:null});
+  try{
+   const result=await request<{documents:Array<{document_type:string;operator_name:string;version:string;contact:string}>}>({path:'/v1/legal',authMode:'public'});
+   if(!this.data.alive||attempt!==this.data.legalAttempt)return;
+   const privacy=result.documents.find(doc=>doc.document_type==='privacy');
+   if(privacy)this.setData({legalIdentity:{operator:privacy.operator_name,version:privacy.version,contact:privacy.contact}});
+  }catch{/* Keep the public feedback route available while the shared policy source is unavailable. */}
+ },
  async load(){
   if(!this.data.authenticated){this.setData({records:[]});return;}
   const attempt=++this.data.loadAttempt;

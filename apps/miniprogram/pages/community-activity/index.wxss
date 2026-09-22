@@ -3,3 +3,5 @@
 
 .activity-state--empty{padding:56px 16px;color:#75697a;font-size:14px;line-height:1.6}
 @media (prefers-reduced-motion: reduce){.activity-tab,.activity-tabs__indicator{transition:none}}
+
+.activity-tabs--reduce-motion .activity-tab,.activity-tabs--reduce-motion .activity-tabs__indicator{transition:none}
