@@ -166,8 +166,8 @@ export class SyntheticPrivacyExecution {
     });
   }
 
-  /** A single explicitly scoped, database-only test erasure. No cascades. */
-  async runProfileErasureOnce(failAfterDelete?:()=>void):Promise<boolean> {
+  /** A single explicitly scoped field erasure. Preserve the profile row and all other fields. */
+  async runProfileErasureOnce(failAfterErasure?:()=>void):Promise<boolean> {
     this.key();
     return transaction(this.pool,async client=>{
       const job=(await client.query<ExecutableJob>(`SELECT id,privacy_request_id,member_id,requested_by,approved_by,scope,status,attempts FROM data_erasure_job
@@ -192,9 +192,11 @@ export class SyntheticPrivacyExecution {
         const policy=await client.query(`SELECT 1 FROM data_retention_policy WHERE code='synthetic_profile_handle_v1'
           AND data_class='member_profile.wechat_handle' AND disposition='delete' AND enforcement_state='enforced' AND active=true FOR SHARE`);
         if(!policy.rowCount)throw new DomainError('PRIVACY_RETENTION_POLICY_PENDING','合成资料字段政策尚未启用',409);
-        const removed=await client.query('DELETE FROM member_profile WHERE member_id=$1',[job.member_id]);
-        failAfterDelete?.();
-        const manifest={scopeCode:'member_profile_handle_v1',deletedProfileRows:removed.rowCount??0,
+        const cleared=await client.query(`UPDATE member_profile SET wechat_handle=NULL,
+          profile_revision=profile_revision+1,updated_at=clock_timestamp()
+          WHERE member_id=$1 AND wechat_handle IS NOT NULL`,[job.member_id]);
+        failAfterErasure?.();
+        const manifest={scopeCode:'member_profile_handle_v1',deletedProfileRows:0,clearedHandleRows:cleared.rowCount??0,
           excludedClasses:['member','contact','address','care','orders','ugc','audit','object_storage']};
         const digest=createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
         await client.query(`UPDATE data_erasure_job SET status='partially_succeeded',legal_hold_count=0,manifest=$2,

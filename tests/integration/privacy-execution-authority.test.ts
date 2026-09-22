@@ -127,3 +127,20 @@ it('rejects an archive that expires while delivery waits for a job lock without 
     expect((await pool.query("SELECT 1 FROM audit_log WHERE object_id=$1 AND action='privacy.export.download'",[id])).rowCount).toBe(0);
   }finally{await blocker.query('ROLLBACK');blocker.release();await pending;}
 });
+
+it('erases only the approved handle field while preserving avatar and public review facts',async()=>{
+  await pool.query(`INSERT INTO member_profile(member_id,wechat_handle,handle_source,avatar_data_url,avatar_revision,profile_revision,
+    completed_at,community_visible,public_status,public_review_note,public_reviewed_by,public_reviewed_at)
+    VALUES($1,'Scope123','self_reported','data:image/jpeg;base64,synthetic-only','avatar-synthetic-1',4,
+    '2026-01-01T00:00:00Z',true,'approved','synthetic public approval','synthetic-reviewer','2026-01-02T00:00:00Z')
+    ON CONFLICT(member_id) DO UPDATE SET wechat_handle=excluded.wechat_handle,avatar_data_url=excluded.avatar_data_url,
+    avatar_revision=excluded.avatar_revision,profile_revision=excluded.profile_revision,completed_at=excluded.completed_at,
+    community_visible=excluded.community_visible,public_status=excluded.public_status,public_review_note=excluded.public_review_note,
+    public_reviewed_by=excluded.public_reviewed_by,public_reviewed_at=excluded.public_reviewed_at`,[memberId]);
+  const before=(await pool.query('SELECT * FROM member_profile WHERE member_id=$1',[memberId])).rows[0];
+  const id=await approved('delete');await executor.runProfileErasureOnce();
+  const after=(await pool.query('SELECT * FROM member_profile WHERE member_id=$1',[memberId])).rows[0];
+  expect(after).toMatchObject({...before,wechat_handle:null,profile_revision:5,updated_at:expect.any(Date)});
+  const manifest=(await pool.query('SELECT manifest FROM data_erasure_job WHERE privacy_request_id=$1',[id])).rows[0].manifest;
+  expect(manifest).toMatchObject({scopeCode:'member_profile_handle_v1',deletedProfileRows:0,clearedHandleRows:1});
+});
