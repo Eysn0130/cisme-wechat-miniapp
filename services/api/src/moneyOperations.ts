@@ -67,14 +67,34 @@ export class MoneyOperationsService{
   async recheck(actorId:string|undefined,kind:string,objectId:string){
     await this.authority.require(actorId,"commerce.money.reconcile");
     const target=id(objectId);
-    if(kind==="payment"){
-      const row=(await this.pool.query<{order_number:string}>(`SELECT o.order_number FROM commerce_order o
-        JOIN commerce_payment_attempt a ON a.order_id=o.id WHERE o.id=$1`,[target])).rows[0];
-      if(!row)throw new DomainError("PAYMENT_ATTEMPT_NOT_FOUND","原支付意图不存在",404);
-      return this.payment.receiveQueried(this.channel,row.order_number);
-    }
+    if(kind!=="payment"&&kind!=="refund"&&!(kind==="transfer"&&this.settlement))
+      throw new DomainError("MONEY_RECHECK_KIND_INVALID","资金查单类型无效或未启用",422);
+    const orderNumber=await transaction(this.pool,async client=>{
+      const actor=await this.authority.requireWithClient(client,actorId,"commerce.money.reconcile");
+      let number:string|undefined;
+      if(kind==="payment"){
+        const row=(await client.query<{order_number:string}>(`SELECT o.order_number FROM commerce_order o
+          JOIN commerce_payment_attempt a ON a.order_id=o.id WHERE o.id=$1`,[target])).rows[0];
+        if(!row)throw new DomainError("PAYMENT_ATTEMPT_NOT_FOUND","原支付意图不存在",404);
+        number=row.order_number;
+      }else{
+        const query=kind==="refund"?"SELECT id FROM commission_refund_intent WHERE id=$1":
+          "SELECT id FROM commission_settlement_request WHERE id=$1";
+        if(!(await client.query(query,[target])).rowCount)
+          throw new DomainError("MONEY_RECHECK_TARGET_NOT_FOUND","原资金意图不存在",404);
+      }
+      // Admission commits while current member/grant locks are held. A later
+      // withdrawal cannot undo this admitted query; no success is asserted.
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES($1,'commerce.money.recheck_admitted',$2,$3,'SIGNED_ORIGINAL_QUERY',
+          jsonb_build_object('kind',$4::text),gen_random_uuid()::text)`,
+        [`member:${actor}`,kind==="payment"?'commerce_order':kind==="refund"?'commission_refund_intent':'commission_settlement_request',target,kind]);
+      return number;
+    });
+    // Never perform channel I/O inside the automatically retried transaction.
+    // Existing inboxes still verify bindings and own all durable money facts.
+    if(kind==="payment")return this.payment.receiveQueried(this.channel,orderNumber!);
     if(kind==="refund")return this.refund.receiveQueried(this.channel,target);
-    if(kind==="transfer"&&this.settlement)return this.settlement.confirmCallback(target);
-    throw new DomainError("MONEY_RECHECK_KIND_INVALID","资金查单类型无效或未启用",422);
+    return this.settlement!.confirmCallback(target);
   }
 }

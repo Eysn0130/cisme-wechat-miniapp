@@ -21,8 +21,8 @@ beforeAll(async()=>{
   await pool.query("INSERT INTO principal_role(principal_id,role) VALUES('maker','review_lead'),('checker','review_lead')");
 });
 afterAll(async()=>{await app.close();await pool.end();});
-async function approved(kind:'access'|'delete'='access'){
-  const request=await rights.submit(memberId,{kind,message:`Synthetic authority case ${++serial}`,...(kind==='delete'?{scopeCode:'member_profile_handle_v1'}:{})});
+async function approved(kind:'access'|'delete'='access',subject=memberId){
+  const request=await rights.submit(subject,{kind,message:`Synthetic authority case ${++serial}`,...(kind==='delete'?{scopeCode:'member_profile_handle_v1'}:{})});
   await rights.planExecution('maker',request.id,`privacy-authority-${serial}`,{expectedVersion:1,reasonCode:'SYNTHETIC_TEST'});
   if(kind==='access')await executor.approveExport('checker',request.id,{expectedVersion:2,reasonCode:'SYNTHETIC_TEST'});
   else await executor.approveProfileErasure('checker',request.id,{expectedVersion:2,reasonCode:'SYNTHETIC_TEST'});
@@ -115,7 +115,7 @@ it('rejects an archive that expires while delivery waits for a job lock without 
     pending=executor.download(memberId,id).then(()=>({delivered:true}),error=>({code:error.code})).finally(()=>{settled=true;});
     for(let i=0;i<50;i++){
       const waiting=await pool.query(`SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
-        AND wait_event_type='Lock' AND query LIKE '%FROM privacy_export_artifact a%'`);
+        AND wait_event_type='Lock' AND (query LIKE '%FROM privacy_export_artifact a%' OR query LIKE '%FROM data_export_job WHERE privacy_request_id=%')`);
       if(waiting.rowCount)break;
       if(i===49)throw new Error('download did not reach expected lock');
       await new Promise(resolve=>setTimeout(resolve,10));
@@ -143,4 +143,30 @@ it('erases only the approved handle field while preserving avatar and public rev
   expect(after).toMatchObject({...before,wechat_handle:null,profile_revision:5,updated_at:expect.any(Date)});
   const manifest=(await pool.query('SELECT manifest FROM data_erasure_job WHERE privacy_request_id=$1',[id])).rows[0].manifest;
   expect(manifest).toMatchObject({scopeCode:'member_profile_handle_v1',deletedProfileRows:0,clearedHandleRows:1});
+});
+
+it('does not hold an artifact lock while waiting for the job needed by cleanup',async()=>{
+ const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'privacy-cleanup-subject',
+  displayName:'synthetic cleanup owner',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+ expect(identity.statusCode).toBe(200);const owner=identity.json().memberId;
+ const id=await approved('access',owner);await executor.runExportOnce();
+ const cleanup=await pool.connect();let pending:Promise<unknown>|undefined;
+ try{
+  await cleanup.query('BEGIN');await cleanup.query("SET LOCAL lock_timeout='100ms'");
+  const job=(await cleanup.query('SELECT id FROM data_export_job WHERE privacy_request_id=$1 FOR UPDATE',[id])).rows[0].id;
+  let settled=false;pending=executor.download(owner,id).then(()=>({delivered:true}),error=>({code:error.code})).finally(()=>{settled=true;});
+  let waiting=false;
+  for(let i=0;i<50&&!settled;i++){
+   waiting=Boolean((await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND pid<>pg_backend_pid()")).rowCount);
+   if(waiting)break;await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  expect(waiting).toBe(true);
+  // Cleanup already owns job and then deletes its artifact. Delivery must
+  // wait at job before taking artifact, rather than closing a lock cycle.
+  await cleanup.query('DELETE FROM privacy_export_artifact WHERE job_id=$1',[job]);
+  await cleanup.query("UPDATE data_export_job SET status='expired' WHERE id=$1",[job]);
+  await cleanup.query('COMMIT');
+  expect(await pending).toEqual({code:'PRIVACY_EXPORT_NOT_FOUND'});
+  expect((await pool.query("SELECT 1 FROM audit_log WHERE action='privacy.export.download' AND object_id=$1",[id])).rowCount).toBe(0);
+ }finally{await cleanup.query('ROLLBACK');cleanup.release();await pending;}
 });

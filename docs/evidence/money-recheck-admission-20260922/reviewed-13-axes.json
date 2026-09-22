@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "base": "78081da1e1c4cbae6e6ede8f98c8ec4cdccb51ca",
+  "routeDenominator": 228,
+  "fullyAcceptedMethods": 0,
+  "reviewedMethodsThisSlice": 2,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/v1/management/money/recheck/{kind}/{objectId}",
+      "service": "MoneyOperationsService.recheck",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 §6.6.2 COM-C01/COM-C03、§11、A11、WX-PAY-MAKE-01；仅权限准入及并发切片，不关闭整项验收。",
+        "environment": "保持现有正式/合成 Provider 与执行模式门禁，无真实资金或生产删除。",
+        "limitsTimeoutPagination": "保留750ms锁超时、事务/HTTP预算；不放宽请求限额；本切片未完成负载/滥用测试。",
+        "positiveNegativeEvidence": "verification.json；新增11例，其中7个独立PostgreSQL连接的并发反例；原签名绑定、TTL和撤销测试回归。",
+        "identity": "签名会话传入 memberId，body不能指定管理主体；事务内active member。",
+        "roleCapability": "commerce.money.reconcile，当前environment，未撤销且锁后未过期；取得grant/member共享锁。",
+        "objectRow": "payment对应有attempt的commerce_order；refund/transfer必须有原intent/request；后续原Provider复核绑定。",
+        "fieldProjection": "返回既有inbox摘要或transfer状态/渠道单号；不新增原始报文或身份字段。",
+        "actionState": "仅查询既有单；不创建支付、退款、转账命令，不伪造成功。",
+        "inputBoundary": "kind白名单payment/refund/transfer且transfer服务存在；objectId UUID；缺失目标404；完整body/频控审阅仍未关闭。",
+        "idempotencyVersion": "每次主动查单单独准入审计，查询事实仍由原Inbox幂等；没有改号或覆盖终态。",
+        "concurrency": "requireWithClient与准入审计同一事务；已开始并发撤权必须先提交且阻断准入。准入提交后才发生的撤权不能追溯取消已准入查单；不声称渠道整个耗时期间角色恒有效。",
+        "databaseExternalEffects": "准入仅写commerce.money.recheck_admitted，表示许可查询、不表示发出/查成/入账。渠道I/O在自动重试事务之外；原验签/原单绑定和Inbox继续负责事实。"
+      },
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/privacy-requests/{requestId}/export",
+      "service": "SyntheticPrivacyExecution.download",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 §6.6.2 COM-C01/COM-C03、§11、A11、WX-PAY-MAKE-01；仅权限准入及并发切片，不关闭整项验收。",
+        "environment": "保持现有正式/合成 Provider 与执行模式门禁，无真实资金或生产删除。",
+        "limitsTimeoutPagination": "保留750ms锁超时、事务/HTTP预算；不放宽请求限额；本切片未完成负载/滥用测试。",
+        "positiveNegativeEvidence": "verification.json；新增11例，其中7个独立PostgreSQL连接的并发反例；原签名绑定、TTL和撤销测试回归。",
+        "identity": "登录memberId必须匹配job/request/artifact且active。",
+        "roleCapability": "本人读取，不依赖客服角色；合成隐私key/环境门禁保留。",
+        "objectRow": "requestId UUID；先按requestId+memberId锁job，再锁member与artifact/request。",
+        "fieldProjection": "仅本人加密归档解密字节；当前仍为合成profile子集，不是完整主体导出。",
+        "actionState": "succeeded job、未撤销artifact、artifact/job双TTL并在锁后重查数据库当前时间。",
+        "inputBoundary": "UUID且三处member归属一致；无权、缺失、过期统一404。",
+        "idempotencyVersion": "读取每次落delivery audit；审计不代表完整权利执行，原申请/作业版本语义保持。",
+        "concurrency": "显式job先于artifact锁序，与worker/cleanup一致；独立cleanup已持job时可删artifact而不会与download形成循环等待。",
+        "databaseExternalEffects": "事务内解密+delivery audit；拒绝无下载审计，不修改批准范围或新增删除。"
+      },
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE"
+    }
+  ]
+}
