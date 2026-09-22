@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-22T07:19:35.930200+00:00",
+  "host": "staging-api.cisme.cn",
+  "certificateVerificationDisabled": false,
+  "ipv4": [
+    "198.18.0.113"
+  ],
+  "tcp443": true,
+  "errorType": "SSLEOFError",
+  "error": "[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)",
+  "tlsVerified": false
+}

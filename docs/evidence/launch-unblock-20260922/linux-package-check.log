@@ -1,0 +1,8 @@
+
+added 175 packages in 15s
+npm notice
+npm notice New minor version of npm available! 11.9.0 -> 11.19.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.19.1
+npm notice To update run: npm install -g npm@11.19.1
+npm notice
+{"platform":"linux","arch":"arm64","node":"v24.14.0","sharpPngBytes":90,"manifestHashesVerified":true,"bundleImport":true,"deployed":false}
