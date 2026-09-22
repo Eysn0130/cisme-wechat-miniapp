@@ -14,7 +14,7 @@
   <button class="text-button {{busy||recoveryLoading?'text-button--disabled':''}}" bindtap="loadRecovery" disabled="{{busy||recoveryLoading}}">重新核对原操作</button>
 </view>
 <view wx:if="{{status&&!coreReady}}" class="state">显示上次读取的内容，正在等待最新核验；暂不可提交资金操作。</view><block wx:if="{{status}}">
-      <view class="commission-hero"><text>可用佣金</text><strong>¥{{availableLabel}}</strong><small>状态由已核验支付、退款、履约和结算事实重建；不是积分。</small></view>
+      <view class="commission-hero"><text>可用佣金</text><strong>¥{{availableLabel}}</strong><small>以支付、退款、履约和结算核验结果为准。佣金不是积分。</small></view>
       <view class="commission-grid">
         <view><text>待释放</text><strong>¥{{pendingLabel}}</strong></view>
         <view><text>在途预占</text><strong>¥{{heldLabel}}</strong></view>
@@ -22,10 +22,12 @@
         <view><text>待追偿</text><strong>¥{{recoveryLabel}}</strong></view>
       </view>
       <view class="commission-facts"><text>商业资格：{{status.eligible?'有效':status.membershipState==='suspended'?'暂停':status.membershipState==='expired'?'到期':'未开通'}}</text><text>直接推荐 {{status.directReferralCount}} 人 · 核验成交 {{status.verifiedOrderCount}} 单</text></view>
-      <view class="commission-note">正式结算、商户转账、税务与售后规则尚未批准。页面中的隔离测试操作仅供开发者验证协议，不代表可申请真实提现。</view>
+      <view class="commission-note">仅供隔离测试，不支持真实提现。正式结算、转账及税务售后规则仍待批准。</view>
       <view class="commission-section">
         <view class="commission-section__heading"><strong>购物权益 · 隔离测试</strong><text>不是真实余额</text></view>
-        <text class="commission-muted">{{creditLoading?'正在核对测试权益账面余额；':creditError?'余额暂未核实；':'测试权益账面余额 ¥'+creditAvailableLabel+'；'}}来源有退款争议时下单可用额会更低。与现金佣金和积分分账，购物下单不重复计佣。</text>
+        <view class="commission-muted">{{creditLoading?'正在核对测试权益…':creditError?'测试权益暂未核实':'测试权益 ¥'+creditAvailableLabel}}</view>
+        <view class="commission-muted">退款争议可能减少下单可用额。</view>
+        <view class="commission-muted">与现金佣金、积分分账；购物下单不重复计佣。</view>
         <button wx:if="{{isolatedCredit&&!creditFormVisible&&status.commission.availableCents>0}}" class="secondary commission-credit__action {{busy?'secondary--disabled':''}}" bindtap="showCreditForm" disabled="{{busy}}">自愿转换已释放佣金</button>
         <view wx:if="{{isolatedCredit&&creditFormVisible}}" class="commission-form"><text>转换金额（元）</text><input type="digit" value="{{creditAmount}}" placeholder="例如 20.00" maxlength="11" bindinput="editCreditAmount"/><view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeCreditForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitCredit" disabled="{{busy}}" loading="{{busy}}">确认测试转换</button></view></view>
         <view wx:if="{{creditActionStatus}}" class="state" aria-live="polite">{{creditActionStatus}}</view><view wx:if="{{creditActionError}}" class="state state--error" aria-live="assertive">{{creditActionError}}</view>
@@ -38,7 +40,7 @@
       <view class="commission-section">
         <view class="commission-section__heading"><strong>周期结算意向</strong><text>仅隔离测试</text></view>
         <button wx:if="{{isolatedTransfer&&!formVisible&&status.commission.availableCents>0}}" class="primary" bindtap="showForm">登记结算意向</button>
-        <text wx:if="{{!formVisible&&status.commission.availableCents===0}}" class="commission-muted">当前没有可申请的已释放金额。</text>
+        <text wx:if="{{!formVisible&&status.commission.availableCents===0}}" class="commission-muted">暂无可申请的已释放金额。</text>
         <view wx:if="{{isolatedTransfer&&formVisible}}" class="commission-form">
           <text>申请金额（元）</text><input type="digit" value="{{amount}}" placeholder="例如 20.00" maxlength="11" bindinput="editAmount"/>
           <text>申请依据</text><textarea value="{{reason}}" placeholder="说明这笔隔离测试申请" maxlength="300" auto-height bindinput="editReason"/>
