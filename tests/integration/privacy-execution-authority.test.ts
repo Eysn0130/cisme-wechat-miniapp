@@ -1,0 +1,104 @@
+import {afterAll,beforeAll,expect,it} from 'vitest';
+import {loadConfig} from '@cisme/config';
+import {TEST_DATABASE_URL,resetDatabase,testPool} from '@cisme/testkit';
+import {createApp} from '../../services/api/src/server';
+import {createApiGatewayStorage} from '../../services/api/src/storage';
+import {PrivacyRights} from '../../services/api/src/privacyRights';
+import {SyntheticPrivacyExecution} from '../../services/api/src/privacyExecution';
+
+const pool=testPool();
+const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'privacy-authority-test',
+  UPLOAD_TOKEN_SECRET:'privacy-authority-upload',OBJECT_STORAGE_DRIVER:'api_gateway'});
+const app=await createApp({pool,config,storage:createApiGatewayStorage(config)});
+const rights=new PrivacyRights(pool,'test'),executor=new SyntheticPrivacyExecution(pool,'test','7'.repeat(64));
+let memberId:string;
+let serial=0;
+beforeAll(async()=>{
+  await resetDatabase(pool);
+  const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'privacy-authority-owner',
+    displayName:'synthetic owner',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+  expect(identity.statusCode).toBe(200);memberId=identity.json().memberId;
+  await pool.query("INSERT INTO principal_role(principal_id,role) VALUES('maker','review_lead'),('checker','review_lead')");
+});
+afterAll(async()=>{await app.close();await pool.end();});
+async function approved(kind:'access'|'delete'='access'){
+  const request=await rights.submit(memberId,{kind,message:`Synthetic authority case ${++serial}`,...(kind==='delete'?{scopeCode:'member_profile_handle_v1'}:{})});
+  await rights.planExecution('maker',request.id,`privacy-authority-${serial}`,{expectedVersion:1,reasonCode:'SYNTHETIC_TEST'});
+  if(kind==='access')await executor.approveExport('checker',request.id,{expectedVersion:2,reasonCode:'SYNTHETIC_TEST'});
+  else await executor.approveProfileErasure('checker',request.id,{expectedVersion:2,reasonCode:'SYNTHETIC_TEST'});
+  return request.id as string;
+}
+it('does not generate an archive after its independent approver loses authority',async()=>{
+  const id=await approved();
+  await pool.query("DELETE FROM principal_role WHERE principal_id='checker'");
+  try{
+    expect(await executor.runExportOnce()).toBe(true);
+    expect((await pool.query(`SELECT a.job_id FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1`,[id])).rowCount).toBe(0);
+    expect((await pool.query('SELECT status FROM data_export_job WHERE privacy_request_id=$1',[id])).rows[0].status).toBe('failed');
+  }finally{
+    await pool.query("INSERT INTO principal_role(principal_id,role) VALUES('checker','review_lead')");
+    await pool.query("UPDATE data_export_job SET next_attempt_at=now()+interval '1 day' WHERE privacy_request_id=$1",[id]);
+  }
+});
+it('checks active subject again at execution and direct artifact delivery',async()=>{
+  const id=await approved();
+  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[memberId]);
+  try{
+    expect(await executor.runExportOnce()).toBe(true);
+    expect((await pool.query(`SELECT a.job_id FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1`,[id])).rowCount).toBe(0);
+  }finally{
+    await pool.query("UPDATE member SET status='active' WHERE id=$1",[memberId]);
+    await pool.query("UPDATE data_export_job SET next_attempt_at=now()+interval '1 day' WHERE privacy_request_id=$1",[id]);
+  }
+  const delivered=await approved();await executor.runExportOnce();
+  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[memberId]);
+  try{await expect(executor.download(memberId,delivered)).rejects.toMatchObject({code:'PRIVACY_EXPORT_NOT_FOUND'});}
+  finally{await pool.query("UPDATE member SET status='active' WHERE id=$1",[memberId]);}
+});
+it('serializes delivery with artifact revocation on an independent database connection',async()=>{
+  const id=await approved();await executor.runExportOnce();
+  const revoker=await pool.connect();let pending:Promise<unknown>|undefined;
+  try{
+    await revoker.query('BEGIN');
+    await revoker.query(`UPDATE privacy_export_artifact a SET revoked_at=now() FROM data_export_job j
+      WHERE a.job_id=j.id AND j.privacy_request_id=$1`,[id]);
+    let settled=false;
+    pending=executor.download(memberId,id).then(()=>({delivered:true}),error=>({code:error.code})).finally(()=>{settled=true;});
+    await new Promise(resolve=>setTimeout(resolve,75));expect(settled).toBe(false);
+    await revoker.query('COMMIT');expect(await pending).toEqual({code:'PRIVACY_EXPORT_NOT_FOUND'});
+    expect((await pool.query("SELECT 1 FROM audit_log WHERE object_id=$1 AND action='privacy.export.download'",[id])).rowCount).toBe(0);
+  }finally{await revoker.query('ROLLBACK');revoker.release();await pending;}
+});
+
+for(const changed of ['maker','request'] as const)it(`rejects an export after ${changed} changes without data delivery`,async()=>{
+  const id=await approved();
+  if(changed==='maker')await pool.query("DELETE FROM principal_role WHERE principal_id='maker'");
+  if(changed==='request')await pool.query("UPDATE privacy_request SET status='canceled' WHERE id=$1",[id]);
+  try{
+    await executor.runExportOnce();
+    expect((await pool.query(`SELECT 1 FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1`,[id])).rowCount).toBe(0);
+    expect((await pool.query('SELECT status FROM data_export_job WHERE privacy_request_id=$1',[id])).rows[0].status).toBe('failed');
+  }finally{
+    if(changed==='maker')await pool.query("INSERT INTO principal_role(principal_id,role) VALUES('maker','review_lead')");
+    await pool.query("UPDATE data_export_job SET next_attempt_at=now()+interval '1 day' WHERE privacy_request_id=$1",[id]);
+  }
+});
+it('keeps scoped profile data after erasure approval is revoked',async()=>{
+  await pool.query(`INSERT INTO data_retention_policy(code,data_class,trigger_event,legal_basis,disposition,enforcement_state,active)
+    VALUES('synthetic_profile_handle_v1','member_profile.wechat_handle','member explicit deletion request','Synthetic test only','delete','enforced',true)
+    ON CONFLICT(code) DO UPDATE SET active=true,enforcement_state='enforced'`);
+  await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'KeepSynthetic','self_reported')",[memberId]);
+  const id=await approved('delete');
+  await pool.query("DELETE FROM principal_role WHERE principal_id='checker'");
+  try{
+    expect(await executor.runProfileErasureOnce()).toBe(true);
+    expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[memberId])).rows[0].wechat_handle).toBe('KeepSynthetic');
+    expect((await pool.query("SELECT 1 FROM audit_log WHERE object_id=$1 AND action='privacy.erasure.apply'",[id])).rowCount).toBe(0);
+  }finally{await pool.query("INSERT INTO principal_role(principal_id,role) VALUES('checker','review_lead')");}
+});
+
+it('keeps approved scope immutable at the database boundary',async()=>{
+ const id=await approved();
+ await expect(pool.query("UPDATE data_export_job SET scope='{}' WHERE privacy_request_id=$1",[id])).rejects.toMatchObject({code:'55000'});
+ await pool.query("UPDATE data_export_job SET next_attempt_at=now()+interval '1 day' WHERE privacy_request_id=$1",[id]);
+});

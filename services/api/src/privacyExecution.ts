@@ -9,6 +9,7 @@ const maxArchiveBytes=1024*1024;
 const archiveLifetimeMs=60*60*1000; // synthetic test policy, not an external retention promise
 
 type ExportJob={id:string;privacy_request_id:string;member_id:string;requested_by:string;status:string;attempts:number};
+type ExecutableJob=ExportJob&{approved_by:string|null;scope:Record<string,unknown>};
 type ErasureJob=ExportJob&{dry_run:boolean;erasure_mode:string;scope:Record<string,unknown>;request_status:string;request_version:number;scope_code:string|null};
 
 /** This executor has no production mode. Every operation requires a test-only key. */
@@ -105,11 +106,27 @@ export class SyntheticPrivacyExecution {
     return bytes;
   }
 
+  private async requireExecutionAuthority(client:DbClient,job:ExecutableJob,type:'export'|'erasure') {
+    // Approval is not a permanent grant. Hold the subject and both current
+    // authorities through the same transaction as the resulting data change.
+    const member=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[job.member_id]);
+    const identity=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test' FOR SHARE",[job.member_id]);
+    const roles=await client.query(`SELECT principal_id FROM principal_role WHERE principal_id=ANY($1::text[])
+      AND role='review_lead' ORDER BY principal_id FOR SHARE`,[[job.requested_by,job.approved_by]]);
+    const request=(await client.query<{member_id:string;status:string;kind:string;scope_code:string|null}>(
+      'SELECT member_id,status,kind,scope_code FROM privacy_request WHERE id=$1 FOR UPDATE',[job.privacy_request_id])).rows[0];
+    if(!member.rowCount||!identity.rowCount||!job.approved_by||job.requested_by===job.approved_by||roles.rowCount!==2||
+      !request||request.member_id!==job.member_id||request.status!=='executing'||job.scope.syntheticOnly!==true||
+      (type==='export'?(request.kind!=='access'||job.scope.profile!=='member_portable_copy_v1'):
+        (request.kind!=='delete'||request.scope_code!=='member_profile_handle_v1'||job.scope.scopeCode!==request.scope_code)))
+      throw new DomainError('PRIVACY_EXECUTION_AUTHORITY_CHANGED','执行主体、审批权限或范围已变化',409);
+  }
+
   /** One short transaction is the execution task: crash rolls back all facts. */
   async runExportOnce(failBeforeArchiveWrite?:()=>void):Promise<boolean> {
     const key=this.key();
     return transaction(this.pool,async client=>{
-      const job=(await client.query<ExportJob>(`SELECT id,privacy_request_id,member_id,requested_by,status,attempts FROM data_export_job
+      const job=(await client.query<ExecutableJob>(`SELECT id,privacy_request_id,member_id,requested_by,approved_by,scope,status,attempts FROM data_export_job
         WHERE execution_mode='generate_archive' AND status IN ('approved','failed') AND attempts<3 AND next_attempt_at<=now()
         ORDER BY next_attempt_at,created_at FOR UPDATE SKIP LOCKED LIMIT 1`)).rows[0];
       if(!job)return false;
@@ -117,6 +134,7 @@ export class SyntheticPrivacyExecution {
       await client.query("UPDATE privacy_request SET status='executing',version=version+1,updated_at=now() WHERE id=$1 AND status='approved'",[job.privacy_request_id]);
       await client.query('SAVEPOINT archive_work');
       try{
+        await this.requireExecutionAuthority(client,job,'export');
         const plaintext=await this.archive(client,job.member_id);
         failBeforeArchiveWrite?.();
         const iv=randomBytes(12);
@@ -140,7 +158,7 @@ export class SyntheticPrivacyExecution {
         const exhausted=job.attempts+1>=3;
         await client.query(`UPDATE data_export_job SET status='failed',last_error_code='EXPORT_TASK_FAILED',
           next_attempt_at=now()+interval '5 seconds',updated_at=now() WHERE id=$1`,[job.id]);
-        if(exhausted)await client.query("UPDATE privacy_request SET status='failed',version=version+1,updated_at=now() WHERE id=$1",[job.privacy_request_id]);
+        if(exhausted)await client.query("UPDATE privacy_request SET status='failed',version=version+1,updated_at=now() WHERE id=$1 AND status='executing'",[job.privacy_request_id]);
         await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
           VALUES($1,'worker:synthetic-privacy','execution_failed',$2)`,[job.privacy_request_id,{jobId:job.id,retryable:!exhausted}]);
       }
@@ -152,7 +170,7 @@ export class SyntheticPrivacyExecution {
   async runProfileErasureOnce(failAfterDelete?:()=>void):Promise<boolean> {
     this.key();
     return transaction(this.pool,async client=>{
-      const job=(await client.query<ExportJob>(`SELECT id,privacy_request_id,member_id,requested_by,status,attempts FROM data_erasure_job
+      const job=(await client.query<ExecutableJob>(`SELECT id,privacy_request_id,member_id,requested_by,approved_by,scope,status,attempts FROM data_erasure_job
         WHERE dry_run=false AND erasure_mode='delete_scope' AND scope->>'syntheticOnly'='true'
         AND scope->>'scopeCode'='member_profile_handle_v1' AND status IN ('approved','failed')
         AND attempts<3 AND next_attempt_at<=now() ORDER BY next_attempt_at,created_at FOR UPDATE SKIP LOCKED LIMIT 1`)).rows[0];
@@ -162,6 +180,7 @@ export class SyntheticPrivacyExecution {
       await client.query('SAVEPOINT erasure_work');
       let activeHoldCount=0;
       try{
+        await this.requireExecutionAuthority(client,job,'erasure');
         // The synthetic transaction blocks concurrent hold insertion/release
         // until its scoped row deletion and result receipt commit together.
         await client.query('LOCK TABLE legal_hold IN SHARE MODE');
@@ -194,7 +213,7 @@ export class SyntheticPrivacyExecution {
         const exhausted=job.attempts+1>=3;
         await client.query(`UPDATE data_erasure_job SET status='failed',last_error_code=$2,legal_hold_count=$3,
           next_attempt_at=now()+interval '5 seconds',updated_at=now() WHERE id=$1`,[job.id,code,activeHoldCount]);
-        if(exhausted)await client.query("UPDATE privacy_request SET status='failed',version=version+1,updated_at=now() WHERE id=$1",[job.privacy_request_id]);
+        if(exhausted)await client.query("UPDATE privacy_request SET status='failed',version=version+1,updated_at=now() WHERE id=$1 AND status='executing'",[job.privacy_request_id]);
         await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
           VALUES($1,'worker:synthetic-privacy','execution_failed',$2)`,
           [job.privacy_request_id,{jobId:job.id,code,retryable:!exhausted}]);
@@ -252,24 +271,31 @@ export class SyntheticPrivacyExecution {
   async download(memberId:string|undefined,requestId:string):Promise<Buffer> {
     const key=this.key();
     if(!memberId||!uuid.test(requestId))throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在',404);
-    const found=await this.pool.query<{ciphertext:Buffer;iv:Buffer;auth_tag:Buffer}>(`SELECT a.ciphertext,a.iv,a.auth_tag FROM privacy_export_artifact a
-      JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1 AND j.member_id=$2
-      AND a.member_id=$2 AND j.status='succeeded' AND a.revoked_at IS NULL AND a.expires_at>now()
-      AND j.archive_expires_at>now()`,[requestId,memberId]);
-    const artifact=found.rows[0];
-    if(!artifact)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
-    try{
-      const decipher=createDecipheriv('aes-256-gcm',key,artifact.iv);
-      decipher.setAuthTag(artifact.auth_tag);
-      const bytes=Buffer.concat([decipher.update(artifact.ciphertext),decipher.final()]);
-      await this.pool.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
-        VALUES($1,'privacy.export.download','privacy_request',$2,'MEMBER_VIEW',
-          jsonb_build_object('available',true),jsonb_build_object('deliveredBytes',$3::integer),gen_random_uuid()::text)`,
-        [`member:${memberId}`,requestId,bytes.length]);
-      return bytes;
-    }catch{
-      throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','导出结果暂不可读取',503);
-    }
+    return transaction(this.pool,async client=>{
+      const subject=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[memberId]);
+      if(!subject.rowCount)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
+      // A revocation already holding the artifact row must commit before this
+      // read can authorize delivery. Audit and authorization commit together.
+      const found=await client.query<{ciphertext:Buffer;iv:Buffer;auth_tag:Buffer}>(`SELECT a.ciphertext,a.iv,a.auth_tag FROM privacy_export_artifact a
+        JOIN data_export_job j ON j.id=a.job_id JOIN privacy_request pr ON pr.id=j.privacy_request_id
+        WHERE j.privacy_request_id=$1 AND j.member_id=$2 AND pr.member_id=$2
+        AND a.member_id=$2 AND j.status='succeeded' AND a.revoked_at IS NULL AND a.expires_at>clock_timestamp()
+        AND j.archive_expires_at>clock_timestamp() FOR SHARE OF a,j,pr`,[requestId,memberId]);
+      const artifact=found.rows[0];
+      if(!artifact)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','导出结果不存在或已失效',404);
+      try{
+        const decipher=createDecipheriv('aes-256-gcm',key,artifact.iv);
+        decipher.setAuthTag(artifact.auth_tag);
+        const bytes=Buffer.concat([decipher.update(artifact.ciphertext),decipher.final()]);
+        await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+          VALUES($1,'privacy.export.download','privacy_request',$2,'MEMBER_VIEW',
+            jsonb_build_object('available',true),jsonb_build_object('deliveredBytes',$3::integer),gen_random_uuid()::text)`,
+          [`member:${memberId}`,requestId,bytes.length]);
+        return bytes;
+      }catch{
+        throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','导出结果暂不可读取',503);
+      }
+    });
   }
 
   async revoke(memberId:string|undefined,requestId:string) {
