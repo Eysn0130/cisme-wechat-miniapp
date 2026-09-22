@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
-import { AuthorityService } from "./authority.js";
+import { AuthorityService, requireActiveMemberWithClient } from "./authority.js";
 import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
 import { type RefundBinding, WechatPayV3Client } from "./wechatPayV3.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
@@ -49,6 +49,7 @@ export class RefundCommandService{
     const orderId=id(orderIdInput),requestKey=key(idempotencyKey),amount=cents(input.amountCents),why=reason(input.reason);
     const fingerprint=hash({orderId,amount,why});
     return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,memberId);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`refund-request:${memberId}:${requestKey}`]);
       const replay=(await client.query<RequestRow>(`SELECT * FROM commerce_refund_request
         WHERE requested_by_member_id=$1 AND idempotency_key=$2`,[memberId,requestKey])).rows[0];
@@ -226,17 +227,20 @@ export class RefundCommandService{
   async pending(memberId:string|undefined,query:{limit?:string;cursor?:string}={}){
     await this.authority.require(memberId,"commerce.refund.approve");
     const limit=pageLimit(query.limit),scope=pageScope(["refund-pending"]),cursor=readPageCursor(query.cursor,scope);
-    const count=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request
-      WHERE state='requested'`)).rows[0]?.n??0;
-    const rows=(await this.pool.query(`SELECT id,order_id,requested_by_member_id,amount_cents,reason,
-      version,created_at FROM commerce_refund_request WHERE state='requested'
-      AND ($1::timestamptz IS NULL OR (created_at,id)>($1::timestamptz,$2::uuid))
-      ORDER BY created_at,id LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    const page=finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
-      orderId:row.order_id,requestedByMemberId:row.requested_by_member_id,
-      amountCents:Number(row.amount_cents),reason:row.reason,version:row.version,
-      createdAt:row.created_at})),limit,scope);
-    return {...page,totalCount:count};
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,memberId,"commerce.refund.approve");
+      const count=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request
+        WHERE state='requested'`)).rows[0]?.n??0;
+      const rows=(await client.query(`SELECT id,order_id,requested_by_member_id,amount_cents,reason,
+        version,created_at FROM commerce_refund_request WHERE state='requested'
+        AND ($1::timestamptz IS NULL OR (created_at,id)>($1::timestamptz,$2::uuid))
+        ORDER BY created_at,id LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
+      const page=finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
+        orderId:row.order_id,requestedByMemberId:row.requested_by_member_id,
+        amountCents:Number(row.amount_cents),reason:row.reason,version:row.version,
+        createdAt:row.created_at})),limit,scope);
+      return {...page,totalCount:count};
+    },"REPEATABLE READ");
   }
 
   async redrive(memberId:string|undefined,intentIdInput:string,input:Record<string,unknown>){

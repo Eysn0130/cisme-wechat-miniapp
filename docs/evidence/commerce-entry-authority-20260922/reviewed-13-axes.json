@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "base": "6cd46f165fc417d55644911c4497ce338d82693b",
+  "routeDenominator": 228,
+  "fullyAcceptedMethods": 0,
+  "reviewedMethodsThisSlice": 14,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/v1/me/commerce/quotes",
+      "service": "commerceOrders.quote",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；报价行 member_id=owner",
+        "roleCapability": "owner active；报价行 member_id=owner",
+        "objectRow": "owner active；报价行 member_id=owner",
+        "fieldProjection": "报价金额/版本/有效期，不泄漏他人地址",
+        "actionState": "新报价仅synthetic_test+eligible/published/activeSKU；库存/价格服务端计算",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "sku/数量1–99/地址版本/credit；拒绝额外字段和客户端金额",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "advisory member+key，hash冲突409；报价和审计同事务；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "advisory member+key，hash冲突409；报价和审计同事务",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs quote"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/orders",
+      "service": "commerceOrders.create",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；quote/member/address三者一致",
+        "roleCapability": "owner active；quote/member/address三者一致",
+        "objectRow": "owner active；quote/member/address三者一致",
+        "fieldProjection": "本人订单详情；金额/原始交易绑定从服务端生成",
+        "actionState": "quote active/未过期、价格/商品/地址版本、库存；已消费quote复用原单",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "只接受quoteId；引用服务端快照",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "owner+key串行；订单/行/地址密文/库存占用/outbox/审计/请求键同事务；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "owner+key串行；订单/行/地址密文/库存占用/outbox/审计/请求键同事务",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs create; 原库存并发/跨主体测试"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/orders/{orderId}/cancel",
+      "service": "commerceOrders.cancel",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；order.member_id=owner",
+        "roleCapability": "owner active；order.member_id=owner",
+        "objectRow": "owner active；order.member_id=owner",
+        "fieldProjection": "返回本人订单；地址仅本人详情",
+        "actionState": "pending_payment；verified commerce须原attempt关闭或安全的未dispatch NOT_EXIST事实",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "order UUID/key/version/reason，目标与重放业务键绑定",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "member→order→attempt/reservation/inventory；取消/释放/outbox/audit同事务；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "member→order→attempt/reservation/inventory；取消/释放/outbox/audit同事务",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs cancel; PR16晚到NOT_EXIST竞争仍回归"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/orders",
+      "service": "commerceOrders.listMine",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；WHERE order.member_id=owner",
+        "roleCapability": "owner active；WHERE order.member_id=owner",
+        "objectRow": "owner active；WHERE order.member_id=owner",
+        "fieldProjection": "显式订单摘要；列表address=null、不解密地址",
+        "actionState": "历史状态可读；不依赖新支付准入",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "limit默认20/最大50、结构校验cursor",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ同事务member共享锁/订单与行读取；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ同事务member共享锁/订单与行读取",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs list; 既有双主体及无地址投影"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/orders/{orderId}",
+      "service": "commerceOrders.detailMine",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；order.member_id=owner",
+        "roleCapability": "owner active；order.member_id=owner",
+        "objectRow": "owner active；order.member_id=owner",
+        "fieldProjection": "本人完整历史地址快照；不能跨主体获取",
+        "actionState": "历史状态可读；对象不存在404",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "order UUID",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "同一REPEATABLE READ读取订单/行/地址，member锁至提交；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "同一REPEATABLE READ读取订单/行/地址，member锁至提交",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs detail; 既有cross-order 404"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/management/commerce/orders",
+      "service": "commerceOrders.managementList",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "active actor + commerce.order.read，当前环境/撤销/有效期检查",
+        "roleCapability": "active actor + commerce.order.read，当前环境/撤销/有效期检查",
+        "objectRow": "active actor + commerce.order.read，当前环境/撤销/有效期检查",
+        "fieldProjection": "摘要无地址",
+        "actionState": "管理历史订单",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "limit默认20/最大50、cursor",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内authority共享锁/列表快照；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内authority共享锁/列表快照",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "role/member revoke vs management list"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/management/commerce/orders/{orderId}",
+      "service": "commerceOrders.managementDetail",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "active actor + commerce.order.read",
+        "roleCapability": "active actor + commerce.order.read",
+        "objectRow": "active actor + commerce.order.read",
+        "fieldProjection": "management地址脱敏projection，保留既有字段策略",
+        "actionState": "管理历史订单，对象404",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "order UUID",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内authority共享锁/详情快照；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内authority共享锁/详情快照",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "role/member revoke vs management detail"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/orders/{orderId}/refund-requests",
+      "service": "refundCommand.request",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；order.member_id=owner，重放前同样检查",
+        "roleCapability": "owner active；order.member_id=owner，重放前同样检查",
+        "objectRow": "owner active；order.member_id=owner，重放前同样检查",
+        "fieldProjection": "只返回退款请求状态/金额/版本，不返回付款身份",
+        "actionState": "paid+verified_commerce+applied payment；运费/优惠不支持时拒绝；累计预留不超原款",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "整数正金额≤9900000000分、原因3–500字、UUID/key",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "member→advisory key→order；退款请求和audit同事务，无渠道发送；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "member→advisory key→order；退款请求和audit同事务，无渠道发送",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs new/replayed refund；无多余request/audit/intent/channel effect"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/refund-requests",
+      "service": "commerceHistory.listMemberRefundRequests",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；requested_by_member_id=owner",
+        "roleCapability": "owner active；requested_by_member_id=owner",
+        "objectRow": "owner active；requested_by_member_id=owner",
+        "fieldProjection": "请求、现金/权益退回摘要，无渠道凭据",
+        "actionState": "历史退款可读，新资金关闭仍可用",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "最大50、cursor绑定member/order；可选order UUID",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内member共享锁/计数与数据一致；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内member共享锁/计数与数据一致",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs refund history"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/commission/settlement-requests",
+      "service": "commerceHistory.listMemberSettlements",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "owner active；member_id=owner",
+        "roleCapability": "owner active；member_id=owner",
+        "objectRow": "owner active；member_id=owner",
+        "fieldProjection": "本人金额/税规则版本/渠道状态；不返回payee_openid/package_info",
+        "actionState": "历史结算可读，无资金命令",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "最大50、cursor绑定member",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内member共享锁；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内member共享锁",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "member block vs settlement history"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/management/refund-requests/pending",
+      "service": "refundCommand.pending",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "active actor + commerce.refund.approve",
+        "roleCapability": "active actor + commerce.refund.approve",
+        "objectRow": "active actor + commerce.refund.approve",
+        "fieldProjection": "申请/订单/申请主体/金额/原因/版本，不含支付凭据",
+        "actionState": "仅requested",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "最大50、refund-pending scope cursor",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内authority共享锁、计数和页面一致；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内authority共享锁、计数和页面一致",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "current grant revoke vs refund pending"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/management/fulfillment/pending",
+      "service": "fulfillmentRelease.pending",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "active actor + commerce.fulfillment.manage；仍test-only",
+        "roleCapability": "active actor + commerce.fulfillment.manage；仍test-only",
+        "objectRow": "active actor + commerce.fulfillment.manage；仍test-only",
+        "fieldProjection": "履约引用/摘要/时间/提交人/版本",
+        "actionState": "仅submitted，正式履约规则未获准",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "最大50、fulfillment-pending scope cursor",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内authority共享锁、计数和页面一致；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内authority共享锁、计数和页面一致",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "current grant revoke vs fulfillment pending"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/management/money/issues",
+      "service": "moneyOperations.issues",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "active actor + commerce.money.reconcile",
+        "roleCapability": "active actor + commerce.money.reconcile",
+        "objectRow": "active actor + commerce.money.reconcile",
+        "fieldProjection": "对象ID/类型/异常码/重试次数，不返原始渠道报文",
+        "actionState": "异常/隔离任务/账单差异等既有UNION",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "最大50、money-issues scope cursor",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内authority共享锁、计数和页面一致；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内authority共享锁、计数和页面一致",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "current grant revoke vs money issues"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/management/money/trade-bills",
+      "service": "tradeBillReconciliation.list",
+      "status": "REVIEWED_AUTHORITY_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P17/P18、§8.2、§10.3、A04/A07、ORD-03、WX-PAY-MAKE-01；佣金相关COM-C01–03。这里只复核权限/并发切片，不关闭整条验收ID。",
+        "identity": "active actor + commerce.money.reconcile；merchant_id绑定配置",
+        "roleCapability": "active actor + commerce.money.reconcile；merchant_id绑定配置",
+        "objectRow": "active actor + commerce.money.reconcile；merchant_id绑定配置",
+        "fieldProjection": "批次日期/类型/行数/匹配与异常数，不返OpenID/账单原文",
+        "actionState": "已导入账单批次",
+        "environment": "保留原正式新命令、test-only履约和隔离Provider门禁；历史读不依赖新资金准入。未开启正式业务。",
+        "inputBoundary": "最大50、cursor绑定商户",
+        "idempotencyVersion": "写入保留key/hash/version与原状态；只读不写幂等记录。具体行为见actionState/databaseExternalEffects。",
+        "concurrency": "REPEATABLE READ内authority共享锁、计数和页面一致；通用requireWithClient锁后重查clock_timestamp，不能使用BEGIN时冻结的now判有效期。",
+        "databaseExternalEffects": "REPEATABLE READ内authority共享锁、计数和页面一致",
+        "limitsTimeoutPagination": "保持原750ms锁等待/整体请求及事务预算，不加长预算；列表最大50；只读增加事务授权检查。",
+        "positiveNegativeEvidence": "current grant revoke vs trade bill list"
+      }
+    }
+  ],
+  "crossCuttingEvidence": "authority-revocation新增：独立连接member锁阻塞300ms有效grant，350ms后释放；旧实现放行，新实现CAPABILITY_REQUIRED。",
+  "remaining": [
+    "正式定价/运费/售后/资金能力分项批准与正式源码装配",
+    "生产发货、签收事件与渠道发货同步",
+    "支付/退款查单的动作授权边界、全部后台非HTTP表面继续逐项审阅",
+    "其余接口13维审阅不能以本切片替代",
+    "隐私完整主体resolver及政策驱动执行",
+    "全部原生状态/设备/隔离部署/监控恢复"
+  ]
+}

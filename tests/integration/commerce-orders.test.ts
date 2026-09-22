@@ -339,3 +339,56 @@ describe("R4-B isolated pending-payment order flow", () => {
     expect((await pool.query("SELECT to_regclass('public.commerce_order') name")).rows[0].name).toBe("commerce_order");
   });
 });
+
+for(const action of ['quote','create','cancel','list','detail'] as const)it(`rejects ${action} when a concurrent member block wins before the operation commits`,async()=>{
+ await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+4 WHERE sku_id=$1',[product.variants[0].id]);
+ const target=await address(buyerA,`88${['quote','create','cancel','list','detail'].indexOf(action)}`);
+ const quoteResult=await quote(buyerA,target,`concurrent-block-quote-${action}`);expect(quoteResult.statusCode).toBe(200);
+ const prepared=action==='create'||action==='quote'?null:await createOrder(buyerA,quoteResult.json().id,`concurrent-block-order-${action}`);
+ if(prepared)expect(prepared.statusCode).toBe(200);
+ const order=prepared?.json();
+ const before={orders:(await pool.query('SELECT count(*)::int n FROM commerce_order')).rows[0].n,
+  quotes:(await pool.query('SELECT count(*)::int n FROM commerce_checkout_quote')).rows[0].n,
+  audits:(await pool.query('SELECT count(*)::int n FROM audit_log')).rows[0].n,
+  outbox:(await pool.query('SELECT count(*)::int n FROM outbox_event')).rows[0].n};
+ const blocker=await pool.connect();let pending:Promise<{statusCode:number;json():any}>|undefined;
+ try{
+  await blocker.query('BEGIN');await blocker.query("UPDATE member SET status='blocked' WHERE id=$1",[buyerA.memberId]);
+  let settled=false;
+  pending=(action==='quote'?quote(buyerA,target,`concurrent-block-fresh-${action}`):action==='create'?
+   createOrder(buyerA,quoteResult.json().id,`concurrent-block-fresh-${action}`):action==='cancel'?
+   app.inject({method:'POST',url:`/v1/me/orders/${order.id}/cancel`,headers:{...auth(buyerA.sessionToken),'idempotency-key':`concurrent-block-fresh-${action}`},payload:{expectedVersion:order.version,reason:'synthetic cancellation'}}):
+   app.inject({url:action==='list'?'/v1/me/orders':`/v1/me/orders/${order.id}`,headers:auth(buyerA.sessionToken)})).finally(()=>{settled=true;});
+  for(let n=0;n<50&&!settled;n++){
+   const waiting=await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'");
+   if(waiting.rowCount)break;await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
+  expect((await pool.query('SELECT count(*)::int n FROM commerce_order')).rows[0].n).toBe(before.orders);
+  expect((await pool.query('SELECT count(*)::int n FROM commerce_checkout_quote')).rows[0].n).toBe(before.quotes);
+  expect((await pool.query('SELECT count(*)::int n FROM audit_log')).rows[0].n).toBe(before.audits);
+  expect((await pool.query('SELECT count(*)::int n FROM outbox_event')).rows[0].n).toBe(before.outbox);
+  if(order)expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[order.id])).rows[0].status).toBe('pending_payment');
+ }finally{await blocker.query('ROLLBACK');blocker.release();await pending;await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyerA.memberId]);}
+});
+
+for(const action of ['list','detail'] as const)for(const revocation of ['role','member'] as const)it(`denies management order ${action} when ${revocation} withdrawal wins the lock`,async()=>{
+ const actor=await identity(`order-reader-${action}-${revocation}`);
+ await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+  VALUES($1,'commerce.order.read','fixture','synthetic read withdrawal','test','integration_fixture')`,[actor.memberId]);
+ const order=(await pool.query('SELECT id FROM commerce_order WHERE member_id=$1 LIMIT 1',[buyerA.memberId])).rows[0];
+ const options={url:action==='list'?'/v1/management/commerce/orders':`/v1/management/commerce/orders/${order.id}`,headers:auth(actor.sessionToken)};
+ expect((await app.inject(options)).statusCode).toBe(200);
+ const blocker=await pool.connect();let pending:Promise<{statusCode:number}>|undefined;
+ try{
+  await blocker.query('BEGIN');
+  if(revocation==='member')await blocker.query("UPDATE member SET status='blocked' WHERE id=$1",[actor.memberId]);
+  else await blocker.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='synthetic revoke' WHERE member_id=$1",[actor.memberId]);
+  let settled=false;pending=app.inject(options).finally(()=>{settled=true;});
+  for(let n=0;n<50&&!settled;n++){
+   if((await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'")).rowCount)break;
+   await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
+ }finally{await blocker.query('ROLLBACK');blocker.release();await pending;}
+});

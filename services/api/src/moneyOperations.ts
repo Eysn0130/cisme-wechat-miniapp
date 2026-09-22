@@ -1,5 +1,6 @@
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
+import { transaction } from "./db.js";
 import { AuthorityService } from "./authority.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 import { redriveQuarantinedMoneyInbox, type MoneyInboxKind } from "./moneyInboxRetry.js";
@@ -42,14 +43,17 @@ export class MoneyOperationsService{
         WHERE r.status='exception'
       UNION ALL SELECT id,'payment_composition',order_id,'PAYMENT_COMPOSITION_CONFLICT',0,observed_at,false
         FROM commission_payment_composition_observation`;
-    const totalCount=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM (${union}) issue`)).rows[0]?.n??0;
-    const rows=(await this.pool.query(`SELECT * FROM (${union}) issue
-      WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
-      ORDER BY created_at DESC,id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
-      kind:row.kind,relatedId:row.related_id,code:row.code??"NEEDS_REVIEW",
-      attempts:Number(row.attempts),canRedrive:Boolean(row.can_redrive),
-      createdAt:row.created_at})),limit,scope),totalCount};
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,actorId,"commerce.money.reconcile");
+      const totalCount=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM (${union}) issue`)).rows[0]?.n??0;
+      const rows=(await client.query(`SELECT * FROM (${union}) issue
+        WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
+        ORDER BY created_at DESC,id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
+      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
+        kind:row.kind,relatedId:row.related_id,code:row.code??"NEEDS_REVIEW",
+        attempts:Number(row.attempts),canRedrive:Boolean(row.can_redrive),
+        createdAt:row.created_at})),limit,scope),totalCount};
+    },"REPEATABLE READ");
   }
 
   async redriveInbox(actorId:string|undefined,kindInput:string,inboxId:string,input:Record<string,unknown>){

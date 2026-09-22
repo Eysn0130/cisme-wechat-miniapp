@@ -3,7 +3,7 @@ import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
-import { AuthorityService } from "./authority.js";
+import { AuthorityService, requireActiveMemberWithClient } from "./authority.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
@@ -156,6 +156,7 @@ export class CommerceOrderService {
       creditCents };
     const requestHash = hash(normalized);
     return transaction(this.pool, async client => {
+      await requireActiveMemberWithClient(client,owner);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`commerce-quote:${owner}:${idempotencyKey}`]);
       const replay = await client.query<QuoteRow>("SELECT * FROM commerce_checkout_quote WHERE member_id=$1 AND idempotency_key=$2", [owner, idempotencyKey]);
       if (replay.rows[0]) {
@@ -257,6 +258,7 @@ export class CommerceOrderService {
     supportedCheckoutFields(input,["quoteId"]);
     const normalized = { quoteId: uuid(input.quoteId, "QUOTE_ID_INVALID") }; const requestHash = hash(normalized);
     return transaction(this.pool, async client => {
+      await requireActiveMemberWithClient(client,owner);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`commerce-order:${owner}:${idempotencyKey}`]);
       const replay = await client.query<{ request_hash: string; response_body: { orderId?: string } }>(`SELECT request_hash,response_body FROM idempotency_operation
         WHERE principal_id=$1 AND operation='commerce.order.create' AND idempotency_key=$2`, [actor,idempotencyKey]);
@@ -355,6 +357,7 @@ export class CommerceOrderService {
     if (Array.from(normalized.reason).length<3 || Array.from(normalized.reason).length>500) throw new DomainError("ORDER_CANCEL_REASON_INVALID","请填写取消原因",422);
     const requestHash=hash(normalized);
     return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`commerce-order-cancel:${actor}:${idempotencyKey}`]);
       const replay=await client.query<{request_hash:string;business_key:string;response_body:{orderId?:string;orderVersion?:number;status?:string}}>("SELECT request_hash,business_key,response_body FROM idempotency_operation WHERE principal_id=$1 AND operation='commerce.order.cancel' AND idempotency_key=$2",[actor,idempotencyKey]);
       if(replay.rows[0]&&replay.rows[0].request_hash!==requestHash)throw new DomainError("IDEMPOTENCY_CONFLICT","同一请求键不能用于不同取消请求",409);
@@ -398,26 +401,38 @@ export class CommerceOrderService {
 
   async listMine(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown}) {
     const owner=member(memberId),limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor);
-    return transaction(this.pool, client => this.listPage(client, owner, limit, cursor), "REPEATABLE READ");
+    return transaction(this.pool, async client => {
+      await requireActiveMemberWithClient(client,owner);
+      return this.listPage(client, owner, limit, cursor);
+    }, "REPEATABLE READ");
   }
 
   async detailMine(memberId: string | undefined, orderIdInput: string) {
     const owner=member(memberId),orderId=uuid(orderIdInput,"ORDER_ID_INVALID");
-    const row=(await this.pool.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2",[orderId,owner])).rows[0];
-    if(!row)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
-    return this.orderView(this.pool,row);
+    return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
+      const row=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2",[orderId,owner])).rows[0];
+      if(!row)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
+      return this.orderView(client,row);
+    },"REPEATABLE READ");
   }
 
   async managementList(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown}) {
     await this.authority.require(memberId,"commerce.order.read");const limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor);
-    return transaction(this.pool, client => this.listPage(client, null, limit, cursor), "REPEATABLE READ");
+    return transaction(this.pool, async client => {
+      await this.authority.requireWithClient(client,memberId,"commerce.order.read");
+      return this.listPage(client, null, limit, cursor);
+    }, "REPEATABLE READ");
   }
 
   async managementDetail(memberId: string | undefined, orderIdInput: string) {
     await this.authority.require(memberId,"commerce.order.read");const orderId=uuid(orderIdInput,"ORDER_ID_INVALID");
-    const row=(await this.pool.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1",[orderId])).rows[0];
-    if(!row)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
-    return this.orderView(this.pool,row,"management");
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,memberId,"commerce.order.read");
+      const row=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1",[orderId])).rows[0];
+      if(!row)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
+      return this.orderView(client,row,"management");
+    },"REPEATABLE READ");
   }
 }
 

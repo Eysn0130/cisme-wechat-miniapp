@@ -140,15 +140,18 @@ export class FulfillmentReleaseService{
   async pending(actorId:string|undefined,query:{limit?:string;cursor?:string}={}){
     this.gate();await this.authority.require(actorId,"commerce.fulfillment.manage");
     const limit=pageLimit(query.limit),scope=pageScope(["fulfillment-pending"]),cursor=readPageCursor(query.cursor,scope);
-    const totalCount=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM
-      commerce_fulfillment_attestation WHERE state='submitted'`)).rows[0]?.n??0;
-    const rows=(await this.pool.query(`SELECT id,order_id,source_reference,evidence_sha256,delivered_at,
-      proposed_by_member_id,version,created_at FROM commerce_fulfillment_attestation WHERE state='submitted'
-      AND ($1::timestamptz IS NULL OR (created_at,id)>($1::timestamptz,$2::uuid))
-      ORDER BY created_at,id LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
-      orderId:row.order_id,sourceReference:row.source_reference,evidenceSha256:row.evidence_sha256,
-      deliveredAt:row.delivered_at,proposedByMemberId:row.proposed_by_member_id,
-      version:row.version,createdAt:row.created_at})),limit,scope),totalCount};
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,actorId,"commerce.fulfillment.manage");
+      const totalCount=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM
+        commerce_fulfillment_attestation WHERE state='submitted'`)).rows[0]?.n??0;
+      const rows=(await client.query(`SELECT id,order_id,source_reference,evidence_sha256,delivered_at,
+        proposed_by_member_id,version,created_at FROM commerce_fulfillment_attestation WHERE state='submitted'
+        AND ($1::timestamptz IS NULL OR (created_at,id)>($1::timestamptz,$2::uuid))
+        ORDER BY created_at,id LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
+      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
+        orderId:row.order_id,sourceReference:row.source_reference,evidenceSha256:row.evidence_sha256,
+        deliveredAt:row.delivered_at,proposedByMemberId:row.proposed_by_member_id,
+        version:row.version,createdAt:row.created_at})),limit,scope),totalCount};
+    },"REPEATABLE READ");
   }
 }
