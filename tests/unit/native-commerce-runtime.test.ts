@@ -300,6 +300,28 @@ describe('native shipment and explicit receipt boundaries',()=>{
 });
 
 const formalRuntime={version:2,scope:'formal_commerce',currency:'CNY',orderFlowEnabled:true,paymentAvailable:true,paymentOnboarding:'READY',formalMoneyOperationsAvailable:true,formalRecoveryAvailable:true,isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false};
+describe('formal owner payment recovery with money commands suspended',()=>{
+  async function ready(){
+    await loadPage('order-detail');void page.load();core.resolve({...order,status:'pending_payment'});
+    auxiliary.resolve({...formalRuntime,orderFlowEnabled:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',formalMoneyOperationsAvailable:false});await flush();
+    const original=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation(o=>o.path.endsWith('/payment-intent')?Promise.resolve({state:'notpay'}):original(o));
+  }
+  it('queries the original payment without enabling prepare, cancel or refund',async()=>{
+    await ready();await page.recheckPayment();await page.preparePayment();await page.cancel();page.showRefundForm();
+    const calls=mocks.request.mock.calls.map(([o])=>o);
+    expect(calls.filter(o=>o.path.endsWith('/payment-intent'))).toEqual([expect.objectContaining({path:`/v1/me/orders/${id}/payment-intent`})]);
+    expect(calls.some(o=>o.method==='POST')).toBe(false);expect(page.data.isolatedPayment).toBe(false);expect(page.data.refundFormVisible).toBe(false);
+    expect(page.data.actionStatus).toBe('渠道仍未确认付款。');
+  });
+  it.each(['hide','session','refresh','runtime-error'])('closes the query after %s',async boundary=>{
+    await ready();
+    if(boundary==='hide')page.onHide();else if(boundary==='session'){mocks.token='member-b';page.syncSession();}
+    else if(boundary==='refresh'){core=deferred();auxiliary=deferred();void page.load();await flush();}
+    else{auxiliary=deferred();page.retryRuntime();auxiliary.reject(Error('offline'));await flush();}
+    await page.recheckPayment();expect(mocks.request.mock.calls.some(([o])=>o.path.endsWith('/payment-intent'))).toBe(false);
+  });
+});
 it('opens only explicit v2 formal actions without automatically invoking WeChat payment',async()=>{
  await loadPage('order-detail');void page.load();core.resolve({...order,status:'pending_payment'});auxiliary.resolve(formalRuntime);await flush();
  (wx as any).requestPayment=vi.fn();expect(page.data).toMatchObject({runtimeMode:'formal',isolatedPayment:true});expect(wx.requestPayment).not.toHaveBeenCalled();

@@ -22,3 +22,9 @@
 完整正式交易验收、真实平台绑定与权限、原生有效对象/真机、售后与隐私执行、全量接口复核、production 保留数据部署、告警送达及 COS 恢复。新发现旧 SQL 自带事务与部署迁移器事务嵌套问题，下一批单独复现修复。没有将这些源码/技术缺口转写为运营截图义务。
 
 依据：微信支付官方普通商户 JSAPI 下单 https://pay.wechatpay.cn/doc/v3/merchant/4012791897 ，小程序支付指南 https://pay.wechatpay.cn/doc/v3/merchant/4012791911 。只复用现有 TypeScript 协议，无新增 SDK。
+
+## 原生查单边界修复（2026-09-22）
+
+复现：formalRecoveryAvailable=true 而 formalMoneyOperationsAvailable=false 时，订单页将 GET 查单和 POST 付款共用资金开关，导致无法核对原单。现将查询能力单独计算，保留已核验订单、当前身份、页面可见性及 runtime 校验。隐藏、切换身份、核心刷新、runtime 失败时关闭入口。付款、关单、退款仍独立受资金开关和服务端授权控制。纠正管理中心和取消/恢复对话框中不准确的“隔离测试/不会真实资金操作”文案。
+
+定向 93 项通过；本地全量 1077 项通过、1 项平台条件跳过，build/typecheck/contract 通过（237 个 /v1 method、239 个含健康检查的 method、32 个事件）。初次全量在更新源码哈希前启动而失败；更新诚实 blocked manifest 后重跑通过。新原生包哈希 728cdc6cdfffe531f53f102fc6ca1a9db1dda6d939beeb14cb197aed14768853；没有将旧截图转记为本次原生/真机通过。
