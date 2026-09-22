@@ -29,7 +29,7 @@ const handledElsewhere = (error: unknown) => [404, 409].includes(Number((error a
 Page({
   data: { chromeStyle: currentChromeStyle(), postId: "", candidate: null as Candidate | null,
     media: [] as Array<{ id: string; state: string; scanVerdict: string; src: string; position: number }>,
-    loading: true, busy: false, error: "", notice: "", handled: false },
+    loading: true, busy: false, error: "", notice: "", handled: false, permissionDenied: false },
   onLoad(query: Record<string, string | undefined>) {
     const id = String(query.id || "");const ctx=context(this);ctx.alive=true;ctx.token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({ postId: id });
@@ -39,11 +39,17 @@ Page({
   onShow() { const ctx=context(this);if(ctx.shown&&(!this.data.handled||ctx.token!==getApp<IAppOption>().globalData.sessionToken))void this.load();else ctx.shown=true; },
   onUnload() { const ctx=context(this);ctx.alive=false;ctx.epoch+=1; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
+  denyCapability(error:unknown) {
+    if((error as {code?:string})?.code!=="CAPABILITY_REQUIRED")return false;
+    this.setData({candidate:null,media:[],loading:false,busy:false,handled:false,notice:"",permissionDenied:true,
+      error:"当前账号没有内容审核权限，请返回社区。"});
+    return true;
+  },
   async load() {
     if (!this.data.postId) return;
     const ctx=context(this),epoch=++ctx.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     ctx.token=token;
-    this.setData({ candidate:null,media:[],loading:true,busy:false,error:"",handled:false });
+    this.setData({ candidate:null,media:[],loading:true,busy:false,error:"",handled:false,permissionDenied:false });
     if(!token){this.setData({loading:false,error:"请先确认身份后重新进入审核。"});requireMemberAccess();return;}
     try {
       const candidate = await request<Candidate>({ path: `/v1/management/ugc/posts/${this.data.postId}` });
@@ -51,11 +57,14 @@ Page({
         try {
           const preview = await request<{ url: string }>({ path: `/v1/management/ugc/media/${item.id}/preview-url` });
           return { ...item, scanVerdict: item.scanVerdict || "pending", src: preview.url };
-        } catch { return { ...item, scanVerdict: item.scanVerdict || "pending", src: "" }; }
+        } catch (error) {
+          if((error as {code?:string})?.code==="CAPABILITY_REQUIRED")throw error;
+          return { ...item, scanVerdict: item.scanVerdict || "pending", src: "" };
+        }
       }));
       if (ctx.alive && epoch === ctx.epoch && token === getApp<IAppOption>().globalData.sessionToken)
         this.setData({ candidate, media, loading: false });
-    } catch (error) { if (ctx.alive && epoch === ctx.epoch && token === getApp<IAppOption>().globalData.sessionToken)
+    } catch (error) { if (ctx.alive && epoch === ctx.epoch && token === getApp<IAppOption>().globalData.sessionToken && !this.denyCapability(error))
       this.setData({ candidate:null,media:[],loading:false,
         error:handledElsewhere(error)?"":failure(error),handled:handledElsewhere(error),
         notice:handledElsewhere(error)?"这篇内容已不在待审队列，可能已撤回或被其他审核员处理。":"" }); }
@@ -83,7 +92,7 @@ Page({
       if(!sameIntent(this,intent))return;
       this.setData({notice:decision==="approve"?"图片审核已通过。":"图片已退回作者。"});
       await this.load();
-    } catch (error) { if(sameIntent(this,intent))this.setData({error:handledElsewhere(error)?"":failure(error),
+    } catch (error) { if(sameIntent(this,intent)&&!this.denyCapability(error))this.setData({error:handledElsewhere(error)?"":failure(error),
       notice:handledElsewhere(error)?"图片状态已变化，请返回待审队列核对。":""}); }
     finally { if(sameIntent(this,intent))this.setData({busy:false}); }
   },
@@ -105,7 +114,7 @@ Page({
       if(!sameIntent(this,intent))return;
       if(result.decision==="reject")this.setData({candidate:null,media:[],busy:false,handled:true,notice:"已退回作者修改。"});
       else {this.setData({notice:"内容审核已通过，等待另一名审核员复核公开。"});await this.load();}
-    } catch (error) { if(sameIntent(this,intent))this.setData({error:handledElsewhere(error)?"":failure(error),
+    } catch (error) { if(sameIntent(this,intent)&&!this.denyCapability(error))this.setData({error:handledElsewhere(error)?"":failure(error),
       candidate:handledElsewhere(error)?null:this.data.candidate,media:handledElsewhere(error)?[]:this.data.media,
       handled:handledElsewhere(error),notice:handledElsewhere(error)?"内容已被他人处理或作者撤回，请返回待审队列核对。":""}); }
     finally { if(sameIntent(this,intent))this.setData({ busy: false }); }
@@ -122,7 +131,7 @@ Page({
         data: { expectedVersion: intent.version } });
       if(!sameIntent(this,intent))return;
       if(result.state==="published")this.setData({candidate:null,media:[],busy:false,handled:true,notice:"已公开这篇护理故事。"});
-    } catch (error) { if(sameIntent(this,intent))this.setData({error:handledElsewhere(error)?"":failure(error),
+    } catch (error) { if(sameIntent(this,intent)&&!this.denyCapability(error))this.setData({error:handledElsewhere(error)?"":failure(error),
       candidate:handledElsewhere(error)?null:this.data.candidate,media:handledElsewhere(error)?[]:this.data.media,
       handled:handledElsewhere(error),notice:handledElsewhere(error)?"内容已被他人处理或作者撤回，请返回待审队列核对。":""}); }
     finally { if(sameIntent(this,intent))this.setData({ busy: false }); }
