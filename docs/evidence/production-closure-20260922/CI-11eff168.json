@@ -1,0 +1,20 @@
+{
+  "head": "11eff1689b5271fef792ee6061a6bb4c2d413993",
+  "tree": "a7ba33add7e183f63e3630451f0d859e22d0e83b",
+  "runId": 35797408691,
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/35797408691",
+  "conclusion": "success",
+  "unit": {
+    "passed": 1086,
+    "files": 98
+  },
+  "integration": {
+    "passed": 818,
+    "files": 48
+  },
+  "pythonOfflineChecks": 52,
+  "checkout": "83a8d3d PR synthetic merge of 11eff168 into 5740e185; not main merge",
+  "nativePreview": "not physical-device evidence",
+  "mainMerged": false,
+  "productionDeployed": false
+}
