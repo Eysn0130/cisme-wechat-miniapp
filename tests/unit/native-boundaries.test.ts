@@ -205,7 +205,7 @@ describe("native mini program boundary", () => {
       home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "retryCareMutation", "closeCareSession", "retryLoad", "retryCareMutation", "advanceCareStep", "selectAssessment", "submitCareSession"],
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
-      "management-member": ["back", "load", "selectSection", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
+      "management-member": ["back", "back", "load", "selectSection", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
       "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "selectFilter", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
       management: ["back", "retry", "retryRuntime", "openSupport", "openCatalog", "openOrders", "openMembers", "openFinance"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],

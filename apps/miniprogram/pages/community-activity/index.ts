@@ -1,5 +1,7 @@
+import { pageRead, cancelPageReads } from "../../services/page-requests";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, requireMemberAccess } from "../../services/api";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 
 type Section="comments"|"saves"|"reports"|"appeals"|"blocks";
 type ActivityRow={id:string;postId?:string;postTitle?:string|null;body?:string|null;state?:string;
@@ -25,28 +27,57 @@ const timeLabel=(value:string)=>{
 };
 
 Page({
-  data:{chromeStyle:currentChromeStyle(),tabs,section:"comments" as Section,items:[] as ActivityRow[],
+  data:{chromeStyle:currentChromeStyle(),reduceMotion:shouldReduceMotion(),tabs,section:"comments" as Section,items:[] as ActivityRow[],
     nextCursor:null as string|null,matchingTotal:0,loading:true,loadingMore:false,busy:false,error:"",notice:"",epoch:0},
-  sessionToken:"",alive:true,shown:false,
+  sessionToken:"",alive:true,visible:true,shown:false,
+  contextRevision:commerceContextRevision(),mutationSerial:0,mutationPending:false,
   onLoad(query:Record<string,string|undefined>){
-    this.alive=true;this.sessionToken=getApp<IAppOption>().globalData.sessionToken;
+    this.alive=true;this.visible=true;this.sessionToken=getApp<IAppOption>().globalData.sessionToken;
+    this.contextRevision=commerceContextRevision();
     const section=query.section;
     if(tabs.some(tab=>tab.key===section))this.setData({section:section as Section});
     if(requireMemberAccess("/pages/community-activity/index"))void this.load(true);
   },
   onShow(){
-    const token=getApp<IAppOption>().globalData.sessionToken;
-    if(!requireMemberAccess("/pages/community-activity/index")){
-      this.data.epoch+=1;this.setData({items:[],nextCursor:null,matchingTotal:0,loading:false,error:""});return;
+    const resuming=!this.visible;this.visible=true;
+    const token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
+    const contextChanged=token!==this.sessionToken||revision!==this.contextRevision;
+    if(contextChanged){
+      this.sessionToken=token;this.contextRevision=revision;this.mutationSerial+=1;this.mutationPending=false;
+      this.data.epoch+=1;cancelPageReads(this);
+      this.setData({items:[],nextCursor:null,matchingTotal:0,busy:false,notice:"",error:""});
     }
-    if(this.shown||token!==this.sessionToken){this.sessionToken=token;void this.load(true);}
+    if(!requireMemberAccess("/pages/community-activity/index")){
+      this.data.epoch+=1;this.mutationSerial+=1;this.mutationPending=false;cancelPageReads(this);
+      this.setData({items:[],nextCursor:null,matchingTotal:0,loading:false,loadingMore:false,busy:false,error:"",notice:""});return;
+    }
+    this.setData({busy:this.mutationPending});
+    if(this.shown||resuming||contextChanged)void this.load(true);
     this.shown=true;
   },
-  onUnload(){this.alive=false;this.data.epoch+=1;},
+  onHide(){this.visible=false;this.data.epoch+=1;cancelPageReads(this);},
+  onUnload(){this.onHide();this.alive=false;this.mutationSerial+=1;},
+  isCurrent(epoch:number,token:string,revision:number){
+    return this.alive&&this.visible&&epoch===this.data.epoch&&
+      token===this.sessionToken&&revision===this.contextRevision&&
+      token===getApp<IAppOption>().globalData.sessionToken&&revision===commerceContextRevision();
+  },
+  // A tab/read epoch must not own the lifetime of an already dispatched write.
+  releaseMutation(serial:number,token:string,revision:number,epoch:number,succeeded:boolean){
+    if(serial!==this.mutationSerial)return;
+    this.mutationPending=false;
+    if(this.alive&&this.visible&&token===this.sessionToken&&revision===this.contextRevision&&
+      token===getApp<IAppOption>().globalData.sessionToken&&revision===commerceContextRevision()){
+      this.setData({busy:false});
+      // A resume/tab read may have observed the database before this write settled.
+      // Supersede it, including uncertain failures, without replaying the command.
+      if(succeeded||epoch!==this.data.epoch)void this.load(true);
+    }
+  },
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   selectSection(event:WechatMiniprogram.TouchEvent){
     const section=String(event.currentTarget.dataset.section);
-    if(!tabs.some(tab=>tab.key===section)||section===this.data.section)return;
+    if(!this.alive||!this.visible||!tabs.some(tab=>tab.key===section)||section===this.data.section)return;
     this.setData({section:section as Section,items:[],nextCursor:null,matchingTotal:0,notice:""});
     void this.load(true);
   },
@@ -54,23 +85,25 @@ Page({
   retry(){void this.load(true);},
   loadMore(){void this.load(false);},
   async load(reset=true){
+    if(!this.alive||!this.visible)return;
     if(!reset&&(!this.data.nextCursor||this.data.loadingMore||this.data.loading))return;
     const epoch=reset?++this.data.epoch:this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,
-      section=this.data.section,cursor=reset?null:this.data.nextCursor;
+      section=this.data.section,cursor=reset?null:this.data.nextCursor,revision=commerceContextRevision();
+    if(reset)cancelPageReads(this);
     if(reset)this.setData({items:[],nextCursor:null,matchingTotal:0,loading:true,loadingMore:false,error:""});
     else this.setData({loadingMore:true,error:""});
     try{
-      const page=await request<PageResult>({path:`/v1/me/ugc/activity/${section}?limit=30${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`});
-      if(!this.alive||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||
+      const page=await pageRead<PageResult>(this,{path:`/v1/me/ugc/activity/${section}?limit=30${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`});
+      if(!this.isCurrent(epoch,token,revision)||
         section!==this.data.section||(!reset&&cursor!==this.data.nextCursor))return;
       const seen=new Set(reset?[]:this.data.items.map(item=>item.id));
-      const rows=page.items.filter(item=>!seen.has(item.id)).map(item=>({...item,
+      const rows=page.items.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true;}).map(item=>({...item,
         stateLabel:stateLabels[item.state??""]??item.state??"",
         categoryLabel:categoryLabels[item.category??""]??"",
         decisionLabel:decisionLabels[item.decisionCode??""]??"",createdLabel:timeLabel(item.createdAt)}));
       this.setData({items:reset?rows:[...this.data.items,...rows],nextCursor:page.nextCursor,
         matchingTotal:page.matchingTotal,loading:false,loadingMore:false,error:""});
-    }catch(error){if(this.alive&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken){
+    }catch(error){if(this.isCurrent(epoch,token,revision)){
       this.setData({loading:false,loadingMore:false,error:titleOf(error,"社区记录暂时无法加载，请重试。")});
     }}
   },
@@ -86,45 +119,51 @@ Page({
   },
   async removeSaved(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.postId===id);
-    if(this.data.busy||!row)return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    const answer=await wx.showModal({title:"移除收藏？",content:"这篇内容会从我的收藏中移除。",confirmText:"移除"});
-    if(!answer.confirm||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||
+    if(!this.alive||!this.visible||this.data.busy||!row)return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
+    const answer=await wx.showModal({title:"移除收藏？",content:"这篇内容会从我的收藏中移除。",confirmText:"移除"}).catch(()=>({confirm:false}));
+    if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.postId===id))return;
+    const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
     this.setData({busy:true,error:""});
     try{await request({path:`/v1/ugc/posts/${id}/reaction`,method:"PUT",data:{kind:"save",active:false}});
-      if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken){this.setData({busy:false,notice:"已移除收藏。"});void this.load(true);}
-    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+      succeeded=true;
+      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"已移除收藏。"});}
+    }catch(error){if(this.isCurrent(epoch,token,revision))
       this.setData({error:titleOf(error,"收藏未移除，请重试。")});}
-    finally{if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({busy:false});}
+    finally{this.releaseMutation(serial,token,revision,epoch,succeeded);}
   },
   async unblock(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.memberId===id);
-    if(this.data.busy||!row)return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    const answer=await wx.showModal({title:"解除屏蔽？",content:"解除后，对方公开的内容会再次出现在可见范围内。",confirmText:"解除"});
-    if(!answer.confirm||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||
+    if(!this.alive||!this.visible||this.data.busy||!row)return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
+    const answer=await wx.showModal({title:"解除屏蔽？",content:"解除后，对方公开的内容会再次出现在可见范围内。",confirmText:"解除"}).catch(()=>({confirm:false}));
+    if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.memberId===id))return;
+    const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
     this.setData({busy:true,error:""});
     try{await request({path:`/v1/me/ugc/blocks/${id}`,method:"PUT",data:{active:false}});
-      if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken){this.setData({busy:false,notice:"已解除屏蔽。"});void this.load(true);}
-    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+      succeeded=true;
+      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"已解除屏蔽。"});}
+    }catch(error){if(this.isCurrent(epoch,token,revision))
       this.setData({error:titleOf(error,"屏蔽状态未更新，请重试。")});}
-    finally{if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({busy:false});}
+    finally{this.releaseMutation(serial,token,revision,epoch,succeeded);}
   },
   async deleteComment(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.id===id);
-    if(this.data.busy||!row?.postId||row.state==="deleted")return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    const answer=await wx.showModal({title:"删除这条评论？",content:"删除后正文无法恢复，审核事实会保留。",confirmText:"删除"});
-    if(!answer.confirm||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||
+    if(!this.alive||!this.visible||this.data.busy||!row?.postId||row.state==="deleted")return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
+    const answer=await wx.showModal({title:"删除这条评论？",content:"删除后正文无法恢复，审核事实会保留。",confirmText:"删除"}).catch(()=>({confirm:false}));
+    if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.id===id))return;
+    const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
     this.setData({busy:true,error:""});
     try{await request({path:`/v1/ugc/posts/${row.postId}/comments/${id}`,method:"DELETE"});
-      if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken){this.setData({busy:false,notice:"评论已删除。"});void this.load(true);}
-    }catch(error){if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+      succeeded=true;
+      if(this.isCurrent(epoch,token,revision)){this.setData({notice:"评论已删除。"});}
+    }catch(error){if(this.isCurrent(epoch,token,revision))
       this.setData({error:titleOf(error,"评论未删除，请重试。")});}
-    finally{if(epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({busy:false});}
+    finally{this.releaseMutation(serial,token,revision,epoch,succeeded);}
   },
   back(){wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/profile/index"})});}
 });

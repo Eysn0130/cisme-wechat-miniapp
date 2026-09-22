@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-22T05:25:51.919534+00:00",
+  "sourceHead": "ff24bc3e03f60d4d68b41cfe38a1637b65058e9a",
+  "node": "24.18.0",
+  "local": {
+    "unit": {
+      "passed": 985,
+      "skipped": 1,
+      "files": 88
+    },
+    "integration": {
+      "passed": 737,
+      "files": 44,
+      "runId": "b2a8e651e4a92ffc3f584ec4",
+      "ownedDbAndS3Removed": true
+    },
+    "typecheck": "PASS",
+    "build": "PASS",
+    "contracts": "PASS",
+    "package": "PASS",
+    "routes": {
+      "status": "PASS",
+      "count": 37
+    },
+    "designStatus": "BLOCKED; status command exit 0 is not design acceptance"
+  },
+  "redGreen": [
+    {
+      "case": "three community mutations with resume/tab ABA",
+      "newTests": 9
+    },
+    {
+      "case": "signed CLOSED responses bound to wrong app/merchant/payer/amount",
+      "newTests": 4
+    },
+    {
+      "case": "missing-order query races dispatched prepay",
+      "newTests": 1
+    },
+    {
+      "case": "private review candidate persists after capability denial",
+      "redTests": 4,
+      "newTests": 5
+    },
+    {
+      "case": "export expires during row-lock wait",
+      "oldResult": "delivered=true",
+      "fixedResult": "PRIVACY_EXPORT_NOT_FOUND",
+      "initialAttempt": "hit lock_timeout; timing adjusted below configured 750ms, no timeout budget changed"
+    },
+    {
+      "case": "handle-only scope must preserve avatar/public review fields",
+      "oldResult": "whole profile row deleted",
+      "fixedResult": "handle null, profile revision incremented, other fields preserved",
+      "newTests": 1
+    }
+  ],
+  "logs": [
+    {
+      "localPath": "tmp/pr16-continuation/unit-candidate.log",
+      "sha256": "d4229a32240f513e85be7a262512163ae78afbc19b1b55129d9488a92bbc5457"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/integration-candidate.log",
+      "sha256": "dee6ab78cfcfd22ac15ac4d61ee30080ff2b69a7a22837225aa3fc1ae20f59b3"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/typecheck-candidate.log",
+      "sha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/build-latest.log",
+      "sha256": "753a03d4cbdf848110498ceb37f2b4cbb915d75dc05ce83182bb1614db4eb5ab"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/contracts-latest.log",
+      "sha256": "14a8c60aa8250c57e56c37dd5e90c594a32199a6875555589a5f6ad55a118bb6"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/package-candidate.log",
+      "sha256": "01323739f79c6a2ab2e74a0d19f3ecc88a8194f7a509c1a3190c379e4d45b5e8"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/routes-latest.log",
+      "sha256": "9c5c9cf6c6e9abdef8e993c7e40fde164f521bbc8a695c6dd2b9acc43e20ae9f"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/design-latest.log",
+      "sha256": "2fb56355e36781245a6ead66a7711eb11d053b7b49a117ffe311c48eaa187c98"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/privacy-expiry-red.log",
+      "sha256": "66c7246455b4087ea5ab11cf66fcf0c13c5b9a9d381d0b6ad440cdf3b82279e6"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/privacy-expiry-green.log",
+      "sha256": "153e614b65aecdf65968c902e88a2a061d951e8aa1506a708425c09fb5aeb2ed"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/native-denied-red.log",
+      "sha256": "ba102a8b21cf6f2969e890ee817dabf9aeb954d46e456259d16156aa51abb889"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/native-denied-green.log",
+      "sha256": "a4df6ec5ff5a7731588069e7ca12a46485931770732638bd7cefa9f3cb20d5fd"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/convergence-red.log",
+      "sha256": "3b7ff00fed77e643447c239c467e2c01a4386d9c164973e95a01a3aad4c2db60"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/payment-binding-red.log",
+      "sha256": "e2ece1cc997730274ca1938f2c6296dd33c209756ad03e7ef55506e2e775535e"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/payment-race-red.log",
+      "sha256": "0352c960019ccd6180e5010d867d341935609573a73a67d433303f839921ae87"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/privacy-authority-red.log",
+      "sha256": "e31aec10dcd4e4c73039da20431ab03c5f2078722fb23804cc20a4b099500127"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/build-candidate.log",
+      "sha256": "5e8f05e00ce9ab4544ea85fa24362b54171a96c7491e0bc9d5c7d00533989f7d"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/contracts-candidate.log",
+      "sha256": "14a8c60aa8250c57e56c37dd5e90c594a32199a6875555589a5f6ad55a118bb6"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/unit-final.log",
+      "sha256": "983e1ad583a71eafbb65566525b34bf504cccb5f9c9ffd669a0a3f90b9c94b25"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/integration-final.log",
+      "sha256": "54b0c2f3d8ff7f9966b25058bbdecd8d6f18ba915a212ad4830cdefc54f8bb74"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/build-final.log",
+      "sha256": "690b78d0eb827612b5376bb8da9f46219217396dbb65198a4c5665cf8b75e7ef"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/privacy-scope-red.log",
+      "sha256": "592aeb0914cc1bcb27123d06e3a77dba6a0c97b023f7c9cfee052b147726ad41"
+    },
+    {
+      "localPath": "tmp/pr16-continuation/privacy-scope-green.log",
+      "sha256": "d97caf5a53b3845807965bcaaf1113c654e00c67db76925790998e9e9f951d4c"
+    }
+  ],
+  "nativeFixture": {
+    "runId": "f363dfe8f593340d5dcba97d",
+    "stopped": true,
+    "ownedDbAndS3Removed": true,
+    "port18080ListenerPresent": false,
+    "apiRuntimePredatesBackendFixes": true
+  },
+  "oldDatabaseIncident": {
+    "impact": "UNKNOWN",
+    "restored": false,
+    "oldTargetsTouched": false
+  },
+  "releaseReady": false
+}

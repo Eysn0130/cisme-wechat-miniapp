@@ -14,6 +14,7 @@ const acceptanceHost = "127.0.0.1";
 const externalUserId = "cisme-mini-acceptance-member";
 const outputDirectory = resolve(process.cwd(), "tmp/miniprogram-acceptance");
 const fixturePath = resolve(outputDirectory, "fixture.json");
+const syntheticCommunity = process.argv.includes("--synthetic-community");
 
 function fail(message: string): never {
   throw new Error(`MINIPROGRAM_ACCEPTANCE_${message}`);
@@ -68,6 +69,10 @@ const config = loadConfig({
   POINTS_HOLD_DAYS: "7",
   POINTS_EXPIRY_DAYS: "365",
   UGC_GO_LIVE_GATE: "false",
+  ...(syntheticCommunity ? {
+    UGC_GO_LIVE_GATE: "true", UGC_LEGAL_APPROVAL_ID: "synthetic-local-only",
+    UGC_PROVENANCE_READY: "true", UGC_CONTENT_SAFETY_READY: "true", UGC_MODERATION_READY: "true"
+  } : {}),
   LOG_LEVEL: "warn"
 });
 
@@ -124,6 +129,38 @@ async function seedFixtures() {
       (member_id,capability,granted_by,grant_reason,environment,grant_source,expires_at)
       VALUES($1,$2,'local-acceptance-admin','Isolated Mini Program acceptance fixture','test','local_acceptance',now()+interval '8 hours')`,
     [identity.memberId, capability]);
+  }
+
+  // This process is test-only, loopback-bound, and resetDatabase verifies the
+  // disposable runner's ownership marker before any fixture is created.
+  const communityRoutes: Record<string,{path:string;query:string}> = {};
+  if (syntheticCommunity) {
+    const actor = async (name:string) => body<any>(await app!.inject({method:"POST",url:"/v1/identity/dev",payload:{
+      externalUserId:`cisme-mini-acceptance-${name}`,displayName:`合成${name}`,
+      consents:[{documentType:"privacy",version:"local-acceptance-v1"},{documentType:"terms",version:"local-acceptance-v1"}]
+    }}),`UGC_ACTOR_${name}`);
+    const author=await actor("作者"),publisher=await actor("复核员");
+    const authorAuth={authorization:`Bearer ${author.sessionToken}`},publisherAuth={authorization:`Bearer ${publisher.sessionToken}`};
+    await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+      VALUES($1,'community.moderate','local-fixture','Synthetic local acceptance only','test','local_acceptance')`,[publisher.memberId]);
+    await pool.query(`INSERT INTO ugc_go_live_approval(approval_reference,signed_by,evidence,signed_at,expires_at)
+      VALUES('synthetic-native-acceptance','local fixture',$1,now(),now()+interval '8 hours')`,[{scope:"loopback disposable test only"}]);
+    await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'");
+    const makePost=async(key:string,publish:boolean)=>{
+      const draft=body<any>(await app!.inject({method:"POST",url:"/v1/me/ugc/posts",headers:{...authorAuth,"idempotency-key":`native-${key}-0001`},payload:{}}),"UGC_CREATE");
+      const saved=body<any>(await app!.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:authorAuth,
+        payload:{expectedVersion:draft.version,title:`合成护理故事 · ${key}`,body:"仅用于本轮隔离原生验收。记录护理步骤与本人感受，不构成商品功效或医疗承诺。",mediaIds:[],aiUsage:"none",rightsConfirmed:true,publicConsentConfirmed:true}}),"UGC_SAVE");
+      const submitted=body<any>(await app!.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/submit`,headers:authorAuth,payload:{expectedVersion:saved.version}}),"UGC_SUBMIT");
+      if(!publish)return submitted;
+      const reviewed=body<any>(await app!.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/review`,headers:auth,payload:{expectedVersion:submitted.version,decision:"approve",reason:"本地合成文本验收",ruleVersion:"synthetic-native-v1"}}),"UGC_REVIEW");
+      return body<any>(await app!.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/publish`,headers:publisherAuth,payload:{expectedVersion:reviewed.version}}),"UGC_PUBLISH");
+    };
+    const published=await makePost("published",true),pending=await makePost("pending",false),deleted=await makePost("deleted",true);
+    body(await app.inject({method:"DELETE",url:`/v1/me/ugc/posts/${deleted.id}`,headers:authorAuth,payload:{expectedVersion:deleted.version}}),"UGC_DELETE");
+    communityRoutes.communityAuthor={path:"pages/community-author/index",query:`id=${author.memberId}`};
+    communityRoutes.communityPost={path:"pages/community-post/index",query:`id=${published.id}`};
+    communityRoutes.communityReview={path:"pages/community-review/index",query:`id=${pending.id}`};
+    communityRoutes.communityDeleted={path:"pages/community-post/index",query:`id=${deleted.id}`};
   }
 
   const address = body<any>(await app.inject({
@@ -317,6 +354,8 @@ async function seedFixtures() {
     database: { name: databaseState.database, migrationCount: databaseState.migration_count, latestMigration: databaseState.latest_migration },
     developmentIdentity: { externalUserId },
     routes: {
+      ...communityRoutes,
+      managementMember: { path: "pages/management-member/index", query: `id=${identity.memberId}` },
       product: { path: "pages/product/index", query: `id=${createdProduct.code}` },
       checkout: { path: "pages/checkout/index", query: `product=${createdProduct.code}&sku=${sku.id}&quantity=1` },
       task: { path: "pages/task/index", query: `id=${d7.task.id}` },

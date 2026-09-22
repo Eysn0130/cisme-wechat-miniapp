@@ -1195,3 +1195,15 @@ it('labels a synthetic scoped erasure as partial and leaves unrelated data uncla
  expect(page.data.records[0].executionSummary).toContain('仅清除自报微信号，其他资料未删除');
  expect(page.data.records[0].statusLabel).toBe('部分完成');
 });
+
+
+it('loads privacy operator, version and contact from the shared public legal source',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const page=mountedPage(capturedPage!,{alive:true});
+ requestMock.mockResolvedValueOnce({documents:[{document_type:'privacy',operator_name:'Approved operator fixture',version:'fixture-v2',contact:'Approved contact fixture'}]});
+ await page.loadLegalIdentity();
+ expect(requestMock).toHaveBeenCalledWith({path:'/v1/legal',authMode:'public'});
+ expect(page.data.legalIdentity).toEqual({operator:'Approved operator fixture',version:'fixture-v2',contact:'Approved contact fixture'});
+ requestMock.mockRejectedValueOnce(new Error('network'));
+ await page.loadLegalIdentity();expect(page.data.legalIdentity).toBeNull();
+});

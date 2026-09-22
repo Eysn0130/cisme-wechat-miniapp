@@ -247,12 +247,12 @@ it('applies only the member-confirmed synthetic profile-handle scope after dual 
  expect((await pool.query('SELECT last_error_code FROM data_erasure_job WHERE id=$1',[job.id])).rows[0].last_error_code).toBe('ERASURE_TASK_FAILED');
  await pool.query("UPDATE data_erasure_job SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[job.id]);
  expect((await runWorkerCycle(pool,storage,{ugcGoLiveGate:false,privacyEnvironment:'test',privacySyntheticExportKey:config.privacy.syntheticExportKey})).privacyErasures).toBe(1);
- expect((await pool.query('SELECT count(*)::int AS count FROM member_profile WHERE member_id=$1',[ownerMemberId])).rows[0].count).toBe(0);
+ expect((await pool.query('SELECT wechat_handle,profile_revision FROM member_profile WHERE member_id=$1',[ownerMemberId])).rows[0]).toMatchObject({wechat_handle:null,profile_revision:1});
  expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[otherMember])).rows[0].wechat_handle).toBe('Other123');
  expect((await pool.query('SELECT count(*)::int AS count FROM member WHERE id=$1',[ownerMemberId])).rows[0].count).toBe(1);
  expect((await pool.query('SELECT count(*)::int AS count FROM member_contact WHERE member_id=$1',[ownerMemberId])).rows[0].count).toBe(1);
  const result=(await pool.query('SELECT status,manifest,legal_hold_count,result_sha256 FROM data_erasure_job WHERE id=$1',[job.id])).rows[0];
- expect(result).toMatchObject({status:'partially_succeeded',legal_hold_count:0,manifest:{scopeCode:'member_profile_handle_v1',deletedProfileRows:1}});
+ expect(result).toMatchObject({status:'partially_succeeded',legal_hold_count:0,manifest:{scopeCode:'member_profile_handle_v1',deletedProfileRows:0,clearedHandleRows:1}});
  expect(result.result_sha256).toMatch(/^[0-9a-f]{64}$/);
  expect((await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${token}`}})).json()
    .find((item:{id:string})=>item.id===id)).toMatchObject({status:'partially_completed',resolution_code:'SYNTHETIC_PROFILE_HANDLE_ONLY',execution:{status:'partially_succeeded',scopeCode:'member_profile_handle_v1'}});
@@ -291,7 +291,7 @@ it('requires a review lead to redrive an exhausted scoped job and keeps failed d
  await pool.query("UPDATE legal_hold SET status='released',released_by='second-lead',released_at=now() WHERE id=$1",[redriveHold.id]);
  expect((await app.inject({method:'POST',url:redrive,headers:admin('second-lead'),payload:{expectedVersion:exhausted.version,reasonCode:'SYNTHETIC_RECHECK'}})).statusCode).toBe(200);
  expect(await executor.runProfileErasureOnce()).toBe(true);
- expect((await pool.query('SELECT count(*)::int AS count FROM member_profile WHERE member_id=$1',[redriveMemberId])).rows[0].count).toBe(0);
+ expect((await pool.query('SELECT wechat_handle,profile_revision FROM member_profile WHERE member_id=$1',[redriveMemberId])).rows[0]).toMatchObject({wechat_handle:null,profile_revision:1});
  expect((await pool.query('SELECT status,attempts FROM data_erasure_job WHERE privacy_request_id=$1',[id])).rows[0]).toMatchObject({status:'partially_succeeded',attempts:1});
  expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.execution.redrive' AND object_id=$1",[id])).rows[0].count).toBe(1);
  expect(JSON.stringify((await pool.query('SELECT detail FROM privacy_request_event WHERE privacy_request_id=$1',[id])).rows)).not.toContain('PRIVATE_EXHAUSTED_ERASURE');

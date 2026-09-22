@@ -1,0 +1,6 @@
+{
+  "status": "COMPLETED_WITH_SOURCE_DRIFT",
+  "reason": "74/74 compiler calls returned success, but source changed during the run (unchangedAtEnd=false). Excluded from candidate acceptance; superseded by native-candidate compilation. Process had completed before stop was attempted.",
+  "packageAtStart": "5cefd5cd8d0d150dfb32fda366ed70e48b96c9867b592c120681b3d76aef07e7",
+  "time": "2026-09-22T05:17:32.590983+00:00"
+}

@@ -1,6 +1,6 @@
 import { createCipheriv,generateKeyPairSync,randomBytes,sign } from "node:crypto";
 import { expect,it } from "vitest";
-import { assertPaymentBinding,verifyPaymentNotification,WechatPayV3Client } from "../../services/api/src/wechatPayV3";
+import { assertPaymentBinding,assertPaymentQueryBinding,verifyPaymentNotification,WechatPayV3Client } from "../../services/api/src/wechatPayV3";
 
 const platform=generateKeyPairSync("rsa",{modulusLength:2048});
 const merchant=generateKeyPairSync("rsa",{modulusLength:2048});
@@ -135,4 +135,15 @@ it("refuses transfer without an explicit scene report before any outbound call",
     payeeOpenid:"synthetic-payee",amountCents:1,sceneId:"TEST",remark:"synthetic",notifyUrl:"https://example.test/notify"}))
     .rejects.toMatchObject({code:"WECHAT_TRANSFER_SCENE_REQUIRED"});
   expect(calls).toBe(0);
+});
+
+
+it('binds non-success queries while allowing documented absent unpaid amount/payer fields',()=>{
+ const closed={appid:binding.appId,mchid:binding.merchantId,out_trade_no:binding.outTradeNo,trade_state:'CLOSED'};
+ expect(assertPaymentQueryBinding(closed,binding)).toBe(closed);
+ for(const changed of [{appid:'other'},{mchid:'other'},{out_trade_no:'other'},{trade_type:'NATIVE'},
+   {trade_state:'UNRECOGNIZED'},{amount:{total:1}},{amount:{currency:'USD'}},{payer:{openid:'other'}}])
+   expect(()=>assertPaymentQueryBinding({...closed,...changed},binding)).toThrow();
+ expect(()=>assertPaymentQueryBinding({...closed,trade_state:'SUCCESS'},binding)).toThrow();
+ expect(assertPaymentQueryBinding(transaction,binding)).toBe(transaction);
 });

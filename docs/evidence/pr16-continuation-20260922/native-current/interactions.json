@@ -1,0 +1,227 @@
+{
+  "packageSourceSha256": "fd8d316b67cbe7b3cafa456cb4a66a31505010bcd467fb10550de4fa3d6f4a8e",
+  "scope": "local_devtools_synthetic_nonproduction",
+  "deviceAcceptance": false,
+  "rows": [
+    {
+      "name": "tabs-before",
+      "result": [
+        [
+          {
+            "left": 14,
+            "right": 86.40625,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "600"
+          },
+          {
+            "left": 86.40625,
+            "right": 158.8125,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 158.8125,
+            "right": 231.21875,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 231.21875,
+            "right": 303.625,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 303.625,
+            "right": 376.03125,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 14,
+            "right": 86.390625,
+            "top": 149,
+            "bottom": 152,
+            "width": 72.390625,
+            "height": 3,
+            "display": "flex",
+            "align-items": "normal",
+            "justify-content": "center",
+            "transition-duration": "0.2s",
+            "transform": "matrix(1, 0, 0, 1, 0, 0)",
+            "font-weight": "400"
+          }
+        ]
+      ],
+      "time": "2026-09-22T04:50:46.105961+00:00"
+    },
+    {
+      "name": "tap-saves",
+      "result": {
+        "section": "saves",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T04:50:47.787202+00:00"
+    },
+    {
+      "name": "tap-reports",
+      "result": {
+        "section": "reports",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T04:50:49.475056+00:00"
+    },
+    {
+      "name": "tap-appeals",
+      "result": {
+        "section": "appeals",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T04:50:51.299383+00:00"
+    },
+    {
+      "name": "tap-blocks",
+      "result": {
+        "section": "blocks",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T04:50:52.993707+00:00"
+    },
+    {
+      "name": "tap-comments",
+      "result": {
+        "section": "comments",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T04:50:54.601127+00:00"
+    },
+    {
+      "name": "single-indicator",
+      "result": [
+        [
+          {
+            "left": 14,
+            "right": 86.390625,
+            "top": 149,
+            "bottom": 152,
+            "width": 72.390625,
+            "height": 3,
+            "display": "flex",
+            "align-items": "normal",
+            "justify-content": "center",
+            "transition-duration": "0.2s",
+            "transform": "matrix(1, 0, 0, 1, 0, 0)",
+            "font-weight": "400"
+          }
+        ]
+      ],
+      "time": "2026-09-22T04:50:55.775475+00:00"
+    },
+    {
+      "name": "rapid-handler-aba",
+      "result": {
+        "section": "comments",
+        "loading": false,
+        "busy": false,
+        "error": ""
+      },
+      "time": "2026-09-22T04:50:57.060117+00:00"
+    },
+    {
+      "name": "search-and-proposal-geometry",
+      "result": [
+        []
+      ],
+      "time": "2026-09-22T04:51:02.705761+00:00"
+    },
+    {
+      "name": "rate-sheet-geometry",
+      "result": [
+        [
+          {
+            "left": 0,
+            "right": 390,
+            "top": 381,
+            "bottom": 844,
+            "width": 390,
+            "height": 463,
+            "display": "block",
+            "align-items": "normal",
+            "justify-content": "normal",
+            "transition-duration": "0s",
+            "transform": "none",
+            "font-weight": "400"
+          }
+        ]
+      ],
+      "time": "2026-09-22T04:51:04.518606+00:00"
+    },
+    {
+      "name": "rate-sheet-dismissed",
+      "result": {
+        "visible": false
+      },
+      "time": "2026-09-22T04:51:08.953924+00:00"
+    },
+    {
+      "name": "finance-error-geometry",
+      "result": [
+        []
+      ],
+      "time": "2026-09-22T04:51:11.700256+00:00"
+    },
+    {
+      "name": "finance-state",
+      "result": {
+        "error": "当前环境没有开放隔离资金核对。",
+        "loading": false
+      },
+      "time": "2026-09-22T04:51:13.295082+00:00"
+    }
+  ]
+}

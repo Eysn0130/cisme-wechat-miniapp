@@ -1,15 +1,16 @@
 <view class="chrome-root" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回我的"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">我的社区</text></view>
   <view class="page page--stack activity-page">
-    <view class="activity-tabs" role="tablist">
+    <view class="activity-tabs {{reduceMotion?'activity-tabs--reduce-motion':''}}" role="tablist" aria-label="我的社区记录">
       <button wx:for="{{tabs}}" wx:key="key" data-section="{{item.key}}" bindtap="selectSection"
-        class="activity-tab {{section===item.key?'activity-tab--active':''}}" aria-label="查看我的{{item.label}}" aria-selected="{{section===item.key}}">{{item.label}}</button>
+        class="activity-tab {{section===item.key?'activity-tab--active':''}}" role="tab" hover-class="activity-tab--pressed" aria-label="查看我的{{item.label}}" aria-selected="{{section===item.key}}">{{item.label}}</button>
+      <view class="activity-tabs__indicator" aria-hidden="true" style="transform:translateX({{section==='saves'?100:section==='reports'?200:section==='appeals'?300:section==='blocks'?400:0}}%);"><view class="activity-tabs__line"/></view>
     </view>
     <view wx:if="{{notice}}" class="activity-notice" aria-live="polite">{{notice}}</view>
     <view wx:if="{{loading}}" class="activity-state" aria-live="polite">正在加载…</view>
     <view wx:if="{{error}}" class="activity-state activity-state--error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">重试</button></view>
-    <view wx:if="{{!loading}}" class="activity-count">共 {{matchingTotal}} 条 · 已加载 {{items.length}} 条</view>
-    <view wx:if="{{!loading && !items.length && !error}}" class="activity-state">{{section==='comments'?'还没有评论':section==='saves'?'还没有收藏':section==='reports'?'还没有举报记录':section==='appeals'?'还没有内容申诉':'还没有屏蔽的用户'}}</view>
+    <view wx:if="{{!loading && !error && items.length}}" class="activity-count">共 {{matchingTotal}} 条 · 已加载 {{items.length}} 条</view>
+    <view wx:if="{{!loading && !items.length && !error}}" class="activity-state activity-state--empty">{{section==='comments'?'还没有评论':section==='saves'?'还没有收藏':section==='reports'?'还没有举报记录':section==='appeals'?'还没有内容申诉':'还没有屏蔽的用户'}}</view>
     <block wx:if="{{section==='comments'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
       <view class="activity-row__top"><text class="activity-row__title">{{item.postTitle || '内容暂不可见'}}</text><text class="activity-status">{{item.stateLabel}}</text></view>
       <text class="activity-row__body">{{item.body || '评论正文已删除'}}</text><text class="activity-row__time">{{item.createdLabel}}</text>

@@ -35,6 +35,7 @@ const channelRefunds=new Map<string,{outTradeNo:string;transactionId:string;amou
 const channelTransfers=new Map<string,{openid:string;amount:number;state:"WAIT_USER_CONFIRM"|"SUCCESS"|"FAIL";
   transferBillNo:string;remark:string}>();
 const tradeBillFixtures=new Map<string,Buffer>();
+let missingQueryBarrier:{orderNumber:string;entered:()=>void;wait:Promise<void>}|undefined;
 let corruptBillHash=false;
 let loseNextRefundResponse=false;
 let loseNextTransferResponse=false;
@@ -99,7 +100,7 @@ async function channelHandler(request:IncomingMessage,response:ServerResponse){
   const query=path.match(/^\/v3\/pay\/transactions\/out-trade-no\/([^/?]+)\?mchid=([^&]+)$/);
   if(method==="GET"&&query){
     const order=channelOrders.get(decodeURIComponent(query[1]!));
-    if(!order){sendSigned(response,404,{code:"ORDER_NOT_EXIST"});return;}
+    if(!order){if(missingQueryBarrier?.orderNumber===decodeURIComponent(query[1]!)){missingQueryBarrier.entered();await missingQueryBarrier.wait;}sendSigned(response,404,{code:"ORDER_NOT_EXIST"});return;}
     sendSigned(response,200,{appid:order.appid,mchid:order.mchid,out_trade_no:decodeURIComponent(query[1]!),
       trade_type:"JSAPI",trade_state:order.state,payer:{openid:order.openid},
       amount:{total:order.amount,payer_total:order.amount,currency:"CNY",payer_currency:"CNY"},
@@ -1415,3 +1416,65 @@ it("assembles pinned formal trust through isolated payment, callback, refund and
 });
 
 it("spends source-attributed test credit beside signed cash, and releases an unpaid reservation",creditSpendCase);
+
+
+for(const mismatch of ['appid','mchid','openid','amount'] as const)it(`does not release inventory for a signed CLOSED query with mismatched ${mismatch}`,async()=>{
+  await pool.query("UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1",[skuId]);
+  const order=await createOrder(`closed-query-binding-${mismatch}`);
+  expect((await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const channelOrder=channelOrders.get(order.orderNumber)!;
+  channelOrder.state='CLOSED';
+  if(mismatch==='amount')channelOrder.amount+=1;
+  else channelOrder[mismatch]='different-synthetic-binding';
+  const before=(await pool.query('SELECT status FROM commerce_inventory_reservation WHERE order_id=$1',[order.id])).rows[0].status;
+  const response=await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/cancel-verified`,
+    headers:{...auth(buyer.sessionToken),'idempotency-key':`closed-query-cancel-${mismatch}`},payload:{expectedVersion:order.version,reason:'Synthetic signed mismatch'}});
+  expect(response.statusCode).toBe(422);expect(response.json().code).toBe('WECHAT_PAY_FACT_INVALID');
+  expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[order.id])).rows[0].status).toBe('pending_payment');
+  expect((await pool.query('SELECT status FROM commerce_inventory_reservation WHERE order_id=$1',[order.id])).rows[0].status).toBe(before);
+  expect((await pool.query("SELECT 1 FROM audit_log WHERE object_id=$1 AND action='commerce.order.cancel'",[order.id])).rowCount).toBe(0);
+});
+
+it('does not release stock when an ORDER_NOT_EXIST response races a dispatched prepay',async()=>{
+ await pool.query("UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1",[skuId]);
+ const order=await createOrder('missing-query-prepay-race');
+ let release!:()=>void,entered!:()=>void;
+ const arrived=new Promise<void>(resolve=>{entered=resolve;});
+ missingQueryBarrier={orderNumber:order.orderNumber,entered,wait:new Promise<void>(resolve=>{release=resolve;})};
+ const cancellation=app.inject({method:'POST',url:`/v1/me/orders/${order.id}/cancel-verified`,
+  headers:{...auth(buyer.sessionToken),'idempotency-key':'missing-query-prepay-cancel'},payload:{expectedVersion:order.version,reason:'Synthetic channel race'}});
+ try{
+  await arrived;
+  const payment=await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
+  expect(payment.statusCode).toBe(200);
+  release();const result=await cancellation;
+  expect(result.statusCode).toBe(409);expect(result.json().code).toBe('PAYMENT_CLOSE_REQUIRED');
+  expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[order.id])).rows[0].status).toBe('pending_payment');
+  expect((await pool.query('SELECT status FROM commerce_inventory_reservation WHERE order_id=$1',[order.id])).rows[0].status).toBe('active');
+  expect(channelOrders.get(order.orderNumber)?.state).toBe('NOTPAY');
+ }finally{release();await cancellation;missingQueryBarrier=undefined;}
+});
+
+it('rechecks subject authority at the committed dispatch marker across independent transactions',async()=>{
+ await pool.query("UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1",[skuId]);
+ const order=await createOrder('prepay-member-revocation');
+ const blocker=await pool.connect();let pending:Promise<{statusCode:number;json():{code?:string}}>|undefined;
+ try{
+  await blocker.query('BEGIN');
+  await blocker.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer.memberId]);
+  pending=app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
+  let waiting=false;
+  for(let i=0;i<100;i++){
+   const observed=await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%SELECT 1 FROM member%' AND query LIKE '%FOR SHARE%'");
+   if(observed.rowCount){waiting=true;break;}
+   await new Promise(resolve=>setTimeout(resolve,10));
+  }
+  expect(waiting).toBe(true);expect(channelOrders.has(order.orderNumber)).toBe(false);
+  await blocker.query('COMMIT');
+  const result=await pending;
+  expect(result.statusCode).toBe(403);expect(result.json().code).toBe('MEMBER_NOT_ACTIVE');
+  expect(channelOrders.has(order.orderNumber)).toBe(false);
+  expect((await pool.query('SELECT first_dispatch_started_at FROM commerce_payment_attempt WHERE order_id=$1',[order.id])).rows[0].first_dispatch_started_at).toBeNull();
+  expect((await pool.query('SELECT status FROM commerce_inventory_reservation WHERE order_id=$1',[order.id])).rows[0].status).toBe('active');
+ }finally{await blocker.query('ROLLBACK');blocker.release();await pending;await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer.memberId]);}
+});

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "runId": "67415ed3954bd1979e127b3a",
+  "kind": "owned-synthetic-database-restore",
+  "dumpSha256": "05f81a4e477d55befac44df6529df3202dcd3a52aa8fd4603cb17fa8d899f3af",
+  "dumpBytes": 563092,
+  "migrationsBefore": 72,
+  "migrationsAfter": 72,
+  "probeRestored": true,
+  "ownershipSurvived": true,
+  "productionBackup": false,
+  "oldIncidentRestored": false,
+  "objectStorageRecovery": {
+    "status": "PASS",
+    "scope": "one owned synthetic object, in-memory snapshot; not production durability",
+    "bytes": 45,
+    "sha256": "e5ccc5f28b9143c84eff17cc711eb559d17d1283e198e606374e795a780f0cd7"
+  },
+  "releaseReady": false
+}

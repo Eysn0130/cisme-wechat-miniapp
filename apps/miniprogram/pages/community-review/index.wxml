@@ -1,7 +1,7 @@
 <view class="chrome-root" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回社区"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">社区内容审核</text></view>
   <view class="page page--stack review-page">
     <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载待审核内容…</view>
-    <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!postId}}" class="text-button" bindtap="back">返回社区</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
+    <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!postId || permissionDenied}}" class="text-button" bindtap="back">返回社区</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
     <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
     <button wx:if="{{handled}}" class="text-button" bindtap="back">返回社区审核队列</button>
     <block wx:if="{{candidate}}"><text class="review-eyebrow">REVISION {{candidate.revision}}</text><view class="page-title">内容与公开复核</view>

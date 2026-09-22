@@ -62,3 +62,23 @@ it("removes old actions when another reviewer handles the candidate",async()=>{
   expect(page.data.candidate).toBeNull();expect(page.data.handled).toBe(true);
   expect(page.data.notice).toContain("已被他人处理");
 });
+
+for(const action of ['load','reviewPost','reviewMedia','publish'])it(`clears the private candidate after revoked capability at ${action}`,async()=>{
+  const page=mounted();const item=candidate(action==='publish'?'approved':'pending');
+  item.media=[{id:'media-one',state:'uploaded',scanVerdict:'safe',scanProvider:'synthetic',position:0}] as any;
+  requestMock.mockResolvedValueOnce(item).mockResolvedValueOnce({url:'https://example.invalid/private'});await page.load();
+  modal.mockResolvedValueOnce({confirm:true,content:'隔离审核充分依据'});
+  requestMock.mockRejectedValueOnce({status:403,code:'CAPABILITY_REQUIRED',title:'Required capability: community.moderate'});
+  if(action==='reviewPost'||action==='reviewMedia')await page[action]({currentTarget:{dataset:{decision:'approve',id:'media-one'}}});else await page[action]();
+  expect(page.data).toMatchObject({candidate:null,media:[],busy:false,permissionDenied:true,handled:false});
+  expect(page.data.error).toBe('当前账号没有内容审核权限，请返回社区。');
+  const before=requestMock.mock.calls.length;
+  await page.reviewPost({currentTarget:{dataset:{decision:'approve'}}});
+  expect(requestMock.mock.calls).toHaveLength(before);
+});
+
+it("does not retain candidate text when private media lookup reports revoked capability",async()=>{
+  const page=mounted();const item=candidate();item.media=[{id:'media-one'}] as any;
+  requestMock.mockResolvedValueOnce(item).mockRejectedValueOnce({status:403,code:'CAPABILITY_REQUIRED',title:'Required capability: community.moderate'});
+  await page.load();expect(page.data).toMatchObject({candidate:null,media:[],permissionDenied:true,loading:false,busy:false});
+});

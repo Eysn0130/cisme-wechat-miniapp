@@ -349,7 +349,7 @@ export class CommerceOrderService {
     }
   }
 
-  async cancel(memberId: string | undefined, principalId: string | undefined, orderIdInput: string, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date(), verifiedCloseAttemptId?: string) {
+  async cancel(memberId: string | undefined, principalId: string | undefined, orderIdInput: string, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date(), verifiedClose?: {attemptId:string;channelState:'CLOSED'|'ORDER_NOT_EXIST'}) {
     const owner=member(memberId); const actor=principal(principalId); const orderId=uuid(orderIdInput,"ORDER_ID_INVALID"); const idempotencyKey=key(keyInput);
     const normalized={operation:"commerce.order.cancel",actor,memberId:owner,orderId,expectedVersion:version(input.expectedVersion),reason:typeof input.reason==="string"?input.reason.trim():""};
     if (Array.from(normalized.reason).length<3 || Array.from(normalized.reason).length>500) throw new DomainError("ORDER_CANCEL_REASON_INVALID","请填写取消原因",422);
@@ -371,15 +371,16 @@ export class CommerceOrderService {
       const source=(await client.query<{transaction_source_kind:string}>(
         "SELECT transaction_source_kind FROM commerce_order WHERE id=$1",[orderId])).rows[0]?.transaction_source_kind;
       if(source==="verified_commerce"){
-        const attempt=(await client.query<{id:string;state:string}>(
-          "SELECT id,state FROM commerce_payment_attempt WHERE order_id=$1 FOR UPDATE",[orderId])).rows[0];
-        if(attempt?.state!=="closed"&&(!verifiedCloseAttemptId||attempt?.id!==verifiedCloseAttemptId||attempt.state==="paid"))
+        const attempt=(await client.query<{id:string;state:string;first_dispatch_started_at:Date|null}>(
+          "SELECT id,state,first_dispatch_started_at FROM commerce_payment_attempt WHERE order_id=$1 FOR UPDATE",[orderId])).rows[0];
+        if(attempt?.state!=="closed"&&(!verifiedClose||attempt?.id!==verifiedClose.attemptId||attempt.state==="paid"||
+          (verifiedClose.channelState==='ORDER_NOT_EXIST'&&(attempt.state!=='prepared'||attempt.first_dispatch_started_at!==null))))
           throw new DomainError("PAYMENT_CLOSE_REQUIRED","须先核对并关闭渠道原订单，才能取消",409);
       }
       if(current.version!==normalized.expectedVersion)throw new DomainError("ORDER_VERSION_CONFLICT","订单状态已变化，请刷新后重试",409);
-      if(source==="verified_commerce"&&verifiedCloseAttemptId){
+      if(source==="verified_commerce"&&verifiedClose){
         await client.query(`UPDATE commerce_payment_attempt SET state='closed',request_lease_until=NULL,
-          updated_at=clock_timestamp() WHERE id=$1 AND order_id=$2 AND state<>'closed'`,[verifiedCloseAttemptId,orderId]);
+          updated_at=clock_timestamp() WHERE id=$1 AND order_id=$2 AND state<>'closed'`,[verifiedClose.attemptId,orderId]);
       }
       await this.release(client,orderId,"USER_CANCELLED",now,actor);
       const updated=(await client.query<OrderRow>(`UPDATE commerce_order SET status='cancelled',cancelled_at=$2,terminal_reason=$3,version=version+1,updated_at=$2 WHERE id=$1 RETURNING *`,[orderId,now,normalized.reason])).rows[0]!;

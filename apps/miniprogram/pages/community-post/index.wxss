@@ -4,3 +4,8 @@
 .story-author__profile.control--disabled{opacity:.55}
 .story-comment .text-button{align-self:flex-start;min-width:88rpx;min-height:88rpx;margin:0;padding:0 14rpx;color:#654b70;font-size:23rpx}.story-comment-reply{display:flex;align-items:center;justify-content:space-between;min-height:88rpx;margin-top:20rpx;color:#654b70;font-size:24rpx}.story-comment-reply .text-button{min-height:88rpx}
 .story-own-comments{display:flex;flex-direction:column;gap:12rpx;margin:16rpx 0;padding:20rpx;border-radius:16rpx;background:#eee5f1;color:#5e4b68;font-size:25rpx}.story-own-comment{display:flex;gap:16rpx;line-height:1.5}.story-own-comment text{word-break:break-word}.story-own-comment__status{flex-shrink:0;color:#7e4e8d;font-weight:600}.story-own-comments-link{min-height:88rpx;margin:0 0 14rpx;padding:0;color:#704d7b;font-size:24rpx}
+
+.story-page .state--error .text-button{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;min-height:44px;margin:12px 0 0;padding:10px 16px;border:1rpx solid #d8c9dd;border-radius:12px;background:#fff;color:#56306f;font-size:14px;line-height:1.4;text-align:center;white-space:normal}
+
+.story-actions button,.story-author__follow,.story-comment-box button,.story-tools button,.story-comment .text-button,.story-comment-reply .text-button{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:44px;min-height:44px;margin:0;padding:10px 12px;line-height:1.4;white-space:normal}
+.story-comment-box input{box-sizing:border-box;height:44px;min-height:44px}.story-own-comments-link{display:flex;align-items:center;min-height:44px;line-height:1.4}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "ff24bc3e03f60d4d68b41cfe38a1637b65058e9a",
+  "sourceTree": "25fc7916dd5d27321bc474e31cdf0a7c0dc7c2bc",
+  "scope": "source checkpoint before evidence commit; final delivery HEAD/CI/worktree are recorded in the review ZIP root RECOVERY-ANCHOR.json",
+  "branch": "chatgpt/native-polish-release-closure-20260921",
+  "pr": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/16",
+  "handoffHead": "79bf741528feb4f9028fc7ee7dce560949fd82b8",
+  "main": "35a9cfa7d67b66c1c7d982a8940a86ab300a874e",
+  "packageSourceSha256": "a296da16a0edafe3d1fc988b94539a52a23f2d7e8b1fa85d9702e96b4276161c",
+  "releaseReady": false
+}
