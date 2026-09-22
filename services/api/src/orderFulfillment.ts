@@ -60,6 +60,14 @@ export class OrderFulfillmentService {
       if(!order)fail('ORDER_NOT_FOUND',404);
       if(order.status!=='paid'||order.transaction_source_kind!=='verified_commerce')fail('SHIPMENT_PAID_ORDER_REQUIRED');
       if(order.version!==input.expectedOrderVersion)fail('VERSION_CONFLICT');
+      // Refund commands lock this same order row. R0 cannot safely dispatch a
+      // partly refunded or unresolved order; operator review must settle it first.
+      const hold=(await client.query(`SELECT
+        EXISTS(SELECT 1 FROM commission_refund_intent WHERE order_id=$1 AND state<>'closed') OR
+        EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
+          WHERE r.order_id=$1 AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed')))) AS blocked`,[orderId])).rows[0].blocked;
+      if(hold)fail('SHIPMENT_REFUND_REVIEW_REQUIRED');
+
       if(Date.parse(input.shippedAt)<new Date(order.paid_at).getTime()||Date.parse(input.shippedAt)>new Date(order.server_time).getTime())fail('SHIPMENT_TIME_INVALID',422);
       if((await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1',[orderId])).rowCount)fail('ORDER_ALREADY_SHIPPED');
       const lines=(await client.query('SELECT id,product_name,quantity FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number',[orderId])).rows;

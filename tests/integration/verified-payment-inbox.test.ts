@@ -674,6 +674,17 @@ it('commits local shipment and WeChat intent together without network I/O; recei
     VALUES($1,$2,$3,$4,$5,1)`,[order.id,sealed.encryptedPayload,sealed.payloadHmac,sealed.keyVersion,addressId]);
   await expect(service.dispatch(buyer,order.id,'local-shipment-0001',input)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   await expect(service.dispatch(actor,order.id,'local-shipment-invalid',{...input,trackingNumber:'=CMD()'})).rejects.toMatchObject({code:'SHIPMENT_INPUT_INVALID'});
+  const held=await seedOrder('LOCALHOLD01',null,await dbNow());
+  const heldPaid=notification(held.number,'420000000000000LOCALHOLD01','EV-LOCAL-HOLD-01',(await dbNow()).toISOString());
+  const heldEvent=await processor.receive(heldPaid.rawBody,heldPaid.headers);expect(await processor.processOne(heldEvent.inboxId)).toBe('applied');
+  const heldVersion=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[held.id])).rows[0].version;
+  const intent=await refundIntent({orderId:held.id,paymentId:heldEvent.inboxId,refundNumber:'LOCAL-HOLD-REFUND-01',refundCents:10000,eligibleCents:0});
+  await expect(service.dispatch(actor,held.id,'local-held-dispatch-01',{...input,expectedOrderVersion:heldVersion})).rejects.toMatchObject({code:'SHIPMENT_REFUND_REVIEW_REQUIRED'});
+  const refundEvent=refundNotification({orderNumber:held.number,transactionId:'420000000000000LOCALHOLD01',refundNumber:'LOCAL-HOLD-REFUND-01',providerRefundId:'500000000000LOCALHOLD01',eventId:'EV-LOCAL-HOLD-REFUND-01',refundCents:10000,status:'SUCCESS',successTime:(await dbNow()).toISOString()});
+  const receivedRefund=await refunds.receive(refundEvent.rawBody,refundEvent.headers);expect(await refunds.processOne(receivedRefund.inboxId)).toBe('applied');
+  expect((await pool.query('SELECT state FROM commission_refund_intent WHERE id=$1',[intent])).rows[0].state).toBe('succeeded');
+  const refundedVersion=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[held.id])).rows[0].version;
+  await expect(service.dispatch(actor,held.id,'local-held-dispatch-02',{...input,expectedOrderVersion:refundedVersion})).rejects.toMatchObject({code:'SHIPMENT_REFUND_REVIEW_REQUIRED'});
   const [one,two]=await Promise.all([service.dispatch(actor,order.id,'local-shipment-0001',input),service.dispatch(actor,order.id,'local-shipment-0001',input)]);
   expect(one).toEqual(two);expect(networkCalls).toBe(0);
   expect((await pool.query('SELECT count(*)::int n FROM commerce_shipment WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
