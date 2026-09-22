@@ -2,15 +2,16 @@
   "sourceBase": "547c9e64e8eca5c0e8a2fd150f42d2c52d3c9d4b",
   "scope": "working source of this PR; not deployed staging source",
   "unit": {
-    "passed": 997,
+    "passed": 1003,
     "skipped": 1,
-    "files": 89
+    "files": 90
   },
   "integration": {
     "passed": 783,
     "files": 45,
     "ownedRunId": "1dc52c6f29526ed3bc7cc807",
-    "resourcesRemovedByOwnershipHarness": true
+    "resourcesRemovedByOwnershipHarness": true,
+    "scope": "full suite before bill-parser fix; final affected suite rerun below"
   },
   "offlinePythonTests": 9,
   "typecheck": "pass",
@@ -24,8 +25,21 @@
     "integration": {
       "localPath": "tmp/dual-environment-20260922/integration.log",
       "sha256": "b33bc205a30626dbe5324c23b83998d2d5eaaa1f93668f7b0a9b6d3308695cfe"
+    },
+    "unit-final": {
+      "localPath": "tmp/dual-environment-20260922/unit-final.log",
+      "sha256": "943ff73228781feb4dbfd06e4827a3c09a1450bd90e12ec4ae51eb9867c904ad"
+    },
+    "payment-regression-final": {
+      "localPath": "tmp/dual-environment-20260922/payment-regression-final.log",
+      "sha256": "646a9aa34ed660a5ee2aee73c1f90d7642a9d1c448520ed9d3dcc352efd79563"
     }
   },
   "remoteCi": "resolve against actual PR head; not claimed here",
-  "releaseReady": false
+  "releaseReady": false,
+  "billRegression": {
+    "passed": 41,
+    "ownedRunId": "b6ed6cb781fa011f025b05bc",
+    "resourcesRemovedByOwnershipHarness": true
+  }
 }

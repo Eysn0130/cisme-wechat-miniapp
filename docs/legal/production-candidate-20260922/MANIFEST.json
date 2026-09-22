@@ -10,9 +10,8 @@
   "wechatAuditModified": false,
   "stagingDocumentReusedAsProduction": false,
   "missingBusinessValues": [
-    "formal contact and handling hours",
-    "shipping scope/fees/deadline",
-    "returns/refunds policy",
+    "verified return contact and return address",
+    "handling hours and fallback contact",
     "object-specific retention and hold rules"
   ],
   "requiredEngineering": [
@@ -23,7 +22,13 @@
   ],
   "checksums": {
     "微信隐私保护指引填写候选.md": "2d570ba4fc1b1744adcf1e3789864c0d8c209dbf73ff6d37841526702b0fa9d1",
-    "用户协议.md": "456ed6c95d1aa89f2bfe554b3b547f1d5f14b90825a0c13d07554262b68bf876",
+    "用户协议.md": "21c5666a2bceff3d0903f4cd91e7cea4385831a330daedc1d9ca82b6c5264614",
     "隐私政策.md": "96e22235eac8a46b106f031ed183c28e8ebb092f6928697a712b2cf295c083fd"
-  }
+  },
+  "fulfillmentBusinessRulesApprovedByOwner": true,
+  "businessRuleApprovalSource": "2026-09-22 current task user reply: CISME 首发履约方案",
+  "remainingBusinessConfiguration": [
+    "真实退货联系电话",
+    "真实退货地址"
+  ]
 }

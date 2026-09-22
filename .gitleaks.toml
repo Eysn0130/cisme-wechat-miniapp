@@ -43,3 +43,11 @@ condition = "AND"
 paths = ['''^tests/unit/commerce-command-store\.test\.ts$''']
 regexTarget = "match"
 regexes = ['''key:\s*"synthetic-refund-1"''']
+
+[[allowlists]]
+description = "Verified legacy staging API artifact SHA-256, not an API credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^infra/tencent/staging-candidate\.py$''']
+regexTarget = "match"
+regexes = ['''OLD_API_SHA = '7df242062417c1190b5c714ba4a34fb46cf927508989514d9e9aa5c088ed7f8b''']
