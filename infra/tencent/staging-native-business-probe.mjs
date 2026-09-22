@@ -4,12 +4,13 @@ import {createRequire} from 'node:module';
 import {readFile,writeFile,realpath} from 'node:fs/promises';
 import {createHmac,createHash} from 'node:crypto';
 import {hostname} from 'node:os';
-const SOURCE='2df301818c550ae6d19649d44f785d02fb58b276';
+// The caller supplies the exact CI-verified candidate, not a moving branch.
+const SOURCE=process.argv[3];
 const run=process.argv[2],root='/opt/cisme';
 function requireFact(ok,code){if(!ok)throw Error(code);}
 let pool;
 try{
- requireFact(hostname()==='VM-4-15-ubuntu'&&/^rc20260922-[a-f0-9]{8}$/.test(run),'STAGING_OWNERSHIP_REQUIRED');
+ requireFact(hostname()==='VM-4-15-ubuntu'&&/^rc20260922-[a-f0-9]{8}$/.test(run)&&/^[a-f0-9]{40}$/.test(SOURCE??''),'STAGING_OWNERSHIP_REQUIRED');
  const state=`${root}/staging-acceptance/${run}`,owned=JSON.parse(await readFile(`${state}/ownership.json`,'utf8'));
  const prepared=JSON.parse(await readFile(`${state}/prepared.json`,'utf8'));
  const database='cisme_accept_'+run.replaceAll('-','_'),release=`${root}/releases/${run}-${SOURCE.slice(0,12)}`;
@@ -38,6 +39,15 @@ try{
  const race=await Promise.all([http(path,operatorToken,'POST',reply),http(path,operatorToken,'POST',reply)]);
  requireFact(race.map(r=>r.status).sort().join(',')==='200,409','PRIVACY_VERSION_RACE_FAILED');checks.push('privacy-concurrent-version-conflict');
  result=await http('/v1/me/privacy-requests',ownerToken);requireFact(result.body[0].status==='responded'&&result.body[0].execution===null,'FALSE_EXECUTION_CLAIM');checks.push('reply-not-misrepresented-as-export');
+ const nativePath=`/v1/management/privacy-requests/${first.body.id}/response`;
+ result=await http('/v1/management/privacy-requests',operatorToken);requireFact(result.status===403,'LEGACY_ROLE_BYPASSED_NATIVE_CAPABILITY');checks.push('native-privacy-legacy-role-insufficient');
+ await pool.query("INSERT INTO authority_grant(member_id,capability,environment,granted_by,grant_reason) VALUES($1,'privacy.request.manage','staging',$2,'Synthetic native privacy acceptance only')",[operator,principal]);
+ result=await http('/v1/management/privacy-requests',operatorToken);requireFact(result.status===200&&result.body.length===1&&result.body[0].id===first.body.id,'NATIVE_PRIVACY_QUEUE_FAILED');checks.push('native-privacy-authorized-queue');
+ result=await http(nativePath,operatorToken,'POST',{status:'reviewing',response:'SYNTHETIC native review; no data execution performed.',expectedVersion:2});requireFact(result.status===200,'NATIVE_PRIVACY_RESPONSE_FAILED');checks.push('native-privacy-versioned-response');
+ await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by=$2,revoke_reason='Synthetic native privacy revocation' WHERE member_id=$1 AND capability='privacy.request.manage' AND revoked_at IS NULL",[operator,principal]);
+ const revokedReply=await http(nativePath,operatorToken,'POST',{status:'responded',response:'SYNTHETIC revoked attempt',expectedVersion:3});
+ result=await http('/v1/management/privacy-requests',operatorToken);requireFact(result.status===403&&revokedReply.status===403,'NATIVE_PRIVACY_REVOCATION_FAILED');checks.push('native-privacy-revoked-read-and-write');
+ result=await http('/v1/me/privacy-requests',ownerToken);requireFact(result.body[0].version===3&&result.body[0].execution===null&&result.body[0].status==='reviewing','NATIVE_PRIVACY_REVOKED_WRITE_CHANGED_FACT');checks.push('native-privacy-revoked-write-no-effect');
  result=await http('/v1/management/commerce/orders',operatorToken);requireFact(result.status===200,'ORDER_AUTHORITY_READ_FAILED');checks.push('authorized-order-management-read');
  await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by=$2,revoke_reason='Synthetic revocation acceptance' WHERE member_id=$1 AND capability='commerce.order.read' AND revoked_at IS NULL",[operator,principal]);
  result=await http('/v1/management/commerce/orders',operatorToken);requireFact(result.status===403,'REVOKED_ORDER_AUTHORITY_ACCEPTED');checks.push('immediate-management-revocation');

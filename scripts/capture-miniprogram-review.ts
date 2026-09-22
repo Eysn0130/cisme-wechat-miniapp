@@ -84,7 +84,12 @@ if (!finalizeOnly) {
     const openArguments = ["--page", route, ...(query ? ["--query", query] : [])];
     wechatide("project-action", "simulator_open_page", openArguments);
     const screenshot = resolve(reviewRoot, `screenshots/raw/${slug(route)}.png`);
-    wechatide("runtime", "simulator_screenshot", ["--path", screenshot, "--wait", "4", "--optimize=false"]);
+    const captured = wechatide("runtime", "simulator_screenshot", ["--path", screenshot, "--wait", "4", "--optimize=false"]).result;
+    // Match the existing evidence gate before a low-resolution frame can enter
+    // the current acceptance index. Change the IDE display scale; never upscale.
+    if (!(captured.imageWidth >= 320 && captured.imageHeight >= 480)) {
+      throw new Error(`Native capture resolution too small (${captured.imageWidth}x${captured.imageHeight}); increase the IDE simulator display scale and capture again.`);
+    }
     const current = wechatide("project-action", "automation_runtime_info", ["--action", "currentPage"]).result.currentPage as { path?: string };
     const loadingValue = pageData("loading");
     const errorValue = pageData("error");
