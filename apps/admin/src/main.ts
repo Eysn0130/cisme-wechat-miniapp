@@ -1,5 +1,6 @@
 import "./styles.css";
 import { mountFulfillment } from "./fulfillment";
+import { inOperatorContext } from "./operatorContext";
 
 interface ReviewItem {
   id: string;
@@ -82,8 +83,20 @@ function render() {
     </div>`;
   const fulfillmentRoot=document.createElement("section");fulfillmentRoot.className="panel";root.append(fulfillmentRoot);
   mountFulfillment(fulfillmentRoot,(path,init)=>{credentials();return api(path,init);},async path=>{credentials();
-    const response=await fetch(`${state.api}${path}`,{headers:{authorization:`Bearer ${state.token}`},signal:AbortSignal.timeout(15000),cache:"no-store",redirect:"error"});
-    if(!response.ok)throw new Error("导出未完成，请核对履约权限和筛选范围。");return response.blob();});
+    return inOperatorContext(operatorContext,async context=>{
+      const response=await fetch(`${context.api}${path}`,{headers:{authorization:`Bearer ${context.token}`},signal:AbortSignal.timeout(15000),cache:"no-store",redirect:"error"});
+      if(!response.ok)throw new Error("导出未完成，请核对履约权限和筛选范围。");return response.blob();
+    });});
+  // Detach sensitive fulfillment results immediately when the operator edits
+  // credentials; pending module callbacks already reject disconnected roots.
+  for(const selector of ['#api','#token'])document.querySelector(selector)?.addEventListener('input',()=>{
+    credentials();fulfillmentRoot.remove();
+    queueRequestEpoch+=1;queueAbortController?.abort();queueAbortController=null;state.loading=false;
+    const load=root.querySelector<HTMLButtonElement>('#load');if(load)load.textContent='读取授权队列';
+    state.queue=[];state.selected=null;state.pointsGrants=[];state.pointsActions=[];state.selectedFinance=null;
+    state.privacyRequests=[];state.error='';state.enrollmentMessage='';
+    root.querySelectorAll<HTMLElement>('.panel:not(.credentials),.workspace,.error,.success').forEach(element=>{element.hidden=true;element.style.display='none';});
+  });
   bindEvents();
 }
 
@@ -150,23 +163,25 @@ function bindEvents() {
 }
 
 function credentials() {
-  state.api = (document.querySelector<HTMLInputElement>("#api")?.value || state.api).replace(/\/$/, "");
-  state.token = document.querySelector<HTMLInputElement>("#token")?.value || state.token;
+  const current=operatorContext();state.api=current.api;state.token=current.token;
   localStorage.setItem("cisme.admin.api", state.api);
   sessionStorage.removeItem("cisme.admin.principal");
   sessionStorage.removeItem("cisme.admin.token");
 }
+function operatorContext(){return {api:(document.querySelector<HTMLInputElement>('#api')?.value??state.api).replace(/\/$/,''),
+  token:document.querySelector<HTMLInputElement>('#token')?.value??state.token};}
 
 let queueRequestEpoch = 0;
 let queueAbortController: AbortController | null = null;
 
 async function api(path: string, init?: RequestInit, signal?: AbortSignal) {
+ return inOperatorContext(operatorContext,async context=>{
   const controller = new AbortController();
   const abort = () => controller.abort(signal?.reason);
   if (signal?.aborted) abort(); else signal?.addEventListener("abort", abort, { once: true });
   const timer = window.setTimeout(() => controller.abort(new DOMException("请求超时", "TimeoutError")), 8_000);
   try {
-    const response = await fetch(`${state.api}${path}`, { ...init, signal: controller.signal, headers: { "content-type": "application/json", authorization: `Bearer ${state.token}`, ...init?.headers } });
+    const response = await fetch(`${context.api}${path}`, { ...init, signal: controller.signal, headers: { "content-type": "application/json", authorization: `Bearer ${context.token}`, ...init?.headers } });
     const body = await response.json();
     if (!response.ok) throw new Error(body.title || body.code || "请求失败");
     return body;
@@ -174,6 +189,7 @@ async function api(path: string, init?: RequestInit, signal?: AbortSignal) {
     window.clearTimeout(timer);
     signal?.removeEventListener("abort", abort);
   }
+ });
 }
 
 async function loadQueue() {

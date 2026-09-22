@@ -486,7 +486,7 @@
     }
   ],
   "migrationSetSha256": "2c09be368ba8efc83ac9c9c5c73483fa50497d5614eb93ed217938c68779ad5d",
-  "egressSignatureSha256": "beede9d88635eb06ccda3502189a852583eb00e9c9c092d9b78c7da3bacf10bd",
+  "egressSignatureSha256": "44075515587c9e3253529b37c1ae14188e5aa343fd682b4365ea64f89213daa4",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -554,6 +554,7 @@
     "liveGrantInstalled": false,
     "realPlatformCalled": false,
     "productionErasureEnabled": false,
-    "requiresFormalPrivacyApproval": true
+    "requiresFormalPrivacyApproval": true,
+    "operatorContext": "管理端查询和导出绑定请求开始时 API/操作员会话；输入更改立即清空旧投影，迟到结果不得显示或下载；清空输入不复用旧凭据。未改变目的服务器，无新增外发接收方。"
   }
 }
