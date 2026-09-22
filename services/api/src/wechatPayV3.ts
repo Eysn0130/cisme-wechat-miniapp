@@ -67,6 +67,21 @@ function decryptResource<T>(resource:Resource|undefined,apiV3Key:string,
   try{return JSON.parse(Buffer.concat([decipher.update(cipher.subarray(0,-16)),decipher.final()]).toString("utf8")) as T;}
   catch{reject("微信支付加密资源认证失败");}
 }
+/** A valid signature authenticates the channel, not the order selected by the
+ * caller. Non-success queries can also change local stock/order state. */
+export function assertPaymentQueryBinding(transaction:PaymentTransaction,binding:PaymentBinding){
+  if(!transaction||transaction.appid!==binding.appId||transaction.mchid!==binding.merchantId||
+    transaction.out_trade_no!==binding.outTradeNo||
+    !['SUCCESS','REFUND','NOTPAY','CLOSED','REVOKED','USERPAYING','PAYERROR'].includes(String(transaction.trade_state))||
+    (transaction.trade_type!==undefined&&transaction.trade_type!=='JSAPI')||
+    (transaction.amount?.total!==undefined&&transaction.amount.total!==binding.totalCents)||
+    (transaction.amount?.currency!==undefined&&transaction.amount.currency!==binding.currency)||
+    (transaction.payer?.openid!==undefined&&transaction.payer.openid!==binding.payerOpenid))
+    reject('微信支付查单与原订单绑定不匹配');
+  if(transaction.trade_state==='SUCCESS')assertPaymentBinding(transaction,binding);
+  return transaction;
+}
+
 export function assertPaymentBinding(transaction:PaymentTransaction,binding:PaymentBinding){
   if(transaction.appid!==binding.appId||transaction.mchid!==binding.merchantId||
     transaction.out_trade_no!==binding.outTradeNo||transaction.amount?.total!==binding.totalCents||

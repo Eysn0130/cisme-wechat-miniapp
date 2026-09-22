@@ -3,7 +3,7 @@ import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
 import { CommerceOrderService } from "./commerceOrders.js";
 import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
-import { WechatPayV3Client } from "./wechatPayV3.js";
+import { WechatPayV3Client, assertPaymentQueryBinding } from "./wechatPayV3.js";
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type Attempt={id:string;order_id:string;out_trade_no:string;member_id:string;payer_openid:string;
@@ -35,6 +35,12 @@ export class PaymentAttemptService{
     return {orderId:row.order_id,orderVersion:row.order_version,state:"prepay_ready" as const,
       simulation:this.options.simulation??true,expiresAt:row.expires_at.toISOString(),
       requestPayment:this.channel.miniProgramPaymentParams(row.app_id,row.prepay_id)};
+  }
+
+  private async queryAttempt(row:Attempt){
+    return assertPaymentQueryBinding(await this.channel.queryByMerchantOrderNumber(row.out_trade_no),{
+      appId:row.app_id,merchantId:row.merchant_id,outTradeNo:row.out_trade_no,
+      totalCents:Number(row.amount_cents),currency:'CNY',payerOpenid:row.payer_openid});
   }
 
   private async audit(client:DbClient|pg.Pool,actor:string,action:string,orderId:string,
@@ -72,7 +78,7 @@ export class PaymentAttemptService{
       // missing response does not prove the original number was never sent.
       if(claim.priorState==="unknown"){
         let queried;
-        try{queried=await this.channel.queryByMerchantOrderNumber(current.out_trade_no);}
+        try{queried=await this.queryAttempt(current);}
         catch(error){
           if(!(error instanceof DomainError&&error.code==="WECHAT_PAY_ORDER_NOT_FOUND"))throw error;
         }
@@ -98,10 +104,19 @@ export class PaymentAttemptService{
         if(claimed.first_dispatch_started_at)
           throw new DomainError("PAYMENT_ORIGINAL_QUERY_REQUIRED","原支付单可能已发送，须沿原号核对",409);
       }
-      const marked=await this.pool.query(`UPDATE commerce_payment_attempt SET
-        first_dispatch_started_at=clock_timestamp() WHERE id=$1 AND state='unknown'
-        AND request_lease_token=$2 AND first_dispatch_started_at IS NULL RETURNING id`,
-        [claimed.id,claimed.request_lease_token]);
+      const marked=await transaction(this.pool,async client=>{
+        const active=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[memberId]);
+        if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可发起支付',403);
+        // Serialize the dispatch decision with local cancellation. A stale
+        // initial read must never send a new prepay after inventory is freed.
+        const order=await client.query(`SELECT 1 FROM commerce_order WHERE id=$1 AND member_id=$2
+          AND status='pending_payment' FOR UPDATE`,[orderId,memberId]);
+        if(!order.rowCount)throw new DomainError('PAYMENT_ORDER_NOT_PENDING','订单已不在待支付状态',409);
+        return client.query(`UPDATE commerce_payment_attempt SET
+          first_dispatch_started_at=clock_timestamp() WHERE id=$1 AND state='unknown'
+          AND request_lease_token=$2 AND first_dispatch_started_at IS NULL AND expires_at>clock_timestamp() RETURNING id`,
+          [claimed.id,claimed.request_lease_token]);
+      });
       if(!marked.rowCount)throw new DomainError("PAYMENT_ATTEMPT_IN_PROGRESS","支付任务已被其他处理者接管",409);
       // This committed marker precedes the HTTP request. A crashed response
       // cannot make a later caller infer that prepay was never sent.
@@ -133,7 +148,7 @@ export class PaymentAttemptService{
     const current=await this.attempt(orderId,memberId);
     if(current.order_status==="paid")return {orderId,state:"paid" as const,simulation:this.options.simulation??true};
     if(current.order_status!=="pending_payment")return {orderId,state:current.order_status,simulation:this.options.simulation??true};
-    const queried=await this.channel.queryByMerchantOrderNumber(current.out_trade_no);
+    const queried=await this.queryAttempt(current);
     if(queried.trade_state==="SUCCESS"){
       const persisted=await this.inbox.receiveQueried(this.channel,current.out_trade_no);
       await this.audit(this.pool,principalId,"commerce.payment_intent.refresh_verified",orderId,
@@ -150,7 +165,7 @@ export class PaymentAttemptService{
     if(current.order_status!=="pending_payment")
       throw new DomainError("ORDER_NOT_CANCELLABLE","当前订单状态不可取消",409);
     let state:string;
-    try{state=String((await this.channel.queryByMerchantOrderNumber(current.out_trade_no)).trade_state);}
+    try{state=String((await this.queryAttempt(current)).trade_state);}
     catch(error){
       if(error instanceof DomainError&&error.code==="WECHAT_PAY_ORDER_NOT_FOUND"&&current.state==="prepared")
         state="ORDER_NOT_EXIST";
@@ -162,12 +177,13 @@ export class PaymentAttemptService{
     }
     if(state==="NOTPAY"){
       await this.channel.closeByMerchantOrderNumber(current.out_trade_no);
-      state=String((await this.channel.queryByMerchantOrderNumber(current.out_trade_no)).trade_state);
+      state=String((await this.queryAttempt(current)).trade_state);
     }
     if(state!=="CLOSED"&&state!=="ORDER_NOT_EXIST")
       throw new DomainError("PAYMENT_CHANNEL_UNRESOLVED","渠道支付状态待确认，不释放库存",409);
     // Keep the local close and inventory release in one database transaction.
     // A failed version check leaves the channel CLOSED and the attempt retryable.
-    return this.orders.cancel(memberId,principalId,orderId,key,input,traceId,undefined,current.id);
+    return this.orders.cancel(memberId,principalId,orderId,key,input,traceId,undefined,
+      {attemptId:current.id,channelState:state});
   }
 }
