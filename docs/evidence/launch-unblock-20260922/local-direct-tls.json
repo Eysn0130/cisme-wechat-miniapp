@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-09-22T07:20:58.640675+00:00",
+  "target": "150.158.39.74",
+  "sni": "staging-api.cisme.cn",
+  "certificateVerificationDisabled": false,
+  "errorType": "SSLEOFError",
+  "error": "[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)",
+  "tlsVerified": false
+}

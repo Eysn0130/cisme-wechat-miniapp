@@ -1,0 +1,9 @@
+{
+  "runId": "d49b7cb5cdc24441",
+  "exitCode": 0,
+  "image": "node:24.14.0-bookworm-slim",
+  "platform": "linux/amd64",
+  "containerRemoved": true,
+  "deployed": false,
+  "releaseReady": false
+}

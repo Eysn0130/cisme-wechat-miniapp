@@ -1,0 +1,14 @@
+{
+  "CHANGE-PLAN.md": "eb76c2d7708cbc88e30b05b44f29cd441b94b0899a38087a3189152b9ef4effc",
+  "README.md": "163ed1195f75648e023bd0c6139899e600df1fa27f3be7449e82e9876370587d",
+  "candidate-archive.json": "009a4ea62fd020d2c3f7a223c0b2da9278c65abd159063a187151890efac964c",
+  "candidate-rehearsal.json": "d131902edacc67276b2b0d7a888f72ed936ebfa902251a0ee5b5b3dfd08d420c",
+  "candidate-rehearsal.log": "a08e7d1cde9de807f359a4f6d417f0fe59ba3e636e9cef73b6c0c07352924a55",
+  "linux-amd64-package-check.json": "848b30cc554a598ecf4f1305a634e80d06e04d69c09ece2f170d2ae7ff1a2b8a",
+  "linux-amd64-package-check.log": "260966d21e7483e7dc0807abbb4b115a1d72e6b0a46fefe1a26a6136b075702e",
+  "linux-package-check.json": "12bc16a8b8e607985a18a91510eb869213baf37a183833029cd4ed99113247f1",
+  "linux-package-check.log": "fdae826a6b59b12e52de0cdaf42990dcd08d9e193f178d93a4dfc7719af83d1c",
+  "local-direct-tls.json": "29be6f38024c8a0a73acbc6f463420e1aa12bc76fcc7959b5904a7a6cece6733",
+  "local-public-tls.json": "c06d985ea340fadc744a4106534113b0ebb9aedc25850e03aaf838aeec7196e6",
+  "release-manifest.json": "f743157085925e718261a5aa306c95b064f2a76c4497be27711a0d2e25af7a94"
+}
