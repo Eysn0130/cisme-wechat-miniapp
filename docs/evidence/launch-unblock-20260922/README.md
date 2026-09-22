@@ -1,5 +1,13 @@
 # 发布环境核验：2026-09-22
 
+后续两环境复核以 [ENVIRONMENTS.json](ENVIRONMENTS.json) 为准。production 与 staging 的实例、域名、制品哈希、数据归属、防火墙、证书、政策和到期时间已分开记录。下文原始旧版本/隐私 v5/HTTP-01/10 月到期观察均只属于 staging，不推断 production。
+
+production 实时记录：`lhins-61ikz4mi / 124.223.74.198 / api.cisme.cn`，运行目录 `20260909-native-login`；数据库 `127.0.0.1/cisme`、上海 COS `lhcos-81ddf-1257392443`。旧 APP_ENV=staging 标签不改变其 production 归属。production manifest 缺 Git SHA，已记录实际 API SHA256；本机校验 HTTPS 200，但 production 防火墙没有 443 规则。production 的政策实际为 `2026-09-09-v3-profile`，不同于 staging 的 v5。production 全程只读，无迁移或切换。
+
+staging 实时记录：`lhins-ei4hz4fi / 150.158.39.74 / staging-api.cisme.cn`，现存 DB `cisme_staging` 与 release 内 api_gateway 对象目录。旧 manifest 同样缺 Git SHA，不把制品哈希称为源码 SHA。用户已授权在 staging 用全新隔离数据部署验证候选；现有 DB/对象保留，禁止真实资金。HTTP-01 风险保留但不单独阻断发布施工，本轮不改防火墙。staging 保留至 production 上线稳定期；当前自动续费未开启，报价 1 个月 65 元、3 个月 195 元、12 个月 663 元（付款时复核），未下单或扣费。
+
+审核与备案分别记录：用户报告微信“待审核”，精确类别尚未读到；公众平台被工具站点安全策略拦截。工信部 cisme.cn 查询进入滑块安全校验，尚未获得查询结果。腾讯云旧草稿不足以认定该域名没有 ICP/接入备案，未重提、撤回或修改任何审核流程。
+
 本报告是只读核验与本轮隔离演练记录，不是正式发布批准。源码基线 `ae31437652e2fe3fbb24e7ac493d3b60ad747d27`，tree `d1e352647d0383cfe4a1524144c132a1a7d296d2`；[main CI 35697496015](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/35697496015) 成功，986 单元、782 集成。PR16–19 已合并，无打开 PR（核验时）。唯一工程 `/Users/mini/CISME` 初始无未提交文件，同根其他任务 idle。
 
 ## 已解除的阻断
