@@ -7,7 +7,23 @@ export interface CheckoutAddress {
   postalCode: string; nationalCode: string; provinceCode?: string; cityCode?: string; districtCode?: string;
   label: "home" | "company" | "other"; isDefault: boolean; version: number; updatedAt: string;
 }
+export interface FulfillmentPolicy {
+  version:string; shippingPromise:string; dispatchPromise:string; returnsPromise:string;
+  returnFreight:{noReason:string;qualityWrongMissingTransport:string};
+}
+export interface OrderShipment {
+  orderId:string; id?:string; version?:number; carrierName?:string; trackingNumber?:string;
+  logisticsState:"not_ready"|"awaiting_dispatch"|"shipped"|"delivered"|"exception";
+  shippedAt?:string; deliveredAt?:string|null; receiptConfirmedAt?:string|null; wechatSyncState?:string;
+}
+export function myShipment(id:string,page:object):Promise<OrderShipment>{
+  return pageRead<OrderShipment>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders"]});
+}
+export function confirmMyReceipt(id:string,expectedVersion:number,idempotencyKey:string){
+  return request({path:`/v1/me/orders/${encodeURIComponent(id)}/confirm-receipt`,method:"POST",data:{expectedVersion},idempotencyKey,cacheTags:["orders"]});
+}
 export interface CheckoutQuote {
+  fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; status: "active" | "consumed" | "expired"; currency: "CNY"; quantity: number; unitPriceCents: number;
   subtotalCents: number; memberDiscountCents: number; shippingCents: number; totalCents: number;
   creditTenderCents:number;cashPayableCents:number;pricingRuleVersion: string;
@@ -24,6 +40,7 @@ export interface MemberOrderAddress {
 }
 export interface ManagementOrderAddress { recipientNameMasked: string; phoneMasked: string; province: string; city: string; district: string }
 export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAddress> {
+  fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; orderNumber: string; status: PendingOrderStatus; currency: "CNY"; subtotalCents: number; memberDiscountCents: number;
   shippingCents: number; totalCents: number; creditTenderCents:number;cashPayableCents:number;
   pricingRuleVersion: string; version: number; expiresAt: string;

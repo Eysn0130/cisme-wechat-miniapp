@@ -1,4 +1,5 @@
 import "./styles.css";
+import { mountFulfillment } from "./fulfillment";
 
 interface ReviewItem {
   id: string;
@@ -79,6 +80,10 @@ function render() {
       </section>
       <section class="panel detail">${financeDetailTemplate()}</section>
     </div>`;
+  const fulfillmentRoot=document.createElement("section");fulfillmentRoot.className="panel";root.append(fulfillmentRoot);
+  mountFulfillment(fulfillmentRoot,(path,init)=>{credentials();return api(path,init);},async path=>{credentials();
+    const response=await fetch(`${state.api}${path}`,{headers:{authorization:`Bearer ${state.token}`},signal:AbortSignal.timeout(15000),cache:"no-store",redirect:"error"});
+    if(!response.ok)throw new Error("导出未完成，请核对履约权限和筛选范围。");return response.blob();});
   bindEvents();
 }
 

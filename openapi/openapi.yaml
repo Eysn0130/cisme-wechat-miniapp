@@ -1379,6 +1379,97 @@ paths:
   /v1/management/commission-rates/{ruleId}/decision:
     post: {operationId: decideCommissionRate, security: [{session: []}], parameters: [{name: ruleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], description: Requires different approver with commission.rate.approve; lapsed effective time cannot be retroactively approved., requestBody: {$ref: '#/components/requestBodies/CommissionRateDecision'}, responses: {'200': {description: Audited approval or rejection}, '409': {$ref: '#/components/responses/Problem'}}}
 
+  /v1/me/orders/{orderId}/shipment:
+    get:
+      tags: [Commerce]
+      operationId: myShipment
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Owner-only physical shipment and independent WeChat sync status}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/confirm-receipt:
+    post:
+      tags: [Commerce]
+      operationId: confirmMyShipmentReceipt
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}
+      responses: {'200': {description: Explicit owner receipt fact; does not fabricate carrier delivery or release funds}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/commerce/orders/{orderId}/shipment:
+    get:
+      tags: [Commerce]
+      operationId: managementShipment
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Shipment detail restricted to current commerce.fulfillment.manage authority}, '403': {$ref: '#/components/responses/Problem'}}
+    post:
+      tags: [Commerce]
+      operationId: dispatchShipment
+      security: [{session: []}]
+      description: R0 single parcel for all order lines. Current fulfillment authority, paid bound order, immutable dispatch evidence and independent sync job commit together without network I/O.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShipmentDispatchInput'}}}}
+      responses: {'200': {description: Local shipped fact and durable WeChat pending sync or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/shipments:
+    get:
+      security: [{session: []}]
+      operationId: listManagementShipments
+      summary: 按履约状态及精确订单号筛选已支付订单
+      responses:
+        '200': {description: Cursor page; fulfillment permission required}
+  /v1/management/shipments/export:
+    get:
+      security: [{session: []}]
+      operationId: exportFulfillmentWorkbook
+      summary: 授权履约个人信息 Excel 导出，提交审计后返回且不落盘
+      responses:
+        '200':
+          description: At most 500 orders; narrow filters when exceeded
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+  /v1/management/shipments/import:
+    post:
+      security: [{session: []}]
+      operationId: importShipmentRows
+      summary: 从 Excel 粘贴最多25行物流，先校验重复及错单再逐单原子提交
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rows]
+              additionalProperties: false
+              properties:
+                rows: {type: string, maxLength: 16000, description: 'Tab-separated order number, carrier code, carrier name, tracking number, UTC shipped-at. No header.'}
+      responses:
+        '200': {description: Per-row accepted or rejected result; does not assert WeChat synchronization}
+  /v1/management/shipments/batch:
+    post:
+      tags: [Commerce]
+      operationId: dispatchShipmentBatch
+      security: [{session: []}]
+      description: Up to 25 distinct orders; malformed or duplicate rows rejected before any writes. Each valid row is independently atomic, returns accepted/rejected, and has a stable batch-key plus order-id replay key. Partial results are not whole-batch success.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  minItems: 1
+                  maxItems: 25
+                  items:
+                    allOf:
+                      - {$ref: '#/components/schemas/ShipmentDispatchInput'}
+                      - {type: object, required: [orderId], properties: {orderId: {type: string, format: uuid}}}
+      responses: {'200': {description: Per-row results; retries preserve the same keys}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
@@ -1425,6 +1516,17 @@ components:
     Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
     Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
   schemas:
+    ShipmentDispatchInput:
+      type: object
+      required: [carrierCode, carrierName, trackingNumber, shippedAt, evidenceReference, expectedOrderVersion]
+      properties:
+        carrierCode: {type: string, pattern: '^[A-Z0-9_]{2,32}$'}
+        carrierName: {type: string, minLength: 1, maxLength: 80}
+        trackingNumber: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}
+        shippedAt: {type: string, format: date-time}
+        evidenceReference: {type: string, minLength: 8, maxLength: 120}
+        expectedOrderVersion: {type: integer, minimum: 1}
+
     CommerceQuoteInput: {type: object, additionalProperties: false, required: [skuId, quantity, addressId, addressVersion], properties: {skuId: {$ref: '#/components/schemas/Uuid'}, quantity: {type: integer, minimum: 1, maximum: 99}, addressId: {$ref: '#/components/schemas/Uuid'}, addressVersion: {type: integer, minimum: 1}, creditCents: {type: integer, minimum: 0, description: Isolated test only; positive channel cash component required}}}
     CommerceOrderCreateInput: {type: object, additionalProperties: false, required: [quoteId], properties: {quoteId: {$ref: '#/components/schemas/Uuid'}}}
     CommerceOrderCancelInput: {type: object, additionalProperties: false, required: [expectedVersion, reason], properties: {expectedVersion: {type: integer, minimum: 1}, reason: {type: string, minLength: 3, maxLength: 500}}}

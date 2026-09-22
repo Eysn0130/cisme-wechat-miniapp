@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "246afc9c7870016c92dddf8a498ba10c8f727c5d9641e42118530b5f3b14296c",
+  "migrationSetSha256": "ba4f417c0afa0ea1359bc4d86656d3c1a7de761952fa8df8551f6e3cc4c08e9f",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -421,7 +421,8 @@
         "expires_at",
         "consumed_at",
         "created_at",
-        "credit_tender_cents"
+        "credit_tender_cents",
+        "fulfillment_policy"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -573,7 +574,8 @@
         "updated_at",
         "paid_at",
         "transaction_source_kind",
-        "credit_tender_cents"
+        "credit_tender_cents",
+        "fulfillment_policy"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -839,6 +841,255 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "commerce_shipment",
+      "subjectPaths": [
+        [
+          "commerce_shipment.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "created_by_member_id"
+      ],
+      "specialHandling": "order_id identifies buyer; created_by_member_id is operator, not the buyer. Receipt fact is independent of carrier state and refund/commission eligibility.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "order_id",
+        "shipping_sync_id",
+        "carrier_name",
+        "logistics_state",
+        "version",
+        "shipped_at",
+        "delivered_at",
+        "receipt_confirmed_at",
+        "created_by_member_id",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_shipment_event",
+      "subjectPaths": [
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "actor_principal_id"
+      ],
+      "specialHandling": "Resolve buyer through shipment/order; actor_principal_id identifies operator or owner separately. No raw event export; preserve retention and legal holds.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "shipment_id",
+        "event_key",
+        "event_type",
+        "actor_principal_id",
+        "evidence_reference",
+        "occurred_at",
+        "recorded_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_shipment_line",
+      "subjectPaths": [
+        [
+          "commerce_shipment_line.order_line_id -> commerce_order_line.id",
+          "commerce_order_line.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.order_line_id -> commerce_order_line.id",
+          "commerce_order_line.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.order_line_id -> commerce_order_line.id",
+          "commerce_order_line.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Resolve buyer through shipment/order; product quantities are immutable fulfillment evidence.",
+      "exportFields": [],
+      "excludedFields": [
+        "shipment_id",
+        "order_line_id",
+        "quantity"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
     },
     {
       "table": "commerce_shipping_sync",

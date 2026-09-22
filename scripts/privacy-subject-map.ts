@@ -6,6 +6,9 @@ if(schema.kind!=='synthetic-migrated-schema-only-NOT-personal-data-export')throw
 const tables=new Map(schema.tables.map(t=>[t.table,t]));
 const allow:Record<string,string[]>={member:['id','display_name','created_at'],member_profile:['wechat_handle','updated_at']};
 const special:Record<string,string>={
+ commerce_shipment:'order_id identifies buyer; created_by_member_id is operator, not the buyer. Receipt fact is independent of carrier state and refund/commission eligibility.',
+ commerce_shipment_line:'Resolve buyer through shipment/order; product quantities are immutable fulfillment evidence.',
+ commerce_shipment_event:'Resolve buyer through shipment/order; actor_principal_id identifies operator or owner separately. No raw event export; preserve retention and legal holds.',
  commerce_shipping_sync:'order_id resolves the buyer via commerce_order; created_by_member_id is a separate operator actor. encrypted_parcel contains tracking and masked contact, never raw-export ciphertext. Shipping synchronization does not prove receipt or authorize deletion; apply object-specific retention and legal holds.',
  audit_log:'principal_id joins provider:id of wechat_identity or member:member.id; object_type/object_id and JSON snapshots are polymorphic and may include other people. Never export raw snapshots.',
  idempotency_operation:'principal_id joins canonical identity or member:member.id; operation/business_key are typed object references. Never export raw response_body, key or request_hash.',

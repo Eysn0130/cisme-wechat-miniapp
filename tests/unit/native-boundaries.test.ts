@@ -221,7 +221,7 @@ describe("native mini program boundary", () => {
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
       checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
-      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
+      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "loadShipment", "confirmReceipt", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
       profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "load", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
       records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],

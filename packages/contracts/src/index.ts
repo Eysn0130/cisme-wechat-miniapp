@@ -76,7 +76,12 @@ export interface CatalogProductView {
 }
 
 export type CommerceOrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
+export interface FulfillmentPolicyView {
+  version:string; shippingPromise:string; dispatchPromise:string; returnsPromise:string;
+  returnFreight:{noReason:string;qualityWrongMissingTransport:string};
+}
 export interface CommerceQuoteView {
+  fulfillmentPolicy?:FulfillmentPolicyView|null;
   id: string;
   status: "active" | "consumed" | "expired";
   currency: "CNY";
@@ -109,6 +114,7 @@ export interface CommerceOrderLineView {
   totalCents: number;
 }
 export interface CommerceOrderView {
+  fulfillmentPolicy?:FulfillmentPolicyView|null;
   id: string;
   orderNumber: string;
   status: CommerceOrderStatus;

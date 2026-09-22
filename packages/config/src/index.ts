@@ -54,6 +54,7 @@ export interface AppConfig {
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
   media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
   commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
+    fulfillment?: { appId: string; merchantId: string; authorizationFile?: string };
     simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
       transferSceneId?: string };
     formalProtocol?: { appId: string; merchantId: string; merchantSerial: string;
@@ -260,6 +261,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         throw new Error(`FAIL_CLOSED:COMMERCE_FORMAL_${kind.toUpperCase()}_NOTIFY_URL_INVALID`);
   }
 
+  const fulfillmentEnabled=bool(env.COMMERCE_FULFILLMENT_ENABLED);
+  const fulfillment=fulfillmentEnabled?{
+    appId:required('WECHAT_APP_ID',env.WECHAT_APP_ID),
+    merchantId:required('COMMERCE_FULFILLMENT_MERCHANT_ID',env.COMMERCE_FULFILLMENT_MERCHANT_ID),
+    ...(env.COMMERCE_FULFILLMENT_AUTHORIZATION_FILE?{authorizationFile:env.COMMERCE_FULFILLMENT_AUTHORIZATION_FILE}:{})
+  }:undefined;
+  if(fulfillment&&(!/^wx[a-zA-Z0-9]{16}$/.test(fulfillment.appId)||!/^\d{8,15}$/.test(fulfillment.merchantId)
+    || !/^[a-f0-9]{64}$/i.test(env.CONTACT_ENCRYPTION_KEY??'')||!/^[a-f0-9]{64}$/i.test(env.CONTACT_HASH_KEY??'')
+    || (formalProtocol&&(formalProtocol.appId!==fulfillment.appId||formalProtocol.merchantId!==fulfillment.merchantId))
+    || (fulfillment.authorizationFile&&(!fulfillment.authorizationFile.startsWith('/')||fulfillment.authorizationFile.includes('\0')))))
+    throw new Error('FAIL_CLOSED:FULFILLMENT_BINDING_OR_VAULT_INVALID');
+
   return {
     env: appEnv,
     port: Number(env.PORT ?? 3100),
@@ -313,6 +326,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null },
     commerce: {
       orderFlowEnabled,
+      ...(fulfillment?{fulfillment}:{}),
       quoteTtlMinutes: integer("COMMERCE_QUOTE_TTL_MINUTES", env.COMMERCE_QUOTE_TTL_MINUTES, 10, 1, 60),
       pendingOrderTtlMinutes: integer("COMMERCE_PENDING_ORDER_TTL_MINUTES", env.COMMERCE_PENDING_ORDER_TTL_MINUTES, 30, 5, 120),
       ...(simulatedPaymentEnabled?{simulatedPayment:{appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),

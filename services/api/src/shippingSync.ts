@@ -20,7 +20,8 @@ function view(row: Row) { return { id: row.id, orderId: row.order_id, state: row
  * A platform observation never writes local receipt/refund/completion facts. */
 export class ShippingSyncService {
   constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService,
-    private readonly options: Options, private readonly channel: Pick<WechatOrderShippingClient, 'query' | 'uploadOnce'>) {}
+    private readonly options: Options, private readonly channel: Pick<WechatOrderShippingClient, 'query' | 'uploadOnce'>
+      & Partial<Pick<WechatOrderShippingClient,'authorizeUpload'>>) {}
 
   private gate() {
     if (!this.options.enabled) fail('SHIPPING_SYNC_DISABLED', 503);
@@ -66,6 +67,14 @@ export class ShippingSyncService {
 
   async prepare(actor: string | undefined, orderId: string, requestKey: string, parcel: UnifiedParcel, evidenceReference: string) {
     this.gate(); await this.authority.require(actor, 'commerce.fulfillment.manage');
+    return transaction(this.pool, client => this.prepareWithClient(client, actor, orderId, requestKey, parcel, evidenceReference), 'SERIALIZABLE');
+  }
+
+  /** Compose local shipment + sync intent in ONE caller-owned DB transaction.
+   * This method performs no external I/O and rechecks authority itself. */
+  async prepareWithClient(client: DbClient, actor: string | undefined, orderId: string, requestKey: string,
+    parcel: UnifiedParcel, evidenceReference: string) {
+    this.gate();
     if (!UUID.test(orderId) || !/^[A-Za-z0-9._:-]{8,200}$/.test(requestKey)
       || !/^[A-Za-z0-9._:-]{8,120}$/.test(evidenceReference)) fail('SHIPPING_REQUEST_INVALID', 422);
     // Normalize before HMAC/sealing so extra input keys cannot enter storage or network.
@@ -73,7 +82,7 @@ export class ShippingSyncService {
       description: parcel.description, ...(parcel.receiverContactMasked ? { receiverContactMasked: parcel.receiverContactMasked } : {}) };
     const fingerprint = createHmac('sha256', Buffer.from(this.options.hashKey, 'hex'))
       .update(JSON.stringify({ orderId, parcel: normalized, evidenceReference })).digest('hex');
-    return transaction(this.pool, async client => {
+    {
       await this.authority.requireWithClient(client, actor, 'commerce.fulfillment.manage');
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`shipping:${actor}:${requestKey}`]);
       const existing = (await client.query<Row>(`SELECT * FROM commerce_shipping_sync
@@ -94,7 +103,15 @@ export class ShippingSyncService {
         VALUES($1,'commerce.shipping_prepared','commerce_shipping_sync',$2,$3,$4)`,
       [`member:${actor}`, id, { orderId, state: row.state }, `shipping:${id}`]);
       return view(row);
-    }, 'SERIALIZABLE');
+    }
+  }
+
+  /** Internal projection; the caller must hold owner/fulfillment authority. */
+  async parcelWithClient(client: DbClient, jobId: string): Promise<UnifiedParcel> {
+    this.gate();
+    const row=(await client.query<Row>('SELECT * FROM commerce_shipping_sync WHERE id=$1',[jobId])).rows[0];
+    if(!row) fail('SHIPPING_PROPOSAL_MISSING');
+    return this.open(row);
   }
 
   async processOne(id: string): Promise<string> {
@@ -139,6 +156,7 @@ export class ShippingSyncService {
         // A prepared query retry must remain prepared (no dispatch occurred).
         return finish(next.state, observation.decision.toUpperCase(), observation.platformOrderState);
       }
+      this.channel.authorizeUpload?.(binding); // A query-only grant must not consume dispatch.
       const dispatch = await transaction(this.pool, async client => {
         await this.authority.requireWithClient(client, claim.created_by_member_id, 'commerce.fulfillment.manage');
         await this.binding(client, claim.order_id); // Refund/order recheck immediately before dispatch.

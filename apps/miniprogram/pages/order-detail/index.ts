@@ -6,9 +6,9 @@ import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner, runtimeView, validateRuntime } from "../../services/commerce-runtime";
 import { request, requireMemberAccess } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
-import { clientOperationKey, myOrder, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
+import { clientOperationKey, myOrder, myShipment, confirmMyReceipt, type OrderShipment, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
-const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付，待履约"};
+const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付"};
 type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundState:string|null;reason:string;createdAt:string;
   cashRefundCents:number|null;creditReturnCents:number|null;amountLabel?:string;stateLabel?:string;
   cashLabel?:string;creditLabel?:string};
@@ -21,7 +21,7 @@ function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
   data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
-    isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
+    shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
@@ -29,7 +29,7 @@ Page({
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
     if(!requireMemberAccess())return;void this.load();},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken;
-    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,order:null,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
+    if(token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision()){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,order:null,shipment:null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     },
   confirmationPending:false,
@@ -92,8 +92,32 @@ Page({
     try{const order=await myOrder(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
-      this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadRefunds(epoch,token);void this.loadRecovery();this.refreshRecordedCommands();
+      this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadShipment();void this.loadRefunds(epoch,token);void this.loadRecovery();this.refreshRecordedCommands();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({order:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.order,coreReady:false,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}
+  },
+  async loadShipment(){
+    if(!this.canAct()||this.data.busy)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    this.setData({shipmentLoading:true,shipmentError:""});
+    try{const row=await myShipment(this.data.id,this);
+      if(!this.readCurrent(epoch,token,readEpoch))return;
+      const labels:Record<string,string>={not_ready:"待支付后安排发货",awaiting_dispatch:"待发货",shipped:"已发货",delivered:"快递已签收",exception:"物流异常，请联系客服"};
+      if(row.orderId!==this.data.id||!labels[row.logisticsState]||row.id&&(!Number.isSafeInteger(row.version)||row.version!<1))throw new Error("Invalid shipment");
+      this.setData({shipment:{...row,stateLabel:row.receiptConfirmedAt?"你已确认收货":labels[row.logisticsState]!},shipmentLoading:false,
+        ...(row.receiptConfirmedAt?{receiptKey:"",receiptVersion:0}:{})});
+    }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({shipment:null,shipmentLoading:false,shipmentError:errorTitle(error,"物流记录暂时无法读取，请重试或联系客服。")});}
+  },
+  async confirmReceipt(){
+    if(!this.canAct()||this.data.busy||this.data.shipmentLoading||!this.data.shipment?.id||!this.data.shipment.version||this.data.shipment.receiptConfirmedAt)return;
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const answer=await this.confirmOperation({title:"确认已收到商品？",content:"请确认本单全部商品已收到。此操作记录你的收货确认，不影响依法申请售后。",confirmText:"已收到",cancelText:"暂不确认"});
+    if(!answer.confirm||!this.current(epoch,token)||!this.canAct()||this.data.busy)return;
+    const receiptKey=this.data.receiptKey||clientOperationKey("receipt"),receiptVersion=this.data.receiptVersion||this.data.shipment.version!;
+    this.setData({busy:true,receiptKey,receiptVersion,actionError:"",actionStatus:""});
+    try{await confirmMyReceipt(this.data.id,receiptVersion,receiptKey);
+      if(this.current(epoch,token))this.setData({receiptKey:"",receiptVersion:0,actionStatus:"已记录你的收货确认。"});
+    }catch(error){if(this.current(epoch,token))this.setData({actionError:errorTitle(error,"收货确认结果尚未核实，请刷新物流记录后重试；将沿用原请求。")});}
+    finally{this.finishAction(epoch,token,true);}
   },
   applyRuntime(){const isolatedPayment=this.canAct()&&this.data.runtimeState==="ready"&&runtimeActions(this.data.runtimeStatus).money&&this.data.order?.transactionSourceKind==="verified_commerce";
     this.setData({isolatedPayment});

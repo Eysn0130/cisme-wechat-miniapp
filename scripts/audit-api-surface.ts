@@ -9,7 +9,7 @@ const registrations=[...source.matchAll(/\b(?:app|callbackScope)\.(get|post|put|
 const chunks=registrations.map((start,i)=>({start,text:source.slice(start,registrations[i+1]??source.length)}));
 const imports=new Map([...source.matchAll(/import \{ ([A-Za-z0-9_]+)[^\n]* from "\.\/(.*?)\.js"/g)].map(m=>[m[1],`services/api/src/${m[2]}.ts`]));
 const owners=new Map([...source.matchAll(/const (\w+)\s*=\s*new (\w+)/g)].map(m=>[m[1],imports.get(m[2])]));
-for(const [variable,file] of Object.entries({payment:'paymentAttempt',refunds:'refundCommand',settlement:'settlementCommand',moneyOps:'moneyOperations',tradeBills:'tradeBillReconciliation'}))owners.set(variable,`services/api/src/${file}.ts`);
+for(const [variable,file] of Object.entries({payment:'paymentAttempt',refunds:'refundCommand',settlement:'settlementCommand',moneyOps:'moneyOperations',tradeBills:'tradeBillReconciliation',shipment:'orderFulfillment'}))owners.set(variable,`services/api/src/${file}.ts`);
 const operations=[...registeredSourceOperations(source),{method:'GET',path:'/health/live'},{method:'GET',path:'/health/ready'}];
 const files=async(dir:string):Promise<string[]>=>{const output:string[]=[];for(const entry of await readdir(dir,{withFileTypes:true})){const p=`${dir}/${entry.name}`;if(entry.isDirectory())output.push(...await files(p));else if(p.endsWith('.ts'))output.push(p);}return output;};
 const clients=await Promise.all((await files('apps/miniprogram')).map(async path=>({path,source:await readFile(path,'utf8')})));

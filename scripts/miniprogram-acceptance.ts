@@ -9,10 +9,11 @@ import { createApp } from "../services/api/src/server.js";
 import { createPool } from "../services/api/src/db.js";
 import { createApiGatewayStorage } from "../services/api/src/storage.js";
 
-const acceptancePort = 18_080;
+const acceptancePort = Number(process.env.CISME_ACCEPTANCE_PORT ?? 18080);
+if(!Number.isInteger(acceptancePort)||acceptancePort<18080||acceptancePort>18089)throw new Error("ACCEPTANCE_LOOPBACK_PORT_INVALID");
 const acceptanceHost = "127.0.0.1";
 const externalUserId = "cisme-mini-acceptance-member";
-const outputDirectory = resolve(process.cwd(), "tmp/miniprogram-acceptance");
+const outputDirectory = resolve(process.cwd(), acceptancePort===18080?"tmp/miniprogram-acceptance":`tmp/miniprogram-acceptance-${acceptancePort}`);
 const fixturePath = resolve(outputDirectory, "fixture.json");
 const syntheticCommunity = process.argv.includes("--synthetic-community");
 
@@ -59,6 +60,9 @@ const config = loadConfig({
   CONTACT_HASH_KEY: secret(),
   CONTACT_KEY_VERSION: "local-acceptance-v1",
   COMMERCE_ORDER_FLOW_ENABLED: "true",
+  COMMERCE_FULFILLMENT_ENABLED: "true",
+  WECHAT_APP_ID: "wx4eac2d4fb11d299b",
+  COMMERCE_FULFILLMENT_MERCHANT_ID: "1900000001",
   COMMERCE_QUOTE_TTL_MINUTES: "10",
   COMMERCE_PENDING_ORDER_TTL_MINUTES: "120",
   POINTS_RULES_ENABLED: "true",

@@ -58,7 +58,7 @@ describe.each<Name>(["management", "commission", "order-detail"])("PERF-11/12: %
     expect(page.data.loading).toBe(false); expect(facts(name)).toMatchObject(coreValue(name));
     expect(page.data.runtimeState).toBe("loading"); closed(name);
     if (name === "commission") expect(page.data.availableLabel).toBe("12.00");
-    if (name === "order-detail") expect(page.data.order).toMatchObject({ totalYuan: "12.00", statusLabel: "已支付，待履约" });
+    if (name === "order-detail") expect(page.data.order).toMatchObject({ totalYuan: "12.00", statusLabel: "已支付" });
     if (name === "management") expect(page.data.canSupport).toBe(true);
   });
   it("keeps core usable on runtime failure and retries only the auxiliary request", async () => {
@@ -253,4 +253,31 @@ it("order-detail does not present a failed refund-history read as zero requests"
   await loadPage("order-detail");void page.load();core.resolve(order);await flush();
   history.reject({status:503,title:"合成历史读取失败"});await flush();
   expect(page.data.refundCountLabel).toBe("记录数量暂未核实");expect(page.data.refundError).toBeTruthy();
+});
+
+describe('native shipment and explicit receipt boundaries',()=>{
+  async function ready(){await loadPage('order-detail');void page.load();core.resolve(order);await flush();}
+  it.each(['hide','session'])('does not reveal late tracking after %s',async kind=>{
+    const shipping=deferred();const base=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/shipment')?shipping.promise:base(o));
+    await ready();if(kind==='hide')page.onHide();else mocks.token='member-b';
+    shipping.resolve({id,orderId:id,version:1,logisticsState:'shipped',trackingNumber:'SYNTHETIC123'});await flush();
+    expect(page.data.shipment).toBeNull();
+  });
+  it('blocks receipt after session changes during confirmation',async()=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    const modal=deferred();(globalThis as any).wx.showModal=vi.fn(()=>modal.promise);
+    const action=page.confirmReceipt();mocks.token='member-b';modal.resolve({confirm:true});await action;
+    expect(mocks.request.mock.calls.some(([o])=>o.path.endsWith('/confirm-receipt'))).toBe(false);
+  });
+  it('uses the same key and version after an unknown receipt response without enabling money',async()=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    (globalThis as any).wx.showModal=vi.fn(async()=>({confirm:true}));
+    const base=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/confirm-receipt')?Promise.reject(Error('timeout')):base(o));
+    page.finishAction=()=>page.setData({busy:false});
+    await page.confirmReceipt();await page.confirmReceipt();
+    const calls=mocks.request.mock.calls.filter(([o])=>o.path.endsWith('/confirm-receipt')).map(([o])=>o);
+    expect(calls).toHaveLength(2);expect(calls[0].idempotencyKey).toBe(calls[1].idempotencyKey);expect(calls[1].data).toEqual({expectedVersion:1});expect(page.data.isolatedPayment).toBe(false);
+  });
 });

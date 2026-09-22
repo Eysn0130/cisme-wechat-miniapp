@@ -34,6 +34,9 @@ import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
 import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
 import { RefundCommandService } from "./refundCommand.js";
 import { FulfillmentReleaseService } from "./fulfillmentRelease.js";
+import { startWorkerLoop } from "../../worker/src/loop.js";
+import { fulfillmentRuntime } from "./fulfillmentRuntime.js";
+import type { WechatOrderShippingClient } from "./wechatOrderShipping.js";
 import { SettlementCommandService } from "./settlementCommand.js";
 import { SettlementCycleService } from "./settlementCycle.js";
 import { ShoppingCreditService } from "./shoppingCredit.js";
@@ -73,6 +76,7 @@ interface AppDependencies {
   legacyDirectSettlementFixture?: boolean;
   loggerInstance?: FastifyBaseLogger;
   phoneFetcher?: typeof fetch;
+  shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'>;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -162,6 +166,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       dependencies.paymentProtocol.refundInbox,{merchantId:paymentProfile.merchantId,
       notifyUrl:dependencies.paymentProtocol.refundNotifyUrl}):null;
   const fulfillment=new FulfillmentReleaseService(pool,authority,config.env);
+  const localFulfillment=fulfillmentRuntime(config,pool,dependencies.shippingTestChannel);
+  const shipmentRequired=()=>{
+    if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','发货与物流功能尚未在当前环境开放',503);
+    return localFulfillment.service;
+  };
   if(config.commerce.simulatedPayment?.transferSceneId&&
     (!dependencies.paymentProtocol?.transferNotifyUrl||!dependencies.paymentProtocol.transferInbox))
     throw new Error("FAIL_CLOSED:ISOLATED_TRANSFER_PROTOCOL_REQUIRED");
@@ -560,6 +569,26 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/fulfillment/pending",async request=>
     fulfillment.pending(request.memberId,request.query));
+  app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment",async request=>
+    shipmentRequired().detailMine(request.memberId,request.params.orderId));
+  app.post<{Params:{orderId:string};Body:{expectedVersion:number}}>("/v1/me/orders/:orderId/confirm-receipt",async request=>
+    shipmentRequired().confirmReceipt(request.memberId,request.params.orderId,idempotencyKey(request),request.body?.expectedVersion));
+  app.get<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment",async request=>
+    shipmentRequired().detailManagement(request.memberId,request.params.orderId));
+  app.post<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment",async request=>
+    shipmentRequired().dispatch(request.memberId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:Record<string,unknown>}>("/v1/management/shipments",async request=>
+    shipmentRequired().managementList(request.memberId,request.query));
+  app.get<{Querystring:Record<string,unknown>}>("/v1/management/shipments/export",async(request,reply)=>{
+    const result=await shipmentRequired().managementList(request.memberId,request.query,true);
+    return reply.header('Cache-Control','no-store, private').header('Pragma','no-cache')
+      .header('Content-Disposition','attachment; filename="cisme-fulfillment.xlsx"')
+      .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(result.workbook);
+  });
+  app.post<{Body:{rows:unknown}}>("/v1/management/shipments/import",async request=>
+    shipmentRequired().importRows(request.memberId,idempotencyKey(request),request.body?.rows));
+  app.post<{Body:{entries:unknown}}>("/v1/management/shipments/batch",async request=>
+    shipmentRequired().dispatchBatch(request.memberId,idempotencyKey(request),request.body?.entries));
   app.post<{Params:{attestationId:string}}>("/v1/management/fulfillment/:attestationId/decision",async request=>
     fulfillment.decide(request.memberId,request.params.attestationId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));
@@ -783,6 +812,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const paymentProtocol=isolatedProtocol??formalProtocol;
   const app = await createApp({ config, pool, storage,
     ...(paymentProtocol?{paymentProtocol}:{}) });
+  const shipping=process.env.RUN_BACKGROUND_WORKER==="true"?fulfillmentRuntime(config,pool):undefined;
+  const shippingWorker=shipping?startWorkerLoop(async()=>{await shipping.runCycle();return false;},
+    error=>app.log.error({event:"shipping_worker_tick_failed",...safeFailureFields(error)}),5000):null;
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
       privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null }, (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
@@ -806,7 +838,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       error=>app.log.error({ event: "money_worker_tick_failed", ...safeFailureFields(error) })) : null;
   const recoveryWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&formalProtocol
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>app.log.error({event:"formal_recovery_tick_failed",...safeFailureFields(error)})):null;
-  app.addHook("onClose", async () => { await recoveryWorker?.stop(); await moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
+  app.addHook("onClose", async () => { await shippingWorker?.stop(); await recoveryWorker?.stop(); await moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
   const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);

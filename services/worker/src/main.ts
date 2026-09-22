@@ -10,6 +10,8 @@ import { RefundCommandService } from "../../api/src/refundCommand.js";
 import { AuthorityService } from "../../api/src/authority.js";
 import { SettlementCommandService } from "../../api/src/settlementCommand.js";
 import { safeFailureFields } from "../../api/src/observability.js";
+import { fulfillmentRuntime } from "../../api/src/fulfillmentRuntime.js";
+import { startWorkerLoop } from "./loop.js";
 export { processOutboxBatch, processMediaCleanup, sweepExpired, WORKER_MAX_ATTEMPTS } from "./jobs.js";
 export { expirePendingOrders } from "../../api/src/commerceOrders.js";
 
@@ -17,6 +19,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadConfig();
   const pool = createPool(config.databaseUrl, config.database);
   const storage = createObjectStorage(config);
+  const shipping=fulfillmentRuntime(config,pool);
+  const shippingWorker=shipping?startWorkerLoop(async()=>{await shipping.runCycle();return false;},
+    error=>console.error('CISME_SHIPPING_WORKER_FAILED',safeFailureFields(error)),5000):null;
   const worker = startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
     privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null }, (error) => console.error("CISME_WORKER_TICK_FAILED", safeFailureFields(error)));
   const isolatedProtocol=isolatedPaymentProtocol(config,pool);
@@ -37,7 +42,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       error=>console.error("CISME_MONEY_WORKER_TICK_FAILED",safeFailureFields(error))):null;
   const recoveryWorker=formalProtocol
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>console.error("CISME_FORMAL_RECOVERY_FAILED",safeFailureFields(error))):null;
-  const stop = async () => { await recoveryWorker?.stop();await moneyWorker?.stop(); await worker.stop(); await pool.end(); };
+  const stop = async () => { await shippingWorker?.stop();await recoveryWorker?.stop();await moneyWorker?.stop(); await worker.stop(); await pool.end(); };
   process.once("SIGTERM", () => void stop());
   process.once("SIGINT", () => void stop());
 }

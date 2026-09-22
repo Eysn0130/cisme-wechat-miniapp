@@ -485,8 +485,8 @@
       "state": "controlled_formal_recovery_source_wired_no_live_grant_installed_no_real_channel_calls"
     }
   ],
-  "migrationSetSha256": "644ceec561226533224cf4761b72881e41a0168b3c2a624137353f32a53b4d57",
-  "egressSignatureSha256": "5031a306d66bdcd3fd87ab4fcc3b54f719706c09f6199663699ab4d211c74d44",
+  "migrationSetSha256": "2c09be368ba8efc83ac9c9c5c73483fa50497d5614eb93ed217938c68779ad5d",
+  "egressSignatureSha256": "68976862ee310c520488ab586fe79b29644d572a0e37f618e7746c82f09c34a1",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -528,5 +528,18 @@
     "liveGrantInstalled": false,
     "realPlatformCalled": false,
     "productionErasureEnabled": false
+  },
+  "localFulfillmentReview20260922": {
+    "purpose": "履约、物流展示及授权仓储导出",
+    "tables": [
+      "commerce_shipment",
+      "commerce_shipment_line",
+      "commerce_shipment_event"
+    ],
+    "fields": "订单关系、操作员、包裹关联、交寄/签收/确认时间、版本；运单仍在既有加密 shipping_sync 中",
+    "export": "履约权限并发锁+提交前复核；xlsx 内存生成，不落服务器磁盘；审计导出人、时间、筛选、数量、摘要，不含明文姓名/手机/地址；no-store",
+    "egress": "新增官方 stable_token 凭据交换，保护文件逐次授权、固定 HTTPS 主机、拒绝重定向、有界解析；管理导出仅既有配置 API。未安装微信出站授权文件。",
+    "retention": "未新增自动删除或期限，保留法律留置；生产完整主体导出/删除仍未完成",
+    "approval": "首发经营规则由用户任务回复批准，不等于整体生产隐私批准"
   }
 }
