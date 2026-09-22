@@ -2053,6 +2053,7 @@
         "tests/integration/member-profile-display.test.ts",
         "tests/integration/payment-http-simulation.test.ts",
         "tests/integration/phone-route-authorization.test.ts",
+        "tests/integration/privacy-execution-authority.test.ts",
         "tests/integration/privacy-rights.test.ts",
         "tests/integration/rate-limits.test.ts",
         "tests/integration/role-aware-support.test.ts",
@@ -2141,6 +2142,7 @@
       "nativeReferenceCandidates": [
         "apps/miniprogram/pages/account/index.ts",
         "apps/miniprogram/pages/legal/index.ts",
+        "apps/miniprogram/pages/privacy-rights/index.ts",
         "apps/miniprogram/release-config.ts",
         "apps/miniprogram/services/api.ts"
       ],

@@ -1,0 +1,42 @@
+{
+  "packageSourceSha256": "a296da16a0edafe3d1fc988b94539a52a23f2d7e8b1fa85d9702e96b4276161c",
+  "scope": "owned local synthetic permission revocation only; no real authority changed",
+  "runId": "f363dfe8f593340d5dcba97d",
+  "fullMatrixAccepted": false,
+  "rows": [
+    {
+      "name": "review-permission-revoked",
+      "route": "/pages/community-review/index?id=aa214a33-420e-4c81-a3ea-cbf5942a3b65",
+      "state": {
+        "route": "pages/community-review/index",
+        "loading": false,
+        "error": "当前账号没有内容审核权限，请返回社区。",
+        "hasCandidate": false,
+        "hasPost": false
+      },
+      "renderedControl": "返回社区",
+      "image": {
+        "path": "raw/review-permission-revoked.png",
+        "sha256": "b955b8d308b5b5ceb7131eca1441000500f5874ed6f8ad89bbb6a6b357e8d2fe"
+      },
+      "time": "2026-09-22T05:22:07.742388+00:00"
+    },
+    {
+      "name": "unpublished-post-invisible",
+      "route": "/pages/community-post/index?id=aa214a33-420e-4c81-a3ea-cbf5942a3b65",
+      "state": {
+        "route": "pages/community-post/index",
+        "loading": false,
+        "error": "护理故事已下架或不可见",
+        "hasCandidate": false,
+        "hasPost": false
+      },
+      "renderedControl": "重新加载",
+      "image": {
+        "path": "raw/unpublished-post-invisible.png",
+        "sha256": "f8551b21de54ee0e1493e22c55ad4450ee448ab870d4c56d11516b022b287027"
+      },
+      "time": "2026-09-22T05:22:18.870716+00:00"
+    }
+  ]
+}

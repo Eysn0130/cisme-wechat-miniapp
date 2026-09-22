@@ -1,0 +1,342 @@
+{
+  "packageSourceSha256": "ff5713391ae20741a5c4eb29fcc380d7050e777acbc360b93b10fcad97603128",
+  "fixtureDatabase": "cisme_test_f363dfe8f593340d5dcba97d",
+  "scope": "local_devtools_synthetic_nonproduction",
+  "logicalResolution": [
+    390,
+    844
+  ],
+  "baseLibrary": "3.15.2",
+  "devtools": "2.02.2608070",
+  "deviceAcceptance": false,
+  "fullMatrixAccepted": false,
+  "rows": [
+    {
+      "name": "commission",
+      "route": "pages/commission/index",
+      "query": "",
+      "time": "2026-09-22T04:53:20.347286+00:00",
+      "state": {
+        "route": "pages/commission/index",
+        "loading": false,
+        "error": "",
+        "coreReady": true,
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/commission.png",
+        "sha256": "87e6124a5f88464317b530399f36461e0fd95a972cff35efb1ca8540a44d626c",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "community-activity",
+      "route": "pages/community-activity/index",
+      "query": "",
+      "time": "2026-09-22T04:53:25.756830+00:00",
+      "state": {
+        "route": "pages/community-activity/index",
+        "loading": false,
+        "error": "",
+        "itemCount": 0,
+        "section": "comments",
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/community-activity.png",
+        "sha256": "130abc642bf45e7aeb5cfd8474d00824bb2ef45eb5c2573beb256f1b91586bb6",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "management-finance",
+      "route": "pages/management-finance/index",
+      "query": "",
+      "time": "2026-09-22T04:53:31.025820+00:00",
+      "state": {
+        "route": "pages/management-finance/index",
+        "loading": false,
+        "error": "当前环境没有开放隔离资金核对。",
+        "itemCount": 0,
+        "section": "refund",
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/management-finance.png",
+        "sha256": "8f4f8b0f8f71b4815b830333f3ee74792164d499b3867035601cc9ddc04410f0",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "management-members",
+      "route": "pages/management-members/index",
+      "query": "",
+      "time": "2026-09-22T04:53:36.351023+00:00",
+      "state": {
+        "route": "pages/management-members/index",
+        "loading": false,
+        "error": "",
+        "itemCount": 3,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/management-members.png",
+        "sha256": "621b891398f0865805d9566fd57d437f2d28f0f6cd61a36e06e902c4f9f6d43c",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "privacy-rights",
+      "route": "pages/privacy-rights/index",
+      "query": "",
+      "time": "2026-09-22T04:53:41.902235+00:00",
+      "state": {
+        "route": "pages/privacy-rights/index",
+        "loading": false,
+        "error": "",
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/privacy-rights.png",
+        "sha256": "1b8f227e3f3e64d1e2457358da81079ee755171f207da4053b34a18f6becc6b3",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "communityAuthor",
+      "route": "pages/community-author/index",
+      "query": "id=bc7bf348-09aa-4afb-a864-3e1ffeb58af7",
+      "time": "2026-09-22T04:53:47.267251+00:00",
+      "state": {
+        "route": "pages/community-author/index",
+        "loading": false,
+        "error": "",
+        "itemCount": 1,
+        "authorReady": true,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/communityAuthor.png",
+        "sha256": "ddf047389a21acba8d3a89a449abe0b93b2a4d9b63f9b12047f395914fc04be3",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "communityPost",
+      "route": "pages/community-post/index",
+      "query": "id=14318efa-8ea1-40cb-ab0b-96746ed91daa",
+      "time": "2026-09-22T04:53:52.852174+00:00",
+      "state": {
+        "route": "pages/community-post/index",
+        "loading": false,
+        "error": "",
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": true,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/communityPost.png",
+        "sha256": "1b143b9f12a65abfdfb5c6bfef7317a2a2c49c52aa7ab93e3b43b18399bbb6af",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "communityReview",
+      "route": "pages/community-review/index",
+      "query": "id=aa214a33-420e-4c81-a3ea-cbf5942a3b65",
+      "time": "2026-09-22T04:53:58.167609+00:00",
+      "state": {
+        "route": "pages/community-review/index",
+        "loading": false,
+        "error": "",
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": true,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/communityReview.png",
+        "sha256": "066d3afd357e34e8ec9ef0bfe66a64169108b3857d27ab004ab6e47a7fa87789",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "managementMember",
+      "route": "pages/management-member/index",
+      "query": "id=e60045a0-2fa8-484f-8a77-78224d5653ea",
+      "time": "2026-09-22T04:54:03.815706+00:00",
+      "state": {
+        "route": "pages/management-member/index",
+        "loading": false,
+        "error": "",
+        "itemCount": 0,
+        "section": "overview",
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": true
+      },
+      "image": {
+        "path": "raw/managementMember.png",
+        "sha256": "2891383eeae504e9cd907ed6c100bf28cf3930dfeb755d18df293b7438171480",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "communityDeleted",
+      "route": "pages/community-post/index",
+      "query": "id=bdb99440-bc67-43da-982c-47b876d23e5f",
+      "time": "2026-09-22T04:54:09.077266+00:00",
+      "state": {
+        "route": "pages/community-post/index",
+        "loading": false,
+        "error": "护理故事已下架或不可见",
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/communityDeleted.png",
+        "sha256": "9c7e90950bf860109c5e98731996afc5fc4fa1b06d9ceeb0f6531ff07d1dbfc5",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "community-author-missing",
+      "route": "pages/community-author/index",
+      "query": "",
+      "time": "2026-09-22T04:54:14.538673+00:00",
+      "state": {
+        "route": "pages/community-author/index",
+        "loading": false,
+        "error": "作者编号无效，请返回社区。",
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/community-author-missing.png",
+        "sha256": "42906c7982fd3796c7a2b96a3e3cf007f55ea545a04ae38860e2f1a87b01eaa3",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "community-post-missing",
+      "route": "pages/community-post/index",
+      "query": "",
+      "time": "2026-09-22T04:54:19.824353+00:00",
+      "state": {
+        "route": "pages/community-post/index",
+        "loading": false,
+        "error": "内容编号缺失，请返回社区重试。",
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/community-post-missing.png",
+        "sha256": "c7da3bc3335b54cb6b2870e62300d309a953ef4cd379ad1174b4c8d7e803d60f",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "community-review-missing",
+      "route": "pages/community-review/index",
+      "query": "",
+      "time": "2026-09-22T04:54:25.027532+00:00",
+      "state": {
+        "route": "pages/community-review/index",
+        "loading": false,
+        "error": "内容编号缺失。",
+        "itemCount": 0,
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/community-review-missing.png",
+        "sha256": "3ce54491980a879ddf571dd09bbae673de8892d543b1264c8732e365f0084fca",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    },
+    {
+      "name": "management-member-missing",
+      "route": "pages/management-member/index",
+      "query": "",
+      "time": "2026-09-22T04:54:30.484413+00:00",
+      "state": {
+        "route": "pages/management-member/index",
+        "loading": false,
+        "error": "会员编号无效",
+        "itemCount": 0,
+        "section": "overview",
+        "authorReady": false,
+        "postReady": false,
+        "candidateReady": false,
+        "detailReady": false
+      },
+      "image": {
+        "path": "raw/management-member-missing.png",
+        "sha256": "76051ebb2698e4c02001f8614c454ecfa038c459a06db9645af611e79cec1b69",
+        "width": 242,
+        "height": 524
+      },
+      "result": "OBSERVATION_REQUIRES_VISUAL_REVIEW"
+    }
+  ]
+}

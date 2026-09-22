@@ -1,0 +1,21 @@
+{
+  "sourceHead": "0311eee9e0efc27c1fe9e7430a0027859fab66f3",
+  "base": "35a9cfa7d67b66c1c7d982a8940a86ab300a874e",
+  "checkout": "93c86c56c48f0da6d49cb3ac42b5df8aa7ba7956",
+  "tree": "1a89b8f27205c99ae1cb11395a8f24554f38b21e",
+  "sourceTreeMatchesCheckout": true,
+  "runId": 35689971258,
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/35689971258",
+  "conclusion": "success",
+  "verify": "success",
+  "unitPassed": 986,
+  "integrationPassed": 735,
+  "skipped": [
+    "candidate-design-qa",
+    "wechat-credentialed-preview"
+  ],
+  "scope": "Intermediate source check; excludes later export-expiry fix and final evidence commit. Final delivery CI is in handoff RECOVERY-ANCHOR.json.",
+  "nativeAccepted": false,
+  "deviceAccepted": false,
+  "releaseReady": false
+}

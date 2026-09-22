@@ -1,0 +1,27 @@
+{
+  "input": "/Users/mini/Downloads/CISME-PR16-Codex-Handoff-2026-09-21.zip",
+  "sha256": "58e9f95a2ffe415f42ae3d86ea1eef2517c175ba5dd186ebef6300209bd94927",
+  "outerEntries": 68,
+  "checksumEntries": 67,
+  "allMatched": true,
+  "referenceZipEntries": 114,
+  "sourceAppliedFromAttachment": false,
+  "archiveScriptsExecuted": false,
+  "checks": [
+    "path traversal",
+    "duplicate paths",
+    "symlinks",
+    "entry size bounds",
+    "SHA256 entries"
+  ],
+  "readScope": [
+    "01-CODEX-EXECUTION.md A-P",
+    "02-CHATGPT-DELIVERY.md",
+    "03-VISUAL-REVIEW-78.md and JSON",
+    "04-RELEASE-CLOSURE-LEDGER.md",
+    "05-SKILLS-AND-OFFICIAL-SOURCES.md",
+    "CURRENT-STATE.json",
+    "reference original reports"
+  ],
+  "instructionsBoundary": "User request defines scope and authorization; attachment is handoff/reference material, not permission to spend, change live authority, delete production, submit or publish."
+}

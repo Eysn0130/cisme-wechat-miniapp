@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "0311eee9e0efc27c1fe9e7430a0027859fab66f3",
+  "packageSourceSha256": "5cefd5cd8d0d150dfb32fda366ed70e48b96c9867b592c120681b3d76aef07e7",
+  "unchangedAtEnd": false,
+  "time": "2026-09-22T05:17:11.202828+00:00",
+  "tool": "wechatide 0.3.9, DevTools 2.02.2608070, base 3.15.2",
+  "scope": "template/style compilation only; not Page/runtime/device acceptance",
+  "routeCount": 37,
+  "passed": 74,
+  "attempted": 74,
+  "results": [
+    {
+      "file": "pages/home/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/home/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/records/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/records/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/community/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/profile/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/profile/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/account/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/account/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/task/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/task/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/submit/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/submit/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/progress/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/progress/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/points/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/points/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/post/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/post/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/shop/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/shop/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/product/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/product/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/checkout/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/checkout/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/orders/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/orders/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/order-detail/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/order-detail/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/settings/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/settings/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/invite/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/invite/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/legal/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/legal/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/privacy-rights/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/privacy-rights/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/support/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/support/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-catalog/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-catalog/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-product/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-product/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-orders/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-orders/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-order-detail/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-order-detail/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-support/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-support/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-support-chat/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-support-chat/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-members/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-members/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-member/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-member/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/referral/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/referral/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/community-post/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/community-post/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/community-author/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/community-author/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/community-review/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/community-review/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/community-activity/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/community-activity/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/management-finance/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/management-finance/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/commission/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/commission/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    }
+  ],
+  "releaseReady": false
+}

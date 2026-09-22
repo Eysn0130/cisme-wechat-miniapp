@@ -17,3 +17,7 @@
 PRD 依据为 `docs/product/CISME-产品需求文档-PRD-V2.1-R4.md` 的身份、会员资料/地址、隐私、社区治理、交易及验收章节；本文件尚未把每一方法绑定到具体稳定验收 ID，因此 api-surface 的 `prdBusinessId` 继续 UNREVIEWED。没有以自动文本搜索替代业务裁决。
 
 限流由统一 rateLimits/operationBudget 入口和各服务分页施加；195 个 signed 方法已实际拒绝无会话和伪造会话。这只证明入口维度，不能证明每个操作的对象/字段/状态/动作、幂等、并发和副作用。剩余维度及后台 worker/storage/平台回调非路由面仍是技术工作，不能列为负责人补截图即可关闭。
+
+## 2026-09-22 PR16 接续
+
+新增支付查单绑定/取消并发、隐私执行撤权/制品撤销和锁等待过期反例，见 [接续13维切片](../../pr16-continuation-20260922/audit/reviewed-13-axes.json)。分母仍228；本轮7个HTTP方法及2个worker仅部分审阅，未批量转为通过。源码、测试与剩余工程见 [接续记录](../../pr16-continuation-20260922/README.md)。

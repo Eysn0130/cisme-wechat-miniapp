@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "routeDenominator": 228,
+  "fullyAcceptedMethods": 0,
+  "scope": "Seven reviewed high-risk method slices plus two privacy workers; no blanket route acceptance.",
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/v1/me/privacy-requests/{requestId}/export",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20 页面契约、§10.3 数据权利接口、§11.3。A11/LIC-01/02 针对许可撤回，不能用 profile 子集执行声明其完成。正式完整权利验收未完成。",
+        "identity": "server preHandler 校验签名会话和 active member；本切片 worker 另在事务内检查主体 active/dev_test。",
+        "roleCapability": "隐私计划/批准 review_lead，双人批准；worker 本次重新检查 maker/checker 当前角色共享行锁。管理 response/plan 的权限事务边界仍待进一步审查。",
+        "objectRow": "申请、作业、制品 member_id 相同；下载将 request/job/artifact 主体串联；范围不可变 trigger 保持。",
+        "fieldProjection": "合成副本仅 member/profile 白名单，排除 identity token、联系密文、他人字段、审计；不是完整主体导出。",
+        "actionState": "worker 仅 approved/failed，<=3 次；执行要求 request executing；下载 succeeded、未撤销、未过期。终止/canceled 不被耗尽重试覆盖。",
+        "environment": "执行器仅 test+合成key；production disabled。未接入正式隐私执行。",
+        "inputBoundary": "UUID、原因码、expectedVersion；请求 kind/2000字；下载固定<=1MB。完整参数组合仍未全审。",
+        "idempotencyVersion": "计划请求键+hash+version；审批版本+maker/checker；作业行锁/状态避免重复生成；撤销重复返回404。",
+        "concurrency": "独立连接持有撤销 UPDATE，下载 FOR SHARE 等待并在提交后拒绝；worker 锁 active member、身份、角色及request。全方法死锁/撤权矩阵未完。",
+        "databaseExternalEffects": "导出加密制品/状态/事件事务，失败savepoint回滚；下载审计同事务；合成删除仅清除member_profile.wechat_handle，保留头像/公开审核字段并推进profile_revision，保留holds/政策锁。",
+        "limitsTimeoutPagination": "现有请求预算/PG事务预算；10请求/日、列表100；完整游标与正式SLA尚未实现。",
+        "positiveNegativeEvidence": "privacy-rights 13 + privacy-execution-authority 9 共22通过；新增最初3项 RED 已复现。双主体子集隔离沿既有测试；全主体/媒体/日志/备份未完。"
+      },
+      "sourceOwners": [
+        "services/api/src/privacyExecution.ts",
+        "services/api/src/server.ts"
+      ],
+      "tests": [
+        "tests/integration/privacy-rights.test.ts",
+        "tests/integration/privacy-execution-authority.test.ts"
+      ],
+      "axisScope": "These are the reviewed slice boundaries across the named route and its related service/worker; route-specific behavior is below. They are not 13 independently passed checks.",
+      "routeSpecific": {
+        "authorization": "own active member; fixed request/job/artifact ownership; no operator role required",
+        "effect": "decrypt owned unexpired artifact and commit download audit; no job creation",
+        "evidence": "independent-connection revoke waits then returns PRIVACY_EXPORT_NOT_FOUND; blocked member rejects; expiration during an independent job-row lock wait reproduced delivery on old code and denial with the fix",
+        "unclosed": "reauthentication and full subject scope absent; this only authorizes the synthetic profile subset"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/privacy-requests/{requestId}/export-revoke",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20 页面契约、§10.3 数据权利接口、§11.3。A11/LIC-01/02 针对许可撤回，不能用 profile 子集执行声明其完成。正式完整权利验收未完成。",
+        "identity": "server preHandler 校验签名会话和 active member；本切片 worker 另在事务内检查主体 active/dev_test。",
+        "roleCapability": "隐私计划/批准 review_lead，双人批准；worker 本次重新检查 maker/checker 当前角色共享行锁。管理 response/plan 的权限事务边界仍待进一步审查。",
+        "objectRow": "申请、作业、制品 member_id 相同；下载将 request/job/artifact 主体串联；范围不可变 trigger 保持。",
+        "fieldProjection": "合成副本仅 member/profile 白名单，排除 identity token、联系密文、他人字段、审计；不是完整主体导出。",
+        "actionState": "worker 仅 approved/failed，<=3 次；执行要求 request executing；下载 succeeded、未撤销、未过期。终止/canceled 不被耗尽重试覆盖。",
+        "environment": "执行器仅 test+合成key；production disabled。未接入正式隐私执行。",
+        "inputBoundary": "UUID、原因码、expectedVersion；请求 kind/2000字；下载固定<=1MB。完整参数组合仍未全审。",
+        "idempotencyVersion": "计划请求键+hash+version；审批版本+maker/checker；作业行锁/状态避免重复生成；撤销重复返回404。",
+        "concurrency": "独立连接持有撤销 UPDATE，下载 FOR SHARE 等待并在提交后拒绝；worker 锁 active member、身份、角色及request。全方法死锁/撤权矩阵未完。",
+        "databaseExternalEffects": "导出加密制品/状态/事件事务，失败savepoint回滚；下载审计同事务；合成删除仅清除member_profile.wechat_handle，保留头像/公开审核字段并推进profile_revision，保留holds/政策锁。",
+        "limitsTimeoutPagination": "现有请求预算/PG事务预算；10请求/日、列表100；完整游标与正式SLA尚未实现。",
+        "positiveNegativeEvidence": "privacy-rights 13 + privacy-execution-authority 9 共22通过；新增最初3项 RED 已复现。双主体子集隔离沿既有测试；全主体/媒体/日志/备份未完。"
+      },
+      "sourceOwners": [
+        "services/api/src/privacyExecution.ts",
+        "services/api/src/server.ts"
+      ],
+      "tests": [
+        "tests/integration/privacy-rights.test.ts",
+        "tests/integration/privacy-execution-authority.test.ts"
+      ],
+      "axisScope": "These are the reviewed slice boundaries across the named route and its related service/worker; route-specific behavior is below. They are not 13 independently passed checks.",
+      "routeSpecific": {
+        "authorization": "own member on request/job/artifact; member active enforced in HTTP preHandler",
+        "effect": "sets revoked_at plus audit in one transaction; repeat returns 404",
+        "evidence": "existing privacy-rights suite plus download/revoke contention at artifact row",
+        "unclosed": "service-level active-member serialization not added here; already delivered bytes cannot be recalled"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/privacy-requests/{requestId}/export-approval",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20 页面契约、§10.3 数据权利接口、§11.3。A11/LIC-01/02 针对许可撤回，不能用 profile 子集执行声明其完成。正式完整权利验收未完成。",
+        "identity": "server preHandler 校验签名会话和 active member；本切片 worker 另在事务内检查主体 active/dev_test。",
+        "roleCapability": "隐私计划/批准 review_lead，双人批准；worker 本次重新检查 maker/checker 当前角色共享行锁。管理 response/plan 的权限事务边界仍待进一步审查。",
+        "objectRow": "申请、作业、制品 member_id 相同；下载将 request/job/artifact 主体串联；范围不可变 trigger 保持。",
+        "fieldProjection": "合成副本仅 member/profile 白名单，排除 identity token、联系密文、他人字段、审计；不是完整主体导出。",
+        "actionState": "worker 仅 approved/failed，<=3 次；执行要求 request executing；下载 succeeded、未撤销、未过期。终止/canceled 不被耗尽重试覆盖。",
+        "environment": "执行器仅 test+合成key；production disabled。未接入正式隐私执行。",
+        "inputBoundary": "UUID、原因码、expectedVersion；请求 kind/2000字；下载固定<=1MB。完整参数组合仍未全审。",
+        "idempotencyVersion": "计划请求键+hash+version；审批版本+maker/checker；作业行锁/状态避免重复生成；撤销重复返回404。",
+        "concurrency": "独立连接持有撤销 UPDATE，下载 FOR SHARE 等待并在提交后拒绝；worker 锁 active member、身份、角色及request。全方法死锁/撤权矩阵未完。",
+        "databaseExternalEffects": "导出加密制品/状态/事件事务，失败savepoint回滚；下载审计同事务；合成删除仅清除member_profile.wechat_handle，保留头像/公开审核字段并推进profile_revision，保留holds/政策锁。",
+        "limitsTimeoutPagination": "现有请求预算/PG事务预算；10请求/日、列表100；完整游标与正式SLA尚未实现。",
+        "positiveNegativeEvidence": "privacy-rights 13 + privacy-execution-authority 9 共22通过；新增最初3项 RED 已复现。双主体子集隔离沿既有测试；全主体/媒体/日志/备份未完。"
+      },
+      "sourceOwners": [
+        "services/api/src/privacyExecution.ts",
+        "services/api/src/server.ts"
+      ],
+      "tests": [
+        "tests/integration/privacy-rights.test.ts",
+        "tests/integration/privacy-execution-authority.test.ts"
+      ],
+      "axisScope": "These are the reviewed slice boundaries across the named route and its related service/worker; route-specific behavior is below. They are not 13 independently passed checks.",
+      "routeSpecific": {
+        "authorization": "adminPrincipal plus current review_lead; planner must differ; synthetic dev_test identity",
+        "effect": "versioned planned/reviewing to approved with request event and audit; no execution in HTTP request",
+        "evidence": "existing duplicate/self-review/invalid-state checks plus maker/checker revocation before worker",
+        "unclosed": "approval role read is not locked; worker rechecks before effect but approval transaction race still needs audit"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/privacy-requests/{requestId}/erasure-approval",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20 页面契约、§10.3 数据权利接口、§11.3。A11/LIC-01/02 针对许可撤回，不能用 profile 子集执行声明其完成。正式完整权利验收未完成。",
+        "identity": "server preHandler 校验签名会话和 active member；本切片 worker 另在事务内检查主体 active/dev_test。",
+        "roleCapability": "隐私计划/批准 review_lead，双人批准；worker 本次重新检查 maker/checker 当前角色共享行锁。管理 response/plan 的权限事务边界仍待进一步审查。",
+        "objectRow": "申请、作业、制品 member_id 相同；下载将 request/job/artifact 主体串联；范围不可变 trigger 保持。",
+        "fieldProjection": "合成副本仅 member/profile 白名单，排除 identity token、联系密文、他人字段、审计；不是完整主体导出。",
+        "actionState": "worker 仅 approved/failed，<=3 次；执行要求 request executing；下载 succeeded、未撤销、未过期。终止/canceled 不被耗尽重试覆盖。",
+        "environment": "执行器仅 test+合成key；production disabled。未接入正式隐私执行。",
+        "inputBoundary": "UUID、原因码、expectedVersion；请求 kind/2000字；下载固定<=1MB。完整参数组合仍未全审。",
+        "idempotencyVersion": "计划请求键+hash+version；审批版本+maker/checker；作业行锁/状态避免重复生成；撤销重复返回404。",
+        "concurrency": "独立连接持有撤销 UPDATE，下载 FOR SHARE 等待并在提交后拒绝；worker 锁 active member、身份、角色及request。全方法死锁/撤权矩阵未完。",
+        "databaseExternalEffects": "导出加密制品/状态/事件事务，失败savepoint回滚；下载审计同事务；合成删除仅清除member_profile.wechat_handle，保留头像/公开审核字段并推进profile_revision，保留holds/政策锁。",
+        "limitsTimeoutPagination": "现有请求预算/PG事务预算；10请求/日、列表100；完整游标与正式SLA尚未实现。",
+        "positiveNegativeEvidence": "privacy-rights 13 + privacy-execution-authority 9 共22通过；新增最初3项 RED 已复现。双主体子集隔离沿既有测试；全主体/媒体/日志/备份未完。"
+      },
+      "sourceOwners": [
+        "services/api/src/privacyExecution.ts",
+        "services/api/src/server.ts"
+      ],
+      "tests": [
+        "tests/integration/privacy-rights.test.ts",
+        "tests/integration/privacy-execution-authority.test.ts"
+      ],
+      "axisScope": "These are the reviewed slice boundaries across the named route and its related service/worker; route-specific behavior is below. They are not 13 independently passed checks.",
+      "routeSpecific": {
+        "authorization": "adminPrincipal plus current review_lead; planner must differ; synthetic dev_test identity",
+        "effect": "versioned planned/reviewing to approved with request event and audit; no execution in HTTP request",
+        "evidence": "existing duplicate/self-review/invalid-state checks plus maker/checker revocation before worker",
+        "unclosed": "approval role read is not locked; worker rechecks before effect but approval transaction race still needs audit"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/orders/{orderId}/payment-intent",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 §8.2、§15.1 A04/A07/A22、§15.1.2 ORD-03；本次只覆盖支付意图和取消的错绑定/并发切片，不表示完整 MAKE 流程通过。",
+        "identity": "会话主体 + attempt.member_id；dispatch事务重新检查active member，独立连接封禁先提交则不派发。",
+        "roleCapability": "本人订单命令；历史恢复另需每次重读受保护 recovery grant；退款/管理角色在其他方法，未借此标通过。",
+        "objectRow": "每次查单绑定 appid/mchid/out_trade_no，已提供的 amount/currency/openid/trade_type 必须匹配；SUCCESS仍严格完整事实校验。",
+        "fieldProjection": "只返回当前本人订单的有限支付状态/调起参数；日志无凭据；完整响应字段/全状态投影尚未逐项验收。",
+        "actionState": "prepared/unknown/prepay_ready/closed/paid；UNKNOWN不重发；NOT_EXIST只有当前事务仍prepared且无dispatch marker才可释放；非成功状态不能当支付成功。",
+        "environment": "新命令保持isolated test only；formal historical recovery可按独立授权读取。正式新单、退款发送、生产履约仍未接通。",
+        "inputBoundary": "UUID/商户单号/版本/key，金额取服务端持久化快照；签名HTTP原始字节校验；非成功查询允许官方可缺失的amount/payer，提供则核对。",
+        "idempotencyVersion": "原单原号、持久化dispatch marker、lease token fencing；取消请求key/hash/版本；不得将无记录当作可换号重发。",
+        "concurrency": "有符号CLOSED错绑定4个反例；延迟NOT_EXIST与prepay并发；独立PG连接封禁与dispatch锁；取消订单锁→attempt锁与dispatch决定串行。",
+        "databaseExternalEffects": "拒绝错绑定/迟到缺单不取消订单、不释放库存、不写cancel audit；撤权不发外部prepay，marker保持NULL；真实钱未操作。",
+        "limitsTimeoutPagination": "沿既有routeBudget/transaction deadline，HTTP timeout/response bound，单对象无分页；订单列表分页在其他方法。",
+        "positiveNegativeEvidence": "payment-http-simulation 原17 + 新6 =23集成；新增CLOSED4项和NOT_EXIST race最初RED。wechat-pay-v3非成功可选字段单元覆盖。真实商户平台、正式装配未验。"
+      },
+      "sourceOwners": [
+        "services/api/src/paymentAttempt.ts",
+        "services/api/src/commerceOrders.ts",
+        "services/api/src/wechatPayV3.ts"
+      ],
+      "tests": [
+        "tests/integration/payment-http-simulation.test.ts",
+        "tests/unit/wechat-pay-v3.test.ts"
+      ],
+      "axisScope": "These are the reviewed slice boundaries across the named route and its related service/worker; route-specific behavior is below. They are not 13 independently passed checks.",
+      "routeSpecific": {
+        "authorization": "own verified_commerce order/payment attempt; valid member/principal; formal new commands disabled",
+        "effect": "claims lease then committed dispatch marker, sends prepay once; unknown queries same merchant number",
+        "evidence": "signed loopback channel suite; revoked subject blocks prepay marker/send; non-success binding checks shared by query wrapper",
+        "unclosed": "formal new-order/prepay wiring disabled; second verification query delegated to inbox; no real funds"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/orders/{orderId}/payment-intent",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 §8.2、§15.1 A04/A07/A22、§15.1.2 ORD-03；本次只覆盖支付意图和取消的错绑定/并发切片，不表示完整 MAKE 流程通过。",
+        "identity": "会话主体 + attempt.member_id；dispatch事务重新检查active member，独立连接封禁先提交则不派发。",
+        "roleCapability": "本人订单命令；历史恢复另需每次重读受保护 recovery grant；退款/管理角色在其他方法，未借此标通过。",
+        "objectRow": "每次查单绑定 appid/mchid/out_trade_no，已提供的 amount/currency/openid/trade_type 必须匹配；SUCCESS仍严格完整事实校验。",
+        "fieldProjection": "只返回当前本人订单的有限支付状态/调起参数；日志无凭据；完整响应字段/全状态投影尚未逐项验收。",
+        "actionState": "prepared/unknown/prepay_ready/closed/paid；UNKNOWN不重发；NOT_EXIST只有当前事务仍prepared且无dispatch marker才可释放；非成功状态不能当支付成功。",
+        "environment": "新命令保持isolated test only；formal historical recovery可按独立授权读取。正式新单、退款发送、生产履约仍未接通。",
+        "inputBoundary": "UUID/商户单号/版本/key，金额取服务端持久化快照；签名HTTP原始字节校验；非成功查询允许官方可缺失的amount/payer，提供则核对。",
+        "idempotencyVersion": "原单原号、持久化dispatch marker、lease token fencing；取消请求key/hash/版本；不得将无记录当作可换号重发。",
+        "concurrency": "有符号CLOSED错绑定4个反例；延迟NOT_EXIST与prepay并发；独立PG连接封禁与dispatch锁；取消订单锁→attempt锁与dispatch决定串行。",
+        "databaseExternalEffects": "拒绝错绑定/迟到缺单不取消订单、不释放库存、不写cancel audit；撤权不发外部prepay，marker保持NULL；真实钱未操作。",
+        "limitsTimeoutPagination": "沿既有routeBudget/transaction deadline，HTTP timeout/response bound，单对象无分页；订单列表分页在其他方法。",
+        "positiveNegativeEvidence": "payment-http-simulation 原17 + 新6 =23集成；新增CLOSED4项和NOT_EXIST race最初RED。wechat-pay-v3非成功可选字段单元覆盖。真实商户平台、正式装配未验。"
+      },
+      "sourceOwners": [
+        "services/api/src/paymentAttempt.ts",
+        "services/api/src/commerceOrders.ts",
+        "services/api/src/wechatPayV3.ts"
+      ],
+      "tests": [
+        "tests/integration/payment-http-simulation.test.ts",
+        "tests/unit/wechat-pay-v3.test.ts"
+      ],
+      "axisScope": "These are the reviewed slice boundaries across the named route and its related service/worker; route-specific behavior is below. They are not 13 independently passed checks.",
+      "routeSpecific": {
+        "authorization": "own verified_commerce order/payment attempt; valid member/principal; formal new commands disabled",
+        "effect": "queries original channel order; SUCCESS enqueues verified inbox; no inventory release",
+        "evidence": "signed loopback channel suite; revoked subject blocks prepay marker/send; non-success binding checks shared by query wrapper",
+        "unclosed": "formal new-order/prepay wiring disabled; second verification query delegated to inbox; no real funds"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/orders/{orderId}/cancel-verified",
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 §8.2、§15.1 A04/A07/A22、§15.1.2 ORD-03；本次只覆盖支付意图和取消的错绑定/并发切片，不表示完整 MAKE 流程通过。",
+        "identity": "会话主体 + attempt.member_id；dispatch事务重新检查active member，独立连接封禁先提交则不派发。",
+        "roleCapability": "本人订单命令；历史恢复另需每次重读受保护 recovery grant；退款/管理角色在其他方法，未借此标通过。",
+        "objectRow": "每次查单绑定 appid/mchid/out_trade_no，已提供的 amount/currency/openid/trade_type 必须匹配；SUCCESS仍严格完整事实校验。",
+        "fieldProjection": "只返回当前本人订单的有限支付状态/调起参数；日志无凭据；完整响应字段/全状态投影尚未逐项验收。",
+        "actionState": "prepared/unknown/prepay_ready/closed/paid；UNKNOWN不重发；NOT_EXIST只有当前事务仍prepared且无dispatch marker才可释放；非成功状态不能当支付成功。",
+        "environment": "新命令保持isolated test only；formal historical recovery可按独立授权读取。正式新单、退款发送、生产履约仍未接通。",
+        "inputBoundary": "UUID/商户单号/版本/key，金额取服务端持久化快照；签名HTTP原始字节校验；非成功查询允许官方可缺失的amount/payer，提供则核对。",
+        "idempotencyVersion": "原单原号、持久化dispatch marker、lease token fencing；取消请求key/hash/版本；不得将无记录当作可换号重发。",
+        "concurrency": "有符号CLOSED错绑定4个反例；延迟NOT_EXIST与prepay并发；独立PG连接封禁与dispatch锁；取消订单锁→attempt锁与dispatch决定串行。",
+        "databaseExternalEffects": "拒绝错绑定/迟到缺单不取消订单、不释放库存、不写cancel audit；撤权不发外部prepay，marker保持NULL；真实钱未操作。",
+        "limitsTimeoutPagination": "沿既有routeBudget/transaction deadline，HTTP timeout/response bound，单对象无分页；订单列表分页在其他方法。",
+        "positiveNegativeEvidence": "payment-http-simulation 原17 + 新6 =23集成；新增CLOSED4项和NOT_EXIST race最初RED。wechat-pay-v3非成功可选字段单元覆盖。真实商户平台、正式装配未验。"
+      },
+      "sourceOwners": [
+        "services/api/src/paymentAttempt.ts",
+        "services/api/src/commerceOrders.ts",
+        "services/api/src/wechatPayV3.ts"
+      ],
+      "tests": [
+        "tests/integration/payment-http-simulation.test.ts",
+        "tests/unit/wechat-pay-v3.test.ts"
+      ],
+      "axisScope": "These are the reviewed slice boundaries across the named route and its related service/worker; route-specific behavior is below. They are not 13 independently passed checks.",
+      "routeSpecific": {
+        "authorization": "own order; request key/hash and expected version; formal new command gate remains closed",
+        "effect": "query/close/query original channel; CLOSED or strictly never-dispatched ORDER_NOT_EXIST then local cancel/release atomically",
+        "evidence": "4 signed CLOSED wrong-binding negatives; delayed ORDER_NOT_EXIST versus prepay dispatch returns409 without release",
+        "unclosed": "formal channel binding/reconciliation not exercised; no real funds"
+      }
+    }
+  ],
+  "nonRouteSurfaces": {
+    "privacyExportWorker": {
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "source": "services/api/src/privacyExecution.ts",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20 页面契约、§10.3 数据权利接口、§11.3。A11/LIC-01/02 针对许可撤回，不能用 profile 子集执行声明其完成。正式完整权利验收未完成。",
+        "identity": "worker 不使用用户HTTP会话；在执行事务校验作业member active、dev_test身份及request member相同。",
+        "roleCapability": "requested_by/approved_by须不同；锁定两人当前review_lead行后才执行。",
+        "objectRow": "作业行FOR UPDATE SKIP LOCKED；对应request被锁定且须executing，类型与scope匹配；不按FK全图删除。",
+        "fieldProjection": "明确member(id,display_name,created_at)+member_profile(wechat_handle,updated_at)，只读取作业member_id。",
+        "actionState": "approved/failed作业转running；权限复核后生成；最终request partially_completed，绝不宣称完整导出。",
+        "environment": "执行器仅 test+合成key；production disabled。未接入正式隐私执行。",
+        "inputBoundary": "仅预先批准的固定合成scope；worker不接受任意表名/字段名/对象URL。",
+        "idempotencyVersion": "作业状态及行锁确保一个事务处理；最多3次重试；失败savepoint回滚效果，不重放已成功作业。",
+        "concurrency": "独立作业锁加主体/身份/角色/请求锁；撤权与停止请求反例通过，完整死锁及多worker压力仍未穷尽。",
+        "databaseExternalEffects": "AES-GCM加密制品及job/request/events同事务；无外部存储写；失败生成不留部分制品。",
+        "limitsTimeoutPagination": "固定一次一作业、3次上限、失败5秒后可再试；继承事务预算，无分页。",
+        "positiveNegativeEvidence": "privacy-rights 13 + privacy-execution-authority 9；角色/主体撤销、请求取消、范围不可变以及下载撤销/过期。不是完整主体执行验证。"
+      }
+    },
+    "privacyErasureWorker": {
+      "status": "REVIEWED_SLICE_NOT_FULL_ACCEPTANCE",
+      "source": "services/api/src/privacyExecution.ts",
+      "axes": {
+        "prdBusinessId": "PRD V2.1-R4 P20 页面契约、§10.3 数据权利接口、§11.3。A11/LIC-01/02 针对许可撤回，不能用 profile 子集执行声明其完成。正式完整权利验收未完成。",
+        "identity": "worker 不使用用户HTTP会话；在执行事务校验作业member active、dev_test身份及request member相同。",
+        "roleCapability": "requested_by/approved_by须不同；锁定两人当前review_lead行后才执行。",
+        "objectRow": "作业行FOR UPDATE SKIP LOCKED；对应request被锁定且须executing，类型与scope匹配；不按FK全图删除。",
+        "fieldProjection": "只清除该member_id的member_profile.wechat_handle；保留头像、公开审核及其他资料字段，推进profile_revision。固定scope不删除身份/联系/护理/订单/UGC/审计/对象存储。",
+        "actionState": "明确delete_scope+member_profile_handle_v1+syntheticOnly+dry_run=false；最终partially_succeeded/partially_completed。",
+        "environment": "执行器仅 test+合成key；production disabled。未接入正式隐私执行。",
+        "inputBoundary": "仅预先批准的固定合成scope；worker不接受任意表名/字段名/对象URL。",
+        "idempotencyVersion": "作业状态及行锁确保一个事务处理；最多3次重试；失败savepoint回滚效果，不重放已成功作业。",
+        "concurrency": "独立作业锁加主体/身份/角色/请求锁；撤权与停止请求反例通过，完整死锁及多worker压力仍未穷尽。",
+        "databaseExternalEffects": "锁legal_hold及binding、锁批准合成retention policy后执行单字段UPDATE；清除/manifest/请求/事件/审计同事务；失败savepoint全部回滚。",
+        "limitsTimeoutPagination": "固定一次一作业、3次上限、失败5秒后可再试；继承事务预算，无分页。",
+        "positiveNegativeEvidence": "privacy-rights 13 + privacy-execution-authority 9；角色/主体撤销、请求取消、范围不可变以及下载撤销/过期。不是完整主体执行验证。"
+      }
+    },
+    "allOtherWorkersStorageCallbacks": "not fully reviewed in this continuation"
+  },
+  "releaseReady": false
+}

@@ -1,0 +1,354 @@
+{
+  "packageSourceSha256": "5cefd5cd8d0d150dfb32fda366ed70e48b96c9867b592c120681b3d76aef07e7",
+  "scope": "local_devtools_synthetic_nonproduction",
+  "deviceAcceptance": false,
+  "rows": [
+    {
+      "name": "tabs-before",
+      "result": [
+        [
+          {
+            "left": 14,
+            "right": 86.40625,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "600"
+          },
+          {
+            "left": 86.40625,
+            "right": 158.8125,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 158.8125,
+            "right": 231.21875,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 231.21875,
+            "right": 303.625,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 303.625,
+            "right": 376.03125,
+            "top": 103,
+            "bottom": 151,
+            "width": 72.40625,
+            "height": 48,
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "transition-duration": "0.18s",
+            "transform": "none",
+            "font-weight": "400"
+          },
+          {
+            "left": 14,
+            "right": 86.390625,
+            "top": 149,
+            "bottom": 152,
+            "width": 72.390625,
+            "height": 3,
+            "display": "flex",
+            "align-items": "normal",
+            "justify-content": "center",
+            "transition-duration": "0.2s",
+            "transform": "matrix(1, 0, 0, 1, 0, 0)",
+            "font-weight": "400"
+          }
+        ]
+      ],
+      "time": "2026-09-22T05:08:58.697517+00:00"
+    },
+    {
+      "name": "tap-saves",
+      "result": {
+        "section": "saves",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T05:09:03.173792+00:00"
+    },
+    {
+      "name": "tap-reports",
+      "result": {
+        "section": "reports",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T05:09:07.682522+00:00"
+    },
+    {
+      "name": "tap-appeals",
+      "result": {
+        "section": "appeals",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T05:09:12.092142+00:00"
+    },
+    {
+      "name": "tap-blocks",
+      "result": {
+        "section": "blocks",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T05:09:16.455034+00:00"
+    },
+    {
+      "name": "tap-comments",
+      "result": {
+        "section": "comments",
+        "loading": false,
+        "error": ""
+      },
+      "time": "2026-09-22T05:09:20.891734+00:00"
+    },
+    {
+      "name": "single-indicator",
+      "result": [
+        [
+          {
+            "left": 14,
+            "right": 86.390625,
+            "top": 149,
+            "bottom": 152,
+            "width": 72.390625,
+            "height": 3,
+            "display": "flex",
+            "align-items": "normal",
+            "justify-content": "center",
+            "transition-duration": "0.2s",
+            "transform": "matrix(1, 0, 0, 1, 0, 0)",
+            "font-weight": "400"
+          }
+        ]
+      ],
+      "time": "2026-09-22T05:09:23.011009+00:00"
+    },
+    {
+      "name": "rapid-handler-aba",
+      "result": {
+        "section": "comments",
+        "loading": false,
+        "busy": false,
+        "error": ""
+      },
+      "time": "2026-09-22T05:09:25.724918+00:00"
+    },
+    {
+      "name": "search-and-proposal-geometry",
+      "result": [
+        [
+          ".members-search input",
+          {
+            "success": true,
+            "width": 304,
+            "height": 44
+          }
+        ],
+        [
+          ".members-search button",
+          {
+            "success": true,
+            "width": 52,
+            "height": 44
+          }
+        ],
+        [
+          ".members-global-rate button",
+          {
+            "success": true,
+            "width": 88,
+            "height": 44
+          }
+        ]
+      ],
+      "time": "2026-09-22T05:09:39.810777+00:00"
+    },
+    {
+      "name": "rate-sheet-geometry",
+      "result": {
+        "sheet": [
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 381,
+              "bottom": 844,
+              "width": 390,
+              "height": 463,
+              "display": "block",
+              "align-items": "normal",
+              "justify-content": "normal",
+              "transition-duration": "0s",
+              "transform": "none",
+              "font-weight": "400"
+            }
+          ]
+        ],
+        "buttons": [
+          [
+            ".global-rate-footer button:first-child",
+            {
+              "success": true,
+              "width": 178,
+              "height": 44
+            }
+          ],
+          [
+            ".global-rate-submit",
+            {
+              "success": true,
+              "width": 178,
+              "height": 44
+            }
+          ]
+        ]
+      },
+      "time": "2026-09-22T05:09:48.378266+00:00"
+    },
+    {
+      "name": "rate-sheet-dismissed",
+      "result": {
+        "visible": false
+      },
+      "time": "2026-09-22T05:09:56.789038+00:00"
+    },
+    {
+      "name": "finance-error-geometry",
+      "result": {
+        "success": true,
+        "width": 340,
+        "height": 44
+      },
+      "time": "2026-09-22T05:10:02.154586+00:00"
+    },
+    {
+      "name": "finance-state",
+      "result": {
+        "error": "当前环境没有开放隔离资金核对。",
+        "loading": false
+      },
+      "time": "2026-09-22T05:10:08.586723+00:00"
+    },
+    {
+      "name": "native-transform-frames-handler-driven",
+      "result": [
+        {
+          "ms": 0,
+          "value": {
+            "transform": "matrix(1, 0, 0, 1, 0, 0)",
+            "transition-duration": "0.2s"
+          }
+        },
+        {
+          "ms": 40,
+          "value": {
+            "transform": "matrix(1, 0, 0, 1, 223.088, 0)",
+            "transition-duration": "0.2s"
+          }
+        },
+        {
+          "ms": 80,
+          "value": {
+            "transform": "matrix(1, 0, 0, 1, 274.202, 0)",
+            "transition-duration": "0.2s"
+          }
+        },
+        {
+          "ms": 120,
+          "value": {
+            "transform": "matrix(1, 0, 0, 1, 280.424, 0)",
+            "transition-duration": "0.2s"
+          }
+        },
+        {
+          "ms": 160,
+          "value": {
+            "transform": "matrix(1, 0, 0, 1, 289.347, 0)",
+            "transition-duration": "0.2s"
+          }
+        },
+        {
+          "ms": 220,
+          "value": {
+            "transform": "matrix(1, 0, 0, 1, 289.562, 0)",
+            "transition-duration": "0.2s"
+          }
+        },
+        {
+          "ms": 300,
+          "value": {
+            "transform": "matrix(1, 0, 0, 1, 289.562, 0)",
+            "transition-duration": "0.2s"
+          }
+        }
+      ],
+      "time": "2026-09-22T05:10:14.160216+00:00"
+    },
+    {
+      "name": "reduced-motion-class-injected-test",
+      "result": [
+        {
+          "transition-duration": "0s"
+        }
+      ],
+      "time": "2026-09-22T05:10:16.374365+00:00"
+    },
+    {
+      "name": "privacy-refresh-geometry",
+      "result": {
+        "success": true,
+        "width": 362,
+        "height": 44
+      },
+      "time": "2026-09-22T05:10:30.254778+00:00"
+    },
+    {
+      "name": "privacy-refresh-state",
+      "result": {
+        "loading": false,
+        "error": "",
+        "records": 0
+      },
+      "time": "2026-09-22T05:10:34.718180+00:00"
+    }
+  ]
+}

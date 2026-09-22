@@ -1,0 +1,162 @@
+{
+  "time": "2026-09-22T05:24:31.456221+00:00",
+  "packageSourceSha256": "a296da16a0edafe3d1fc988b94539a52a23f2d7e8b1fa85d9702e96b4276161c",
+  "reviewer": "implementation-agent",
+  "independentHumanApproval": false,
+  "deviceAcceptance": false,
+  "fullMatrixAccepted": false,
+  "rows": [
+    {
+      "name": "commission",
+      "image": "raw/commission.png",
+      "sha256": "8d1d6e56a634ca305272bcd72ad68edb2bb35e5665740485a41d726dc68fb00d",
+      "reviewNote": "隔离商业资格卡层级/金额清楚；未开放正式支付说明保留。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "community-activity",
+      "image": "raw/community-activity.png",
+      "sha256": "a6a3330197282ef2b826ffc610a0eaa1a05bb875357ba655f07d0a4929916b17",
+      "reviewNote": "五标签48px；单一指示器；选中同时使用字重/下划线。空评论态。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "management-finance",
+      "image": "raw/management-finance.png",
+      "sha256": "112db0456be0940ca44bbb256d8885f73459c8e7b0d56cc7e192d9f99d1a8c8a",
+      "reviewNote": "隔离资金门禁错误诚实可见，重试44px居中；没有宣称正常资金数据验收。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "management-members",
+      "image": "raw/management-members.png",
+      "sha256": "692b8a095d757c33ef1b24e590cbb7734342580dfad6a6d3a9a01f90812b16ae",
+      "reviewNote": "三名合成会员；搜索/提议44px；卡片行继续左对齐。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "privacy-rights",
+      "image": "raw/privacy-rights.png",
+      "sha256": "e89cb2739f1b542b6331c66929e5c3069bd024e85e99d566611e4105354113cc",
+      "reviewNote": "本地fixture主体/版本/联系同源明确可见；不是正式批准文本。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "communityAuthor",
+      "image": "raw/communityAuthor.png",
+      "sha256": "b8e90d3c8dbfaa83768a35d6172a69585dd610d0da647436ac4b93f0b6656879",
+      "reviewNote": "有效合成作者/一篇公开内容；关注控件可见。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "communityPost",
+      "image": "raw/communityPost.png",
+      "sha256": "c6e617dd1e431bc25512aaedd9e8b66a0efac8090bb06433271c84919d591e5c",
+      "reviewNote": "有效公开文本；互动/评论控件局部居中；未覆盖图片或长文状态。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "communityReview",
+      "image": "raw/communityReview.png",
+      "sha256": "34b2f8e74c90d6357d6ad11d59aff6659aced8d87daa2197800a2414a075e935",
+      "reviewNote": "真实待审核合成对象；审核按钮居中；双人公开说明保留。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "managementMember",
+      "image": "raw/managementMember.png",
+      "sha256": "04b364b568d759ebe883099039964c4fd7174a57284d639425f930aafe6d3ff5",
+      "reviewNote": "有效成员详情；局部标签/动作居中，卡片数据左对齐。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "communityDeleted",
+      "image": "raw/communityDeleted.png",
+      "sha256": "9402ac4bfce2ee074b9dd819619b38e8542414ee3979cbcf536181544c3b2185",
+      "reviewNote": "删除事实经真实API建立；不显示原内容，只提示不可见。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "community-author-missing",
+      "image": "raw/community-author-missing.png",
+      "sha256": "cf39aada439ef4a7613272d8313d35415e74082c558b23acc40d83c8887e6aa1",
+      "reviewNote": "缺ID返回社区；错误校验保留。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "community-post-missing",
+      "image": "raw/community-post-missing.png",
+      "sha256": "f7da05ca0f82356a90a28109f163297b79c6c615923e55baf90e68ba2d6d5aa1",
+      "reviewNote": "缺ID文案与返回社区控件同时确认。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "community-review-missing",
+      "image": "raw/community-review-missing.png",
+      "sha256": "09f616a86bba2ad5bf44597ba10887cde826df317f9366d1132bf4715640cb7e",
+      "reviewNote": "缺ID返回社区。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "management-member-missing",
+      "image": "raw/management-member-missing.png",
+      "sha256": "8552e6cd11d30f92569a9fb62109b9028daa0cfb70d1d3fb8a0ccd1e04a06edf",
+      "reviewNote": "缺ID返回成员列表，不提供无效重试。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "review-permission-revoked",
+      "image": "raw/review-permission-revoked.png",
+      "sha256": "b955b8d308b5b5ceb7131eca1441000500f5874ed6f8ad89bbb6a6b357e8d2fe",
+      "reviewNote": "本轮合成审核权限撤销，私有候选/媒体为空；中文说明与返回社区。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "unpublished-post-invisible",
+      "image": "raw/unpublished-post-invisible.png",
+      "sha256": "f8551b21de54ee0e1493e22c55ad4450ee448ab870d4c56d11516b022b287027",
+      "reviewNote": "其他主体未公开内容不可见，不显示标题/正文。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "members-rate-sheet",
+      "image": "raw/members-rate-sheet.png",
+      "sha256": "7371a3cee5a2f4ee00af12da725d1c3ef4e3973684fb1187b6f7374f7254d99d",
+      "reviewNote": "原始242×524图已查看；表单和按钮可见，具体44px几何见interactions.json。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "privacy-rights-refresh",
+      "image": "raw/privacy-rights-refresh.png",
+      "sha256": "6520fe335fe7264490472ec4ec0ce63c2b1551816109be7e7207f14db7e848c4",
+      "reviewNote": "原始242×524图已查看；表单和按钮可见，具体44px几何见interactions.json。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    },
+    {
+      "name": "activity-after-taps",
+      "image": "raw/activity-after-taps.png",
+      "sha256": "db204034330536ee18f5123a4c819b9db7a9073d43cd660b0b92799395791187",
+      "reviewNote": "标签点击及受控handler压力结束后回到评论空态；没有残留忙碌或双下划线。",
+      "status": "REVIEWED_SINGLE_SIMULATOR_STATE",
+      "acceptedFullRoute": false
+    }
+  ]
+}

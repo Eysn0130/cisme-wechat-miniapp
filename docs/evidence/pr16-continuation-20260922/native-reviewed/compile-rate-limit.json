@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "79bf741528feb4f9028fc7ee7dce560949fd82b8",
+  "packageSourceSha256": "5cefd5cd8d0d150dfb32fda366ed70e48b96c9867b592c120681b3d76aef07e7",
+  "unchangedAtEnd": true,
+  "time": "2026-09-22T05:02:37.192318+00:00",
+  "tool": "wechatide 0.3.9, DevTools 2.02.2608070, base 3.15.2",
+  "scope": "template/style compilation only; not Page/runtime/device acceptance",
+  "routeCount": 37,
+  "passed": 3,
+  "attempted": 4,
+  "results": [
+    {
+      "file": "pages/home/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/home/index.wxss",
+      "status": "PASS",
+      "codeLength": null
+    },
+    {
+      "file": "pages/records/index.wxml",
+      "status": "PASS",
+      "codeLength": 36578
+    },
+    {
+      "file": "pages/records/index.wxss",
+      "status": "FAIL",
+      "codeLength": null
+    }
+  ],
+  "releaseReady": false
+}
