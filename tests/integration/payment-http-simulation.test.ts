@@ -1478,3 +1478,63 @@ it('rechecks subject authority at the committed dispatch marker across independe
   expect((await pool.query('SELECT status FROM commerce_inventory_reservation WHERE order_id=$1',[order.id])).rows[0].status).toBe('active');
  }finally{await blocker.query('ROLLBACK');blocker.release();await pending;await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer.memberId]);}
 });
+
+for(const replay of [false,true])it(`rejects a ${replay?'replayed':'new'} refund request after a concurrent member block without side effects`,async()=>{
+ await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1',[skuId]);
+ const order=await createOrder(`refund-block-${replay}`);
+ expect((await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+ const payment=paidCallback(order.orderNumber);
+ expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',headers:{...payment.headers,'Content-Type':'application/json'},payload:payment.raw})).statusCode).toBe(204);
+ await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+ const options={method:'POST' as const,url:`/v1/me/orders/${order.id}/refund-requests`,headers:{...auth(buyer.sessionToken),'idempotency-key':`refund-block-key-${replay}`},payload:{amountCents:1000,reason:'合成封禁并发退款请求'}};
+ if(replay)expect((await app.inject(options)).statusCode).toBe(200);
+ const beforeRefunds=channelRefunds.size,beforeAudit=(await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.refund.request'")).rows[0].n;
+ const blocker=await pool.connect();let pending:Promise<{statusCode:number}>|undefined;
+ try{
+  await blocker.query('BEGIN');await blocker.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer.memberId]);
+  let settled=false;pending=app.inject(options).finally(()=>{settled=true;});
+  for(let n=0;n<50&&!settled;n++){
+   if((await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'")).rowCount)break;
+   await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
+  expect((await pool.query('SELECT count(*)::int n FROM commerce_refund_request WHERE order_id=$1',[order.id])).rows[0].n).toBe(replay?1:0);
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.refund.request'")).rows[0].n).toBe(beforeAudit);
+  expect((await pool.query('SELECT count(*)::int n FROM commission_refund_intent WHERE order_id=$1',[order.id])).rows[0].n).toBe(0);
+  expect(channelRefunds.size).toBe(beforeRefunds);
+ }finally{await blocker.query('ROLLBACK');blocker.release();await pending;await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer.memberId]);}
+});
+
+for(const surface of ['refund','fulfillment','money','bill'] as const)it(`rechecks current capability before returning the ${surface} management queue`,async()=>{
+ const actor=(await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:`queue-revoked-${surface}`,displayName:'synthetic queue reader',
+  consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}})).json();
+ await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+  VALUES($1,$2,'fixture','synthetic queue withdrawal','test','integration_fixture')`,[actor.memberId,surface==='refund'?'commerce.refund.approve':surface==='fulfillment'?'commerce.fulfillment.manage':'commerce.money.reconcile']);
+ const options={url:surface==='refund'?'/v1/management/refund-requests/pending':surface==='fulfillment'?'/v1/management/fulfillment/pending':surface==='money'?'/v1/management/money/issues':'/v1/management/money/trade-bills',headers:auth(actor.sessionToken)};
+ expect((await app.inject(options)).statusCode).toBe(200);
+ const blocker=await pool.connect();let pending:Promise<{statusCode:number}>|undefined;
+ try{
+  await blocker.query('BEGIN');await blocker.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='synthetic revoke' WHERE member_id=$1",[actor.memberId]);
+  let settled=false;pending=app.inject(options).finally(()=>{settled=true;});
+  for(let n=0;n<50&&!settled;n++){
+   if((await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'")).rowCount)break;
+   await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
+ }finally{await blocker.query('ROLLBACK');blocker.release();await pending;}
+});
+
+for(const surface of ['refund','settlement'] as const)it(`denies own ${surface} history after a concurrent account block`,async()=>{
+ const options={url:surface==='refund'?'/v1/me/refund-requests':'/v1/me/commission/settlement-requests',headers:auth(buyer.sessionToken)};
+ expect((await app.inject(options)).statusCode).toBe(200);
+ const blocker=await pool.connect();let pending:Promise<{statusCode:number}>|undefined;
+ try{
+  await blocker.query('BEGIN');await blocker.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer.memberId]);
+  let settled=false;pending=app.inject(options).finally(()=>{settled=true;});
+  for(let n=0;n<50&&!settled;n++){
+   if((await pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'")).rowCount)break;
+   await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
+ }finally{await blocker.query('ROLLBACK');blocker.release();await pending;await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer.memberId]);}
+});

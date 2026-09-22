@@ -11,6 +11,14 @@ function member(memberId: string | undefined): string {
   return memberId;
 }
 
+/** Serialize an owning member action/read against account blocking. */
+export async function requireActiveMemberWithClient(client:DbClient,memberId:string|undefined):Promise<string> {
+  const owner=member(memberId);
+  const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner]);
+  if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可执行此操作',403);
+  return owner;
+}
+
 export class AuthorityService {
   constructor(private readonly pool: pg.Pool, private readonly environment: AppEnvironment) {}
 
@@ -37,8 +45,13 @@ export class AuthorityService {
 
   async requireWithClient(client: DbClient, memberId: string | undefined, capability: Capability): Promise<string> {
     const owner = member(memberId);
-    const result = await client.query("SELECT 1 FROM authority_grant g JOIN member m ON m.id=g.member_id WHERE g.member_id=$1 AND m.status='active' AND g.capability=$2 AND g.environment=$3 AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>now()) FOR SHARE OF g,m", [owner, capability, this.environment]);
-    if (!result.rowCount) throw new DomainError("CAPABILITY_REQUIRED", `Required capability: ${capability}`, 403);
+    const result = await client.query<{expires_at:Date|null}>("SELECT g.expires_at FROM authority_grant g JOIN member m ON m.id=g.member_id WHERE g.member_id=$1 AND m.status='active' AND g.capability=$2 AND g.environment=$3 AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>clock_timestamp()) FOR SHARE OF g,m", [owner, capability, this.environment]);
+    // The predicate may precede a row-lock wait; now() is frozen at BEGIN.
+    // Check the database wall clock only after all authority locks are held.
+    const grant=result.rows[0];
+    const current=grant&&(grant.expires_at===null||(await client.query<{valid:boolean}>(
+      'SELECT $1::timestamptz>clock_timestamp() AS valid',[grant.expires_at])).rows[0]?.valid);
+    if (!current) throw new DomainError("CAPABILITY_REQUIRED", `Required capability: ${capability}`, 403);
     return owner;
   }
 

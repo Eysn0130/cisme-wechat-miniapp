@@ -87,17 +87,20 @@ export class TradeBillReconciliationService{
     await this.authority.require(actorId,"commerce.money.reconcile");
     const limit=pageLimit(query.limit),scope=pageScope(["trade-bills",this.merchantId]),
       cursor=readPageCursor(query.cursor,scope);
-    const totalCount=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n
-      FROM commerce_trade_bill_batch WHERE merchant_id=$1`,[this.merchantId])).rows[0]?.n??0;
-    const rows=(await this.pool.query(`SELECT id,bill_date::text AS bill_date,bill_type,row_count,matched_count,
-      exception_count,imported_at FROM commerce_trade_bill_batch WHERE merchant_id=$1
-      AND ($2::timestamptz IS NULL OR (imported_at,id)<($2::timestamptz,$3::uuid))
-      ORDER BY imported_at DESC,id DESC LIMIT $4`,[this.merchantId,cursor?.at??null,cursor?.id??null,
-        limit+1])).rows;
-    return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.imported_at).toISOString(),
-      billDate:row.bill_date,billType:row.bill_type,rowCount:row.row_count,
-      matchedCount:row.matched_count,exceptionCount:row.exception_count,
-      createdAt:row.imported_at})),limit,scope),totalCount};
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,actorId,"commerce.money.reconcile");
+      const totalCount=(await client.query<{n:number}>(`SELECT count(*)::int AS n
+        FROM commerce_trade_bill_batch WHERE merchant_id=$1`,[this.merchantId])).rows[0]?.n??0;
+      const rows=(await client.query(`SELECT id,bill_date::text AS bill_date,bill_type,row_count,matched_count,
+        exception_count,imported_at FROM commerce_trade_bill_batch WHERE merchant_id=$1
+        AND ($2::timestamptz IS NULL OR (imported_at,id)<($2::timestamptz,$3::uuid))
+        ORDER BY imported_at DESC,id DESC LIMIT $4`,[this.merchantId,cursor?.at??null,cursor?.id??null,
+          limit+1])).rows;
+      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.imported_at).toISOString(),
+        billDate:row.bill_date,billType:row.bill_type,rowCount:row.row_count,
+        matchedCount:row.matched_count,exceptionCount:row.exception_count,
+        createdAt:row.imported_at})),limit,scope),totalCount};
+    },"REPEATABLE READ");
   }
   async import(actorId:string|undefined,date:string,type:BillType){
     await this.authority.require(actorId,"commerce.money.reconcile");

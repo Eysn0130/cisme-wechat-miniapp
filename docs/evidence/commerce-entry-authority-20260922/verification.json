@@ -1,0 +1,31 @@
+{
+  "base": "6cd46f165fc417d55644911c4497ce338d82693b",
+  "branch": "codex/commerce-entry-authority-20260922",
+  "fileSha256": {
+    "services/api/src/authority.ts": "0562f8e17f8f9c014308ff98d1aa56a9c2183a2832e2aed7b906493e55fd798e",
+    "services/api/src/commerceHistory.ts": "33c5dd9073085fb2935c0d0d4e5bf097952b53922d93c057d407807d82ea086d",
+    "services/api/src/commerceOrders.ts": "9f36917c20ba172d9380ef32d8476aab9995f50c6ea6f7d5520a3e3dfc136421",
+    "services/api/src/fulfillmentRelease.ts": "ae09314da5b355710ddea4c69695fc66d46c6441c97f8ceeaad1a3b8c2eb66f7",
+    "services/api/src/moneyOperations.ts": "7093ba4df2e1b118575d8d7796d27da91dfc48ad21dcf236175b87c161b54bc5",
+    "services/api/src/refundCommand.ts": "ea30d24570982f5c0b5aae96664bd17af02e633ce6142f2e2feedde7139258e6",
+    "services/api/src/tradeBillReconciliation.ts": "1d4c926d6dcf915b1a93d874e90a6eb06859509915710b8a8db159bd1c21a8bb",
+    "tests/integration/authority-revocation.test.ts": "0f5973137492a27dea2d24c06aa10d317da290a796a0aeec73bfffd5d9164381",
+    "tests/integration/commerce-orders.test.ts": "5b429e8e12256c735462e9371e5ed9e2ab6ef5320d52f7f36cfab706a06ef932",
+    "tests/integration/payment-http-simulation.test.ts": "f1de06b2f18e3bc43cd9aeea9aa09d77af94d76ea77516a2bc3233a8d4ea52da"
+  },
+  "checks": {
+    "node": "24.18.0",
+    "unitPass": 985,
+    "unitSkip": 1,
+    "integrationPass": 771,
+    "integrationFiles": 45,
+    "newConcurrencyCases": 18,
+    "build": "PASS",
+    "typecheck": "PASS",
+    "contracts": "PASS",
+    "native": "NOT_RERUN_BACKEND_ONLY",
+    "release": "BLOCKED"
+  },
+  "isolatedRun": "2e4007bbc9e1244fa05194e8",
+  "nativePackageSha256": "a296da16a0edafe3d1fc988b94539a52a23f2d7e8b1fa85d9702e96b4276161c"
+}
