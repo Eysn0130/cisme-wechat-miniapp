@@ -403,6 +403,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.get("/v1/me/privacy-requests", async request => privacyRights.list(request.memberId));
   app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
+  // Native management uses the verified member's current capability. Legacy
+  // operator roles cannot substitute for a revoked native capability here.
+  app.get("/v1/management/privacy-requests", async request =>
+    privacyRights.queue(adminPrincipal(request,config),privacyActor(request),'capability'));
+  app.post<{Params:{requestId:string}}>("/v1/management/privacy-requests/:requestId/response", async request =>
+    privacyRights.respond(adminPrincipal(request,config),request.params.requestId,
+      request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown},privacyActor(request),'capability'));
   app.get("/v1/admin/privacy-requests", async request => {
     return privacyRights.queue(adminPrincipal(request, config),privacyActor(request));
   });

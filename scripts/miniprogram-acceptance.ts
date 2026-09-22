@@ -138,6 +138,9 @@ async function seedFixtures() {
     [identity.memberId, capability]);
   }
 
+  body(await app.inject({method:"POST",url:"/v1/me/privacy-requests",headers:auth,
+    payload:{kind:"access",message:"合成验收请求：查询本轮护理记录与账号资料。仅测试受理流程，不涉及真实个人信息。"}}),"PRIVACY_REQUEST");
+
   // This process is test-only, loopback-bound, and resetDatabase verifies the
   // disposable runner's ownership marker before any fixture is created.
   const communityRoutes: Record<string,{path:string;query:string}> = {};

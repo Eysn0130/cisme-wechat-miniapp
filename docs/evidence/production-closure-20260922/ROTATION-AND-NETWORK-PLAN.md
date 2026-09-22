@@ -22,3 +22,9 @@ PostgreSQL 官方 psql 文档说明 \password 会加密后提交，避免新密�
 - 80：production 当前 DNS-01，不为修复 staging 的 HTTP-01而开放 production 80。是否需 HTTP redirect 单独评估；本轮不扩大长期暴露。
 
 自动续费、真实资金、生产数据删除、微信正式提审/发布均不在上述方案授权内。
+
+## 本轮隔离凭据轮换演练（不等于 production 轮换）
+
+`tests/integration/database-credential-rotation.test.ts` 已分别在新建 PG18.4 与 PG16.15 合成实例通过（各 1 项；PG16 run a823de6c521798836329a95d，DB/S3 已清理）。验证同一非特权角色更换 SCRAM 凭据后，旧的已认证连接仍能执行查询；因此轮换必须排空 API/Worker 连接池，不能只凭旧密码 fresh connect 被拒绝就断言所有旧连接失效。排空后旧凭据 fresh connect 返回 28P01，新凭据供两个模拟消费者成功连接；错误配置被拒绝，使用新配置前向修复保持新增两条合成业务事实与原角色权限。
+
+生产当前密码仍未轮换。旧 CloudBase 函数是否仍使用同一生产凭据尚未通过允许通道确认；不得从当前小程序未配置该函数推断无历史消费者。本轮测试没有关闭 SCRAM、扩大网络权限或恢复暴露的旧密码。

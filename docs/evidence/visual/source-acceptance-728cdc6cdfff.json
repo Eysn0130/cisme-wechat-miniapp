@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "f376c8e0a5ad8b924154acaf9528a3bbbea4772106396fdc4fe632bcc624dcda",
+  "packageSourceSha256": "728cdc6cdfffe531f53f102fc6ca1a9db1dda6d939beeb14cb197aed14768853",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -223,12 +223,6 @@
     },
     {
       "route": "pages/commission/index",
-      "matrixComplete": false,
-      "result": "blocked",
-      "evidenceFiles": []
-    },
-    {
-      "route": "pages/management-privacy/index",
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": []

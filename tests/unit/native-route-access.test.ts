@@ -45,6 +45,7 @@ const memberRoutes = [
   ,"/pages/management-orders/index"
   ,"/pages/management-order-detail/index"
   ,"/pages/management-finance/index"
+  ,"/pages/management-privacy/index"
 ];
 
 async function source(path: string): Promise<string> {

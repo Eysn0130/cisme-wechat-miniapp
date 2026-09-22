@@ -33,10 +33,11 @@ type AcceptanceFixture = {
 const acceptanceFixture = fixtureSource
   ? JSON.parse(await readFile(resolve(repositoryRoot, fixtureSource), "utf8")) as AcceptanceFixture
   : null;
+const migrationFiles=(await readdir(resolve(repositoryRoot,"db/migrations"))).filter(name=>name.endsWith(".sql")).sort();
 if (acceptanceFixture) {
   if (acceptanceFixture.scope !== "local_devtools_synthetic_nonproduction") throw new Error("Acceptance fixture scope is not local synthetic");
   if (acceptanceFixture.origin !== "http://127.0.0.1:18080") throw new Error("Acceptance fixture origin mismatch");
-  if (!/(^|_)test(_|$)/.test(acceptanceFixture.database.name) || acceptanceFixture.database.migrationCount !== 35 || acceptanceFixture.database.latestMigration !== "202609120001_support_commercial_chat.sql") throw new Error("Acceptance fixture database is not current test schema");
+  if (!/(^|_)test(_|$)/.test(acceptanceFixture.database.name) || acceptanceFixture.database.migrationCount !== migrationFiles.length || acceptanceFixture.database.latestMigration !== migrationFiles.at(-1)) throw new Error("Acceptance fixture database is not current test schema");
   if (!acceptanceFixture.assertions.orderFlowEnabled || acceptanceFixture.assertions.paymentAvailable || acceptanceFixture.assertions.credentialsOrTokensPersisted) {
     throw new Error("Acceptance fixture boundary assertions failed");
   }
@@ -76,7 +77,11 @@ function slug(route: string): string {
   return route.replaceAll("/", "__");
 }
 
-const fixtureRouteByPath = new Map(Object.values(acceptanceFixture?.routes ?? {}).map((entry) => [entry.path, entry]));
+const fixtureRouteByPath = new Map<string, { path: string; query: string }>();
+for (const [name, entry] of Object.entries(acceptanceFixture?.routes ?? {})) {
+  if (name === "communityDeleted" || fixtureRouteByPath.has(entry.path)) continue;
+  fixtureRouteByPath.set(entry.path, entry);
+}
 function queryFor(route: string): string {
   if (route === "pages/account/index" && acceptanceFixture) return "intent=login";
   return fixtureRouteByPath.get(route)?.query ?? "";
@@ -303,34 +308,28 @@ const performanceSummary = {
   sourceRevision,
   targets: { coreContentP95Ms: 2500, hotApiP95Ms: 400, hotApiP99Ms: 800, poolWaitP95Ms: 50, clickFeedbackTargetMs: 100 },
   inheritedLocalR1R2Evidence: { supportFirstMessageP95Ms: 11.76, supportPollP95Ms: 3.16, supportSqlP95Ms: 1.24, scope: "older local parent candidate only" },
-  currentR4B: { integrationBehavior: "PASS", latencyProfile: "UNVERIFIED", remoteStaging: "BLOCKED", deviceE2E: "BLOCKED" },
+  currentR4B: { integrationBehavior: "NOT_EVALUATED_BY_CAPTURE_GENERATOR", latencyProfile: "UNVERIFIED", remoteStaging: "NOT_EVALUATED_BY_CAPTURE_GENERATOR", deviceE2E: "BLOCKED" },
   methodologyWarning: "Local HTTP or integration-test latency is not a device or public-network result. No current-source device metric is claimed."
 };
 await writeFile(join(outputRoot, "performance-summary.json"), JSON.stringify(performanceSummary, null, 2) + "\n");
 
 const issues = [
   ["issue_id","severity","route/flow","role","source revision","reproduction","evidence","expected","actual","root cause","fix scope","verification","status"],
-  ["BACKEND-HEALTH-001","BLOCKER","all API-backed native routes","all roles",sourceRevision,"Launch the current DevTools develop build before starting a matching local acceptance API","environment-health.json + route-runtime-health.json","Configured local origin is listening, current schema is loaded, and protected routes have a valid session","The first diagnostic sweep targeted http://127.0.0.1:18080 with no listener; the unrelated API on 3100 used an older cisme database and had the order gate off","Runtime/configuration mismatch, not slow page rendering: no backend existed at the configured origin, and no authenticated session existed","Isolated loopback-only acceptance runner on cisme_test schema 35, synthetic fixtures, real Account-page dev login, and preflight assertions","ready/legal/order boundary pass; session persisted; all 27 routes settled with loading=false and empty error","FIXED_RETESTED_LOCAL_SYNTHETIC"],
-  ["EVIDENCE-001","MAJOR","all native routes","reviewer",sourceRevision,"Use wechatide simulator_screenshot after authenticated health preflight","routes.csv + contact-sheets/healthy-routes.png","Raw native frame for every reachable route","The earlier diagnostic pack was unauthenticated and one-second capture caught transitional/error states; the healthy pack uses route-specific success queries after API/session preflight","Missing health gate and insufficient stability window in the earlier capture procedure","Require environment/session preflight, one clean bridge recovery, route-specific queries, four-second stability, then loading/error assertions",`27/27 current-source success-state native frames captured at ${screenshotIndex[0]?.widthPx ?? "unknown"}×${screenshotIndex[0]?.heightPx ?? "unknown"}; state/interaction/device matrices remain open`,"FIXED_RETESTED"],
-  ["REMOTE-HTTPS-001","BLOCKER","staging request path","all roles",sourceRevision,"TLS handshake with correct staging-api.cisme.cn SNI","existing deployment report","Valid certificate and HTTP response on normal DNS+SNI path","Correct SNI closes unexpectedly; direct-IP diagnostic is not normal-path proof","Remote listener/vhost/runtime not inspectable without bounded staging channel","Exact staging-only TAT/SSH bootstrap and layered diagnosis","No new remote action in this batch","OPEN"],
-  ["DEVICE-IOS-001","MAJOR","cross-route iOS acceptance","all roles",sourceRevision,"Run current source on representative iPhone + 4G","routes.csv","Current-source login, keyboard, safe area, weak-network and core-flow evidence","No current-source iOS page frames or interactions","Requires physical device and user permission actions","Owner-assisted device session with synthetic account","0 device sessions","BLOCKED_OWNER_ASSISTED_CAPTURE"],
-  ["DEVICE-ANDROID-001","MAJOR","cross-route Android acceptance","all roles",sourceRevision,"Run current source on representative Android + 4G","routes.csv","Current-source typography, keyboard, safe area, permission and core-flow evidence","No current-source Android page frames or interactions","Requires physical device and user permission actions","Owner-assisted device session with synthetic account","0 device sessions","BLOCKED_OWNER_ASSISTED_CAPTURE"],
-  ["R4B-POLICY-001","MAJOR","quote and checkout","buyer",sourceRevision,"Create quote for eligible synthetic product","commerce order integration tests","Approved member-price/freight rules determine authority totals","Synthetic base price, zero discount and zero freight only","Owner business policies are intentionally not invented","Keep order flow nonproduction-only until policies are approved","Server-authoritative synthetic calculations pass","BLOCKED_BUSINESS_POLICY"],
-  ["R4B-PAY-001","BLOCKER","pending-payment to payment","buyer/operator",sourceRevision,"Open a newly created pending-payment order","order detail source + tests","Real provider intent/notification/query/close state machine after separate approval","paymentAvailable=false; no requestPayment or paid route","WeChat Pay onboarding is IN_PROGRESS and real funds are not authorized","Independent payment slice after account evidence and funds-test authorization","No simulated success surface exists","IN_PROGRESS_EXTERNAL"],
-  ["MEDIA-PRODUCT-001","MAJOR","mobile product image operations","catalog operator",sourceRevision,"Edit a product from management-product","management product source","Authorized operator can safely upload/replace public product media","Only packaged allowlisted static JPG selection exists","COS/direct-upload gate and product-media lifecycle are not complete","Separate product-media purpose/object/verification/cleanup slice","Static image path is fail-closed; no fake upload","OPEN"],
-  ["UX-CURRENT-001","MAJOR","representative pages and shared components","all roles",sourceRevision,"Review home/profile/support/product/management-product and R4-B pages at 375/393/440 widths","contact-sheets/healthy-routes.png","No blocking overflow/contrast/touch/keyboard defects on current source",`27 authenticated or public success-state ${screenshotIndex[0]?.widthPx ?? "unknown"}×${screenshotIndex[0]?.heightPx ?? "unknown"} native frames now show real synthetic content and settled UI; keyboard, error/long-copy, responsive and physical-device matrices are not captured`,"A single simulator success baseline cannot validate interaction, accessibility or responsive variants","Add success/error/long-copy/keyboard interaction rows at required viewports and perform iOS/Android sessions","Healthy current-source baseline captured and visually reviewed; full visual acceptance remains blocked","HEALTHY_BASELINE_CAPTURED_REVIEW_OPEN"]
+  ["NATIVE-STATES","MAJOR","all registered native routes","all roles",sourceRevision,"Exercise loading, empty, error, interruption, retry and permission revocation","routes.csv","Source-bound interaction and state evidence","Default frames alone do not prove state coverage","Additional interactions required","Review each route state against its real fixture","Not automatically accepted by this generator","OPEN"],
+  ["DEVICE-IOS","MAJOR","physical iOS flows","all roles",sourceRevision,"Run the exact candidate on an authorized iPhone","source-manifest.json","Physical device evidence","No physical device test executed by this generator","Requires an actual authorized device","Owner-assisted session","0 sessions in this pack","BLOCKED_DEVICE"],
+  ["DEVICE-ANDROID","MAJOR","physical Android flows","all roles",sourceRevision,"Run the exact candidate on an authorized Android device","source-manifest.json","Physical device evidence","No physical device test executed by this generator","Requires an actual authorized device","Owner-assisted session","0 sessions in this pack","BLOCKED_DEVICE"]
 ];
 await writeFile(join(outputRoot, "issues.csv"), issues.map((row) => row.map(csv).join(",")).join("\n") + "\n");
 
 await writeFile(join(outputRoot, "README.md"), `# CISME Visual Review Pack — ${reviewId}\n\n` +
 `Generated: ${generatedAt}\n\n` +
-`This pack is bound to Mini Program source SHA-256 \`${inspection.actual.sourceSha256}\` and local Git HEAD \`${head}\` on branch \`${branch}\`. The worktree is dirty by design and has not been committed or pushed; the source hash, not HEAD alone, is the review identity.\n\n` +
+`This pack is bound to Mini Program source SHA-256 \`${inspection.actual.sourceSha256}\` and local Git HEAD \`${head}\` on branch \`${branch}\`. Observed worktree dirty: ${porcelain.length > 0}. The source hash, not HEAD alone, is the review identity; this generator does not infer push or merge status.\n\n` +
 `## Honest result\n\n` +
 `- Dynamic route inventory: ${routes.length}/${routes.length} routes indexed from \`app.json\`.\n` +
 `- Current-source raw native screenshots: ${sourceManifest.capture.capturedRawScreenshots}/${routes.length}; each is an untouched ${screenshotIndex[0]?.widthPx ?? "unknown"}×${screenshotIndex[0]?.heightPx ?? "unknown"} simulator frame.\n` +
 `- Interaction recordings: 0; iOS sessions: 0; Android sessions: 0.\n` +
-`- The earlier diagnostic pack exposed two real blockers: the configured loopback origin had no listener, and protected pages had no authenticated session. This pack was captured only after a loopback-only schema-35 acceptance API passed ready/legal/order checks and the Account UI completed its explicit local-fixture consent/login flow.\n` +
-`- All 27 route-specific queries then settled with \`loading=false\`, an empty page error and the expected current route before capture. One clean project-window restart was used to recover the screenshot bridge; no web mock, generated image or historical frame is relabelled as current native evidence.\n` +
+`- Fixture schema: ${acceptanceFixture?.database.migrationCount ?? "not provided"}. Environment checks, when present, are local synthetic checks only.\n` +
+`- Route runtime results are supplied separately by the capture runner. This generator does not turn captured frames into passed interactions or visual review.\n` +
 `- Final visual status: **BLOCKED**. Source/package tests may pass while visual/device evidence remains blocked.\n\n` +
 `## Contents\n\n` +
 `- \`source-manifest.json\`: source and package binding.\n` +
@@ -359,7 +358,7 @@ await writeFile(join(outputRoot, "journeys.md"), `# Review journeys\n\n` +
 
 await writeFile(join(outputRoot, "capture-manual.md"), `# Bounded native capture procedure\n\n` +
 `1. This procedure is only for the disposable local synthetic boundary. Start only through scripts/disposable-test.mjs and verify the generated run/instance/db/role/ownership marker. Never use legacy cisme_test or port 55432, staging, production or a real-user database.\n` +
-`2. Start \`npm run miniprogram:acceptance\`. The command requires an explicit reset, binds only \`127.0.0.1:18080\`, loads schema 35 and synthetic fixtures, keeps payment unavailable, and writes a credential-free fixture manifest under \`tmp/miniprogram-acceptance\`.\n` +
+`2. Start \`npm run miniprogram:acceptance\`. The command requires an explicit reset, binds only \`127.0.0.1:18080\`, loads the current ${migrationFiles.length}-migration schema and synthetic fixtures, keeps payment unavailable, and writes a credential-free fixture manifest under \`tmp/miniprogram-acceptance\`.\n` +
 `3. Open \`${miniProgramRoot}\` in WeChat DevTools, confirm AppID \`${project.appid}\`, base library \`${project.libVersion}\`, develop mode and API origin \`http://127.0.0.1:18080\`. Use the Account page to explicitly accept the local fixture notice and perform the development login; do not inject a session token.\n` +
 `4. Before any screenshot, require ready/legal/order-boundary checks, a stored session, the fixed synthetic development identity and one protected-read proof. Approve the separate project-action permission prompt without changing business authorization, privacy checks or TLS validation.\n` +
 `5. Restart the project window at most once if the bridge is stale, compile once, then try one page. If \`waitForAutomatorReady\` recurs, stop automation and use the built-in simulator screenshot control.\n` +
@@ -369,7 +368,7 @@ await writeFile(join(outputRoot, "capture-manual.md"), `# Bounded native capture
 `9. Exclude login QR codes, personal profile data, tokens, complete OpenID/session keys, secrets and real conversations. The acceptance fixture contains only synthetic data.\n` +
 `10. Run the capture finalizer to refresh route status and \`SHA256SUMS\`; stop the local acceptance process after evidence is finalized. Do not mark full visual acceptance passed until interaction, responsive and physical-device checks are reviewed.\n`);
 
-await writeFile(join(outputRoot, "screenshots/README.md"), `# Screenshots\n\n\`raw/\` contains ${screenshotIndex.length}/${routes.length} untouched current-source native default-entry frames. They are source-bound but not automatically visually accepted. The separate \`profile-after-4s.png\` is the stability-window diagnostic that proved the earlier blank frame was transitional.\n`);
+await writeFile(join(outputRoot, "screenshots/README.md"), `# Screenshots\n\n\`raw/\` contains ${screenshotIndex.length}/${routes.length} untouched current-source native default-entry frames. They are source-bound but not automatically visually accepted.\n`);
 await writeFile(join(outputRoot, "contact-sheets/README.md"), "# Contact sheets\n\n`healthy-routes.png` is a navigation aid generated from the authenticated, route-health-checked raw frames. Tile order follows `app.json`; use `routes.csv` for route metadata. It never replaces raw evidence.\n");
 await writeFile(join(outputRoot, "recordings/README.md"), "# Recordings\n\nNo current-source interaction recording exists. Each future recording must include steps, timeline, expected/actual, source revision and synthetic fixture.\n");
 await writeFile(join(outputRoot, "keyframes/README.md"), "# Keyframes\n\nNo keyframes exist because no current-source recording exists. Extract without retouching after an accepted recording is captured.\n");
@@ -412,23 +411,10 @@ for (const screenshot of screenshotIndex) {
   const coverage = acceptance.routeCoverage.find((entry) => entry.route === screenshot.route);
   if (coverage) coverage.evidenceFiles = [repositoryPath];
 }
-for (const [fileName, kind] of [[compileEvidenceName, "devtools_compile"], [consoleEvidenceName, "devtools_console"], [networkEvidenceName, "devtools_network"]] as const) {
-  const absolute = join(outputRoot, fileName);
-  const repositoryPath = relative(repositoryRoot, absolute);
-  const body = await readFile(absolute);
-  evidenceIndex[repositoryPath] = { sha256: await sha256(absolute), bytes: body.length, mimeType: "application/json", kind,
-    packageSourceSha256: inspection.actual.sourceSha256 };
-}
 acceptance.evidenceIndex = evidenceIndex;
-acceptance.devtools = {
-  packageSourceSha256: inspection.actual.sourceSha256,
-  compileErrors: 0,
-  consoleErrors: 0,
-  networkFailures: 0,
-  compileEvidenceFiles: [relative(repositoryRoot, join(outputRoot, compileEvidenceName))],
-  consoleEvidenceFiles: [relative(repositoryRoot, join(outputRoot, consoleEvidenceName))],
-  networkEvidenceFiles: [relative(repositoryRoot, join(outputRoot, networkEvidenceName))]
-};
+// A generator has not executed compile/console/network checks. Only the
+// successful capture runner may publish their observed counts and evidence.
+acceptance.devtools = null;
 acceptance.finalResult = "blocked";
 await writeFile(acceptancePath, JSON.stringify(acceptance, null, 2) + "\n");
 console.log(JSON.stringify({ reviewId, outputRoot, sourceSha256: inspection.actual.sourceSha256, routes: routes.length,

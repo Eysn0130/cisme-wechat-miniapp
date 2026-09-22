@@ -3,6 +3,8 @@ import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
 import { requirePrivacyActor } from './privacyAuthority.js';
+import type { AppEnvironment } from '@cisme/config';
+import { AuthorityService } from './authority.js';
 
 const kinds = new Set(['access','correct','delete','close_account','withdraw','other']);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -39,7 +41,17 @@ const executionProjection = `COALESCE(
 ) AS execution`;
 
 export class PrivacyRights {
-  constructor(private pool: pg.Pool, private environment='production') {}
+  private readonly authority: AuthorityService;
+  constructor(private pool: pg.Pool, private environment:AppEnvironment='production') {
+    this.authority=new AuthorityService(pool,environment);
+  }
+
+  private async requireQueueOperator(principalId:string,actorMemberId:string|undefined,mode:'role'|'capability',client?:DbClient) {
+    if(mode==='capability') {
+      if(client)await this.authority.requireWithClient(client,actorMemberId,'privacy.request.manage');
+      else await this.authority.require(actorMemberId,'privacy.request.manage');
+    } else await this.requireOperator(principalId,client);
+  }
 
   async list(memberId: string | undefined) {
     const id=owner(memberId);
@@ -91,18 +103,18 @@ export class PrivacyRights {
     if(!result.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可建立数据权利执行计划',403);
   }
 
-  async queue(principalId:string,actorMemberId?:string) {
+  async queue(principalId:string,actorMemberId?:string,mode:'role'|'capability'='role') {
     return transaction(this.pool,async client=>{
       await requirePrivacyActor(client,actorMemberId);
-      await this.requireOperator(principalId,client);
+      await this.requireQueueOperator(principalId,actorMemberId,mode,client);
       return (await client.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       ${executionProjection}
       FROM privacy_request pr ORDER BY (pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at LIMIT 100`)).rows;
     });
   }
 
-  async respond(principalId:string,id:string,input:{status?:unknown;response?:unknown;expectedVersion?:unknown},actorMemberId?:string) {
-    await this.requireOperator(principalId);
+  async respond(principalId:string,id:string,input:{status?:unknown;response?:unknown;expectedVersion?:unknown},actorMemberId?:string,mode:'role'|'capability'='role') {
+    await this.requireQueueOperator(principalId,actorMemberId,mode);
     if(!uuidPattern.test(id))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
     if(!input || !['reviewing','responded'].includes(String(input.status)) || typeof input.response!=='string' || !input.response.trim() || Array.from(input.response).length>4000 || !Number.isInteger(input.expectedVersion) || Number(input.expectedVersion)<1) {
       throw new DomainError('PRIVACY_RESPONSE_INVALID','请填写处理状态、具体回复与当前版本',422);
@@ -111,10 +123,13 @@ export class PrivacyRights {
     return transaction(this.pool,async client=>{
       const current=await client.query<{status:string;version:number}>('SELECT status,version FROM privacy_request WHERE id=$1 FOR UPDATE',[id]);
       await requirePrivacyActor(client,actorMemberId);
-      await this.requireOperator(principalId,client);
+      await this.requireQueueOperator(principalId,actorMemberId,mode,client);
       if(!current.rowCount)throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
       if(current.rows[0]!.version!==input.expectedVersion)throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录已变化，请刷新后重试',409);
       if(['completed','partially_completed','rejected','canceled'].includes(current.rows[0]!.status))throw new DomainError('PRIVACY_REQUEST_CLOSED','受理记录已关闭，不可覆盖结果',409);
+      const state=current.rows[0]!.status;
+      if(!['received','verifying','reviewing','responded','failed'].includes(state)||(state==='failed'&&input.status!=='reviewing'))
+        throw new DomainError('PRIVACY_RESPONSE_STATE_INVALID','当前执行状态不能被回复覆盖，请刷新并核验执行记录',409);
       const result=await client.query(`UPDATE privacy_request SET status=$2,response=$3,responded_by=$4,version=version+1,updated_at=now()
         WHERE id=$1 RETURNING id,status,response,version,due_at,updated_at`,[id,input.status,response,principalId]);
       await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)

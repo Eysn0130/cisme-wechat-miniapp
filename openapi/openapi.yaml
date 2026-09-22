@@ -188,6 +188,22 @@ paths:
         required: true
         content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1]}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
+  /v1/management/privacy-requests:
+    get:
+      operationId: nativePrivacyRequestQueue
+      description: Native management queue. Requires an active signed member session and current environment-bound privacy.request.manage capability; legacy operator roles cannot replace this capability. Locks authority for the read. No export payload is returned.
+      security: [{session: []}]
+      responses: {'200': {description: Up to 100 requests ordered by due date and open status}, '401': {description: Member session required}, '403': {description: Capability unavailable or revoked}}
+  /v1/management/privacy-requests/{requestId}/response:
+    post:
+      operationId: nativeRespondPrivacyRequest
+      description: Requires current privacy.request.manage capability from the signed member. Rechecks and locks authority after locking the request, preventing a concurrent revocation from being bypassed. A member-visible reply never claims export or deletion occurred.
+      security: [{session: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Audited version-guarded reply; no execution implied}, '401': {description: Session required}, '403': {description: Capability unavailable or revoked}, '409': {description: Request changed or closed}, '422': {description: Invalid input}, '404': {description: Request not found}}
   /v1/admin/privacy-requests:
     get:
       operationId: privacyRequestQueue

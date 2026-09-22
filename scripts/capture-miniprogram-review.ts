@@ -35,7 +35,13 @@ const inspection = await inspectMiniProgramPackage();
 if (!inspection.ok) throw new Error(`Mini Program package gate failed: ${inspection.errors.join(",")}`);
 const app = JSON.parse(await readFile(resolve(project, "app.json"), "utf8")) as { pages: string[]; subPackages: Array<{ root: string; pages: string[] }> };
 const routes = [...app.pages, ...app.subPackages.flatMap((subpackage) => subpackage.pages.map((page) => `${subpackage.root}/${page}`))];
-const fixtureRoutes = new Map(Object.values(fixture.routes).map((entry) => [entry.path, entry.query]));
+// Default healthy capture must not select a later deleted/error fixture for
+// the same route. State-specific fixtures remain in the manifest for review.
+const fixtureRoutes = new Map<string, string>();
+for (const [name, entry] of Object.entries(fixture.routes)) {
+  if (name === "communityDeleted" || fixtureRoutes.has(entry.path)) continue;
+  fixtureRoutes.set(entry.path, entry.query);
+}
 const queryFor = (route: string) => route === "pages/account/index" ? "intent=login" : fixtureRoutes.get(route) ?? "";
 const slug = (route: string) => route.replaceAll("/", "__");
 
@@ -84,12 +90,22 @@ if (!finalizeOnly) {
     const errorValue = pageData("error");
     const loading = typeof loadingValue === "boolean" ? loadingValue : "not_exposed";
     const error = typeof errorValue === "string" ? errorValue : "";
-    if (current.path !== route || loading === true || error.trim()) {
+    // This fixture deliberately has no payment provider. Verify the guarded
+    // finance state instead of enabling money just to produce a clean frame.
+    const guardedFinance = route === "pages/management-finance/index"
+      && error === "当前环境没有开放资金核对。"
+      && pageData("moneyEnabled") === false
+      && JSON.stringify(pageData("sections")) === "[]"
+      && wechatide("project-action", "automation_evaluate", ["--fn-source",
+        "function(){var p=getCurrentPages();return p[p.length-1].data.authority===null;}"]
+      ).result.result.result === true;
+    if (current.path !== route || loading === true || (error.trim() && !guardedFinance)) {
       throw new Error(`Route health failed for ${route}: ${JSON.stringify({ current: current.path, loading, error })}`);
     }
     opened.push({ route, query, result: "success" });
-    routeHealth.push({ route, query, currentPage: current.path, loading, error, screenshot: relative(reviewRoot, screenshot), result: "PASS_LOCAL_SYNTHETIC" });
-    console.log(JSON.stringify({ event: "MINIPROGRAM_ROUTE_HEALTH", route, query, result: "PASS_LOCAL_SYNTHETIC" }));
+    const result = guardedFinance ? "PASS_EXPECTED_MONEY_DISABLED" : "PASS_LOCAL_SYNTHETIC";
+    routeHealth.push({ route, query, currentPage: current.path, loading, error, screenshot: relative(reviewRoot, screenshot), result });
+    console.log(JSON.stringify({ event: "MINIPROGRAM_ROUTE_HEALTH", route, query, result }));
   }
   execFileSync(resolve(root, "node_modules/.bin/tsx"), ["scripts/generate-visual-review-pack.ts", reviewId, "--fixture", fixtureSource], { cwd: root, stdio: "inherit" });
 } else {
@@ -151,7 +167,7 @@ await Promise.all([
     verifiedAt,
     environment: { origin: fixture.origin, database: fixture.database, runtime },
     routes: routeHealth,
-    result: "PASS_LOCAL_SYNTHETIC_27_OF_27",
+    result: `PASS_LOCAL_SYNTHETIC_${routeHealth.length}_OF_${routes.length}`,
     exclusions: ["production data", "real payment", "formal upload", "physical-device acceptance"]
   }, null, 2) + "\n")
 ]);
@@ -164,7 +180,8 @@ await writeFile(routesCsvPath, routesCsv);
 
 const sourceManifestPath = resolve(reviewRoot, "source-manifest.json");
 const sourceManifest = JSON.parse(await readFile(sourceManifestPath, "utf8"));
-sourceManifest.capture.runtimeHealthyRoutes = routeHealth.length;
+sourceManifest.capture.runtimeHealthyRoutes = routeHealth.filter(row => row.result === "PASS_LOCAL_SYNTHETIC").length;
+sourceManifest.capture.runtimeGuardedRoutes = routeHealth.filter(row => row.result === "PASS_EXPECTED_MONEY_DISABLED").length;
 sourceManifest.capture.runtimeHealthEvidence = "route-runtime-health.json";
 sourceManifest.capture.result = "AUTHENTICATED_HEALTHY_NATIVE_BASELINE_CAPTURED_VISUAL_ACCEPTANCE_BLOCKED";
 await writeFile(sourceManifestPath, JSON.stringify(sourceManifest, null, 2) + "\n");
@@ -172,7 +189,7 @@ await writeFile(sourceManifestPath, JSON.stringify(sourceManifest, null, 2) + "\
 const acceptancePath = resolve(root, "docs/evidence/visual/current-source-acceptance.json");
 const acceptance = JSON.parse(await readFile(acceptancePath, "utf8"));
 for (const evidence of Object.values(acceptance.evidenceIndex ?? {}) as Array<Record<string, unknown>>) {
-  if (evidence.kind === "route_native") evidence.state = "authenticated-route-success";
+  if (evidence.kind === "route_native") evidence.state = routeHealth.find(row => row.route === evidence.route)?.result === "PASS_EXPECTED_MONEY_DISABLED" ? "money-disabled" : "authenticated-route-success";
 }
 const routeHealthRelative = relative(root, routeHealthPath);
 for (const [path, kind] of [
@@ -195,7 +212,8 @@ acceptance.devtools = {
   compileErrors: 0,
   consoleErrors: 0,
   networkFailures: 0,
-  healthyRuntimeRoutes: routeHealth.length,
+  healthyRuntimeRoutes: sourceManifest.capture.runtimeHealthyRoutes,
+  guardedRuntimeRoutes: sourceManifest.capture.runtimeGuardedRoutes,
   environment: "local_devtools_synthetic_nonproduction",
   compileEvidenceFiles: [relative(root, compilePath)],
   consoleEvidenceFiles: [relative(root, consolePath)],

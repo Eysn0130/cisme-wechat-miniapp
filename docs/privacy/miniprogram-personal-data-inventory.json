@@ -486,7 +486,7 @@
     }
   ],
   "migrationSetSha256": "732a85d527d74155c090f5805f77e692edda61c9cb06520ae2475df5d4afd02a",
-  "egressSignatureSha256": "ea59b0de054c6bacef6c3a166792d581b6a5e6ff51144cdbafcd5050df8ddc56",
+  "egressSignatureSha256": "1dc449dada726a43c2b1cbf6b716dd061d8961f827ef6704ed37250fd54685d2",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -579,5 +579,26 @@
     "liveGrantInstalled": false,
     "realPlatformCalled": false,
     "requiresFormalPrivacyApproval": true
+  },
+  "stagingAcceptanceEgressReview20260922": {
+    "source": "infra/tencent/staging-native-business-probe.mjs",
+    "recipient": "同一 staging 主机 127.0.0.1:3100",
+    "scope": "仅明确归属 rc20260922-690f9382 的合成数据库；正式支付关闭；无真实微信登录",
+    "sent": "进程内合成身份会话及合成隐私受理请求；不持久化或输出会话凭据",
+    "storage": "脱敏检查名称、计数和源码锚点；不保存完整 HTTP 响应",
+    "productionTouched": false,
+    "newExternalProcessor": false
+  },
+  "nativePrivacyTriageReview20260922": {
+    "source": [
+      "apps/miniprogram/pages/management-privacy/index.ts",
+      "services/api/src/privacyRights.ts"
+    ],
+    "purpose": "授权隐私请求受理及用户可见回复，不等于完成数据导出或删除",
+    "fields": "用户请求正文、类型、截止日期、状态、回复和执行任务状态；不读取导出内容或其他成员联系方式",
+    "authorization": "当前环境 privacy.request.manage；服务端请求锁后重查撤权；旧操作员角色不能替代此原生接口能力",
+    "storage": "请求事实、版本和既有不可变事件/审计；页面离开清理正文及草稿，不写本地缓存",
+    "externalRecipient": "现有 CISME API，无新增处理方",
+    "productionExecutionComplete": false
   }
 }
