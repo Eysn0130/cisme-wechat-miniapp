@@ -27,7 +27,7 @@ beforeAll(async()=>{
 afterAll(async()=>{
   try{
     await db.end();
-    if(created)await admin.query(`DROP DATABASE ${databaseName} WITH (FORCE)`);
+    if(created)await admin.query(`DROP DATABASE ${databaseName}`);
   }finally{await admin.end();}
 });
 

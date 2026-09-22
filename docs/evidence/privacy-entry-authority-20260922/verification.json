@@ -1,0 +1,38 @@
+{
+  "base": "302d0f602a407e9dd512c2c0fb69bc14a22793c4",
+  "branch": "codex/privacy-entry-authority-20260922",
+  "sourceFileSha256": {
+    "scripts/privacy-requests.ts": "a4ae1f97e25824567b1df0e415f72fd7345265447b80f503b1bb3847e2a11e9d",
+    "services/api/src/privacyAuthority.ts": "341877902682bd4f4ba44dff81edb648251cc4e8efeb7618c84d6e28731ee319",
+    "services/api/src/privacyRights.ts": "3aaeeb808e2083d175c4feb1a70185a44c78fad9f08d57567b75d93ed26dc243",
+    "services/api/src/privacyExecution.ts": "27905fe6d4e0d4e214801244067990bff79e162f8e7f2bd08fd893dfb26ecf4b",
+    "services/api/src/server.ts": "08882ffa61af4eaa12545b57e3b76aba5059134bb5338f62f42d51683d6733ee",
+    "tests/integration/privacy-entry-authority.test.ts": "5a530f3e9c870c130317bdd381caa286ce7dffb58a7bdfd40b204c259afc8955",
+    "tests/integration/commercial-forward-upgrade.test.ts": "0899971b3815ad08ae806be879c8114150b4ecc5d1b748cc2dfa5e0eefc6eba5"
+  },
+  "nativePackageSha256": "a296da16a0edafe3d1fc988b94539a52a23f2d7e8b1fa85d9702e96b4276161c",
+  "checks": {
+    "node": "24.18.0",
+    "unit": {
+      "pass": 985,
+      "skip": 1
+    },
+    "integration": {
+      "pass": 753,
+      "files": 45,
+      "unhandledErrors": 0
+    },
+    "build": "PASS",
+    "typecheck": "PASS",
+    "contracts": "PASS",
+    "packageGate": "PASS",
+    "nativeAcceptance": "NOT_RERUN_BACKEND_ONLY_CHANGE",
+    "device": "NOT_RUN",
+    "release": "BLOCKED"
+  },
+  "isolatedRun": "61e9f8140f035b5b88674c55",
+  "oldDatabaseIncident": {
+    "impact": "UNKNOWN",
+    "restored": false
+  }
+}
