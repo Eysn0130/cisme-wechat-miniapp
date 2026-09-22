@@ -1,26 +1,63 @@
 // This file ships inside the immutable backend candidate. No down migration.
-import {readFile} from 'node:fs/promises';
+import {readFile, lstat, readdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
-import pg from 'pg';
 async function main(){
 const root=fileURLToPath(new URL('./',import.meta.url));
-const manifest=JSON.parse(await readFile(resolve(root,'release-manifest.json'),'utf8'));
-if(manifest.schemaVersion!==1||!Array.isArray(manifest.migrations)||!manifest.migrations.length)
- throw new Error('RELEASE_MANIFEST_REQUIRED');
-const sources=[];
-for(const file of manifest.migrations){
- if(typeof file!=='string'||!/^\d+_[A-Za-z0-9_-]+\.sql$/.test(file))throw new Error('MIGRATION_PATH_INVALID');
- const bytes=await readFile(resolve(root,'db/migrations',file));
- if(createHash('sha256').update(bytes).digest('hex')!==manifest.hashes[`db/migrations/${file}`])throw new Error('MIGRATION_HASH_MISMATCH');
- sources.push({file,up:bytes.toString('utf8').split('-- migrate:down')[0]});
+// Verify the whole shipped candidate before importing a driver or touching DB.
+// Hashes establish consistency, not authenticity: the caller must pin the archive
+// and source to the reviewed CI/main SHA and keep the release directory immutable.
+const utf8=new TextDecoder('utf-8',{fatal:true});
+let totalBytes=0;
+async function candidateBytes(name){
+ const path=resolve(root,name),stat=await lstat(path);
+ if(!stat.isFile()||stat.isSymbolicLink())throw new Error('CANDIDATE_FILE_UNSAFE');
+ if(stat.size>20*1024*1024||totalBytes+stat.size>64*1024*1024)throw new Error('CANDIDATE_SIZE_EXCEEDED');
+ const bytes=await readFile(path);
+ totalBytes+=bytes.length;
+ if(bytes.length>20*1024*1024||totalBytes>64*1024*1024)throw new Error('CANDIDATE_SIZE_EXCEEDED');
+ return bytes;
 }
-if(process.argv[2]==='verify'){console.log(JSON.stringify({migrations:sources.length,sourceHead:manifest.sourceHead,verified:true,applied:false}));process.exit(0);}
+const manifest=JSON.parse(utf8.decode(await candidateBytes('release-manifest.json')));
+if(!manifest||manifest.schemaVersion!==1||!Array.isArray(manifest.migrations)
+ ||!manifest.migrations.length||manifest.migrations.length>10000)
+ throw new Error('RELEASE_MANIFEST_REQUIRED');
+if([manifest.sourceHead,manifest.sourceTree].some(value=>typeof value!=='string'||! /^[a-f0-9]{40}$/.test(value)||/^0{40}$/.test(value)))
+ throw new Error('CANDIDATE_SOURCE_BINDING_INVALID');
+for(const [index,file] of manifest.migrations.entries()){
+ if(typeof file!=='string'||!/^\d+_[A-Za-z0-9_-]+\.sql$/.test(file))throw new Error('MIGRATION_PATH_INVALID');
+ if(index>0&&file<=manifest.migrations[index-1])throw new Error('MIGRATION_ORDER_INVALID');
+}
+const expected=['index.js','worker.js','worker-once.js','package.json','package-lock.json','migrate.mjs',
+ ...manifest.migrations.map(file=>`db/migrations/${file}`)];
+const hashes=manifest.hashes;
+if(!hashes||typeof hashes!=='object'||Array.isArray(hashes)
+ ||Object.keys(hashes).length!==expected.length
+ ||expected.some(name=>!Object.hasOwn(hashes,name)||typeof hashes[name]!=='string'||! /^[a-f0-9]{64}$/.test(hashes[name])))
+ throw new Error('CANDIDATE_HASH_SET_INVALID');
+for(const name of ['db','db/migrations']){
+ const stat=await lstat(resolve(root,name));
+ if(!stat.isDirectory()||stat.isSymbolicLink())throw new Error('CANDIDATE_FILE_UNSAFE');
+}
+const diskMigrations=(await readdir(resolve(root,'db/migrations'))).filter(name=>name.endsWith('.sql')).sort();
+if(JSON.stringify(diskMigrations)!==JSON.stringify(manifest.migrations))throw new Error('MIGRATION_FILE_SET_INVALID');
+const sources=[];
+for(const name of expected){
+ const bytes=await candidateBytes(name);
+ if(createHash('sha256').update(bytes).digest('hex')!==hashes[name])
+  throw new Error(name.startsWith('db/migrations/')?'MIGRATION_HASH_MISMATCH':'CANDIDATE_HASH_MISMATCH');
+ if(name.startsWith('db/migrations/'))sources.push({file:name.slice('db/migrations/'.length),up:utf8.decode(bytes).split('-- migrate:down')[0]});
+}
+if(process.argv[2]==='verify'){
+ console.log(JSON.stringify({migrations:sources.length,sourceHead:manifest.sourceHead,sourceTree:manifest.sourceTree,
+  artifacts:expected.length,verified:true,applied:false}));return;
+}
 if(process.argv[2]!=='up'||!process.env.DATABASE_URL||!/^[-A-Za-z0-9_:.]{8,120}$/.test(process.env.CISME_MIGRATION_APPROVAL_REF??'')||
  !/^[-A-Za-z0-9_:.]{8,120}$/.test(process.env.CISME_PREDEPLOY_BACKUP_REF??''))
  throw new Error('EXPLICIT_TARGET_UP_APPROVAL_AND_BACKUP_REFERENCES_REQUIRED');
 // Supplying these references is an operator action, not an approval created by this script.
+const {default:pg}=await import('pg');
 const pool=new pg.Pool({connectionString:process.env.DATABASE_URL,max:1,connectionTimeoutMillis:5000});
 const client=await pool.connect();
 try{
@@ -43,6 +80,8 @@ try{
 }
 main().catch(error=>{
  const known=new Set(['RELEASE_MANIFEST_REQUIRED','MIGRATION_PATH_INVALID','MIGRATION_HASH_MISMATCH',
+  'CANDIDATE_FILE_UNSAFE','CANDIDATE_SIZE_EXCEEDED','CANDIDATE_SOURCE_BINDING_INVALID','MIGRATION_ORDER_INVALID',
+  'CANDIDATE_HASH_SET_INVALID','MIGRATION_FILE_SET_INVALID','CANDIDATE_HASH_MISMATCH',
   'EXPLICIT_TARGET_UP_APPROVAL_AND_BACKUP_REFERENCES_REQUIRED','MIGRATION_ALREADY_RUNNING','MIGRATION_HISTORY_NOT_CANDIDATE_PREFIX']);
  console.error(known.has(error?.message)?error.message:'RELEASE_MIGRATION_FAILED');
  process.exitCode=1; // Never print driver errors, SQL, connection strings or stack traces.
