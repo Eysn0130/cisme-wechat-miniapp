@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "4fa4ea71ae647fd8f596e394d2a8bcf76fff823ce7a08e1d6dc2d0767b71186f",
+  "packageSourceSha256": "78558816c95b567889399583e2b039407388cedbe212729ff37cc9c248794be9",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current native source reads available commercial fee choices from the service instead of embedding engineering values in the member pages. The prior blocked manifest is archived byte-for-byte as source-acceptance-78558816c95b.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "Current native source makes capability-scoped management attention rows open their existing workspaces and uses the existing privacy request due date. The prior blocked manifest is archived byte-for-byte as source-acceptance-3bd295d0cbda.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }

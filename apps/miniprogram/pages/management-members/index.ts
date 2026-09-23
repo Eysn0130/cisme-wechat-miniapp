@@ -6,7 +6,7 @@ import { currentChromeStyle } from "../../services/layout";
 
 type MemberRow={id:string;displayName:string;accountStatus:string;membershipState:string;commercialEligible:boolean;expiresAt:string|null;referralCode:string|null;directReferralCount?:number};
 type RateProposal={id:string;memberId:string|null;displayName:string;action:"override"|"inherit";basisPoints:number|null;effectiveAt:string;version:number;createdBy:string;reason:string};
-type GlobalRate={basisPoints:number|null;effectiveAt:string|null;serverTime:string;suggestedEffectiveAt:string;policyKind:string;paymentAvailable:boolean};
+type GlobalRate={basisPoints:number|null;effectiveAt:string|null;serverTime:string;suggestedEffectiveAt:string;policyKind:string;paymentAvailable:boolean;rateOptions:number[]};
 type RateForm={percent:string;date:string;time:string;reason:string};
 const rateDateParts=(value:string)=>{const date=new Date(value),pad=(n:number)=>String(n).padStart(2,"0");
   return {date:`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,time:`${pad(date.getHours())}:${pad(date.getMinutes())}`};};
@@ -18,7 +18,7 @@ Page({
   rateDecisionCommand:null as null|{id:string;key:string;decision:"active"|"rejected";expectedVersion:number;reason:string},
   data:{chromeStyle:currentChromeStyle(),q:"",appliedQuery:"",filter:"all",filters:[{id:"all",label:"全部"},{id:"members",label:"会员"},{id:"ordinary",label:"普通用户"}],summary:{all:0,members:0,ordinary:0},items:[] as Array<MemberRow&{initial:string}>,pending:[] as Array<RateProposal&{rateLabel:string}>,canApprove:false,canReadCommission:false,
     canManageRate:false,globalRate:null as GlobalRate|null,globalRateLabel:"",globalRateError:"",globalRateStatus:"",globalRateFormVisible:false,
-    globalRateForm:{percent:"",date:"",time:"",reason:""} as RateForm,rateOptions:["20%","25%","30%","35%"],globalRateFormIndex:0,
+    globalRateForm:{percent:"",date:"",time:"",reason:""} as RateForm,rateOptions:[] as string[],rateBasisPoints:[] as number[],globalRateFormIndex:0,
     globalRateBusy:false,pendingVisible:false,
     matchingTotal:0,loadedCount:0,nextCursor:null as string|null,loadingMore:false,moreError:"",
     pendingTotal:0,pendingCursor:null as string|null,pendingLoadingMore:false,pendingMoreError:"",
@@ -28,7 +28,7 @@ Page({
     const token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
     if(token!==this.lastToken||revision!==this.lastRevision){this.globalRateCommand=null;this.rateDecisionCommand=null;}
     this.lastToken=token;this.lastRevision=revision;this.setData({navigating:false,items:[],pending:[],canApprove:false,canReadCommission:false,canManageRate:false,
-    globalRate:null,globalRateLabel:"",globalRateError:"",globalRateFormVisible:false,globalRateBusy:false,pendingVisible:false,
+    globalRate:null,globalRateLabel:"",globalRateError:"",globalRateFormVisible:false,globalRateBusy:false,pendingVisible:false,rateOptions:[],rateBasisPoints:[],
     summary:{all:0,members:0,ordinary:0},matchingTotal:0,loadedCount:0,nextCursor:null,loadingMore:false,moreError:"",
     pendingTotal:0,pendingCursor:null,pendingLoadingMore:false,pendingMoreError:"",loading:true,error:""});void this.load();},
   onHide(){this.data.alive=false;this.data.attempt+=1;cancelPageReads(this);},
@@ -71,7 +71,9 @@ Page({
     this.setData({pendingMoreError:(error as {title?:string}).title||"待复核费率暂未加载。"});}},
   async loadGlobalRate(attempt:number,token:string){try{const rate=await pageRead<GlobalRate>(this,{path:"/v1/management/commission-rates/current"});
     if(!this.data.alive||this.data.attempt!==attempt||(token!==getApp<IAppOption>().globalData.sessionToken||this.lastRevision!==commerceContextRevision()))return;
-    this.setData({globalRate:rate,globalRateLabel:rate.basisPoints==null?"未配置":`${(rate.basisPoints/100).toFixed(2)}%`,globalRateError:""});
+    const rateBasisPoints=rate.rateOptions??[];
+    this.setData({globalRate:rate,globalRateLabel:rate.basisPoints==null?"未配置":`${(rate.basisPoints/100).toFixed(2)}%`,
+      rateBasisPoints,rateOptions:rateBasisPoints.map(value=>`${(value/100).toFixed(2)}%`),globalRateError:""});
   }catch(error){if(this.data.alive&&this.data.attempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision())
     this.setData({globalRateError:(error as {title?:string}).title||"全局费率暂未加载。"});}},
   togglePending(){this.setData({pendingVisible:!this.data.pendingVisible});},
@@ -105,16 +107,18 @@ Page({
   },
   openGlobalRateForm(){if(!this.data.canManageRate||!this.data.globalRate||this.data.globalRateBusy)return;
     if(this.globalRateCommand){void this.sendGlobalRateCommand();return;}
+    if(!this.data.rateBasisPoints.length){this.setData({globalRateError:"当前可提议的费率范围尚未配置，请先核对经营规则。"});return;}
     const when=rateDateParts(this.data.globalRate.suggestedEffectiveAt);
-    const current=[2000,2500,3000,3500].indexOf(this.data.globalRate.basisPoints??2000);
-    this.setData({globalRateFormVisible:true,globalRateFormIndex:Math.max(0,current),globalRateForm:{percent:String([20,25,30,35][Math.max(0,current)]),
+    const current=this.data.rateBasisPoints.indexOf(this.data.globalRate.basisPoints??this.data.rateBasisPoints[0]!);
+    const selected=Math.max(0,current);
+    this.setData({globalRateFormVisible:true,globalRateFormIndex:selected,globalRateForm:{percent:(this.data.rateBasisPoints[selected]!/100).toFixed(2),
       date:when.date,time:when.time,reason:""},globalRateError:"",globalRateStatus:""});
   },
   closeGlobalRateForm(){if(this.data.globalRateBusy||this.globalRateCommand)return;
     this.setData({globalRateFormVisible:false,globalRateError:""});},
   selectGlobalRate(event:WechatMiniprogram.PickerChange){const index=Number(event.detail.value);
-    if(!Number.isInteger(index)||index<0||index>3)return;
-    this.setData({globalRateFormIndex:index,globalRateForm:{...this.data.globalRateForm,percent:String([20,25,30,35][index])}});},
+    if(!Number.isInteger(index)||index<0||index>=this.data.rateBasisPoints.length)return;
+    this.setData({globalRateFormIndex:index,globalRateForm:{...this.data.globalRateForm,percent:(this.data.rateBasisPoints[index]!/100).toFixed(2)}});},
   editGlobalReason(event:WechatMiniprogram.Input){this.setData({globalRateForm:{...this.data.globalRateForm,reason:event.detail.value}});},
   changeGlobalDate(event:WechatMiniprogram.PickerChange){this.setData({globalRateForm:{...this.data.globalRateForm,date:String(event.detail.value)}});},
   changeGlobalTime(event:WechatMiniprogram.PickerChange){this.setData({globalRateForm:{...this.data.globalRateForm,time:String(event.detail.value)}});},
@@ -122,7 +126,7 @@ Page({
     if(this.globalRateCommand){void this.sendGlobalRateCommand();return;}
     const form=this.data.globalRateForm,parts=/^(\d{2})(?:\.(\d{1,2}))?$/.exec(form.percent.trim());
     const basisPoints=parts?Number(parts[1])*100+Number((parts[2]||"").padEnd(2,"0")):NaN,reason=form.reason.trim();
-    if(![2000,2500,3000,3500].includes(basisPoints)){this.setData({globalRateError:"请选择 20%、25%、30% 或 35%。"});return;}
+    if(!this.data.rateBasisPoints.includes(basisPoints)){this.setData({globalRateError:"请选择当前可提议的费率。"});return;}
     if(reason.length<4||reason.length>300){this.setData({globalRateError:"请填写 4–300 字的变更依据。"});return;}
     const effective=new Date(`${form.date}T${form.time}:00`);
     if(!Number.isFinite(effective.getTime())){this.setData({globalRateError:"请选择有效的生效日期和时间。"});return;}

@@ -30,9 +30,9 @@ it("does not change membership or propose a rate after the actor switches while 
   await load("../../apps/miniprogram/pages/management-member/index");
   const detail={member:{id:"member-1",displayName:"合成成员",version:4,expiresAt:null},
     rate:{basisPoints:2500},
-    membershipPolicy:{termDays:365,renewalExpiresAt:"2027-09-13T00:00:00Z",
+    membershipPolicy:{kind:"engineering_calendar_v2",termMonths:12,rateOptions:[2000,2500,3000,3500],renewalExpiresAt:"2027-09-13T00:00:00Z",
       rateProposalSuggestedAt:"2027-09-13T01:00:00Z"}};
-  const page=mounted({detail,attempt:2,alive:true,canManageRate:true});
+  const page=mounted({detail,attempt:2,alive:true,canManageRate:true,rateBasisPoints:[2000,2500,3000,3500]});
   const first=deferred<{confirm:boolean;content:string}>();modal.mockReturnValueOnce(first.promise);
   const membership=page.changeMembership({currentTarget:{dataset:{state:"active"}}});
   session="actor-b";first.resolve({confirm:true,content:"合成资格变更依据"});await membership;
@@ -43,6 +43,26 @@ it("does not change membership or propose a rate after the actor switches while 
   const second=deferred<{confirm:boolean}>();modal.mockReturnValueOnce(second.promise);
   const rate=page.submitRateForm();page.data.attempt+=1;
   second.resolve({confirm:true});await rate;
+  expect(requestMock).not.toHaveBeenCalled();
+});
+
+it("does not turn an unconfigured formal commercial policy into a client-side fee or membership action",async()=>{
+  await load("../../apps/miniprogram/pages/management-member/index");
+  const page=mounted({detail:{member:{id:"member-1",version:1},membershipPolicy:{kind:"unconfigured",termMonths:null,
+    rateOptions:[],renewalExpiresAt:null,rateProposalSuggestedAt:"2027-09-13T01:00:00Z"}},
+    canManageRate:true,canManageMembership:true,rateBasisPoints:[]});
+  page.openRateForm();
+  await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
+  expect(page.data.rateFormVisible).toBe(false);
+  expect(page.data.actionError).toContain("资格有效期规则尚未配置");
+  expect(modal).not.toHaveBeenCalled();
+  expect(requestMock).not.toHaveBeenCalled();
+  await load("../../apps/miniprogram/pages/management-members/index");
+  const list=mounted({canManageRate:true,globalRate:{basisPoints:null,rateOptions:[],suggestedEffectiveAt:"2027-09-13T01:00:00Z"},
+    rateBasisPoints:[]});
+  list.openGlobalRateForm();
+  expect(list.data.globalRateFormVisible).toBe(false);
+  expect(list.data.globalRateError).toContain("费率范围尚未配置");
   expect(requestMock).not.toHaveBeenCalled();
 });
 

@@ -79,10 +79,13 @@ it("separates ordinary accounts, commercial qualification, management scope and 
   expect((await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}/sections/referrals`,headers:auth(manager)})).statusCode).toBe(403);
   await grant(manager,"commission.read");
   expect((await app.inject({method:"GET",url:"/v1/management/commission-rates/current",headers:auth(manager)})).json())
-    .toMatchObject({basisPoints:2000,policyKind:"engineering_fixture",paymentAvailable:false});
+    .toMatchObject({basisPoints:2000,policyKind:"engineering_fixture",paymentAvailable:false,
+      rateOptions:[2000,2500,3000,3500]});
   const formalRead=new CommercialMembershipService(pool,new AuthorityService(pool,"test"),"production");
-  expect(await formalRead.currentGlobalRate(manager.memberId)).toMatchObject({basisPoints:null,effectiveAt:null});
-  expect((await formalRead.memberDetail(manager.memberId,a.memberId)).rate).toMatchObject({basisPoints:null,source:"none"});
+  expect(await formalRead.currentGlobalRate(manager.memberId)).toMatchObject({basisPoints:null,effectiveAt:null,rateOptions:[],policyKind:"unconfigured"});
+  const formalMember=await formalRead.memberDetail(manager.memberId,a.memberId);
+  expect(formalMember.rate).toMatchObject({basisPoints:null,source:"none"});
+  expect(formalMember.membershipPolicy).toMatchObject({kind:"unconfigured",termMonths:null,rateOptions:[],renewalExpiresAt:null});
   const broader=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
   expect(broader.scope).toEqual({referrals:true,orders:false,ownOrders:false});
   const direct=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}/sections/referrals`,headers:auth(manager)})).json();

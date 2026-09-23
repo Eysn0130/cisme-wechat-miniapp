@@ -11,6 +11,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const codePattern = /^CM[A-HJ-NP-Z2-9]{10}$/;
 const codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const engineeringMembershipMonths=12;
+const engineeringRateOptions=[2000,2500,3000,3500] as const;
 const nextShanghaiMidnight="(date_trunc('day',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')+interval '1 day') AT TIME ZONE 'Asia/Shanghai'";
 function member(id: string | undefined): string {
   if (!id) throw new DomainError("AUTH_REQUIRED", "请先登录后继续", 401);
@@ -30,7 +31,7 @@ function codeValue(): string {
   return `CM${Array.from(bytes, byte => codeAlphabet[byte! % codeAlphabet.length]).join("")}`;
 }
 function rate(value: unknown): number {
-  if (!Number.isInteger(value) || ![2000,2500,3000,3500].includes(Number(value))) {
+  if (!Number.isInteger(value) || !engineeringRateOptions.some(option=>option===Number(value))) {
     throw new DomainError("COMMISSION_RATE_INVALID", "新费率仅支持 20%、25%、30%、35%", 422);
   }
   return Number(value);
@@ -291,8 +292,12 @@ export class CommercialMembershipService {
         memberAction:rateRule.rows[0]?.member_action??null,memberActionEffectiveAt:rateRule.rows[0]?.member_action_effective_at??null }:null,
       scope:{referrals:canReadCommission,orders:canReadCommission&&canReadOrders,ownOrders:canReadOrders},
       commission:balance?{...balance,settlementAvailable:false}:null,
-      membershipPolicy:{kind:"engineering_calendar_v2",termMonths:engineeringMembershipMonths,serverTime:person.server_time,
-        renewalExpiresAt:person.renewal_expires_at,rateProposalSuggestedAt:person.rate_proposal_suggested_at} };
+      membershipPolicy:{kind:this.environment==='test'||this.environment==='development'?"engineering_calendar_v2":"unconfigured",
+        termMonths:this.environment==='test'||this.environment==='development'?engineeringMembershipMonths:null,
+        rateOptions:this.environment==='test'||this.environment==='development'?[...engineeringRateOptions]:[],
+        serverTime:person.server_time,
+        renewalExpiresAt:this.environment==='test'||this.environment==='development'?person.renewal_expires_at:null,
+        rateProposalSuggestedAt:person.rate_proposal_suggested_at} };
   }
 
   async memberSection(actorId:string|undefined,memberId:string,section:string,input:{limit?:unknown;cursor?:unknown}={}){
@@ -460,6 +465,7 @@ export class CommercialMembershipService {
       [this.environment==='test'||this.environment==='development'])).rows[0];
     return {basisPoints:row?.basis_points??null,effectiveAt:row?.effective_at??null,
       serverTime:row?.server_time??null,suggestedEffectiveAt:row?.suggested_effective_at??null,
+      rateOptions:this.environment==='test'||this.environment==='development'?[...engineeringRateOptions]:[],
       policyKind:this.environment==='test'||this.environment==='development'?"engineering_fixture":
         row?.id?"approved_rule":"unconfigured",paymentAvailable:false};
   }
