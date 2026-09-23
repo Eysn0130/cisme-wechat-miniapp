@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "47b741500c69f19eaf1fcc416961c2af577c755d45d155d9b095f9bdcccb64c3",
+  "packageSourceSha256": "5fa5253ed6ca3b8d25001212d28ad69071cfd2c146d85b9fcf53f2872b9d07ef",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -51,5 +51,5 @@
     {"platform":"android","result":"blocked","evidenceFiles":[]}
   ],
   "findings": [{"id":"CURRENT_NATIVE_RECAPTURE_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Current source changes commission page copy and hides isolated test controls outside the test runtime. Previous blocked manifest is archived byte-for-byte as source-acceptance-5fa5253ed6ca.json. No new WeChat runtime, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both platforms remain blocked."
+  "note": "Package hash measured by CI35835943400 for source commit 2e22a17d1f97f871981a39d6cd2b1c73c07e38a2 after privacy pagination revocation repair. Previous manifest is archived byte-for-byte as source-acceptance-095354d5730e.json (Git blob 50298d28287fe5d6bb9bb079e3c3f80683d4efd8). No new WeChat runtime, screenshot or device acceptance is claimed; all 40 route matrices and both platforms remain blocked. This binding update does not waive any release gate."
 }
