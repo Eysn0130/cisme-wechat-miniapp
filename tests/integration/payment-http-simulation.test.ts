@@ -2173,14 +2173,25 @@ it('shows only current capability-scoped management attention and clears it afte
   expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',
     headers:{...paid.headers,'Content-Type':'application/json'},payload:paid.raw})).statusCode).toBe(204);
   await runMoneyWorkerCycle(paymentInbox);
-  await new AftersaleService(pool,new AuthorityService(pool,'test')).request(owner.memberId,order.id,
+  const attentionAftersales=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  const attentionCase=await attentionAftersales.request(owner.memberId,order.id,
     'attention-new-case-001',{kind:'refund_only',reason:'隔离待办计数申请'});
   const withCase=await app.inject({url:path,headers:auth(actor.sessionToken)});
   expect(withCase.statusCode,withCase.body).toBe(200);
   expect(withCase.json().counts.newAftersales.count).toBeGreaterThanOrEqual(1);
   expect(withCase.json().counts).not.toHaveProperty('privacyRequests');
+  await aftersaleGrant(actor,'commerce.refund.approve');
+  const refundPending=await attentionAftersales.act(actor.memberId,attentionCase.id,'attention-refund-001',
+    {action:'request_refund',expectedVersion:1,note:'隔离退款待办准确跳转'},true,refundCommands);
+  const withRefund=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(withRefund.statusCode,withRefund.body).toBe(200);
+  expect(withRefund.json().counts.pendingRefunds.count).toBeGreaterThanOrEqual(1);
+  await refundCommands.decide(actor.memberId,refundPending.refundRequestId!,'attention-refund-approve-001',
+    {decision:'approve',expectedVersion:1,reason:'隔离确认审批后待办消失'});
+  const afterApproval=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(afterApproval.json().counts.pendingRefunds.count).toBe(withRefund.json().counts.pendingRefunds.count-1);
   await pool.query(`UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='attention test'
-    WHERE member_id=$1 AND capability='commerce.aftersale.review' AND revoked_at IS NULL`,[actor.memberId]);
+    WHERE member_id=$1 AND capability IN ('commerce.aftersale.review','commerce.refund.approve') AND revoked_at IS NULL`,[actor.memberId]);
   const revoked=await app.inject({url:path,headers:auth(actor.sessionToken)});
   expect(revoked.statusCode,revoked.body).toBe(200);
   expect(Object.keys(revoked.json().counts)).toEqual(['support']);

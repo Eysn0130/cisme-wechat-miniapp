@@ -29,7 +29,7 @@ export class ManagementAttentionService {
       const finance=capabilities.has('commerce.refund.approve');
       const counts:{support?:CountRow;newAftersales?:CountRow;returnInstructions?:CountRow;oldRouteShipments?:CountRow;
         returnsToReceive?:CountRow;returnsToInspect?:CountRow;
-        refundExceptions?:CountRow;privacyRequests?:CountRow;privacyOverdue?:CountRow}={};
+        pendingRefunds?:CountRow;privacyRequests?:CountRow;privacyOverdue?:CountRow}={};
       if(support)counts.support=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM support_conversation
         WHERE status='waiting_human' OR team_unread_count>0`)).rows[0]!;
       if(aftersale){
@@ -47,11 +47,8 @@ export class ManagementAttentionService {
         FROM commerce_aftersale_case WHERE state='return_in_transit'`)).rows[0]!;
       if(inspection)counts.returnsToInspect=(await client.query<CountRow>(`SELECT count(*)::int AS count
         FROM commerce_aftersale_case WHERE state='return_received'`)).rows[0]!;
-      if(finance)counts.refundExceptions=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case c
-        JOIN commerce_refund_request r ON r.id=c.refund_request_id
-        LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-        WHERE c.state='refund_pending' AND (r.state='rejected' OR i.state IN ('closed','abnormal')
-          OR EXISTS(SELECT 1 FROM commission_refund_inbox f WHERE f.refund_intent_id=i.id AND f.state='exception'))`)).rows[0]!;
+      if(finance)counts.pendingRefunds=(await client.query<CountRow>(`SELECT count(*)::int AS count
+        FROM commerce_refund_request WHERE state='requested'`)).rows[0]!;
       if(privacy){
         counts.privacyRequests=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM privacy_request
           WHERE status IN ('received','verifying','reviewing','responded','failed') AND waiting_on='operator'`)).rows[0]!;
