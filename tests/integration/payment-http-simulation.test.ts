@@ -495,6 +495,34 @@ async function creditSpendCase(){
     FROM commission_credit_checkout_allocation a JOIN commission_credit_source s ON s.id=a.source_id
     WHERE a.order_id=$1`,[pendingAtRisk.id])).rows;
   expect(reservedOrigins.some(row=>row.order_id===source.id)).toBe(true);
+  // Keep one already-spent cent from that source in a second paid order. Once
+  // the source refund has reversed its entitlement, a local return of this
+  // cent must be frozen again in the same approval transaction.
+  const riskSku=(await pool.query<{id:string}>(`INSERT INTO catalog_sku(product_id,code,label,created_by,updated_by)
+    SELECT product_id,'PAYMENT_HTTP_RISK_UNIT','Risk unit','fixture','fixture'
+    FROM catalog_sku WHERE id=$1 RETURNING id`,[skuId])).rows[0]!.id;
+  await pool.query(`INSERT INTO catalog_price(sku_id,currency,amount_cents,created_by,updated_by)
+    VALUES($1,'CNY',1,'fixture','fixture')`,[riskSku]);
+  await pool.query(`INSERT INTO catalog_inventory_level(sku_id,stock_on_hand,updated_by)
+    VALUES($1,2,'fixture')`,[riskSku]);
+  const riskQuote=await app.inject({method:'POST',url:'/v1/me/commerce/quotes',
+    headers:{...auth(referrer.sessionToken),'idempotency-key':'credit-risk-unit-quote-001'},
+    payload:{skuId:riskSku,quantity:2,addressId:address.json().id,addressVersion:address.json().version,creditCents:1}});
+  expect(riskQuote.statusCode,riskQuote.body).toBe(200);
+  const riskCreated=await app.inject({method:'POST',url:'/v1/me/orders',
+    headers:{...auth(referrer.sessionToken),'idempotency-key':'credit-risk-unit-order-001'},
+    payload:{quoteId:riskQuote.json().id}});
+  expect(riskCreated.statusCode,riskCreated.body).toBe(200);
+  const riskOrder=riskCreated.json() as {id:string;orderNumber:string};
+  const riskOrigin=(await pool.query<{order_id:string}>(`SELECT s.order_id FROM commission_credit_checkout_allocation a
+    JOIN commission_credit_source s ON s.id=a.source_id WHERE a.order_id=$1`,[riskOrder.id])).rows[0];
+  expect(riskOrigin?.order_id).toBe(source.id);
+  expect((await app.inject({method:'POST',url:`/v1/me/orders/${riskOrder.id}/payment-intent`,
+    headers:auth(referrer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const riskPaid=paidCallback(riskOrder.orderNumber);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',
+    headers:{...riskPaid.headers,'Content-Type':'application/json'},payload:riskPaid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox);
   const newDispute=await app.inject({method:"POST",url:`/v1/me/orders/${source.id}/refund-requests`,
     headers:{...auth(buyer.sessionToken),"idempotency-key":"credit-source-later-dispute-001"},
     payload:{amountCents:10000,reason:"预占后出现隔离来源争议"}});
@@ -530,6 +558,32 @@ async function creditSpendCase(){
   expect(exposure?.after_state.uncoveredCents).toBeGreaterThan(0);
   expect((await pool.query("SELECT status FROM commerce_order WHERE id=$1",[pendingAtRisk.id])).rows[0].status)
     .toBe("paid");
+  const riskLine=(await pool.query<{id:string}>('SELECT id FROM commerce_order_line WHERE order_id=$1',[riskOrder.id])).rows[0]!.id;
+  for(const [index,expectedCash] of [[1,1],[2,0]]){
+    const claim=await tinyAftersales.request(referrer.memberId,riskOrder.id,`credit-risk-unit-claim-${index}`,
+      {kind:'refund_only',reason:'来源订单冲正后的权益退回',lines:[{lineId:riskLine,quantity:1}]});
+    const pending=await tinyAftersales.act(operator.memberId,claim.id,`credit-risk-unit-action-${index}`,
+      {action:'request_refund',expectedVersion:1,note:'隔离来源权益风险复核'},true,refundCommands);
+    const decided=await refundCommands.decide(operator.memberId,pending.refundRequestId!,
+      `credit-risk-unit-approval-${index}`,{decision:'approve',expectedVersion:1,reason:'隔离来源风险审批'});
+    expect(decided.intent?.cashRefundCents).toBe(expectedCash);
+    if(expectedCash){
+      await refundCommands.processDue();
+      const callback=refundCallback(decided.intent!.outRefundNo);
+      expect((await app.inject({method:'POST',url:'/v1/payments/wechat/refund-callback',
+        headers:{...callback.headers,'Content-Type':'application/json'},payload:callback.raw})).statusCode).toBe(204);
+      await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+    }else{
+      expect(decided.intent?.executionKind).toBe('local_credit');
+      const returned=(await pool.query<{source_id:string;amount_cents:string}>(`SELECT source_id,amount_cents
+        FROM commission_credit_refund_allocation WHERE refund_intent_id=$1`,[decided.intent!.id])).rows[0]!;
+      expect(returned.amount_cents).toBe('1');
+      const frozen=(await pool.query<{amount_cents:string}>(`SELECT amount_cents FROM commission_credit_entry
+        WHERE source_id=$1 AND event_key=$2`,[returned.source_id,
+          `credit-refund-freeze:${decided.intent!.id}:${returned.source_id}`])).rows[0];
+      expect(frozen?.amount_cents).toBe('-1');
+    }
+  }
 }
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 

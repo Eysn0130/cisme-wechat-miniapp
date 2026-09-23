@@ -5,6 +5,7 @@ import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
 import { AuthorityService, requireActiveMemberWithClient } from "./authority.js";
 import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
+import { freezeCreditExposureForRefund } from "./shoppingCredit.js";
 import { type RefundBinding, WechatPayV3Client } from "./wechatPayV3.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 
@@ -143,7 +144,7 @@ export class RefundCommandService{
         throw new DomainError("REFUND_BENEFICIARY_DECISION_FORBIDDEN","佣金受益人不能审批关联订单退款",403);
       const amount=cents(request.amount_cents);
       let allocation:{lineId:string;eligibleCashRefundCents:number;otherCashRefundCents:number}[]=[];
-      let localCreditIntent:{id:string;sources:{sourceId:string;amount:number}[]}|null=null;
+      let localCreditIntent:{id:string;sources:{sourceId:string;originOrderId:string;amount:number}[]}|null=null;
       let eligible=0;
       if(decision==="approve"){
         const missingIntent=(await client.query<{has_gap:boolean}>(`SELECT EXISTS(
@@ -240,16 +241,17 @@ export class RefundCommandService{
           if(remaining!==0||historicalComponents&&eligibleRemaining!==0)
             throw new DomainError("REFUND_LINE_OVERDRAW","退款商品或运费分摊超过原单",409);
         }
-        const sourceAllocations:{sourceId:string;amount:number}[]=[];
+        const sourceAllocations:{sourceId:string;originOrderId:string;amount:number}[]=[];
         if(creditTotal){
-          const sources=(await client.query<{source_id:string;amount_cents:string;returned:string;spent:string}>(`
-            SELECT a.source_id,a.amount_cents,
+          const sources=(await client.query<{source_id:string;origin_order_id:string;amount_cents:string;returned:string;spent:string}>(`
+            SELECT a.source_id,s.order_id AS origin_order_id,a.amount_cents,
               COALESCE((SELECT sum(x.amount_cents) FROM commission_credit_refund_allocation x
                 JOIN commission_refund_intent i ON i.id=x.refund_intent_id
                 WHERE x.source_id=a.source_id AND i.order_id=a.order_id AND i.state<>'closed'),0)::text AS returned,
               COALESCE((SELECT -sum(e.amount_cents) FROM commission_credit_entry e
                 WHERE e.source_id=a.source_id AND e.purchase_order_id=a.order_id AND e.kind='spend'),0)::text AS spent
-            FROM commission_credit_checkout_allocation a WHERE a.order_id=$1 ORDER BY a.source_id`,[order.id])).rows;
+            FROM commission_credit_checkout_allocation a JOIN commission_credit_source s ON s.id=a.source_id
+            WHERE a.order_id=$1 ORDER BY a.source_id`,[order.id])).rows;
           if(sources.reduce((n,source)=>n+Number(source.amount_cents),0)!==creditTotal||
             sources.some(source=>Number(source.spent)!==Number(source.amount_cents)))
             throw new DomainError("REFUND_CREDIT_SOURCE_DRIFT","原权益来源与核销事实不一致",409);
@@ -258,7 +260,7 @@ export class RefundCommandService{
             const available=Number(source.amount_cents)-Number(source.returned),
               take=Math.min(available,creditRemaining);
             if(available<0)throw new DomainError("REFUND_CREDIT_OVERDRAW","权益退回已超过原批次",409);
-            if(take){sourceAllocations.push({sourceId:source.source_id,amount:take});creditRemaining-=take;}
+            if(take){sourceAllocations.push({sourceId:source.source_id,originOrderId:source.origin_order_id,amount:take});creditRemaining-=take;}
           }
           if(creditRemaining)throw new DomainError("REFUND_CREDIT_OVERDRAW","权益退款批次不足",409);
         }
@@ -290,15 +292,20 @@ export class RefundCommandService{
         // roll back together; no zero-value WeChat refund is created.
         await client.query(`UPDATE commission_refund_intent SET state='succeeded',finalized_at=clock_timestamp()
           WHERE id=$1 AND state='prepared'`,[localCreditIntent.id]);
+        const originOrders=[...new Set(localCreditIntent.sources.map(source=>source.originOrderId))].sort();
+        for(const originOrderId of originOrders)await client.query('SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE',[originOrderId]);
         for(const source of localCreditIntent.sources)await client.query(`INSERT INTO commission_credit_entry
           (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
           VALUES($1,$2,'refund_return',$3,$4,$5)`,[source.sourceId,
             `credit-local-refund-return:${localCreditIntent.id}:${source.sourceId}`,source.amount,
             order.id,`member:${approver}`]);
+        const creditExposure=[];
+        for(const originOrderId of originOrders)creditExposure.push({originOrderId,
+          ...await freezeCreditExposureForRefund(client,originOrderId,localCreditIntent.id,`member:${approver}`)});
         await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
           after_state,trace_id) VALUES($1,'commerce.credit_refund_applied','commission_refund_intent',
           $2,'ORIGINAL_CREDIT_RETURN',$3,$4)`,[`member:${approver}`,localCreditIntent.id,
-          {orderId:order.id,creditReturnedCents:amount,sourceCount:localCreditIntent.sources.length},
+          {orderId:order.id,creditReturnedCents:amount,sourceCount:localCreditIntent.sources.length,creditExposure},
           `credit-local-refund:${localCreditIntent.id}`]);
       }
       return this.decisionView(client,updated);
