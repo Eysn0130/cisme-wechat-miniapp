@@ -6,7 +6,7 @@ export type PageCursor={at:string;id:string};
 /** Accept both existing producers: ISO UTC and PostgreSQL timestamptz::text.
  * Check calendar/offset fields without converting the SQL boundary through a
  * millisecond Date. The original timestamp and microseconds are returned intact. */
-function cursorTimestamp(value:unknown):value is string{
+export function cursorTimestamp(value:unknown):value is string{
   if(typeof value!=="string"||value.length>50)return false;
   const match=/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(?:Z|([+-])(\d{2})(?::(\d{2})(?::(\d{2}))?)?)$/.exec(value);
   if(!match||value.startsWith("0000-"))return false;

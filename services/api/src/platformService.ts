@@ -9,6 +9,7 @@ import { readSnapshot, transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
 import { objectKey, type ObjectStorage } from "./storage.js";
 import { EVENT_DELIVERY_POLICIES, type EventType } from "@cisme/contracts";
+import { cursorTimestamp } from "./keysetPage.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -87,17 +88,19 @@ function requestHash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
-function pageCursor(value: { at: Date | string; id: string }): string {
-  return Buffer.from(JSON.stringify([new Date(value.at).toISOString(), value.id])).toString("base64url");
+function pageCursor(value: { at: string; id: string }): string {
+  return Buffer.from(JSON.stringify([value.at, value.id])).toString("base64url");
 }
 
-function decodeCursor(cursor: string | undefined): { at: Date; id: string } | null {
+function decodeCursor(cursor: string | undefined): { at: string; id: string } | null {
   if (!cursor) return null;
   try {
+    if (cursor.length > 600 || !/^[A-Za-z0-9_-]+$/.test(cursor)) throw new Error();
     const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as unknown[];
-    const at = new Date(String(parsed[0]));
-    const id = String(parsed[1]);
-    if (!Number.isFinite(at.getTime()) || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error();
+    if (!Array.isArray(parsed) || parsed.length !== 2 || !cursorTimestamp(parsed[0]) ||
+      typeof parsed[1] !== "string" || !/^[0-9a-f-]{36}$/i.test(parsed[1])) throw new Error();
+    const at = parsed[0];
+    const id = parsed[1];
     return { at, id };
   } catch { throw new DomainError("CURSOR_INVALID", "Pagination cursor is invalid", 422); }
 }
@@ -435,7 +438,7 @@ export class PlatformService {
       const cursor = decodeCursor(options.cursor);
       const current = await client.query<CycleRow>("SELECT * FROM care_cycle WHERE member_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1", [owner]);
       if (!current.rows[0]) return null;
-      const history = await client.query<CycleRow>(`SELECT * FROM care_cycle WHERE member_id=$1 AND id<>$2
+      const history = await client.query<CycleRow & {cursor_at:string}>(`SELECT *,created_at::text AS cursor_at FROM care_cycle WHERE member_id=$1 AND id<>$2
         AND ($3::timestamptz IS NULL OR (created_at,id)<($3,$4::uuid)) ORDER BY created_at DESC,id DESC LIMIT $5`,
         [owner, current.rows[0].id, cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
       const selected = [current.rows[0], ...history.rows.slice(0, limit)];
@@ -451,7 +454,7 @@ export class PlatformService {
       const stepsByRecord = this.groupCareRecordSteps(steps.rows);
       const views = selected.map((cycle) => this.cycleViewFromRows(cycle, recordsByCycle.get(cycle.id) ?? [], stepsByRecord, now));
       const last = history.rows.length > limit ? history.rows[limit - 1] : null;
-      return { ...views[0]!, history: views.slice(1), nextCursor: last ? pageCursor({ at: last.created_at, id: last.id }) : null };
+      return { ...views[0]!, history: views.slice(1), nextCursor: last ? pageCursor({ at: last.cursor_at, id: last.id }) : null };
   }
 
   async getCare(memberId: string | undefined, now: Date, options: { limit?: number; cursor?: string } = {}) {
@@ -1239,12 +1242,12 @@ export class PlatformService {
     const limit = pageLimit(options.limit, 50);
     const cursor = decodeCursor(options.cursor);
     const projection = await client.query("SELECT frozen, available, debt, version FROM points_projection WHERE member_id=$1", [owner]);
-    const entries = await client.query(`SELECT id, entry_type, frozen_delta, available_delta, debt_delta, business_key, occurred_at FROM points_entry
+    const entries = await client.query(`SELECT id, entry_type, frozen_delta, available_delta, debt_delta, business_key, occurred_at,occurred_at::text AS cursor_at FROM points_entry
       WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (occurred_at,id)<($2,$3::uuid)) ORDER BY occurred_at DESC,id DESC LIMIT $4`, [owner, cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
     const page = entries.rows.slice(0, limit);
     const last = entries.rows.length > limit ? page[page.length - 1] : null;
-    return { rulesEnabled: this.pointsPolicyEnabled(now), projection: projection.rows[0] ?? { frozen: 0, available: 0, debt: 0, version: 1 }, entries: page,
-      nextCursor: last ? pageCursor({ at: last.occurred_at, id: last.id }) : null };
+    return { rulesEnabled: this.pointsPolicyEnabled(now), projection: projection.rows[0] ?? { frozen: 0, available: 0, debt: 0, version: 1 }, entries: page.map(({cursor_at: _cursorAt,...entry})=>entry),
+      nextCursor: last ? pageCursor({ at: last.cursor_at, id: last.id }) : null };
   }
 
   async getPoints(memberId: string | undefined, now = this.now(), options: { limit?: number; cursor?: string } = {}) {
@@ -1302,11 +1305,11 @@ export class PlatformService {
       if (!memberRow || memberRow.status !== "active") throw new DomainError("AUTH_REVOKED", "Member session is no longer active", 401);
       const care = scope === "settings" ? null : await this.careSnapshot(client, owner, now, { limit: scope === "home" ? 5 : 10 });
       const points = scope === "profile" ? await this.pointsSnapshot(client, owner, now, { limit: 10 }) : null;
-      const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.granted_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
+      const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.granted_at,cg.granted_at::text AS cursor_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
         FROM consent_grant cg LEFT JOIN revocation_request rr ON rr.consent_grant_id=cg.id WHERE cg.member_id=$1 ORDER BY cg.granted_at DESC,id DESC LIMIT 21`, [owner]) : null;
       const businessVersion = Math.max(Number(memberRow.profile_revision ?? 0), Number(care?.version ?? 0), Number(points?.projection?.version ?? 0));
       return { scope, asOf: asOf.toISOString(), businessVersion, member: memberRow, care, points,
-        settings: scope === "settings" ? { profile: memberRow, phone: { enabled: Boolean(this.config.wechat.phoneBindingEnabled), bound: Boolean(memberRow.bound_at), masked: memberRow.phone_masked ?? null }, consents: consents!.rows.slice(0, 20), consentsNextCursor: consents!.rows.length > 20 ? pageCursor({ at: consents!.rows[19].granted_at, id: consents!.rows[19].id }) : null } : null };
+        settings: scope === "settings" ? { profile: memberRow, phone: { enabled: Boolean(this.config.wechat.phoneBindingEnabled), bound: Boolean(memberRow.bound_at), masked: memberRow.phone_masked ?? null }, consents: consents!.rows.slice(0, 20).map(({cursor_at: _cursorAt,...grant})=>grant), consentsNextCursor: consents!.rows.length > 20 ? pageCursor({ at: consents!.rows[19].cursor_at, id: consents!.rows[19].id }) : null } : null };
     });
   }
 
@@ -1412,7 +1415,7 @@ export class PlatformService {
     const limit = pageLimit(options.limit, 20, 50);
     const cursor = decodeCursor(options.cursor);
     return readSnapshot(this.pool, async (client, asOf) => {
-      const result = await client.query(`SELECT f.id, f.submission_id, f.title, f.excerpt, f.cover_object_key, f.ai_usage, f.published_at, s.member_id AS author_id
+      const result = await client.query(`SELECT f.id, f.submission_id, f.title, f.excerpt, f.cover_object_key, f.ai_usage, f.published_at,f.published_at::text AS cursor_at, s.member_id AS author_id
         FROM feed_item f JOIN submission s ON s.id=f.submission_id JOIN member m ON m.id=s.member_id AND m.status='active'
         WHERE f.visible=true
           AND ($1::uuid IS NULL OR EXISTS(SELECT 1 FROM community_follow cf WHERE cf.member_id=$1 AND cf.author_id=s.member_id::text))
@@ -1421,7 +1424,7 @@ export class PlatformService {
       const items = result.rows.slice(0, limit);
       const authors = await communityAuthors(client, items.map(row => row.author_id));
       const last = result.rows.length > limit ? items[items.length - 1] : null;
-      return { items, authors, nextCursor: last ? pageCursor({ at: last.published_at, id: last.id }) : null, asOf: asOf.toISOString() };
+      return { items:items.map(({cursor_at: _cursorAt,...item})=>item), authors, nextCursor: last ? pageCursor({ at: last.cursor_at, id: last.id }) : null, asOf: asOf.toISOString() };
     });
   }
 
