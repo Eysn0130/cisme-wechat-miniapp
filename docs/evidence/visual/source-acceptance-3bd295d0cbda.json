@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "78558816c95b567889399583e2b039407388cedbe212729ff37cc9c248794be9",
+  "packageSourceSha256": "3bd295d0cbda09209f25e561fa05c183a4d3ffd56aa79f0e79f9d789478f1d6a",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current native source makes capability-scoped management attention rows open their existing workspaces and uses the existing privacy request due date. The prior blocked manifest is archived byte-for-byte as source-acceptance-3bd295d0cbda.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "Current native source adds capability-scoped management attention counts, including the existing privacy request due date. The prior blocked manifest is archived byte-for-byte as source-acceptance-b31d88878bad.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }

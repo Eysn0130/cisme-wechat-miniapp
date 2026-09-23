@@ -61,7 +61,8 @@ it('keeps management attention separate from core access and drops old-account r
   attention=deferred();core=deferred();void page.load();core.resolve(authority);await flush();
   attention.resolve({version:1,counts:{support:{count:2},newAftersales:{count:1}}});await flush();
   expect(page.data.attention).toMatchObject({support:{count:2},newAftersales:{count:1}});
-  page.onHide();expect(page.data.attention).toBeNull();
+  expect(page.data.attentionHasItems).toBe(true);
+  page.onHide();expect(page.data.attention).toBeNull();expect(page.data.attentionHasItems).toBe(false);
 });
 describe.each<Name>(["management", "commission", "order-detail"])("PERF-11/12: %s", name => {
   it("renders core facts and their actual display fields while runtime never settles", async () => {

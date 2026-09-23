@@ -6,15 +6,15 @@ import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner
 
 Page({
  lastSessionToken:"",
- data:{...initialRuntimeView(),chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null as null|{support?:{count:number};newAftersales?:{count:number};returnInstructions?:{count:number};refundExceptions?:{count:number};privacyRequests?:{count:number};privacyOverdue?:{count:number}},attentionError:false,coreReady:false,loading:true,navigating:false,error:"",epoch:0,alive:true,visible:true,runtimeEpoch:0},
+ data:{...initialRuntimeView(),chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null as null|{support?:{count:number};newAftersales?:{count:number};returnInstructions?:{count:number};refundExceptions?:{count:number};privacyRequests?:{count:number};privacyOverdue?:{count:number}},attentionHasItems:false,attentionError:false,coreReady:false,loading:true,navigating:false,error:"",epoch:0,alive:true,visible:true,runtimeEpoch:0},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onShow(){this.data.alive=true;this.data.visible=true;this.setData({navigating:false});void this.load();},
- onHide(){this.data.visible=false;this.data.epoch+=1;this.data.runtimeEpoch+=1;cancelPageReads(this);cancelRuntimeRead(this);this.setData({canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null,attentionError:false,coreReady:false});},
+ onHide(){this.data.visible=false;this.data.epoch+=1;this.data.runtimeEpoch+=1;cancelPageReads(this);cancelRuntimeRead(this);this.setData({canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null,attentionHasItems:false,attentionError:false,coreReady:false});},
  onUnload(){this.onHide();this.data.alive=false;},
  current(epoch:number,token:string){return this.data.alive&&this.data.visible&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
  async load(){if(!this.data.visible)return;cancelPageReads(this);cancelRuntimeRead(this);
   const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;this.lastSessionToken=token;
-  this.setData({authority:null,canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null,attentionError:false,coreReady:false,loading:true,error:""});
+  this.setData({authority:null,canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null,attentionHasItems:false,attentionError:false,coreReady:false,loading:true,error:""});
   void this.loadRuntime(epoch,token);
   try{const authority=await authorityProjection(this);
     if(!this.current(epoch,token))return;
@@ -28,8 +28,8 @@ Page({
   try{const result=await pageRead<{version:number;counts:Record<string,{count:number}>}>(this,{path:'/v1/management/attention'});
    if(!this.current(epoch,token))return;
    if(result.version!==1||!result.counts||Object.values(result.counts).some(row=>!Number.isSafeInteger(row.count)||row.count<0))throw Error();
-   this.setData({attention:result.counts,attentionError:false});
-  }catch{if(this.current(epoch,token))this.setData({attention:null,attentionError:true});}
+   this.setData({attention:result.counts,attentionHasItems:Object.entries(result.counts).some(([kind,row])=>kind!=="privacyOverdue"&&row.count>0),attentionError:false});
+  }catch{if(this.current(epoch,token))this.setData({attention:null,attentionHasItems:false,attentionError:true});}
  },
  applyRuntime(){const actions=runtimeActions(this.data.runtimeStatus);
   this.setData({canFinance:this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken&&this.data.coreReady&&this.data.runtimeState==="ready"&&(actions.money||actions.recovery)&&[
