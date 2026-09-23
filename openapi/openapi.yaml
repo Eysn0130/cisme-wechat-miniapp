@@ -190,6 +190,16 @@ paths:
         required: true
         content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1]}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
+  /v1/management/attention:
+    get:
+      operationId: managementAttentionSummary
+      summary: Capability filtered management work counts
+      description: Read-only counts for existing support, after-sale, refund and privacy workspaces. Holds current member grants through the database read and returns no personal details. A count is a navigation aid, not a case decision or external notification.
+      security: [{session: []}]
+      responses:
+        '200': {description: Versioned counts for currently granted workspaces}
+        '401': {description: Member session required}
+        '403': {description: No active management capability}
   /v1/management/privacy-requests:
     get:
       operationId: nativePrivacyRequestQueue

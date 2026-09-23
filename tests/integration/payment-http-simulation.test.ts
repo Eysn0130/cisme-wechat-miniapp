@@ -464,13 +464,13 @@ async function creditSpendCase(){
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 
 async function createOrder(key:string,target:FastifyInstance=app,
-  historicalComponents?:{discountCents:number;shippingCents:number}){
-  const address=await target.inject({method:"POST",url:"/v1/me/addresses",headers:{...auth(buyer.sessionToken),
+  historicalComponents?:{discountCents:number;shippingCents:number},owner:TestActor=buyer){
+  const address=await target.inject({method:"POST",url:"/v1/me/addresses",headers:{...auth(owner.sessionToken),
     "idempotency-key":`address-${key}-0001`},payload:{recipientName:"合成收件人",phone:"13800001234",province:"上海市",
       city:"上海市",district:"浦东新区",detail:"隔离测试路 1 号",postalCode:"200000",nationalCode:"310115",
       provinceCode:"310000",cityCode:"310100",districtCode:"310115",label:"home",isDefault:true}});
   expect(address.statusCode,JSON.stringify(address.json())).toBe(200);
-  const quote=await target.inject({method:"POST",url:"/v1/me/commerce/quotes",headers:{...auth(buyer.sessionToken),
+  const quote=await target.inject({method:"POST",url:"/v1/me/commerce/quotes",headers:{...auth(owner.sessionToken),
     "idempotency-key":`quote-${key}-0001`},payload:{skuId,quantity:1,addressId:address.json().id,
       addressVersion:address.json().version}});
   expect(quote.statusCode,JSON.stringify(quote.json())).toBe(200);
@@ -481,7 +481,7 @@ async function createOrder(key:string,target:FastifyInstance=app,
       shipping_cents=$3,total_cents=subtotal_cents-$2::bigint+$3::bigint
       WHERE id=$1 AND status='active'`,[quote.json().id,historicalComponents.discountCents,historicalComponents.shippingCents]);
   }
-  const created=await target.inject({method:"POST",url:"/v1/me/orders",headers:{...auth(buyer.sessionToken),
+  const created=await target.inject({method:"POST",url:"/v1/me/orders",headers:{...auth(owner.sessionToken),
     "idempotency-key":`order-${key}-0001`},payload:{quoteId:quote.json().id}});
   expect(created.statusCode,JSON.stringify(created.json())).toBe(200);
   return created.json() as {id:string;orderNumber:string;version:number};
@@ -1928,4 +1928,44 @@ it('rechecks revoked case permissions and rolls back a failed refund link atomic
   await pool.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='Synthetic revocation' WHERE member_id=$1 AND capability='commerce.aftersale.review' AND revoked_at IS NULL",[operator.memberId]);
   await expect(service.act(operator.memberId,row.id,'aftersale-revoked-001',{action:'reject',expectedVersion:3,note:'已撤权不能写入'},true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   await expect(service.detail(operator.memberId,row.id,true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+});
+
+it('shows only current capability-scoped management attention and clears it after revocation',async()=>{
+  const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'attention-isolated-actor',
+    displayName:'Attention isolated actor',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+  expect(identity.statusCode).toBe(200);
+  const actor=identity.json() as TestActor;
+  const path='/v1/management/attention';
+  expect((await app.inject({url:path})).statusCode).toBe(401);
+  expect((await app.inject({url:path,headers:auth(actor.sessionToken)})).statusCode).toBe(403);
+  await aftersaleGrant(actor,'support.read');
+  const supportOnly=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(supportOnly.statusCode,supportOnly.body).toBe(200);
+  expect(Object.keys(supportOnly.json().counts)).toEqual(['support']);
+  await aftersaleGrant(actor,'commerce.aftersale.review');
+  const customer=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'attention-isolated-customer',
+    displayName:'Attention isolated customer',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+  expect(customer.statusCode).toBe(200);
+  const owner=customer.json() as TestActor;
+  await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+    VALUES($1,'wechat_miniprogram',$2,'attention-isolated-openid','wechat')`,[owner.memberId,appId]);
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1',[skuId]);
+  const order=await createOrder('attention',app,undefined,owner);
+  const prepared=await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(owner.sessionToken),payload:{}});
+  expect(prepared.statusCode,prepared.body).toBe(200);
+  const paid=paidCallback(order.orderNumber);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',
+    headers:{...paid.headers,'Content-Type':'application/json'},payload:paid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox);
+  await new AftersaleService(pool,new AuthorityService(pool,'test')).request(owner.memberId,order.id,
+    'attention-new-case-001',{kind:'refund_only',reason:'隔离待办计数申请'});
+  const withCase=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(withCase.statusCode,withCase.body).toBe(200);
+  expect(withCase.json().counts.newAftersales.count).toBeGreaterThanOrEqual(1);
+  expect(withCase.json().counts).not.toHaveProperty('privacyRequests');
+  await pool.query(`UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='attention test'
+    WHERE member_id=$1 AND capability='commerce.aftersale.review' AND revoked_at IS NULL`,[actor.memberId]);
+  const revoked=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(revoked.statusCode,revoked.body).toBe(200);
+  expect(Object.keys(revoked.json().counts)).toEqual(['support']);
 });

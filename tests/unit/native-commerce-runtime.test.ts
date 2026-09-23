@@ -20,7 +20,7 @@ const order = { id, version: 2, orderNumber: "SYNTHETIC-ONLY-1", status: "paid",
 const runtime = { version: 1, orderFlowEnabled: true, paymentAvailable: false, paymentOnboarding: "IN_PROGRESS", currency: "CNY",
   scope: "verified_isolated_test", isolatedMoneyOperationsAvailable: true, isolatedTransferAvailable: true, isolatedCreditCheckoutAvailable: true };
 type Name = "management" | "commission" | "order-detail";
-let page: any, core: ReturnType<typeof deferred>, auxiliary: ReturnType<typeof deferred>, aborts: Map<string, ReturnType<typeof vi.fn>>;
+let page: any, core: ReturnType<typeof deferred>, auxiliary: ReturnType<typeof deferred>, attention: ReturnType<typeof deferred>, aborts: Map<string, ReturnType<typeof vi.fn>>;
 async function loadPage(name: Name) {
   if (name === "management") await import("../../apps/miniprogram/pages/management/index");
   else if (name === "commission") await import("../../apps/miniprogram/pages/commission/index");
@@ -36,12 +36,13 @@ const closed = (name: Name) => {
   else expect(page.data.isolatedPayment).toBe(false);
 };
 beforeEach(() => {
-  vi.resetModules(); vi.clearAllMocks(); mocks.token = "member-a"; storage.clear(); core = deferred(); auxiliary = deferred(); aborts = new Map();
+  vi.resetModules(); vi.clearAllMocks(); mocks.token = "member-a"; storage.clear(); core = deferred(); auxiliary = deferred(); attention = deferred(); aborts = new Map();
   mocks.request.mockImplementation((options: any) => {
     const abort = vi.fn(); aborts.set(options.path, abort); options.registerAbort?.(abort);
     if (options.path === "/v1/me/profile") return Promise.resolve({ id });
     if (options.path.startsWith("/v1/me/commerce/command-receipts/")) return Promise.resolve({ version: 1, memberId: id, kind: options.path.split("/").pop().split("?")[0], status: "not_observed", record: null });
     if (options.path === "/v1/commerce/orders/status") return auxiliary.promise;
+    if (options.path === "/v1/management/attention") return attention.promise;
     if (["/v1/me/authority", "/v1/me/commercial-membership", `/v1/me/orders/${id}`].includes(options.path)) return core.promise;
     if (options.path.includes("refund-requests")) return Promise.resolve({ items: [], totalCount: 0, nextCursor: null });
     if (options.path.includes("settlement-requests")) return Promise.resolve({ items: [], totalCount: 0, nextCursor: null });
@@ -51,6 +52,16 @@ beforeEach(() => {
   (globalThis as any).getApp = () => ({ globalData: { sessionToken: mocks.token, apiBaseUrl: "https://synthetic.invalid", cloudFunction: null } });
   (globalThis as any).wx = { getStorageSync: (key: string) => storage.get(key), setStorageSync: (key: string, value: unknown) => storage.set(key, structuredClone(value)), removeStorageSync: (key: string) => storage.delete(key), navigateTo: vi.fn(), navigateBack: vi.fn(), switchTab: vi.fn(), showToast: vi.fn(), showModal: vi.fn().mockResolvedValue({ confirm: true }) };
   (globalThis as any).Page = (definition: any) => { page = { ...definition, data: structuredClone(definition.data), setData(patch: any, callback?: () => void) { Object.assign(this.data, patch); callback?.(); } }; };
+});
+it('keeps management attention separate from core access and drops old-account results',async()=>{
+  await loadPage('management');void page.load();core.resolve(authority);await flush();
+  expect(page.data.coreReady).toBe(true);expect(page.data.attention).toBeNull();
+  mocks.token='member-b';attention.resolve({version:1,counts:{support:{count:7}}});await flush();
+  expect(page.data.attention).toBeNull();
+  attention=deferred();core=deferred();void page.load();core.resolve(authority);await flush();
+  attention.resolve({version:1,counts:{support:{count:2},newAftersales:{count:1}}});await flush();
+  expect(page.data.attention).toMatchObject({support:{count:2},newAftersales:{count:1}});
+  page.onHide();expect(page.data.attention).toBeNull();
 });
 describe.each<Name>(["management", "commission", "order-detail"])("PERF-11/12: %s", name => {
   it("renders core facts and their actual display fields while runtime never settles", async () => {

@@ -34,6 +34,7 @@ import { PaymentAttemptService } from "./paymentAttempt.js";
 import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
 import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
 import { AftersaleService } from "./aftersale.js";
+import { ManagementAttentionService } from "./managementAttention.js";
 import { RefundCommandService } from "./refundCommand.js";
 import { FulfillmentReleaseService } from "./fulfillmentRelease.js";
 import { startWorkerLoop } from "../../worker/src/loop.js";
@@ -140,6 +141,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
   const aftersales = new AftersaleService(pool,authority);
+  const managementAttention = new ManagementAttentionService(pool,config.env);
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
@@ -420,6 +422,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const documents = await pool.query("SELECT document_type,version,title,body,operator_name,contact,published_at FROM legal_document WHERE active=true ORDER BY document_type");
     return { ready: ["terms", "privacy"].every(type => documents.rows.some(doc => doc.document_type === type)), documents: documents.rows };
   });
+  app.get('/v1/management/attention', async request => managementAttention.summary(request.memberId));
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/me/privacy-requests", async request =>
     privacyRights.list(request.memberId,privacyPageQuery(request.query)));
   app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
