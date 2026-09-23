@@ -152,7 +152,7 @@ describe.each(receiptKinds)("private durable command receipt: %s",kind=>{
   it("recovers a minimal original receipt even when every outbound gate is closed",async()=>{
     const target=receiptTarget(kind);
     const result=await closed.inject({method:"GET",url:target.url,headers:{...auth(owner.sessionToken),"idempotency-key":target.key}});
-    expect(result.statusCode,result.body).toBe(200);expect(result.headers["cache-control"]).toBe("no-store");
+    expect(result.statusCode,result.body).toBe(200);expect(result.headers["cache-control"]).toBe("private, no-store");
     expect(result.json()).toMatchObject({version:1,memberId:owner.memberId,kind,status:"recorded"});
     expect(Object.keys(result.json()).sort()).toEqual(["version","memberId","kind","status","record"].sort());
     const row=result.json().record;expect(row.id).toMatch(/^[0-9a-f-]{36}$/);
@@ -217,7 +217,7 @@ const discoveryPath=(kind:string)=>`/v1/me/commerce/recorded-commands/${kind}`;
 describe.each(receiptKinds)("recorded command discovery without local keys: %s",kind=>{
   it("finds only owned retained facts without returning keys, payloads or money permission",async()=>{
     const result=await closed.inject({method:"GET",url:discoveryPath(kind),headers:auth(owner.sessionToken)});
-    expect(result.statusCode,result.body).toBe(200);expect(result.headers["cache-control"]).toBe("no-store");
+    expect(result.statusCode,result.body).toBe(200);expect(result.headers["cache-control"]).toBe("private, no-store");
     const body=result.json();expect(body).toMatchObject({version:1,kind,coverage:"retained_recorded_facts_only",absenceIsFailure:false});
     expect(body.items.length).toBeGreaterThan(0);
     expect(Object.keys(body).sort()).toEqual(["version","kind","coverage","absenceIsFailure","items","nextCursor","loadedCount","hasMore"].sort());

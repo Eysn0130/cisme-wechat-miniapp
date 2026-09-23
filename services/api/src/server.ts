@@ -118,6 +118,16 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     bodyLimit: 12 * 1024 * 1024, requestTimeout: config.api.receiveTimeoutMs, handlerTimeout: 0 });
   installRequestBudgets(app, config.api.routeDeadlineMs);
   app.addHook("onRoute", route => registerHttpRoute(route.method, route.url));
+  // API representations include sessions, revocable capabilities, signed media
+  // URLs and personal records. Apply to errors and anonymous reads too: cloud
+  // transport may wrap an authorization failure in an HTTP 200 response.
+  // Public API caching requires a separately reviewed invalidation policy.
+  app.addHook("onSend", async (request, reply, payload) => {
+    if ((request.routeOptions.url ?? request.url).startsWith("/v1/")) {
+      reply.header("Cache-Control", "private, no-store");
+    }
+    return payload;
+  });
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);

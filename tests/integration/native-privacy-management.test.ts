@@ -11,14 +11,14 @@ const headers=()=>({authorization:`Bearer ${token}`});
 const queue='/v1/management/privacy-requests';
 async function create(message:string){const r=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`},payload:{kind:'access',message}});expect(r.statusCode).toBe(200);return r.json();}
 async function grant(){await pool.query("INSERT INTO authority_grant(member_id,capability,environment,granted_by,grant_reason) VALUES($1,'privacy.request.manage','test','test','Synthetic native privacy test')",[member]);}
-beforeAll(async()=>{await resetDatabase(pool);for(const name of ['operator','owner']){const r=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:`native-privacy-${name}`,displayName:`Synthetic ${name}`,consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});expect(r.statusCode).toBe(200);if(name==='operator'){member=r.json().memberId;principal=r.json().principalId;token=r.json().sessionToken;}else otherToken=r.json().sessionToken;}});
+beforeAll(async()=>{await resetDatabase(pool);for(const name of ['operator','owner']){const r=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:`native-privacy-${name}`,displayName:`Synthetic ${name}`,consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});expect(r.statusCode).toBe(200);expect(r.headers['cache-control']).toBe('private, no-store');if(name==='operator'){member=r.json().memberId;principal=r.json().principalId;token=r.json().sessionToken;}else otherToken=r.json().sessionToken;}});
 afterAll(async()=>{await app.close();await pool.end();});
 it('uses the signed member capability, not body/header identity or legacy roles',async()=>{
  expect((await app.inject({url:queue})).statusCode).toBe(401);
  await pool.query("INSERT INTO principal_role(principal_id,role) VALUES($1,'review_lead')",[principal]);
- expect((await app.inject({url:queue,headers:headers()})).statusCode).toBe(403);
+ {const denied=await app.inject({url:queue,headers:headers()});expect(denied.statusCode).toBe(403);expect(denied.headers['cache-control']).toBe('private, no-store');}
  await grant();
- expect((await app.inject({url:queue,headers:headers()})).statusCode).toBe(200);
+ const allowed=await app.inject({url:queue,headers:headers()});expect(allowed.statusCode).toBe(200);expect(allowed.headers['cache-control']).toBe('private, no-store');
  expect((await app.inject({url:queue,headers:{...headers(),'x-principal-id':'different'}})).statusCode).toBe(403);
  expect((await app.inject({url:queue,headers:{authorization:`Bearer ${otherToken}`}})).statusCode).toBe(403);
 });
@@ -55,7 +55,7 @@ it('rechecks revocation after a request-lock wait even when a legacy role remain
  await lock.query('COMMIT');expect((await response).statusCode).toBe(403);
  expect((await pool.query('SELECT status,version FROM privacy_request WHERE id=$1',[created.id])).rows[0]).toEqual({status:'received',version:1});
  expect((await pool.query("SELECT 1 FROM audit_log WHERE action='privacy.respond' AND object_id=$1",[created.id])).rowCount).toBe(0);
- expect((await app.inject({url:queue,headers:headers()})).statusCode).toBe(403);
+ {const denied=await app.inject({url:queue,headers:headers()});expect(denied.statusCode).toBe(403);expect(denied.headers['cache-control']).toBe('private, no-store');}
  }finally{await lock.query('ROLLBACK');lock.release();if(pending)await pending;}
 });
 it('rejects blocked members even with a fresh valid capability',async()=>{

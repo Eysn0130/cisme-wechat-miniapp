@@ -29,6 +29,14 @@ it.each(routes)("rejects missing and invalid authentication before data access: 
     const result=await app.inject({method,url,remoteAddress:`192.0.2.${index+1}`,headers:authorization?{authorization}:{},
       ...(["GET","HEAD","OPTIONS"].includes(method)?{}:{payload:{}})});
     expect(result.statusCode,`${method} ${path}: ${result.body}`).toBe(401);
+    expect(result.headers["cache-control"]).toBe("private, no-store");
   }
   expect(accesses.query).not.toHaveBeenCalled();expect(accesses.connect).not.toHaveBeenCalled();
+});
+it("prevents caching cloud-wrapped auth errors and anonymous API responses",async()=>{
+  for(const url of ["/v1/capabilities","/v1/commerce/orders/status","/v1/me/privacy-requests","/v1/not-a-route"]){
+    const result=await app.inject({url,headers:{"x-cisme-transport":"cloud-http-v1"}});
+    expect(result.headers["cache-control"],url).toBe("private, no-store");
+  }
+  expect((await app.inject({url:"/health/live"})).headers["cache-control"]).toBeUndefined();
 });
