@@ -2233,7 +2233,11 @@ it('shows only current capability-scoped management attention and clears it afte
   const withCase=await app.inject({url:path,headers:auth(actor.sessionToken)});
   expect(withCase.statusCode,withCase.body).toBe(200);
   expect(withCase.json().counts.newAftersales.count).toBeGreaterThanOrEqual(1);
+  expect(withCase.json().counts.support.count).toBe(0);
   expect(withCase.json().counts).not.toHaveProperty('privacyRequests');
+  await aftersaleGrant(actor,'support.assign');
+  const withSupport=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(withSupport.json().counts.support.count).toBeGreaterThanOrEqual(1);
   await aftersaleGrant(actor,'commerce.refund.approve');
   const refundPending=await attentionAftersales.act(actor.memberId,attentionCase.id,'attention-refund-001',
     {action:'request_refund',expectedVersion:1,note:'隔离退款待办准确跳转'},true,refundCommands);

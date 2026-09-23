@@ -452,7 +452,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const documents = await pool.query("SELECT document_type,version,title,body,operator_name,contact,published_at FROM legal_document WHERE active=true ORDER BY document_type");
     return { ready: ["terms", "privacy"].every(type => documents.rows.some(doc => doc.document_type === type)), documents: documents.rows };
   });
-  app.get('/v1/management/attention', async request => managementAttention.summary(request.memberId));
+  app.get('/v1/management/attention', async request => managementAttention.summary(request.memberId,request.principalId));
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/me/privacy-requests", async request =>
     privacyRights.list(request.memberId,privacyPageQuery(request.query),request.authScope==='privacy_rights'));
   app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown},request.authScope==='privacy_rights'));

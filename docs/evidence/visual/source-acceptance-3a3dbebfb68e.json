@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "3476142157cd11ff6d0b5854ef76db0d7b2f50ab1bc75f8b0a742f636cd9f69a",
+  "packageSourceSha256": "3a3dbebfb68ec64580df9c34fc203c54851f46f446323c10e180922abeaaa48d",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "This source narrows actionable management reminders by current support permissions, assigned conversation state, and finance availability. The prior blocked manifest is archived byte-for-byte as source-acceptance-3a3dbebfb68e.json. No screenshot or device acceptance is claimed for this package; all 40 route matrices and both devices remain blocked."
+  "note": "Account login now distinguishes a confirmed closed or inactive account from an uncertain network result, links to the existing public WeChat feedback entry, and clears an AUTH_REVOKED session without automatically reopening login. The previous blocked manifest is archived byte-for-byte as source-acceptance-bd3bf3b2566f.json. A read-only management-member WXML compile succeeded before WeChatIDE rate limiting; this does not prove current-package full compile, layout or device behavior. No screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }

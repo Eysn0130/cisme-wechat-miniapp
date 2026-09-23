@@ -64,6 +64,25 @@ it('keeps management attention separate from core access and drops old-account r
   expect(page.data.attentionHasItems).toBe(true);
   page.onHide();expect(page.data.attention).toBeNull();expect(page.data.attentionHasItems).toBe(false);
 });
+it('shows a refund reminder only while the existing finance action is available',async()=>{
+  await loadPage('management');void page.load();core.resolve(authority);await flush();
+  attention.resolve({version:1,counts:{pendingRefunds:{count:1}}});await flush();
+  expect(page.data.attentionHasItems).toBe(false);
+  auxiliary.resolve(runtime);await flush();
+  expect(page.data.canFinance).toBe(true);
+  expect(page.data.attentionHasItems).toBe(true);
+  expect(readFileSync('apps/miniprogram/pages/management/index.wxml','utf8')).toContain('wx:if="{{canFinance && attention.pendingRefunds');
+  page.setData({runtimeState:'error',runtimeStatus:null});page.applyRuntime();
+  expect(page.data.attentionHasItems).toBe(false);
+});
+it('keeps finance status out of the support-only management view',async()=>{
+  await loadPage('management');void page.load();
+  core.resolve({...authority,capabilities:['support.read']});auxiliary.resolve(runtime);await flush();
+  expect(page.data.coreReady).toBe(true);
+  expect(page.data.hasFinanceCapability).toBe(false);
+  expect(page.data.canFinance).toBe(false);
+  expect(readFileSync('apps/miniprogram/pages/management/index.wxml','utf8')).toContain('wx:if="{{hasFinanceCapability}}" class="state"');
+});
 describe.each<Name>(["management", "commission", "order-detail"])("PERF-11/12: %s", name => {
   it("renders core facts and their actual display fields while runtime never settles", async () => {
     await loadPage(name); void page.load(); core.resolve(coreValue(name)); await flush();

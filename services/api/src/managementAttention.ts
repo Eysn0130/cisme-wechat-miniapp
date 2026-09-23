@@ -10,7 +10,7 @@ type CountRow = {count:number};
 export class ManagementAttentionService {
   constructor(private pool:pg.Pool,private environment:AppEnvironment) {}
 
-  async summary(memberId:string|undefined) {
+  async summary(memberId:string|undefined,principalId?:string) {
     if(!memberId)throw new DomainError('AUTH_REQUIRED','请先登录后继续',401);
     return transaction(this.pool,async client=>{
       const grants=(await client.query<{capability:string;expires_at:Date|null}>(`SELECT g.capability,g.expires_at
@@ -25,13 +25,17 @@ export class ManagementAttentionService {
       const receiving=capabilities.has('commerce.return.receive');
       const inspection=capabilities.has('commerce.return.inspect');
       const support=capabilities.has('support.read');
+      const canClaimSupport=capabilities.has('support.assign');
+      const canReplySupport=capabilities.has('support.reply');
       const privacy=capabilities.has('privacy.request.manage');
       const finance=capabilities.has('commerce.refund.approve');
       const counts:{support?:CountRow;newAftersales?:CountRow;returnInstructions?:CountRow;oldRouteShipments?:CountRow;
         returnsToReceive?:CountRow;returnsToInspect?:CountRow;
         pendingRefunds?:CountRow;privacyRequests?:CountRow;privacyOverdue?:CountRow}={};
       if(support)counts.support=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM support_conversation
-        WHERE status='waiting_human' OR team_unread_count>0`)).rows[0]!;
+        WHERE ($1::boolean AND status='waiting_human')
+          OR ($2::boolean AND status='human_active' AND current_handler_principal_id=$3
+            AND team_unread_count>0)`,[canClaimSupport,canReplySupport,principalId??''])).rows[0]!;
       if(aftersale){
         counts.newAftersales=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case
           WHERE state='requested'`)).rows[0]!;
