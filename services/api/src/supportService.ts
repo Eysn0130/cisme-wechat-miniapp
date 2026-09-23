@@ -193,8 +193,9 @@ export class SupportService {
     const linked=await client.query<{linked:boolean}>(`SELECT (
       EXISTS(SELECT 1 FROM support_message WHERE conversation_id=$1
         AND (linked_order_id IS NOT NULL OR linked_case_id IS NOT NULL))
-      OR EXISTS(SELECT 1 FROM commerce_aftersale_case WHERE support_conversation_id=$1)
-    ) AS linked`,[row.id]);
+      OR EXISTS(SELECT 1 FROM commerce_aftersale_case WHERE support_conversation_id=$1
+        OR support_conversation_id IS NULL AND member_id=$2)
+    ) AS linked`,[row.id,row.member_id]);
     const hold = await client.query<{count:number}>(`SELECT count(*)::int AS count FROM legal_hold_binding binding
       JOIN legal_hold hold ON hold.id=binding.hold_id
       WHERE hold.status='active' AND hold.expires_at>clock_timestamp() AND (
@@ -209,19 +210,22 @@ export class SupportService {
         policyVersion:policy.version,durationDays:null,durationMonths:policy.duration_months,eligibleAt:null,
         activeLegalHolds:hold.rows[0]!.count};
     }
-    const policy = await client.query<{code:string;duration_days:number|null;enforcement_state:"declared"|"enforced";active:boolean;version:number}>(`SELECT code,duration_days,enforcement_state,active,version
+    const policy = await client.query<{code:string;duration_days:number|null;duration_months:number|null;enforcement_state:"declared"|"enforced";active:boolean;version:number}>(`SELECT code,duration_days,duration_months,enforcement_state,active,version
       FROM data_retention_policy WHERE code='support_conversation_policy_pending'`);
     if (!policy.rows[0]) throw new DomainError("SUPPORT_RETENTION_POLICY_MISSING", "Support retention policy is not configured", 503);
     const current = policy.rows[0];
-    const due = current.duration_days !== null && row.resolved_at
-      ? await client.query<{eligible:boolean;eligible_at:Date}>(`SELECT clock_timestamp() >= $1::timestamptz + make_interval(days=>$2) AS eligible,
-          $1::timestamptz + make_interval(days=>$2) AS eligible_at`, [row.resolved_at, current.duration_days])
+    const hasDuration=current.duration_days!==null||current.duration_months!==null;
+    const due = hasDuration && row.resolved_at
+      ? await client.query<{eligible:boolean;eligible_at:Date}>(`SELECT clock_timestamp() >= $1::timestamptz + make_interval(days=>$2,months=>$3) AS eligible,
+          $1::timestamptz + make_interval(days=>$2,months=>$3) AS eligible_at`,
+          [row.resolved_at,current.duration_days??0,current.duration_months??0])
       : null;
-    const policyReady = current.active && current.enforcement_state === "enforced" && current.duration_days !== null;
+    const policyReady = current.active && current.enforcement_state === "enforced" && hasDuration;
     const reason = !policyReady ? "policy_pending" : row.status !== "resolved" || !row.resolved_at ? "not_resolved"
       : hold.rows[0]!.count > 0 ? "legal_hold" : !due?.rows[0]?.eligible ? "not_due" : "eligible";
     return { eligible: reason === "eligible", reason, policyCode: current.code, policyVersion: current.version,
-      durationDays: current.duration_days, eligibleAt: due?.rows[0]?.eligible_at.toISOString() ?? null, activeLegalHolds: hold.rows[0]!.count };
+      durationDays: current.duration_days,durationMonths:current.duration_months,
+      eligibleAt: due?.rows[0]?.eligible_at.toISOString() ?? null, activeLegalHolds: hold.rows[0]!.count };
   }
 
   async summary(memberId: string | undefined) {
@@ -607,8 +611,14 @@ export class SupportService {
         if(replay.rows[0].request_hash!==hash)throw new DomainError("IDEMPOTENCY_CONFLICT","Idempotency key was used for another purge",409);
         return replay.rows[0].response_body;
       }
+      // Match the worker's policy → conversation → hold lock order. The
+      // policy cannot be disabled between eligibility and deletion.
+      await client.query("SELECT code FROM data_retention_policy WHERE code='support_conversation_policy_pending' FOR SHARE");
       const row=await this.findById(client,id,true);
       if(row.version!==expected)throw new DomainError("VERSION_CONFLICT","Conversation changed; reload before purging",409);
+      // The eligibility read and deletion must not race a newly inserted hold.
+      await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+      await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
       const state=await this.retentionState(client,row);
       if(state.reason==="policy_pending")throw new DomainError("SUPPORT_RETENTION_POLICY_PENDING","Support retention remains POLICY PENDING and cannot delete data",409);
       if(state.reason==='transaction_scope_requires_separate_execution')throw new DomainError(

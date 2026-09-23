@@ -39,13 +39,16 @@ const result={schemaVersion:1,migrationSetSha256:schema.migrationSetSha256,scope
  fullMemberExportImplemented:false,productionErasureEnabled:false,retentionApproved:false,releaseReady:false,
  rules:{export:'Only existing synthetic member_profile_only archive fields are allowed. All other columns excluded; no SELECT * exporter.',
   subject:'FK paths are candidate relationships, not authorization. Actor, beneficiary, reporter and owner must remain distinct; polymorphic notes require typed resolver.',
-  retention:'No new period chosen. Existing approved policy and active legal hold must be checked per object; defaults never authorize deletion.',
+  retention:'Transaction and transaction-linked support have a declared 36-month baseline. Ordinary support needs a finite, enabled category policy and a separate automatic purge gate. Every object remains subject to legal holds; no general account erasure is authorized.',
   identity:'Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key.'},
  tables:schema.tables.map(t=>({table:t.table,subjectPaths:paths(t.table),
   actorColumns:t.columns.filter(c=>/principal|created_by|updated_by|approved_by|requested_by|decided_by|reviewed_by/.test(c.name)).map(c=>c.name),
   specialHandling:special[t.table]??(paths(t.table).length?'Follow each distinct subject role; shared rows require field-specific projection.':'No FK path to member; examine operator text fields/config/reference purpose before deciding non-personal.'),
   exportFields:allow[t.table]??[],excludedFields:t.columns.map(c=>c.name).filter(name=>!(allow[t.table]??[]).includes(name)),
-  syntheticErasureFields:t.table==='member_profile'?['wechat_handle']:[],productionErasure:'DISABLED',retention:'POLICY_PENDING_NO_AUTOMATIC_DELETION',
+  syntheticErasureFields:t.table==='member_profile'?['wechat_handle']:[],productionErasure:'DISABLED',
+  retention:['support_conversation','support_message'].includes(t.table)
+    ?'ORDINARY_SUPPORT_FINITE_POLICY_AND_AUTO_GATE; TRANSACTION_LINKED_EXCLUDED'
+    :'POLICY_PENDING_NO_AUTOMATIC_DELETION',
   fullSubjectResolverStatus:special[t.table]?'TYPED_RESOLVER_REQUIRED':'RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION'}))};
 await writeFile('docs/privacy/subject-data-map.json',JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify({tables:result.tables.length,withSubjectPaths:result.tables.filter(t=>t.subjectPaths.length).length,fullMemberExportImplemented:false}));

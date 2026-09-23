@@ -7,6 +7,7 @@ import { EVENT_DELIVERY_POLICIES, EVENT_TYPES, type EventType } from "@cisme/con
 import { expirePendingOrders } from "../../api/src/commerceOrders.js";
 import { safeFailureFields } from "../../api/src/observability.js";
 import { SyntheticPrivacyExecution } from "../../api/src/privacyExecution.js";
+import { purgeDueOrdinarySupport } from "../../api/src/supportRetention.js";
 
 interface EventRow {
   id: string;
@@ -171,7 +172,8 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
   const privacyExports=privacyExecutor?Number(await privacyExecutor.runExportOnce()):0;
   const privacyErasures=privacyExecutor?Number(await privacyExecutor.runProfileErasureOnce()):0;
   const purgedPrivacyArtifacts=privacyExecutor?await privacyExecutor.purgeArtifacts():0;
-  return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts };
+  const purgedOrdinarySupport=await purgeDueOrdinarySupport(pool);
+  return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts,purgedOrdinarySupport };
 }
 
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates,
@@ -179,6 +181,7 @@ export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gat
   return startWorkerLoop(async () => {
     const result = await runWorkerCycle(pool, storage, gates);
     await onCycleSuccess?.();
-    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 || result.privacyExports>0 || result.privacyErasures>0;
+    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 ||
+      result.privacyExports>0 || result.privacyErasures>0 || result.purgedOrdinarySupport===20;
   }, onError);
 }
