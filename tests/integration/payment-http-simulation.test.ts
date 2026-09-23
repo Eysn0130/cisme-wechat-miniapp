@@ -465,14 +465,14 @@ async function creditSpendCase(){
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 
 async function createOrder(key:string,target:FastifyInstance=app,
-  historicalComponents?:{discountCents:number;shippingCents:number},owner:TestActor=buyer){
+  historicalComponents?:{discountCents:number;shippingCents:number},owner:TestActor=buyer,quantity=1){
   const address=await target.inject({method:"POST",url:"/v1/me/addresses",headers:{...auth(owner.sessionToken),
     "idempotency-key":`address-${key}-0001`},payload:{recipientName:"合成收件人",phone:"13800001234",province:"上海市",
       city:"上海市",district:"浦东新区",detail:"隔离测试路 1 号",postalCode:"200000",nationalCode:"310115",
       provinceCode:"310000",cityCode:"310100",districtCode:"310115",label:"home",isDefault:true}});
   expect(address.statusCode,JSON.stringify(address.json())).toBe(200);
   const quote=await target.inject({method:"POST",url:"/v1/me/commerce/quotes",headers:{...auth(owner.sessionToken),
-    "idempotency-key":`quote-${key}-0001`},payload:{skuId,quantity:1,addressId:address.json().id,
+    "idempotency-key":`quote-${key}-0001`},payload:{skuId,quantity,addressId:address.json().id,
       addressVersion:address.json().version}});
   expect(quote.statusCode,JSON.stringify(quote.json())).toBe(200);
   if(historicalComponents){
@@ -1826,7 +1826,7 @@ it('keeps a lost-delivery claim without forcing a return, then routes a reviewed
     {action:'reopen_refund',expectedVersion:3,note:'原退款已拒绝，保留丢件依据'},true);
   expect(reopened).toMatchObject({state:'refund_exception_approved',exceptionResolution:{kind:'lost_in_transit'}});
 });
-it('reverses an old paid discount and shipping snapshot in full without inventing a partial allocation',async()=>{
+it('reverses an old paid discount and shipping snapshot in full with explicit component allocation',async()=>{
   await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1',[skuId]);
   const order=await createOrder('historical-components',app,{discountCents:1000,shippingCents:500});
   expect((await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,
@@ -1855,7 +1855,7 @@ it('reverses an old paid discount and shipping snapshot in full without inventin
     WHERE request_id=$1`,[requested.refundRequestId])).rows[0];
   expect(Number(intent.shipping_cash_refund_cents)).toBe(500);
   expect(Number(intent.eligible_merchandise_refund_cents)+Number(intent.other_merchandise_refund_cents)).toBe(9000);
-  expect(intent.allocation_policy_version).toBe('historical-full-components-v1');
+  expect(intent.allocation_policy_version).toBe('quantity-net-components-v1');
   expect(intent.line_allocation).toHaveLength(1);
   await refundCommands.processDue();
   const callback=refundCallback(reviewed.intent!.outRefundNo);
@@ -1863,6 +1863,87 @@ it('reverses an old paid discount and shipping snapshot in full without inventin
     headers:{...callback.headers,'Content-Type':'application/json'},payload:callback.raw})).statusCode).toBe(204);
   await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
   expect((await service.detail(buyer.memberId,claim.id)).resolved).toBe(true);
+});
+it('refunds one paid unit at a time with original discount and freight shares, holding the pending budget',async()=>{
+  const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'partial-isolated-buyer',
+    displayName:'Partial isolated buyer',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+  expect(identity.statusCode).toBe(200);
+  const owner=identity.json() as TestActor;
+  await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+    VALUES($1,'wechat_miniprogram',$2,'partial-isolated-openid','wechat')`,[owner.memberId,appId]);
+  const code=(await pool.query<{id:string}>('SELECT id FROM commercial_referral_code WHERE member_id=$1',[referrer.memberId])).rows[0]!;
+  await pool.query(`INSERT INTO commercial_referral_relation(referred_member_id,referrer_member_id,
+    referral_code_id,confirmation_key,confirmed_by) VALUES($1,$2,$3,'partial-isolated-referral-0001','fixture')`,
+    [owner.memberId,referrer.memberId,code.id]);
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+2 WHERE sku_id=$1',[skuId]);
+  const order=await createOrder('historical-two-units',app,{discountCents:1000,shippingCents:500},owner,2);
+  expect((await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,
+    headers:auth(owner.sessionToken),payload:{}})).statusCode).toBe(200);
+  const paid=paidCallback(order.orderNumber);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',
+    headers:{...paid.headers,'Content-Type':'application/json'},payload:paid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  const source=(await pool.query<{id:string}>('SELECT id FROM commerce_order_line WHERE order_id=$1',[order.id])).rows[0]!;
+  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  await aftersaleGrant(operator,'commerce.aftersale.review');
+  const availability=await service.availability(owner.memberId,order.id);
+  expect(availability.lines).toEqual([{lineId:source.id,remainingQuantity:2}]);
+  expect((await app.inject({method:'GET',url:`/v1/me/orders/${order.id}/aftersales/availability`,
+    headers:auth(referrer.sessionToken)})).statusCode).toBe(404);
+  const first=await service.request(owner.memberId,order.id,'partial-unit-first',
+    {kind:'refund_only',reason:'第一件商品需要退款',lines:[{lineId:source.id,quantity:1}]});
+  expect(first.amountCents).toBe(9750);
+  expect((await service.request(owner.memberId,order.id,'partial-unit-first',
+    {kind:'refund_only',reason:'第一件商品需要退款',lines:[{lineId:source.id,quantity:1}]})).id).toBe(first.id);
+  await expect(service.request(owner.memberId,order.id,'partial-unit-first',
+    {kind:'refund_only',reason:'第一件商品需要退款',lines:[{lineId:source.id,quantity:2}]}))
+    .rejects.toMatchObject({code:'IDEMPOTENCY_CONFLICT'});
+  const pending=await service.act(operator.memberId,first.id,'partial-first-refund',
+    {action:'request_refund',expectedVersion:1,note:'核实首件退款组成'},true,refundCommands);
+  const reviewed=await refundCommands.decide(operator.memberId,pending.refundRequestId!,'partial-first-approval',
+    {decision:'approve',expectedVersion:1,reason:'首件商品与运费各半'});
+  expect(reviewed.intent).toMatchObject({cashRefundCents:9750});
+  await expect(service.request(owner.memberId,order.id,'partial-too-early',
+    {kind:'refund_only',reason:'第二件商品需要退款',lines:[{lineId:source.id,quantity:1}]}))
+    .rejects.toMatchObject({code:'AFTERSALE_ACTIVE_CASE'});
+  await refundCommands.processDue();
+  const callback=refundCallback(reviewed.intent!.outRefundNo);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/refund-callback',
+    headers:{...callback.headers,'Content-Type':'application/json'},payload:callback.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  expect((await service.detail(owner.memberId,first.id)).resolved).toBe(true);
+  expect((await service.availability(owner.memberId,order.id)).lines).toEqual([{lineId:source.id,remainingQuantity:1}]);
+  await expect(service.request(owner.memberId,order.id,'partial-overdraw',
+    {kind:'refund_only',reason:'超出剩余数量',lines:[{lineId:source.id,quantity:2}]}))
+    .rejects.toMatchObject({code:'AFTERSALE_QUANTITY_EXCEEDS_REMAINING'});
+  const races=await Promise.allSettled(['partial-unit-second','partial-unit-race'].map(key=>
+    service.request(owner.memberId,order.id,key,
+      {kind:'refund_only',reason:'第二件商品需要退款',lines:[{lineId:source.id,quantity:1}]})));
+  expect(races.filter(result=>result.status==='fulfilled')).toHaveLength(1);
+  expect(races.filter(result=>result.status==='rejected').map(result=>(result as PromiseRejectedResult).reason.code))
+    .toEqual(['AFTERSALE_ACTIVE_CASE']);
+  const second=(races.find(result=>result.status==='fulfilled') as PromiseFulfilledResult<Awaited<ReturnType<typeof service.request>>>).value;
+  expect(second.amountCents).toBe(9750);
+  const secondPending=await service.act(operator.memberId,second.id,'partial-second-refund',
+    {action:'request_refund',expectedVersion:1,note:'核实剩余商品退款组成'},true,refundCommands);
+  const secondReviewed=await refundCommands.decide(operator.memberId,secondPending.refundRequestId!,'partial-second-approval',
+    {decision:'approve',expectedVersion:1,reason:'剩余商品与运费分摊'});
+  expect(secondReviewed.intent).toMatchObject({cashRefundCents:9750});
+  const allocations=(await pool.query(`SELECT r.amount_cents,i.shipping_cash_refund_cents,i.eligible_merchandise_refund_cents
+    FROM commerce_refund_request r JOIN commission_refund_intent i ON i.request_id=r.id
+    WHERE r.order_id=$1 ORDER BY r.created_at,r.id`,[order.id])).rows;
+  expect(allocations.reduce((sum,row)=>sum+Number(row.amount_cents),0)).toBe(19500);
+  expect(allocations.reduce((sum,row)=>sum+Number(row.shipping_cash_refund_cents),0)).toBe(500);
+  expect(allocations.reduce((sum,row)=>sum+Number(row.eligible_merchandise_refund_cents),0)).toBe(19000);
+  await refundCommands.processDue();
+  const secondCallback=refundCallback(secondReviewed.intent!.outRefundNo);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/refund-callback',
+    headers:{...secondCallback.headers,'Content-Type':'application/json'},payload:secondCallback.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  expect((await service.availability(owner.memberId,order.id)).lines).toEqual([{lineId:source.id,remainingQuantity:0}]);
+  const reversed=(await pool.query(`SELECT COALESCE(sum(amount_cents),0)::text AS amount_cents FROM commission_ledger_entry
+    WHERE order_id=$1 AND kind='refund_reversal'`,[order.id])).rows[0];
+  expect(Number(reversed.amount_cents)).toBe(-3800);
 });
 it('keeps the original application time, sends versioned case instructions in chat and separates later physical and payment facts',async()=>{
   const order=await aftersalePaidOrder('return');

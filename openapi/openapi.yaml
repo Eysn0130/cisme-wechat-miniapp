@@ -1548,6 +1548,18 @@ paths:
                       - {$ref: '#/components/schemas/ShipmentDispatchInput'}
                       - {type: object, required: [orderId], properties: {orderId: {type: string, format: uuid}}}
       responses: {'200': {description: Per-row results; retries preserve the same keys}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/aftersales/availability:
+    get:
+      operationId: myAftersaleAvailability
+      summary: Remaining refundable quantities on an owned verified order
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: orderId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Per-line remaining quantities after verified successful refunds}
+        '401': {description: Session required}
+        '404': {description: Owned order not found}
+        '409': {description: Order payment not verified}
   /v1/me/orders/{orderId}/aftersales:
     post:
       operationId: requestAftersale
@@ -1556,7 +1568,7 @@ paths:
       parameters:
         - {in: path, name: orderId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
         - {$ref: '#/components/parameters/IdempotencyKey'}
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind], properties: {kind: {type: string, enum: [refund_only, return_refund]}, claimBasis: {type: string, enum: [other, no_reason, quality, wrong_item, missing_item, delivery_issue]}, reason: {type: string, maxLength: 500, description: May be empty for no_reason; otherwise at least three characters}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind], properties: {kind: {type: string, enum: [refund_only, return_refund]}, claimBasis: {type: string, enum: [other, no_reason, quality, wrong_item, missing_item, delivery_issue]}, reason: {type: string, maxLength: 500, description: May be empty for no_reason; otherwise at least three characters}, lines: {type: array, description: Selected original order-line IDs and quantities; omitted means all remaining, items: {type: object, required: [lineId, quantity], properties: {lineId: {type: string, format: uuid}, quantity: {type: integer, minimum: 1}}}}}}}}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}

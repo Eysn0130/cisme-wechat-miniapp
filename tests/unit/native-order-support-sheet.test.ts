@@ -7,19 +7,24 @@ vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>0}));
 let definition:any;
 const orderId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const lineId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const record={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId,state:'requested',kind:'return_refund',reason:'',claimBasis:'no_reason',requestedAt:'2026-09-23T10:00:00Z',supportConversationId:null,returnDestination:null,refund:null,resolved:false};
 const messages={messages:[],latestCursor:0,conversation:null};
+const availability={lines:[{lineId,remainingQuantity:2}]};
+const reply=(input:{path:string},items:any[]=[record])=>input.path.includes('/aftersales/availability')?availability:
+  input.path.includes('/aftersales?')?{items}:messages;
 function deferred(){let resolve!:(value:any)=>void;const promise=new Promise<any>(yes=>resolve=yes);return{resolve,promise};}
 async function page(){
  await import('../../apps/miniprogram/pages/order-detail/index');
  const p={...definition,data:structuredClone(definition.data),setData(values:any){Object.assign(this.data,values);}};
  p.lastSessionToken=m.token;p.lastSessionRevision=0;
- Object.assign(p.data,{id:orderId,visible:true,pageAlive:true,coreReady:true,supportSheetOpen:true,order:{id:orderId}});
+ Object.assign(p.data,{id:orderId,visible:true,pageAlive:true,coreReady:true,supportSheetOpen:true,
+   order:{id:orderId,lines:[{id:lineId,productName:'合成商品',skuLabel:'合成规格'}]}});
  return p;
 }
 beforeEach(()=>{
  vi.resetModules();vi.useFakeTimers();m.token='member-a';m.read.mockReset();m.write.mockReset();
- m.read.mockImplementation((_page:any,input:any)=>Promise.resolve(input.path.includes('/aftersales?')?{items:[record]}:messages));
+ m.read.mockImplementation((_page:any,input:any)=>Promise.resolve(reply(input)));
  (globalThis as any).Page=(value:any)=>definition=value;
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token}});
  (globalThis as any).wx={setClipboardData:vi.fn(),navigateTo:vi.fn(),showModal:vi.fn(),getStorageSync:vi.fn()};
@@ -28,36 +33,50 @@ afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 describe('order support sheet owns reads and reflects current cases',()=>{
  it('updates the case while polling instead of deriving progress from chat text',async()=>{
   const p=await page();await p.loadSupportSheet();
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/aftersales?')?{items:[{...record,state:'awaiting_instruction'}]}:messages));
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state:'awaiting_instruction'}])));
   await p.pollSupportSheet();expect(p.data.sheetCase.state).toBe('awaiting_instruction');expect(p.data.sheetCaseLabel).toBe('客服正在准备退货信息');
  });
  it.each(['cancelled','rejected'])('does not let an old %s case block a new request',async state=>{
-  const p=await page();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/aftersales?')?{items:[{...record,state}]}:messages));
+  const p=await page();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state}])));
   await p.loadSupportSheet();expect(p.data.sheetCase).toBeNull();expect(p.data.sheetPreviousCase.state).toBe(state);expect(p.data.sheetCasesReady).toBe(true);
  });
  it('ignores a read from the previous open after close and reopen on the same page',async()=>{
   const p=await page(),old=deferred();m.read.mockImplementationOnce(()=>old.promise);
   const first=p.loadSupportSheet();p.closeSupportSheet();p.data.supportSheetOpen=true;
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/aftersales?')?{items:[{...record,state:'refund_pending'}]}:messages));
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state:'refund_pending'}])));
   await p.loadSupportSheet();old.resolve({items:[record]});await first;
   expect(p.data.sheetCase.state).toBe('refund_pending');expect(p.data.sheetCaseLabel).toBe('退款处理中');
  });
  it('ignores a slow poll after a newer explicit refresh',async()=>{
   const p=await page();await p.loadSupportSheet();const old=deferred();
   m.read.mockImplementationOnce(()=>old.promise);const poll=p.pollSupportSheet();
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/aftersales?')?{items:[{...record,resolved:true,state:'refund_pending'}]}:messages));
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,resolved:true,state:'refund_pending'}])));
   await p.loadSupportSheet();old.resolve({...messages,latestCursor:100});await poll;
-  expect(p.data.sheetCaseLabel).toBe('已退款');expect(p.sheetCursor).toBe(0);
+  expect(p.data.sheetCase).toBeNull();expect(p.data.sheetPreviousCase.resolved).toBe(true);expect(p.sheetCursor).toBe(0);
  });
  it('does not submit until the current order cases have been read',async()=>{
   const p=await page();p.data.sheetBasisIndex=1;p.data.sheetReason='';
-  m.read.mockImplementation((_p:any,input:any)=>input.path.includes('/aftersales?')?Promise.reject(new Error('offline')):Promise.resolve(messages));
+  m.read.mockImplementation((_p:any,input:any)=>input.path.includes('/aftersales?')?Promise.reject(new Error('offline')):Promise.resolve(reply(input)));
   await p.loadSupportSheet();await p.submitSheetAftersale();expect(m.write).not.toHaveBeenCalled();expect(p.data.sheetCasesReady).toBe(false);
  });
  it('still accepts an application when only chat is offline',async()=>{
-  const p=await page();m.read.mockImplementation((_p:any,input:any)=>input.path.includes('/aftersales?')?Promise.resolve({items:[]}):Promise.reject(new Error('offline')));
+  const p=await page();m.read.mockImplementation((_p:any,input:any)=>input.path.includes('/aftersales/availability')?Promise.resolve(availability):
+    input.path.includes('/aftersales?')?Promise.resolve({items:[]}):Promise.reject(new Error('offline')));
   await p.loadSupportSheet();expect(p.data.sheetCasesReady).toBe(true);expect(p.data.sheetCase).toBeNull();
   p.data.sheetBasisIndex=1;m.write.mockResolvedValue(record);await p.submitSheetAftersale();expect(m.write).toHaveBeenCalledTimes(1);
+  expect(m.write.mock.calls[0]![0].data.lines).toEqual([{lineId,quantity:2}]);
+ });
+ it('lets the buyer choose one remaining unit and blocks a fully refunded order',async()=>{
+  const p=await page();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[])));
+  await p.loadSupportSheet();p.chooseSheetQuantity({currentTarget:{dataset:{id:lineId,delta:-1}}});
+  expect(p.data.sheetAvailable[0].selectedQuantity).toBe(1);
+  p.data.sheetBasisIndex=1;m.write.mockResolvedValue(record);await p.submitSheetAftersale();
+  expect(m.write.mock.calls[0]![0].data.lines).toEqual([{lineId,quantity:1}]);
+  m.write.mockClear();p.data.sheetCase=null;p.data.sheetAttempt=null;
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/aftersales/availability')?
+    {lines:[{lineId,remainingQuantity:0}]}:reply(input,[])));
+  await p.loadSupportSheet();expect(p.data.sheetHasRemaining).toBe(false);
+  await p.submitSheetAftersale();expect(m.write).not.toHaveBeenCalled();
  });
  it('can close without cancelling a pending write or losing its idempotency key',async()=>{
   const p=await page();p.data.sheetSubmitting=true;p.data.sheetSending=true;

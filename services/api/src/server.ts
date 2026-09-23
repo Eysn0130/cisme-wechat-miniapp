@@ -606,6 +606,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
     paymentRequired("close").cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>,request.id));
+  app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/aftersales/availability",async request=>
+    aftersales.availability(request.memberId,request.params.orderId));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/aftersales",async request=>
     aftersales.request(request.memberId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string}}>("/v1/me/aftersales",async request=>

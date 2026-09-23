@@ -475,7 +475,7 @@
     },
     {
       "surface": "commerce_aftersale_case",
-      "purpose": "售后受理时间、申请依据、逐单退货物流与退款事实关联；寄件时使用的指引版本单独留痕，旧版有效地址寄件须人工核对并记录处理结果与时间。逐单收件信息及无需寄回例外的依据编号由授权管理员记录。例外依据可能指向承运商或客服材料，不能作为公开会员资料。",
+      "purpose": "售后受理时间、申请依据、所选原订单商品与数量、原支付组成分摊、逐单退货物流与退款事实关联；寄件时使用的指引版本单独留痕，旧版有效地址寄件须人工核对并记录处理结果与时间。逐单收件信息及无需寄回例外的依据编号由授权管理员记录。例外依据可能指向承运商或客服材料，不能作为公开会员资料。",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "boundary": "仅本人及当前授权售后人员可见；不自动退款、不自动回补库存；生产导出/删除仍未完成"
     },
@@ -530,7 +530,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "37abafd6600e3e262107338fd9555932857bafb2c0abdecd7fbf5a3a919d3906",
+  "migrationSetSha256": "89c0f8a7a1957657ef0f1240ee507f4c0a1404ec097295c3819dfff5fd70e481",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",

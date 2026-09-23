@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "b6069224bfc05f587766b40a7c2780573210720ef480764c78e2d1cff49d27ea",
+  "migrationSetSha256": "37d10026cb7084b51e4321acdf72a2a97141d17212d402c7ad5d6f774432d81a",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -450,7 +450,7 @@
       "actorColumns": [
         "exception_approved_by"
       ],
-      "specialHandling": "member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, shipped_instruction_version, route_review_outcome, route_reviewed_at, reason and exception_evidence_reference are private. The shipped version points to an immutable case-specific return instruction and may identify the older valid address used by the buyer. The route review fields record the actual handling of an old address, not a new delivery destination. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
+      "specialHandling": "member_id/order_id identify buyer; claim_basis, selected lines and quantities, original payment allocation, return_destination, return_tracking, shipped_instruction_version, route_review_outcome, route_reviewed_at, reason and exception_evidence_reference are private. The shipped version points to an immutable case-specific return instruction and may identify the older valid address used by the buyer. The route review fields record the actual handling of an old address, not a new delivery destination. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
       "exportFields": [],
       "excludedFields": [
         "id",

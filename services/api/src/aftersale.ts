@@ -6,6 +6,7 @@ import { transaction, type DbClient } from './db.js';
 import { AuthorityService, requireActiveMemberWithClient } from './authority.js';
 import { finishPage, pageLimit, pageScope, readPageCursor } from './keysetPage.js';
 import type { RefundCommandService } from './refundCommand.js';
+import { allocateAftersaleClaim } from './aftersaleAllocation.js';
 import { enqueue } from './outbox.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -106,6 +107,24 @@ export class AftersaleService{
       VALUES($1,$2,'commerce_aftersale_case',$3,$4,$5)`,[`member:${actor}`,`commerce.aftersale.${action}`,row.id,
       {state:row.state,version:row.version},`aftersale:${row.id}:${row.version}`]);
   }
+  async availability(memberId:string|undefined,orderInput:string){
+    if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
+    const orderId=id(orderInput);
+    return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,memberId);
+      const order=(await client.query('SELECT status,transaction_source_kind FROM commerce_order WHERE id=$1 AND member_id=$2',[orderId,memberId])).rows[0];
+      if(!order)fail('ORDER_NOT_FOUND','订单不存在',404);
+      if(order.status!=='paid'||order.transaction_source_kind!=='verified_commerce')
+        fail('AFTERSALE_PAYMENT_REQUIRED','仅已核验支付的订单可申请售后',409);
+      const lines=(await client.query<{id:string;quantity:number}>(
+        'SELECT id,quantity FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number',[orderId])).rows;
+      const prior=(await client.query<{lines:Array<{lineId:string;quantity:number}>}>(`SELECT c.lines FROM commerce_aftersale_case c
+        JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
+        WHERE c.order_id=$1 AND i.state='succeeded'`,[orderId])).rows.flatMap(row=>row.lines);
+      const used=new Map<string,number>();for(const item of prior)used.set(item.lineId,(used.get(item.lineId)??0)+Number(item.quantity));
+      return {orderId,lines:lines.map(line=>({lineId:line.id,remainingQuantity:Math.max(0,line.quantity-(used.get(line.id)??0))}))};
+    });
+  }
   async request(memberId:string|undefined,orderInput:string,kInput:string,input:Record<string,unknown>){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const orderId=id(orderInput),k=key(kInput),kind=input.kind,claimBasis=input.claimBasis===undefined?'other':String(input.claimBasis);
@@ -113,7 +132,14 @@ export class AftersaleService{
     if(!['other','no_reason','quality','wrong_item','missing_item','delivery_issue'].includes(claimBasis)
       ||claimBasis==='no_reason'&&kind!=='return_refund')fail('AFTERSALE_CLAIM_BASIS_INVALID','请选择适用的售后情形',422);
     const why=requestReason(input.reason,claimBasis==='no_reason');
-    const fingerprint=hash({orderId,kind,why,claimBasis});
+    const selection=input.lines===undefined?null:Array.isArray(input.lines)?input.lines.map(value=>{
+      if(!value||typeof value!=='object')fail('AFTERSALE_SELECTION_INVALID','请选择商品及数量',422);
+      const line=value as Record<string,unknown>;
+      if(typeof line.lineId!=='string'||!UUID.test(line.lineId)||!Number.isSafeInteger(line.quantity)||Number(line.quantity)<1)
+        fail('AFTERSALE_SELECTION_INVALID','请选择商品及数量',422);
+      return {lineId:line.lineId,quantity:Number(line.quantity)};
+    }).sort((a,b)=>a.lineId.localeCompare(b.lineId)):fail('AFTERSALE_SELECTION_INVALID','请选择商品及数量',422);
+    const fingerprint=hash({orderId,kind,why,claimBasis,selection});
     return transaction(this.pool,async client=>{
       await requireActiveMemberWithClient(client,memberId);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
@@ -124,10 +150,14 @@ export class AftersaleService{
       if(!order)fail('ORDER_NOT_FOUND','订单不存在',404);
       if(order.status!=='paid'||order.transaction_source_kind!=='verified_commerce'||!(await client.query("SELECT 1 FROM commission_payment_inbox WHERE order_id=$1 AND state='applied'",[orderId])).rowCount)
         fail('AFTERSALE_PAYMENT_REQUIRED','仅已核验支付的订单可申请售后');
-      if((await client.query("SELECT 1 FROM commerce_aftersale_case WHERE order_id=$1 AND state NOT IN ('cancelled','rejected')",[orderId])).rowCount)
+      if((await client.query(`SELECT 1 FROM commerce_aftersale_case c LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
+        WHERE c.order_id=$1 AND c.state NOT IN ('cancelled','rejected')
+          AND NOT (c.state='refund_pending' AND i.state='succeeded')`,[orderId])).rowCount)
         fail('AFTERSALE_ACTIVE_CASE','本单已有售后案件，请在原案件中继续');
       if((await client.query(`SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-        WHERE r.order_id=$1 AND (r.state='requested' OR r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))`,[orderId])).rowCount)
+        LEFT JOIN commerce_aftersale_case c ON c.refund_request_id=r.id
+        WHERE r.order_id=$1 AND (r.state='requested' OR r.state='approved' AND
+          (i.id IS NULL OR i.state NOT IN ('closed','succeeded') OR c.id IS NULL))`,[orderId])).rowCount)
         fail('AFTERSALE_EXISTING_REFUND','本单已有退款事实，请先核对原退款');
       // Dispatch takes the same order lock. A refund-only case created after
       // handoff cannot reach its refund command; direct the buyer to the
@@ -136,8 +166,21 @@ export class AftersaleService{
         &&(await client.query(`SELECT 1 FROM commerce_shipment WHERE order_id=$1
         UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1`,[orderId])).rowCount)
         fail('AFTERSALE_RETURN_REQUIRED','本单已登记交寄，请选择退货退款；未收到或漏发请选相应问题类型');
-      const lines=(await client.query('SELECT id,product_name,sku_label,quantity,line_total_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY id',[orderId])).rows;
+      const lines=(await client.query('SELECT id,product_name,sku_label,quantity,line_total_cents,credit_tender_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number',[orderId])).rows;
       if(!lines.length)fail('AFTERSALE_LINES_MISSING','商品事实缺失，请联系在线客服');
+      const prior=(await client.query<{lines:Array<{lineId:string;quantity:number}>}>(`SELECT c.lines FROM commerce_aftersale_case c
+        JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
+        WHERE c.order_id=$1 AND i.state='succeeded' ORDER BY c.created_at,c.id`,[orderId])).rows.flatMap(row=>row.lines);
+      const eligible=Number((await client.query<{cash_merchandise_cents:string}>(
+        'SELECT cash_merchandise_cents FROM commission_order_snapshot WHERE order_id=$1',[orderId])).rows[0]?.cash_merchandise_cents??0);
+      const allocation=allocateAftersaleClaim({lines,shippingCents:Number(order.shipping_cents),eligibleCashCents:eligible,
+        prior:prior.map(line=>({lineId:line.lineId,quantity:Number(line.quantity)})),selected:selection});
+      if(allocation.amountCents<1||allocation.cashRefundCents<1)
+        fail('AFTERSALE_CASH_COMPONENT_REQUIRED','本次商品金额无法原路退款，请联系客服核对权益退回',409);
+      const labels=new Map(lines.map(line=>[line.id,line]));
+      const claimLines=allocation.lines.map((line,index)=>({...line,
+        productName:labels.get(line.lineId)!.product_name,skuLabel:labels.get(line.lineId)!.sku_label,
+        shippingRefundCents:index===0?allocation.shippingRefundCents:0}));
       // The case, support association, message and durable notification event
       // commit together. A later delivery/transport failure cannot erase the case.
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${memberId}`]);
@@ -146,7 +189,7 @@ export class AftersaleService{
       if(!conversation)conversation=(await client.query<{id:string;status:string;next_sequence:string;version:number}>(
         "INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id,status,next_sequence,version",[memberId])).rows[0]!;
       const row=(await client.query<CaseRow>(`INSERT INTO commerce_aftersale_case(order_id,member_id,kind,reason,lines,amount_cents,idempotency_key,request_hash,claim_basis,support_conversation_id)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,[orderId,memberId,kind,why,JSON.stringify(lines.map(l=>({lineId:l.id,productName:l.product_name,skuLabel:l.sku_label,quantity:l.quantity,amountCents:Number(l.line_total_cents)}))),order.total_cents,k,fingerprint,claimBasis,conversation.id])).rows[0]!;
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,[orderId,memberId,kind,why,JSON.stringify(claimLines),allocation.amountCents,k,fingerprint,claimBasis,conversation.id])).rows[0]!;
       await this.event(client,row,memberId,'request',why||'七日无理由退货申请',null,k,fingerprint);
       const message=(await client.query<{id:string;created_at:Date}>(`INSERT INTO support_message
         (conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id)
