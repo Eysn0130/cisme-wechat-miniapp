@@ -12,7 +12,9 @@ const name='cisme_production_baseline_'+randomUUID().replaceAll('-','');url.path
 const db=new pg.Pool({connectionString:url.toString()});let created=false;let candidate:string|undefined;
 beforeAll(async()=>{const own=testPool();try{await assertDisposableTarget(own);}finally{await own.end();}
  await admin.query(`CREATE DATABASE ${name}`);created=true;});
-afterAll(async()=>{try{if(candidate)await rm(candidate,{recursive:true,force:true});await db.end();if(created)await admin.query(`DROP DATABASE ${name}`);}finally{await admin.end();}});
+// GitHub runners may take longer than Vitest's 10-second default to close the
+// migration pools and drop this separate synthetic database after the full run.
+afterAll(async()=>{try{if(candidate)await rm(candidate,{recursive:true,force:true});await db.end();if(created)await admin.query(`DROP DATABASE ${name}`);}finally{await admin.end();}},60_000);
 it('preserves the observed 23-migration production baseline through all forward migrations without fabricating legacy details',async()=>{
  const files=(await readdir('db/migrations')).filter(f=>f.endsWith('.sql')).sort(),cutoff='202609090006_member_identity_display.sql';
  const baseline=files.filter(f=>f<=cutoff);expect(baseline).toHaveLength(23);
