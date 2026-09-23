@@ -73,6 +73,8 @@ export class OrderFulfillmentService {
         EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
           WHERE r.order_id=$1 AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed')))) AS blocked`,[orderId])).rows[0].blocked;
       if(hold)fail('SHIPMENT_REFUND_REVIEW_REQUIRED');
+      if((await client.query("SELECT 1 FROM commerce_aftersale_case WHERE order_id=$1 AND state NOT IN ('cancelled','rejected')",[orderId])).rowCount)
+        fail('SHIPMENT_AFTERSALE_REVIEW_REQUIRED');
 
       if(Date.parse(input.shippedAt)<new Date(order.paid_at).getTime()||Date.parse(input.shippedAt)>new Date(order.server_time).getTime())fail('SHIPMENT_TIME_INVALID',422);
       if((await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1',[orderId])).rowCount)fail('ORDER_ALREADY_SHIPPED');

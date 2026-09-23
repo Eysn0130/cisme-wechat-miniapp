@@ -46,6 +46,7 @@ const memberRoutes = [
   ,"/pages/management-order-detail/index"
   ,"/pages/management-finance/index"
   ,"/pages/management-privacy/index"
+  ,"/pages/aftersale/index"
   ,"/pages/management-fulfillment/index"
 ];
 

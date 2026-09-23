@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
+  "sourceBase": "a659e050ef32ad4dd50d1043e5d9faaf98db4b2f",
+  "reviewPack": "docs/evidence/visual/review-native-aftersale-20260923t0140",
+  "ownedRunId": "468508d210e71f3568687097",
+  "origin": "http://127.0.0.1:18080",
+  "scope": "WeChat Developer Tools, local owned synthetic PG/S3; not staging or production or physical devices",
+  "routeChecks": {
+    "healthy": 39,
+    "expectedMoneyDisabled": 1,
+    "total": 40
+  },
+  "interaction": [
+    "Native textarea input and submit button",
+    "Actual wx.showModal confirm UI",
+    "Server returned requested v1 and immutable whole-order lines",
+    "Native reason input and cancel button/modal",
+    "Server returned cancelled v2 and both history entries"
+  ],
+  "databaseReadback": {
+    "id": "11eb674f-807a-44fd-a0cf-4227c8285a08",
+    "state": "cancelled",
+    "version": 2,
+    "refundLinked": false,
+    "eventActions": [
+      "request",
+      "cancel"
+    ]
+  },
+  "screenshots": [
+    {
+      "path": "docs/evidence/production-closure-20260922/native-aftersale-requested.png",
+      "sha256": "f57bc24e03c2c29770893283d4d52bdc70f7684aafdd52f9f17d419ba6112c92",
+      "width": 333,
+      "height": 719,
+      "resized": false
+    },
+    {
+      "path": "docs/evidence/production-closure-20260922/native-aftersale-cancelled.png",
+      "sha256": "6bbddc15f4a9b54ceaaf5311f0b2556efc453f7fb64dc5776815ab3380520696",
+      "width": 333,
+      "height": 719,
+      "resized": false
+    }
+  ],
+  "pageDataInjected": false,
+  "tokensRecorded": false,
+  "realFundsExecuted": false,
+  "fullNativeStateMatrixPassed": false,
+  "iosPassed": false,
+  "androidPassed": false,
+  "failedCapturePreserved": "tmp/review-native-aftersale-incomplete-20260923t0128; community object absent in earlier fixture; full rerun used --synthetic-community"
+}

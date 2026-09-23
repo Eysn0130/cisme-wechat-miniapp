@@ -45,10 +45,17 @@ export class RefundCommandService{
     private readonly options:{merchantId:string;notifyUrl:string}){}
 
   async request(memberId:string|undefined,orderIdInput:string,idempotencyKey:string,input:Record<string,unknown>){
+    return transaction(this.pool,client=>this.requestWithClient(client,memberId,orderIdInput,idempotencyKey,input),"SERIALIZABLE");
+  }
+
+  /** Caller owns the transaction; no channel I/O. Used by the after-sale case
+   * to link its reserved amount and the existing refund request atomically. */
+  async requestWithClient(client:pg.PoolClient,memberId:string|undefined,orderIdInput:string,idempotencyKey:string,
+    input:Record<string,unknown>,aftersaleCaseId?:string){
     if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
     const orderId=id(orderIdInput),requestKey=key(idempotencyKey),amount=cents(input.amountCents),why=reason(input.reason);
     const fingerprint=hash({orderId,amount,why});
-    return transaction(this.pool,async client=>{
+
       await requireActiveMemberWithClient(client,memberId);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`refund-request:${memberId}:${requestKey}`]);
       const replay=(await client.query<RequestRow>(`SELECT * FROM commerce_refund_request
@@ -67,6 +74,10 @@ export class RefundCommandService{
         throw new DomainError("REFUND_POLICY_UNSUPPORTED","当前优惠或运费分摊尚无批准规则",409);
       const payment=(await client.query(`SELECT id FROM commission_payment_inbox WHERE order_id=$1 AND state='applied'`,[orderId])).rows[0];
       if(!payment)throw new DomainError("REFUND_PAYMENT_FACT_MISSING","原支付事实尚未入账",409);
+      const activeCase=(await client.query<{id:string}>(`SELECT id FROM commerce_aftersale_case
+        WHERE order_id=$1 AND state NOT IN ('rejected','cancelled')`,[orderId])).rows[0];
+      if(activeCase && activeCase.id!==aftersaleCaseId)
+        throw new DomainError('AFTERSALE_ACTIVE_CASE','本单已有售后案件，请在原案件中继续退款',409);
       const existing=(await client.query<{reserved:string}>(`SELECT COALESCE(sum(r.amount_cents),0)::text AS reserved
         FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
         WHERE r.order_id=$1 AND (r.state='requested' OR
@@ -80,7 +91,6 @@ export class RefundCommandService{
         after_state,trace_id) VALUES($1,'commerce.refund.request','commerce_refund_request',$2,$3,$4)`,
         [`member:${memberId}`,row.id,{state:row.state,amountCents:amount},`refund-request:${row.id}`]);
       return {id:row.id,orderId,amountCents:amount,state:row.state,version:row.version};
-    },"SERIALIZABLE");
   }
 
   async decide(memberId:string|undefined,requestIdInput:string,idempotencyKey:string,input:Record<string,unknown>){

@@ -18,6 +18,6 @@ it("pre-registers every OpenAPI method/template rather than only routes that hap
     for(const [path,operations]of Object.entries(document.paths))for(const method of Object.keys(operations))if(["get","post","put","patch","delete","options","head"].includes(method)){
       count++;expect(routes[`${method.toUpperCase()} ${path.replace(/\{([^}]+)\}/g,":$1")}`],`${method} ${path}`).toBeDefined();
     }
-    expect(count).toBe(241);expect(runtimeMetrics().http.registeredRouteCount).toBeGreaterThanOrEqual(count);
+    expect(count).toBe(248);expect(runtimeMetrics().http.registeredRouteCount).toBeGreaterThanOrEqual(count);
   } finally {await app.close();}
 });

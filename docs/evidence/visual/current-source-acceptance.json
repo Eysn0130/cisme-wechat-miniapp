@@ -1,524 +1,536 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+  "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
   "finalResult": "blocked",
   "evidenceIndex": {
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__home__index.png": {
-      "sha256": "e5050383359a6b9b9ee2b41e45245ee37b13ec1708e09fd60d57b4c236783a9f",
-      "bytes": 251763,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__home__index.png": {
+      "sha256": "1c7f983817024e435637e6ca98a9abfc61aaf21f883e0adf9b4aa3eac044fbc6",
+      "bytes": 251934,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/home/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__records__index.png": {
-      "sha256": "c6326dea8a66ec1e09ed71583a6c87a4a641fbb8f25a54956786b66d5058a124",
-      "bytes": 125539,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__records__index.png": {
+      "sha256": "99837999621968fc9ed98bc91f31463c993827ba7ca9b33105307bcbd3a0176c",
+      "bytes": 125691,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/records/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community__index.png": {
-      "sha256": "455ff6d0e84a3341d9f557f0a4a4c85bffcd095aa5bb27033a1a7e5b815728be",
-      "bytes": 170007,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community__index.png": {
+      "sha256": "5a22c74cf0af0c02ac67a874c17db4044e204e6dac1b4630bd434c67a9fc3023",
+      "bytes": 170083,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/community/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__profile__index.png": {
-      "sha256": "244fb838cda12ef7277671cae12042bc678071af7769ae95a4ba09695b02f9f6",
-      "bytes": 102850,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__profile__index.png": {
+      "sha256": "13df8a87eb24ddae950f0516cd804567146580fb7067aaefb6af128b459a19d9",
+      "bytes": 102934,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/profile/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__account__index.png": {
-      "sha256": "5d6c5c4a09f3710096d7f951b303c9d0441e48fd150a71d8b148999bed2b4cd8",
-      "bytes": 77801,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__account__index.png": {
+      "sha256": "93b729bc60b456a604a130e7354fea2296e952afd3416c65368f4e21be1a1981",
+      "bytes": 78067,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/account/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__task__index.png": {
-      "sha256": "a20f6a8f0170d5739a6951cea3062b397ab007983f0eb0ecde5163382c559c6d",
-      "bytes": 107751,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__task__index.png": {
+      "sha256": "f46af0d6a117c6acd49b38117121840c1a70ecc16a74ee94d0547ba481b2e27e",
+      "bytes": 107997,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/task/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__submit__index.png": {
-      "sha256": "106cea1dcb161f78126458cb803fd9151e996a2a145902e75ac7be8c5612c197",
-      "bytes": 92937,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__submit__index.png": {
+      "sha256": "bb33d4348a679c4928a2506c65e3befa616b30f3a80dd03fa2d087a7a80c9435",
+      "bytes": 93378,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/submit/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__progress__index.png": {
-      "sha256": "2f4a9acc21ba04694ab90b0d9cb9e375802b6733fe63ea0cf0c00a470d2d3351",
-      "bytes": 64876,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__progress__index.png": {
+      "sha256": "19004e7d829b66f7f2572d40796e82409b700b64a137630f59731e3944a47487",
+      "bytes": 65223,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/progress/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__points__index.png": {
-      "sha256": "44ef27b34620201d3bb68e0ba12a5652d207a7ce069a9bb397222fa81d3f0ff2",
-      "bytes": 89401,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__points__index.png": {
+      "sha256": "ae187553cd6376444a6f45030fd34ad98dae4f12f5f1b07c008abce636d62e43",
+      "bytes": 89568,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/points/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__post__index.png": {
-      "sha256": "adc48283c4823bd69158a2ec783da5be46f1dcd1b16f78dd25ad20f16a460f2c",
-      "bytes": 118526,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__post__index.png": {
+      "sha256": "3250f5f6a13595c8f747b48a95cdecdf4228f781562dd8a1e506a740e4a1f577",
+      "bytes": 118569,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/post/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__shop__index.png": {
-      "sha256": "dc40d36fac224dba09525f50beac55ccfff43145e4ade58dfb7ff56df708763e",
-      "bytes": 155195,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__shop__index.png": {
+      "sha256": "aae08812a0f32f985cc20099518893e9a4006144298df92c7cd1559570904dad",
+      "bytes": 156232,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/shop/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__product__index.png": {
-      "sha256": "f6693f5d5f83185ac75cd168ba4765a51f595dfdd476faa0854d1163a3b7f12c",
-      "bytes": 176116,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__product__index.png": {
+      "sha256": "0b72ddb46da77ce07b8b43cbebdae3dbddeabb0a925f9aa307a7ab69c6b1aaa7",
+      "bytes": 176163,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/product/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__checkout__index.png": {
-      "sha256": "652e8b0928e279112fd5ed4d93d94f5cb9a1785318f1102ecf15aff2f54ab51d",
-      "bytes": 71167,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__checkout__index.png": {
+      "sha256": "f0eced3ea301c805fa3e53053547b3314286309591bc9a0349ac531cfdc12d41",
+      "bytes": 71223,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/checkout/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__orders__index.png": {
-      "sha256": "10ae27306b6cc254dfe2247468f4122cc7da56bd67fad8423ae4aa6124599961",
-      "bytes": 62375,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__orders__index.png": {
+      "sha256": "d919ae3397b884c0607523bc4339a04dde9f349776698f09295bd27ef2f61db9",
+      "bytes": 62902,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/orders/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__order-detail__index.png": {
-      "sha256": "5eb308e743c716fbdbd04ef201d15b99ae5e6883f1e317b773f4cdf4971a1cde",
-      "bytes": 100115,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__order-detail__index.png": {
+      "sha256": "84a4355b952cae456bf245a47e9913ae33155ea9af7d329fa1ea70da788eb890",
+      "bytes": 100164,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/order-detail/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__settings__index.png": {
-      "sha256": "238e125d2c330c12baffef77dc3faee2ffabf2f1c339cc9a099cacac99359c91",
-      "bytes": 61588,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__settings__index.png": {
+      "sha256": "617ffb0535f3b1b440105b1be686a822476f132527bfa6fa350aa1efd08c2393",
+      "bytes": 61458,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/settings/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__invite__index.png": {
-      "sha256": "b5c618d89baf96e13c8b4b7cb4505a200125f3d9fccda66d1a7eb76d56918513",
-      "bytes": 90622,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__invite__index.png": {
+      "sha256": "1b5dafcb3901c644529cb4cfbbeeeca9bc2fbe4ed8150b80bc9025672b56c141",
+      "bytes": 89783,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/invite/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__legal__index.png": {
-      "sha256": "4f256bc532d74ff1827c9b1f160b9c61888668e0bf3788efd7d47e60e2ab486b",
-      "bytes": 36999,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__legal__index.png": {
+      "sha256": "a44b934ea3ac1a2ba2e8f35dcf14c753ae5e3e560d6df9995062660b0e1ad79c",
+      "bytes": 36861,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/legal/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__privacy-rights__index.png": {
-      "sha256": "f544dec2008e2ef143099b126eda753e109287dedb1576099bde1b56e111e1cd",
-      "bytes": 71422,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__privacy-rights__index.png": {
+      "sha256": "f0802c36a095f80068346eeb2061b2b29f344ec24f41761ac218c4806231acc3",
+      "bytes": 71293,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/privacy-rights/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__support__index.png": {
-      "sha256": "6d4e422f33a5a79e7a6af4c16acd34a591625793ce980728cd835888cc50e87b",
-      "bytes": 40716,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__support__index.png": {
+      "sha256": "6809de4b47a93ae8696532155a2c60571e3e7792187f54d9d7027cecb4b3eb7e",
+      "bytes": 40982,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/support/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management__index.png": {
-      "sha256": "09bab156fc98fc65a12e9991ac3718aa197b4fcbf4ad7302ba211a86cd97f07c",
-      "bytes": 79505,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management__index.png": {
+      "sha256": "36f3ef94df57c0d52eda67b597063ae33b7faf96bcaf465147a23c9873d1bf6c",
+      "bytes": 80836,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-catalog__index.png": {
-      "sha256": "4066ff7676b65b3b183bb99434a828797ce603ec53ee4c757e50c5f74061868c",
-      "bytes": 93330,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-catalog__index.png": {
+      "sha256": "66edbe532e9dd20a9be67775f4872bbefffca4b62fdffb3b38ff54e84d738b52",
+      "bytes": 93407,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-catalog/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-product__index.png": {
-      "sha256": "435bb003f6410fb0134a6e63db21e09fa92b53c62155381c8c82576e05942fff",
-      "bytes": 105645,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-product__index.png": {
+      "sha256": "74f063d6b4f7b6d30f1c884aaf94dd654e1595bfb2f6b0dfc51dbeb900233607",
+      "bytes": 105728,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-product/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-orders__index.png": {
-      "sha256": "922964ce325682d01a8764d1dd9754c47c231073b609125975986c9c13475728",
-      "bytes": 70721,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-orders__index.png": {
+      "sha256": "28ba8fde5c28dc46d382e7b31ce732a97174922d1fec87b53263fd08efc7376d",
+      "bytes": 71118,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-orders/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-order-detail__index.png": {
-      "sha256": "c7dc34f615a34c2e8ccea11afc12f890d81d4aebac0e25107925fdb88f1bd7e1",
-      "bytes": 54644,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-order-detail__index.png": {
+      "sha256": "2d74d584da47b00e4a295cce71cd866735f0f02f8135e429a8a63ea1a06e7ad4",
+      "bytes": 54881,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-order-detail/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-support__index.png": {
-      "sha256": "c69bf69a8546c189442b01c265f339dd60fb5685282ad6d0e21e73d2c7a6ebd6",
-      "bytes": 26396,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-support__index.png": {
+      "sha256": "6f0671da27c0a1ebe3b9157ae6ea1659e324c4f4339d7a400db0480735f95ceb",
+      "bytes": 26725,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-support/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-support-chat__index.png": {
-      "sha256": "cecb7b93f0a3f5cba5d56dafc2c53fd1854b8ae19e8148509157149192c5fdfd",
-      "bytes": 48817,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-support-chat__index.png": {
+      "sha256": "523388f1ed2eceb0ee298367e091c14962b7f0552f1fa21a3d650be6f2af3a10",
+      "bytes": 49082,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-support-chat/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-members__index.png": {
-      "sha256": "c6d104a9c30aba620c6e8fa3f289697819d0fc61805965ed0b9b0d249d962989",
-      "bytes": 55666,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-members__index.png": {
+      "sha256": "65d8404a68d2b06743f8226b4d9c047fa7e6bf0cb68f1e1367f6ecf813b214e5",
+      "bytes": 55705,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-members/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-member__index.png": {
-      "sha256": "87c11ea3b1c57c8f1436d35947851f862e6f62a66d220e28a3d5dd380623c7f0",
-      "bytes": 56047,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-member__index.png": {
+      "sha256": "0a9b1983c75997035f55ae32316d7ba4b752b76919a8c49e00d6d8b278779f9e",
+      "bytes": 56091,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-member/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__referral__index.png": {
-      "sha256": "f4bb4a7f9efc253757262558c686fae6ce7703d7d788dec57c970985c6e8da68",
-      "bytes": 52166,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__referral__index.png": {
+      "sha256": "c2c1fa204fddb3987e740bd02f3b2063eed5b1203008978cc9e5cc215a5c345a",
+      "bytes": 52208,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/referral/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-compose__index.png": {
-      "sha256": "414e3943a04a1bae827ae92fc51606dac5d10f88bea0b5555345c960c2f230c5",
-      "bytes": 31663,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-compose__index.png": {
+      "sha256": "f3a762c32e306eea821f00cbd0f58b8c28fa01901eac16cf528f5497a8a37f99",
+      "bytes": 31707,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/community-compose/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-post__index.png": {
-      "sha256": "c453ad1a26bf652e3e0c83dd648e20b500f68c83093867273b91b4ea29bed186",
-      "bytes": 48607,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-post__index.png": {
+      "sha256": "2bb4e06b1a39026bcd3e07c84500e24598ff7d634fa503c07978ceb31d84999b",
+      "bytes": 48584,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/community-post/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-author__index.png": {
-      "sha256": "19ef82809894b6636655c25ac7844ebd6cf3a461f4d66539c3d7b96fbd40c1a6",
-      "bytes": 30726,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-author__index.png": {
+      "sha256": "470ae270ead95949db1d485b1535e8e5bdfe9c323f79bd7ff13e7c747dc1323e",
+      "bytes": 30707,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/community-author/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-review__index.png": {
-      "sha256": "a55cd8bcc23133f1b1abcb0864794c558220c80d849e83b5940606e5001e8c5f",
-      "bytes": 50145,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-review__index.png": {
+      "sha256": "3dbc53d185d855b2830b508bf2914d5facf5c11c91c62b9a804aa73c0fab2a82",
+      "bytes": 50119,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/community-review/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-activity__index.png": {
-      "sha256": "269f0d72203856217c1ac8ba8352229024c560afbe95e1f54e3f238f933b15e9",
-      "bytes": 15999,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-activity__index.png": {
+      "sha256": "62e1247d36716386678a65aac26527fd729c99029afb71ad5e7fdc839d04148d",
+      "bytes": 15975,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/community-activity/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-finance__index.png": {
-      "sha256": "ad66df3c7a8667ce8f0e27ebd0c74c61c3e695260e23258edd1fdecab926dc21",
-      "bytes": 27014,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-finance__index.png": {
+      "sha256": "7072f207fa29ce916a4303031edf7724b9fe817cda262f84d318588656fd732e",
+      "bytes": 27007,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-finance/index",
       "state": "money-disabled",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__commission__index.png": {
-      "sha256": "52f26d5a199210e43b337101d7209e49ba14205b86c547052db3850e77ff6b5d",
-      "bytes": 82571,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__commission__index.png": {
+      "sha256": "a52e6f6e9d1683e0430833e8ffa5b7fbcded5852fa5a171cd6399a63260cee50",
+      "bytes": 82586,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/commission/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-privacy__index.png": {
-      "sha256": "fd99ca52da6dccbad781913de766f35f63373ff2e5fde027d9d7214b8b784c22",
-      "bytes": 48727,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-privacy__index.png": {
+      "sha256": "11e2e97017ed204eb407c5ce766485abbfd193e050513cb4321744ee265f9ff9",
+      "bytes": 48812,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-privacy/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-fulfillment__index.png": {
-      "sha256": "488f8b673c013c1fb12b0bd2d5166db1500ae5156094ada491677f0d130ccbfc",
-      "bytes": 65859,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__aftersale__index.png": {
+      "sha256": "c36a7bba27629b0e37b5f97d248389dc71a8a18a1585bc631c9fda48cdd9ac41",
+      "bytes": 51400,
       "mimeType": "image/png",
       "widthPx": 333,
       "heightPx": 719,
       "kind": "route_native",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
+      "route": "pages/aftersale/index",
+      "state": "authenticated-route-success",
+      "viewport": "333x719"
+    },
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-fulfillment__index.png": {
+      "sha256": "d005e109f911b574dd61cc1f4f1041c1643b70d62ad6350700252768da9afe02",
+      "bytes": 65856,
+      "mimeType": "image/png",
+      "widthPx": 333,
+      "heightPx": 719,
+      "kind": "route_native",
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
       "route": "pages/management-fulfillment/index",
       "state": "authenticated-route-success",
       "viewport": "333x719"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/devtools-f627b971-compile-open.json": {
-      "sha256": "1cd48e3813b6effd11625e2a0ec354765f64b9918a4b10deef6b09b5a0dd8804",
-      "bytes": 5018,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/devtools-6ec7f596-compile-open.json": {
+      "sha256": "14b32625c81107c46db78be8db7374be74ecf22fcc94d866a955a933bce9e203",
+      "bytes": 5160,
       "mimeType": "application/json",
       "kind": "devtools_compile",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815"
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/devtools-f627b971-console-filter.json": {
-      "sha256": "ef22bdcfff51838d1405db9ca48b5fc8dc1082dd163158498bf66804941eef58",
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/devtools-6ec7f596-console-filter.json": {
+      "sha256": "58f58bba77874f1d74b586765de180588a6b7f135030a4cc223bd46977907b62",
       "bytes": 464,
       "mimeType": "application/json",
       "kind": "devtools_console",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815"
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/devtools-f627b971-network-filter.json": {
-      "sha256": "ca7cc88bcf1a80ce3b07b9379370f07f5e1b774688f13b368a9cfc0243e15472",
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/devtools-6ec7f596-network-filter.json": {
+      "sha256": "861c9fef0d06e256325e6d5cf337cc97bc0229fcf3923f6387666a28bb0368bf",
       "bytes": 479,
       "mimeType": "application/json",
       "kind": "devtools_network",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815"
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5"
     },
-    "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/route-runtime-health.json": {
-      "sha256": "39c9a4c0ddde5be3dccadc45de4e3162613fb747c3bdf90560be139685a2af1c",
-      "bytes": 12166,
+    "docs/evidence/visual/review-native-aftersale-20260923t0140/route-runtime-health-6ec7f596.json": {
+      "sha256": "92704baf1b8bdb7448ff974af599c495060579c42fa67af74a7ad4b269b19afa",
+      "bytes": 12470,
       "mimeType": "application/json",
       "kind": "devtools_route_runtime_health",
-      "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815"
+      "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5"
     }
   },
   "devtools": {
-    "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+    "packageSourceSha256": "6ec7f596056c82b52df52ad58fe5be9d4c09d03243f9a5a827711cbfe20f40a5",
     "compileErrors": 0,
     "consoleErrors": 0,
     "networkFailures": 0,
-    "healthyRuntimeRoutes": 38,
+    "healthyRuntimeRoutes": 39,
     "guardedRuntimeRoutes": 1,
     "environment": "local_devtools_synthetic_nonproduction",
     "compileEvidenceFiles": [
-      "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/devtools-f627b971-compile-open.json"
+      "docs/evidence/visual/review-native-aftersale-20260923t0140/devtools-6ec7f596-compile-open.json"
     ],
     "consoleEvidenceFiles": [
-      "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/devtools-f627b971-console-filter.json"
+      "docs/evidence/visual/review-native-aftersale-20260923t0140/devtools-6ec7f596-console-filter.json"
     ],
     "networkEvidenceFiles": [
-      "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/devtools-f627b971-network-filter.json"
+      "docs/evidence/visual/review-native-aftersale-20260923t0140/devtools-6ec7f596-network-filter.json"
     ],
     "routeRuntimeHealthFiles": [
-      "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/route-runtime-health.json"
+      "docs/evidence/visual/review-native-aftersale-20260923t0140/route-runtime-health-6ec7f596.json"
     ]
   },
   "routeCoverage": [
@@ -527,7 +539,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__home__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__home__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__home__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -535,7 +621,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__records__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__records__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__records__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -543,7 +703,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -551,7 +785,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__profile__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__profile__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__profile__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -559,7 +867,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__account__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__account__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__account__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -567,7 +949,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__task__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__task__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__task__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -575,7 +1031,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__submit__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__submit__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__submit__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -583,7 +1113,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__progress__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__progress__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__progress__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -591,7 +1195,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__points__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__points__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__points__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -599,7 +1277,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__post__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__post__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__post__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -607,7 +1359,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__shop__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__shop__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__shop__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -615,7 +1441,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__product__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__product__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__product__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -623,7 +1523,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__checkout__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__checkout__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__checkout__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -631,7 +1605,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__orders__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__orders__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__orders__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -639,7 +1687,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__order-detail__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__order-detail__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__order-detail__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -647,7 +1769,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__settings__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__settings__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__settings__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -655,7 +1851,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__invite__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__invite__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__invite__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -663,7 +1933,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__legal__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__legal__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__legal__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -671,7 +2015,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__privacy-rights__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__privacy-rights__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__privacy-rights__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -679,7 +2097,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__support__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__support__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__support__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -687,7 +2179,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -695,7 +2261,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-catalog__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-catalog__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-catalog__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -703,7 +2343,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-product__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-product__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-product__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -711,7 +2425,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-orders__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-orders__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-orders__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -719,7 +2507,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-order-detail__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-order-detail__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-order-detail__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -727,7 +2589,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-support__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-support__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-support__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -735,7 +2671,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-support-chat__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-support-chat__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-support-chat__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -743,7 +2753,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-members__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-members__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-members__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -751,7 +2835,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-member__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-member__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-member__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -759,7 +2917,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__referral__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__referral__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__referral__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -767,7 +2999,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-compose__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-compose__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-compose__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -775,7 +3081,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-post__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-post__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-post__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -783,7 +3163,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-author__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-author__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-author__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -791,7 +3245,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-review__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-review__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-review__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -799,7 +3327,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__community-activity__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-activity__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__community-activity__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -807,7 +3409,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-finance__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-finance__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-finance__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -815,7 +3491,81 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__commission__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__commission__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__commission__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -823,7 +3573,163 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-privacy__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-privacy__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-privacy__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
+      ]
+    },
+    {
+      "route": "pages/aftersale/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__aftersale__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__aftersale__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     },
     {
@@ -831,11 +3737,96 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/visual/review-native-fulfillment-f627b971-20260923t0021/screenshots/raw/pages__management-fulfillment__index.png"
+        "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-fulfillment__index.png"
+      ],
+      "states": [
+        {
+          "state": "default",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "Current native baseline captured; visual acceptance remains open.",
+          "evidenceFiles": [
+            "docs/evidence/visual/review-native-aftersale-20260923t0140/screenshots/raw/pages__management-fulfillment__index.png"
+          ]
+        },
+        {
+          "state": "loading",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "empty",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "error",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "unauthorized",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "long-copy",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "keyboard",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "modal",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "scroll-bottom",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        },
+        {
+          "state": "back-restore",
+          "applicability": "applicable",
+          "result": "blocked",
+          "reason": "State-specific native evidence is still required.",
+          "evidenceFiles": []
+        }
       ]
     }
   ],
-  "devices": [],
+  "devices": [
+    {
+      "platform": "ios",
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "platform": "android",
+      "result": "blocked",
+      "evidenceFiles": []
+    }
+  ],
   "findings": [
     {
       "id": "CURRENT_NATIVE_RECAPTURE_REQUIRED",

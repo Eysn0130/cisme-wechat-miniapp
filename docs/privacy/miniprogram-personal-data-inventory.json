@@ -458,6 +458,18 @@
       "purpose": "Authorized native fulfillment administrator explicitly previews an audited XLSX containing recipient name, phone and shipping address. No external provider added.",
       "boundary": "Server capability on export; native identity and capability recheck before opening; temporary file removed on hide, cancellation or identity change. Copies explicitly saved or shared through WeChat remain under operator retention duties; production retention policy pending.",
       "source": "apps/miniprogram/pages/management-fulfillment/index.ts"
+    },
+    {
+      "surface": "commerce_aftersale_case",
+      "purpose": "整单售后受理、退货物流与退款事实关联；收件信息来自独立批准配置",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "boundary": "仅本人及当前授权售后人员可见；不自动退款、不自动回补库存；生产导出/删除仍未完成"
+    },
+    {
+      "surface": "commerce_aftersale_event",
+      "purpose": "售后状态转换、处理说明与操作审计",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "boundary": "操作人和买方是不同数据主体；不可对其他用户导出原始处理说明"
     }
   ],
   "runtimeDataEgress": [
@@ -492,7 +504,7 @@
       "state": "controlled_formal_recovery_source_wired_no_live_grant_installed_no_real_channel_calls"
     }
   ],
-  "migrationSetSha256": "732a85d527d74155c090f5805f77e692edda61c9cb06520ae2475df5d4afd02a",
+  "migrationSetSha256": "05f1fd1eb16aa3706f2c556e424f4ea85435af0a72d4ff20512573de9087ce45",
   "egressSignatureSha256": "1dc449dada726a43c2b1cbf6b716dd061d8961f827ef6704ed37250fd54685d2",
   "performanceRepairReview": {
     "date": "2026-09-20",

@@ -399,7 +399,8 @@ const acceptance = JSON.parse(await readFile(acceptancePath, "utf8")) as {
   finalResult: string;
   evidenceIndex: Record<string, unknown>;
   devtools: unknown;
-  routeCoverage: Array<{ route: string; matrixComplete: boolean; result: string; evidenceFiles: string[] }>;
+  routeCoverage: Array<{ route: string; matrixComplete: boolean; result: string; evidenceFiles: string[];
+    states?: Array<{state:string;result:string;reason?:string;evidenceFiles:string[]}> }>;
 };
 if (acceptance.packageSourceSha256 !== inspection.actual.sourceSha256) throw new Error("Current-source acceptance manifest hash mismatch");
 const evidenceIndex: Record<string, unknown> = {};
@@ -409,7 +410,18 @@ for (const screenshot of screenshotIndex) {
     heightPx: screenshot.heightPx, kind: "route_native", packageSourceSha256: inspection.actual.sourceSha256, route: screenshot.route, state: "default-entry",
     viewport: `${screenshot.widthPx}x${screenshot.heightPx}`, platform: undefined };
   const coverage = acceptance.routeCoverage.find((entry) => entry.route === screenshot.route);
-  if (coverage) coverage.evidenceFiles = [repositoryPath];
+  if (coverage) {
+    coverage.evidenceFiles = [repositoryPath];
+    coverage.matrixComplete = false;
+    coverage.result = "blocked";
+    // The fresh baseline index replaces earlier evidence. A default frame must
+    // be referenced by the default state, never promoted to every interaction.
+    for (const state of coverage.states ?? []) {
+      state.evidenceFiles = state.state === "default" ? [repositoryPath] : [];
+      state.result = "blocked";
+      state.reason = state.state === "default" ? "Current native baseline captured; visual acceptance remains open." : "State-specific native evidence is still required.";
+    }
+  }
 }
 acceptance.evidenceIndex = evidenceIndex;
 // A generator has not executed compile/console/network checks. Only the

@@ -6,6 +6,8 @@ if(schema.kind!=='synthetic-migrated-schema-only-NOT-personal-data-export')throw
 const tables=new Map(schema.tables.map(t=>[t.table,t]));
 const allow:Record<string,string[]>={member:['id','display_name','created_at'],member_profile:['wechat_handle','updated_at']};
 const special:Record<string,string>={
+ commerce_aftersale_case:'member_id/order_id identify buyer; return_destination is an approved business contact snapshot, return_tracking and reason are private. Whole-order quantity claims are independent of refund facts and inventory. Never raw-export reasons or contacts across subjects.',
+ commerce_aftersale_event:'case_id identifies buyer; actor_member_id is the customer or a separately authorized operator. Notes may contain third-party data. Immutable history is not a blanket retention approval.',
  commerce_shipment:'order_id identifies buyer; created_by_member_id is operator, not the buyer. Receipt fact is independent of carrier state and refund/commission eligibility.',
  commerce_shipment_line:'Resolve buyer through shipment/order; product quantities are immutable fulfillment evidence.',
  commerce_shipment_event:'Resolve buyer through shipment/order; actor_principal_id identifies operator or owner separately. No raw event export; preserve retention and legal holds.',

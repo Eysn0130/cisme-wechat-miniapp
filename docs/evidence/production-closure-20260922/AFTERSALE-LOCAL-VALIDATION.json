@@ -1,0 +1,87 @@
+{
+  "scope": "local-owned-synthetic-only; not staging/production/device acceptance",
+  "sourceBase": "a659e050ef32ad4dd50d1043e5d9faaf98db4b2f",
+  "sourceAfterCommit": "resolve from commit containing this file",
+  "runs": [
+    {
+      "log": "tmp/aftersale-full-unit-3.log",
+      "sha256": "095f7c966a14271028c2572240b6edb353a2e4e58abff59666d8e9f2d46fc49f",
+      "summary": [
+        "Test Files  102 passed (102)",
+        "Tests  1121 passed | 1 skipped (1122)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-pg16-full.log",
+      "sha256": "712cf6db0958c222b04c13a476a5636ba27264438d952d87497ce7da13b174ca",
+      "summary": [
+        "Test Files  48 passed (48)",
+        "Tests  835 passed (835)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-full-integration.log",
+      "sha256": "6703d04a2d46ab47d1bf54480c300af7ed286864862eb33e30c8ed818e63aaca",
+      "summary": [
+        "Test Files  48 passed (48)",
+        "Tests  835 passed (835)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-shipping-targeted.log",
+      "sha256": "71e4aa0239ec08288fd7ff78a939dc67cccceab326dad110a4d48f50c500b1e0",
+      "summary": [
+        "Test Files  2 passed (2)",
+        "Tests  58 passed (58)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-typecheck.log",
+      "sha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c",
+      "summary": []
+    },
+    {
+      "log": "tmp/aftersale-build-final.log",
+      "sha256": "1874cf35f3b5ee908df96a55d04b5354d37b20fe89a23d4b1c86524c283bdf88",
+      "summary": []
+    },
+    {
+      "log": "tmp/aftersale-contracts-final.log",
+      "sha256": "b840d59d2f3ea1eef87eaf836a82a0b42369657bd1b6df4bb2d490729829a1be",
+      "summary": [
+        "246 registered /v1 methods match OpenAPI; 248 documented methods include health; 32 typed events match catalog. Final database schema is checked after isolated forward migrations."
+      ]
+    },
+    {
+      "log": "tmp/aftersale-python.log",
+      "sha256": "31d77914c169ce8a8ee12531d99f0647203caafd1692d94cf85be81e9402aa2e",
+      "summary": [
+        "Ran 48 tests in 1.440s",
+        "OK",
+        "Ran 4 tests in 0.000s",
+        "OK"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-full-unit-fixed.log",
+      "sha256": "b62c92a35ec243f3b5bf98922816cf412e9749cc49a77933de166f7828a01a0e",
+      "summary": [
+        "Test Files  102 passed (102)",
+        "Tests  1121 passed | 1 skipped (1122)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-typecheck-final.log",
+      "sha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c",
+      "summary": []
+    },
+    {
+      "log": "tmp/aftersale-contracts-final2.log",
+      "sha256": "b840d59d2f3ea1eef87eaf836a82a0b42369657bd1b6df4bb2d490729829a1be",
+      "summary": [
+        "246 registered /v1 methods match OpenAPI; 248 documented methods include health; 32 typed events match catalog. Final database schema is checked after isolated forward migrations."
+      ]
+    }
+  ],
+  "evidenceIndexRepair": "Post-capture gate failed on unreferenced default frames and unbound health filename; capture/generator fixed without relaxing gate. Final full unit run passed."
+}

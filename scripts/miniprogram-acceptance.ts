@@ -383,6 +383,7 @@ async function seedFixtures() {
     routes: {
       ...communityRoutes,
       ...(paidFixture?{managementPaidOrder:{path:"pages/management-order-detail/index",query:`id=${paidFixture.id}`}}:{}),
+      aftersale: {path:"pages/aftersale/index",query:paidFixture?`orderId=${paidFixture.id}`:""},
       managementMember: { path: "pages/management-member/index", query: `id=${identity.memberId}` },
       product: { path: "pages/product/index", query: `id=${createdProduct.code}` },
       checkout: { path: "pages/checkout/index", query: `product=${createdProduct.code}&sku=${sku.id}&quantity=1` },

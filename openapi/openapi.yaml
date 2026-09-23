@@ -1517,6 +1517,121 @@ paths:
                       - {$ref: '#/components/schemas/ShipmentDispatchInput'}
                       - {type: object, required: [orderId], properties: {orderId: {type: string, format: uuid}}}
       responses: {'200': {description: Per-row results; retries preserve the same keys}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/aftersales:
+    post:
+      operationId: requestAftersale
+      summary: Create whole-order case; no refund or return instruction is implied
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: orderId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind, reason], properties: {kind: {type: string, enum: [refund_only, return_refund]}, reason: {type: string, minLength: 3, maxLength: 500}}}}}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/me/aftersales:
+    get:
+      operationId: listMyAftersales
+      summary: Owner scoped after-sale cases
+      security: [{session: []}]
+      parameters:
+        - {in: query, name: orderId, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50}}
+        - {in: query, name: cursor, schema: {type: string, maxLength: 600}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/me/aftersales/{caseId}:
+    get:
+      operationId: myAftersale
+      summary: Owner scoped case and bounded history
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/me/aftersales/{caseId}/actions:
+    post:
+      operationId: actMyAftersale
+      summary: Withdraw, supplement or register return waybill
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [cancel, provide_info, ship_return, request_info, reject, approve_return, receive_return, inspect_return, request_refund, reopen_refund]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, carrier: {type: string, maxLength: 80}, tracking: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}, qualityResult: {type: string, enum: [sellable, unsellable]}}}}}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/management/aftersales:
+    get:
+      operationId: listManagedAftersales
+      summary: Capability scoped after-sale queue
+      security: [{session: []}]
+      parameters:
+        - {in: query, name: orderId, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50}}
+        - {in: query, name: cursor, schema: {type: string, maxLength: 600}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/management/aftersales/{caseId}:
+    get:
+      operationId: managedAftersale
+      summary: Capability scoped case history
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/management/aftersales/{caseId}/actions:
+    post:
+      operationId: actManagedAftersale
+      summary: Separated review, receiving and inspection permissions; linked refund uses existing commerce gate
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [cancel, provide_info, ship_return, request_info, reject, approve_return, receive_return, inspect_return, request_refund, reopen_refund]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, carrier: {type: string, maxLength: 80}, tracking: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}, qualityResult: {type: string, enum: [sellable, unsellable]}}}}}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}

@@ -228,5 +228,6 @@ Page({
       if(current())this.setData({order:this.normalize(updated),busy:false,cancelKey:"",actionStatus:"订单已取消，相关预留已由服务端处理。"});}
     catch(error){if(current())this.setData({busy:false,actionError:errorTitle(error,"取消结果暂未核实，请核对原单后重试原操作。")});}
     finally{this.finishAction(epoch,token);}},
+  openAftersale(){if(!this.canAct()||this.data.busy||!this.data.order||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:`/pages/aftersale/index?orderId=${this.data.order.id}`,fail:()=>this.setData({navigating:false})});},
   back(){if(this.data.busy||this.data.navigating)return;this.setData({navigating:true});wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/orders/index"})});}
 });

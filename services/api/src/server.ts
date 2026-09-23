@@ -33,6 +33,7 @@ import { CommerceOrderService } from "./commerceOrders.js";
 import { PaymentAttemptService } from "./paymentAttempt.js";
 import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
 import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
+import { AftersaleService } from "./aftersale.js";
 import { RefundCommandService } from "./refundCommand.js";
 import { FulfillmentReleaseService } from "./fulfillmentRelease.js";
 import { startWorkerLoop } from "../../worker/src/loop.js";
@@ -131,6 +132,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
+  const aftersales = new AftersaleService(pool,authority,config.commerce.returnDestinationFile);
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
@@ -584,6 +586,23 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
     paymentRequired("close").cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>,request.id));
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/aftersales",async request=>
+    aftersales.request(request.memberId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string}}>("/v1/me/aftersales",async request=>
+    aftersales.list(request.memberId,request.query));
+  app.get<{Params:{caseId:string}}>("/v1/me/aftersales/:caseId",async request=>
+    aftersales.detail(request.memberId,request.params.caseId));
+  app.post<{Params:{caseId:string}}>("/v1/me/aftersales/:caseId/actions",async request=>
+    aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+  app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string}}>("/v1/management/aftersales",async request=>
+    aftersales.list(request.memberId,request.query,true));
+  app.get<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId",async request=>
+    aftersales.detail(request.memberId,request.params.caseId,true));
+  app.post<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId/actions",async request=>{
+    const input=(request.body??{}) as Record<string,unknown>;
+    return aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),input,true,
+      input.action==='request_refund'?refundRequired():undefined);
+  });
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/refund-requests",async request=>
     refundRequired().request(request.memberId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));

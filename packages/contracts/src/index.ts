@@ -19,6 +19,7 @@ export type AdminRole = "reviewer" | "review_lead" | "auditor" | "support" | "fi
 export const CAPABILITIES = [
   "support.read", "support.reply", "support.assign",
   "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read",
+  "commerce.aftersale.review", "commerce.return.receive", "commerce.return.inspect",
   "commerce.fulfillment.manage", "commerce.refund.approve", "commerce.money.reconcile",
   "community.moderate", "member.support_view", "member.profile.read", "member.manage",
   "commission.read", "commission.rate.manage", "commission.rate.approve",

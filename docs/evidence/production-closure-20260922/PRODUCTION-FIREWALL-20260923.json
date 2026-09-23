@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-09-23T01:33:42Z",
+  "source": "Authenticated Tencent Lighthouse production instance firewall page; clicked Refresh and read rendered main content after loading completed",
+  "instanceId": "lhins-61ikz4mi",
+  "instanceName": "cisme-app-shanghai",
+  "ip": "124.223.74.198",
+  "environment": "production",
+  "cloudRules": [
+    {"protocol":"TCP","port":"5432","source":"all IPv4","action":"allow","remark":"CISME database: mTLS client certificate + SCRAM"},
+    {"protocol":"TCP","port":"22","source":"all IPv4","action":"allow"},
+    {"protocol":"TCP","port":"80","source":"all IPv4","action":"allow"},
+    {"protocol":"ICMP","port":"ALL","source":"all IPv4","action":"allow"}
+  ],
+  "tcp443RuleVisible": false,
+  "changed": false,
+  "credentialsRotated": false,
+  "limits": [
+    "This is a current cloud-console rule observation, not a fresh OS firewall/listener or PostgreSQL authentication test.",
+    "The rule remark is not independent evidence of current mTLS/SCRAM enforcement.",
+    "No rule or credential was modified. Earlier OS and database evidence remains in SECURITY-INCIDENT.md with its original scope.",
+    "No staging condition is inferred to be a production condition."
+  ]
+}

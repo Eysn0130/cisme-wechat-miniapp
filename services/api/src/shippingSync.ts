@@ -93,6 +93,8 @@ export class ShippingSyncService {
         fail('SHIPPING_PROPOSAL_CONFLICT');
       }
       const binding = await this.binding(client, orderId);
+      if((await client.query("SELECT 1 FROM commerce_aftersale_case WHERE order_id=$1 AND state NOT IN ('cancelled','rejected')",[orderId])).rowCount)
+        fail('SHIPPING_AFTERSALE_REVIEW_REQUIRED');
       const uploadTime = new Date().toISOString(); unifiedShippingPayload(binding, normalized, uploadTime);
       const id = randomUUID();
       const row = (await client.query<Row>(`INSERT INTO commerce_shipping_sync(id,order_id,created_by_member_id,

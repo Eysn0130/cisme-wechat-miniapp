@@ -124,7 +124,7 @@ const prefix = inspection.actual.sourceSha256.slice(0, 8);
 const compilePath = resolve(reviewRoot, `devtools-${prefix}-compile-open.json`);
 const consolePath = resolve(reviewRoot, `devtools-${prefix}-console-filter.json`);
 const networkPath = resolve(reviewRoot, `devtools-${prefix}-network-filter.json`);
-const routeHealthPath = resolve(reviewRoot, "route-runtime-health.json");
+const routeHealthPath = resolve(reviewRoot, `route-runtime-health-${inspection.actual.sourceSha256.slice(0,8)}.json`);
 const consoleFilter = "grep -Ein 'error|uncaught|exception|fail'";
 const networkFilter = "grep -Ein 'fail|error|ECONN|ERR_|status[^0-9]*(0|4[0-9]{2}|5[0-9]{2})'";
 const consoleResult = wechatide("runtime", "get_simulator_console", ["--command", consoleFilter]).result;
@@ -187,7 +187,7 @@ const sourceManifestPath = resolve(reviewRoot, "source-manifest.json");
 const sourceManifest = JSON.parse(await readFile(sourceManifestPath, "utf8"));
 sourceManifest.capture.runtimeHealthyRoutes = routeHealth.filter(row => row.result === "PASS_LOCAL_SYNTHETIC").length;
 sourceManifest.capture.runtimeGuardedRoutes = routeHealth.filter(row => row.result === "PASS_EXPECTED_MONEY_DISABLED").length;
-sourceManifest.capture.runtimeHealthEvidence = "route-runtime-health.json";
+sourceManifest.capture.runtimeHealthEvidence = basename(routeHealthPath);
 sourceManifest.capture.result = "AUTHENTICATED_HEALTHY_NATIVE_BASELINE_CAPTURED_VISUAL_ACCEPTANCE_BLOCKED";
 await writeFile(sourceManifestPath, JSON.stringify(sourceManifest, null, 2) + "\n");
 
