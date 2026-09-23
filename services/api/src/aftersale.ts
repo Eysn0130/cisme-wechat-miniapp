@@ -126,7 +126,7 @@ export class AftersaleService{
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const caseId=id(caseInput),k=key(kInput),action=String(input.action??''),why=note(input.note),version=input.expectedVersion;
     if(!Number.isSafeInteger(version)||Number(version)<1)fail('VERSION_INVALID','请刷新案件后重试',422);
-    if(management?!actionCaps[action]:!['cancel','provide_info','ship_return'].includes(action))fail('AFTERSALE_ACTION_INVALID','售后操作无效',422);
+    if(management?!Object.hasOwn(actionCaps,action):!['cancel','provide_info','ship_return'].includes(action))fail('AFTERSALE_ACTION_INVALID','售后操作无效',422);
     const carrier=action==='ship_return'?input.carrier:null,tracking=action==='ship_return'?input.tracking:null;
     if(action==='ship_return'&&(typeof carrier!=='string'||carrier.trim().length<1||carrier.length>80||typeof tracking!=='string'||!/^[A-Za-z0-9-]{6,64}$/.test(tracking)))fail('RETURN_TRACKING_INVALID','请填写真实快递公司和 6 至 64 位运单号',422);
     const quality=action==='inspect_return'?input.qualityResult:null;
