@@ -17,7 +17,8 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
-  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "" },
+  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false },
+  openAccountHelp(){wx.navigateTo({url:"/pages/privacy-rights/index",fail:()=>wx.showToast({title:"联系入口暂时无法打开，请重试",icon:"none"})});},
   documents(): LegalDocumentVersions | null { return currentLegalDocuments() || this.data.serverLegalDocuments; },
   async syncLegalDocuments() {
     const previous = this.documents();
@@ -223,7 +224,7 @@ Page({
       return;
     }
     const attempt = this.data.authAttempt + 1;
-    this.setData({ authAttempt: attempt, loading: true, identityCommitStarted: false, error: "" });
+    this.setData({ authAttempt: attempt, loading: true, identityCommitStarted: false, error: "", accountHelpAvailable:false });
     try {
       const account = wx.getAccountInfoSync();
       const base = { displayName: "CISME 会员", consents: [{ documentType: "privacy", version: legalDocuments.privacy }, { documentType: "terms", version: legalDocuments.terms }] };
@@ -262,9 +263,15 @@ Page({
       const landed = await navigateAfterAuthentication(pendingDestination);
       if (this.data.pageAlive && landed !== "target") this.setData({ error: "身份已经确认，但原目标页面暂时无法打开。请点击主按钮再次打开，不会重复创建会员身份。" }, scrollToAccountError);
     } catch (error) {
-      if (this.data.pageAlive && this.data.authAttempt === attempt) this.setData({ error: this.data.identityCommitStarted
-        ? "暂未收到身份确认结果，服务端可能已完成核验。请检查网络后重试，本页尚未切换会员身份。"
-        : "微信身份确认暂时未完成，请重试。身份核验请求尚未发送。" }, scrollToAccountError);
+      if (this.data.pageAlive && this.data.authAttempt === attempt) {
+        const code=(error as {code?:string})?.code;
+        const unavailable=code==="ACCOUNT_CLOSED"||code==="MEMBER_NOT_ACTIVE";
+        this.setData({accountHelpAvailable:unavailable,error:unavailable
+          ?code==="ACCOUNT_CLOSED"?"账号已注销。如需处理历史事项，请通过小程序内的微信反馈联系。":"账号暂不可登录。请通过小程序内的微信反馈联系。"
+          :this.data.identityCommitStarted
+            ?"暂未收到身份确认结果，服务端可能已完成核验。请检查网络后重试，本页尚未切换会员身份。"
+            :"微信身份确认暂时未完成，请重试。身份核验请求尚未发送。"},scrollToAccountError);
+      }
     } finally {
       if (this.data.authAttempt === attempt) {
         wx.disableAlertBeforeUnload();

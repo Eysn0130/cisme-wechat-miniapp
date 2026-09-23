@@ -970,6 +970,18 @@ describe("mini-program page behavior", () => {
     expect(context.data.loading).toBe(false);
     expect(context.data.identityCommitStarted).toBe(false);
   });
+  it("shows a public contact path when the server confirms a closed account", async () => {
+    requestMock.mockRejectedValueOnce({status:410,code:"ACCOUNT_CLOSED",title:"账号已注销"});
+    await vi.importActual("../../apps/miniprogram/pages/account/index");
+    const page=capturedPage!;
+    const context=mountedPage(page,{agreementAccepted:true,legalTextsReady:true});
+    await page.login.call(context);
+    expect(context.data.error).toContain("账号已注销");
+    expect(context.data.error).not.toContain("服务端可能已完成核验");
+    expect(context.data.accountHelpAvailable).toBe(true);
+    page.openAccountHelp.call(context);
+    expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/privacy-rights/index"}));
+  });
   it("drops a late Account avatar result after the page is hidden", async () => {
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: "member-a" } });
     let complete!: (results: unknown[]) => void;

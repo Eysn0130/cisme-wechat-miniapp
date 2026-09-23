@@ -42,6 +42,21 @@ describe("native delayed authentication responses", () => {
     expect(state.globalData.sessionToken).toBe("");
     expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
   });
+  it("clears a revoked account session without reopening a login loop", async () => {
+    const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const result=api.request({path:"/v1/me"});
+    wxMock.request.mock.calls[0]![0].success({statusCode:401,data:{code:"AUTH_REVOKED"}});
+    await expect(result).rejects.toMatchObject({code:"AUTH_REVOKED"});
+    expect(state.globalData.sessionToken).toBe("");
+    expect(wxMock.navigateTo).not.toHaveBeenCalled();
+  });
+  it("keeps the operator session when a target member is unavailable", async () => {
+    const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const result=api.request({path:"/v1/management/members/target/membership",method:"POST",data:{state:"active"}});
+    wxMock.request.mock.calls[0]![0].success({statusCode:409,data:{code:"MEMBER_NOT_ACTIVE"}});
+    await expect(result).rejects.toMatchObject({code:"MEMBER_NOT_ACTIVE"});
+    expect(state.globalData.sessionToken).toBe("old-session");
+  });
 });
 
 it('rejects old successful member data after an account switch',async()=>{

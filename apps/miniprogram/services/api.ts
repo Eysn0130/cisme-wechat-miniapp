@@ -214,9 +214,12 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
           try { remaining(); } catch (error) { fail(error); return; }
           if (response.statusCode >= 200 && response.statusCode < 300) { settled = true; if (interrupt === fail) interrupt = null; resolve(response.data as T); return; }
           const problem = response.data as Record<string, unknown>;
+          // AUTH_REVOKED identifies this session. MEMBER_NOT_ACTIVE can refer
+          // to an admin's target member and must not sign the admin out.
+          const accountUnavailable=problem?.code === "AUTH_REVOKED";
           if ((response.statusCode === 401 || problem?.code === "MEMBER_NOT_FOUND") && token && app.globalData.sessionToken === token) {
             setSessionToken("");
-            if (authMode === "required" && currentRouteUrl() === origin) beginAuthentication(origin);
+            if (!accountUnavailable && authMode === "required" && currentRouteUrl() === origin) beginAuthentication(origin);
           }
           fail({ ...problem, status: response.statusCode });
         }, fail });

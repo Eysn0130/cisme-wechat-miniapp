@@ -197,7 +197,7 @@ describe("native mini program boundary", () => {
   it("locks the per-route button action inventory and verifies every handler exists", async () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
-      account: ["back", "openLegalDocuments", "openCrossBorder", "loginTap", "browseCommunity"],
+      account: ["back", "openLegalDocuments", "openCrossBorder", "openAccountHelp", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],

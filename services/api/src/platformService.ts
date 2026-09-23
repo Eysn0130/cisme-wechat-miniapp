@@ -195,7 +195,7 @@ export class PlatformService {
       } else {
         const state=(await client.query<{status:string}>(
           'SELECT status FROM member WHERE id=$1 FOR UPDATE',[memberId])).rows[0]?.status;
-        if(state==='deleted')throw new DomainError('ACCOUNT_CLOSED','该账号已注销，如需处理历史事项请通过小程序客服反馈',410);
+        if(state==='deleted')throw new DomainError('ACCOUNT_CLOSED','该账号已注销；历史事项可从小程序内微信反馈入口联系',410);
         if(state!=='active')throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可登录',403);
       }
       // Re-authentication never overwrites member-managed or reviewed profile data.
