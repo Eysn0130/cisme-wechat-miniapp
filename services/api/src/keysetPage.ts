@@ -3,6 +3,15 @@ import { DomainError } from "@cisme/domain";
 
 const idPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export type PageCursor={at:string;id:string};
+/** Only accept UTC timestamps emitted by our cursor producers. Date.parse alone
+ * also accepts ambiguous inputs and normalizes impossible dates. Validate the
+ * calendar without replacing the original microsecond-precision SQL boundary. */
+function cursorTimestamp(value:unknown):value is string{
+  if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(value)
+    ||value.startsWith("0000-"))return false;
+  const milliseconds=Date.parse(value);
+  return Number.isFinite(milliseconds)&&new Date(milliseconds).toISOString().slice(0,19)===value.slice(0,19);
+}
 export function pageLimit(value:unknown,fallback=30,max=50):number{
   if(value==null||value==="")return fallback;
   const number=Number(value);
@@ -18,8 +27,8 @@ export function readPageCursor(value:unknown,scope:string):PageCursor|null{
     throw new DomainError("PAGE_CURSOR_INVALID","列表位置已失效，请从第一页重新加载",422);
   try{
     const decoded=JSON.parse(Buffer.from(value,"base64url").toString("utf8")) as {v?:unknown;s?:unknown;t?:unknown;i?:unknown};
-    if(decoded.v!==1||decoded.s!==scope||typeof decoded.t!=="string"||decoded.t.length>50||
-      !Number.isFinite(Date.parse(decoded.t))||typeof decoded.i!=="string"||!idPattern.test(decoded.i))throw new Error("invalid");
+    if(decoded.v!==1||decoded.s!==scope||!cursorTimestamp(decoded.t)||
+      typeof decoded.i!=="string"||!idPattern.test(decoded.i))throw new Error("invalid");
     return {at:decoded.t,id:decoded.i};
   }catch{throw new DomainError("PAGE_CURSOR_INVALID","列表位置已失效，请从第一页重新加载",422);}
 }

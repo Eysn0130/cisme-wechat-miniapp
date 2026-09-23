@@ -18,10 +18,10 @@ Page({
  onUnload(){this.onHide();},
  current(epoch:number,token:string){return this.visible&&epoch===this.epoch&&token===this.lastToken&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision();},
  stopPolling(){if(this.timer!==null)clearInterval(this.timer);this.timer=null;},
- startPolling(){this.stopPolling();if(this.visible&&this.data.coreReady&&!this.data.moreBusy&&this.data.items.length<=30)this.timer=setInterval(()=>void this.load(true),6000);},
+ startPolling(){this.stopPolling();if(this.visible&&this.data.coreReady&&!this.data.moreBusy)this.timer=setInterval(()=>void this.load(true),6000);},
  invalidate(message:string){this.stopPolling();this.setData({items:[],nextCursor:null,moreBusy:false,moreError:"",selected:null,response:"",coreReady:false,busy:false,error:message});},
  async load(silent=false){
-  if(!this.visible||this.readPending||(silent&&this.data.busy))return;
+  if(!this.visible||this.readPending||(silent&&(this.data.busy||this.data.moreBusy)))return;
   if(silent&&!this.current(this.epoch,this.lastToken)){this.invalidate("身份已变化，请重新核验权限。");return;}
   if(!silent){cancelPageReads(this);this.stopPolling();this.epoch++;this.lastToken=getApp<IAppOption>().globalData.sessionToken;this.lastRevision=commerceContextRevision();this.setData({items:[],nextCursor:null,moreBusy:false,moreError:"",selected:null,response:"",coreReady:false,loading:true,error:"",actionError:""});}
   const epoch=this.epoch,token=this.lastToken;this.readPending=true;
@@ -30,6 +30,9 @@ Page({
    const authority=await authorityProjection(this);
    if(!this.current(epoch,token))return;
    if(authority.version!==1||!authority.managementAvailable||!hasCapability(authority,"privacy.request.manage"))throw {status:403};
+   // Expanded pages retain their rows and draft, but never stop checking
+   // revocable authority. Explicit refresh still reloads the queue from page 1.
+   if(silent&&this.data.items.length>30)return;
    const page=await pageRead<PrivacyPage>(this,{path:"/v1/management/privacy-requests?page=1"});
    if(!this.current(epoch,token))return;
    const items=page.items.map(displayRow);
@@ -48,7 +51,7 @@ Page({
   }catch(error){if(!this.current(epoch,token))return;
    if([401,403].includes((error as {status?:number})?.status??0))this.invalidate("当前身份没有隐私受理权限，请返回管理中心或重试。");
    else this.setData({moreError:"后续请求加载失败，请重试。"});
-  }finally{if(this.visible&&epoch===this.epoch){this.data.moreBusy=false;this.setData({moreBusy:false});if(!this.current(epoch,token))this.invalidate("身份已变化，请重新核验权限。");}}
+  }finally{if(this.visible&&epoch===this.epoch){this.data.moreBusy=false;this.setData({moreBusy:false});if(!this.current(epoch,token))this.invalidate("身份已变化，请重新核验权限。");else if(this.data.coreReady)this.startPolling();}}
  },
  canAct(){return this.data.coreReady&&this.current(this.epoch,this.lastToken)&&!this.data.busy;},
  select(event:WechatMiniprogram.TouchEvent){if(!this.canAct())return;const row=this.data.items.find(row=>row.id===String(event.currentTarget.dataset.id||""));if(row)this.setData({selected:row,response:row.response||"",statusIndex:row.status==="responded"?1:0,actionError:"",notice:""});},
