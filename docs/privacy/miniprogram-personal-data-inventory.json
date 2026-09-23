@@ -502,10 +502,16 @@
       "data": "合成完整协议仅进入隔离回环渠道；可选正式恢复仅在保护文件的独立能力授权后发送原商户订单/退款号及账单日期，使用绑定商户签名头，不发送新资金命令。通知来自微信并在本机验签解密。",
       "purpose": "历史支付/退款查单、账单核对与验签回调；每次重新校验环境/AppID/mchid/能力/有效期，HTTPS 域名和 GET 路径白名单、禁重定向，日志只留审批引用、能力、状态、Request-ID、耗时。",
       "state": "controlled_formal_recovery_source_wired_no_live_grant_installed_no_real_channel_calls"
+    },
+    {
+      "recipient": "GitHub api.github.com（部署工具）",
+      "data": "固定仓库名、main引用/commit/tree、CI查询参数及迁移脚本路径；不发送数据库/用户/订单数据或认证秘密",
+      "purpose": "只读核验准确main和最新main push CI，核对迁移入口来源；HTTPS校验、固定仓库、禁止重定向、12秒超时",
+      "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
   "migrationSetSha256": "05f1fd1eb16aa3706f2c556e424f4ea85435af0a72d4ff20512573de9087ce45",
-  "egressSignatureSha256": "1dc449dada726a43c2b1cbf6b716dd061d8961f827ef6704ed37250fd54685d2",
+  "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -619,5 +625,22 @@
     "storage": "请求事实、版本和既有不可变事件/审计；页面离开清理正文及草稿，不写本地缓存",
     "externalRecipient": "现有 CISME API，无新增处理方",
     "productionExecutionComplete": false
+  },
+  "productionDeploymentEgressReview20260923": {
+    "sources": [
+      "infra/tencent/production-release.py",
+      "infra/tencent/production-observation.py",
+      "infra/tencent/production-migration-audit.py"
+    ],
+    "signatureDelta": "9新增签名：4个实际GitHub只读fetch调用，5个离线测试fixture/调用；没有删除既有清单项。",
+    "github": "匿名访问固定GitHub仓库的main/git commit/workflow runs/脚本内容，不附带token、Cookie或业务正文；返回内容有大小上限。",
+    "metadata": "腾讯云本机元数据仅instance-id/local-ipv4/public-ipv4，不读取角色或临时密钥；固定元数据端点并禁止重定向。",
+    "ownHealth": "固定api.cisme.cn/health/ready，仅无身份GET和状态判断；原始响应不写入交接证据。",
+    "database": "只读peer查询固定cisme迁移名称与schema计数；不输出业务行、密码、完整连接串或数据库原始错误。",
+    "privateLocalFiles": "原始配置备份仅根账户受保护目录；备份文件只在服务器本地校验，未上传GitHub。正式执行需要独立恢复/旧消费者证据。",
+    "ugcScan": "任务准入暂停和shutdown排空改动，不改变现有微信内容安全payload、接收方和字段；不新增遥测。",
+    "productionApplyExecuted": false,
+    "formalPolicyApproved": false,
+    "businessRetentionApproved": false
   }
 }
