@@ -726,6 +726,10 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   await expect(service.dispatch(actor,order.id,'local-shipment-0001',{...input,trackingNumber:'SF123456789002'})).rejects.toMatchObject({code:'SHIPMENT_IDEMPOTENCY_CONFLICT'});
   await expect(service.detailMine(referrer,order.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});
   expect(await service.detailMine(buyer,order.id)).toMatchObject({trackingNumber:input.trackingNumber,logisticsState:'shipped',wechatSyncState:'prepared',receiptConfirmedAt:null});
+  await expect(cases.request(buyer,order.id,'local-shipped-refund-only',{kind:'refund_only',reason:'合成已发货仅退款申请'}))
+    .rejects.toMatchObject({code:'AFTERSALE_RETURN_REQUIRED',status:409});
+  expect(await cases.request(buyer,order.id,'local-shipped-return',{kind:'return_refund',reason:'合成已发货退货退款申请'}))
+    .toMatchObject({kind:'return_refund',state:'requested'});
   let trackingCalls=0,blockDuringTracking=false;
   const tracked=new OrderFulfillmentService(pool,authority,addresses,sync,true,{
     query:async(binding,carrier,waybill)=>{

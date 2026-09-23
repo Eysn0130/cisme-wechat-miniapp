@@ -92,6 +92,12 @@ export class AftersaleService{
       if((await client.query(`SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
         WHERE r.order_id=$1 AND (r.state='requested' OR r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))`,[orderId])).rowCount)
         fail('AFTERSALE_EXISTING_REFUND','本单已有退款事实，请先核对原退款');
+      // Dispatch takes the same order lock. A refund-only case created after
+      // handoff cannot reach its refund command; direct the buyer to the
+      // return path before recording a case that an operator cannot finish.
+      if(kind==='refund_only'&&(await client.query(`SELECT 1 FROM commerce_shipment WHERE order_id=$1
+        UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1`,[orderId])).rowCount)
+        fail('AFTERSALE_RETURN_REQUIRED','本单已登记交寄，请选择退货退款；特殊情况请联系在线客服核对');
       const lines=(await client.query('SELECT id,product_name,sku_label,quantity,line_total_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY id',[orderId])).rows;
       if(!lines.length)fail('AFTERSALE_LINES_MISSING','商品事实缺失，请联系在线客服');
       const row=(await client.query<CaseRow>(`INSERT INTO commerce_aftersale_case(order_id,member_id,kind,reason,lines,amount_cents,idempotency_key,request_hash)
