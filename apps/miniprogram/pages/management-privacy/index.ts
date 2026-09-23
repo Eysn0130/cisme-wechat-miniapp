@@ -3,7 +3,7 @@ import { currentChromeStyle } from "../../services/layout";
 import { request } from "../../services/api";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
-type PrivacyRow={id:string;kind:string;message:string;status:string;waitingOn:"operator"|"member";response:string|null;latestMemberReply:{body:string;createdAt:string}|null;version:number;due_at:string;execution:{type:string;status:string}|null;kindLabel?:string;statusLabel?:string;dueLabel?:string;editable?:boolean};
+type PrivacyRow={id:string;kind:string;message:string;status:string;waitingOn:"operator"|"member";response:string|null;replyHistory:Array<{actor:'operator'|'member';body:string;createdAt:string;version:number}>;version:number;due_at:string;execution:{type:string;status:string}|null;kindLabel?:string;statusLabel?:string;dueLabel?:string;editable?:boolean};
 type PrivacyPage={items:PrivacyRow[];nextCursor:string|null};
 const kinds:Record<string,string>={access:"查询 / 导出",correct:"信息更正",delete:"删除请求",close_account:"注销账号",withdraw:"撤回同意",other:"其他请求"};
 const states:Record<string,string>={received:"待受理",verifying:"待核验",reviewing:"处理中",approved:"已批准",executing:"执行中",completed:"已完成",partially_completed:"部分完成",failed:"执行失败",rejected:"已拒绝",canceled:"已取消",responded:"已回复"};

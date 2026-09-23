@@ -91,6 +91,15 @@ it('removes a request from new attention while waiting for the member, then rest
    latestMemberReply:{body:supplement.message}});
  const mine=(await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`}})).json();
  expect(mine.find((row:any)=>row.id===created.id).latestMemberReply.body).toBe(supplement.message);
+ expect(mine.find((row:any)=>row.id===created.id).replyHistory.map((entry:any)=>entry.body)).toEqual([
+   '请补充需要更正的资料。',supplement.message]);
+ const finished=await app.inject({method:'POST',url:`${queue}/${created.id}/response`,headers:headers(),
+   payload:{status:'responded',waitingOn:'operator',response:'资料已收到，正在核对。',expectedVersion:3}});
+ expect(finished.statusCode).toBe(200);
+ const final=(await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`}})).json();
+ expect(final.find((row:any)=>row.id===created.id).replyHistory.map((entry:any)=>entry.body)).toEqual([
+   '请补充需要更正的资料。',supplement.message,'资料已收到，正在核对。']);
+ await expect(pool.query('DELETE FROM privacy_request_operator_reply WHERE privacy_request_id=$1',[created.id])).rejects.toThrow();
  expect(JSON.stringify((await pool.query("SELECT before_state,after_state FROM audit_log WHERE action='privacy.member_reply' AND object_id=$1",[created.id])).rows))
    .not.toContain(supplement.message);
 });

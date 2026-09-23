@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "8476d741e6764a4d82a5b487ecf3b0a510573da860737b77b6ebb0a8322ced64",
+  "migrationSetSha256": "a3db4d46f33ec56ecbe1b4ad393e4a65585ef771922ad7736e11afadceb9b30c",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -5025,6 +5025,35 @@
         "idempotency_key",
         "request_hash",
         "request_version",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "privacy_request_operator_reply",
+      "subjectPaths": [
+        [
+          "privacy_request_operator_reply.privacy_request_id -> privacy_request.id",
+          "privacy_request.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "actor_principal_id"
+      ],
+      "specialHandling": "privacy_request_id identifies the owner. The response body is private to that member and authorized privacy operators; actor_principal_id identifies a separate operator. Historical snapshots carry only the last response known before this migration. Immutable evidence requires an object-specific retention and backup rule.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "privacy_request_id",
+        "actor_principal_id",
+        "body",
+        "waiting_on",
+        "request_version",
+        "historical_snapshot",
         "created_at"
       ],
       "syntheticErasureFields": [],

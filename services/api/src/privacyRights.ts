@@ -67,6 +67,18 @@ const executionProjection = `COALESCE(
   ) FROM data_erasure_job job WHERE job.privacy_request_id=pr.id)
 ) AS execution`;
 
+const replyHistoryProjection = `(SELECT COALESCE(jsonb_agg(jsonb_build_object(
+  'actor',history.actor,'body',history.body,'createdAt',history.created_at,'version',history.request_version)
+  ORDER BY history.created_at,history.id), '[]'::jsonb) FROM (
+    SELECT actor,body,created_at,request_version,id FROM (
+      SELECT 'operator'::text AS actor,body,created_at,request_version,id FROM privacy_request_operator_reply
+        WHERE privacy_request_id=pr.id
+      UNION ALL
+      SELECT 'member'::text AS actor,body,created_at,request_version,id FROM privacy_request_member_reply
+        WHERE privacy_request_id=pr.id
+    ) replies ORDER BY created_at DESC,id DESC LIMIT 20
+  ) history) AS "replyHistory"`;
+
 export class PrivacyRights {
   private readonly authority: AuthorityService;
   constructor(private pool: pg.Pool, private environment:AppEnvironment='production') {
@@ -90,7 +102,7 @@ export class PrivacyRights {
       (SELECT jsonb_build_object('body',reply.body,'createdAt',reply.created_at) FROM privacy_request_member_reply reply
         WHERE reply.privacy_request_id=pr.id ORDER BY reply.created_at DESC,reply.id DESC LIMIT 1) AS "latestMemberReply",
       ${page?`to_char(pr.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,`:''}
-      ${executionProjection}
+      ${replyHistoryProjection},${executionProjection}
       FROM privacy_request pr WHERE pr.member_id=$1
       ${cursor?'AND (pr.created_at,pr.id)<($2::timestamptz,$3::uuid)':''}
       ORDER BY pr.created_at DESC,pr.id DESC LIMIT ${page?pageSize+1:100}`,
@@ -148,7 +160,7 @@ export class PrivacyRights {
         WHERE reply.privacy_request_id=pr.id ORDER BY reply.created_at DESC,reply.id DESC LIMIT 1) AS "latestMemberReply",
       ${page?`to_char(pr.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
         to_char(pr.due_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_due_at,`:''}
-      ${executionProjection}
+      ${replyHistoryProjection},${executionProjection}
       FROM privacy_request pr
       ${cursor?`WHERE ((${terminalPrivacySql}),pr.due_at,pr.created_at,pr.id)>($1::boolean,$2::timestamptz,$3::timestamptz,$4::uuid)`:''}
       ORDER BY (${terminalPrivacySql}),pr.due_at,pr.created_at,pr.id LIMIT ${page?pageSize+1:100}`,
@@ -180,6 +192,9 @@ export class PrivacyRights {
       const result=await client.query(`UPDATE privacy_request SET status=$2,response=$3,responded_by=$4,
         waiting_on=$5,version=version+1,updated_at=now()
         WHERE id=$1 RETURNING id,status,response,waiting_on AS "waitingOn",version,due_at,updated_at`,[id,input.status,response,principalId,waitingOn]);
+      await client.query(`INSERT INTO privacy_request_operator_reply
+        (privacy_request_id,actor_principal_id,body,waiting_on,request_version)
+        VALUES($1,$2,$3,$4,$5)`,[id,principalId,response,waitingOn,result.rows[0].version]);
       await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
         VALUES($1,$2,$3,jsonb_build_object('memberVisibleReply',true,'waitingOn',$4::text))`,[id,principalId,input.status==='reviewing'?'review_started':'responded',waitingOn]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
