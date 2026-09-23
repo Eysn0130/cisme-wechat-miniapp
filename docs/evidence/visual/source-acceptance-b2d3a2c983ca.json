@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "2f767951e252de0d5ea570c56678f562f62f184475e2ecfd561193d7a2535307",
+  "packageSourceSha256": "b2d3a2c983ca70f10662b9c82c53da00f3135f93a882a42ff5571789746fb43c",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current native source lets the buyer report shipment to an earlier valid return address before a waybill exists, then register the waybill against that same version. Management attention shows the route review. Prior blocked manifests are archived byte-for-byte as source-acceptance-9cc0aa15a335.json, source-acceptance-07fcb0f14ccd.json and source-acceptance-b2d3a2c983ca.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "Current native source lets the buyer report shipment to an earlier valid return address before a waybill exists, then register the waybill against that same version. Management attention shows the route review. The prior blocked manifests are archived byte-for-byte as source-acceptance-9cc0aa15a335.json and source-acceptance-07fcb0f14ccd.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }
