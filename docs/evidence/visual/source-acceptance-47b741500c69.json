@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "c32bef1074b58e45e64a5707cb67da4b3cbd2ecc1de506ef9810dc97c680cf87",
+  "packageSourceSha256": "47b741500c69f19eaf1fcc416961c2af577c755d45d155d9b095f9bdcccb64c3",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -51,5 +51,5 @@
     {"platform":"android","result":"blocked","evidenceFiles":[]}
   ],
   "findings": [{"id":"CURRENT_NATIVE_RECAPTURE_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Current source shows isolated commission actions only in the test runtime while preserving read-only historical credit and settlement records in other runtimes. Previous blocked manifest is archived byte-for-byte as source-acceptance-47b741500c69.json. No new DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "Current source changes commission page copy and hides isolated test controls outside the test runtime. Previous blocked manifest is archived byte-for-byte as source-acceptance-5fa5253ed6ca.json. No new WeChat runtime, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both platforms remain blocked."
 }
