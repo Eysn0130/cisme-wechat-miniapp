@@ -194,7 +194,7 @@ paths:
     get:
       operationId: managementAttentionSummary
       summary: Capability filtered management work counts
-      description: Read-only counts for existing support, after-sale, refund and privacy workspaces. Holds current member grants through the database read and returns no personal details. A count is a navigation aid, not a case decision or external notification.
+      description: Read-only counts for existing support, after-sale, old-address shipment review, refund and privacy workspaces. Holds current member grants through the database read and returns no personal details. A count is a navigation aid, not a case decision or external notification.
       security: [{session: []}]
       responses:
         '200': {description: Versioned counts for currently granted workspaces}
@@ -1586,6 +1586,7 @@ paths:
     get:
       operationId: myAftersale
       summary: Owner scoped case and bounded history
+      description: Includes immutable case-specific return instruction versions so the owner can identify the version actually used for shipment. The shipped version is preserved separately from the current instruction.
       security: [{session: []}]
       parameters:
         - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
@@ -1601,11 +1602,12 @@ paths:
     post:
       operationId: actMyAftersale
       summary: Withdraw, supplement or register return waybill
+      description: report_old_route records that a buyer has already shipped to an earlier valid address before receiving a waybill; it does not invent a tracking number or withdraw the application. For ship_return, instructionVersion identifies the actual issued version followed by the buyer. Older valid versions are accepted, retained as shipment evidence and queued for human route review. Later waybill registration must keep the same version. Legacy clients omitting it use the recorded or current version; new native clients send it explicitly.
       security: [{session: []}]
       parameters:
         - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
         - {$ref: '#/components/parameters/IdempotencyKey'}
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [cancel, provide_info, ship_return]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, carrier: {type: string, maxLength: 80}, tracking: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [cancel, provide_info, report_old_route, ship_return]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, carrier: {type: string, maxLength: 80}, tracking: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}, instructionVersion: {type: integer, minimum: 1}}}}}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}

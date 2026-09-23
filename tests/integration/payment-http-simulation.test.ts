@@ -17,6 +17,7 @@ import { WechatPayV3Client } from "../../services/api/src/wechatPayV3";
 import { runMoneyWorkerCycle } from "../../services/worker/src/moneyJobs";
 import { RefundCommandService } from "../../services/api/src/refundCommand";
 import { AuthorityService } from "../../services/api/src/authority";
+import { ManagementAttentionService } from "../../services/api/src/managementAttention";
 import { SettlementCommandService } from "../../services/api/src/settlementCommand";
 import { TransferCallbackInbox } from "../../services/api/src/transferCallbackInbox";
 import { formalPaymentProtocol } from "../../services/api/src/formalPaymentProtocol";
@@ -1668,10 +1669,10 @@ it('does not admit an invalid kind or missing original money intent',async()=>{
 
 // PRD §8.2 / AFS-01..03. Every payment/refund fact below is signed by this
 // file's disposable loopback channel; it is not a production transaction.
-async function aftersalePaidOrder(suffix:string){
+async function aftersalePaidOrder(suffix:string,owner:TestActor=buyer){
   await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+2 WHERE sku_id=$1',[skuId]);
-  const order=await createOrder(`aftersale-${suffix}`);
-  const prepared=await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
+  const order=await createOrder(`aftersale-${suffix}`,app,undefined,owner);
+  const prepared=await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(owner.sessionToken),payload:{}});
   expect(prepared.statusCode,prepared.body).toBe(200);
   const paid=paidCallback(order.orderNumber);
   expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',headers:{...paid.headers,'Content-Type':'application/json'},payload:paid.raw})).statusCode).toBe(204);
@@ -1884,8 +1885,20 @@ it('keeps the original application time, sends versioned case instructions in ch
     expect(changed).toMatchObject({state:'awaiting_return',version:6,returnDestination:{version:2}});
     expect((await pool.query(`SELECT count(*)::int AS n FROM commerce_aftersale_return_instruction WHERE case_id=$1`,[row.id])).rows[0].n).toBe(2);
     expect((await pool.query(`SELECT count(*)::int AS n FROM support_message WHERE linked_case_id=$1 AND content_type='return_instruction'`,[row.id])).rows[0].n).toBe(2);
+    expect((await service.detail(buyer.memberId,row.id)).returnInstructionHistory.map(item=>item.version)).toEqual([2,1]);
     await expect(service.act(buyer.memberId,row.id,'aftersale-bad-tracking',step('ship_return',6,{carrier:'合成物流',tracking:'bad!'}))).rejects.toMatchObject({code:'RETURN_TRACKING_INVALID'});
-    await service.act(buyer.memberId,row.id,'aftersale-ship-001',step('ship_return',6,{carrier:'合成物流',tracking:'SYNTHETIC123456'}));
+    await expect(service.act(buyer.memberId,row.id,'aftersale-wrong-instruction',step('ship_return',6,
+      {carrier:'合成物流',tracking:'SYNTHETIC123456',instructionVersion:3}))).rejects.toMatchObject({code:'RETURN_INSTRUCTION_VERSION_INVALID'});
+    const shipped=await service.act(buyer.memberId,row.id,'aftersale-ship-001',step('ship_return',6,
+      {carrier:'合成物流',tracking:'SYNTHETIC123456',instructionVersion:1}));
+    expect(shipped).toMatchObject({state:'return_in_transit',shippedInstructionVersion:1,returnRouteReviewRequired:true});
+    expect((await pool.query(`SELECT count(*)::int AS n FROM support_message WHERE conversation_id=$1
+      AND client_message_id=$2`,[row.supportConversationId,`aftersale-old-route:${row.id}`])).rows[0].n).toBe(1);
+    expect((await new ManagementAttentionService(pool,'test').summary(operator.memberId)).counts.oldRouteShipments?.count).toBeGreaterThanOrEqual(1);
+    expect((await service.act(buyer.memberId,row.id,'aftersale-ship-001',step('ship_return',6,
+      {carrier:'合成物流',tracking:'SYNTHETIC123456',instructionVersion:1}))).shippedInstructionVersion).toBe(1);
+    await expect(pool.query('UPDATE commerce_aftersale_case SET shipped_instruction_version=2,version=version+1 WHERE id=$1',
+      [row.id])).rejects.toThrow();
     await expect(service.act(operator.memberId,row.id,'aftersale-too-late-address',step('send_return_instruction',7,instruction),true)).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
     await expect(service.act(buyer.memberId,row.id,'aftersale-late-cancel',step('cancel',7))).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
     await expect(service.act(operator.memberId,row.id,'aftersale-cross-receive',step('receive_return',7),true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
@@ -1909,6 +1922,44 @@ it('keeps the original application time, sends versioned case instructions in ch
     expect(final).toMatchObject({resolved:true,qualityResult:'unsellable',inventoryStatus:'separate_ledger_required',refund:{channelState:'succeeded'}});
     expect(final.events).toHaveLength(10);
     await expect(service.act(operator.memberId,row.id,'aftersale-false-reopen',step('reopen_refund',10),true)).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
+});
+it('records a prior-address shipment before a waybill exists and keeps the original route through later registration',async()=>{
+  const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'old-route-isolated-buyer',
+    displayName:'Old route isolated buyer',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+  expect(identity.statusCode).toBe(200);
+  const owner=identity.json() as TestActor;
+  await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+    VALUES($1,'wechat_miniprogram',$2,'old-route-isolated-openid','wechat')`,[owner.memberId,appId]);
+  const order=await aftersalePaidOrder('old-route-no-waybill',owner);
+  await aftersaleGrant(operator,'commerce.aftersale.review');
+  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  const claim=await service.request(owner.memberId,order.id,'old-route-claim-001',
+    {kind:'return_refund',claimBasis:'no_reason',reason:''});
+  const instruction={recipientName:'合成收件人',phone:'13800000000',region:'上海市浦东新区',
+    address:'合成旧地址，仅供隔离测试',freightPayer:'merchant',instructions:''};
+  await service.act(operator.memberId,claim.id,'old-route-approve-001',
+    {action:'approve_return',expectedVersion:1,note:'确认退货需逐单指引'},true);
+  await service.act(operator.memberId,claim.id,'old-route-send-001',
+    {action:'send_return_instruction',expectedVersion:2,note:'已确认首版收件信息',...instruction},true);
+  await service.act(operator.memberId,claim.id,'old-route-send-002',
+    {action:'send_return_instruction',expectedVersion:3,note:'已确认更新版收件信息',...instruction,
+      address:'合成新地址，仅供隔离测试'},true);
+  const reported=await service.act(owner.memberId,claim.id,'old-route-report-001',
+    {action:'report_old_route',expectedVersion:4,note:'已按首版地址交寄',instructionVersion:1});
+  expect(reported).toMatchObject({state:'awaiting_return',version:5,returnTracking:null,
+    shippedInstructionVersion:1,returnRouteReviewRequired:true});
+  expect((await new ManagementAttentionService(pool,'test').summary(operator.memberId)).counts.oldRouteShipments?.count).toBeGreaterThanOrEqual(1);
+  await expect(service.act(owner.memberId,claim.id,'old-route-cancel-001',
+    {action:'cancel',expectedVersion:5,note:'不能撤回已经交寄的案件'})).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
+  await expect(service.act(operator.memberId,claim.id,'old-route-change-003',
+    {action:'send_return_instruction',expectedVersion:5,note:'不得再次更改用户已使用的指引',...instruction},true))
+    .rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
+  const shipped=await service.act(owner.memberId,claim.id,'old-route-waybill-001',
+    {action:'ship_return',expectedVersion:5,note:'补充原交寄运单',instructionVersion:1,
+      carrier:'合成物流',tracking:'SYNTHETIC654321'});
+  expect(shipped).toMatchObject({state:'return_in_transit',shippedInstructionVersion:1,returnRouteReviewRequired:true});
+  expect((await pool.query(`SELECT count(*)::int AS n FROM support_message WHERE conversation_id=$1
+    AND client_message_id=$2`,[claim.supportConversationId,`aftersale-old-route:${claim.id}`])).rows[0].n).toBe(1);
 });
 it('rechecks revoked case permissions and rolls back a failed refund link atomically',async()=>{
   const order=await aftersalePaidOrder('atomic');const service=new AftersaleService(pool,new AuthorityService(pool,'test'));

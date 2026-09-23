@@ -210,7 +210,7 @@ describe("native mini program boundary", () => {
       legal: ["back", "load", "privacyRights"],
       "management-member": ["back", "back", "load", "selectSection", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
       "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "selectFilter", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
-      management: ["back", "retry", "retryRuntime", "openSupport", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "openSupport", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openMembers", "openPrivacy", "openFinance"],
+      management: ["back", "retry", "retryRuntime", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "openSupport", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openMembers", "openPrivacy", "openFinance"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],

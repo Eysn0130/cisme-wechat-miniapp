@@ -25,7 +25,7 @@ export class ManagementAttentionService {
       const support=capabilities.has('support.read');
       const privacy=capabilities.has('privacy.request.manage');
       const finance=capabilities.has('commerce.refund.approve');
-      const counts:{support?:CountRow;newAftersales?:CountRow;returnInstructions?:CountRow;
+      const counts:{support?:CountRow;newAftersales?:CountRow;returnInstructions?:CountRow;oldRouteShipments?:CountRow;
         refundExceptions?:CountRow;privacyRequests?:CountRow;privacyOverdue?:CountRow}={};
       if(support)counts.support=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM support_conversation
         WHERE status='waiting_human' OR team_unread_count>0`)).rows[0]!;
@@ -34,6 +34,10 @@ export class ManagementAttentionService {
           WHERE state IN ('requested','need_info')`)).rows[0]!;
         counts.returnInstructions=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case
           WHERE state='awaiting_instruction'`)).rows[0]!;
+        counts.oldRouteShipments=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case
+          WHERE state IN ('awaiting_return','return_in_transit') AND shipped_instruction_version IS NOT NULL
+            AND (return_destination->>'version') ~ '^[0-9]+$'
+            AND shipped_instruction_version < (return_destination->>'version')::integer`)).rows[0]!;
       }
       if(finance)counts.refundExceptions=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case c
         JOIN commerce_refund_request r ON r.id=c.refund_request_id

@@ -40,7 +40,7 @@ export function returnInstruction(input:Record<string,unknown>){
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 type CaseRow={id:string;order_id:string;member_id:string;kind:string;state:string;reason:string;lines:unknown[];
   amount_cents:string;version:number;request_hash:string;claim_basis:string;support_conversation_id:string|null;return_destination:unknown;return_carrier:string|null;
-  return_tracking:string|null;quality_result:string|null;refund_request_id:string|null;created_at:Date;updated_at:Date;
+  return_tracking:string|null;shipped_instruction_version:number|null;quality_result:string|null;refund_request_id:string|null;created_at:Date;updated_at:Date;
   exception_kind:string|null;exception_evidence_reference:string|null;exception_approved_by:string|null;exception_approved_at:Date|null};
 
 /** Case workflow. It records local facts only; provider dispatch,
@@ -62,7 +62,11 @@ export class AftersaleService{
     return {id:row.id,orderId:row.order_id,kind:row.kind,state:row.state,reason:row.reason,claimBasis:row.claim_basis,
       supportConversationId:row.support_conversation_id,requestedAt:row.created_at,lines:row.lines,
       amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,region:d.region??'',address:d.address,freightPayer:d.freightPayer??'to_be_confirmed',instructions:d.instructions??''}))(row.return_destination):null,
-      returnCarrier:row.return_carrier,returnTracking:row.return_tracking,qualityResult:row.quality_result,
+      returnCarrier:row.return_carrier,returnTracking:row.return_tracking,
+      shippedInstructionVersion:row.shipped_instruction_version,
+      returnRouteReviewRequired:['awaiting_return','return_in_transit'].includes(row.state)&&row.shipped_instruction_version!==null&&
+        row.shipped_instruction_version<Number((row.return_destination as {version?:number}|null)?.version??0),
+      qualityResult:row.quality_result,
       exceptionResolution:row.exception_kind?{kind:row.exception_kind,evidenceReference:row.exception_evidence_reference,
         approvedAt:row.exception_approved_at}:null,
       refundRequestId:row.refund_request_id,refund:refund?{reviewState:refund.state,channelState:refund.refund_state??null,
@@ -154,7 +158,13 @@ export class AftersaleService{
       if(!row)fail('AFTERSALE_NOT_FOUND','售后案件不存在',404);
       const events=(await client.query(`SELECT action,note,from_state AS "fromState",to_state AS "toState",case_version AS "version",refund_request_id AS "refundRequestId",created_at AS "createdAt"
         FROM commerce_aftersale_event WHERE case_id=$1 ORDER BY case_version DESC LIMIT 101`,[caseId])).rows;
-      return {...await this.view(client,row),events:events.slice(0,100).reverse(),historyTruncated:events.length>100};
+      const instructions=(await client.query<{version:number;recipient_name:string;phone:string;region:string;address:string;freight_payer:string;instructions:string;issued_at:Date}>(
+        `SELECT version,recipient_name,phone,region,address,freight_payer,instructions,issued_at
+         FROM commerce_aftersale_return_instruction WHERE case_id=$1 ORDER BY version DESC`,[caseId])).rows;
+      return {...await this.view(client,row),events:events.slice(0,100).reverse(),historyTruncated:events.length>100,
+        returnInstructionHistory:instructions.map(item=>({version:item.version,recipientName:item.recipient_name,
+          phone:item.phone,region:item.region,address:item.address,freightPayer:item.freight_payer,
+          instructions:item.instructions,issuedAt:item.issued_at}))};
     },'REPEATABLE READ');
   }
   async forConversation(memberId:string|undefined,conversationInput:string){
@@ -175,7 +185,7 @@ export class AftersaleService{
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const caseId=id(caseInput),k=key(kInput),action=String(input.action??''),why=note(input.note),version=input.expectedVersion;
     if(!Number.isSafeInteger(version)||Number(version)<1)fail('VERSION_INVALID','请刷新案件后重试',422);
-    if(management?!Object.hasOwn(actionCaps,action):!['cancel','provide_info','ship_return'].includes(action))fail('AFTERSALE_ACTION_INVALID','售后操作无效',422);
+    if(management?!Object.hasOwn(actionCaps,action):!['cancel','provide_info','report_old_route','ship_return'].includes(action))fail('AFTERSALE_ACTION_INVALID','售后操作无效',422);
     const carrier=action==='ship_return'?input.carrier:null,tracking=action==='ship_return'?input.tracking:null;
     if(action==='ship_return'&&(typeof carrier!=='string'||carrier.trim().length<1||carrier.length>80||typeof tracking!=='string'||!/^[A-Za-z0-9-]{6,64}$/.test(tracking)))fail('RETURN_TRACKING_INVALID','请填写真实快递公司和 6 至 64 位运单号',422);
     const quality=action==='inspect_return'?input.qualityResult:null;
@@ -187,7 +197,10 @@ export class AftersaleService{
       ||typeof evidenceReference!=='string'||!/^[A-Za-z0-9._:/-]{8,200}$/.test(evidenceReference)))
       fail('AFTERSALE_EXCEPTION_EVIDENCE_REQUIRED','请核对无需寄回的情形和依据编号',422);
     const instruction=action==='send_return_instruction'?returnInstruction(input):null;
-    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction,exceptionKind,evidenceReference});
+    const instructionVersion=['ship_return','report_old_route'].includes(action)?input.instructionVersion:null;
+    if(instructionVersion!==null&&instructionVersion!==undefined&&(!Number.isSafeInteger(instructionVersion)||Number(instructionVersion)<1))
+      fail('RETURN_INSTRUCTION_VERSION_INVALID','请选择实际使用的退货指引版本',422);
+    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction,instructionVersion,exceptionKind,evidenceReference});
     return transaction(this.pool,async client=>{
       if(management)await this.management(client,memberId,actionCaps[action]);else await requireActiveMemberWithClient(client,memberId);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
@@ -209,7 +222,8 @@ export class AftersaleService{
       if(row.version!==version)fail('VERSION_CONFLICT','售后案件已更新，请刷新后核对');
       if(management&&row.member_id===memberId)fail('AFTERSALE_SELF_REVIEW_FORBIDDEN','不能处理自己的售后案件',403);
       let state:string|undefined,destination=row.return_destination,refundId=row.refund_request_id;
-      if(action==='cancel'&&['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state))state='cancelled';
+      if(action==='cancel'&&['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state)
+        &&row.shipped_instruction_version===null)state='cancelled';
       if(action==='provide_info'&&row.state==='need_info')state='requested';
       if(action==='request_info'&&row.state==='requested')state='need_info';
       if(action==='reject'&&['requested','need_info'].includes(row.state))state='rejected';
@@ -217,7 +231,7 @@ export class AftersaleService{
         state='awaiting_instruction';
       }
       if(action==='send_return_instruction'&&instruction&&row.kind==='return_refund'
-        &&['awaiting_instruction','awaiting_return'].includes(row.state)&&!row.return_tracking){
+        &&['awaiting_instruction','awaiting_return'].includes(row.state)&&!row.return_tracking&&row.shipped_instruction_version===null){
         const latest=(await client.query<{version:number}>(`SELECT version FROM commerce_aftersale_return_instruction
           WHERE case_id=$1 ORDER BY version DESC LIMIT 1`,[caseId])).rows[0];
         destination={version:(latest?.version??0)+1,...instruction};state='awaiting_return';
@@ -231,6 +245,21 @@ export class AftersaleService{
         state='refund_exception_approved';
       }
       if(action==='ship_return'&&row.state==='awaiting_return')state='return_in_transit';
+      if(action==='report_old_route'&&row.state==='awaiting_return'&&row.kind==='return_refund'
+        &&row.shipped_instruction_version===null)state='awaiting_return';
+      let shippedInstructionVersion:number|null=null;
+      if((action==='ship_return'||action==='report_old_route')&&state){
+        shippedInstructionVersion=instructionVersion===undefined?
+          row.shipped_instruction_version??Number((row.return_destination as {version?:number}|null)?.version):Number(instructionVersion);
+        if(!Number.isSafeInteger(shippedInstructionVersion)||shippedInstructionVersion<1||
+          !(await client.query(`SELECT 1 FROM commerce_aftersale_return_instruction WHERE case_id=$1 AND version=$2`,
+            [caseId,shippedInstructionVersion])).rowCount)
+          fail('RETURN_INSTRUCTION_VERSION_INVALID','所选退货指引不属于本案，请刷新核对',422);
+        if(row.shipped_instruction_version!==null&&row.shipped_instruction_version!==shippedInstructionVersion)
+          fail('RETURN_INSTRUCTION_VERSION_CHANGED','原寄件依据已记录，请按同一版本补充物流',409);
+        if(action==='report_old_route'&&shippedInstructionVersion>=Number((row.return_destination as {version?:number}|null)?.version))
+          fail('AFTERSALE_OLD_ROUTE_REQUIRED','请选择实际已使用的旧版退货指引',422);
+      }
       if(action==='receive_return'&&row.state==='return_in_transit')state='return_received';
       if(action==='inspect_return'&&row.state==='return_received')state='quality_checked';
       if(action==='request_refund'&&(row.state==='refund_exception_approved'
@@ -264,9 +293,10 @@ export class AftersaleService{
         quality_result=COALESCE($6,quality_result),refund_request_id=$7,support_conversation_id=$8,
         exception_kind=COALESCE($9,exception_kind),exception_evidence_reference=COALESCE($10,exception_evidence_reference),
         exception_approved_by=CASE WHEN $9::text IS NOT NULL THEN $11::uuid ELSE exception_approved_by END,
-        exception_approved_at=CASE WHEN $9::text IS NOT NULL THEN clock_timestamp() ELSE exception_approved_at END
+        exception_approved_at=CASE WHEN $9::text IS NOT NULL THEN clock_timestamp() ELSE exception_approved_at END,
+        shipped_instruction_version=COALESCE($12,shipped_instruction_version)
         WHERE id=$1 RETURNING *`,
-        [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId,exceptionKind,evidenceReference,memberId])).rows[0]!;
+        [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId,exceptionKind,evidenceReference,memberId,shippedInstructionVersion])).rows[0]!;
       if(action==='send_return_instruction'&&instruction){
         if(!supportConversationId)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','请先关联原客服会话后发送退货指引');
         const snapshot=destination as typeof instruction&{version:number};
@@ -285,6 +315,24 @@ export class AftersaleService{
             `aftersale-return:${caseId}:v${snapshot.version}`])).rows[0]!;
         const updated=(await client.query<{version:number}>(`UPDATE support_conversation SET next_sequence=next_sequence+1,
           member_unread_count=member_unread_count+1,version=version+1,updated_at=clock_timestamp()
+          WHERE id=$1 RETURNING version`,[conversation.id])).rows[0]!;
+        await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:conversation.id,
+          aggregateVersion:updated.version,businessKey:`support-message:${message.id}`,
+          payload:{conversationId:conversation.id,messageId:message.id,senderType:'system',sequence:Number(conversation.next_sequence)},occurredAt:message.created_at});
+      }
+      if(['ship_return','report_old_route'].includes(action)&&row.shipped_instruction_version===null&&shippedInstructionVersion!==null&&
+        shippedInstructionVersion<Number((row.return_destination as {version?:number}|null)?.version)){
+        if(!supportConversationId)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','原客服会话不可用，请刷新核对');
+        const conversation=(await client.query<{id:string;next_sequence:string;version:number}>(
+          'SELECT id,next_sequence,version FROM support_conversation WHERE id=$1 FOR UPDATE',[supportConversationId])).rows[0];
+        if(!conversation)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','原客服会话不可用，请刷新核对');
+        const message=(await client.query<{id:string;created_at:Date}>(`INSERT INTO support_message
+          (conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id)
+          VALUES($1,$2,'system','system:aftersale',$3,'system',$4) RETURNING id,created_at`,
+          [conversation.id,conversation.next_sequence,`用户已按第 ${shippedInstructionVersion} 版退货指引寄出；当前为第 ${(row.return_destination as {version:number}).version} 版。请核对旧地址物流并主动协助。`,
+            `aftersale-old-route:${caseId}`])).rows[0]!;
+        const updated=(await client.query<{version:number}>(`UPDATE support_conversation SET next_sequence=next_sequence+1,
+          team_unread_count=team_unread_count+1,version=version+1,updated_at=clock_timestamp()
           WHERE id=$1 RETURNING version`,[conversation.id])).rows[0]!;
         await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:conversation.id,
           aggregateVersion:updated.version,businessKey:`support-message:${message.id}`,

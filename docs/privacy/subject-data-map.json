@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "8956fb29308c0025fbda92d31eacdfbc4b42b37915d2bb8ef5b55a5d8996d68c",
+  "migrationSetSha256": "f179a28309a108016d33ce1a478bd8412a8f3da99c737ac3876582d6402edfa9",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -450,7 +450,7 @@
       "actorColumns": [
         "exception_approved_by"
       ],
-      "specialHandling": "member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, reason and exception_evidence_reference are private. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
+      "specialHandling": "member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, shipped_instruction_version, reason and exception_evidence_reference are private. The shipped version points to an immutable case-specific return instruction and may identify the older valid address used by the buyer. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
       "exportFields": [],
       "excludedFields": [
         "id",
@@ -467,6 +467,7 @@
         "return_destination",
         "return_carrier",
         "return_tracking",
+        "shipped_instruction_version",
         "quality_result",
         "refund_request_id",
         "created_at",

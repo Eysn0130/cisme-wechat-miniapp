@@ -16,3 +16,18 @@ it('clears private data and ignores late responses on hide',async()=>{const p=aw
 it('requires fresh facts and explicit reconciliation after an interrupted request',async()=>{const p=await page();p.data.basisIndex=6;p.data.note='合成未确认操作';m.request.mockRejectedValueOnce({status:504});await p.submit();await p.reconcile();expect(p.pending).not.toBeNull();expect(p.data.notice).toContain('刷新');p.onHide();expect(p.pending).toBeNull();expect(p.data.needsReconcile).toBe(true);await p.onShow();p.data.note='新的申请';await p.submit();expect(m.request.mock.calls.filter(([x])=>x.method==='POST')).toHaveLength(1);await p.reconcile();expect(p.data.needsReconcile).toBe(false);expect(p.data.note).toBe('');});
 it('revocation and session change erase case contacts and pending text',async()=>{const p=await page(true);p.data.selected={...record,returnDestination:{phone:'synthetic'}};p.data.note='private';m.authority.mockResolvedValueOnce({version:1,managementAvailable:false,capabilities:[]});await p.recheck();expect(p.data.selected).toBeNull();expect(p.data.note).toBe('');expect(p.data.coreReady).toBe(false);const q=await page();token='changed';await q.recheck();expect(q.data.items).toEqual([]);expect(q.data.coreReady).toBe(false);});
 it('does not write after a modal returns to a different account',async()=>{const p=await page();p.data.basisIndex=6;p.data.note='合成审批说明';(globalThis as any).wx.showModal=(o:any)=>{token='another';o.success({confirm:true});};await p.submit();expect(m.request.mock.calls.some(([x])=>x.method==='POST')).toBe(false);});
+it('registers the version actually used for an old valid return address and clears it on exit',async()=>{
+ const p=await page();p.selection=record.id;
+ const old={version:1,recipientName:'旧收件人',phone:'13800000000',region:'上海市',address:'合成旧地址',freightPayer:'merchant',instructions:''};
+ const latest={...old,version:2,address:'合成新地址'};
+ const detail={...record,kind:'return_refund',state:'awaiting_return',version:6,returnDestination:latest,returnInstructionHistory:[latest,old]};
+ m.request.mockResolvedValueOnce({items:[detail],nextCursor:null}).mockResolvedValueOnce(detail);
+ await p.load();expect(p.data.shipmentInstruction.version).toBe(2);
+ p.chooseShipmentInstruction({detail:{value:'1'}});expect(p.data.shipmentInstruction.version).toBe(1);
+ p.data.note='已按旧址寄出';p.data.carrier='合成物流';p.data.tracking='SYNTHETIC123456';
+ m.request.mockResolvedValueOnce({...detail,state:'return_in_transit',version:7});
+ await p.submit({currentTarget:{dataset:{action:'ship_return'}}});
+ const write=m.request.mock.calls.map(([input])=>input).find(input=>input.method==='POST');
+ expect(write.data).toMatchObject({action:'ship_return',instructionVersion:1,carrier:'合成物流',tracking:'SYNTHETIC123456'});
+ p.onHide();expect(p.data.shipmentInstruction).toBeNull();
+});
