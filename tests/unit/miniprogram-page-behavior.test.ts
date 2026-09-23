@@ -1196,6 +1196,20 @@ it('labels a synthetic scoped erasure as partial and leaves unrelated data uncla
  expect(page.data.records[0].statusLabel).toBe('部分完成');
 });
 
+it('describes a limited privacy copy without exposing test or unknown status codes',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce({items:[
+  {id:'copy',kind:'access',status:'partially_completed',execution:{type:'export',status:'partially_succeeded',scope:'member_profile_only',deliveryState:'available'}},
+  {id:'new',kind:'future_kind',status:'future_status',execution:{type:'export',status:'future_execution'}}
+ ],nextCursor:null});
+ await page.load();
+ expect(page.data.records[0].executionSummary).toContain('会员资料副本可查看');
+ expect(page.data.records[0].executionSummary).not.toContain('合成');
+ expect(page.data.records[1]).toMatchObject({label:'隐私请求',statusLabel:'状态待核对',executionSummary:'数据副本：状态待核对'});
+});
+
 it('loads later privacy records without duplicating a row and clears them after identity changes',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  const appState={globalData:{sessionToken:'owner-token'}};
