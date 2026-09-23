@@ -132,6 +132,19 @@ def release_directory(path):
         info=directory.lstat()
         require(stat.S_ISDIR(info.st_mode) and not directory.is_symlink() and info.st_uid==0
                 and info.st_mode&0o022==0,'IMMUTABLE_RELEASE_DIRECTORY_REQUIRED')
+    # Verify ownership beneath the root too: an otherwise root-owned release
+    # must not load an API file or installed dependency writable by the service.
+    # npm .bin links are allowed only inside this same protected release tree.
+    for count,entry in enumerate(path.rglob('*'),1):
+        require(count<=100000,'RELEASE_ENTRY_LIMIT_EXCEEDED')
+        info=entry.lstat()
+        require(info.st_uid==0,'IMMUTABLE_RELEASE_CONTENT_REQUIRED')
+        if stat.S_ISLNK(info.st_mode):
+            resolved=entry.resolve(strict=True)
+            require(resolved.is_relative_to(path),'RELEASE_LINK_ESCAPES_CANDIDATE')
+        else:
+            require((stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode))
+                    and info.st_mode&0o022==0,'IMMUTABLE_RELEASE_CONTENT_REQUIRED')
     return path
 
 

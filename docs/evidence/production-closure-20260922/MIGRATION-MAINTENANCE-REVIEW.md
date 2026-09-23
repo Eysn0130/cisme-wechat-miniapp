@@ -47,3 +47,9 @@ infra/tencent/production-release.py 已直接调用 production-observation.guard
 继续独立复核发现：cutover 停止 API/Worker 后再次调用 preflight，而 preflight 原本无条件要求旧 API 的本机 HTTPS 返回200，导致正常停服也会触发应用回滚。离线状态回归先复现失败（26项中1项错误，`UPGRADE_FAILED_APPLICATION_RESTORED_REVIEW_REQUIRED`），再修正为：首次预检仍验证本机 TLS；停服后的复核保留来源、现场目标、配置、迁移历史全部检查，并明确要求两个服务均为 inactive 且 MainPID=0。切换启动后仍验证两个实际进程及完整 TLS。没有跳过正式验收、没有修改网络或生产状态。
 
 修正后 Python 全组95+4=99项通过。3976f4f 的准确 CI35813185461 为1134单元、835集成、96项Python；它绑定修正前源码，不能作为此次修正的CI回执。后续准确HEAD/CI以PR Checks为准。所有证据均不代表production已经部署。
+
+## 制品内部权限边界
+
+继续复核发现：原目录检查只验证release顶层，未拒绝内部由服务账号持有或组/其他人可写的依赖，也未拒绝依赖符号链接越出release。离线真实文件夹回归复现3个失败断言。现逐项检查制品内容的root归属和只读权限；仅允许解析到同一受保护release内的链接（保留npm `.bin`正常链接），拒绝特殊文件及超限树。没有更改服务器文件权限或扩大服务账号权限。
+
+修正后Python全组98+4=102项通过。上述测试的root归属为本地stat替身，不创建生产批准资料、不运行生产切换。完整最新CI仍须绑定此次新HEAD。

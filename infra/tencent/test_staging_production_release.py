@@ -11,6 +11,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -71,6 +72,41 @@ class MainProvenance(unittest.TestCase):
             with self.subTest(values=values),patch.object(m,'command',side_effect=values):
                 with self.assertRaisesRegex(m.observe.target.Refused,'PRODUCTION_UNITS_NOT_STOPPED'):
                     m.require_services_stopped()
+
+
+class ReleaseOwnership(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(prefix='cisme-immutable-fixture-');self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name).resolve();self.release=self.root/'releases'/'candidate-main';self.release.mkdir(parents=True)
+        self.dep=self.release/'node_modules'/'synthetic-package';self.dep.mkdir(parents=True)
+        self.file=self.dep/'index.js';self.file.write_text('// synthetic dependency')
+        self.links=self.release/'node_modules'/'.bin';self.links.mkdir()
+        (self.links/'synthetic').symlink_to('../synthetic-package/index.js')
+        for path in [self.root,*self.root.rglob('*')]:
+            if not path.is_symlink():path.chmod(0o755 if path.is_dir() else 0o644)
+        self.foreign=None
+
+    def check(self):
+        original=Path.lstat
+        def fixture_stat(path,*args,**kwargs):
+            info=original(path,*args,**kwargs)
+            # Virtual root ownership only; no chown or production fixture.
+            return SimpleNamespace(st_mode=info.st_mode,st_uid=1000 if path==self.foreign else 0)
+        with patch.object(m,'ROOT',self.root),patch.object(Path,'lstat',fixture_stat):
+            return m.release_directory(self.release)
+
+    def test_immutable_dependency_tree_accepts_only_contained_bin_links(self):
+        self.assertEqual(self.check(),self.release)
+
+    def test_nested_writable_or_service_owned_dependency_is_rejected(self):
+        for mode,foreign in [(0o666,None),(0o644,self.file)]:
+            self.file.chmod(mode);self.foreign=foreign
+            with self.subTest(mode=mode,foreign=foreign),self.assertRaises(m.observe.target.Refused):self.check()
+
+    def test_dependency_symlink_cannot_escape_release(self):
+        outside=self.root/'outside.js';outside.write_text('// outside')
+        self.file.unlink();self.file.symlink_to(outside)
+        with self.assertRaises(m.observe.target.Refused):self.check()
 
 
 class Preflight(unittest.TestCase):
