@@ -463,7 +463,8 @@ async function creditSpendCase(){
 }
 afterAll(async()=>{await app?.close();await new Promise<void>(resolve=>server?.close(()=>resolve()));await pool.end();});
 
-async function createOrder(key:string,target:FastifyInstance=app){
+async function createOrder(key:string,target:FastifyInstance=app,
+  historicalComponents?:{discountCents:number;shippingCents:number}){
   const address=await target.inject({method:"POST",url:"/v1/me/addresses",headers:{...auth(buyer.sessionToken),
     "idempotency-key":`address-${key}-0001`},payload:{recipientName:"合成收件人",phone:"13800001234",province:"上海市",
       city:"上海市",district:"浦东新区",detail:"隔离测试路 1 号",postalCode:"200000",nationalCode:"310115",
@@ -473,6 +474,13 @@ async function createOrder(key:string,target:FastifyInstance=app){
     "idempotency-key":`quote-${key}-0001`},payload:{skuId,quantity:1,addressId:address.json().id,
       addressVersion:address.json().version}});
   expect(quote.statusCode,JSON.stringify(quote.json())).toBe(200);
+  if(historicalComponents){
+    // Reconstruct an old paid quote using captured monetary facts. The live
+    // checkout intentionally does not offer this price shape today.
+    await pool.query(`UPDATE commerce_checkout_quote SET member_discount_cents=$2,
+      shipping_cents=$3,total_cents=subtotal_cents-$2::bigint+$3::bigint
+      WHERE id=$1 AND status='active'`,[quote.json().id,historicalComponents.discountCents,historicalComponents.shippingCents]);
+  }
   const created=await target.inject({method:"POST",url:"/v1/me/orders",headers:{...auth(buyer.sessionToken),
     "idempotency-key":`order-${key}-0001`},payload:{quoteId:quote.json().id}});
   expect(created.statusCode,JSON.stringify(created.json())).toBe(200);
@@ -1798,6 +1806,44 @@ it('keeps a lost-delivery claim without forcing a return, then routes a reviewed
   const reopened=await service.act(operator.memberId,claim.id,'lost-exception-reopen',
     {action:'reopen_refund',expectedVersion:3,note:'原退款已拒绝，保留丢件依据'},true);
   expect(reopened).toMatchObject({state:'refund_exception_approved',exceptionResolution:{kind:'lost_in_transit'}});
+});
+it('reverses an old paid discount and shipping snapshot in full without inventing a partial allocation',async()=>{
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1 WHERE sku_id=$1',[skuId]);
+  const order=await createOrder('historical-components',app,{discountCents:1000,shippingCents:500});
+  expect((await app.inject({method:'POST',url:`/v1/me/orders/${order.id}/payment-intent`,
+    headers:auth(buyer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const paid=paidCallback(order.orderNumber);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',
+    headers:{...paid.headers,'Content-Type':'application/json'},payload:paid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  expect((await pool.query('SELECT status,total_cents FROM commerce_order WHERE id=$1',[order.id])).rows[0])
+    .toMatchObject({status:'paid',total_cents:'9500'});
+  await expect(refundCommands.request(buyer.memberId,order.id,'historical-components-partial',
+    {amountCents:1000,reason:'部分运费优惠分摊仍需单独政策'}))
+    .rejects.toMatchObject({code:'REFUND_POLICY_UNSUPPORTED'});
+  await aftersaleGrant(operator,'commerce.aftersale.review');
+  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  const claim=await service.request(buyer.memberId,order.id,'historical-components-claim',
+    {kind:'refund_only',reason:'原订单全额退款'});
+  expect(claim.amountCents).toBe(9500);
+  const requested=await service.act(operator.memberId,claim.id,'historical-components-refund',
+    {action:'request_refund',expectedVersion:1,note:'按订单支付时的完整商品与运费快照申请退款'},true,refundCommands);
+  const reviewed=await refundCommands.decide(operator.memberId,requested.refundRequestId!,
+    'historical-components-approval',{decision:'approve',expectedVersion:1,reason:'隔离核对全额原支付构成'});
+  expect(reviewed.intent).toMatchObject({cashRefundCents:9500});
+  const intent=(await pool.query(`SELECT eligible_merchandise_refund_cents,other_merchandise_refund_cents,
+    shipping_cash_refund_cents,line_allocation,allocation_policy_version FROM commission_refund_intent
+    WHERE request_id=$1`,[requested.refundRequestId])).rows[0];
+  expect(Number(intent.shipping_cash_refund_cents)).toBe(500);
+  expect(Number(intent.eligible_merchandise_refund_cents)+Number(intent.other_merchandise_refund_cents)).toBe(9000);
+  expect(intent.allocation_policy_version).toBe('historical-full-components-v1');
+  expect(intent.line_allocation).toHaveLength(1);
+  await refundCommands.processDue();
+  const callback=refundCallback(reviewed.intent!.outRefundNo);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/refund-callback',
+    headers:{...callback.headers,'Content-Type':'application/json'},payload:callback.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  expect((await service.detail(buyer.memberId,claim.id)).resolved).toBe(true);
 });
 it('keeps the original application time, sends versioned case instructions in chat and separates later physical and payment facts',async()=>{
   const order=await aftersalePaidOrder('return');

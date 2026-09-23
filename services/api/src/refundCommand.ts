@@ -69,9 +69,13 @@ export class RefundCommandService{
       if(!order)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
       if(order.status!=="paid"||order.transaction_source_kind!=="verified_commerce")
         throw new DomainError("REFUND_VERIFIED_PAYMENT_REQUIRED","仅已核验支付的订单可申请退款",409);
-      if(Number(order.shipping_cents)!==0||Number(order.member_discount_cents)!==0||
-        Number(order.subtotal_cents)!==Number(order.total_cents))
-        throw new DomainError("REFUND_POLICY_UNSUPPORTED","当前优惠或运费分摊尚无批准规则",409);
+      const historicalComponents=Number(order.shipping_cents)!==0||Number(order.member_discount_cents)!==0||
+        Number(order.subtotal_cents)!==Number(order.total_cents);
+      // A complete reversal uses the immutable paid order components. Partial
+      // distribution of a historical discount or shipping charge still needs
+      // its own explicit allocation rule.
+      if(historicalComponents&&amount!==Number(order.total_cents))
+        throw new DomainError("REFUND_POLICY_UNSUPPORTED","该订单的部分金额分摊须人工核对，整单退款可按原支付构成处理",409);
       const payment=(await client.query(`SELECT id FROM commission_payment_inbox WHERE order_id=$1 AND state='applied'`,[orderId])).rows[0];
       if(!payment)throw new DomainError("REFUND_PAYMENT_FACT_MISSING","原支付事实尚未入账",409);
       const activeCase=(await client.query<{id:string}>(`SELECT id FROM commerce_aftersale_case
@@ -144,17 +148,15 @@ export class RefundCommandService{
         if(!payment||!Number.isSafeInteger(cashTotal)||cashTotal!==grossTotal-creditTotal)
           throw new DomainError("REFUND_PAYMENT_FACT_MISMATCH","原支付金额不一致",409);
         const snapshot=(await client.query(`SELECT * FROM commission_order_snapshot WHERE order_id=$1`,[order.id])).rows[0];
-        if(snapshot&&(snapshot.source_kind!=="verified_commerce"||
-          Number(snapshot.cash_merchandise_cents)!==cashTotal))
-          throw new DomainError("REFUND_POLICY_UNSUPPORTED","计佣基数与订单现金不一致，不能自动分摊",409);
         const prior=(await client.query(`SELECT i.line_allocation,i.payer_refund_cents,
-          r.amount_cents AS gross_refund_cents FROM commission_refund_intent i
+          i.shipping_cash_refund_cents,r.amount_cents AS gross_refund_cents FROM commission_refund_intent i
           LEFT JOIN commerce_refund_request r ON r.id=i.request_id
           WHERE i.order_id=$1 AND i.state<>'closed' FOR UPDATE OF i`,[order.id])).rows;
-        const occupied=new Map<string,number>();let totalReserved=0,grossReserved=0;
+        const occupied=new Map<string,number>();let totalReserved=0,grossReserved=0,shippingReserved=0;
         for(const existing of prior){
           totalReserved+=Number(existing.payer_refund_cents);
           grossReserved+=Number(existing.gross_refund_cents??existing.payer_refund_cents);
+          shippingReserved+=Number(existing.shipping_cash_refund_cents);
           for(const item of existing.line_allocation as {lineId:string;eligibleCashRefundCents:number;otherCashRefundCents:number}[])
             occupied.set(item.lineId,(occupied.get(item.lineId)??0)+item.eligibleCashRefundCents+item.otherCashRefundCents);
         }
@@ -168,16 +170,30 @@ export class RefundCommandService{
           throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计核准金额超过原支付",409);
         const lines=(await client.query<Line>(`SELECT id,line_total_cents,credit_tender_cents FROM commerce_order_line
           WHERE order_id=$1 ORDER BY line_number FOR UPDATE`,[order.id])).rows;
-        if(!lines.length||lines.reduce((sum,line)=>sum+Number(line.line_total_cents)-Number(line.credit_tender_cents),0)!==cashTotal)
+        const merchandiseCash=lines.reduce((sum,line)=>sum+Number(line.line_total_cents)-Number(line.credit_tender_cents),0);
+        const shippingCash=Number(order.shipping_cents);
+        if(!lines.length||merchandiseCash+shippingCash!==cashTotal||shippingReserved>shippingCash)
           throw new DomainError("REFUND_CASH_LINES_MISMATCH","订单商品现金分摊不一致",409);
-        let remaining=cashRefund;eligible=snapshot?cashRefund:0;
+        const historicalComponents=shippingCash!==0||Number(order.member_discount_cents)!==0||
+          Number(order.subtotal_cents)!==grossTotal;
+        if(snapshot&&(snapshot.source_kind!=="verified_commerce"||
+          Number(snapshot.cash_merchandise_cents)<0||Number(snapshot.cash_merchandise_cents)>merchandiseCash||
+          !historicalComponents&&Number(snapshot.cash_merchandise_cents)!==cashTotal))
+          throw new DomainError("REFUND_POLICY_UNSUPPORTED","原订单计佣快照与支付构成不一致，请核对",409);
+        if(historicalComponents&&(amount!==grossTotal||grossReserved!==0||cashRefund!==cashTotal))
+          throw new DomainError("REFUND_POLICY_UNSUPPORTED","历史优惠或运费订单只支持按完整原单金额冲回，请核对已退款记录",409);
+        let remaining=cashRefund,eligibleRemaining=snapshot?Number(snapshot.cash_merchandise_cents):0;
         for(const line of lines){
           const available=Number(line.line_total_cents)-Number(line.credit_tender_cents)-(occupied.get(line.id)??0),
             take=Math.min(remaining,available);
-          if(take>0){allocation.push({lineId:line.id,eligibleCashRefundCents:snapshot?take:0,
-            otherCashRefundCents:snapshot?0:take});remaining-=take;}
+          if(take>0){const eligibleTake=Math.min(take,eligibleRemaining);
+            allocation.push({lineId:line.id,eligibleCashRefundCents:eligibleTake,
+              otherCashRefundCents:take-eligibleTake});remaining-=take;eligibleRemaining-=eligibleTake;eligible+=eligibleTake;}
         }
-        if(remaining!==0)throw new DomainError("REFUND_LINE_OVERDRAW","退款商品分摊超过原单",409);
+        const shippingRefund=Math.min(remaining,shippingCash-shippingReserved);
+        remaining-=shippingRefund;
+        if(remaining!==0||historicalComponents&&eligibleRemaining!==0)
+          throw new DomainError("REFUND_LINE_OVERDRAW","退款商品或运费分摊超过原单",409);
         const sourceAllocations:{sourceId:string;amount:number}[]=[];
         if(creditTotal){
           const sources=(await client.query<{source_id:string;amount_cents:string;returned:string;spent:string}>(`
@@ -205,9 +221,9 @@ export class RefundCommandService{
           refund_cents,payer_refund_cents,eligible_merchandise_refund_cents,
           other_merchandise_refund_cents,shipping_cash_refund_cents,line_allocation,
           allocation_policy_version,created_by,request_id)
-          VALUES($1,$2,$3,$4,$4,$5,$6,0,$7,$8,$9,$10) RETURNING id`,
-          [order.id,payment.id,outRefundNo,cashRefund,eligible,cashRefund-eligible,JSON.stringify(allocation),
-            creditTotal?"isolated-split-tender-v1":"isolated-cash-lines-v1",`member:${approver}`,request.id])).rows[0]!;
+          VALUES($1,$2,$3,$4,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+          [order.id,payment.id,outRefundNo,cashRefund,eligible,cashRefund-eligible-shippingRefund,shippingRefund,JSON.stringify(allocation),
+            historicalComponents?"historical-full-components-v1":creditTotal?"isolated-split-tender-v1":"isolated-cash-lines-v1",`member:${approver}`,request.id])).rows[0]!;
         for(const source of sourceAllocations)await client.query(`INSERT INTO commission_credit_refund_allocation
           (refund_intent_id,source_id,amount_cents) VALUES($1,$2,$3)`,[intent.id,source.sourceId,source.amount]);
       }
