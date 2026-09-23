@@ -55,6 +55,14 @@ class MainProvenance(unittest.TestCase):
             self.assertEqual(m.main(),1)
         self.assertNotIn('SYNTHETIC_PRIVATE_CONNECTION',output.getvalue());self.assertIn('PRODUCTION_UPGRADE_FAILED_REVIEW_REQUIRED',output.getvalue())
 
+    def test_local_tls_preserves_certificate_validation_and_does_not_open_a_firewall(self):
+        with patch.object(m,'command',return_value=b'200') as command:m.local_https_ready()
+        args=command.call_args.args[0]
+        self.assertIn('api.cisme.cn:443:127.0.0.1',args)
+        self.assertNotIn('-k',args);self.assertNotIn('--insecure',args)
+        with patch.object(m,'command',return_value=b'503'):
+            with self.assertRaises(m.observe.target.Refused):m.local_https_ready()
+
 
 class Preflight(unittest.TestCase):
     def setUp(self):
@@ -74,10 +82,6 @@ class Preflight(unittest.TestCase):
         self.trusted_script=self.script;self.calls=[]
 
     def execute(self):
-        class Response:
-            status=200
-            def __enter__(self):return self
-            def __exit__(self,*args):pass
         def fetch(path):return {'type':'file','encoding':'base64','path':'scripts/release-migrate.mjs','content':base64.b64encode(self.trusted_script).decode()}
         def command(*args,**kwargs):self.calls.append('verify');return json.dumps({'verified':True,'sourceHead':HEAD,'sourceTree':TREE}).encode()
         with ExitStack() as stack:
@@ -88,13 +92,13 @@ class Preflight(unittest.TestCase):
             stack.enter_context(patch.object(m.observe,'protected_environment',side_effect=lambda p:self.live_config if Path(p)==self.live else self.candidate_config))
             guard=stack.enter_context(patch.object(m.observe,'guard_for_upgrade',side_effect=lambda *a:self.calls.append('live-target-guard') or {}))
             stack.enter_context(patch.object(m.journal,'inspect',side_effect=lambda:self.calls.append('journal') or {'journal':['20260101_first.sql']}))
-            stack.enter_context(patch.object(m.urllib.request,'urlopen',return_value=Response()))
+            stack.enter_context(patch.object(m,'local_https_ready',side_effect=lambda:self.calls.append('local-https')))
             result=m.preflight(str(self.new),str(self.candidate),fetch)
             guard.assert_called_once_with(str(self.candidate),self.manifest,HEAD,TREE)
             return result
 
     def test_live_guard_is_connected_before_reading_production_journal(self):
-        result=self.execute();self.assertEqual(self.calls,['verify','live-target-guard','journal'])
+        result=self.execute();self.assertEqual(self.calls,['verify','live-target-guard','journal','local-https'])
         self.assertFalse(result['deployed']);self.assertFalse(result['permissionGranted'])
 
     def test_branch_candidate_refused_before_any_candidate_execution(self):

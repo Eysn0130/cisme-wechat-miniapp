@@ -635,7 +635,7 @@
     "signatureDelta": "9新增签名：4个实际GitHub只读fetch调用，5个离线测试fixture/调用；没有删除既有清单项。",
     "github": "匿名访问固定GitHub仓库的main/git commit/workflow runs/脚本内容，不附带token、Cookie或业务正文；返回内容有大小上限。",
     "metadata": "腾讯云本机元数据仅instance-id/local-ipv4/public-ipv4，不读取角色或临时密钥；固定元数据端点并禁止重定向。",
-    "ownHealth": "固定api.cisme.cn/health/ready，仅无身份GET和状态判断；原始响应不写入交接证据。",
+    "ownHealth": "固定api.cisme.cn/health/ready，部署入口使用--resolve绑定127.0.0.1且保留域名SNI/证书验证；无身份GET、只读状态判断，不输出正文；该证据不代表公网可达。",
     "database": "只读peer查询固定cisme迁移名称与schema计数；不输出业务行、密码、完整连接串或数据库原始错误。",
     "privateLocalFiles": "原始配置备份仅根账户受保护目录；备份文件只在服务器本地校验，未上传GitHub。正式执行需要独立恢复/旧消费者证据。",
     "ugcScan": "任务准入暂停和shutdown排空改动，不改变现有微信内容安全payload、接收方和字段；不新增遥测。",

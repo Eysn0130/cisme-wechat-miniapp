@@ -17,7 +17,6 @@ import os
 from pathlib import Path
 import pwd
 import re
-import ssl
 import stat
 import subprocess
 import time
@@ -80,6 +79,16 @@ def command(args,env=None,cwd=None,timeout=30):
     require(result.returncode==0,'PRODUCTION_COMMAND_FAILED')
     require(len(result.stdout)<=1024*1024,'PRODUCTION_COMMAND_OUTPUT_TOO_LARGE')
     return result.stdout
+
+
+def local_https_ready():
+    # Fixed loopback transport, genuine domain SNI/certificate validation. This
+    # permits installing the closed candidate before separately approved public
+    # firewall exposure. It never claims external-network reachability.
+    value=command(['/usr/bin/curl','--silent','--output','/dev/null','--write-out','%{http_code}',
+                   '--noproxy','*','--connect-timeout','3','--max-time','8','--proto','=https',
+                   '--resolve','api.cisme.cn:443:127.0.0.1','https://api.cisme.cn/health/ready'],timeout=10)
+    require(value==b'200','PRODUCTION_LOCAL_HTTPS_NOT_READY')
 
 
 def github(path):
@@ -155,10 +164,8 @@ def preflight(directory,candidate_env,fetch=github):
     require(CURRENT.is_symlink() and old.parent==ROOT/'releases' and old!=directory,'EXISTING_PRODUCTION_RELEASE_REQUIRED')
     prior={'directory':str(old),'indexSha256':sha((old/'index.js').read_bytes()),
            'workerSha256':sha((old/'worker.js').read_bytes()),'packageLockSha256':sha((old/'package-lock.json').read_bytes())}
-    # Do not stop a live service when even the existing domain/certificate path
-    # is broken. This is a server-origin probe, not external-network acceptance.
-    with urllib.request.urlopen('https://api.cisme.cn/health/ready',context=ssl.create_default_context(),timeout=8) as response:
-        require(response.status==200,'CURRENT_PRODUCTION_HTTPS_NOT_READY')
+    # Do not stop a live service when its current local TLS/upstream is broken.
+    local_https_ready()
     return {'schemaVersion':1,'observedAtUtc':datetime.now(timezone.utc).isoformat(),'identity':identity,
             'target':target,'main':main,'candidateDirectory':str(directory),'manifestSha256':sha(protected(directory/'release-manifest.json')),
             'candidateEnvironmentSha256':sha(protected(candidate_env)),'liveEnvironmentSha256':sha(protected(LIVE)),
@@ -233,8 +240,7 @@ def healthy(directory):
             for unit in UNITS:
                 pid=command(['systemctl','show',unit,'-p','MainPID','--value']).decode().strip()
                 require(re.fullmatch(r'[1-9][0-9]*',pid) and Path('/proc/'+pid+'/cwd').resolve()==directory,'RUNNING_RELEASE_MISMATCH')
-            with urllib.request.urlopen('https://api.cisme.cn/health/ready',context=ssl.create_default_context(),timeout=5) as response:
-                require(response.status==200,'PRODUCTION_HTTPS_NOT_READY')
+            local_https_ready()
             return
         except Exception:
             if attempt==29:raise observe.target.Refused('PRODUCTION_ACTIVATION_HEALTH_FAILED')
