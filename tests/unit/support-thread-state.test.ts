@@ -81,6 +81,12 @@ describe("support thread state", () => {
     expect(presented[0]!.senderLabel).toBe("CISME 客服 · 人工客服");
   });
 
+  it("labels an unconfirmed local send as awaiting verification", () => {
+    const pending = { ...message(1, "user"), localState: "unknown" };
+    expect(presentSupportMessages([pending], { ownSenderType: "user", counterpartyReadSequence: 2 })[0]!.deliveryLabel)
+      .toBe("结果待核对");
+  });
+
   it("never turns an assignment into a green online claim without an unexpired heartbeat", () => {
     expect(supportHeaderPresentation({ status: "human_active", agentDisplayName: "小熹", operatorOnline: false })).toEqual({ tone: "neutral", label: "人工客服处理中" });
     expect(supportHeaderPresentation({ status: "human_active", agentDisplayName: "小熹", operatorOnline: true })).toEqual({ tone: "online", label: "小熹 · 人工客服已接入" });

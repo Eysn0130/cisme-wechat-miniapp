@@ -19,7 +19,7 @@ export type PresentedSupportMessage<TMessage extends SupportSequenceMessage> = T
   timeLabel: string;
   senderLabel: string;
   avatarKind: "ai" | "human" | "member" | "system";
-  deliveryLabel: "" | "正在发送" | "已发送" | "已读" | "发送失败";
+  deliveryLabel: "" | "正在发送" | "已发送" | "已读" | "发送失败" | "结果待核对";
 };
 
 export interface SupportThreadState<TMessage extends SupportSequenceMessage> {
@@ -148,6 +148,7 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
     const deliveryLabel = item.senderType !== options.ownSenderType ? ""
       : localState === "pending" ? "正在发送"
       : localState === "failed" ? "发送失败"
+      : localState === "unknown" ? "结果待核对"
       : item.sequence <= counterpartyReadSequence ? "已读" : "已发送";
     return {
       ...item,

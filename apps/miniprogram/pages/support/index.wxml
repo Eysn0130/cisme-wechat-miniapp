@@ -57,7 +57,7 @@
         <view wx:if="{{pendingMessage.body}}" class="support-bubble">{{pendingMessage.body}}</view>
         <view wx:if="{{pendingMessage.attachments.length}}" class="support-media-grid"><view class="support-media"><image src="{{pendingMessage.attachments[0].localPath}}" mode="aspectFill"/></view></view>
         <view wx:if="{{pendingMessage.orderCard}}" class="support-order-card support-order-card--static"><image class="support-order-card__image" src="{{pendingMessage.orderCard.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-order-card__content"><small>订单 · 尾号 {{pendingMessage.orderCard.orderNumberTail}}</small><strong>{{pendingMessage.orderCard.productName}}</strong><text>{{pendingMessage.orderCard.statusLabel}} · ¥{{pendingMessage.orderCard.totalYuan}}</text></view></view>
-        <view class="support-message__meta support-message__meta--{{pendingMessage.deliveryLabel === '发送失败' ? 'failed' : 'pending'}}"><text>{{pendingMessage.timeLabel}} · {{pendingMessage.deliveryLabel}}</text><button wx:if="{{pendingMessage.deliveryLabel === '发送失败'}}" bindtap="retrySend">重试</button></view>
+        <view class="support-message__meta support-message__meta--{{pendingMessage.deliveryLabel === '发送失败' ? 'failed' : 'pending'}}"><text>{{pendingMessage.timeLabel}} · {{pendingMessage.deliveryLabel}}</text><button wx:if="{{pendingMessage.deliveryLabel === '发送失败'||pendingMessage.deliveryLabel === '结果待核对'}}" bindtap="retrySend">核对原消息</button></view>
       </view>
     </view>
 

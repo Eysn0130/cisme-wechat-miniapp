@@ -92,7 +92,7 @@ Page({
       if(pending){
         const sendAttempt:SendAttempt={id:pending.id,body:pending.body,mediaIds:[],linkedOrderId:pending.linkedOrderId,
           signature:this.sendSignature(pending.body,[],pending.linkedOrderId)};
-        this.setData({input:pending.body,sendAttempt,pendingMessage:this.pendingFrom(sendAttempt,'failed'),
+        this.setData({input:pending.body,sendAttempt,pendingMessage:this.pendingFrom(sendAttempt,'unknown'),
           composerSendEnabled:true,error:'原消息结果尚未核实；重试将沿用同一消息编号。'});
       }
     }
@@ -328,7 +328,7 @@ Page({
     try { await request({ path: "/v1/me/support/presence", method: "POST", data: { online, typing }, cacheTags: ["support"] }); } catch {}
   },
   sendSignature(body: string, mediaIds: string[], linkedOrderId: string | null) { return JSON.stringify([body, mediaIds, linkedOrderId]); },
-  pendingFrom(attempt: SendAttempt, state: "pending" | "failed"): Message {
+  pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {
     const raw = {
       id: `local-${attempt.id}`, sequence: this.data.maxSeenSequence + 1, senderType: "user" as const, body: attempt.body,
       contentType: attempt.mediaIds.length || attempt.linkedOrderId ? "mixed" : "text", createdAt: new Date().toISOString(), deliveryState: "server_accepted" as const,
@@ -365,7 +365,7 @@ Page({
       await this.markRead();
       wx.nextTick(() => this.measureComposer());
     } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "消息尚未获得服务端确认，正文和附件仍保留。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "failed") });
+      if (this.owns(epoch, ownerToken)) this.setData({ error: "消息尚未获得服务端确认，正文和附件仍保留。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
     } finally { if (this.owns(epoch, ownerToken)) this.setData({ sending: false }); }
   },
   retrySend() { void this.send(); },

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "19d6f723fa0e94b1019831aeef6501ac0e736b921453df64890e4ab1aa5f07ee",
+  "packageSourceSha256": "b7008beba5098634e9b5c7135d843fb66be8749ab5afcb9c3dc98b4b4330c49c",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "This source labels unconfirmed support sends as needing verification rather than proven failure. The immediately prior committed blocked manifest is archived byte-for-byte as source-acceptance-7b317b7c4622.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "This source corrects the order money and refund explanation so an unverified or formal runtime does not show synthetic-test payment labels. The immediately prior committed blocked manifest is archived byte-for-byte as source-acceptance-761f9930d39f.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }
