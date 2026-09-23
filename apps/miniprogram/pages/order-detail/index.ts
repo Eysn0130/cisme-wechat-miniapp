@@ -9,7 +9,7 @@ import { centsToYuan } from "../../services/commerce";
 import { clientOperationKey, myOrder, myShipment, myTracking, confirmMyReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import { createSupportThreadState,mergeAcknowledgement,mergeSyncPage,presentSupportMessages,supportPollDelay,type SupportThreadState } from "../../services/support-thread-state";
-import { stageSupportDraft, takeSupportDraft } from "../../services/support-draft-handoff";
+import { stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付"};
 type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundState:string|null;reason:string;createdAt:string;
   cashRefundCents:number|null;creditReturnCents:number|null;amountLabel?:string;stateLabel?:string;
@@ -39,6 +39,10 @@ Page({
     this.setData({id,invalidId:!orderIdPattern.test(id)});},
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
     if(!requireMemberAccess())return;
+    if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){
+      const attempt=takeSupportSendAttempt(getApp<IAppOption>().globalData.sessionToken,this.data.id);
+      if(attempt)this.setData({sheetInput:attempt.body,sheetSendAttempt:{key:attempt.id,body:attempt.body},sheetError:'原消息结果尚未核实；重试将使用同一消息编号。'});
+    }
     if(this.data.supportSheetOpen&&!this.data.sheetInput&&!this.data.sheetSendAttempt){
       const draft=takeSupportDraft(getApp<IAppOption>().globalData.sessionToken,this.data.id);
       if(draft)this.setData({sheetInput:draft});
@@ -283,12 +287,17 @@ Page({
     this.setData({supportSheetOpen:true,sheetError:''});void this.loadSupportSheet();},
   closeSupportSheet(){if(this.data.sheetSubmitting||this.data.sheetSending)return;this.stopSheetPoll();this.setData({supportSheetOpen:false,sheetKeyboardHeight:0});},
   stopPropagation(){},
-  expandSupport(){if(!this.canAct()||this.data.navigating)return;this.stopSheetPoll();
+  expandSupport(){if(!this.canAct()||this.data.navigating||this.data.sheetSending)return;this.stopSheetPoll();
     const handoff=this.data.sheetSendAttempt?null:this.data.sheetInput;
     if(handoff?.trim())stageSupportDraft(getApp<IAppOption>().globalData.sessionToken,this.data.id,handoff);
+    const attempt=this.data.sheetSendAttempt;
+    if(attempt)stageSupportSendAttempt(getApp<IAppOption>().globalData.sessionToken,this.data.id,{id:attempt.key,body:attempt.body,linkedOrderId:this.data.id});
     this.setData({navigating:true,...(handoff?.trim()?{sheetInput:''}:{})});
-    wx.navigateTo({url:`/pages/support/index?orderId=${this.data.id}`,fail:()=>{
+    wx.navigateTo({url:`/pages/support/index?orderId=${this.data.id}`,success:()=>{
+      if(attempt?.key===this.data.sheetSendAttempt?.key)this.setData({sheetInput:'',sheetSendAttempt:null,sheetError:''});
+    },fail:()=>{
       const draft=takeSupportDraft(getApp<IAppOption>().globalData.sessionToken,this.data.id);
+      if(attempt)takeSupportSendAttempt(getApp<IAppOption>().globalData.sessionToken,this.data.id);
       this.setData({navigating:false,...(draft?{sheetInput:draft}:{})});
     }});},
   openFullAftersale(){if(!this.canAct()||this.data.navigating)return;this.stopSheetPoll();this.setData({navigating:true});

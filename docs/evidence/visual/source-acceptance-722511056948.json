@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "96e49edb5dd6e3d3621a61c809f15a92cedfb5c5a304e2bbb2e4bdb11f9361f4",
+  "packageSourceSha256": "06c4d7206a6d3121f28d7dc62d0b10e419036b407150b78b46030ab3c2bdf18f",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "This source preserves the original client message ID for uncertain text-only support sends during same-account, same-order handoff between the order sheet and full support page. The composer is held until that original send is retried, preventing a changed message from silently reusing or replacing the pending attempt. The immediately prior committed blocked manifest is archived byte-for-byte as source-acceptance-722511056948.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "This source adds account-scoped in-memory support draft handoff between the order sheet and the existing full support page. The immediately prior blocked manifest is archived byte-for-byte as source-acceptance-57a5bdcaf9de.json. No new DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }

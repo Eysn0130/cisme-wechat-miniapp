@@ -4,7 +4,7 @@ import { downloadPrivateMedia, requireMemberAccess, request, retainMemberSnapsho
 import { centsToYuan } from "../../services/commerce";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
-import { stageSupportDraft, takeSupportDraft } from "../../services/support-draft-handoff";
+import { stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
   mergeAcknowledgement,
@@ -87,6 +87,15 @@ Page({
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
     if (!requireMemberAccess("/pages/support/index")) { this.data.visible = false; return; }
+    if(this.linkedOrderId&&!this.data.sendAttempt){
+      const pending=takeSupportSendAttempt(sessionToken(),this.linkedOrderId);
+      if(pending){
+        const sendAttempt:SendAttempt={id:pending.id,body:pending.body,mediaIds:[],linkedOrderId:pending.linkedOrderId,
+          signature:this.sendSignature(pending.body,[],pending.linkedOrderId)};
+        this.setData({input:pending.body,sendAttempt,pendingMessage:this.pendingFrom(sendAttempt,'failed'),
+          composerSendEnabled:true,error:'原消息结果尚未核实；重试将沿用同一消息编号。'});
+      }
+    }
     if(this.linkedOrderId&&!this.data.input&&!this.data.sendAttempt){
       const draft=takeSupportDraft(sessionToken(),this.linkedOrderId);
       if(draft)this.setData({input:draft,composerSendEnabled:memberComposerCanSend(draft,this.data.selectedImage,this.data.selectedOrder)});
@@ -110,7 +119,9 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0 });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
-  onUnload() { if(this.linkedOrderId&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
+  onUnload() { if(this.linkedOrderId&&!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===this.linkedOrderId&&
+      !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),this.linkedOrderId,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId});
+    else if(this.linkedOrderId&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
       stageSupportDraft(sessionToken(),this.linkedOrderId,this.data.input);
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
   copyReturnInstruction(event:WechatMiniprogram.TouchEvent){
@@ -298,10 +309,11 @@ Page({
     } catch {}
   },
   updateInput(event: WechatMiniprogram.TextareaInput) {
+    if(this.data.sending||this.data.sendAttempt)return;
     this.inputRevision += 1;
     this.lastActivityAt = Date.now();
     const input = event.detail.value;
-    this.setData({ input, composerSendEnabled: memberComposerCanSend(input, this.data.selectedImage, this.data.selectedOrder), sendAttempt: null, pendingMessage: this.data.pendingMessage?.deliveryLabel === "发送失败" ? null : this.data.pendingMessage });
+    this.setData({ input, composerSendEnabled: memberComposerCanSend(input, this.data.selectedImage, this.data.selectedOrder) });
     void this.publishPresence(true, Boolean(input.trim()), !input.trim());
   },
   async publishPresence(online: boolean, typing: boolean, force = false) {
@@ -329,7 +341,7 @@ Page({
   async send() {
     const body = this.data.input.trim();
     const mediaIds = this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : [];
-    const linkedOrderId = this.data.selectedOrder?.id ?? null;
+    const linkedOrderId = this.data.selectedOrder?.id ?? this.linkedOrderId ?? null;
     if (!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder) || this.data.sending || this.data.uploadBusy) return;
     const signature = this.sendSignature(body, mediaIds, linkedOrderId);
     const draftRevision = this.inputRevision;
@@ -358,7 +370,7 @@ Page({
   },
   retrySend() { void this.send(); },
   prepareAttachmentSheet(attachmentSheetMode: "image" | "attachment") {
-    if (this.data.sending || this.data.uploadBusy || this.choosingImage) return;
+    if (this.data.sending || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage) return;
     if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
     this.setData({ attachmentSheetOpen: true, attachmentSheetMode, composerFocused: false });
   },
@@ -442,8 +454,9 @@ Page({
       if (current()) { this.uploadAbort = null; this.setData({ uploadBusy: false }); wx.nextTick(() => this.measureComposer()); }
     }
   },
-  retryImageUpload() { void this.uploadImage(); },
+  retryImageUpload() { if(!this.data.sendAttempt)void this.uploadImage(); },
   removeImage() {
+    if(this.data.sendAttempt)return;
     const mediaId = this.data.selectedImage?.mediaId;
     this.uploadAttempt += 1;
     this.uploadAbort?.(); this.uploadAbort = null;
@@ -466,13 +479,14 @@ Page({
   },
   closeOrderPicker() { this.setData({ orderPickerOpen: false }); },
   selectOrder(event: WechatMiniprogram.TouchEvent) {
+    if(this.data.sendAttempt)return;
     const selected = this.data.orderChoices.find((order) => order.id === String(event.currentTarget.dataset.id ?? ""));
     if (!selected) return;
     this.inputRevision += 1;
     this.setData({ selectedOrder: selected, orderPickerOpen: false, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, selected) });
     wx.nextTick(() => this.measureComposer());
   },
-  removeOrder() { this.inputRevision += 1; this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) }); wx.nextTick(() => this.measureComposer()); },
+  removeOrder() { if(this.data.sendAttempt)return;this.inputRevision += 1; this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) }); wx.nextTick(() => this.measureComposer()); },
   openOrder(event: WechatMiniprogram.TouchEvent) { const id = String(event.currentTarget.dataset.id ?? ""); if (id) wx.navigateTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(id)}` }); },
   downloadMedia(messages: readonly RawMessage[]) {
     const epoch = this.lifecycleEpoch;
