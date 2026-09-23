@@ -1,4 +1,4 @@
-import {mkdtempSync,rmSync,writeFileSync,symlinkSync} from 'node:fs';
+import {chmodSync,mkdtempSync,rmSync,writeFileSync,symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach,expect,it,vi} from 'vitest';
@@ -11,6 +11,10 @@ it.each([undefined,'relative.json','/not-existing-cisme-return-policy'])('fails 
 it.each([{...candidate,approved:false},{...candidate,approvalReference:''},{...candidate,phone:''},{...candidate,address:''}])('rejects incomplete or unapproved configuration without exposing its content',value=>{const path=file(value);expect(()=>approvedReturnDestination(path)).toThrowError(expect.objectContaining({code:'RETURN_DESTINATION_UNAVAILABLE'}));});
 it('reads only the necessary business fields and does not pass arbitrary config to consumers',()=>{expect(approvedReturnDestination(file({...candidate,privateExtra:'must-not-leave-config'}))).toEqual({version:candidate.version,approvalReference:candidate.approvalReference,recipientName:candidate.recipientName,phone:candidate.phone,address:candidate.address});});
 it('rejects links and oversized input',()=>{const p=file(candidate),alias=join(root!,'alias.json');symlinkSync(p,alias);expect(()=>approvedReturnDestination(alias)).toThrow();writeFileSync(p,' '.repeat(9000));expect(()=>approvedReturnDestination(p)).toThrow();});
+it('refuses an approved destination file readable by other local users',()=>{
+ const p=file(candidate);chmodSync(p,0o644);
+ expect(()=>approvedReturnDestination(p)).toThrowError(expect.objectContaining({code:'RETURN_DESTINATION_UNAVAILABLE'}));
+});
 it.each(['constructor','toString','__proto__','unknown_action'])('rejects non-own action %s before opening a transaction',async action=>{
  const connect=vi.fn(()=>{throw Error('DATABASE_MUST_NOT_BE_OPENED');});
  const service=new AftersaleService({connect} as any,{} as any);

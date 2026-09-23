@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, lstatSync } from 'node:fs';
 import type pg from 'pg';
 import type { Capability } from '@cisme/contracts';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
 import { AuthorityService, requireActiveMemberWithClient } from './authority.js';
 import { finishPage, pageLimit, pageScope, readPageCursor } from './keysetPage.js';
+import { protectedText } from './formalPaymentAuthorization.js';
 import type { RefundCommandService } from './refundCommand.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -28,9 +28,9 @@ type CaseRow={id:string;order_id:string;member_id:string;kind:string;state:strin
 export function approvedReturnDestination(path:string|undefined){
   if(!path)fail('RETURN_DESTINATION_UNAVAILABLE','退货收件信息待核准，请联系在线客服；暂勿寄出',503);
   try{
-    if(!path.startsWith('/')||path.includes('\0'))throw Error();
-    const stat=lstatSync(path);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>8192)throw Error();
-    const doc=JSON.parse(readFileSync(path,'utf8')) as Record<string,unknown>;
+    const content=protectedText(path);
+    if(Buffer.byteLength(content)>8192)throw Error();
+    const doc=JSON.parse(content) as Record<string,unknown>;
     if(doc.approved!==true||typeof doc.version!=='string'||!/^[A-Za-z0-9._-]{1,80}$/.test(doc.version)
       ||typeof doc.approvalReference!=='string'||doc.approvalReference.length<8||doc.approvalReference.length>300
       ||typeof doc.recipientName!=='string'||doc.recipientName.length<1||doc.recipientName.length>80
