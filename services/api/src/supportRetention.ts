@@ -25,6 +25,8 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
           AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL))
         AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE
           a.support_conversation_id=c.id OR a.support_conversation_id IS NULL AND a.member_id=c.member_id)
+        AND NOT EXISTS(SELECT 1 FROM privacy_request p WHERE p.member_id=c.member_id
+          AND p.status NOT IN ('completed','partially_completed','rejected','canceled'))
         AND NOT EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
           WHERE h.status='active' AND h.expires_at>$3 AND
             (b.object_type='support_conversation' AND b.object_id=c.id::text OR
@@ -35,6 +37,7 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
     // Hold creation and release cannot cross the final eligibility check.
     await client.query('LOCK TABLE legal_hold IN SHARE MODE');
     await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+    await client.query('LOCK TABLE privacy_request IN SHARE MODE');
     let purged=0;
     for(const row of due){
       const linked=(await client.query<{linked:boolean}>(`SELECT (
@@ -44,6 +47,11 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
           WHERE a.support_conversation_id=$1 OR a.support_conversation_id IS NULL AND a.member_id=$2)
       ) AS linked`,[row.id,row.member_id])).rows[0]?.linked;
       if(linked)continue;
+      const openRights=(await client.query<{open:boolean}>(`SELECT EXISTS(
+        SELECT 1 FROM privacy_request WHERE member_id=$1
+          AND status NOT IN ('completed','partially_completed','rejected','canceled')) AS open`,
+        [row.member_id])).rows[0]?.open;
+      if(openRights)continue;
       const held=(await client.query<{held:boolean}>(`SELECT EXISTS(
         SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
         WHERE h.status='active' AND h.expires_at>$3 AND

@@ -202,6 +202,9 @@ export class SupportService {
         (binding.object_type='support_conversation' AND binding.object_id=$1)
         OR (binding.object_type='member' AND binding.object_id=$2)
       )`, [row.id, row.member_id]);
+    const openRights=(await client.query<{open:boolean}>(`SELECT EXISTS(SELECT 1 FROM privacy_request
+      WHERE member_id=$1 AND status NOT IN ('completed','partially_completed','rejected','canceled')) AS open`,
+      [row.member_id])).rows[0]?.open;
     if(linked.rows[0]?.linked){
       const policy=(await client.query<{code:string;version:number;duration_months:number|null}>(
         "SELECT code,version,duration_months FROM data_retention_policy WHERE code='support_transaction_three_years'")).rows[0];
@@ -222,7 +225,8 @@ export class SupportService {
       : null;
     const policyReady = current.active && current.enforcement_state === "enforced" && hasDuration;
     const reason = !policyReady ? "policy_pending" : row.status !== "resolved" || !row.resolved_at ? "not_resolved"
-      : hold.rows[0]!.count > 0 ? "legal_hold" : !due?.rows[0]?.eligible ? "not_due" : "eligible";
+      : hold.rows[0]!.count > 0 ? "legal_hold" : openRights ? 'privacy_request_active'
+      : !due?.rows[0]?.eligible ? "not_due" : "eligible";
     return { eligible: reason === "eligible", reason, policyCode: current.code, policyVersion: current.version,
       durationDays: current.duration_days,durationMonths:current.duration_months,
       eligibleAt: due?.rows[0]?.eligible_at.toISOString() ?? null, activeLegalHolds: hold.rows[0]!.count };
@@ -619,12 +623,15 @@ export class SupportService {
       // The eligibility read and deletion must not race a newly inserted hold.
       await client.query('LOCK TABLE legal_hold IN SHARE MODE');
       await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+      await client.query('LOCK TABLE privacy_request IN SHARE MODE');
       const state=await this.retentionState(client,row);
       if(state.reason==="policy_pending")throw new DomainError("SUPPORT_RETENTION_POLICY_PENDING","Support retention remains POLICY PENDING and cannot delete data",409);
       if(state.reason==='transaction_scope_requires_separate_execution')throw new DomainError(
         'SUPPORT_TRANSACTION_RETENTION_SCOPE','关联订单或售后的客服事实必须按交易范围单独处理，不能整段清除',409);
       if(state.reason==="not_resolved")throw new DomainError("SUPPORT_RETENTION_NOT_RESOLVED","Only resolved conversations can become purge eligible",409);
       if(state.reason==="legal_hold")throw new DomainError("SUPPORT_RETENTION_LEGAL_HOLD","An active legal hold blocks this purge",423);
+      if(state.reason==='privacy_request_active')throw new DomainError('SUPPORT_RETENTION_PRIVACY_REQUEST_ACTIVE',
+        'The member has an open privacy request; finish it before purging support history',409);
       if(state.reason!=="eligible")throw new DomainError("SUPPORT_RETENTION_NOT_DUE","The approved retention period has not elapsed",409);
       const messageCount=(await client.query<{count:number}>("SELECT count(*)::int AS count FROM support_message WHERE conversation_id=$1",[id])).rows[0]!.count;
       await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)

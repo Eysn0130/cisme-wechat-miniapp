@@ -56,4 +56,15 @@ describe('ordinary support retention worker',()=>{
     expect(await purgeDueOrdinarySupport(pool,now)).toBe(1);
     expect((await pool.query('SELECT id FROM support_conversation WHERE id=$1',[held.id])).rowCount).toBe(0);
   });
+
+  it('keeps consultation history while the member has an open privacy request',async()=>{
+    const subject=await conversation('rights inquiry evidence','2026-07-01T12:00:00Z');
+    const request=(await pool.query<{id:string}>(`INSERT INTO privacy_request(member_id,kind,message,due_at)
+      VALUES($1,'access','Need my information',clock_timestamp()+interval '30 days') RETURNING id`,
+      [subject.memberId])).rows[0]!;
+    expect(await purgeDueOrdinarySupport(pool,now)).toBe(0);
+    expect((await pool.query('SELECT id FROM support_conversation WHERE id=$1',[subject.id])).rowCount).toBe(1);
+    await pool.query("UPDATE privacy_request SET status='canceled' WHERE id=$1",[request.id]);
+    expect(await purgeDueOrdinarySupport(pool,now)).toBe(1);
+  });
 });
