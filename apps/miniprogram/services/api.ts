@@ -266,10 +266,10 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
 
 export function requestCancelable<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", tags = options.cacheTags ?? tagsForPath(options.path);
-  const session = app.globalData.sessionToken, origin = currentRouteUrl();
+  const session = app.globalData.sessionToken, rightsSession = app.globalData.privacyRightsToken, origin = currentRouteUrl();
   let task: { promise: Promise<T>; abort(reason?: unknown): void };
   if (method === "GET") {
-    const key = JSON.stringify([app.globalData.apiBaseUrl, app.globalData.cloudFunction, session, options.path, options.data, options.authMode ?? "required", options.budgetMs ?? 12_000, options.idempotencyKey]);
+    const key = JSON.stringify([app.globalData.apiBaseUrl, app.globalData.cloudFunction, session, rightsSession, options.path, options.data, options.authMode ?? "required", options.budgetMs ?? 12_000, options.idempotencyKey]);
     const subscription = reads.acquire(key, () => performRequest<T>(options), readPolicy(options.path, tags));
     task = subscription;
     if (subscription.coalesced) recordClientMetric({ action: metricAction(options.path), stage: "coalesced", durationMs: 0 });
@@ -281,7 +281,7 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
   // Context belongs to each consumer. A departed first reader cannot suppress
   // another page's shared retry. Lifecycle owners can cancel immediately.
   const monitor = method === "GET" ? setInterval(() => {
-    if (app.globalData.sessionToken !== session || currentRouteUrl() !== origin)
+    if (app.globalData.sessionToken !== session || app.globalData.privacyRightsToken !== rightsSession || currentRouteUrl() !== origin)
       task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消本页读取" });
   }, 100) : null;
   const promise = task.promise.finally(() => { if (monitor) clearInterval(monitor); });

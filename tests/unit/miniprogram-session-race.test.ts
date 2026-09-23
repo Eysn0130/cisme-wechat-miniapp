@@ -23,8 +23,13 @@ it('keeps closed-account rights separate from member routes and rejects a stale 
   wxMock.request.mock.calls[1]![0].success({statusCode:200,data:{guest:true}});
   await expect(member).resolves.toEqual({guest:true});
   api.setPrivacyRightsToken('rights-b');
+  const current=api.request({path:'/v1/me/privacy-requests?page=1'});
+  expect(wxMock.request).toHaveBeenCalledTimes(3);
+  expect(wxMock.request.mock.calls[2]![0].header.Authorization).toBe('Bearer rights-b');
   wxMock.request.mock.calls[0]![0].success({statusCode:200,data:{items:[{id:'old-account'}]}});
   await expect(rights).rejects.toMatchObject({code:'REQUEST_SESSION_CHANGED'});
+  wxMock.request.mock.calls[2]![0].success({statusCode:200,data:{items:[{id:'current-account'}]}});
+  await expect(current).resolves.toEqual({items:[{id:'current-account'}]});
 });
 
 describe("native delayed authentication responses", () => {
