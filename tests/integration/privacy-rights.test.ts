@@ -322,3 +322,28 @@ it('redrives an exhausted synthetic export without exposing an unfinished artifa
  expect((await pool.query('SELECT status,attempts FROM data_export_job WHERE privacy_request_id=$1',[id])).rows[0]).toMatchObject({status:'succeeded',attempts:1});
  expect(JSON.stringify((await pool.query('SELECT detail FROM privacy_request_event WHERE privacy_request_id=$1',[id])).rows)).not.toContain('PRIVATE_EXHAUSTED_EXPORT');
 });
+it('keeps partially completed requests after actionable work across queue pages',async()=>{
+ const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'queue-pagination-member',displayName:'queue pagination',
+   consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+ expect(identity.statusCode).toBe(200);
+ const queueMemberId=identity.json().memberId as string;
+ await pool.query(`INSERT INTO privacy_request(member_id,kind,message,status,due_at)
+   SELECT $1,'other','queue-open-'||n,'received',now()+interval '1 day'
+   FROM generate_series(1,101) n`,[queueMemberId]);
+ const closed=(await pool.query(`INSERT INTO privacy_request(member_id,kind,message,status,due_at,completed_at)
+   VALUES($1,'other','queue-partial-terminal','partially_completed',now()+interval '12 hours',now()) RETURNING id`,
+   [queueMemberId])).rows[0].id;
+ const rights=new PrivacyRights(pool,config.env);
+ const seen:Array<{id:string;status:string}>=[];
+ let cursor:string|undefined;
+ do {
+   const page=await rights.queue('lead-user',ownerMemberId,'role',cursor?{cursor}:{}) as {items:Array<{id:string;status:string}>;nextCursor:string|null};
+   seen.push(...page.items);
+   cursor=page.nextCursor??undefined;
+ } while(cursor);
+ expect(new Set(seen.map(item=>item.id)).size).toBe(seen.length);
+ expect(seen.filter(item=>item.status==='received').length).toBeGreaterThanOrEqual(101);
+ const partialIndex=seen.findIndex(item=>item.id===closed);
+ expect(partialIndex).toBeGreaterThanOrEqual(101);
+ expect(seen.slice(partialIndex+1).some(item=>!['completed','partially_completed','rejected','canceled'].includes(item.status))).toBe(false);
+});

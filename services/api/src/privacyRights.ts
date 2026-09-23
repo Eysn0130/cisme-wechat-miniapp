@@ -8,6 +8,8 @@ import { AuthorityService } from './authority.js';
 
 const pageSize=30;
 const base64UrlPattern=/^[A-Za-z0-9_-]+$/;
+const terminalPrivacyStatuses=['completed','partially_completed','rejected','canceled'] as const;
+const terminalPrivacySql=`pr.status IN (${terminalPrivacyStatuses.map(status=>`'${status}'`).join(',')})`;
 type PrivacyPageCursor={v:1;scope:'member'|'queue';createdAt:string;id:string;dueAt?:string;terminal?:boolean};
 
 function parsePageCursor(value:string|undefined,scope:PrivacyPageCursor['scope']):PrivacyPageCursor|null {
@@ -27,7 +29,7 @@ function parsePageCursor(value:string|undefined,scope:PrivacyPageCursor['scope']
 function pageResult<T extends {id:string;cursor_created_at:string;cursor_due_at?:string;status?:string}>(rows:T[],scope:PrivacyPageCursor['scope']) {
   const items=rows.slice(0,pageSize),last=items.at(-1);
   const nextCursor=rows.length>pageSize&&last?Buffer.from(JSON.stringify({v:1,scope,createdAt:last.cursor_created_at,id:last.id,
-    ...(scope==='queue'?{dueAt:last.cursor_due_at!,terminal:['completed','rejected','canceled'].includes(last.status!)}:{})} satisfies PrivacyPageCursor)).toString('base64url'):null;
+    ...(scope==='queue'?{dueAt:last.cursor_due_at!,terminal:(terminalPrivacyStatuses as readonly string[]).includes(last.status!)}:{})} satisfies PrivacyPageCursor)).toString('base64url'):null;
   return {items:items.map(({cursor_created_at:unusedCreated,cursor_due_at:unusedDue,...row})=>row),nextCursor};
 }
 
@@ -144,8 +146,8 @@ export class PrivacyRights {
         to_char(pr.due_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_due_at,`:''}
       ${executionProjection}
       FROM privacy_request pr
-      ${cursor?"WHERE ((pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at,pr.id)>($1::boolean,$2::timestamptz,$3::timestamptz,$4::uuid)":''}
-      ORDER BY (pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at,pr.id LIMIT ${page?pageSize+1:100}`,
+      ${cursor?`WHERE ((${terminalPrivacySql}),pr.due_at,pr.created_at,pr.id)>($1::boolean,$2::timestamptz,$3::timestamptz,$4::uuid)`:''}
+      ORDER BY (${terminalPrivacySql}),pr.due_at,pr.created_at,pr.id LIMIT ${page?pageSize+1:100}`,
       cursor?[cursor.terminal,cursor.dueAt,cursor.createdAt,cursor.id]:[])).rows;
       return page?pageResult(rows,'queue'):rows;
     });
