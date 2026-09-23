@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "routeCount": 239,
-  "sourceSha256": "6efbac1b1ef6fa34687a50b852bdf6d4d6060aa295908bb548da3ddacbb6b1f7",
+  "routeCount": 248,
+  "sourceSha256": "9f4e706e9735575d6afb85458a839d2bc7327d91f1861732394131b7fcae5731",
   "releaseReady": false,
   "scope": "Exact method denominator. Candidate references are discovery aids, not per-axis security proof. Service source review and executed semantic tests must supply acceptance.",
   "nonRouteSurfaces": [
@@ -19,7 +19,7 @@
       "method": "GET",
       "path": "/v1/admin/campaigns",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:791",
+      "handler": "services/api/src/server.ts:855",
       "handlerSliceSha256": "dec0f8383805c26bb30178c07efe0a67f9754bd797037bb54af53386fd7308d8",
       "serviceCalls": [
         {
@@ -57,7 +57,7 @@
       "method": "PUT",
       "path": "/v1/admin/campaigns/{campaignId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:792",
+      "handler": "services/api/src/server.ts:856",
       "handlerSliceSha256": "ea9cc0f3167388fe3a675305dfeba21e03f5c927667271f72ea0c97e5837b8b7",
       "serviceCalls": [
         {
@@ -99,7 +99,7 @@
       "method": "POST",
       "path": "/v1/admin/community/{postId}/comments/{commentId}/review",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:776",
+      "handler": "services/api/src/server.ts:840",
       "handlerSliceSha256": "bff47c9e5394d9db418c869733d1c4cb4b1a26c95399b8733c1b82019d7a14d0",
       "serviceCalls": [
         {
@@ -137,7 +137,7 @@
       "method": "GET",
       "path": "/v1/admin/points/actions",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:784",
+      "handler": "services/api/src/server.ts:848",
       "handlerSliceSha256": "ea06066d10f585ba35e05a7f3d1e8a6beea743d029af84080952c65eaf97f6a7",
       "serviceCalls": [
         {
@@ -175,7 +175,7 @@
       "method": "POST",
       "path": "/v1/admin/points/actions/{requestId}/approve",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:788",
+      "handler": "services/api/src/server.ts:852",
       "handlerSliceSha256": "01eebb4f68d8315d199c3d07a03ba8d3310859312eb7bfc356117d7deae3acc7",
       "serviceCalls": [
         {
@@ -217,7 +217,7 @@
       "method": "POST",
       "path": "/v1/admin/points/actions/{requestId}/reject",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:788",
+      "handler": "services/api/src/server.ts:852",
       "handlerSliceSha256": "01eebb4f68d8315d199c3d07a03ba8d3310859312eb7bfc356117d7deae3acc7",
       "serviceCalls": [
         {
@@ -259,7 +259,7 @@
       "method": "GET",
       "path": "/v1/admin/points/grants",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:785",
+      "handler": "services/api/src/server.ts:849",
       "handlerSliceSha256": "aacb9e50e493ee0f7af49204b766bd97765f80a8383a208989db885b8e954756",
       "serviceCalls": [
         {
@@ -297,7 +297,7 @@
       "method": "POST",
       "path": "/v1/admin/points/grants/{grantId}/actions",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:786",
+      "handler": "services/api/src/server.ts:850",
       "handlerSliceSha256": "378fae229a6b35e06c0c8995cac4951b511c64f382d3b2a62cfaab2b3fd80b88",
       "serviceCalls": [
         {
@@ -339,8 +339,8 @@
       "method": "GET",
       "path": "/v1/admin/privacy-requests",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:395",
-      "handlerSliceSha256": "9bdb12519c2ab779f13b1abe6d3c60652ddd5cc4b5c9f45dfad8a0908eba18a4",
+      "handler": "services/api/src/server.ts:433",
+      "handlerSliceSha256": "45a89471c73f148995c4ac4ef1f24645bf0f451b0cea4650a55d7647bfde1911",
       "serviceCalls": [
         {
           "owner": "services/api/src/privacyRights.ts",
@@ -378,7 +378,7 @@
       "method": "POST",
       "path": "/v1/admin/privacy-requests/{requestId}/erasure-approval",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:410",
+      "handler": "services/api/src/server.ts:448",
       "handlerSliceSha256": "2ce52ea215a246144d353e6948ea84ab4783d1612c156385f7cddd9c092c6980",
       "serviceCalls": [
         {
@@ -417,7 +417,7 @@
       "method": "POST",
       "path": "/v1/admin/privacy-requests/{requestId}/execution-plan",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:403",
+      "handler": "services/api/src/server.ts:441",
       "handlerSliceSha256": "daaa89b1820f732bec3e07cab827626a0fd8136af8903abc69eba3cede06fa0e",
       "serviceCalls": [
         {
@@ -456,7 +456,7 @@
       "method": "POST",
       "path": "/v1/admin/privacy-requests/{requestId}/execution-redrive",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:413",
+      "handler": "services/api/src/server.ts:451",
       "handlerSliceSha256": "64fb779f32183b4afcee7b90ca096fcc794d8a021850383dc478145a0e9ae05c",
       "serviceCalls": [
         {
@@ -495,7 +495,7 @@
       "method": "POST",
       "path": "/v1/admin/privacy-requests/{requestId}/export-approval",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:407",
+      "handler": "services/api/src/server.ts:445",
       "handlerSliceSha256": "28efd62f9932f27298530d7a82b97f964814a7e2edfd928de640f160bcb0f16b",
       "serviceCalls": [
         {
@@ -534,7 +534,7 @@
       "method": "POST",
       "path": "/v1/admin/privacy-requests/{requestId}/response",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:398",
+      "handler": "services/api/src/server.ts:436",
       "handlerSliceSha256": "72b2e8f79ce106cd5be4f5c95bdab1caff538303b7c8e997840e10cfc18f18eb",
       "serviceCalls": [
         {
@@ -577,7 +577,7 @@
       "method": "GET",
       "path": "/v1/admin/publications",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:781",
+      "handler": "services/api/src/server.ts:845",
       "handlerSliceSha256": "927433b00094f01efb3575888474288999ad5b1a1fc74ce8925c729195f69b92",
       "serviceCalls": [
         {
@@ -613,7 +613,7 @@
       "method": "GET",
       "path": "/v1/admin/reviews",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:779",
+      "handler": "services/api/src/server.ts:843",
       "handlerSliceSha256": "0df5682399a7ea17df0eb05d952f093b816b968d3de9070c1cee50f8379f5dd0",
       "serviceCalls": [
         {
@@ -656,7 +656,7 @@
       "method": "GET",
       "path": "/v1/admin/runtime-metrics",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:798",
+      "handler": "services/api/src/server.ts:862",
       "handlerSliceSha256": "ffa3d5656a8efcd6581630dd92004d5f9b39aeea432a8b3b99bc1e3f7c976435",
       "serviceCalls": [
         {
@@ -694,7 +694,7 @@
       "method": "POST",
       "path": "/v1/admin/submissions/{submissionId}/publish",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:783",
+      "handler": "services/api/src/server.ts:847",
       "handlerSliceSha256": "ea70ccf072274ef8b95c80cafb54afc0d1e29f8a87ec47d6a3a6c1536fbc637b",
       "serviceCalls": [
         {
@@ -736,7 +736,7 @@
       "method": "POST",
       "path": "/v1/admin/submissions/{submissionId}/review",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:782",
+      "handler": "services/api/src/server.ts:846",
       "handlerSliceSha256": "9a90930ccb137afcfe5a5ee91d21dcddb5a2389ba678424063898b47acbf0b17",
       "serviceCalls": [
         {
@@ -778,7 +778,7 @@
       "method": "GET",
       "path": "/v1/admin/switches",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:790",
+      "handler": "services/api/src/server.ts:854",
       "handlerSliceSha256": "733ed823b5de14bbf8dba96e7dab7a27150785bedfe7245686fb40ef374b3527",
       "serviceCalls": [
         {
@@ -817,7 +817,7 @@
       "method": "PUT",
       "path": "/v1/admin/switches/{key}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:796",
+      "handler": "services/api/src/server.ts:860",
       "handlerSliceSha256": "9bf4d2908bf36a800391a20691b35690a9806c905b56a689ab44b6c109c7f3ab",
       "serviceCalls": [
         {
@@ -860,7 +860,7 @@
       "method": "POST",
       "path": "/v1/admin/tester-enrollments",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:780",
+      "handler": "services/api/src/server.ts:844",
       "handlerSliceSha256": "aef9c175f0a85b5b1baf9dbee325c604f43dd4312e57e6831b1077d2d9b38aff",
       "serviceCalls": [
         {
@@ -902,7 +902,7 @@
       "method": "GET",
       "path": "/v1/admin/worker-backlog",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:795",
+      "handler": "services/api/src/server.ts:859",
       "handlerSliceSha256": "191151244bd86c2231519cba2e06ea5f52bc0eee9bcd45528aea43b4fc371083",
       "serviceCalls": [
         {
@@ -940,7 +940,7 @@
       "method": "GET",
       "path": "/v1/admin/worker-failures",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:797",
+      "handler": "services/api/src/server.ts:861",
       "handlerSliceSha256": "c994362f2e9e7bbe017d99b9dea71d1b5446839b7366bd092ebc9b90eaafe009",
       "serviceCalls": [
         {
@@ -978,8 +978,8 @@
       "method": "POST",
       "path": "/v1/admin/worker-failures/{queue}/{itemId}/redrive",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:802",
-      "handlerSliceSha256": "f9c13628ada3abe7eab2bcab24a80c9d460c2fb47cc8671268262f9e7e638a47",
+      "handler": "services/api/src/server.ts:866",
+      "handlerSliceSha256": "d3ec122d60aeda2b44ae175ce9c8c03d57fa138c442c2b038a6d64b3a4ffa1f0",
       "serviceCalls": [
         {
           "owner": "services/api/src/platformService.ts",
@@ -1020,7 +1020,7 @@
       "method": "GET",
       "path": "/v1/bootstrap/home",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:388",
+      "handler": "services/api/src/server.ts:418",
       "handlerSliceSha256": "a758359e1a119e9ecf0f21adf8e6fd28a477555ab6c7101b05e3aa7d22fffe84",
       "serviceCalls": [
         {
@@ -1064,7 +1064,7 @@
       "method": "GET",
       "path": "/v1/bootstrap/profile",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:388",
+      "handler": "services/api/src/server.ts:418",
       "handlerSliceSha256": "a758359e1a119e9ecf0f21adf8e6fd28a477555ab6c7101b05e3aa7d22fffe84",
       "serviceCalls": [
         {
@@ -1108,7 +1108,7 @@
       "method": "GET",
       "path": "/v1/bootstrap/settings",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:388",
+      "handler": "services/api/src/server.ts:418",
       "handlerSliceSha256": "a758359e1a119e9ecf0f21adf8e6fd28a477555ab6c7101b05e3aa7d22fffe84",
       "serviceCalls": [
         {
@@ -1151,7 +1151,7 @@
       "method": "GET",
       "path": "/v1/capabilities",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:261",
+      "handler": "services/api/src/server.ts:291",
       "handlerSliceSha256": "a00637ab8298f9f7047f00785d90e2e7d9e09280e9e947830663900b3c332a7f",
       "serviceCalls": [
         {
@@ -1197,7 +1197,7 @@
       "method": "POST",
       "path": "/v1/care-cycles",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:386",
+      "handler": "services/api/src/server.ts:416",
       "handlerSliceSha256": "ec0f6394fbdb59c33feec417c9bc8a62a82d3519d7f1ce506627fcbb8eca4602",
       "serviceCalls": [
         {
@@ -1244,7 +1244,7 @@
       "method": "POST",
       "path": "/v1/care-cycles/{cycleId}/activate",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:699",
+      "handler": "services/api/src/server.ts:763",
       "handlerSliceSha256": "a19dacb855d0c7bbd0a65759b2188d9a2961fd4e3ef382787527c0ee8e88f90a",
       "serviceCalls": [
         {
@@ -1291,7 +1291,7 @@
       "method": "POST",
       "path": "/v1/care-cycles/{cycleId}/milestones/{milestone}/complete",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:709",
+      "handler": "services/api/src/server.ts:773",
       "handlerSliceSha256": "3e64fcba08c69e15f670078545b70f875987de746971dc52953891895db6bac8",
       "serviceCalls": [
         {
@@ -1338,7 +1338,7 @@
       "method": "POST",
       "path": "/v1/care-cycles/{cycleId}/pause",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:707",
+      "handler": "services/api/src/server.ts:771",
       "handlerSliceSha256": "c894636dcf18b61a15d99ac604b06ac9730322c800a8e2fcea279ef7aa8704ae",
       "serviceCalls": [
         {
@@ -1385,7 +1385,7 @@
       "method": "POST",
       "path": "/v1/care-cycles/{cycleId}/resume",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:707",
+      "handler": "services/api/src/server.ts:771",
       "handlerSliceSha256": "c894636dcf18b61a15d99ac604b06ac9730322c800a8e2fcea279ef7aa8704ae",
       "serviceCalls": [
         {
@@ -1432,7 +1432,7 @@
       "method": "POST",
       "path": "/v1/care-cycles/{cycleId}/terminate",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:707",
+      "handler": "services/api/src/server.ts:771",
       "handlerSliceSha256": "c894636dcf18b61a15d99ac604b06ac9730322c800a8e2fcea279ef7aa8704ae",
       "serviceCalls": [
         {
@@ -1479,7 +1479,7 @@
       "method": "GET",
       "path": "/v1/catalog",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:511",
+      "handler": "services/api/src/server.ts:549",
       "handlerSliceSha256": "8cf587b9e579916cfc534e2bf0714d8f841a94c2200d0438821bb3c385d9d42e",
       "serviceCalls": [
         {
@@ -1495,6 +1495,7 @@
       "testReferenceCandidates": [
         "tests/integration/commerce-catalog.test.ts",
         "tests/integration/commerce-orders.test.ts",
+        "tests/integration/payment-http-simulation.test.ts",
         "tests/integration/support-commercial-chat.test.ts"
       ],
       "commonControls": [
@@ -1523,7 +1524,7 @@
       "method": "GET",
       "path": "/v1/catalog/{productCode}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:512",
+      "handler": "services/api/src/server.ts:550",
       "handlerSliceSha256": "0a34a0828b66ed34fbafc3f5315077c82e31b6d112e0e7d43a96d6b293ac6252",
       "serviceCalls": [
         {
@@ -1539,6 +1540,7 @@
       "testReferenceCandidates": [
         "tests/integration/commerce-catalog.test.ts",
         "tests/integration/commerce-orders.test.ts",
+        "tests/integration/payment-http-simulation.test.ts",
         "tests/integration/support-commercial-chat.test.ts"
       ],
       "commonControls": [
@@ -1567,7 +1569,7 @@
       "method": "GET",
       "path": "/v1/commerce/orders/status",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:513",
+      "handler": "services/api/src/server.ts:551",
       "handlerSliceSha256": "908a830bda2e545f2421940e9d10db0a0cefa07b960f5f544c952d99cfbb4312",
       "serviceCalls": [
         {
@@ -1609,7 +1611,7 @@
       "method": "GET",
       "path": "/v1/community/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:771",
+      "handler": "services/api/src/server.ts:835",
       "handlerSliceSha256": "6001557769dc6cda267e8bd89339d99f212c39cf1d124ecea491815ebdab0287",
       "serviceCalls": [
         {
@@ -1650,7 +1652,7 @@
       "method": "POST",
       "path": "/v1/community/{postId}/comments",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:773",
+      "handler": "services/api/src/server.ts:837",
       "handlerSliceSha256": "5e6363f560651050fa7dcfe0853b9342602f5538584c65f6ed3be7bfee5c5232",
       "serviceCalls": [
         {
@@ -1691,7 +1693,7 @@
       "method": "DELETE",
       "path": "/v1/community/{postId}/comments/{commentId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:774",
+      "handler": "services/api/src/server.ts:838",
       "handlerSliceSha256": "68c86ec8e471484659aac074110a0325f2d2159ecb51bf8d4bea00c1cd6d52e7",
       "serviceCalls": [
         {
@@ -1732,7 +1734,7 @@
       "method": "PUT",
       "path": "/v1/community/{postId}/comments/{commentId}/like",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:775",
+      "handler": "services/api/src/server.ts:839",
       "handlerSliceSha256": "b4604582b32395a1e7fbc1ec134cd43f7b11178737e640f0df3548f858e94922",
       "serviceCalls": [
         {
@@ -1773,7 +1775,7 @@
       "method": "PUT",
       "path": "/v1/community/{postId}/reaction",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:772",
+      "handler": "services/api/src/server.ts:836",
       "handlerSliceSha256": "314300a288d19f502dea0b4435c39f29e699ed290e0c2f278075c0c844e7457d",
       "serviceCalls": [
         {
@@ -1814,7 +1816,7 @@
       "method": "POST",
       "path": "/v1/consents/{consentGrantId}/revoke",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:766",
+      "handler": "services/api/src/server.ts:830",
       "handlerSliceSha256": "73501261bbbd23ab1cf17f2bfa2c4da142a860341e73258105c35f420621e1ca",
       "serviceCalls": [
         {
@@ -1858,7 +1860,7 @@
       "method": "GET",
       "path": "/v1/feed",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:768",
+      "handler": "services/api/src/server.ts:832",
       "handlerSliceSha256": "bd1aa67eb83bd5584b07076035dc6867467de75e9bb7f2043578f665fa85a10e",
       "serviceCalls": [
         {
@@ -1900,7 +1902,7 @@
       "method": "GET",
       "path": "/v1/feed/{postId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:770",
+      "handler": "services/api/src/server.ts:834",
       "handlerSliceSha256": "4baa4c20048b7f3dd632f569d2db5d692edf1f10aebe6bd12c4f61f9ddaeee70",
       "serviceCalls": [
         {
@@ -1942,7 +1944,7 @@
       "method": "GET",
       "path": "/v1/feed/page",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:769",
+      "handler": "services/api/src/server.ts:833",
       "handlerSliceSha256": "84c4f0d2d57d1eb6e8fc753a31393acbdf566a738c5f9d92b740492f6e87e2e4",
       "serviceCalls": [
         {
@@ -1982,7 +1984,7 @@
       "method": "GET",
       "path": "/v1/identity/capabilities",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:361",
+      "handler": "services/api/src/server.ts:391",
       "handlerSliceSha256": "cfd7513f43dd3694cd9fd6ebe07194f52589113134964567103d53191be513bf",
       "serviceCalls": [
         {
@@ -2023,7 +2025,7 @@
       "method": "POST",
       "path": "/v1/identity/dev",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:353",
+      "handler": "services/api/src/server.ts:383",
       "handlerSliceSha256": "6274a1c89a592555bd21d6f954bc8478e23b7038c1530cbfa7ba961c435ba1fb",
       "serviceCalls": [
         {
@@ -2053,6 +2055,7 @@
         "tests/integration/invitation-share.test.ts",
         "tests/integration/legacy-admin-auth.test.ts",
         "tests/integration/member-profile-display.test.ts",
+        "tests/integration/native-privacy-management.test.ts",
         "tests/integration/payment-http-simulation.test.ts",
         "tests/integration/phone-route-authorization.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
@@ -2091,7 +2094,7 @@
       "method": "POST",
       "path": "/v1/identity/wechat",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:363",
+      "handler": "services/api/src/server.ts:393",
       "handlerSliceSha256": "cd4ceafc94a10a4a36bf271e3e13518e097d0b5a75d24989cc727097662ab018",
       "serviceCalls": [
         {
@@ -2139,7 +2142,7 @@
       "method": "GET",
       "path": "/v1/legal",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:389",
+      "handler": "services/api/src/server.ts:419",
       "handlerSliceSha256": "6cc9e90984aee7e04ad847a520018b308f14de0986b2d3bdf1d6c75640c25652",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
@@ -2176,9 +2179,129 @@
     },
     {
       "method": "GET",
+      "path": "/v1/management/aftersales",
+      "family": "care-platform",
+      "handler": "services/api/src/server.ts:605",
+      "handlerSliceSha256": "a586cbe797538709709c62b41d1ed3c6c63d9c6b9987cfd61c059324e2c4120f",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/aftersale.ts",
+          "method": "list"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/payment-http-simulation.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/management/aftersales/{caseId}",
+      "family": "care-platform",
+      "handler": "services/api/src/server.ts:607",
+      "handlerSliceSha256": "ad258ab1eb1f265f05256aea1076e7a8e42330c1eebc6d0f465c84a85116a208",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/aftersale.ts",
+          "method": "detail"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/payment-http-simulation.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/management/aftersales/{caseId}/actions",
+      "family": "care-platform",
+      "handler": "services/api/src/server.ts:609",
+      "handlerSliceSha256": "a62c6e42b70bf0ada3e988dc40aa82e501634382d5988c78ac0fd3b9674ebc7b",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/aftersale.ts",
+          "method": "act"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/payment-http-simulation.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "GET",
       "path": "/v1/management/catalog/products",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:681",
+      "handler": "services/api/src/server.ts:745",
       "handlerSliceSha256": "13bb7252c5553702177db1f87d324bbe44417e3d5a7fba7b454529ee21ca79ba",
       "serviceCalls": [
         {
@@ -2221,7 +2344,7 @@
       "method": "POST",
       "path": "/v1/management/catalog/products",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:683",
+      "handler": "services/api/src/server.ts:747",
       "handlerSliceSha256": "37456dcff4793643bf0ce9f653f0eb242ea6eb0a1d006aff9d89e765405345e0",
       "serviceCalls": [
         {
@@ -2264,7 +2387,7 @@
       "method": "GET",
       "path": "/v1/management/catalog/products/{productId}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:682",
+      "handler": "services/api/src/server.ts:746",
       "handlerSliceSha256": "b673ae2b7cde46172f1da802fafe0c41471e474130dbc5f8090ad92d0c94d048",
       "serviceCalls": [
         {
@@ -2307,7 +2430,7 @@
       "method": "PUT",
       "path": "/v1/management/catalog/products/{productId}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:684",
+      "handler": "services/api/src/server.ts:748",
       "handlerSliceSha256": "d7726dcb7b33a10e9f5ae8140097c0b75e76dd11c21ce637ec10eb7cc3d5d31d",
       "serviceCalls": [
         {
@@ -2350,7 +2473,7 @@
       "method": "POST",
       "path": "/v1/management/catalog/products/{productId}/publication",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:686",
+      "handler": "services/api/src/server.ts:750",
       "handlerSliceSha256": "aa303389d5209fb25279ca98f65fdfe2bb828a2352d262fb703cd0a352489427",
       "serviceCalls": [
         {
@@ -2393,7 +2516,7 @@
       "method": "POST",
       "path": "/v1/management/catalog/products/{productId}/qualification",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:685",
+      "handler": "services/api/src/server.ts:749",
       "handlerSliceSha256": "f0a51498bad3807fb233ea67d886373e2491ac7bf89f4ba2c64ffb5d57f7440f",
       "serviceCalls": [
         {
@@ -2436,7 +2559,7 @@
       "method": "POST",
       "path": "/v1/management/catalog/skus/{skuId}/inventory-adjustments",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:687",
+      "handler": "services/api/src/server.ts:751",
       "handlerSliceSha256": "670d6ba7ea16c5fb51176bd43e033aefb9070823fc2eb99f8831afd46b2bd16a",
       "serviceCalls": [
         {
@@ -2479,7 +2602,7 @@
       "method": "GET",
       "path": "/v1/management/commerce/orders",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:679",
+      "handler": "services/api/src/server.ts:743",
       "handlerSliceSha256": "691257aa9f49492737c729e0c1ff50d12ee5b72d680821695f79d929f897dcb0",
       "serviceCalls": [
         {
@@ -2520,7 +2643,7 @@
       "method": "GET",
       "path": "/v1/management/commerce/orders/{orderId}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:680",
+      "handler": "services/api/src/server.ts:744",
       "handlerSliceSha256": "1b4687a466b2e2a7603426fc998ea1a3b4feb81c0181816767a1121f8ccfe817",
       "serviceCalls": [
         {
@@ -2561,7 +2684,7 @@
       "method": "POST",
       "path": "/v1/management/commerce/orders/{orderId}/fulfillment",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:567",
+      "handler": "services/api/src/server.ts:631",
       "handlerSliceSha256": "3fe31b92ed1cf903c960f850783df14b560a1f98fc1d32877732bad269b9fa12",
       "serviceCalls": [
         {
@@ -2602,7 +2725,7 @@
       "method": "GET",
       "path": "/v1/management/commerce/orders/{orderId}/shipment",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:584",
+      "handler": "services/api/src/server.ts:648",
       "handlerSliceSha256": "bef075d4c3b4f2e295dc38e150d007dfdfbc5c864617cda00469fd8c3dcbb972",
       "serviceCalls": [
         {
@@ -2643,7 +2766,7 @@
       "method": "POST",
       "path": "/v1/management/commerce/orders/{orderId}/shipment",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:586",
+      "handler": "services/api/src/server.ts:650",
       "handlerSliceSha256": "80ea0a2bcc61be5f3032547c42ccc8fc0b73bbbe35cec1891a50b4f330c65d22",
       "serviceCalls": [
         {
@@ -2684,7 +2807,7 @@
       "method": "POST",
       "path": "/v1/management/commerce/orders/{orderId}/shipment/reconcile",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:588",
+      "handler": "services/api/src/server.ts:652",
       "handlerSliceSha256": "ee50f1ce7ef43d57f3bedb9a9a7adcf7c6326eb1fc1a6a7eba40f5a7d85f4137",
       "serviceCalls": [
         {
@@ -2725,7 +2848,7 @@
       "method": "POST",
       "path": "/v1/management/commission-rates",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:438",
+      "handler": "services/api/src/server.ts:476",
       "handlerSliceSha256": "19d06b671a1aee269021999bf7f3eb489757c699c728b9948a7a053a350d16a3",
       "serviceCalls": [
         {
@@ -2767,7 +2890,7 @@
       "method": "POST",
       "path": "/v1/management/commission-rates/{ruleId}/decision",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:444",
+      "handler": "services/api/src/server.ts:482",
       "handlerSliceSha256": "338070dfa2d5c05ba9e6b6abf03ac2efc0e6321a585b9d7c3dcda31788402182",
       "serviceCalls": [
         {
@@ -2809,7 +2932,7 @@
       "method": "GET",
       "path": "/v1/management/commission-rates/by-request/{requestKey}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:441",
+      "handler": "services/api/src/server.ts:479",
       "handlerSliceSha256": "0cdbaa2201b731dc37a8b9dc00632aa6157526de9f6fb2b4d2f4c7966409809b",
       "serviceCalls": [
         {
@@ -2850,7 +2973,7 @@
       "method": "GET",
       "path": "/v1/management/commission-rates/current",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:440",
+      "handler": "services/api/src/server.ts:478",
       "handlerSliceSha256": "295b4443b76c5e680475c3694323fa0898ce2793bff3b512f31c5350688d6c1e",
       "serviceCalls": [
         {
@@ -2890,7 +3013,7 @@
       "method": "GET",
       "path": "/v1/management/commission-rates/pending",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:443",
+      "handler": "services/api/src/server.ts:481",
       "handlerSliceSha256": "d630bdd812797d178bd9cd0a3c404b0bdf21f2256adcf7c12b8859c138e765aa",
       "serviceCalls": [
         {
@@ -2930,7 +3053,7 @@
       "method": "POST",
       "path": "/v1/management/commission/settlement-cycles/{cycleId}/approve-member",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:634",
+      "handler": "services/api/src/server.ts:698",
       "handlerSliceSha256": "e2d85acf0909c77d080c4efc63fd6d4dc1143c4469fc525b8b2702c86eae552a",
       "serviceCalls": [
         {
@@ -2970,7 +3093,7 @@
       "method": "POST",
       "path": "/v1/management/commission/settlement-cycles/prepare",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:632",
+      "handler": "services/api/src/server.ts:696",
       "handlerSliceSha256": "fb2e1f4525471aadeffba9d2315bbf3a41206006d3be1e52f4301c3dcda259b8",
       "serviceCalls": [
         {
@@ -3010,7 +3133,7 @@
       "method": "POST",
       "path": "/v1/management/commission/settlement-requests/{requestId}/decision",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:626",
+      "handler": "services/api/src/server.ts:690",
       "handlerSliceSha256": "d27c5bf91010be6a6d964765ce9f9622b208aa5478c54251eead019b0c70311f",
       "serviceCalls": [
         {
@@ -3050,7 +3173,7 @@
       "method": "POST",
       "path": "/v1/management/commission/settlement-requests/{requestId}/redrive",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:629",
+      "handler": "services/api/src/server.ts:693",
       "handlerSliceSha256": "4ffc9083ef434168e36e5f8e3096fe0e8bcfd3ade07f4d23400ed8db3adbcca2",
       "serviceCalls": [
         {
@@ -3090,7 +3213,7 @@
       "method": "GET",
       "path": "/v1/management/commission/settlement-requests/pending",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:624",
+      "handler": "services/api/src/server.ts:688",
       "handlerSliceSha256": "bed0c7ab48abe7601028c66d7176b6ebad22c6cda8f920d59ca29243c95079d0",
       "serviceCalls": [
         {
@@ -3128,7 +3251,7 @@
       "method": "POST",
       "path": "/v1/management/fulfillment/{attestationId}/decision",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:602",
+      "handler": "services/api/src/server.ts:666",
       "handlerSliceSha256": "add44d7c280f94447c0602fbcacfa1365c6497bca60a751c66eaf4689237d624",
       "serviceCalls": [
         {
@@ -3168,7 +3291,7 @@
       "method": "GET",
       "path": "/v1/management/fulfillment/pending",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:570",
+      "handler": "services/api/src/server.ts:634",
       "handlerSliceSha256": "f5e670673aacb718b554d32b2ac87d58d853a31a0bb7a132a6770869d4326aa0",
       "serviceCalls": [
         {
@@ -3208,7 +3331,7 @@
       "method": "GET",
       "path": "/v1/management/logistics/capabilities",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:578",
+      "handler": "services/api/src/server.ts:642",
       "handlerSliceSha256": "37c91282636d39963a10fb8215055ea188ef136b9076c08af6eaef34354dfd08",
       "serviceCalls": [
         {
@@ -3244,7 +3367,7 @@
       "method": "GET",
       "path": "/v1/management/members",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:432",
+      "handler": "services/api/src/server.ts:470",
       "handlerSliceSha256": "252a5aa515a00f631f387abcd112ea5097d6f44dff7b7674dce8385764598c21",
       "serviceCalls": [
         {
@@ -3288,7 +3411,7 @@
       "method": "GET",
       "path": "/v1/management/members/{memberId}",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:433",
+      "handler": "services/api/src/server.ts:471",
       "handlerSliceSha256": "5e8a6436a2d0c5be32b07f6799715e11e68ad0643d2e9644fb1394ddce714cb4",
       "serviceCalls": [
         {
@@ -3332,7 +3455,7 @@
       "method": "POST",
       "path": "/v1/management/members/{memberId}/membership",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:436",
+      "handler": "services/api/src/server.ts:474",
       "handlerSliceSha256": "500be9acfde9d029754e7fd27cd9bcbe09773de16fbce8de155f841d9cda707a",
       "serviceCalls": [
         {
@@ -3376,7 +3499,7 @@
       "method": "GET",
       "path": "/v1/management/members/{memberId}/sections/{section}",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:434",
+      "handler": "services/api/src/server.ts:472",
       "handlerSliceSha256": "a303dd638b6d544a471284d6d9ce6be13ac3e06e420a9efa3d9205e391e19ed5",
       "serviceCalls": [
         {
@@ -3420,7 +3543,7 @@
       "method": "POST",
       "path": "/v1/management/money/inboxes/{kind}/{inboxId}/redrive",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:643",
+      "handler": "services/api/src/server.ts:707",
       "handlerSliceSha256": "4d8c33ad56b130f1b353058b5666db8f8bd9b59cd2216e280fbe992937328976",
       "serviceCalls": [
         {
@@ -3460,7 +3583,7 @@
       "method": "GET",
       "path": "/v1/management/money/issues",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:641",
+      "handler": "services/api/src/server.ts:705",
       "handlerSliceSha256": "3e584e5168bee33b3c400930b08bb9bbb6d8ad266cd68beff2b9c4629add537c",
       "serviceCalls": [
         {
@@ -3500,7 +3623,7 @@
       "method": "POST",
       "path": "/v1/management/money/recheck/{kind}/{objectId}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:646",
+      "handler": "services/api/src/server.ts:710",
       "handlerSliceSha256": "fe7d98f022e4784ceb4b77a4ca8a0c72569ea675187d27e2a10e0d507a5d8d53",
       "serviceCalls": [
         {
@@ -3540,7 +3663,7 @@
       "method": "GET",
       "path": "/v1/management/money/trade-bills",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:652",
+      "handler": "services/api/src/server.ts:716",
       "handlerSliceSha256": "208cb848f2485fe11f8d6db5602ca501f08d1dac43f79fa0b393550abef04f7c",
       "serviceCalls": [
         {
@@ -3580,7 +3703,7 @@
       "method": "POST",
       "path": "/v1/management/money/trade-bills/import",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:648",
+      "handler": "services/api/src/server.ts:712",
       "handlerSliceSha256": "73c5a71d8d79d0b826a45576eeeda9492c8370822f105a195c7061121d0aaae0",
       "serviceCalls": [
         {
@@ -3617,11 +3740,91 @@
       "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
     },
     {
+      "method": "GET",
+      "path": "/v1/management/privacy-requests",
+      "family": "privacy",
+      "handler": "services/api/src/server.ts:428",
+      "handlerSliceSha256": "bc82854e49e3daa7a1adfec1335fcedbabb6271cc0f47032182d0af6bbbb0e52",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/privacyRights.ts",
+          "method": "queue"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/management-privacy/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/native-privacy-management.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/management/privacy-requests/{requestId}/response",
+      "family": "privacy",
+      "handler": "services/api/src/server.ts:430",
+      "handlerSliceSha256": "528568835d0233f9b2e1bd3d4b5175719a4511e2e0e607064d336d014bce65da",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/privacyRights.ts",
+          "method": "respond"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/management-privacy/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/native-privacy-management.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
       "method": "POST",
       "path": "/v1/management/refund-requests/{requestId}/decision",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:561",
-      "handlerSliceSha256": "6e483876cdeeccc18c9a824b5891c53a6e9afad5660e9c9d83a848bfee8563d6",
+      "handler": "services/api/src/server.ts:625",
+      "handlerSliceSha256": "3e3eb68f9317abeaf94242ca37e7c056dfa696a2d153625f8b9e3944246f3fbd",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
         "apps/miniprogram/pages/management-finance/index.ts"
@@ -3655,8 +3858,8 @@
       "method": "GET",
       "path": "/v1/management/refund-requests/pending",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:559",
-      "handlerSliceSha256": "663fe8ceee2cd450ef49f038d2ccd603bd519c757fd0e9c27ed2f0342b262bfb",
+      "handler": "services/api/src/server.ts:623",
+      "handlerSliceSha256": "69653d87cd473b22ed03479da1545d172df2a27e9e4439ad77114c35ef54e57d",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
         "apps/miniprogram/pages/management-finance/index.ts"
@@ -3690,8 +3893,8 @@
       "method": "POST",
       "path": "/v1/management/refund-submissions/{intentId}/redrive",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:564",
-      "handlerSliceSha256": "6658e6e395188e5be1bc7557315285d5b35aa58455f9e0313d458b02d8dfcee2",
+      "handler": "services/api/src/server.ts:628",
+      "handlerSliceSha256": "a23e99bb42af589b3fa99fe3955b4dbaa5e17a35fb703ba87a33b1c6bd19130d",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
         "apps/miniprogram/pages/management-finance/index.ts"
@@ -3725,7 +3928,7 @@
       "method": "GET",
       "path": "/v1/management/shipments",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:590",
+      "handler": "services/api/src/server.ts:654",
       "handlerSliceSha256": "b3bf49df735f918330507c5c18a77b544d268aeddc571fd13022c0b64a65f626",
       "serviceCalls": [
         {
@@ -3733,7 +3936,9 @@
           "method": "managementList"
         }
       ],
-      "nativeReferenceCandidates": [],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/management-fulfillment/index.ts"
+      ],
       "testReferenceCandidates": [],
       "commonControls": [
         "server preHandler identity/active member or explicit public/callback exception",
@@ -3761,7 +3966,7 @@
       "method": "POST",
       "path": "/v1/management/shipments/batch",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:600",
+      "handler": "services/api/src/server.ts:664",
       "handlerSliceSha256": "59541c46a20d5e27158c0488a6eddded56942f7c28c4f9888fd1bf3858d3f5d6",
       "serviceCalls": [
         {
@@ -3797,7 +4002,7 @@
       "method": "GET",
       "path": "/v1/management/shipments/export",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:592",
+      "handler": "services/api/src/server.ts:656",
       "handlerSliceSha256": "e75d606ff295f0cb268faa1b1ab0eb156d54298a7011ab99cd1c2c54a60d51d4",
       "serviceCalls": [
         {
@@ -3805,7 +4010,9 @@
           "method": "managementList"
         }
       ],
-      "nativeReferenceCandidates": [],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/management-fulfillment/index.ts"
+      ],
       "testReferenceCandidates": [],
       "commonControls": [
         "server preHandler identity/active member or explicit public/callback exception",
@@ -3833,7 +4040,7 @@
       "method": "POST",
       "path": "/v1/management/shipments/import",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:598",
+      "handler": "services/api/src/server.ts:662",
       "handlerSliceSha256": "6180aa6d855235877f2b6fbcc5479b31fb2d182ee1336802eb9f0252c319b7a0",
       "serviceCalls": [
         {
@@ -3841,7 +4048,9 @@
           "method": "importRows"
         }
       ],
-      "nativeReferenceCandidates": [],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/management-fulfillment/index.ts"
+      ],
       "testReferenceCandidates": [],
       "commonControls": [
         "server preHandler identity/active member or explicit public/callback exception",
@@ -3869,7 +4078,7 @@
       "method": "GET",
       "path": "/v1/management/support/ai/status",
       "family": "support",
-      "handler": "services/api/src/server.ts:688",
+      "handler": "services/api/src/server.ts:752",
       "handlerSliceSha256": "76a26f4df7247877f072d37ab09bc63404a0a01d1815c2668beb7a1228c09477",
       "serviceCalls": [
         {
@@ -3910,7 +4119,7 @@
       "method": "GET",
       "path": "/v1/management/support/conversations",
       "family": "support",
-      "handler": "services/api/src/server.ts:465",
+      "handler": "services/api/src/server.ts:503",
       "handlerSliceSha256": "d9c37a59ae0fe705428bd7c0f1e5e8f89c973d4756223ed1d1e6a10d70464765",
       "serviceCalls": [
         {
@@ -3954,7 +4163,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/claim",
       "family": "support",
-      "handler": "services/api/src/server.ts:467",
+      "handler": "services/api/src/server.ts:505",
       "handlerSliceSha256": "311e5a7a788eaaeea1cef8f74cd3c62deabc488f76101423bce545cf50b8f09f",
       "serviceCalls": [
         {
@@ -3998,7 +4207,7 @@
       "method": "GET",
       "path": "/v1/management/support/conversations/{conversationId}/media/{mediaId}",
       "family": "support",
-      "handler": "services/api/src/server.ts:471",
+      "handler": "services/api/src/server.ts:509",
       "handlerSliceSha256": "e593d811c58120126fd4d9822edfdc160bc1fcf1046bbd0c382bb193b148fe40",
       "serviceCalls": [
         {
@@ -4042,7 +4251,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/member-context",
       "family": "support",
-      "handler": "services/api/src/server.ts:476",
+      "handler": "services/api/src/server.ts:514",
       "handlerSliceSha256": "fc8875902bbc4ad1a53d6410c0aa79dc9db834129a63a87ee5375a3c15b8fcbf",
       "serviceCalls": [
         {
@@ -4086,7 +4295,7 @@
       "method": "GET",
       "path": "/v1/management/support/conversations/{conversationId}/messages",
       "family": "support",
-      "handler": "services/api/src/server.ts:466",
+      "handler": "services/api/src/server.ts:504",
       "handlerSliceSha256": "e9935c88c1b8cee8926f1cda73eba5625c05d48a9237c8ef2558e1405bed99bf",
       "serviceCalls": [
         {
@@ -4130,7 +4339,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/messages",
       "family": "support",
-      "handler": "services/api/src/server.ts:468",
+      "handler": "services/api/src/server.ts:506",
       "handlerSliceSha256": "840696cd4b24a4f97f2e48a24f31e50d819c7c8f473750c295caddcdc79051c7",
       "serviceCalls": [
         {
@@ -4174,7 +4383,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/presence",
       "family": "support",
-      "handler": "services/api/src/server.ts:470",
+      "handler": "services/api/src/server.ts:508",
       "handlerSliceSha256": "dff96178f1496e481a2e6a872a378ea791485531ba7d31b8e80860a1320a8739",
       "serviceCalls": [
         {
@@ -4218,7 +4427,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/purge",
       "family": "support",
-      "handler": "services/api/src/server.ts:478",
+      "handler": "services/api/src/server.ts:516",
       "handlerSliceSha256": "9db6e0b4cca46bfc498d054eebe857779a0fb983b9b22de9036b267443ec69aa",
       "serviceCalls": [
         {
@@ -4262,7 +4471,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/read",
       "family": "support",
-      "handler": "services/api/src/server.ts:469",
+      "handler": "services/api/src/server.ts:507",
       "handlerSliceSha256": "882eb1af5dbff70090937a30b250ea435f9882cf12bf4f027704c08e9e6fd3a1",
       "serviceCalls": [
         {
@@ -4306,7 +4515,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/resolve",
       "family": "support",
-      "handler": "services/api/src/server.ts:475",
+      "handler": "services/api/src/server.ts:513",
       "handlerSliceSha256": "e31d78290d2ff6f53e4507c60e46feafabd9fc33bf38070cef797ec6c2f39861",
       "serviceCalls": [
         {
@@ -4350,7 +4559,7 @@
       "method": "GET",
       "path": "/v1/management/support/conversations/{conversationId}/retention",
       "family": "support",
-      "handler": "services/api/src/server.ts:477",
+      "handler": "services/api/src/server.ts:515",
       "handlerSliceSha256": "8a81112dbf09baf0f4b26f122e70c56908f372f265df59d3fd52db9d9a2dc208",
       "serviceCalls": [
         {
@@ -4394,7 +4603,7 @@
       "method": "POST",
       "path": "/v1/management/support/conversations/{conversationId}/suggested-reply",
       "family": "support",
-      "handler": "services/api/src/server.ts:689",
+      "handler": "services/api/src/server.ts:753",
       "handlerSliceSha256": "e75877d356ebd2f9532c356571fa822a53635ba37aba081731bf7d54653e3b02",
       "serviceCalls": [
         {
@@ -4441,7 +4650,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/appeals",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:338",
+      "handler": "services/api/src/server.ts:368",
       "handlerSliceSha256": "6b8aa5d0ce2e961c7027d3913a12f8c9cb2585e9dcb953440a541faa9e870cad",
       "serviceCalls": [
         {
@@ -4481,7 +4690,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/appeals/{appealId}/decision",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:340",
+      "handler": "services/api/src/server.ts:370",
       "handlerSliceSha256": "665985b33b2cbf2ab4bb1bbe193d2c90a8489da6c4ed90eb84862e7fba1c6a0f",
       "serviceCalls": [
         {
@@ -4521,7 +4730,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/comments/{commentId}/review",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:348",
+      "handler": "services/api/src/server.ts:378",
       "handlerSliceSha256": "8945137c9bdef8ec65816dd7bf6a29695dabf144c49496dab91044b6daa37fcc",
       "serviceCalls": [
         {
@@ -4559,7 +4768,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/media/{mediaId}/preview-url",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:343",
+      "handler": "services/api/src/server.ts:373",
       "handlerSliceSha256": "94453aca2c87617d8ea9a8f7414a066011fddc772a6ab156815479f07b8b87eb",
       "serviceCalls": [
         {
@@ -4599,7 +4808,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/media/{mediaId}/review",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:342",
+      "handler": "services/api/src/server.ts:372",
       "handlerSliceSha256": "84373979cd07e660ad025e1bf2b132ff998411cddfd0160b0e0e577db1a8870c",
       "serviceCalls": [
         {
@@ -4639,7 +4848,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:347",
+      "handler": "services/api/src/server.ts:377",
       "handlerSliceSha256": "c559185f4a651798ebfd4918f267b66f16243c3eaf73cfc09d3ef0c3a0902193",
       "serviceCalls": [
         {
@@ -4679,7 +4888,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/posts/{postId}/hide",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:351",
+      "handler": "services/api/src/server.ts:381",
       "handlerSliceSha256": "affe0d04ca142e8fb923a890f044fece8f796e42d7fdb74083566f0b4f300cfa",
       "serviceCalls": [
         {
@@ -4719,7 +4928,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/posts/{postId}/publish",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:350",
+      "handler": "services/api/src/server.ts:380",
       "handlerSliceSha256": "146758ee73a4e21fea11be8a859ac9970c58bf2348b6d59c92424d9d4ebcfe74",
       "serviceCalls": [
         {
@@ -4759,7 +4968,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/posts/{postId}/review",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:349",
+      "handler": "services/api/src/server.ts:379",
       "handlerSliceSha256": "727be897757bf9b9f58029ef1ea1643f58693d4bcd6a5982ea7ecf40da499bf8",
       "serviceCalls": [
         {
@@ -4799,7 +5008,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/reports",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:334",
+      "handler": "services/api/src/server.ts:364",
       "handlerSliceSha256": "82cc8417fa9f1b9b414efe5b2c5c94a06bcfac73f49c56f97216c4c81cee6e2c",
       "serviceCalls": [
         {
@@ -4839,7 +5048,7 @@
       "method": "POST",
       "path": "/v1/management/ugc/reports/{reportId}/decision",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:336",
+      "handler": "services/api/src/server.ts:366",
       "handlerSliceSha256": "66f4c698b2e274112c9f303db0f6da6fa2a1ed539626f362369e48233b99488a",
       "serviceCalls": [
         {
@@ -4879,7 +5088,7 @@
       "method": "GET",
       "path": "/v1/management/ugc/review-queue",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:333",
+      "handler": "services/api/src/server.ts:363",
       "handlerSliceSha256": "97beb5959ac53222958e00955080f3f6beb2179bd544921b8010a71993ddeff4",
       "serviceCalls": [
         {
@@ -4917,7 +5126,7 @@
       "method": "GET",
       "path": "/v1/me",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:507",
+      "handler": "services/api/src/server.ts:545",
       "handlerSliceSha256": "5fd4dcbe6cd3f2a641e92f57b8e00c00b18a62263a1e2aa079d8a604cea2a2e6",
       "serviceCalls": [
         {
@@ -4927,6 +5136,7 @@
       ],
       "nativeReferenceCandidates": [
         "apps/miniprogram/pages/account/index.ts",
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/commission/index.ts",
         "apps/miniprogram/pages/community/index.ts",
         "apps/miniprogram/pages/community-activity/index.ts",
@@ -4961,6 +5171,7 @@
         "tests/integration/formal-ugc-editor.test.ts",
         "tests/integration/invitation-share.test.ts",
         "tests/integration/member-profile-display.test.ts",
+        "tests/integration/native-privacy-management.test.ts",
         "tests/integration/payment-http-simulation.test.ts",
         "tests/integration/phone-route-authorization.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
@@ -4998,7 +5209,7 @@
       "method": "GET",
       "path": "/v1/me/addresses",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:493",
+      "handler": "services/api/src/server.ts:531",
       "handlerSliceSha256": "af73efbef498973a46a0a640f22994e84eeb886ee557d09f654fcc221267b4d5",
       "serviceCalls": [
         {
@@ -5044,7 +5255,7 @@
       "method": "POST",
       "path": "/v1/me/addresses",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:494",
+      "handler": "services/api/src/server.ts:532",
       "handlerSliceSha256": "f606aa7600fd666a6b84585c315ef7eb38b63b978dc1f05aa874c8f775b86a5a",
       "serviceCalls": [
         {
@@ -5090,7 +5301,7 @@
       "method": "DELETE",
       "path": "/v1/me/addresses/{addressId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:497",
+      "handler": "services/api/src/server.ts:535",
       "handlerSliceSha256": "668f9208fbb34c64a0070ffe58b9789a5fb7cab6a301b0a07ca13ad9f31252be",
       "serviceCalls": [
         {
@@ -5136,7 +5347,7 @@
       "method": "PUT",
       "path": "/v1/me/addresses/{addressId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:495",
+      "handler": "services/api/src/server.ts:533",
       "handlerSliceSha256": "d19e556cf40ceae4ae258b80e7e98329aa873172b949a3ef9a5ca62f3accf2a1",
       "serviceCalls": [
         {
@@ -5182,7 +5393,7 @@
       "method": "POST",
       "path": "/v1/me/addresses/{addressId}/default",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:496",
+      "handler": "services/api/src/server.ts:534",
       "handlerSliceSha256": "41ce1c677fe3f156669ca9441cf35b58d211f562ff8d8e08ad0af47b34903929",
       "serviceCalls": [
         {
@@ -5226,9 +5437,129 @@
     },
     {
       "method": "GET",
+      "path": "/v1/me/aftersales",
+      "family": "care-platform",
+      "handler": "services/api/src/server.ts:599",
+      "handlerSliceSha256": "af064d16632dbd6d885ee69cde42e72848aadb6ea7a2824923fec9cf9376f16a",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/aftersale.ts",
+          "method": "list"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/payment-http-simulation.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/aftersales/{caseId}",
+      "family": "care-platform",
+      "handler": "services/api/src/server.ts:601",
+      "handlerSliceSha256": "c874703bbfb1b4d875a4231b3cc00c2d0b10331281fad3b56c4a496b31a79d73",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/aftersale.ts",
+          "method": "detail"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/payment-http-simulation.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/aftersales/{caseId}/actions",
+      "family": "care-platform",
+      "handler": "services/api/src/server.ts:603",
+      "handlerSliceSha256": "0015737aadd52e0102cb422bf52764692d16a4e18aca6fe2d418e79cff5f7f2f",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/aftersale.ts",
+          "method": "act"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/payment-http-simulation.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "GET",
       "path": "/v1/me/authority",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:424",
+      "handler": "services/api/src/server.ts:462",
       "handlerSliceSha256": "5c886adfed0f19bb63a402ad41e7d95d182f73a7ab511068077f50892ca0105c",
       "serviceCalls": [
         {
@@ -5270,7 +5601,7 @@
       "method": "GET",
       "path": "/v1/me/care",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:387",
+      "handler": "services/api/src/server.ts:417",
       "handlerSliceSha256": "2e26815f40e3e32cb5d343761b5d119bbe86694aaaaaa608a5deeaddce1eae66",
       "serviceCalls": [
         {
@@ -5314,7 +5645,7 @@
       "method": "GET",
       "path": "/v1/me/commerce/command-receipts/{kind}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:514",
+      "handler": "services/api/src/server.ts:552",
       "handlerSliceSha256": "e0ec3e6115cc454b197d692cd8106f722d28e3c1ef26d0451b61408c8110ac2b",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
@@ -5349,7 +5680,7 @@
       "method": "POST",
       "path": "/v1/me/commerce/quotes",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:522",
+      "handler": "services/api/src/server.ts:560",
       "handlerSliceSha256": "9901b4411634bf81e026c2f5d8c5706fc6e2c17d94577ab4fb0ca615d0ba49e1",
       "serviceCalls": [
         {
@@ -5392,7 +5723,7 @@
       "method": "GET",
       "path": "/v1/me/commerce/recorded-commands/{kind}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:518",
+      "handler": "services/api/src/server.ts:556",
       "handlerSliceSha256": "b5ea87d59ce5a7d555bb0670d81d8c588ac2b057219c764a3f86bfbaaeca34cb",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
@@ -5427,7 +5758,7 @@
       "method": "GET",
       "path": "/v1/me/commercial-membership",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:425",
+      "handler": "services/api/src/server.ts:463",
       "handlerSliceSha256": "725509dd1bc497ce9f2792d39cab175e130caeceec31d1e9955b3cce51d6c33f",
       "serviceCalls": [
         {
@@ -5471,7 +5802,7 @@
       "method": "POST",
       "path": "/v1/me/commercial-membership/code",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:426",
+      "handler": "services/api/src/server.ts:464",
       "handlerSliceSha256": "0b640ba81dc229d66bbf211148833c6fcf66ab824aaac48c6836b80ac84996bc",
       "serviceCalls": [
         {
@@ -5512,7 +5843,7 @@
       "method": "GET",
       "path": "/v1/me/commission/credit-conversions",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:618",
+      "handler": "services/api/src/server.ts:682",
       "handlerSliceSha256": "5830d2e1a7ffa457126226bf86625b0328d3423cd70e65a909d0bbe58705f4ca",
       "serviceCalls": [
         {
@@ -5554,7 +5885,7 @@
       "method": "POST",
       "path": "/v1/me/commission/credit-conversions",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:615",
+      "handler": "services/api/src/server.ts:679",
       "handlerSliceSha256": "17733f9ccfdef1a84cc7308d8b51c9a2c6065d7831a223b86496040d9f553c74",
       "serviceCalls": [
         {
@@ -5596,7 +5927,7 @@
       "method": "POST",
       "path": "/v1/me/commission/credit-conversions/{conversionId}/cancel",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:620",
+      "handler": "services/api/src/server.ts:684",
       "handlerSliceSha256": "8b6718bb0aa5c6b4e40cf0bc21fe75f06ec930566919b9c5f9bb8e0b3b07d7a2",
       "serviceCalls": [
         {
@@ -5638,7 +5969,7 @@
       "method": "GET",
       "path": "/v1/me/commission/settlement-requests",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:613",
+      "handler": "services/api/src/server.ts:677",
       "handlerSliceSha256": "4b1ddadb09d1be9966e4bd447878a032a6d43084d0d09b126e93db076438c6da",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
@@ -5675,7 +6006,7 @@
       "method": "POST",
       "path": "/v1/me/commission/settlement-requests",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:610",
+      "handler": "services/api/src/server.ts:674",
       "handlerSliceSha256": "bf30bc89899783513b70199ef0d0a849b6a38e6d45a07e984414579777a1a59a",
       "serviceCalls": [
         {
@@ -5717,7 +6048,7 @@
       "method": "GET",
       "path": "/v1/me/commission/settlement-requests/{requestId}/confirmation",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:622",
+      "handler": "services/api/src/server.ts:686",
       "handlerSliceSha256": "89ba4c0df920d33f2dacec2f5058e8910771ba91d95156d4d453a9e26b976250",
       "serviceCalls": [
         {
@@ -5759,7 +6090,7 @@
       "method": "GET",
       "path": "/v1/me/community-access",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:498",
+      "handler": "services/api/src/server.ts:536",
       "handlerSliceSha256": "2678c52cdd7c9bdff997338d135168d67c2443355ddfa70e28bedb89d5a7c446",
       "serviceCalls": [
         {
@@ -5799,7 +6130,7 @@
       "method": "GET",
       "path": "/v1/me/consents",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:509",
+      "handler": "services/api/src/server.ts:547",
       "handlerSliceSha256": "c24bb6f5c3477ef060f347dafabff25ff299f04c7cc169ef3acbcfe19757ad30",
       "serviceCalls": [
         {
@@ -5839,7 +6170,7 @@
       "method": "GET",
       "path": "/v1/me/following",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:499",
+      "handler": "services/api/src/server.ts:537",
       "handlerSliceSha256": "2e796034f4f7b69384d7608cf45c3b89ff896b9993a135575927d966e80e3fb0",
       "serviceCalls": [
         {
@@ -5877,7 +6208,7 @@
       "method": "GET",
       "path": "/v1/me/following/page",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:500",
+      "handler": "services/api/src/server.ts:538",
       "handlerSliceSha256": "d540d754302975027fed83573b7c5fe4854020109b7898193200805cfc41d638",
       "serviceCalls": [
         {
@@ -5915,7 +6246,7 @@
       "method": "GET",
       "path": "/v1/me/follows",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:501",
+      "handler": "services/api/src/server.ts:539",
       "handlerSliceSha256": "c6fe0a9dd89d7ea54209db3ebc022b904c94f0d430078cd84c1e847b5001dc7b",
       "serviceCalls": [
         {
@@ -5956,7 +6287,7 @@
       "method": "PUT",
       "path": "/v1/me/follows/{authorId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:502",
+      "handler": "services/api/src/server.ts:540",
       "handlerSliceSha256": "ebde0a95c8cc9b1e018b4bf8d0231ccd6391ebb4744346ae0c42b0bfca4d4b4b",
       "serviceCalls": [
         {
@@ -5997,7 +6328,7 @@
       "method": "GET",
       "path": "/v1/me/orders",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:524",
+      "handler": "services/api/src/server.ts:562",
       "handlerSliceSha256": "457ebd6ddcb7ed74639de2c57cf8f62d6b899bc86f53b2013a03309b3744c81d",
       "serviceCalls": [
         {
@@ -6006,6 +6337,7 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6042,7 +6374,7 @@
       "method": "POST",
       "path": "/v1/me/orders",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:523",
+      "handler": "services/api/src/server.ts:561",
       "handlerSliceSha256": "58b0c39180b5046cd48f38f7aff3ca446a45cbc6815a59cc69931b0810d2b086",
       "serviceCalls": [
         {
@@ -6051,6 +6383,7 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6087,7 +6420,7 @@
       "method": "GET",
       "path": "/v1/me/orders/{orderId}",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:525",
+      "handler": "services/api/src/server.ts:563",
       "handlerSliceSha256": "1df38f0f5b65cff6783496bbac1332fddb69d0940b3652e770d5fdd24ea64217",
       "serviceCalls": [
         {
@@ -6096,6 +6429,53 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
+        "apps/miniprogram/pages/order-detail/index.ts",
+        "apps/miniprogram/services/commerce-command-recovery.ts",
+        "apps/miniprogram/services/orders.ts"
+      ],
+      "testReferenceCandidates": [
+        "tests/integration/commerce-history-gates.test.ts",
+        "tests/integration/commerce-orders.test.ts",
+        "tests/integration/payment-http-simulation.test.ts",
+        "tests/integration/support-commercial-chat.test.ts"
+      ],
+      "commonControls": [
+        "server preHandler identity/active member or explicit public/callback exception",
+        "rateLimits.ts",
+        "operationBudget.ts"
+      ],
+      "requiredReview": {
+        "prdBusinessId": "UNREVIEWED",
+        "identity": "UNREVIEWED",
+        "roleCapability": "UNREVIEWED",
+        "objectRow": "UNREVIEWED",
+        "fieldProjection": "UNREVIEWED",
+        "actionState": "UNREVIEWED",
+        "environment": "UNREVIEWED",
+        "inputBoundary": "UNREVIEWED",
+        "idempotencyVersion": "UNREVIEWED",
+        "concurrency": "UNREVIEWED",
+        "databaseExternalEffects": "UNREVIEWED",
+        "limitsTimeoutPagination": "UNREVIEWED",
+        "positiveNegativeEvidence": "UNREVIEWED"
+      },
+      "status": "SOURCE_MAPPED_NOT_SECURITY_ACCEPTED"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/orders/{orderId}/aftersales",
+      "family": "commerce",
+      "handler": "services/api/src/server.ts:597",
+      "handlerSliceSha256": "1b35f170c5459c14b6391ea496546475bced74a5e20e9d377fc34529eb1d0bbe",
+      "serviceCalls": [
+        {
+          "owner": "services/api/src/aftersale.ts",
+          "method": "request"
+        }
+      ],
+      "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6132,8 +6512,8 @@
       "method": "POST",
       "path": "/v1/me/orders/{orderId}/cancel",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:526",
-      "handlerSliceSha256": "9d73f61798e13b0f2885da79dbba1ebc694e9345a193a7c8753df97ab921f077",
+      "handler": "services/api/src/server.ts:564",
+      "handlerSliceSha256": "dd6572528b43075c6d1f6d60cd483fd10035db89f41722d3d5617494ab55a72a",
       "serviceCalls": [
         {
           "owner": "services/api/src/commerceOrders.ts",
@@ -6141,6 +6521,7 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6177,15 +6558,11 @@
       "method": "POST",
       "path": "/v1/me/orders/{orderId}/cancel-verified",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:551",
-      "handlerSliceSha256": "228dcb36789cc2b77676552467015c08231c77dd4974dc349f85a0b30dcbaccd",
-      "serviceCalls": [
-        {
-          "owner": "services/api/src/paymentAttempt.ts",
-          "method": "cancel"
-        }
-      ],
+      "handler": "services/api/src/server.ts:594",
+      "handlerSliceSha256": "367d8e7b5c824bc88d91f419f8cafb6a3fd5f0be6cafa085691ff5febd616452",
+      "serviceCalls": [],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6222,7 +6599,7 @@
       "method": "POST",
       "path": "/v1/me/orders/{orderId}/confirm-receipt",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:582",
+      "handler": "services/api/src/server.ts:646",
       "handlerSliceSha256": "ea1e196832729764dfbda6c1913dfd7fb15282a45def45750c2ac78212951e9b",
       "serviceCalls": [
         {
@@ -6231,6 +6608,7 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6267,10 +6645,11 @@
       "method": "GET",
       "path": "/v1/me/orders/{orderId}/payment-intent",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:549",
+      "handler": "services/api/src/server.ts:592",
       "handlerSliceSha256": "2bedc9c65279ffaee6a48631712fe20be85a3c1f6840e382b1abea1fc8bd3325",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6307,7 +6686,7 @@
       "method": "POST",
       "path": "/v1/me/orders/{orderId}/payment-intent",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:547",
+      "handler": "services/api/src/server.ts:590",
       "handlerSliceSha256": "a8b7751631fdc213f2ceb74f0451a8f937a21a158c651ab9c26c6a4a832bb30d",
       "serviceCalls": [
         {
@@ -6316,6 +6695,7 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6352,10 +6732,11 @@
       "method": "POST",
       "path": "/v1/me/orders/{orderId}/refund-requests",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:554",
-      "handlerSliceSha256": "2b7a2523f414965471942c317a4fb919f0a004163ab875420d9e824a68ce8a1c",
+      "handler": "services/api/src/server.ts:614",
+      "handlerSliceSha256": "5c854f2585daeb2d4614f627cf6d67cc1d52e007c040681c949d1c51fedcfed7",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6392,7 +6773,7 @@
       "method": "GET",
       "path": "/v1/me/orders/{orderId}/shipment",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:572",
+      "handler": "services/api/src/server.ts:636",
       "handlerSliceSha256": "75da13997fa4f40635776cffea5d7f565f28a0b7c93a3459f886178b0f3d56f0",
       "serviceCalls": [
         {
@@ -6401,6 +6782,7 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6437,7 +6819,7 @@
       "method": "GET",
       "path": "/v1/me/orders/{orderId}/shipment/tracking",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:574",
+      "handler": "services/api/src/server.ts:638",
       "handlerSliceSha256": "f141821f5089b80b46eef0abff921d35d4a598781fae55d5e17b9819e009b9be",
       "serviceCalls": [
         {
@@ -6446,6 +6828,7 @@
         }
       ],
       "nativeReferenceCandidates": [
+        "apps/miniprogram/pages/aftersale/index.ts",
         "apps/miniprogram/pages/order-detail/index.ts",
         "apps/miniprogram/services/commerce-command-recovery.ts",
         "apps/miniprogram/services/orders.ts"
@@ -6482,7 +6865,7 @@
       "method": "DELETE",
       "path": "/v1/me/phone",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:491",
+      "handler": "services/api/src/server.ts:529",
       "handlerSliceSha256": "35323ebe41ca4537a43ae8efe6879c1ca942788b9be372ac450cd6fa097ad52b",
       "serviceCalls": [
         {
@@ -6524,7 +6907,7 @@
       "method": "GET",
       "path": "/v1/me/phone",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:490",
+      "handler": "services/api/src/server.ts:528",
       "handlerSliceSha256": "0f418f9930fcef6eed19dc8d8e7bf4ae562f4df52f41901cc5542b1ef7f28d31",
       "serviceCalls": [
         {
@@ -6566,7 +6949,7 @@
       "method": "POST",
       "path": "/v1/me/phone",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:492",
+      "handler": "services/api/src/server.ts:530",
       "handlerSliceSha256": "b9710fea7f2b1c08c8dc5dae483217e7e8b7db3a53311f6346b4b25b20462b5b",
       "serviceCalls": [
         {
@@ -6608,7 +6991,7 @@
       "method": "GET",
       "path": "/v1/me/points",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:767",
+      "handler": "services/api/src/server.ts:831",
       "handlerSliceSha256": "1304b3ac3cb9d1260cdb82f1abf9893785e9a994a2aeec381c64f740acf19655",
       "serviceCalls": [
         {
@@ -6652,8 +7035,8 @@
       "method": "GET",
       "path": "/v1/me/privacy-requests",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:393",
-      "handlerSliceSha256": "a9116fa0f26d9cbafe7faa052e9101fbb767927e032400fabfd892971821216d",
+      "handler": "services/api/src/server.ts:423",
+      "handlerSliceSha256": "f97fb0d5d279b80a18805f169eb6a4bf4296a1a37b5898ca4eea3b4bb60d7b36",
       "serviceCalls": [
         {
           "owner": "services/api/src/privacyRights.ts",
@@ -6664,6 +7047,7 @@
         "apps/miniprogram/pages/privacy-rights/index.ts"
       ],
       "testReferenceCandidates": [
+        "tests/integration/native-privacy-management.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
         "tests/integration/privacy-rights.test.ts",
         "tests/integration/rate-limits.test.ts"
@@ -6694,8 +7078,8 @@
       "method": "POST",
       "path": "/v1/me/privacy-requests",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:394",
-      "handlerSliceSha256": "ef4dccf76e10aa511d17a273fb0d6bba3c8591dcef41cfeee74b501bceed9160",
+      "handler": "services/api/src/server.ts:425",
+      "handlerSliceSha256": "3d0f143de230953d20b02ad0a1564bade46e72cf52f1d965e557b8c746746799",
       "serviceCalls": [
         {
           "owner": "services/api/src/privacyRights.ts",
@@ -6706,6 +7090,7 @@
         "apps/miniprogram/pages/privacy-rights/index.ts"
       ],
       "testReferenceCandidates": [
+        "tests/integration/native-privacy-management.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
         "tests/integration/privacy-rights.test.ts",
         "tests/integration/rate-limits.test.ts"
@@ -6736,7 +7121,7 @@
       "method": "GET",
       "path": "/v1/me/privacy-requests/{requestId}/export",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:416",
+      "handler": "services/api/src/server.ts:454",
       "handlerSliceSha256": "252fdce32f268bd5cdb194315de6b1fbd25c5be17353a85910fa9089e3e0c791",
       "serviceCalls": [
         {
@@ -6748,6 +7133,7 @@
         "apps/miniprogram/pages/privacy-rights/index.ts"
       ],
       "testReferenceCandidates": [
+        "tests/integration/native-privacy-management.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
         "tests/integration/privacy-rights.test.ts",
         "tests/integration/rate-limits.test.ts"
@@ -6778,7 +7164,7 @@
       "method": "POST",
       "path": "/v1/me/privacy-requests/{requestId}/export-revoke",
       "family": "privacy",
-      "handler": "services/api/src/server.ts:421",
+      "handler": "services/api/src/server.ts:459",
       "handlerSliceSha256": "891ddbfabf9c9d888c52afa4a8538d93a02f1bb39bc33f413607a5be84596ef9",
       "serviceCalls": [
         {
@@ -6790,6 +7176,7 @@
         "apps/miniprogram/pages/privacy-rights/index.ts"
       ],
       "testReferenceCandidates": [
+        "tests/integration/native-privacy-management.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
         "tests/integration/privacy-rights.test.ts",
         "tests/integration/rate-limits.test.ts"
@@ -6820,7 +7207,7 @@
       "method": "GET",
       "path": "/v1/me/profile",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:479",
+      "handler": "services/api/src/server.ts:517",
       "handlerSliceSha256": "4677bd7ba6ec124ea2ee9315bb774a027f21d7d8a155c92e628067d49f573433",
       "serviceCalls": [
         {
@@ -6863,7 +7250,7 @@
       "method": "PUT",
       "path": "/v1/me/profile",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:480",
+      "handler": "services/api/src/server.ts:518",
       "handlerSliceSha256": "bef5ff631f995aaf14a0e5463bc5db0e96ff96aaf16889f216ce4e06c8e0fbac",
       "serviceCalls": [
         {
@@ -6906,7 +7293,7 @@
       "method": "POST",
       "path": "/v1/me/referral/confirm",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:428",
+      "handler": "services/api/src/server.ts:466",
       "handlerSliceSha256": "91e4ce5a81d35c5263d46acbae991aaf8ea548e9abe1407ead0927bfb4df8504",
       "serviceCalls": [
         {
@@ -6947,7 +7334,7 @@
       "method": "GET",
       "path": "/v1/me/referral/preview",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:427",
+      "handler": "services/api/src/server.ts:465",
       "handlerSliceSha256": "35c73ac8b4c1af926603aa88adeec218c1711b0b539dfd4afe31f725b153a2aa",
       "serviceCalls": [
         {
@@ -6987,7 +7374,7 @@
       "method": "GET",
       "path": "/v1/me/refund-requests",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:557",
+      "handler": "services/api/src/server.ts:621",
       "handlerSliceSha256": "bf956616d82ab2b5d3d8cda38c1b7b037a826344384673924bba7249fa300af6",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
@@ -7023,7 +7410,7 @@
       "method": "GET",
       "path": "/v1/me/shares",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:510",
+      "handler": "services/api/src/server.ts:548",
       "handlerSliceSha256": "42765d3d800745d213ae7f0195357f9cec7ad714340a2aedadd96dbd74c07f8c",
       "serviceCalls": [
         {
@@ -7067,7 +7454,7 @@
       "method": "POST",
       "path": "/v1/me/support/handoff",
       "family": "support",
-      "handler": "services/api/src/server.ts:450",
+      "handler": "services/api/src/server.ts:488",
       "handlerSliceSha256": "2c940cf342366aba0b6dc6c802f80dfa7d7c00147f12b1974a0e6a6273df86ec",
       "serviceCalls": [
         {
@@ -7105,7 +7492,7 @@
       "method": "DELETE",
       "path": "/v1/me/support/media/{mediaId}",
       "family": "support",
-      "handler": "services/api/src/server.ts:460",
+      "handler": "services/api/src/server.ts:498",
       "handlerSliceSha256": "ae579412f4993729ce2793c1a2a9acfe2be958f7063150b64a43ddc36b88c50b",
       "serviceCalls": [
         {
@@ -7146,7 +7533,7 @@
       "method": "GET",
       "path": "/v1/me/support/media/{mediaId}",
       "family": "support",
-      "handler": "services/api/src/server.ts:461",
+      "handler": "services/api/src/server.ts:499",
       "handlerSliceSha256": "4d1809d99bb0a69705f65cc43333727fbbc6b16d22021c7e9389edab63298230",
       "serviceCalls": [
         {
@@ -7187,7 +7574,7 @@
       "method": "POST",
       "path": "/v1/me/support/media/{mediaId}/complete",
       "family": "support",
-      "handler": "services/api/src/server.ts:459",
+      "handler": "services/api/src/server.ts:497",
       "handlerSliceSha256": "6c206b86aa548d0cefc84e30a607a65f6f88ee6d19b2d4ad301f214fb2c1f010",
       "serviceCalls": [
         {
@@ -7228,7 +7615,7 @@
       "method": "POST",
       "path": "/v1/me/support/media/authorize",
       "family": "support",
-      "handler": "services/api/src/server.ts:453",
+      "handler": "services/api/src/server.ts:491",
       "handlerSliceSha256": "7954569813f6331af04039632f618b4ef82f77e029cdc8c61dc04ab11afaf63c",
       "serviceCalls": [
         {
@@ -7269,7 +7656,7 @@
       "method": "GET",
       "path": "/v1/me/support/messages",
       "family": "support",
-      "handler": "services/api/src/server.ts:448",
+      "handler": "services/api/src/server.ts:486",
       "handlerSliceSha256": "4ec0428be321118aa4c07eb6a18cec8a3fbddfbfc945b76cc652bd3a4112b252",
       "serviceCalls": [
         {
@@ -7312,7 +7699,7 @@
       "method": "POST",
       "path": "/v1/me/support/messages",
       "family": "support",
-      "handler": "services/api/src/server.ts:449",
+      "handler": "services/api/src/server.ts:487",
       "handlerSliceSha256": "46bc723308b8083257619ad48478b5951d20555b21aa8ace1471f4543880a9d7",
       "serviceCalls": [
         {
@@ -7355,7 +7742,7 @@
       "method": "POST",
       "path": "/v1/me/support/presence",
       "family": "support",
-      "handler": "services/api/src/server.ts:452",
+      "handler": "services/api/src/server.ts:490",
       "handlerSliceSha256": "12b23bb295b3632c56017df4a8813ffba76591ec313c576a2659a01ff2943d5c",
       "serviceCalls": [
         {
@@ -7393,7 +7780,7 @@
       "method": "POST",
       "path": "/v1/me/support/read",
       "family": "support",
-      "handler": "services/api/src/server.ts:451",
+      "handler": "services/api/src/server.ts:489",
       "handlerSliceSha256": "bb01ab34026c2e9e61d51f94f9f742bf4f396638e9b4b7b395617c8fc7a6165f",
       "serviceCalls": [
         {
@@ -7434,7 +7821,7 @@
       "method": "GET",
       "path": "/v1/me/support/summary",
       "family": "support",
-      "handler": "services/api/src/server.ts:447",
+      "handler": "services/api/src/server.ts:485",
       "handlerSliceSha256": "a103d7cc7804593b5adb593a0d89a5dab59f6884174ee3140eb67bbc030f1b28",
       "serviceCalls": [
         {
@@ -7477,7 +7864,7 @@
       "method": "GET",
       "path": "/v1/me/tasks",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:508",
+      "handler": "services/api/src/server.ts:546",
       "handlerSliceSha256": "107afc60f474e7d95fa157e6936eef106e9b314cc00eee965109d4dec185e2e7",
       "serviceCalls": [
         {
@@ -7522,7 +7909,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/activity/{section}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:291",
+      "handler": "services/api/src/server.ts:321",
       "handlerSliceSha256": "a8e82a0b9b25a74056d16f005ec8bb6dec05842a728303f74278db239018b711",
       "serviceCalls": [
         {
@@ -7563,7 +7950,7 @@
       "method": "PUT",
       "path": "/v1/me/ugc/blocks/{memberId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:332",
+      "handler": "services/api/src/server.ts:362",
       "handlerSliceSha256": "9d111383c3fbc026f3c3e414b7135d6a4dce61b2f6a1dcce2d8f1364c5ee11c0",
       "serviceCalls": [
         {
@@ -7604,7 +7991,7 @@
       "method": "PUT",
       "path": "/v1/me/ugc/follows/{memberId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:328",
+      "handler": "services/api/src/server.ts:358",
       "handlerSliceSha256": "8a9dbf713adf6a588dcc283345b34ab07dfeecdf14f0d78785e06ae30445309b",
       "serviceCalls": [
         {
@@ -7645,7 +8032,7 @@
       "method": "DELETE",
       "path": "/v1/me/ugc/media/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:326",
+      "handler": "services/api/src/server.ts:356",
       "handlerSliceSha256": "d800ed05eee59dba3d1f9616b9be17ad50fbc2bdcf7f3c0b8c874096ffd2a679",
       "serviceCalls": [
         {
@@ -7683,7 +8070,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/media/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:314",
+      "handler": "services/api/src/server.ts:344",
       "handlerSliceSha256": "1f8d017005c66172b3d1524da404a683b443a4d2c473c0e829d4d1e24faa71b8",
       "serviceCalls": [
         {
@@ -7721,7 +8108,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/media/{mediaId}/preview-url",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:318",
+      "handler": "services/api/src/server.ts:348",
       "handlerSliceSha256": "4fc1d921a0837e55ec144264d4b3e35051d948347abd40284da25dfe2fc52e7a",
       "serviceCalls": [
         {
@@ -7759,7 +8146,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/posts",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:290",
+      "handler": "services/api/src/server.ts:320",
       "handlerSliceSha256": "9743236386dd0d92513da9b53fa780b07c238feb5433760e632426563330a2f0",
       "serviceCalls": [
         {
@@ -7801,7 +8188,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:293",
+      "handler": "services/api/src/server.ts:323",
       "handlerSliceSha256": "6624e310c8b2f7cc22ad7a26d906275ac7c4d4e3f2d9f80bceb129597af665e0",
       "serviceCalls": [
         {
@@ -7843,7 +8230,7 @@
       "method": "DELETE",
       "path": "/v1/me/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:307",
+      "handler": "services/api/src/server.ts:337",
       "handlerSliceSha256": "edb38d27fe49a8beab6d9fb703b5c49d6b1f96e84a5e4e88631d64916471a615",
       "serviceCalls": [
         {
@@ -7885,7 +8272,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:294",
+      "handler": "services/api/src/server.ts:324",
       "handlerSliceSha256": "d550e388078809f21c1c040a43b31cd4e138e855251a12f53eee63b2dcfb623a",
       "serviceCalls": [
         {
@@ -7927,7 +8314,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/appeals",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:295",
+      "handler": "services/api/src/server.ts:325",
       "handlerSliceSha256": "54a6ab34ecf31ce439f2765e35dcfe9553575b40b748e030176a4e6e60aab299",
       "serviceCalls": [
         {
@@ -7969,7 +8356,7 @@
       "method": "PUT",
       "path": "/v1/me/ugc/posts/{postId}/draft",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:297",
+      "handler": "services/api/src/server.ts:327",
       "handlerSliceSha256": "5d980333808492f443366823977a40779e760ee6071bf63edd164e2fcf31d140",
       "serviceCalls": [
         {
@@ -8011,7 +8398,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/media/{mediaId}/complete",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:313",
+      "handler": "services/api/src/server.ts:343",
       "handlerSliceSha256": "fc4a71ade1bc21d8c5d1602bd13df158e8f54b9178b86137cde76cbff8e8887e",
       "serviceCalls": [
         {
@@ -8053,7 +8440,7 @@
       "method": "GET",
       "path": "/v1/me/ugc/posts/{postId}/media/{mediaId}/preview-url",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:322",
+      "handler": "services/api/src/server.ts:352",
       "handlerSliceSha256": "f402485142d002ef8ac616ca6c9b82fedc61a2d6e0efeda527205f235fff17fe",
       "serviceCalls": [
         {
@@ -8095,7 +8482,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/media/authorize",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:308",
+      "handler": "services/api/src/server.ts:338",
       "handlerSliceSha256": "1fae7805964027e4483f8536f2548ac524ba1f05b64c87651d3355e5b0f1c138",
       "serviceCalls": [
         {
@@ -8137,7 +8524,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/scan",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:302",
+      "handler": "services/api/src/server.ts:332",
       "handlerSliceSha256": "8f9fbeb35e360d5b81504d3babb14195b89b04d2ebea7c83a31a82f0686a3ed0",
       "serviceCalls": [
         {
@@ -8179,7 +8566,7 @@
       "method": "POST",
       "path": "/v1/me/ugc/posts/{postId}/submit",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:298",
+      "handler": "services/api/src/server.ts:328",
       "handlerSliceSha256": "ae4a40b4c2563e26d4c07749a5ace5d2b5915be71db873828af314642f7fb551",
       "serviceCalls": [
         {
@@ -8221,7 +8608,7 @@
       "method": "POST",
       "path": "/v1/payments/wechat/callback",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:658",
+      "handler": "services/api/src/server.ts:722",
       "handlerSliceSha256": "3665ec92ea4a47cb0a86dad8e5cd93b51c9ed15be7e1ac9c3d3eb4c19d21e417",
       "serviceCalls": [],
       "nativeReferenceCandidates": [],
@@ -8255,7 +8642,7 @@
       "method": "POST",
       "path": "/v1/payments/wechat/refund-callback",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:664",
+      "handler": "services/api/src/server.ts:728",
       "handlerSliceSha256": "1a9aaa8fa741815dd6df2c905d8d43bd0304746790874d9208c67edfecabb8f6",
       "serviceCalls": [],
       "nativeReferenceCandidates": [],
@@ -8288,7 +8675,7 @@
       "method": "POST",
       "path": "/v1/payments/wechat/transfer-callback",
       "family": "commerce",
-      "handler": "services/api/src/server.ts:670",
+      "handler": "services/api/src/server.ts:734",
       "handlerSliceSha256": "0a92f11c3649b598eb0f542ff7aa689c4c35f921baa2970216a84cda19d17a37",
       "serviceCalls": [],
       "nativeReferenceCandidates": [],
@@ -8322,7 +8709,7 @@
       "method": "POST",
       "path": "/v1/qualifications/dev",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:380",
+      "handler": "services/api/src/server.ts:410",
       "handlerSliceSha256": "930010c3a15d36098412158f3fbefaafa3e0e459e05a2abe8c7ddb9d648cf744",
       "serviceCalls": [
         {
@@ -8365,7 +8752,7 @@
       "method": "POST",
       "path": "/v1/shares",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:693",
+      "handler": "services/api/src/server.ts:757",
       "handlerSliceSha256": "dc1feede000dda657bfeaf808b3a03f6bc8c30ca0ff811705d2b3fc89b21010a",
       "serviceCalls": [
         {
@@ -8411,7 +8798,7 @@
       "method": "GET",
       "path": "/v1/shares/{shareId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:696",
+      "handler": "services/api/src/server.ts:760",
       "handlerSliceSha256": "eb5ebb294f4d38f7b35113a390df303e95f4fa7860968a42c52848e910eb17a3",
       "serviceCalls": [
         {
@@ -8457,7 +8844,7 @@
       "method": "POST",
       "path": "/v1/shares/{shareId}/attributions/identity",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:698",
+      "handler": "services/api/src/server.ts:762",
       "handlerSliceSha256": "d50b8e4eb78f88df7bc88ff568d89ae2464937c46d124796efa5df1d71a11db3",
       "serviceCalls": [
         {
@@ -8503,7 +8890,7 @@
       "method": "POST",
       "path": "/v1/shares/{shareId}/visits",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:697",
+      "handler": "services/api/src/server.ts:761",
       "handlerSliceSha256": "843a041a7c969a5ed8db4159dd7932c5d42915e1688c95c2c0aeaf0e9af6a061",
       "serviceCalls": [
         {
@@ -8549,7 +8936,7 @@
       "method": "GET",
       "path": "/v1/submissions/{submissionId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:761",
+      "handler": "services/api/src/server.ts:825",
       "handlerSliceSha256": "70a90b188a7274650e4b7c2d37daabe7ab39e368d22af535229e4d63bb04734e",
       "serviceCalls": [
         {
@@ -8594,7 +8981,7 @@
       "method": "POST",
       "path": "/v1/submissions/{submissionId}/appeal",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:762",
+      "handler": "services/api/src/server.ts:826",
       "handlerSliceSha256": "1c2792374c05bd8c0abed2b65a3c19f57bb4a4d25de2cee7e5bbeeb58c8f0adb",
       "serviceCalls": [
         {
@@ -8639,7 +9026,7 @@
       "method": "PUT",
       "path": "/v1/submissions/{submissionId}/draft",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:752",
+      "handler": "services/api/src/server.ts:816",
       "handlerSliceSha256": "f58b212d7c4fcd946d4aba122f9e283fdca3b7043105e7ccc5c9f0211342475c",
       "serviceCalls": [
         {
@@ -8684,7 +9071,7 @@
       "method": "DELETE",
       "path": "/v1/submissions/{submissionId}/media/{mediaId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:751",
+      "handler": "services/api/src/server.ts:815",
       "handlerSliceSha256": "54a0379a7d68567a0c11d860ff3856985f4c30b91daa54f2e5ad3210c6eb69b3",
       "serviceCalls": [
         {
@@ -8725,7 +9112,7 @@
       "method": "POST",
       "path": "/v1/submissions/{submissionId}/media/{mediaId}/complete",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:750",
+      "handler": "services/api/src/server.ts:814",
       "handlerSliceSha256": "e372f9fbd0848c7124c6bd0ce3a52e5449db6d403908d61d6df973820a4fdce5",
       "serviceCalls": [
         {
@@ -8766,7 +9153,7 @@
       "method": "POST",
       "path": "/v1/submissions/{submissionId}/media/authorize",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:723",
+      "handler": "services/api/src/server.ts:787",
       "handlerSliceSha256": "e44fa9220445ec038738ad0fbed82fd54ef27a4ad19d906420f605df964d898d",
       "serviceCalls": [
         {
@@ -8807,7 +9194,7 @@
       "method": "POST",
       "path": "/v1/submissions/{submissionId}/submit",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:758",
+      "handler": "services/api/src/server.ts:822",
       "handlerSliceSha256": "b22a2bccfa067785a7bcee253d3706ab70dc1ad48ff463cf4b1f4e0dd8020e1d",
       "serviceCalls": [
         {
@@ -8852,7 +9239,7 @@
       "method": "GET",
       "path": "/v1/tasks/{taskId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:721",
+      "handler": "services/api/src/server.ts:785",
       "handlerSliceSha256": "271f6b43247da99a49b9f9baacf0d9edaac0973e30d5cfd827d042b4ee115990",
       "serviceCalls": [
         {
@@ -8896,7 +9283,7 @@
       "method": "POST",
       "path": "/v1/tasks/{taskId}/claim",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:718",
+      "handler": "services/api/src/server.ts:782",
       "handlerSliceSha256": "aa0b15e8b6a2cf42a81772ff48aed78a0153f99d8bd05cb52eadd207e34db97c",
       "serviceCalls": [
         {
@@ -8940,7 +9327,7 @@
       "method": "GET",
       "path": "/v1/team/member-profiles",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:481",
+      "handler": "services/api/src/server.ts:519",
       "handlerSliceSha256": "2e0c4ebdff69c565e84c968ef898cb40dfa0e48be806c62417ff361331c6aa48",
       "serviceCalls": [
         {
@@ -8984,7 +9371,7 @@
       "method": "POST",
       "path": "/v1/team/member-profiles/{memberId}/review",
       "family": "identity-member",
-      "handler": "services/api/src/server.ts:485",
+      "handler": "services/api/src/server.ts:523",
       "handlerSliceSha256": "0980622d472ee0badf7ded001336a5c2264c08407b67f859b30c383e339ee6a2",
       "serviceCalls": [
         {
@@ -9028,7 +9415,7 @@
       "method": "GET",
       "path": "/v1/team/publications",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:504",
+      "handler": "services/api/src/server.ts:542",
       "handlerSliceSha256": "a80c7a873df216465fd1af5ad856b806a0da43fd865a04d1e140ada08c8b47ff",
       "serviceCalls": [
         {
@@ -9072,7 +9459,7 @@
       "method": "GET",
       "path": "/v1/team/reviews",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:503",
+      "handler": "services/api/src/server.ts:541",
       "handlerSliceSha256": "a0c5ff83873135d8ce2f6cb05d7c9f21bf38743a6097cdc4cd737b396aa1be44",
       "serviceCalls": [
         {
@@ -9120,7 +9507,7 @@
       "method": "POST",
       "path": "/v1/team/submissions/{submissionId}/publish",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:506",
+      "handler": "services/api/src/server.ts:544",
       "handlerSliceSha256": "15603d16707bff81b7b2b6a7acff4652b58539c2cf6626e89758f7b570499c10",
       "serviceCalls": [
         {
@@ -9168,7 +9555,7 @@
       "method": "POST",
       "path": "/v1/team/submissions/{submissionId}/review",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:505",
+      "handler": "services/api/src/server.ts:543",
       "handlerSliceSha256": "4724f094fc29a36932b3b87dc54d7aad08d4afc3c50e924e542a54292c9d4f85",
       "serviceCalls": [
         {
@@ -9216,7 +9603,7 @@
       "method": "GET",
       "path": "/v1/ugc/authors/{authorId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:266",
+      "handler": "services/api/src/server.ts:296",
       "handlerSliceSha256": "b684d835db008a09df4b28a22e6d4fc73478e4617004147a954e5240019b9cd1",
       "serviceCalls": [
         {
@@ -9256,7 +9643,7 @@
       "method": "GET",
       "path": "/v1/ugc/media/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:270",
+      "handler": "services/api/src/server.ts:300",
       "handlerSliceSha256": "489974514121cbe2b65dafffc6c3e93d4deb12c3010d5c1f4bc0c970cb9eaa0b",
       "serviceCalls": [
         {
@@ -9298,7 +9685,7 @@
       "method": "GET",
       "path": "/v1/ugc/own-preview/{ownerId}/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:278",
+      "handler": "services/api/src/server.ts:308",
       "handlerSliceSha256": "3f1aeed489421c70e6821f4b830f164df5177cb6966efa5da87fd809e122de29",
       "serviceCalls": [
         {
@@ -9334,7 +9721,7 @@
       "method": "GET",
       "path": "/v1/ugc/posts",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:265",
+      "handler": "services/api/src/server.ts:295",
       "handlerSliceSha256": "985460595f590e97dc2cc9548074ecb0b9848aba480205bfa6f472bb17c0e8e5",
       "serviceCalls": [
         {
@@ -9378,7 +9765,7 @@
       "method": "GET",
       "path": "/v1/ugc/posts/{postId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:267",
+      "handler": "services/api/src/server.ts:297",
       "handlerSliceSha256": "e72cad65994e9f02a8cb74b8fab7d8676233fb218f431dfca79d1cb85dc24d52",
       "serviceCalls": [
         {
@@ -9422,7 +9809,7 @@
       "method": "GET",
       "path": "/v1/ugc/posts/{postId}/comments",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:268",
+      "handler": "services/api/src/server.ts:298",
       "handlerSliceSha256": "e787f31b38774be48a1d82435d6641a57bfdf5970f13117320d418c338280ffb",
       "serviceCalls": [
         {
@@ -9466,7 +9853,7 @@
       "method": "POST",
       "path": "/v1/ugc/posts/{postId}/comments",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:329",
+      "handler": "services/api/src/server.ts:359",
       "handlerSliceSha256": "1e72de4a5b783fdd43c6df6a80046f96e60fa300146c196405a3ad216e483b2a",
       "serviceCalls": [
         {
@@ -9510,7 +9897,7 @@
       "method": "DELETE",
       "path": "/v1/ugc/posts/{postId}/comments/{commentId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:330",
+      "handler": "services/api/src/server.ts:360",
       "handlerSliceSha256": "b990c2572c6cc82d4a4e0869d43b565338264fe4a526d72cddc2b0300e680e1e",
       "serviceCalls": [
         {
@@ -9554,7 +9941,7 @@
       "method": "PUT",
       "path": "/v1/ugc/posts/{postId}/reaction",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:327",
+      "handler": "services/api/src/server.ts:357",
       "handlerSliceSha256": "31b704ba0347ef4040fc5d70a31e4c9a9ce7386cc4c1212c2ed6938c5483fdd2",
       "serviceCalls": [
         {
@@ -9598,7 +9985,7 @@
       "method": "POST",
       "path": "/v1/ugc/reports/{targetType}/{targetId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:331",
+      "handler": "services/api/src/server.ts:361",
       "handlerSliceSha256": "905458dbaa2ac68b66c78a7353a2b66da5f7d9067249526f432f46ee64e598f5",
       "serviceCalls": [
         {
@@ -9638,7 +10025,7 @@
       "method": "GET",
       "path": "/v1/ugc/review-preview/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:274",
+      "handler": "services/api/src/server.ts:304",
       "handlerSliceSha256": "668c4778b36bd5994de9a504c4ef4c407c47f505d1af9099c069fda6a023865a",
       "serviceCalls": [
         {
@@ -9674,7 +10061,7 @@
       "method": "GET",
       "path": "/v1/ugc/safety-callback",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:286",
+      "handler": "services/api/src/server.ts:316",
       "handlerSliceSha256": "823adc98bd41651c7904f3619bdefa86729b1bb313a734765fcd7fd0d04485cb",
       "serviceCalls": [
         {
@@ -9713,7 +10100,7 @@
       "method": "POST",
       "path": "/v1/ugc/safety-callback",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:288",
+      "handler": "services/api/src/server.ts:318",
       "handlerSliceSha256": "41eba107e681b96cf37d934f0d7a132f296a673e835336b9f44d4b57e6748e68",
       "serviceCalls": [
         {
@@ -9752,7 +10139,7 @@
       "method": "GET",
       "path": "/v1/ugc/scan-source/{mediaId}",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:282",
+      "handler": "services/api/src/server.ts:312",
       "handlerSliceSha256": "56cfd85477a8130b1ec1f03b8282041d1927e2d8418ca28e9f9f83dc8f7c859b",
       "serviceCalls": [
         {
@@ -9791,7 +10178,7 @@
       "method": "GET",
       "path": "/v1/ugc/status",
       "family": "UGC",
-      "handler": "services/api/src/server.ts:264",
+      "handler": "services/api/src/server.ts:294",
       "handlerSliceSha256": "5fb45dfd9799651d5cfc0b956786e0fd446104410e16881ce99895a815252bf4",
       "serviceCalls": [
         {
@@ -9832,7 +10219,7 @@
       "method": "POST",
       "path": "/v1/uploads/{mediaId}",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:738",
+      "handler": "services/api/src/server.ts:802",
       "handlerSliceSha256": "df62396d944bf9aea7e80f0ff6a7a7297b86b4ccba94963d9490ac57994407e3",
       "serviceCalls": [
         {
@@ -9883,7 +10270,7 @@
       "method": "POST",
       "path": "/v1/uploads/{mediaId}/assemble",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:734",
+      "handler": "services/api/src/server.ts:798",
       "handlerSliceSha256": "e57416dfe99a57fe39c728b355a92d288a1efc4b6391145b7eb4af2d3ecaf052",
       "serviceCalls": [
         {
@@ -9934,7 +10321,7 @@
       "method": "POST",
       "path": "/v1/uploads/{mediaId}/chunks",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:730",
+      "handler": "services/api/src/server.ts:794",
       "handlerSliceSha256": "845bbc74238fbcb84c8ffb56b30a828ceddcf44fefda19e7746044413c14936e",
       "serviceCalls": [
         {
@@ -9985,7 +10372,7 @@
       "method": "GET",
       "path": "/health/live",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:255",
+      "handler": "services/api/src/server.ts:285",
       "handlerSliceSha256": "a2be3edb63190b6b33b567d4a8f706ac55698cc237f2f942c94d31e3f63a7feb",
       "serviceCalls": [],
       "nativeReferenceCandidates": [],
@@ -10018,7 +10405,7 @@
       "method": "GET",
       "path": "/health/ready",
       "family": "care-platform",
-      "handler": "services/api/src/server.ts:256",
+      "handler": "services/api/src/server.ts:286",
       "handlerSliceSha256": "311f36c42f82a65b53f3bc47e7ec78bbe51b8f87a836c40c484786af0a528db1",
       "serviceCalls": [],
       "nativeReferenceCandidates": [],
