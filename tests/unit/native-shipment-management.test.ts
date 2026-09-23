@@ -1,4 +1,5 @@
 import {beforeEach,it,expect,vi} from 'vitest';
+import {shanghaiShipmentInstant} from '../../apps/miniprogram/services/shipment-time';
 const calls=vi.hoisted(()=>({authority:vi.fn(),order:vi.fn(),shipment:vi.fn(),dispatch:vi.fn(),reconcile:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/authority',()=>({requireCapability:calls.authority}));
 vi.mock('../../apps/miniprogram/services/orders',()=>({managementOrder:calls.order,managementShipment:calls.shipment,dispatchShipment:calls.dispatch,reconcileShipment:calls.reconcile,clientOperationKey:()=> 'synthetic-shipment-key'}));
@@ -23,9 +24,18 @@ it('keeps fulfillment unavailable for read-only operators and makes no shipment 
 it('uses the existing atomic dispatch endpoint once under repeated clicks',async()=>{
  const page=mount();await page.onShow();page.data.form={...form};let finish!:(x:unknown)=>void;calls.dispatch.mockImplementation(()=>new Promise(r=>{finish=r;}));
  const first=page.submitShipment();await Promise.resolve();const second=page.submitShipment();await second;
- expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(calls.dispatch.mock.calls[0]).toEqual([fixture.id,expect.objectContaining({expectedOrderVersion:4,trackingNumber:form.trackingNumber}),'synthetic-shipment-key']);
+ expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(calls.dispatch.mock.calls[0]).toEqual([fixture.id,expect.objectContaining({expectedOrderVersion:4,trackingNumber:form.trackingNumber,shippedAt:'2026-09-22T01:00:00.000Z'}),'synthetic-shipment-key']);
+ expect((wx.showModal as any).mock.calls[0][0].content).toContain('北京时间 2026-09-22 09:00');
  calls.shipment.mockResolvedValue({id:'shipment',orderId:fixture.id,logisticsState:'shipped',wechatSyncState:'prepared'});finish({id:'shipment'});await first;
  expect(page.data.shipment.id).toBe('shipment');expect(page.data.syncLabel).toBe('等待微信同步');expect(page.data.form.trackingNumber).toBe('');
+});
+it('interprets shipment time in Shanghai across UTC days and rejects invalid dates',()=>{
+ expect(shanghaiShipmentInstant('2026-09-22','00:30')).toBe('2026-09-21T16:30:00.000Z');
+ expect(shanghaiShipmentInstant('2026-03-08','02:30')).toBe('2026-03-07T18:30:00.000Z');
+ expect(shanghaiShipmentInstant('2024-02-29','23:59')).toBe('2024-02-29T15:59:00.000Z');
+ expect(shanghaiShipmentInstant('2026-02-29','09:00')).toBeNull();
+ expect(shanghaiShipmentInstant('2026-13-01','09:00')).toBeNull();
+ expect(shanghaiShipmentInstant('2026-09-22','24:00')).toBeNull();
 });
 it('recovers an ambiguous submit through the authoritative shipment instead of dispatching again',async()=>{
  const page=mount();await page.onShow();page.data.form={...form};calls.dispatch.mockRejectedValue({status:504});

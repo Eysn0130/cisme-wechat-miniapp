@@ -2,6 +2,7 @@ import { requireCapability } from "../../services/authority";
 import { centsToYuan } from "../../services/commerce";
 import { managementOrder, managementShipment, dispatchShipment, reconcileShipment, clientOperationKey, type CommerceOrder, type ManagementOrderAddress, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
+import { shanghaiShipmentInstant } from "../../services/shipment-time";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"支付已核验"};
 const syncLabels:Record<string,string>={prepared:"等待微信同步",dispatching:"正在提交微信",verifying:"微信结果核对中",synced:"微信已确认",manual_review:"微信同步待人工核对"};
 const deliveryLabels:Record<string,string>={awaiting_dispatch:"待发货",not_ready:"尚不满足发货条件",shipped:"已交寄",delivered:"已签收",exception:"物流异常"};
@@ -17,7 +18,7 @@ Page({
  onHide(){this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,form:emptyForm(),dispatchBusy:false,dispatchMessage:"",shipmentError:""});},
  onUnload(){this.onHide();},
  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
- normalize(order:CommerceOrder<ManagementOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district}`:""};},
+ normalize(order:CommerceOrder<ManagementOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false,timeZone:"Asia/Shanghai"}),lines:order.lines.map(line=>({...line,totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district}`:""};},
  async load(){
   if(this.data.dispatchBusy)return;
   const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
@@ -68,13 +69,13 @@ Page({
   if(this.lastReadToken!==getApp<IAppOption>().globalData.sessionToken){await this.load();return;}
   if(this.data.dispatchBusy||!this.data.pageAlive||!this.data.canDispatch||!this.data.order||this.data.order.status!=="paid"||this.data.order.transactionSourceKind!=="verified_commerce"||this.data.shipment?.logisticsState!=="awaiting_dispatch")return;
   const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,form=this.data.form;
-  const localDate=new Date(`${form.date}T${form.time}:00`);
-  if(!/^[A-Z0-9_]{2,32}$/.test(form.carrierCode)||!form.carrierName||form.carrierName.length>80||! /^[A-Za-z0-9-]{6,64}$/.test(form.trackingNumber)||! /^[A-Za-z0-9._:-]{8,120}$/.test(form.evidenceReference)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.time)||!Number.isFinite(localDate.getTime())){this.setData({dispatchMessage:"请完整填写快递公司、公司编码、真实运单、交寄时间和凭证编号。"});return;}
+  const shippedAt=shanghaiShipmentInstant(form.date,form.time);
+  if(!/^[A-Z0-9_]{2,32}$/.test(form.carrierCode)||!form.carrierName||form.carrierName.length>80||! /^[A-Za-z0-9-]{6,64}$/.test(form.trackingNumber)||! /^[A-Za-z0-9._:-]{8,120}$/.test(form.evidenceReference)||!shippedAt){this.setData({dispatchMessage:"请完整填写快递公司、公司编码、真实运单、北京时间的实际交寄时间和凭证编号。"});return;}
   this.setData({dispatchBusy:true,dispatchMessage:""});
   try{
-   const decision=await new Promise<WechatMiniprogram.ShowModalSuccessCallbackResult>((resolve,reject)=>wx.showModal({title:"确认已交付快递",content:`订单 ${this.data.order.orderNumber}\n${form.carrierName} · ${form.trackingNumber}\n仅登记已实际交寄的整单包裹。微信同步状态会单独显示。`,confirmText:"登记发货",success:resolve,fail:reject}));
+   const decision=await new Promise<WechatMiniprogram.ShowModalSuccessCallbackResult>((resolve,reject)=>wx.showModal({title:"确认已交付快递",content:`订单 ${this.data.order.orderNumber}\n${form.carrierName} · ${form.trackingNumber}\n实际交寄：北京时间 ${form.date} ${form.time}\n仅登记已实际交寄的整单包裹。微信同步状态会单独显示。`,confirmText:"登记发货",success:resolve,fail:reject}));
    if(!this.current(epoch,token)||!decision.confirm)return;
-   this.pendingDispatch??={key:clientOperationKey("shipment"),input:{carrierCode:form.carrierCode,carrierName:form.carrierName,trackingNumber:form.trackingNumber,evidenceReference:form.evidenceReference,shippedAt:localDate.toISOString(),expectedOrderVersion:this.data.order.version}};
+   this.pendingDispatch??={key:clientOperationKey("shipment"),input:{carrierCode:form.carrierCode,carrierName:form.carrierName,trackingNumber:form.trackingNumber,evidenceReference:form.evidenceReference,shippedAt,expectedOrderVersion:this.data.order.version}};
    await dispatchShipment(this.data.id,this.pendingDispatch.input,this.pendingDispatch.key);
    if(!this.current(epoch,token))return;
    this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"交寄事实已保存；微信同步和签收状态请分别核对。"});
