@@ -614,7 +614,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/refund-requests",async request=>{
     // Formal refunds must be linked to the reviewed aftersale case. The old
     // direct route remains only for isolated protocol tests and old reads.
-    if(formalRecoveryProfile)throw new DomainError('AFTERSALE_CASE_REQUIRED','请从本单售后入口提交申请并核对退货流程',409);
+    if(formalRecoveryProfile)throw new DomainError('AFTERSALE_CASE_REQUIRED','请重新进入小程序，从订单详情申请售后；若当前版本没有该入口，请联系在线客服。本次未提交退款申请',409);
     return refundRequired().request(request.memberId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>);
   });

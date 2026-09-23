@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "routeCount": 248,
-  "sourceSha256": "9f4e706e9735575d6afb85458a839d2bc7327d91f1861732394131b7fcae5731",
+  "sourceSha256": "07e694d9a817a07eb6a72c55c61beba4a2668f84edded3d4690c4ff3d228ebf0",
   "releaseReady": false,
   "scope": "Exact method denominator. Candidate references are discovery aids, not per-axis security proof. Service source review and executed semantic tests must supply acceptance.",
   "nonRouteSurfaces": [
@@ -2058,6 +2058,7 @@
         "tests/integration/native-privacy-management.test.ts",
         "tests/integration/payment-http-simulation.test.ts",
         "tests/integration/phone-route-authorization.test.ts",
+        "tests/integration/platform-cursor-precision.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
         "tests/integration/privacy-execution-authority.test.ts",
         "tests/integration/privacy-rights.test.ts",
@@ -5174,6 +5175,7 @@
         "tests/integration/native-privacy-management.test.ts",
         "tests/integration/payment-http-simulation.test.ts",
         "tests/integration/phone-route-authorization.test.ts",
+        "tests/integration/platform-cursor-precision.test.ts",
         "tests/integration/privacy-entry-authority.test.ts",
         "tests/integration/privacy-rights.test.ts",
         "tests/integration/rate-limits.test.ts",
@@ -5617,6 +5619,7 @@
         "apps/miniprogram/pages/records/index.ts"
       ],
       "testReferenceCandidates": [
+        "tests/integration/platform-cursor-precision.test.ts",
         "tests/integration/vertical-slice.test.ts"
       ],
       "commonControls": [
@@ -6733,7 +6736,7 @@
       "path": "/v1/me/orders/{orderId}/refund-requests",
       "family": "commerce",
       "handler": "services/api/src/server.ts:614",
-      "handlerSliceSha256": "5c854f2585daeb2d4614f627cf6d67cc1d52e007c040681c949d1c51fedcfed7",
+      "handlerSliceSha256": "e925a2a2642350519214a18a5904ebaeb54d0f6c8d6b765818238a9b0afa44fe",
       "serviceCalls": [],
       "nativeReferenceCandidates": [
         "apps/miniprogram/pages/aftersale/index.ts",
@@ -7007,6 +7010,7 @@
         "apps/miniprogram/pages/points/index.ts"
       ],
       "testReferenceCandidates": [
+        "tests/integration/platform-cursor-precision.test.ts",
         "tests/integration/vertical-slice.test.ts"
       ],
       "commonControls": [
