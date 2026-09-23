@@ -267,7 +267,7 @@ it("runs production-shaped membership and referral only with explicit term and r
   const membership=await formal.setMembership(operator,'wechat:formal-operator',sponsor,
     {state:'active',expiresAt:expiry,expectedVersion:0,reason:'正式资格手工授予测试'});
   expect(membership).toMatchObject({state:'active',version:1,policyKind:'operator_explicit'});
-  expect(await formal.myStatus(sponsor)).toMatchObject({eligible:true,membershipState:'active',referralCode:null});
+  expect(await formal.myStatus(sponsor)).toMatchObject({eligible:true,referralAvailable:false,membershipState:'active',referralCode:null});
   await expect(formal.ensureCode(sponsor)).rejects.toMatchObject({code:'REFERRAL_POLICY_UNAVAILABLE'});
   const proposal=await formal.proposeRate(operator,'wechat:formal-operator','formal-rate-proposal-001',
     {basisPoints:1750,reason:'正式全局费率提议隔离测试'});
@@ -276,12 +276,14 @@ it("runs production-shaped membership and referral only with explicit term and r
     {decision:'active',expectedVersion:1,reason:'独立复核正式费率提议'});
   expect(decision).toMatchObject({state:'active',basis_points:1750});
   // A future effective date does not silently open today's referral benefit.
+  expect(await formal.myStatus(sponsor)).toMatchObject({referralAvailable:false});
   await expect(formal.ensureCode(sponsor)).rejects.toMatchObject({code:'REFERRAL_POLICY_UNAVAILABLE'});
   await pool.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,
     proposed_effective_at,rule_version,created_by,approved_by,reason,decided_at)
     VALUES(NULL,'override',2500,'active',now()-interval '1 day',now()-interval '1 day',
       'commercial-rate-v2','fixture-formal-operator','fixture-formal-reviewer','已生效隔离政策夹具',now()-interval '1 day')`);
   expect(await formal.currentGlobalRate(operator)).toMatchObject({basisPoints:2500,policyKind:'approved_rule'});
+  expect(await formal.myStatus(sponsor)).toMatchObject({referralAvailable:true});
   const code=(await formal.ensureCode(sponsor)).code;
   expect((await formal.previewReferral(buyer,code)).relationState).toBe('unbound');
   expect(await formal.confirmReferral(buyer,'wechat:formal-buyer',code,'formal-referral-0001'))

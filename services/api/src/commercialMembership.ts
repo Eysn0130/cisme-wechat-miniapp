@@ -53,18 +53,24 @@ export class CommercialMembershipService {
 
   /** Production referral invitations require a reviewed, effective rate.
    * Migration seed rates never qualify; no historical snapshot is changed. */
-  private async requireEffectiveReferralRate(client:DbClient|pg.Pool,sponsorId:string){
-    if(this.engineeringRules)return;
+  private async effectiveReferralRate(client:DbClient|pg.Pool,sponsorId:string):Promise<number|null>{
     const result=await client.query<{basis_points:number|null}>(`SELECT CASE WHEN member_rate.action='override'
         THEN member_rate.basis_points ELSE global_rate.basis_points END AS basis_points
       FROM (SELECT 1) seed
       LEFT JOIN LATERAL (SELECT action,basis_points FROM commission_rate_rule
-        WHERE member_id=$1 AND state='active' AND effective_at<=clock_timestamp() AND created_by<>'migration'
+        WHERE member_id=$1 AND state='active' AND effective_at<=clock_timestamp()
+          AND ($2::boolean OR created_by<>'migration')
         ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) member_rate ON true
       LEFT JOIN LATERAL (SELECT basis_points FROM commission_rate_rule
-        WHERE member_id IS NULL AND state='active' AND effective_at<=clock_timestamp() AND created_by<>'migration'
-        ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true`,[sponsorId]);
-    if(result.rows[0]?.basis_points==null)
+        WHERE member_id IS NULL AND state='active' AND effective_at<=clock_timestamp()
+          AND ($2::boolean OR created_by<>'migration')
+        ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true`,[sponsorId,this.engineeringRules]);
+    return result.rows[0]?.basis_points??null;
+  }
+
+  private async requireEffectiveReferralRate(client:DbClient|pg.Pool,sponsorId:string){
+    if(this.engineeringRules)return;
+    if((await this.effectiveReferralRate(client,sponsorId))===null)
       throw new DomainError('REFERRAL_POLICY_UNAVAILABLE','推荐权益尚未开放，请稍后查看',409);
   }
 
@@ -91,17 +97,19 @@ export class CommercialMembershipService {
 
   async myStatus(memberId: string | undefined) {
     const owner = member(memberId);
-    const [status,balance] = await Promise.all([this.pool.query(`SELECT m.state,m.effective_at,m.expires_at,m.version,c.code,c.state AS code_state,a.status AS account_status,
+    const [status,balance,referralRate] = await Promise.all([this.pool.query(`SELECT m.state,m.effective_at,m.expires_at,m.version,c.code,c.state AS code_state,a.status AS account_status,
       (a.status='active' AND m.state='active' AND m.effective_at<=now() AND (m.expires_at IS NULL OR m.expires_at>now())) AS eligible_now,
       (SELECT count(*)::int FROM commercial_referral_relation r WHERE r.referrer_member_id=$1) AS direct_referral_count,
       (SELECT count(*)::int FROM commission_order_snapshot s JOIN commerce_order o ON o.id=s.order_id
         WHERE s.referrer_member_id=$1 AND s.source_kind='verified_commerce' AND o.status='paid'
           AND EXISTS(SELECT 1 FROM commission_payment_inbox p WHERE p.order_id=o.id AND p.state='applied')) AS verified_order_count
       FROM commercial_membership m JOIN member a ON a.id=m.member_id LEFT JOIN commercial_referral_code c ON c.member_id=m.member_id WHERE m.member_id=$1`, [owner]),
-      this.balanceFor(owner)]);
+      this.balanceFor(owner),this.effectiveReferralRate(this.pool,owner)]);
     const row = status.rows[0];
     const eligible = row?.eligible_now===true;
-    return { version: 1, eligible, membershipState: row?.state ?? "none", effectiveAt: row?.effective_at ?? null,
+    return { version: 1, eligible, referralAvailable:eligible &&
+      (this.engineeringRules || referralRate!==null) && row?.code_state!=="disabled",
+      membershipState: row?.state ?? "none", effectiveAt: row?.effective_at ?? null,
       expiresAt: row?.expires_at ?? null, referralCode: eligible && row.code_state === "active" ? row.code : null,
       referralCodeDisabled:row?.code_state === "disabled",
       directReferralCount: Number(row?.direct_referral_count ?? 0), verifiedOrderCount: Number(row?.verified_order_count ?? 0),
