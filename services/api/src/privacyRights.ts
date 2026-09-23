@@ -116,6 +116,8 @@ export class PrivacyRights {
     if(!input || typeof input.kind!=='string' || !kinds.has(input.kind) || typeof input.message!=='string' || !input.message.trim() || Array.from(input.message).length>2000) {
       throw new DomainError('PRIVACY_REQUEST_INVALID','请选择请求类型并填写不超过 2000 字的说明',422);
     }
+    if(closedRights&&input.kind==='close_account')
+      throw new DomainError('PRIVACY_ACCOUNT_ALREADY_CLOSED','账号已注销，可继续申请处理历史资料',409);
     const scopeCode=input.scopeCode??null;
     if(scopeCode!==null && (this.environment!=='test'||input.kind!=='delete'||scopeCode!=='member_profile_handle_v1'))
       throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','当前环境或请求类型不支持此精确数据范围',422);

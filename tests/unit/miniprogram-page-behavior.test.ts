@@ -1281,6 +1281,23 @@ it('loads privacy operator, version and contact from the shared public legal sou
  await page.loadLegalIdentity();expect(page.data.legalIdentity).toBeNull();
 });
 
+it('offers historical rights after closure without another account-closure action',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'',privacyRightsToken:'closed-rights-token'}};
+ (globalThis as any).getApp=()=>appState;
+ requestMock.mockImplementation(async ({path,method}:{path:string;method?:string})=>
+  path==='/v1/legal'?{documents:[]}:
+  method==='POST'?{id:'historic-rights'}:{items:[],nextCursor:null});
+ const page=mountedPage(capturedPage!,{alive:true});
+ page.onShow();
+ expect(page.data.closedRights).toBe(true);
+ expect(page.data.labels).not.toContain('注销会员账号');
+ page.setData({selected:3,message:'撤回仍在使用的可选同意'});
+ await page.submit();
+ expect(requestMock).toHaveBeenCalledWith({path:'/v1/me/privacy-requests',method:'POST',
+  data:{kind:'withdraw',message:'撤回仍在使用的可选同意'}});
+});
+
 it('routes privacy contact to the existing support conversation, including after login',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  const appState={globalData:{sessionToken:''}};

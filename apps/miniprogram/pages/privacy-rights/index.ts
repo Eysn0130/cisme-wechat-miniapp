@@ -3,6 +3,8 @@ import { currentChromeStyle } from '../../services/layout';
 import { clientOperationKey } from '../../services/orders';
 const kinds=['access','correct','delete','close_account','withdraw','other'];
 const labels=['查阅或复制个人信息','更正个人信息','删除个人信息','注销会员账号','撤回个人信息处理同意','其他隐私咨询'];
+const closedKinds=kinds.filter(kind=>kind!=='close_account');
+const closedLabels=labels.filter((_,index)=>kinds[index]!=='close_account');
 const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'待执行',executing:'正在执行',completed:'已完成',partially_completed:'部分完成',rejected:'未批准',canceled:'已取消',responded:'已回复，待处理'};
 const executionStatuses:Record<string,string>={planned:'已建立计划，尚未执行',approved:'已复核待执行',running:'正在执行',succeeded:'执行成功',partially_succeeded:'部分执行成功',failed:'执行失败待处理',expired:'导出已过期',canceled:'计划已取消'};
 const deliveryStatuses:Record<string,string>={available:'会员资料副本可查看',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
@@ -19,7 +21,8 @@ function displayRecord(r:any,closedRights=false){
 }
 Page({
  data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
- onShow(){this.data.alive=true;this.setData({authenticated:Boolean(privacyToken()),closedRights:Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken),supportOpening:false});void this.loadLegalIdentity();void this.load();},
+ onShow(){this.data.alive=true;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
+  this.setData({authenticated:Boolean(privacyToken()),closedRights,labels:closedRights?closedLabels:labels,selected:0,supportOpening:false});void this.loadLegalIdentity();void this.load();},
  onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loadingMore:false,moreError:'',replyFor:'',replyDraft:'',replyKey:'',replyBusy:false});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
@@ -67,7 +70,7 @@ Page({
   if(!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
   const token=privacyToken();
   this.setData({busy:true,error:'',notice:''});
-  try{await request({path:'/v1/me/privacy-requests',method:'POST',data:{kind:kinds[this.data.selected],message:this.data.message}});if(this.data.alive && token===privacyToken()){this.setData({message:'',notice:'请求已受理，进度可在下方查看。'});await this.load();}}
+  try{await request({path:'/v1/me/privacy-requests',method:'POST',data:{kind:(this.data.closedRights?closedKinds:kinds)[this.data.selected],message:this.data.message}});if(this.data.alive && token===privacyToken()){this.setData({message:'',notice:'请求已受理，进度可在下方查看。'});await this.load();}}
   catch(e){if(this.data.alive && token===privacyToken())this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新受理记录后再试。'});}
   finally{if(this.data.alive && token===privacyToken())this.setData({busy:false});}
  },

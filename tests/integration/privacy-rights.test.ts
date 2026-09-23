@@ -380,6 +380,8 @@ it('lets a deleted WeChat member continue only their existing rights channel aft
  const rightsToken=exchanged.json().sessionToken as string;
  const headers={authorization:`Bearer ${rightsToken}`};
  expect((await app.inject({url:'/v1/me/privacy-requests',headers})).statusCode).toBe(200);
+ expect((await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
+   payload:{kind:'close_account',message:'再次注销'}})).statusCode).toBe(409);
  const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
    payload:{kind:'other',message:'请继续核对历史隐私事项'}});
  expect(created.statusCode,created.body).toBe(200);
