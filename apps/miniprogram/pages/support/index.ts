@@ -4,6 +4,7 @@ import { downloadPrivateMedia, requireMemberAccess, request, retainMemberSnapsho
 import { centsToYuan } from "../../services/commerce";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
+import { stageSupportDraft, takeSupportDraft } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
   mergeAcknowledgement,
@@ -86,6 +87,10 @@ Page({
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
     if (!requireMemberAccess("/pages/support/index")) { this.data.visible = false; return; }
+    if(this.linkedOrderId&&!this.data.input&&!this.data.sendAttempt){
+      const draft=takeSupportDraft(sessionToken(),this.linkedOrderId);
+      if(draft)this.setData({input:draft,composerSendEnabled:memberComposerCanSend(draft,this.data.selectedImage,this.data.selectedOrder)});
+    }
     void this.load();
     if(this.linkedOrderId)void this.loadLinkedOrder();
     wx.nextTick(() => this.measureComposer());
@@ -105,7 +110,9 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0 });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
-  onUnload() { cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
+  onUnload() { if(this.linkedOrderId&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
+      stageSupportDraft(sessionToken(),this.linkedOrderId,this.data.input);
+    cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
   copyReturnInstruction(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??''),card=this.data.messages.find(item=>item.id===id)?.returnInstruction;
     if(!card||!this.data.visible)return;
