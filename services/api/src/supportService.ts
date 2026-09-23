@@ -553,6 +553,12 @@ export class SupportService {
     return transaction(this.pool,async client=>{const row=await this.findById(client,id,true);if(row.status==="resolved")return conversation(row);
       if(row.version!==expected)throw new DomainError("VERSION_CONFLICT","Conversation changed; reload before resolving",409);
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Only the assigned operator can resolve",409);
+      const pendingAftersale=(await client.query(`SELECT c.id FROM commerce_aftersale_case c
+        LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
+        WHERE c.support_conversation_id=$1 AND (c.state IN
+          ('requested','need_info','awaiting_instruction','return_received','quality_checked','refund_exception_approved')
+          OR (c.state='refund_pending' AND COALESCE(i.state,'')<>'succeeded')) LIMIT 1`,[id])).rows[0];
+      if(pendingAftersale)throw new DomainError('AFTERSALE_CASE_ACTIVE','本会话有待处理售后，请先处理案件后再结束会话',409);
       const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET status='resolved',current_handler_principal_id=NULL,resolved_at=clock_timestamp(),version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),online_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='operator'", [id]);
       await this.audit(client,principal,"support.conversation.resolve",id,conversation(row),conversation(updated),traceId);

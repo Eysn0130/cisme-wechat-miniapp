@@ -1719,6 +1719,7 @@ it('adopts an existing unlinked case in the original support conversation withou
   const order=await aftersalePaidOrder('legacy-chat');
   await aftersaleGrant(operator,'commerce.aftersale.review');
   await aftersaleGrant(operator,'support.read');
+  await aftersaleGrant(operator,'support.reply');
   const lines=(await pool.query('SELECT id,product_name,sku_label,quantity,line_total_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY id',[order.id])).rows;
   const originalAt='2026-09-20T12:00:00.000Z';
   const legacy=(await pool.query<{id:string}>(`INSERT INTO commerce_aftersale_case
@@ -1755,6 +1756,13 @@ it('requires the live assigned operator for actions from the existing support ch
   expect((await aftersalePost(operator,path,command,'chat-assignment-before')).statusCode).toBe(403);
   await pool.query(`UPDATE support_conversation SET status='human_active',current_handler_principal_id=$2,
     version=version+1,updated_at=clock_timestamp() WHERE id=$1`,[claim.supportConversationId,operator.principalId]);
+  const chatVersion=(await pool.query<{version:number}>('SELECT version FROM support_conversation WHERE id=$1',
+    [claim.supportConversationId])).rows[0]!.version;
+  const prematureResolve=await aftersalePost(operator,
+    `/v1/management/support/conversations/${claim.supportConversationId}/resolve`,
+    {expectedVersion:chatVersion},'chat-early-resolve');
+  expect(prematureResolve.statusCode).toBe(409);
+  expect(prematureResolve.json().code).toBe('AFTERSALE_CASE_ACTIVE');
   const accepted=await aftersalePost(operator,path,command,'chat-assignment-accepted');
   expect(accepted.statusCode,accepted.body).toBe(200);
   expect(accepted.json().state).toBe('awaiting_instruction');
