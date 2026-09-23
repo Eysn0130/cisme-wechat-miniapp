@@ -16,43 +16,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
-      run:
-        shell: bash
+      run: {shell: bash}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with: {fetch-depth: 0}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: {node-version: '24.18.0', cache: npm}
-      - name: Verify exact original files and apply scoped source transformations
+      - name: Verify preimages, apply scoped repairs, and bind honest evidence
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/cisme-repair-evidence"
           python3 - <<'PY'
-          import hashlib
+          import hashlib,json,os,runpy
           from pathlib import Path
-          expected={
-           'apps/miniprogram/pages/order-detail/index.ts':'022f4c257c70d96d70983fc26d694526378e49d7b1ef8068ead7f67d9d8c1cbf',
-           'apps/miniprogram/pages/order-detail/index.wxml':'6513b7e2812880fcb5a6de3dfedbc68a37fbaa08d025fa9fb3fce0756b8c2d95',
-           'apps/miniprogram/pages/order-detail/index.wxss':'0a566abba117759a028cea4c8401f88de27b4d9f00d880cc139aa006072d94b0',
-           'apps/miniprogram/services/commerce-runtime.ts':'8fa73255458a2b79ef6d3a66141989581bc9d051b6fe5099a19db6c222be46a3'}
-          for path,digest in expected.items():
-           assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==digest, path
-          for path in ['tests/unit/native-order-support-sheet.test.ts','tests/unit/native-runtime-projection-contract.test.ts']:
-           assert not Path(path).exists(),path
-          PY
-          python3 .github/cisme-review-apply.py
-          python3 - <<'PY'
-          import hashlib,json,os
-          from pathlib import Path
-          expected={
-           'apps/miniprogram/pages/order-detail/index.ts':'7eb137de6b2674d46a9997dd1e9bbe4238b5c71238bf8382f30e809a4022057e',
-           'apps/miniprogram/pages/order-detail/index.wxml':'6d186fc88e53c23ee7b982b328b0c2a47fa1485852660efd0a670c21f7ba7889',
-           'apps/miniprogram/pages/order-detail/index.wxss':'96230080bec28b9df60b6922ac28f750a90abe4271e9fcb66c8a8d3f50f0523b',
-           'apps/miniprogram/services/commerce-runtime.ts':'4402ffbb86b1eab4884c633c1be42992e76057d485e805649d60d9871e83ee6a',
-           'tests/unit/native-order-support-sheet.test.ts':'bf504ccc65d35553781b6b154f67beeef73460d7a9a593a9493336ba01b81094',
-           'tests/unit/native-runtime-projection-contract.test.ts':'60b487bd44340ea282ded81c2338bdc592396e0e70537ac0655a4ff65c7d24bf'}
-          for path,digest in expected.items():
-           assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==digest,path
+          bounds=json.loads(Path('.github/cisme-review-materials/bounds.json').read_text())
+          def verify(section):
+           for path,digest in bounds[section].items():
+            assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==digest,path
+          verify('before')
+          for path in set(bounds['after'])-set(bounds['before']):assert not Path(path).exists(),path
+          runpy.run_path('.github/cisme-review-apply.py')
+          runpy.run_path('.github/cisme-review-materials/compat.py')
+          verify('after')
           manifest=Path('docs/evidence/visual/current-source-acceptance.json')
           original=manifest.read_bytes();data=json.loads(original)
           assert data['packageSourceSha256']=='96bcfbef0b01811aa7474813bc880d9cda8f0220f3c1324b03dfe29e1461ef1d'
@@ -60,12 +45,14 @@ jobs:
           archive=manifest.with_name('source-acceptance-96bcfbef-before-sheet-repair.json')
           assert not archive.exists();archive.write_bytes(original)
           root=Path('apps/miniprogram');digest=hashlib.sha256()
-          for path in sorted(root.rglob('*')):
+          # Sort complete POSIX paths, matching JavaScript Array.sort in the existing package inspector.
+          for path in sorted(root.rglob('*'),key=str):
            if path.is_file() and not str(path).endswith('project.private.config.json'):
             digest.update(str(path.relative_to(root)).encode());digest.update(b'\0');digest.update(path.read_bytes())
+          assert digest.hexdigest()==bounds['packageSourceSha256']
           data['packageSourceSha256']=digest.hexdigest()
           manifest.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
-          Path(os.environ['RUNNER_TEMP'],'cisme-repair-evidence','source-hashes.json').write_text(json.dumps({'files':expected,'packageSourceSha256':digest.hexdigest(),'nativeDeviceValidated':False},indent=2)+'\n')
+          Path(os.environ['RUNNER_TEMP'],'cisme-repair-evidence','source-hashes.json').write_text(json.dumps({'files':bounds['after'],'packageSourceSha256':digest.hexdigest(),'nativeDeviceValidated':False},indent=2)+'\n')
           PY
           git diff --check
       - name: Install exact locked dependencies
@@ -80,14 +67,14 @@ jobs:
           npm run miniprogram:package-gate 2>&1 | tee "$RUNNER_TEMP/cisme-repair-evidence/package.log"
           npm run miniprogram:route-audit 2>&1 | tee "$RUNNER_TEMP/cisme-repair-evidence/routes.log"
           npm run design:qa:status 2>&1 | tee "$RUNNER_TEMP/cisme-repair-evidence/design-status.log"
-      - name: Commit only verified source changes and fast-forward original branch
+      - name: Commit only verified changes and fast-forward original branch
         run: |
           set -euo pipefail
           branch='codex/fulfillment-lifecycle-20260922'
           test "$(git ls-remote origin "refs/heads/$branch" | cut -f1)" = "$GITHUB_SHA"
-          git add apps/miniprogram/pages/order-detail/index.ts apps/miniprogram/pages/order-detail/index.wxml apps/miniprogram/pages/order-detail/index.wxss apps/miniprogram/services/commerce-runtime.ts tests/unit/native-order-support-sheet.test.ts tests/unit/native-runtime-projection-contract.test.ts docs/evidence/visual/current-source-acceptance.json docs/evidence/visual/source-acceptance-96bcfbef-before-sheet-repair.json
+          git add apps/miniprogram/pages/order-detail/index.ts apps/miniprogram/pages/order-detail/index.wxml apps/miniprogram/pages/order-detail/index.wxss apps/miniprogram/services/commerce-runtime.ts tests/unit/native-order-support-sheet.test.ts tests/unit/native-runtime-projection-contract.test.ts tests/unit/native-boundaries.test.ts docs/evidence/visual/current-source-acceptance.json docs/evidence/visual/source-acceptance-96bcfbef-before-sheet-repair.json
           git diff --cached --check
-          test "$(git diff --cached --name-only | wc -l)" -eq 8
+          test "$(git diff --cached --name-only | wc -l)" -eq 9
           git -c user.name='CISME source review' -c user.email='103180203+Eysn0130@users.noreply.github.com' commit -m 'fix(native): preserve aftersale sheet continuity and simplify customer actions'
           git push origin "HEAD:refs/heads/$branch"
           git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/cisme-repair-evidence/result-identity.txt"
