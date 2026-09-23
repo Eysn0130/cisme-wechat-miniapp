@@ -184,9 +184,11 @@ export class CommercialMembershipService {
       JOIN member sponsor ON sponsor.id=r.referrer_member_id
       LEFT JOIN LATERAL (SELECT id,action,basis_points FROM commission_rate_rule
         WHERE state='active' AND effective_at<=$5 AND member_id=r.referrer_member_id
+          AND ($6::boolean OR created_by<>'migration')
         ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) member_rate ON true
       LEFT JOIN LATERAL (SELECT id,basis_points FROM commission_rate_rule
         WHERE state='active' AND effective_at<=$5 AND member_id IS NULL
+          AND ($6::boolean OR created_by<>'migration')
         ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true
       JOIN LATERAL (SELECT CASE WHEN member_rate.action='override' THEN member_rate.id ELSE global_rate.id END AS id,
         CASE WHEN member_rate.action='override' THEN member_rate.basis_points ELSE global_rate.basis_points END AS basis_points) rate
@@ -199,7 +201,8 @@ export class CommercialMembershipService {
         AND m.state='active' AND m.effective_at<=$5 AND (m.expires_at IS NULL OR m.expires_at>$5)
         AND c.state='active' AND sponsor.status='active'
       ON CONFLICT(order_id) DO NOTHING RETURNING order_id,basis_points,source_kind`,
-      [orderId,buyerId,cashMerchandiseCents,sourceKind,effectiveNow]);
+      [orderId,buyerId,cashMerchandiseCents,sourceKind,effectiveNow,
+        this.environment==='test'||this.environment==='development']);
     return result.rows[0] ?? null;
   }
 
@@ -269,10 +272,13 @@ export class CommercialMembershipService {
         FROM (SELECT 1) seed
         LEFT JOIN LATERAL (SELECT id,action,basis_points,effective_at FROM commission_rate_rule
           WHERE member_id=$1 AND state='active' AND effective_at<=now()
+            AND ($2::boolean OR created_by<>'migration')
           ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) member_rate ON true
         LEFT JOIN LATERAL (SELECT id,basis_points,effective_at FROM commission_rate_rule
           WHERE member_id IS NULL AND state='active' AND effective_at<=now()
-          ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true`, [id])
+            AND ($2::boolean OR created_by<>'migration')
+          ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true`,
+          [id,this.environment==='test'||this.environment==='development'])
         :Promise.resolve({rows:[]}),
       canReadCommission?this.balanceFor(id):Promise.resolve(null),
     ]);
@@ -445,13 +451,17 @@ export class CommercialMembershipService {
 
   async currentGlobalRate(actorId:string|undefined){
     if(!await this.authority.has(actorId,"commission.read"))await this.authority.require(actorId,"commission.rate.manage");
-    const row=(await this.pool.query(`SELECT id,basis_points,effective_at,now() AS server_time,
+    const row=(await this.pool.query(`SELECT rate.id,rate.basis_points,rate.effective_at,now() AS server_time,
       ${nextShanghaiMidnight} AS suggested_effective_at
-      FROM commission_rate_rule WHERE member_id IS NULL AND action='override' AND state='active' AND effective_at<=now()
-      ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1`)).rows[0];
+      FROM (SELECT 1) seed LEFT JOIN LATERAL (SELECT id,basis_points,effective_at
+        FROM commission_rate_rule WHERE member_id IS NULL AND action='override' AND state='active' AND effective_at<=now()
+          AND ($1::boolean OR created_by<>'migration')
+        ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) rate ON true`,
+      [this.environment==='test'||this.environment==='development'])).rows[0];
     return {basisPoints:row?.basis_points??null,effectiveAt:row?.effective_at??null,
       serverTime:row?.server_time??null,suggestedEffectiveAt:row?.suggested_effective_at??null,
-      policyKind:"engineering_fixture",paymentAvailable:false};
+      policyKind:this.environment==='test'||this.environment==='development'?"engineering_fixture":
+        row?.id?"approved_rule":"unconfigured",paymentAvailable:false};
   }
 
   async approveRate(actorId: string | undefined, principalId: string | undefined, ruleId: string,

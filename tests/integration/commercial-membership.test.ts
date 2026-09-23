@@ -80,6 +80,9 @@ it("separates ordinary accounts, commercial qualification, management scope and 
   await grant(manager,"commission.read");
   expect((await app.inject({method:"GET",url:"/v1/management/commission-rates/current",headers:auth(manager)})).json())
     .toMatchObject({basisPoints:2000,policyKind:"engineering_fixture",paymentAvailable:false});
+  const formalRead=new CommercialMembershipService(pool,new AuthorityService(pool,"test"),"production");
+  expect(await formalRead.currentGlobalRate(manager.memberId)).toMatchObject({basisPoints:null,effectiveAt:null});
+  expect((await formalRead.memberDetail(manager.memberId,a.memberId)).rate).toMatchObject({basisPoints:null,source:"none"});
   const broader=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
   expect(broader.scope).toEqual({referrals:true,orders:false,ownOrders:false});
   const direct=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}/sections/referrals`,headers:auth(manager)})).json();
