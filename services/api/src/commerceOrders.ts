@@ -127,6 +127,14 @@ export class CommerceOrderService {
     if (!this.options.enabled) throw new DomainError("COMMERCE_ORDER_FLOW_DISABLED", "待支付订单流程尚未在当前环境开放", 503);
   }
 
+  private requireFormalRefundableQuote(quote:QuoteRow):void {
+    if(!this.options.formalPayment)return;
+    if(quote.pricing_rule_version!=="launch-base-price-free-shipping-v1"||
+      money(quote.member_discount_cents)!==0||money(quote.shipping_cents)!==0||
+      money(quote.credit_tender_cents)!==0||money(quote.subtotal_cents)!==money(quote.total_cents))
+      throw new DomainError("COMMERCE_QUOTE_POLICY_CHANGED","结算规则已更新，请重新获取报价",409);
+  }
+
   private async catalogRow(client: DbClient, skuId: string, lockInventory: boolean, requireSellable = true): Promise<CatalogCheckoutRow> {
     const suffix = lockInventory ? " FOR UPDATE OF i" : " FOR SHARE OF p,s,pr,i";
     const result = await client.query<CatalogCheckoutRow>(`SELECT p.id product_id,p.code product_code,p.name product_name,p.image_path product_image,p.source_kind,
@@ -173,6 +181,7 @@ export class CommerceOrderService {
       const replay = await client.query<QuoteRow>("SELECT * FROM commerce_checkout_quote WHERE member_id=$1 AND idempotency_key=$2", [owner, idempotencyKey]);
       if (replay.rows[0]) {
         if (replay.rows[0].request_hash !== requestHash) throw new DomainError("IDEMPOTENCY_CONFLICT", "同一请求键不能用于不同结算内容", 409);
+        this.requireFormalRefundableQuote(replay.rows[0]);
         const item = await this.catalogRow(client, replay.rows[0].sku_id, false, false);
         return this.quoteView(replay.rows[0], item);
       }
@@ -292,6 +301,7 @@ export class CommerceOrderService {
         if (quote.status === "active") await client.query("UPDATE commerce_checkout_quote SET status='expired' WHERE id=$1", [quote.id]);
         throw new DomainError("QUOTE_EXPIRED", "结算报价已过期，请重新获取", 409);
       }
+      this.requireFormalRefundableQuote(quote);
       const item = await this.catalogRow(client, quote.sku_id, true);
       if (item.product_id !== quote.product_id || item.product_version !== quote.product_version || item.sku_version !== quote.sku_version ||
           item.price_version !== quote.price_version || item.amount_cents !== quote.unit_price_cents) {
