@@ -59,7 +59,7 @@ Page({
   mediaDownloads: [] as Array<() => void>,
   data: {
     chromeStyle: currentChromeStyle(), conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
-    olderCursor: null as number | null, presence: emptyPresence, statusLabel: "等待人工客服", statusTone: "waiting", input: "", sendAttempt: null as SendAttempt | null,
+    olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     pendingMessage: null as Message | null, loading: true, loadingOlder: false, sending: false, handoffBusy: false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
@@ -229,7 +229,7 @@ Page({
       void this.publishPresence(true, Boolean(this.data.input.trim()), true);
       this.startPolling();
     } catch {
-      if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, error: "客服会话暂时无法同步，请检查网络后重试。", errorAction: "sync" });
+      if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, error: "连接失败，请重试。", errorAction: "sync" });
     }
   },
   async poll() {

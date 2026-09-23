@@ -14,7 +14,7 @@
     <view wx:if="{{!loading && !messages.length && !pendingMessage}}" class="support-welcome">
       <image src="/assets/icons/chat-circle-plum.svg"/>
       <strong>你好，这里是 CISME 客服</strong>
-      <text>可以描述护理、账号或订单问题。AI 与人工身份会明确标示；没有在线心跳时不会显示绿色在线状态。</text>
+      <text>护理、账号或订单有问题？请在这里留言。</text>
     </view>
 
     <block wx:for="{{messages}}" wx:key="id">
@@ -65,7 +65,7 @@
       <view class="support-avatar support-avatar--human"><image src="/assets/icons/chat-circle-plum.svg"/></view>
       <view class="support-typing__body"><view class="support-typing__dots"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{presence.agentDisplayName}}正在输入…</text></view>
     </view>
-    <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重新同步</button><button wx:elif="{{errorAction === 'handoff'}}" bindtap="retryHandoff">重新提交</button></view>
+    <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重试</button><button wx:elif="{{errorAction === 'handoff'}}" bindtap="retryHandoff">重新提交</button></view>
       <view class="support-thread__end"></view>
     </view>
   </scroll-view>
