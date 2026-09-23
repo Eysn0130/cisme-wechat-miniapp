@@ -2,7 +2,7 @@ import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { downloadPrivateMedia, requireMemberAccess, request, retainMemberSnapshot, uploadAuthorized } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
-import { myOrders, type CommerceOrderSummary } from "../../services/orders";
+import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import {
   createSupportThreadState,
@@ -21,7 +21,9 @@ import {
 
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
-type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null; deliveryState: "server_accepted" | "read" };
+type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
+  returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
+  deliveryState: "server_accepted" | "read" };
 type Message = PresentedSupportMessage<RawMessage>;
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
@@ -39,6 +41,7 @@ function memberComposerCanSend(input: string, image: SelectedImage | null, order
 }
 
 Page({
+  linkedOrderId:"",
   readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
   pollInFlight: false,
@@ -62,7 +65,8 @@ Page({
     attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
     selectedImage: null as SelectedImage | null, uploadBusy: false
   },
-  onLoad() { this.data.pageAlive = true; },
+  onLoad(options:Record<string,string>) { this.data.pageAlive = true;
+    this.linkedOrderId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.orderId??'')?options.orderId:''; },
   onReady() { this.measureComposer(); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.measureComposer(); },
   onShow() {
@@ -83,6 +87,7 @@ Page({
     }
     if (!requireMemberAccess("/pages/support/index")) { this.data.visible = false; return; }
     void this.load();
+    if(this.linkedOrderId)void this.loadLinkedOrder();
     wx.nextTick(() => this.measureComposer());
   },
   onHide() {
@@ -101,6 +106,17 @@ Page({
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
   onUnload() { cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
+  copyReturnInstruction(event:WechatMiniprogram.TouchEvent){
+    const id=String(event.currentTarget.dataset.id??''),card=this.data.messages.find(item=>item.id===id)?.returnInstruction;
+    if(!card||!this.data.visible)return;
+    const text=`${card.recipientName} ${card.phone}\n${card.region} ${card.address}\n运费：${card.freightPayer==='merchant'?'商家承担':'用户承担'}${card.instructions?`\n${card.instructions}`:''}`;
+    wx.setClipboardData({data:text});
+  },
+  openAftersaleCase(event:WechatMiniprogram.TouchEvent){
+    const id=String(event.currentTarget.dataset.id??'');
+    if(!this.data.visible||!this.data.messages.some(item=>item.returnInstruction?.caseId===id))return;
+    wx.navigateTo({url:`/pages/aftersale/index?caseId=${id}`});
+  },
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
   abortDownloads() {
     const downloads = this.mediaDownloads ?? [];
@@ -112,6 +128,17 @@ Page({
     this.uploadAttempt = (this.uploadAttempt ?? 0) + 1;
     this.uploadAbort?.();
     this.uploadAbort = null;
+  },
+  async loadLinkedOrder(){
+    const epoch=this.lifecycleEpoch,token=sessionToken(),id=this.linkedOrderId,revision=this.inputRevision;
+    if(!id||this.data.selectedOrder)return;
+    try{const order=await myOrder(id,this);if(!this.owns(epoch,token)||order.id!==id||revision!==this.inputRevision||this.data.selectedOrder)return;
+      const selected:OrderChoice={id,orderNumberTail:order.orderNumber.slice(-4),status:order.status,
+        statusLabel:orderStatusLabels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
+        currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:order.lines[0]?.image??null,
+        itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
+      this.setData({selectedOrder:selected,composerSendEnabled:memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
+    }catch{if(this.owns(epoch,token))this.setData({error:'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
   threadState(): SupportThreadState<Message> { return { messages: this.data.messages, syncCursor: this.data.syncCursor, maxSeenSequence: this.data.maxSeenSequence, readCursor: this.data.readCursor }; },

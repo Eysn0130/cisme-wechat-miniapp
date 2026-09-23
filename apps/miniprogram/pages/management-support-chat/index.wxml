@@ -17,7 +17,15 @@
 
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="operator-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
-      <view wx:if="{{item.senderType === 'system'}}" id="operator-{{item.sequence}}" class="operator-system"><text>{{item.body}}</text></view>
+      <view wx:if="{{item.senderType === 'system'}}" id="operator-{{item.sequence}}" class="operator-system"><text>{{item.body}}</text>
+        <view wx:if="{{item.returnInstruction}}" class="return-card">
+          <strong>本案退货指引 · 第 {{item.returnInstruction.version}} 版</strong>
+          <text>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>
+          <text>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text>
+          <text>运费：{{item.returnInstruction.freightPayer==='merchant'?'商家承担':'用户承担'}}</text>
+          <text wx:if="{{item.returnInstruction.instructions}}">{{item.returnInstruction.instructions}}</text>
+        </view>
+      </view>
       <view wx:else id="operator-{{item.sequence}}" class="operator-message operator-message--{{item.senderType}} {{item.groupStart ? 'operator-message--group-start' : 'operator-message--grouped'}}">
         <view wx:if="{{item.senderType !== 'admin'}}" class="operator-avatar-slot">
           <view wx:if="{{item.groupStart}}" class="operator-avatar operator-avatar--{{item.avatarKind}}"><image src="{{item.senderType === 'ai' ? '/assets/icons/star-active.svg' : '/assets/icons/user-circle-plum.svg'}}"/></view>
@@ -63,6 +71,7 @@
   <button wx:if="{{newMessagesBelowCount > 0}}" class="operator-new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
 
   <view wx:if="{{!loading}}" class="operator-actions {{composerFocused ? 'operator-actions--focused' : ''}}">
+    <button wx:if="{{canManageAftersale}}" class="operator-aftersale-entry {{busy?'control--disabled':''}}" bindtap="openAftersales" disabled="{{busy}}">本会话售后</button>
     <button wx:if="{{conversation && conversation.status === 'waiting_human' && canAssign}}" class="operator-claim {{busy ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{busy}}">接管会话</button>
     <view wx:elif="{{conversation && conversation.status === 'human_active' && !assignedToMe}}" class="operator-owned">这次会话正由其他客服处理</view>
     <view wx:elif="{{conversation && conversation.status === 'resolved'}}" class="operator-owned">本次服务已结束，等待会员再次发起</view>
@@ -93,5 +102,29 @@
       <view class="context-row"><small>加入时间</small><text>{{memberContext.memberSince}}</text></view>
       <button class="context-done" bindtap="closeContext">完成</button>
     </view>
+  </view>
+  <view wx:if="{{aftersaleOpen && !loading}}" class="context-mask" catchtap="closeAftersales" catchtouchmove="stopPropagation">
+    <scroll-view class="context-sheet aftersale-sheet" scroll-y catchtap="stopPropagation">
+      <view class="context-handle"></view><strong class="context-title">本会话售后</strong>
+      <text class="context-note">申请时间由服务端记录。聊天说明不改变案件、收件或退款事实。</text>
+      <text wx:if="{{aftersaleError}}" class="aftersale-sheet__error" aria-live="polite">{{aftersaleError}}</text>
+      <text wx:if="{{!aftersaleCases.length}}" class="context-note">暂无关联售后申请。</text>
+      <view wx:for="{{aftersaleCases}}" wx:key="id" class="aftersale-sheet__case">
+        <text>案件 {{item.id}} · {{item.state==='requested'?'待处理':item.state==='awaiting_instruction'?'待发送退货指引':item.state==='awaiting_return'?'待用户寄回':item.state}}</text>
+        <button wx:if="{{assignedToMe && item.kind==='return_refund' && item.state==='requested' && !returnAttempt}}" class="{{busy?'control--disabled':''}}" data-id="{{item.id}}" bindtap="approveReturn" disabled="{{busy}}">确认需退货核对</button>
+        <button wx:if="{{assignedToMe && item.kind==='return_refund' && (item.state==='awaiting_instruction'||item.state==='awaiting_return')}}" class="{{busy||returnAttempt?'control--disabled':''}}" data-id="{{item.id}}" bindtap="selectReturnCase" disabled="{{busy||returnAttempt}}">{{item.state==='awaiting_return'?'发送新版本指引':'填写退货指引'}}</button>
+      </view>
+      <view wx:if="{{returnFormCaseId}}" class="aftersale-sheet__form">
+        <text>本案收件信息</text>
+        <input aria-label="收件人" placeholder="收件人" maxlength="80" value="{{returnForm.recipientName}}" data-field="recipientName" bindinput="editReturnField" disabled="{{busy||returnAttempt}}"/>
+        <input aria-label="收件电话" placeholder="收件电话" maxlength="20" value="{{returnForm.phone}}" data-field="phone" bindinput="editReturnField" disabled="{{busy||returnAttempt}}"/>
+        <input aria-label="地区" placeholder="省市区" maxlength="100" value="{{returnForm.region}}" data-field="region" bindinput="editReturnField" disabled="{{busy||returnAttempt}}"/>
+        <textarea aria-label="详细地址" placeholder="详细地址" maxlength="300" value="{{returnForm.address}}" data-field="address" bindinput="editReturnField" disabled="{{busy||returnAttempt}}"/>
+        <picker range="{{freightOptions}}" bindchange="chooseFreight" disabled="{{busy||returnAttempt}}"><view class="choice">运费：{{returnForm.freightPayer==='merchant'?'商家承担':returnForm.freightPayer==='member'?'用户承担':'请选择承担方'}}</view></picker>
+        <textarea aria-label="寄回说明" placeholder="必要的寄回说明（选填）" maxlength="500" value="{{returnForm.instructions}}" data-field="instructions" bindinput="editReturnField" disabled="{{busy||returnAttempt}}"/>
+        <button class="context-done {{busy?'control--disabled':''}}" bindtap="sendReturnInstruction" disabled="{{busy}}">{{returnAttempt?'重试原请求':'确认并发送退货指引'}}</button>
+      </view>
+      <button class="context-done {{busy?'control--disabled':''}}" bindtap="closeAftersales" disabled="{{busy}}">关闭</button>
+    </scroll-view>
   </view>
 </view>

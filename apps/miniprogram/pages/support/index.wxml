@@ -19,7 +19,16 @@
 
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
-      <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system"><text>{{item.body}}</text></view>
+      <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system"><text>{{item.body}}</text>
+        <view wx:if="{{item.returnInstruction}}" class="return-card">
+          <strong>本案退货指引 · 第 {{item.returnInstruction.version}} 版</strong>
+          <text user-select>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>
+          <text user-select>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text>
+          <text>运费：{{item.returnInstruction.freightPayer==='merchant'?'商家承担':'用户承担'}}</text>
+          <text wx:if="{{item.returnInstruction.instructions}}">{{item.returnInstruction.instructions}}</text>
+          <view class="return-card__actions"><button data-id="{{item.id}}" bindtap="copyReturnInstruction">复制退货信息</button><button data-id="{{item.returnInstruction.caseId}}" bindtap="openAftersaleCase">填写寄回物流</button></view>
+        </view>
+      </view>
       <view wx:else id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}} {{item.groupStart ? 'support-message--group-start' : 'support-message--grouped'}}">
         <view wx:if="{{item.senderType !== 'user'}}" class="support-avatar-slot">
           <view wx:if="{{item.groupStart}}" class="support-avatar support-avatar--{{item.avatarKind}}"><image src="{{item.avatarKind === 'ai' ? '/assets/icons/star-active.svg' : '/assets/icons/chat-circle-plum.svg'}}"/></view>

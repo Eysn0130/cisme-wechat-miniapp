@@ -9,6 +9,37 @@
   </view>
   <button class="text-button {{busy||recoveryLoading?'text-button--disabled':''}}" bindtap="loadRecovery" disabled="{{busy||recoveryLoading}}">重新核对原操作</button>
 </view>
+<view wx:if="{{supportSheetOpen && order}}" class="support-sheet-mask" catchtap="closeSupportSheet">
+  <view class="support-sheet" style="bottom:{{sheetKeyboardHeight}}px" catchtap="stopPropagation">
+    <view class="support-sheet__header"><strong>订单售后与客服</strong><view><button bindtap="expandSupport" aria-label="展开完整客服会话">展开</button><button bindtap="closeSupportSheet" aria-label="关闭客服面板">关闭</button></view></view>
+    <view class="support-sheet__order"><text>订单 {{order.orderNumber}}</text><text>{{order.lines[0].productName}} · ¥{{order.totalYuan}}</text></view>
+    <scroll-view class="support-sheet__body" scroll-y scroll-into-view="sheet-last">
+      <text wx:if="{{sheetLoading}}" class="support-sheet__notice">正在核对售后与会话…</text>
+      <text wx:if="{{sheetError}}" class="support-sheet__error" aria-live="polite">{{sheetError}}</text>
+      <view wx:if="{{sheetCase}}" class="support-sheet__case">
+        <strong>{{sheetCase.resolved?'退款已核验成功':sheetCase.state==='requested'?'申请已收到':sheetCase.state==='need_info'?'请补充信息':sheetCase.state==='awaiting_instruction'?'待发送退货指引':sheetCase.state==='awaiting_return'?'请按指引寄回':sheetCase.state==='refund_pending'?'退款处理中':'售后处理中'}}</strong>
+        <text>售后编号 {{sheetCase.id}}</text><text>申请时间 {{sheetCase.requestedAt}}</text>
+        <text wx:if="{{sheetCase.state==='awaiting_instruction'}}">客服正在核对本案收件信息，收到指引前无需寄回。</text>
+        <button bindtap="openFullAftersale">查看案件与下一步</button>
+      </view>
+      <view wx:if="{{!sheetCase && !sheetLoading}}" class="support-sheet__case"><text>打开面板不会提交申请。请选择售后情形后点击“提交申请”。</text></view>
+      <view wx:for="{{sheetMessages}}" wx:key="id" class="support-sheet__message support-sheet__message--{{item.senderType}}">
+        <text>{{item.senderType==='system'?'系统':item.senderType==='user'?'我':item.senderType==='ai'?'AI 客服':'人工客服'}} · {{item.body}}</text>
+        <view wx:if="{{item.returnInstruction}}" class="support-sheet__instruction"><strong>退货指引 · 第 {{item.returnInstruction.version}} 版</strong><text user-select>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text><text user-select>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text></view>
+      </view>
+      <view id="sheet-last"></view>
+    </scroll-view>
+    <view class="support-sheet__footer">
+      <block wx:if="{{!sheetCase}}">
+        <picker range="{{sheetKindOptions}}" value="{{sheetKindIndex}}" bindchange="chooseSheetKind" disabled="{{sheetSubmitting||sheetAttempt}}"><view class="support-sheet__choice">{{sheetKindOptions[sheetKindIndex]}}</view></picker>
+        <picker range="{{sheetBasisOptions}}" value="{{sheetBasisIndex}}" bindchange="chooseSheetBasis" disabled="{{sheetSubmitting||sheetAttempt}}"><view class="support-sheet__choice">{{sheetBasisOptions[sheetBasisIndex]}}</view></picker>
+        <textarea aria-label="售后说明" value="{{sheetReason}}" placeholder="{{sheetBasisIndex===1?'补充说明（选填）':'简要说明问题'}}" maxlength="500" auto-height bindinput="editSheetReason" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSubmitting||sheetAttempt}}"/>
+        <button class="support-sheet__primary {{sheetSubmitting||sheetLoading?'control--disabled':''}}" bindtap="submitSheetAftersale" disabled="{{sheetSubmitting||sheetLoading}}" loading="{{sheetSubmitting}}">{{sheetAttempt?'重试原申请':'提交申请'}}</button>
+      </block>
+      <view class="support-sheet__composer"><textarea aria-label="客服消息" value="{{sheetInput}}" placeholder="需要沟通？直接给客服留言" maxlength="4000" auto-height bindinput="editSheetInput" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSending||sheetSendAttempt}}"/><button class="{{sheetSending||(!sheetInput&&!sheetSendAttempt)?'control--disabled':''}}" bindtap="sendSheetMessage" disabled="{{sheetSending||(!sheetInput&&!sheetSendAttempt)}}">{{sheetSendAttempt?'重试原消息':'发送'}}</button></view>
+    </view>
+  </view>
+</view>
 <view wx:if="{{order&&!coreReady}}" class="state">显示上次读取的内容，正在等待最新核验；暂不可提交资金操作。</view><block wx:if="{{order}}"><view class="order-hero"><text class="eyebrow">{{order.orderNumber}}</text><strong>{{order.statusLabel}}</strong><text wx:if="{{order.status==='pending_payment'&&runtimeMode==='formal'&&isolatedPayment}}">请主动确认微信付款；支付结果以服务端核验为准。订单到期 {{order.expiresLabel}}。</text><text wx:elif="{{order.status==='pending_payment'&&isolatedPayment}}">仅本机隔离协议测试；不会扣取真实款项。订单到期 {{order.expiresLabel}}。</text><text wx:elif="{{order.status==='pending_payment'&&paymentRecovery}}">新付款暂时关闭，仍可按原单核对已有支付结果。订单到期 {{order.expiresLabel}}。</text><text wx:elif="{{order.status==='pending_payment'}}">当前付款暂未开放；订单将在 {{order.expiresLabel}} 后由服务端超时处理。</text><text wx:elif="{{order.status==='paid'}}">支付事实已由服务端核验。履约和退款分别处理。</text><text wx:else>这笔订单已结束，原记录仍可查看。</text></view>
 <view class="detail-card"><view class="detail-heading">商品</view><view wx:for="{{order.lines}}" wx:key="id" class="line-item"><image src="{{item.image||'/assets/cisme/community-card-purple-bottle-v1.jpg'}}" mode="aspectFill"/><view><strong>{{item.productName}}</strong><text>{{item.skuLabel}} · ¥{{item.unitPriceYuan}} × {{item.quantity}}</text></view><strong>¥{{item.totalYuan}}</strong></view></view>
 <button wx:if="{{order.status==='paid'}}" class="secondary {{busy||!coreReady||navigating?'control--disabled':''}}" bindtap="openAftersale" disabled="{{busy||!coreReady||navigating}}">申请售后 / 查看处理记录</button>

@@ -16,7 +16,8 @@ type ConversationRow = {
 };
 type OrderCard = { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
 type MessageRow = { id: string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; body: string; attachment_refs: string[];
-  content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null; created_at: Date };
+  content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null;
+  linked_case_id:string|null;return_instruction_snapshot:Omit<NonNullable<SupportMessageView['returnInstruction']>,'caseId'>|null;created_at: Date };
 type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
 
 function required(value: string | undefined, code: string): string {
@@ -78,7 +79,7 @@ function contentType(body: string, images: readonly string[], orderId: string | 
   return "text";
 }
 function messageColumns(): string {
-  return "id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,created_at";
+  return "id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at";
 }
 function view(row: MessageRow, input: { counterpartyReadSequence: number; previewPrefix: string; media: ReadonlyMap<string, MediaRow> }): SupportMessageView {
   const attachments = (Array.isArray(row.attachment_refs) ? row.attachment_refs : []).flatMap((id) => {
@@ -86,7 +87,9 @@ function view(row: MessageRow, input: { counterpartyReadSequence: number; previe
     return media ? [{ id, mimeType: media.mime_type, sizeBytes: Number(media.size_bytes), previewPath: `${input.previewPrefix}/${id}` }] : [];
   });
   return { id: row.id, sequence: Number(row.sequence), senderType: row.sender_type, body: row.body, contentType: row.content_type,
-    attachments, orderCard: row.order_snapshot ?? null, deliveryState: Number(row.sequence) <= input.counterpartyReadSequence ? "read" : "server_accepted", createdAt: row.created_at.toISOString() };
+    attachments, orderCard: row.order_snapshot ?? null,
+    returnInstruction:row.linked_case_id&&row.return_instruction_snapshot?{caseId:row.linked_case_id,...row.return_instruction_snapshot}:null,
+    deliveryState: Number(row.sequence) <= input.counterpartyReadSequence ? "read" : "server_accepted", createdAt: row.created_at.toISOString() };
 }
 function conversation(row: ConversationRow) {
   return { id: row.id, status: row.status, priority: row.priority,

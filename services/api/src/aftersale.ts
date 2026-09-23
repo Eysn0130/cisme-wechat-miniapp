@@ -5,46 +5,46 @@ import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
 import { AuthorityService, requireActiveMemberWithClient } from './authority.js';
 import { finishPage, pageLimit, pageScope, readPageCursor } from './keysetPage.js';
-import { protectedText } from './formalPaymentAuthorization.js';
 import type { RefundCommandService } from './refundCommand.js';
+import { enqueue } from './outbox.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const KEY=/^[A-Za-z0-9._:-]{8,200}$/;
 export const AFTERSALE_CAPABILITIES:Capability[]=['commerce.aftersale.review','commerce.return.receive','commerce.return.inspect'];
 const actionCaps:Record<string,Capability>={request_info:'commerce.aftersale.review',reject:'commerce.aftersale.review',
-  approve_return:'commerce.aftersale.review',request_refund:'commerce.aftersale.review',reopen_refund:'commerce.aftersale.review',
+  approve_return:'commerce.aftersale.review',send_return_instruction:'commerce.aftersale.review',request_refund:'commerce.aftersale.review',reopen_refund:'commerce.aftersale.review',
   receive_return:'commerce.return.receive',inspect_return:'commerce.return.inspect'};
 function fail(code:string,message:string,status=409):never{throw new DomainError(code,message,status);}
 function id(value:unknown):string{if(typeof value!=='string'||!UUID.test(value))fail('AFTERSALE_ID_INVALID','售后编号无效',422);return value;}
 function key(value:unknown):string{if(typeof value!=='string'||!KEY.test(value))fail('IDEMPOTENCY_KEY_INVALID','请求键无效',400);return value;}
 function note(value:unknown):string{if(typeof value!=='string'||Array.from(value.trim()).length<3||Array.from(value.trim()).length>500||/[\u0000-\u0008\u000b-\u001f]/.test(value))fail('AFTERSALE_NOTE_INVALID','请填写 3 至 500 字的说明',422);return value.trim();}
+function requestReason(value:unknown,noReason:boolean):string{
+  if(noReason&&(value===undefined||value===''))return '';
+  if(noReason&&typeof value==='string'&&!value.trim())return '';
+  return note(value);
+}
+export function returnInstruction(input:Record<string,unknown>){
+  const field=(name:string,min:number,max:number)=>{
+    const raw=input[name];if(typeof raw!=='string'||raw.trim().length<min||raw.trim().length>max||/[\u0000-\u001f]/.test(raw))
+      fail('RETURN_INSTRUCTION_INVALID','请完整填写本案退货收件信息',422);
+    return raw.trim();
+  };
+  const recipientName=field('recipientName',1,80),phone=field('phone',7,20),region=field('region',2,100),address=field('address',5,300);
+  if(!/^\+?[0-9-]{7,20}$/.test(phone))fail('RETURN_INSTRUCTION_INVALID','请填写可联系的收件电话',422);
+  const freightPayer=input.freightPayer;
+  if(!['merchant','member'].includes(String(freightPayer)))fail('RETURN_INSTRUCTION_INVALID','请确认本案运费承担方',422);
+  const instructions=input.instructions===undefined?'':field('instructions',0,500);
+  return {recipientName,phone,region,address,freightPayer:String(freightPayer),instructions};
+}
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 type CaseRow={id:string;order_id:string;member_id:string;kind:string;state:string;reason:string;lines:unknown[];
-  amount_cents:string;version:number;request_hash:string;return_destination:unknown;return_carrier:string|null;
+  amount_cents:string;version:number;request_hash:string;claim_basis:string;support_conversation_id:string|null;return_destination:unknown;return_carrier:string|null;
   return_tracking:string|null;quality_result:string|null;refund_request_id:string|null;created_at:Date;updated_at:Date};
 
-/** A deployment-owned business record, never an HTTP input or invented default.
- * Merely supplying this file does not approve commerce or a privacy policy. */
-export function approvedReturnDestination(path:string|undefined){
-  if(!path)fail('RETURN_DESTINATION_UNAVAILABLE','退货收件信息待核准，请联系在线客服；暂勿寄出',503);
-  try{
-    const content=protectedText(path);
-    if(Buffer.byteLength(content)>8192)throw Error();
-    const doc=JSON.parse(content) as Record<string,unknown>;
-    if(doc.approved!==true||typeof doc.version!=='string'||!/^[A-Za-z0-9._-]{1,80}$/.test(doc.version)
-      ||typeof doc.approvalReference!=='string'||doc.approvalReference.length<8||doc.approvalReference.length>300
-      ||typeof doc.recipientName!=='string'||doc.recipientName.length<1||doc.recipientName.length>80
-      ||typeof doc.phone!=='string'||!/^\+?[0-9-]{7,20}$/.test(doc.phone)
-      ||typeof doc.address!=='string'||doc.address.length<8||doc.address.length>300)throw Error();
-    return {version:doc.version,approvalReference:doc.approvalReference,recipientName:doc.recipientName,phone:doc.phone,address:doc.address};
-  }catch{fail('RETURN_DESTINATION_UNAVAILABLE','退货收件信息待核准，请联系在线客服；暂勿寄出',503);}
-}
-
-/** Whole-order R0 case workflow. It records local facts only; provider dispatch,
+/** Case workflow. It records local facts only; provider dispatch,
  * refunds and inventory are never inferred from a review or a returned parcel. */
 export class AftersaleService{
-  constructor(private readonly pool:pg.Pool,private readonly authority:AuthorityService,
-    private readonly returnDestinationFile?:string){}
+  constructor(private readonly pool:pg.Pool,private readonly authority:AuthorityService){}
   private async management(client:DbClient,memberId:string|undefined,cap?:Capability){
     if(cap){await this.authority.requireWithClient(client,memberId,cap);return;}
     // Lock the actual grant selected, including its post-wait expiry check.
@@ -57,8 +57,9 @@ export class AftersaleService{
   private async view(client:DbClient,row:CaseRow){
     const refund=row.refund_request_id?(await client.query(`SELECT r.state,i.state AS refund_state,
       i.submission_state FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.id=$1`,[row.refund_request_id])).rows[0]:null;
-    return {id:row.id,orderId:row.order_id,kind:row.kind,state:row.state,reason:row.reason,lines:row.lines,
-      amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,address:d.address}))(row.return_destination):null,
+    return {id:row.id,orderId:row.order_id,kind:row.kind,state:row.state,reason:row.reason,claimBasis:row.claim_basis,
+      supportConversationId:row.support_conversation_id,requestedAt:row.created_at,lines:row.lines,
+      amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,region:d.region??'',address:d.address,freightPayer:d.freightPayer??'to_be_confirmed',instructions:d.instructions??''}))(row.return_destination):null,
       returnCarrier:row.return_carrier,returnTracking:row.return_tracking,qualityResult:row.quality_result,
       refundRequestId:row.refund_request_id,refund:refund?{reviewState:refund.state,channelState:refund.refund_state??null,
         submissionState:refund.submission_state??null}:null,
@@ -74,9 +75,12 @@ export class AftersaleService{
   }
   async request(memberId:string|undefined,orderInput:string,kInput:string,input:Record<string,unknown>){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
-    const orderId=id(orderInput),k=key(kInput),why=note(input.reason),kind=input.kind;
+    const orderId=id(orderInput),k=key(kInput),kind=input.kind,claimBasis=input.claimBasis===undefined?'other':String(input.claimBasis);
     if(kind!=='refund_only'&&kind!=='return_refund')fail('AFTERSALE_KIND_INVALID','请选择仅退款或退货退款',422);
-    const fingerprint=hash({orderId,kind,why});
+    if(!['other','no_reason','quality','wrong_item','missing_item','delivery_issue'].includes(claimBasis)
+      ||claimBasis==='no_reason'&&kind!=='return_refund')fail('AFTERSALE_CLAIM_BASIS_INVALID','请选择适用的售后情形',422);
+    const why=requestReason(input.reason,claimBasis==='no_reason');
+    const fingerprint=hash({orderId,kind,why,claimBasis});
     return transaction(this.pool,async client=>{
       await requireActiveMemberWithClient(client,memberId);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
@@ -100,9 +104,28 @@ export class AftersaleService{
         fail('AFTERSALE_RETURN_REQUIRED','本单已登记交寄，请选择退货退款；特殊情况请联系在线客服核对');
       const lines=(await client.query('SELECT id,product_name,sku_label,quantity,line_total_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY id',[orderId])).rows;
       if(!lines.length)fail('AFTERSALE_LINES_MISSING','商品事实缺失，请联系在线客服');
-      const row=(await client.query<CaseRow>(`INSERT INTO commerce_aftersale_case(order_id,member_id,kind,reason,lines,amount_cents,idempotency_key,request_hash)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,[orderId,memberId,kind,why,JSON.stringify(lines.map(l=>({lineId:l.id,productName:l.product_name,skuLabel:l.sku_label,quantity:l.quantity,amountCents:Number(l.line_total_cents)}))),order.total_cents,k,fingerprint])).rows[0]!;
-      await this.event(client,row,memberId,'request',why,null,k,fingerprint);return this.view(client,row);
+      // The case, support association, message and durable notification event
+      // commit together. A later delivery/transport failure cannot erase the case.
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${memberId}`]);
+      let conversation=(await client.query<{id:string;status:string;next_sequence:string;version:number}>(
+        'SELECT id,status,next_sequence,version FROM support_conversation WHERE member_id=$1 FOR UPDATE',[memberId])).rows[0];
+      if(!conversation)conversation=(await client.query<{id:string;status:string;next_sequence:string;version:number}>(
+        "INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id,status,next_sequence,version",[memberId])).rows[0]!;
+      const row=(await client.query<CaseRow>(`INSERT INTO commerce_aftersale_case(order_id,member_id,kind,reason,lines,amount_cents,idempotency_key,request_hash,claim_basis,support_conversation_id)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,[orderId,memberId,kind,why,JSON.stringify(lines.map(l=>({lineId:l.id,productName:l.product_name,skuLabel:l.sku_label,quantity:l.quantity,amountCents:Number(l.line_total_cents)}))),order.total_cents,k,fingerprint,claimBasis,conversation.id])).rows[0]!;
+      await this.event(client,row,memberId,'request',why||'七日无理由退货申请',null,k,fingerprint);
+      const message=(await client.query<{id:string;created_at:Date}>(`INSERT INTO support_message
+        (conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id)
+        VALUES($1,$2,'system','system:aftersale',$3,'system',$4) RETURNING id,created_at`,
+        [conversation.id,conversation.next_sequence,`售后申请已收到 · 编号 ${row.id}。客服将按本案处理。`,`aftersale-request:${row.id}`])).rows[0]!;
+      const support=(await client.query<{version:number}>(`UPDATE support_conversation SET next_sequence=next_sequence+1,
+        team_unread_count=team_unread_count+1,status=CASE WHEN status IN ('resolved','ai_active') THEN 'waiting_human' ELSE status END,
+        current_handler_principal_id=CASE WHEN status='resolved' THEN NULL ELSE current_handler_principal_id END,
+        resolved_at=NULL,version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING version`,[conversation.id])).rows[0]!;
+      await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:conversation.id,
+        aggregateVersion:support.version,businessKey:`support-message:${message.id}`,
+        payload:{conversationId:conversation.id,messageId:message.id,senderType:'system',sequence:Number(conversation.next_sequence)},occurredAt:message.created_at});
+      return this.view(client,row);
     },'SERIALIZABLE');
   }
   async list(memberId:string|undefined,query:{orderId?:string;limit?:string;cursor?:string}={},management=false){
@@ -129,7 +152,21 @@ export class AftersaleService{
       return {...await this.view(client,row),events:events.slice(0,100).reverse(),historyTruncated:events.length>100};
     },'REPEATABLE READ');
   }
-  async act(memberId:string|undefined,caseInput:string,kInput:string,input:Record<string,unknown>,management=false,refund?:RefundCommandService){
+  async forConversation(memberId:string|undefined,conversationInput:string){
+    if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
+    const conversationId=id(conversationInput);
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,memberId,'support.read');
+      await this.authority.requireWithClient(client,memberId,'commerce.aftersale.review');
+      const rows=(await client.query<CaseRow>(`SELECT c.* FROM commerce_aftersale_case c
+        JOIN support_conversation s ON s.member_id=c.member_id
+        WHERE s.id=$1 AND (c.support_conversation_id=s.id OR c.support_conversation_id IS NULL)
+        ORDER BY c.created_at DESC,c.id DESC LIMIT 20`,[conversationId])).rows;
+      return {items:await Promise.all(rows.map(row=>this.view(client,row)))};
+    },'REPEATABLE READ');
+  }
+  async act(memberId:string|undefined,caseInput:string,kInput:string,input:Record<string,unknown>,management=false,refund?:RefundCommandService,
+    context?:{conversationId:string;principalId:string|undefined}){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const caseId=id(caseInput),k=key(kInput),action=String(input.action??''),why=note(input.note),version=input.expectedVersion;
     if(!Number.isSafeInteger(version)||Number(version)<1)fail('VERSION_INVALID','请刷新案件后重试',422);
@@ -138,7 +175,8 @@ export class AftersaleService{
     if(action==='ship_return'&&(typeof carrier!=='string'||carrier.trim().length<1||carrier.length>80||typeof tracking!=='string'||!/^[A-Za-z0-9-]{6,64}$/.test(tracking)))fail('RETURN_TRACKING_INVALID','请填写真实快递公司和 6 至 64 位运单号',422);
     const quality=action==='inspect_return'?input.qualityResult:null;
     if(action==='inspect_return'&&quality!=='sellable'&&quality!=='unsellable')fail('RETURN_QUALITY_INVALID','请选择质检结果',422);
-    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality});
+    const instruction=action==='send_return_instruction'?returnInstruction(input):null;
+    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction});
     return transaction(this.pool,async client=>{
       if(management)await this.management(client,memberId,actionCaps[action]);else await requireActiveMemberWithClient(client,memberId);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
@@ -147,17 +185,31 @@ export class AftersaleService{
       // Use the same order lock as dispatch/refund commands before the case lock.
       await client.query('SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE',[pointer.order_id]);
       const row=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 FOR UPDATE',[caseId])).rows[0]!;
+      if(context){
+        const linked=(await client.query<{status:string;current_handler_principal_id:string|null}>(
+          'SELECT status,current_handler_principal_id FROM support_conversation WHERE id=$1 AND member_id=$2',
+          [context.conversationId,row.member_id])).rows[0];
+        if(row.support_conversation_id!==null&&row.support_conversation_id!==context.conversationId||linked?.status!=='human_active'
+          ||!context.principalId||linked.current_handler_principal_id!==context.principalId)
+          fail('AFTERSALE_CHAT_ASSIGNMENT_REQUIRED','请在本案对应的已接管会话中处理',403);
+      }
       const replay=(await client.query('SELECT case_id,request_hash FROM commerce_aftersale_event WHERE actor_member_id=$1 AND idempotency_key=$2',[memberId,k])).rows[0];
       if(replay){if(replay.case_id!==caseId||replay.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','请求键对应不同操作');return this.view(client,row);}
       if(row.version!==version)fail('VERSION_CONFLICT','售后案件已更新，请刷新后核对');
       if(management&&row.member_id===memberId)fail('AFTERSALE_SELF_REVIEW_FORBIDDEN','不能处理自己的售后案件',403);
       let state:string|undefined,destination=row.return_destination,refundId=row.refund_request_id;
-      if(action==='cancel'&&['requested','need_info','awaiting_return'].includes(row.state))state='cancelled';
+      if(action==='cancel'&&['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state))state='cancelled';
       if(action==='provide_info'&&row.state==='need_info')state='requested';
       if(action==='request_info'&&row.state==='requested')state='need_info';
       if(action==='reject'&&['requested','need_info'].includes(row.state))state='rejected';
       if(action==='approve_return'&&row.state==='requested'&&row.kind==='return_refund'){
-        destination=approvedReturnDestination(this.returnDestinationFile);state='awaiting_return';
+        state='awaiting_instruction';
+      }
+      if(action==='send_return_instruction'&&instruction&&row.kind==='return_refund'
+        &&['awaiting_instruction','awaiting_return'].includes(row.state)&&!row.return_tracking){
+        const latest=(await client.query<{version:number}>(`SELECT version FROM commerce_aftersale_return_instruction
+          WHERE case_id=$1 ORDER BY version DESC LIMIT 1`,[caseId])).rows[0];
+        destination={version:(latest?.version??0)+1,...instruction};state='awaiting_return';
       }
       if(action==='ship_return'&&row.state==='awaiting_return')state='return_in_transit';
       if(action==='receive_return'&&row.state==='return_in_transit')state='return_received';
@@ -167,7 +219,7 @@ export class AftersaleService{
         if(row.kind==='refund_only'&&(await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1 UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1',[row.order_id])).rowCount)
           fail('AFTERSALE_RETURN_REQUIRED','商品已发货，请核对退货流程后处理');
         const requested=await refund.requestWithClient(client,row.member_id,row.order_id,`aftersale-refund:${row.id}:${row.version}`,
-          {amountCents:Number(row.amount_cents),reason:row.reason},row.id);
+          {amountCents:Number(row.amount_cents),reason:row.claim_basis==='no_reason'?'七日无理由退货申请':row.reason},row.id);
         refundId=requested.id;state='refund_pending';
       }
       if(action==='reopen_refund'&&row.state==='refund_pending'){
@@ -178,9 +230,41 @@ export class AftersaleService{
         }
       }
       if(!state)fail('AFTERSALE_STATE_CONFLICT','当前案件状态不允许此操作，请刷新核对');
+      let supportConversationId=row.support_conversation_id??context?.conversationId??null;
+      if(!supportConversationId&&action==='send_return_instruction'){
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${row.member_id}`]);
+        supportConversationId=(await client.query<{id:string}>(
+          'SELECT id FROM support_conversation WHERE member_id=$1',[row.member_id])).rows[0]?.id??null;
+        if(!supportConversationId)supportConversationId=(await client.query<{id:string}>(
+          "INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id",[row.member_id])).rows[0]!.id;
+      }
       const changed=(await client.query<CaseRow>(`UPDATE commerce_aftersale_case SET state=$2,version=version+1,updated_at=clock_timestamp(),
         return_destination=$3,return_carrier=COALESCE($4,return_carrier),return_tracking=COALESCE($5,return_tracking),
-        quality_result=COALESCE($6,quality_result),refund_request_id=$7 WHERE id=$1 RETURNING *`,[caseId,state,destination,carrier,tracking,quality,refundId])).rows[0]!;
+        quality_result=COALESCE($6,quality_result),refund_request_id=$7,support_conversation_id=$8 WHERE id=$1 RETURNING *`,
+        [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId])).rows[0]!;
+      if(action==='send_return_instruction'&&instruction){
+        if(!supportConversationId)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','请先关联原客服会话后发送退货指引');
+        const snapshot=destination as typeof instruction&{version:number};
+        await client.query(`INSERT INTO commerce_aftersale_return_instruction
+          (case_id,version,recipient_name,phone,region,address,freight_payer,instructions,issued_by)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [caseId,snapshot.version,instruction.recipientName,instruction.phone,instruction.region,instruction.address,
+            instruction.freightPayer,instruction.instructions,memberId]);
+        const conversation=(await client.query<{id:string;next_sequence:string;version:number}>(
+          'SELECT id,next_sequence,version FROM support_conversation WHERE id=$1 FOR UPDATE',[supportConversationId])).rows[0];
+        if(!conversation)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','原客服会话不可用，请刷新核对');
+        const message=(await client.query<{id:string;created_at:Date}>(`INSERT INTO support_message
+          (conversation_id,sequence,sender_type,sender_principal_id,body,content_type,linked_case_id,return_instruction_snapshot,client_message_id)
+          VALUES($1,$2,'system','system:aftersale',$3,'return_instruction',$4,$5,$6) RETURNING id,created_at`,
+          [conversation.id,conversation.next_sequence,`本案退货指引已发送 · 第 ${snapshot.version} 版`,caseId,JSON.stringify(snapshot),
+            `aftersale-return:${caseId}:v${snapshot.version}`])).rows[0]!;
+        const updated=(await client.query<{version:number}>(`UPDATE support_conversation SET next_sequence=next_sequence+1,
+          member_unread_count=member_unread_count+1,version=version+1,updated_at=clock_timestamp()
+          WHERE id=$1 RETURNING version`,[conversation.id])).rows[0]!;
+        await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:conversation.id,
+          aggregateVersion:updated.version,businessKey:`support-message:${message.id}`,
+          payload:{conversationId:conversation.id,messageId:message.id,senderType:'system',sequence:Number(conversation.next_sequence)},occurredAt:message.created_at});
+      }
       await this.event(client,changed,memberId,action,why,row.state,k,fingerprint);return this.view(client,changed);
     },'SERIALIZABLE');
   }

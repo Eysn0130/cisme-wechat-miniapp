@@ -6,8 +6,9 @@ if(schema.kind!=='synthetic-migrated-schema-only-NOT-personal-data-export')throw
 const tables=new Map(schema.tables.map(t=>[t.table,t]));
 const allow:Record<string,string[]>={member:['id','display_name','created_at'],member_profile:['wechat_handle','updated_at']};
 const special:Record<string,string>={
- commerce_aftersale_case:'member_id/order_id identify buyer; return_destination is an approved business contact snapshot, return_tracking and reason are private. Whole-order quantity claims are independent of refund facts and inventory. Never raw-export reasons or contacts across subjects.',
+ commerce_aftersale_case:'member_id/order_id identify buyer; claim_basis, return_destination, return_tracking and reason are private. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons or contacts across subjects.',
  commerce_aftersale_event:'case_id identifies buyer; actor_member_id is the customer or a separately authorized operator. Notes may contain third-party data. Immutable history is not a blanket retention approval.',
+ commerce_aftersale_return_instruction:'case_id identifies buyer; issued_by is a separate operator. The recipient, phone, region and address may identify a third party. Each version is immutable and must be projected to the case owner only; do not export all versions as a general member profile or delete while return/dispute duties remain.',
  commerce_shipment:'order_id identifies buyer; created_by_member_id is operator, not the buyer. Receipt fact is independent of carrier state and refund/commission eligibility.',
  commerce_shipment_line:'Resolve buyer through shipment/order; product quantities are immutable fulfillment evidence.',
  commerce_shipment_event:'Resolve buyer through shipment/order; actor_principal_id identifies operator or owner separately. No raw event export; preserve retention and legal holds.',
@@ -21,7 +22,7 @@ const special:Record<string,string>={
  ugc_report:'reporter and reported subject are distinct; target_type/target_id resolves post/comment/member; never disclose reporter identity to reported author.',
  moderation_case:'target_type/target_id plus source_report_id; reporter, target author and operator have different field rights.',
  ugc_safety_callback_inbox:'trace_id joins ugc_safety_scan.trace_id or other typed scan records; callback payload is private security evidence, not a member export.',
- support_message:'conversation member is owner of conversation access; sender_principal_id may identify another person; attachments/order_snapshot require independent projection and retention.',
+ support_message:'conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes.',
  ugc_author_follow:'follower and followed are different subjects; each relationship must not imply exporting the other member profile.',
  commercial_referral_relation:'referred and referrer are different subjects; only approved own projection, never both member profiles.',
  commission_order_snapshot:'buyer and referrer are distinct; financial retention and each subject projection are independent.'

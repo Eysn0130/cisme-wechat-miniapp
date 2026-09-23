@@ -28,7 +28,7 @@ export const CAPABILITIES = [
 export type Capability = (typeof CAPABILITIES)[number];
 export type SupportConversationStatus = "ai_active" | "waiting_human" | "human_active" | "resolved";
 export type SupportSenderType = "user" | "ai" | "admin" | "system";
-export type SupportMessageContentType = "text" | "image" | "order" | "mixed" | "system";
+export type SupportMessageContentType = "text" | "image" | "order" | "mixed" | "system" | "return_instruction";
 
 export interface AuthorityProjection {
   version: 1;
@@ -146,6 +146,7 @@ export interface SupportMessageView {
   contentType: SupportMessageContentType;
   attachments: Array<{ id: string; mimeType: "image/jpeg" | "image/png" | "image/webp"; sizeBytes: number; previewPath: string }>;
   orderCard: null | { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
+  returnInstruction: null | { caseId: string; version: number; recipientName: string; phone: string; region: string; address: string; freightPayer: string; instructions: string };
   deliveryState: "server_accepted" | "read";
   createdAt: string;
 }

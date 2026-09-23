@@ -96,10 +96,15 @@ await service.identity({...input,consents:[...input.consents,{documentType:'cros
 expect((await app.inject({url:'/v1/legal'})).json().ready).toBe(true);
 });
 it('validates message length and limits repeated distinct requests',async()=>{
-const send=(message:string)=>app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`},payload:{kind:'other',message}});
+const isolated=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'privacy-rate-limit-only',displayName:'rate limit fixture',
+  consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+expect(isolated.statusCode).toBe(200);
+const rateToken=isolated.json().sessionToken;
+const send=(message:string)=>app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${rateToken}`},payload:{kind:'other',message}});
 expect((await send(' ')).statusCode).toBe(422);expect((await send('x'.repeat(2001))).statusCode).toBe(422);
 for(let i=0;i<10;i++)expect((await send(`Request ${i}`)).statusCode).toBe(200);
 expect((await send('Request 10')).statusCode).toBe(429);
+expect((await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`}})).json()).toEqual([]);
 });
 it('keeps executable privacy job modes restricted to explicit synthetic dev identities at the database boundary',async()=>{
 const planned=(await pool.query("SELECT id FROM data_export_job WHERE execution_mode='plan_only' LIMIT 1")).rows[0];

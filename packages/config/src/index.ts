@@ -61,7 +61,7 @@ export interface AppConfig {
   } };
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
   media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
-  commerce: { returnDestinationFile?: string; orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
+  commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
     fulfillment?: { appId: string; merchantId: string; authorizationFile?: string };
     simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
       transferSceneId?: string };
@@ -341,7 +341,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     commerce: {
       orderFlowEnabled,
       ...(fulfillment?{fulfillment}:{}),
-      ...(env.AFTERSALE_RETURN_DESTINATION_FILE?{returnDestinationFile:env.AFTERSALE_RETURN_DESTINATION_FILE}:{}),
       quoteTtlMinutes: integer("COMMERCE_QUOTE_TTL_MINUTES", env.COMMERCE_QUOTE_TTL_MINUTES, 10, 1, 60),
       pendingOrderTtlMinutes: integer("COMMERCE_PENDING_ORDER_TTL_MINUTES", env.COMMERCE_PENDING_ORDER_TTL_MINUTES, 30, 5, 120),
       ...(simulatedPaymentEnabled?{simulatedPayment:{appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),

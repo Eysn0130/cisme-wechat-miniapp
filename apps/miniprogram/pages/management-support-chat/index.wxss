@@ -704,3 +704,12 @@
   color: #fff;
   background: #56306f;
 }
+.return-card{display:flex;flex-direction:column;gap:10rpx;margin-top:14rpx;padding:22rpx;border-radius:20rpx;background:#fff;text-align:left;color:#3f3447;font-size:25rpx;line-height:1.5}
+.return-card strong{font-size:27rpx;font-weight:600;color:#56306f}
+.operator-aftersale-entry{min-height:44px;margin:0 0 12rpx;padding:0 22rpx;border-radius:22px;background:#efe7f2;color:#56306f;font-size:25rpx}
+.aftersale-sheet{max-height:75vh;box-sizing:border-box}
+.aftersale-sheet__error{display:block;margin:12rpx 0;color:#9b3451;font-size:24rpx}
+.aftersale-sheet__case,.aftersale-sheet__form{display:flex;flex-direction:column;gap:12rpx;margin:18rpx 0;padding:18rpx;border:1rpx solid #e7dfea;border-radius:20rpx;color:#3f3447;font-size:23rpx;overflow-wrap:anywhere}
+.aftersale-sheet__case button{min-height:44px;margin:0;background:#efe7f2;color:#56306f;border-radius:22px;font-size:24rpx}
+.aftersale-sheet__form input,.aftersale-sheet__form textarea,.aftersale-sheet__form .choice{box-sizing:border-box;width:100%;min-height:44px;padding:14rpx 18rpx;border:1rpx solid #e7dfea;border-radius:14rpx;background:#fff;font-size:25rpx}
+.aftersale-sheet__form textarea{min-height:110rpx}

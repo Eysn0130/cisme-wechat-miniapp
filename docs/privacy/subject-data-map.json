@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "34f087e8b1b7d71452d4c853c04f5a607f65a198dbfffb8da8e2037bfd51fcfa",
+  "migrationSetSha256": "704427a3ecb13d4b864608ed8ddb91528c40b001a6ed9012cc69354e99ae2603",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -436,10 +436,15 @@
           "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
           "commerce_refund_request.requested_by_member_id -> member.id",
           "member.id"
+        ],
+        [
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "member_id/order_id identify buyer; return_destination is an approved business contact snapshot, return_tracking and reason are private. Whole-order quantity claims are independent of refund facts and inventory. Never raw-export reasons or contacts across subjects.",
+      "specialHandling": "member_id/order_id identify buyer; claim_basis, return_destination, return_tracking and reason are private. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons or contacts across subjects.",
       "exportFields": [],
       "excludedFields": [
         "id",
@@ -459,7 +464,9 @@
         "quality_result",
         "refund_request_id",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "claim_basis",
+        "support_conversation_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -536,6 +543,12 @@
           "member.id"
         ],
         [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
           "commerce_aftersale_event.refund_request_id -> commerce_refund_request.id",
           "commerce_refund_request.decided_by_member_id -> member.id",
           "member.id"
@@ -583,6 +596,103 @@
         "idempotency_key",
         "request_hash",
         "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_aftersale_return_instruction",
+      "subjectPaths": [
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "case_id identifies buyer; issued_by is a separate operator. The recipient, phone, region and address may identify a third party. Each version is immutable and must be projected to the case owner only; do not export all versions as a general member profile or delete while return/dispute duties remain.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "case_id",
+        "version",
+        "recipient_name",
+        "phone",
+        "region",
+        "address",
+        "freight_payer",
+        "instructions",
+        "issued_by",
+        "issued_at"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -3914,6 +4024,94 @@
         [
           "media_cleanup_queue.media_id -> media_object.id",
           "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
           "support_message.linked_order_id -> commerce_order.id",
           "commerce_order.member_id -> member.id",
           "member.id"
@@ -3983,6 +4181,84 @@
         [
           "media_object.bound_support_message_id -> support_message.id",
           "support_message.conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
           "support_conversation.member_id -> member.id",
           "member.id"
         ],
@@ -5014,6 +5290,74 @@
           "member.id"
         ],
         [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
           "support_message.linked_order_id -> commerce_order.id",
           "commerce_order.member_id -> member.id",
           "member.id"
@@ -5035,7 +5379,7 @@
       "actorColumns": [
         "sender_principal_id"
       ],
-      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments/order_snapshot require independent projection and retention.",
+      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes.",
       "exportFields": [],
       "excludedFields": [
         "id",
@@ -5050,7 +5394,9 @@
         "created_at",
         "content_type",
         "linked_order_id",
-        "order_snapshot"
+        "order_snapshot",
+        "linked_case_id",
+        "return_instruction_snapshot"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -6238,6 +6584,94 @@
           "upload_chunk.media_id -> media_object.id",
           "media_object.bound_support_message_id -> support_message.id",
           "support_message.conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
           "support_conversation.member_id -> member.id",
           "member.id"
         ],

@@ -244,6 +244,20 @@
       "audit": "客服消息事件不携完整 snapshot；管理订单详情访问遵循独立能力与审计"
     },
     {
+      "surface": "support_message.return_instruction_snapshot",
+      "informationType": "逐单退货收件人、电话、地区、地址、运费承担和必要说明及版本；可能含第三方收件人个人信息",
+      "purpose": "向本案会员发送可复制的结构化退货指引并保留历史版本依据",
+      "activation": "具备售后处理权限的管理员确认后发送；打开面板或同意退货本身不生成地址",
+      "serverStorage": "support_message 不可变卡片快照，与 commerce_aftersale_return_instruction 同一事务；outbox 只传消息标识",
+      "currentGate": "案件服务端授权、版本、幂等及所属会话校验",
+      "authority": "逐单业务记录，由管理员填写，不从部署文件继承",
+      "visibleTo": "本案会员及具备 support.read 的客服；模型投影只取消息正文，不含卡片快照",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION，需与售后争议及客服会话分别核定",
+      "userDeletionOrClosure": "生产正式导出和删除仍待执行器完成；第三方收件人权益需独立核对",
+      "legalHold": "适用订单或售后争议保全时限制删除",
+      "audit": "售后事件、客服消息事件和审计记录分开留痕"
+    },
+    {
       "surface": "support_member_context",
       "informationType": "昵称、会员状态、脱敏手机号、加入时间",
       "purpose": "当前人工客服会话的最小必要上下文",
@@ -461,7 +475,7 @@
     },
     {
       "surface": "commerce_aftersale_case",
-      "purpose": "整单售后受理、退货物流与退款事实关联；收件信息来自独立批准配置",
+      "purpose": "售后受理时间、申请依据、逐单退货物流与退款事实关联；收件信息由授权管理员逐单发送",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "boundary": "仅本人及当前授权售后人员可见；不自动退款、不自动回补库存；生产导出/删除仍未完成"
     },
@@ -470,6 +484,12 @@
       "purpose": "售后状态转换、处理说明与操作审计",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "boundary": "操作人和买方是不同数据主体；不可对其他用户导出原始处理说明"
+    },
+    {
+      "surface": "commerce_aftersale_return_instruction",
+      "purpose": "逐单收件信息与运费承担的不可变版本快照；地址更改新增版本，原依据保留",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "boundary": "案件与会话关联；仅本人及当前授权客服可见。生产主体导出和删除需覆盖该表及复制到客服消息的卡片。"
     }
   ],
   "runtimeDataEgress": [
@@ -510,7 +530,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "05f1fd1eb16aa3706f2c556e424f4ea85435af0a72d4ff20512573de9087ce45",
+  "migrationSetSha256": "244ade2e2bec3ca282375d3fcf00f6d2b568df502fd0ffb7456d0a7b9a988e65",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",

@@ -833,3 +833,7 @@
 .support-picker-state--error {
   color: #8d3150;
 }
+.return-card{display:flex;flex-direction:column;gap:10rpx;margin-top:14rpx;padding:22rpx;border-radius:20rpx;background:#fff;text-align:left;color:#3f3447;font-size:25rpx;line-height:1.5}
+.return-card strong{font-size:27rpx;font-weight:600;color:#56306f}
+.return-card__actions{display:flex;gap:12rpx;flex-wrap:wrap;margin-top:10rpx}
+.return-card__actions button{min-height:44px;margin:0;padding:0 18rpx;border-radius:22px;background:#efe7f2;color:#56306f;font-size:24rpx}

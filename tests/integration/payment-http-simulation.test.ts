@@ -1707,35 +1707,68 @@ it('records bounded owned cases, serializes duplicate claims and supports non-de
   await expect(pool.query('DELETE FROM commerce_aftersale_event WHERE case_id=$1',[row.id])).rejects.toMatchObject({code:'55000'});
   expect((await pool.query('SELECT count(*)::int AS n FROM commerce_refund_request WHERE order_id=$1',[order.id])).rows[0].n).toBe(0);
 });
-it('requires real return configuration and separates review, receiving, quality and verified refund success',async()=>{
+it('adopts an existing unlinked case in the original support conversation without replacing its application time',async()=>{
+  const order=await aftersalePaidOrder('legacy-chat');
+  await aftersaleGrant(operator,'commerce.aftersale.review');
+  await aftersaleGrant(operator,'support.read');
+  const lines=(await pool.query('SELECT id,product_name,sku_label,quantity,line_total_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY id',[order.id])).rows;
+  const originalAt='2026-09-20T12:00:00.000Z';
+  const legacy=(await pool.query<{id:string}>(`INSERT INTO commerce_aftersale_case
+    (order_id,member_id,kind,reason,lines,amount_cents,idempotency_key,request_hash,created_at)
+    VALUES($1,$2,'return_refund','历史退货申请',$3,$4,$5,$6,$7) RETURNING id`,
+    [order.id,buyer.memberId,JSON.stringify(lines.map(line=>({lineId:line.id,productName:line.product_name,
+      skuLabel:line.sku_label,quantity:line.quantity,amountCents:Number(line.line_total_cents)}))),10000,
+      'legacy-chat-intake',createHash('sha256').update('legacy-chat').digest('hex'),originalAt])).rows[0]!;
+  let conversation=(await pool.query<{id:string}>('SELECT id FROM support_conversation WHERE member_id=$1',[buyer.memberId])).rows[0];
+  if(!conversation)conversation=(await pool.query<{id:string}>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id",[buyer.memberId])).rows[0]!;
+  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  expect((await service.forConversation(operator.memberId,conversation.id)).items.some(item=>item.id===legacy.id)).toBe(true);
+  const accepted=await service.act(operator.memberId,legacy.id,'legacy-chat-approve',
+    {action:'approve_return',expectedVersion:1,note:'核对历史退货申请并准备指引'},true);
+  expect(accepted).toMatchObject({state:'awaiting_instruction',supportConversationId:null});
+  const sent=await service.act(operator.memberId,legacy.id,'legacy-chat-instruction',{
+    action:'send_return_instruction',expectedVersion:2,note:'历史申请退货地址已逐单确认',
+    recipientName:'隔离测试收件人',phone:'13800000000',region:'合成地区',address:'合成测试地址禁止寄送',
+    freightPayer:'merchant',instructions:''},true);
+  expect(sent).toMatchObject({state:'awaiting_return',supportConversationId:conversation.id,
+    returnDestination:{version:1}});
+  expect(new Date(sent.requestedAt).toISOString()).toBe(originalAt);
+  expect((await pool.query('SELECT count(*)::int AS n FROM commerce_aftersale_return_instruction WHERE case_id=$1',[legacy.id])).rows[0].n).toBe(1);
+});
+it('keeps the original application time, sends versioned case instructions in chat and separates later physical and payment facts',async()=>{
   const order=await aftersalePaidOrder('return');
   await aftersaleGrant(operator,'commerce.aftersale.review');await aftersaleGrant(reviewer,'commerce.return.receive');
-  const authority=new AuthorityService(pool,'test'),unconfigured=new AftersaleService(pool,authority);
-  const row=await unconfigured.request(buyer.memberId,order.id,'aftersale-return-001',{kind:'return_refund',reason:'合成商品质量复核'});
+  const authority=new AuthorityService(pool,'test'),service=new AftersaleService(pool,authority);
+  const row=await service.request(buyer.memberId,order.id,'aftersale-return-001',{kind:'return_refund',claimBasis:'no_reason',reason:''});
+  expect(row).toMatchObject({state:'requested',reason:'',claimBasis:'no_reason',returnDestination:null});
+  expect((await pool.query(`SELECT count(*)::int AS n FROM support_message WHERE conversation_id=$1 AND client_message_id=$2`,[row.supportConversationId,`aftersale-request:${row.id}`])).rows[0].n).toBe(1);
   const step=(action:string,expectedVersion:number,extra={})=>({action,expectedVersion,note:'合成独立操作依据',...extra});
-  await expect(unconfigured.act(operator.memberId,row.id,'aftersale-dest-missing',step('approve_return',1),true)).rejects.toMatchObject({code:'RETURN_DESTINATION_UNAVAILABLE'});
-  const temp=await mkdtemp(join(tmpdir(),'cisme-synthetic-return-'));
-  try{
-    const destination=join(temp,'destination.json');
-    await writeFile(destination,JSON.stringify({approved:true,version:'synthetic-only-v1',approvalReference:'fixture://synthetic-return-not-production',recipientName:'合成收件人',phone:'13800000000',address:'合成隔离测试地址，禁止真实寄件'}),{mode:0o600});
-    const service=new AftersaleService(pool,authority,destination);
     await expect(service.act(reviewer.memberId,row.id,'aftersale-cross-cap',step('approve_return',1),true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
     expect(await service.act(operator.memberId,row.id,'aftersale-info-001',step('request_info',1),true)).toMatchObject({state:'need_info',version:2});
     expect(await service.act(buyer.memberId,row.id,'aftersale-info-002',step('provide_info',2))).toMatchObject({state:'requested',version:3});
     const accepted=await service.act(operator.memberId,row.id,'aftersale-accept-001',step('approve_return',3),true);
-    expect(accepted).toMatchObject({state:'awaiting_return',version:4,returnDestination:{version:'synthetic-only-v1'}});
-    await expect(service.act(buyer.memberId,row.id,'aftersale-bad-tracking',step('ship_return',4,{carrier:'合成物流',tracking:'bad!'}))).rejects.toMatchObject({code:'RETURN_TRACKING_INVALID'});
-    await service.act(buyer.memberId,row.id,'aftersale-ship-001',step('ship_return',4,{carrier:'合成物流',tracking:'SYNTHETIC123456'}));
-    await expect(service.act(buyer.memberId,row.id,'aftersale-late-cancel',step('cancel',5))).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
-    await expect(service.act(operator.memberId,row.id,'aftersale-cross-receive',step('receive_return',5),true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
-    await service.act(reviewer.memberId,row.id,'aftersale-receive-001',step('receive_return',5),true);
-    await expect(service.act(reviewer.memberId,row.id,'aftersale-cross-inspect',step('inspect_return',6,{qualityResult:'unsellable'}),true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+    expect(accepted).toMatchObject({state:'awaiting_instruction',version:4,returnDestination:null,requestedAt:row.requestedAt});
+    await expect(service.act(buyer.memberId,row.id,'aftersale-premature-ship',step('ship_return',4,{carrier:'合成物流',tracking:'SYNTHETIC123456'}))).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
+    const instruction={recipientName:'合成收件人',phone:'13800000000',region:'上海市浦东新区',address:'合成隔离测试地址，禁止真实寄件',freightPayer:'merchant',instructions:'仅用于隔离测试'};
+    const sent=await service.act(operator.memberId,row.id,'aftersale-instruction-001',step('send_return_instruction',4,instruction),true);
+    expect(sent).toMatchObject({state:'awaiting_return',version:5,returnDestination:{version:1,...instruction}});
+    const changed=await service.act(operator.memberId,row.id,'aftersale-instruction-002',step('send_return_instruction',5,{...instruction,address:'合成隔离测试新地址，禁止真实寄件'}),true);
+    expect(changed).toMatchObject({state:'awaiting_return',version:6,returnDestination:{version:2}});
+    expect((await pool.query(`SELECT count(*)::int AS n FROM commerce_aftersale_return_instruction WHERE case_id=$1`,[row.id])).rows[0].n).toBe(2);
+    expect((await pool.query(`SELECT count(*)::int AS n FROM support_message WHERE linked_case_id=$1 AND content_type='return_instruction'`,[row.id])).rows[0].n).toBe(2);
+    await expect(service.act(buyer.memberId,row.id,'aftersale-bad-tracking',step('ship_return',6,{carrier:'合成物流',tracking:'bad!'}))).rejects.toMatchObject({code:'RETURN_TRACKING_INVALID'});
+    await service.act(buyer.memberId,row.id,'aftersale-ship-001',step('ship_return',6,{carrier:'合成物流',tracking:'SYNTHETIC123456'}));
+    await expect(service.act(operator.memberId,row.id,'aftersale-too-late-address',step('send_return_instruction',7,instruction),true)).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
+    await expect(service.act(buyer.memberId,row.id,'aftersale-late-cancel',step('cancel',7))).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
+    await expect(service.act(operator.memberId,row.id,'aftersale-cross-receive',step('receive_return',7),true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+    await service.act(reviewer.memberId,row.id,'aftersale-receive-001',step('receive_return',7),true);
+    await expect(service.act(reviewer.memberId,row.id,'aftersale-cross-inspect',step('inspect_return',8,{qualityResult:'unsellable'}),true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
     await aftersaleGrant(reviewer,'commerce.return.inspect');
-    await service.act(reviewer.memberId,row.id,'aftersale-quality-001',step('inspect_return',6,{qualityResult:'unsellable'}),true);
+    await service.act(reviewer.memberId,row.id,'aftersale-quality-001',step('inspect_return',8,{qualityResult:'unsellable'}),true);
     // Unusable stock does not automatically deny a consumer refund.
-    const request=await service.act(operator.memberId,row.id,'aftersale-refund-001',step('request_refund',7),true,refundCommands);
-    expect(request).toMatchObject({state:'refund_pending',version:8,resolved:false,refund:{reviewState:'requested',channelState:null}});
-    expect((await service.act(operator.memberId,row.id,'aftersale-refund-001',step('request_refund',7),true,refundCommands)).refundRequestId).toBe(request.refundRequestId);
+    const request=await service.act(operator.memberId,row.id,'aftersale-refund-001',step('request_refund',9),true,refundCommands);
+    expect(request).toMatchObject({state:'refund_pending',version:10,resolved:false,refund:{reviewState:'requested',channelState:null}});
+    expect((await service.act(operator.memberId,row.id,'aftersale-refund-001',step('request_refund',9),true,refundCommands)).refundRequestId).toBe(request.refundRequestId);
     expect((await pool.query('SELECT count(*)::int AS n FROM commerce_refund_request WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
     const approved=await refundCommands.decide(operator.memberId,request.refundRequestId!,'aftersale-finance-001',{decision:'approve',expectedVersion:1,reason:'隔离独立退款金额复核'});
     const intent=(approved as any).intent;
@@ -1746,9 +1779,8 @@ it('requires real return configuration and separates review, receiving, quality 
     await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
     const final=await service.detail(buyer.memberId,row.id);
     expect(final).toMatchObject({resolved:true,qualityResult:'unsellable',inventoryStatus:'separate_ledger_required',refund:{channelState:'succeeded'}});
-    expect(final.events).toHaveLength(8);
-    await expect(service.act(operator.memberId,row.id,'aftersale-false-reopen',step('reopen_refund',8),true)).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
-  }finally{await rm(temp,{recursive:true,force:true});}
+    expect(final.events).toHaveLength(10);
+    await expect(service.act(operator.memberId,row.id,'aftersale-false-reopen',step('reopen_refund',10),true)).rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
 });
 it('rechecks revoked case permissions and rolls back a failed refund link atomically',async()=>{
   const order=await aftersalePaidOrder('atomic');const service=new AftersaleService(pool,new AuthorityService(pool,'test'));

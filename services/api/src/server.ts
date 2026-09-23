@@ -139,7 +139,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const service = new PlatformService(pool, config, storage);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
-  const aftersales = new AftersaleService(pool,authority,config.commerce.returnDestinationFile);
+  const aftersales = new AftersaleService(pool,authority);
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
@@ -502,6 +502,15 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.get<{Querystring:{cursor?:string;limit?:string}}>("/v1/management/support/conversations", async request => support.queue(request.memberId, request.query));
   app.get<{Params:{conversationId:string};Querystring:{after?:string;before?:string;limit?:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.operatorMessages(request.memberId, request.principalId, request.params.conversationId, request.query));
+  app.get<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/aftersales", async request =>
+    aftersales.forConversation(request.memberId,request.params.conversationId));
+  app.post<{Params:{conversationId:string;caseId:string}}>("/v1/management/support/conversations/:conversationId/aftersales/:caseId/actions", async request =>{
+    const input=(request.body??{}) as Record<string,unknown>;
+    if(input.action!=='approve_return'&&input.action!=='send_return_instruction')
+      throw new DomainError('AFTERSALE_ACTION_INVALID','请在售后案件中选择有效操作',422);
+    return aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),input,true,
+      undefined,{conversationId:request.params.conversationId,principalId:request.principalId});
+  });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/claim", async request => support.claim(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/read", async request => support.markTeamRead(request.memberId, request.params.conversationId, (request.body ?? {}) as {lastSeenSequence?:unknown}));

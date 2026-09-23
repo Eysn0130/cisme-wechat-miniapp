@@ -3,6 +3,7 @@ import { commerceContextRevision } from "../../services/commerce-command-store";
 import { authorityProjection, hasCapability, requireCapability } from "../../services/authority";
 import { downloadPrivateMedia, request, retainMemberSnapshot } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
+import { clientOperationKey } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import {
   createSupportThreadState,
@@ -20,11 +21,15 @@ import {
 
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
-type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType?: string; createdAt?: string; attachments?: Attachment[]; orderCard?: OrderCard | null; deliveryState?: "server_accepted" | "read" };
+type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType?: string; createdAt?: string; attachments?: Attachment[]; orderCard?: OrderCard | null;
+  returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
+  deliveryState?: "server_accepted" | "read" };
 type Message = PresentedSupportMessage<RawMessage>;
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
 type SendAttempt = { id: string; body: string };
+type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;returnDestination:null|{version:number};claimBasis:string};
+type ReturnForm = {recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string};
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
 const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", cancelled: "已取消", expired: "已超时" };
@@ -59,6 +64,10 @@ Page({
     canAssign: false,
     canReply: false,
     canViewContext: false,
+    canManageAftersale:false,aftersaleCases:[] as AftersaleCase[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
+    returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""} as ReturnForm,
+    freightOptions:['商家承担','用户承担'],
+    returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
     aiStatus: "PROVIDER INTEGRATION PENDING",
     aiProviderAvailable: false,
     input: "",
@@ -119,12 +128,16 @@ Page({
     const canAssign = hasCapability(authority, "support.assign");
     const canReply = hasCapability(authority, "support.reply");
     const canViewContext = hasCapability(authority, "member.support_view");
+    const canManageAftersale = hasCapability(authority,"commerce.aftersale.review");
     if (!canReply) {
       this.inputRevision += 1;
       this.setData({ input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
-    this.setData({ canAssign, canReply, canViewContext, ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}) });
+    this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
+      ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
+      ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],returnFormCaseId:"",returnAttempt:null}:{}) });
     await Promise.all([this.load(), this.loadAiStatus()]);
+    if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
     if (this.owns(epoch, ownerToken)) this.startPolling();
     wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
   },
@@ -175,6 +188,8 @@ Page({
       canAssign: false,
       canReply: false,
       canViewContext: false,
+      canManageAftersale:false,aftersaleCases:[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
+      returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""},returnAttempt:null,
       input: "",
       sendAttempt: null,
       pendingMessage: null,
@@ -327,6 +342,73 @@ Page({
     } catch {
       if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, error: "会话暂时无法同步，请重试。" });
     }
+  },
+  async loadAftersales(){
+    if(!this.data.canManageAftersale||!this.data.visible||!this.data.id)return;
+    const epoch=this.lifecycleEpoch,token=sessionToken();
+    try{
+      const page=await pageRead<{items:AftersaleCase[]}>(this,{path:`/v1/management/support/conversations/${this.data.id}/aftersales`});
+      if(this.owns(epoch,token))this.setData({aftersaleCases:page.items,aftersaleError:""});
+    }catch(error){if(this.owns(epoch,token)){
+      if([401,403].includes((error as {status?:number})?.status??0))this.setData({canManageAftersale:false,aftersaleCases:[],aftersaleOpen:false,returnFormCaseId:"",returnAttempt:null});
+      else this.setData({aftersaleError:"售后记录暂时无法核对，请稍后刷新。"});
+    }}
+  },
+  openAftersales(){if(this.data.canManageAftersale&&!this.data.busy){this.setData({aftersaleOpen:true,contextOpen:false});void this.loadAftersales();}},
+  closeAftersales(){if(!this.data.busy)this.setData({aftersaleOpen:false});},
+  selectReturnCase(event:WechatMiniprogram.TouchEvent){
+    if(!this.data.assignedToMe||this.data.busy||this.data.returnAttempt)return;
+    const id=String(event.currentTarget.dataset.id??""),row=this.data.aftersaleCases.find(item=>item.id===id);
+    if(!row||!['awaiting_instruction','awaiting_return'].includes(row.state))return;
+    this.setData({returnFormCaseId:id,aftersaleError:"",returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""}});
+  },
+  editReturnField(event:WechatMiniprogram.Input){
+    if(!this.data.assignedToMe||this.data.busy||this.data.returnAttempt)return;
+    const field=String(event.currentTarget.dataset.field??"");
+    if(!['recipientName','phone','region','address','instructions'].includes(field))return;
+    this.setData({[`returnForm.${field}`]:event.detail.value});
+  },
+  chooseFreight(event:WechatMiniprogram.PickerChange){
+    if(this.data.assignedToMe&&!this.data.busy&&!this.data.returnAttempt)this.setData({'returnForm.freightPayer':String(event.detail.value)==='0'?'merchant':'member'});
+  },
+  async approveReturn(event:WechatMiniprogram.TouchEvent){
+    const id=String(event.currentTarget.dataset.id??""),row=this.data.aftersaleCases.find(item=>item.id===id);
+    if(!row||row.state!=='requested'||row.kind!=='return_refund')return;
+    const decision=await wx.showModal({title:'确认需寄回核对？',content:'这只记录退货处理决定。发送本案真实收件信息后，才会请用户寄回。',confirmText:'确认处理'});
+    if(!decision.confirm)return;
+    await this.runAftersaleAction(row,{action:'approve_return',expectedVersion:row.version,note:'已确认本案需寄回核对，待发送收件指引'});
+  },
+  async sendReturnInstruction(){
+    if(!this.data.assignedToMe||!this.data.canManageAftersale||this.data.busy)return;
+    const row=this.data.aftersaleCases.find(item=>item.id===this.data.returnFormCaseId);
+    if(!row||!['awaiting_instruction','awaiting_return'].includes(row.state))return;
+    if(this.data.returnAttempt){await this.runAftersaleAction(row,this.data.returnAttempt.payload);return;}
+    const form=this.data.returnForm;
+    if(!form.recipientName.trim()||!/^\+?[0-9-]{7,20}$/.test(form.phone.trim())||!form.region.trim()||!form.address.trim()||!form.freightPayer){
+      this.setData({aftersaleError:'请完整填写收件人、电话、地区、地址和运费承担。'});return;
+    }
+    const payer=form.freightPayer==='merchant'?'商家':'用户';
+    const decision=await wx.showModal({title:row.state==='awaiting_return'?'发送新版本退货指引？':'发送本案退货指引？',
+      content:`${form.recipientName} · ${form.phone}\n${form.region} ${form.address}\n运费：${payer}承担。发送后形成不可覆盖的版本记录。`,confirmText:'确认发送'});
+    if(!decision.confirm)return;
+    await this.runAftersaleAction(row,{action:'send_return_instruction',expectedVersion:row.version,note:'本案退货收件信息和运费承担已核对并发送',
+      recipientName:form.recipientName.trim(),phone:form.phone.trim(),region:form.region.trim(),address:form.address.trim(),
+      freightPayer:form.freightPayer,instructions:form.instructions.trim()});
+  },
+  async runAftersaleAction(row:AftersaleCase,payload:Record<string,unknown>){
+    if(!this.data.assignedToMe||!this.data.canManageAftersale||this.data.busy||!this.data.visible)return;
+    const attempt=this.data.returnAttempt??{key:clientOperationKey('aftersale-chat'),caseId:row.id,payload};
+    if(attempt.caseId!==row.id)return;
+    const epoch=this.lifecycleEpoch,token=sessionToken();this.setData({busy:true,aftersaleError:'',returnAttempt:attempt});
+    try{
+      await request({path:`/v1/management/support/conversations/${this.data.id}/aftersales/${row.id}/actions`,method:'POST',
+        idempotencyKey:attempt.key,data:attempt.payload,cacheTags:['support']});
+      if(!this.owns(epoch,token))return;
+      this.setData({returnAttempt:null,returnFormCaseId:'',returnForm:{recipientName:'',phone:'',region:'',address:'',freightPayer:'',instructions:''}});
+      await Promise.all([this.loadAftersales(),this.load()]);
+    }catch(error){if(this.owns(epoch,token))this.setData({aftersaleError:[401,403,409,422].includes((error as {status?:number})?.status??0)
+      ?'本案或权限已变化。请先刷新核对，原请求记录会保留。':'提交结果未核实；可用原请求重试，避免重复发送。'});
+    }finally{if(this.owns(epoch,token))this.setData({busy:false});}
   },
   async poll() {
     if (this.pollInFlight || !this.data.pageAlive || !this.data.visible || this.data.loading || this.data.busy || !this.data.conversation) {
