@@ -91,6 +91,13 @@ def local_https_ready():
     require(value==b'200','PRODUCTION_LOCAL_HTTPS_NOT_READY')
 
 
+def require_services_stopped():
+    for unit in UNITS:
+        state=command(['systemctl','show',unit,'-p','ActiveState','--value']).decode().strip()
+        pid=command(['systemctl','show',unit,'-p','MainPID','--value']).decode().strip()
+        require(state=='inactive' and pid=='0','PRODUCTION_UNITS_NOT_STOPPED')
+
+
 def github(path):
     # Fixed repository, HTTPS verification, no credentials or arbitrary URL input.
     require(path.startswith(('git/ref/heads/main','git/commits/','actions/workflows/ci.yml/runs?',
@@ -128,7 +135,7 @@ def release_directory(path):
     return path
 
 
-def preflight(directory,candidate_env,fetch=github):
+def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
     identity=observe.identity() # Wrong instance must fail before other work.
     directory=release_directory(directory)
     manifest=receipt(directory/'release-manifest.json');main=reviewed_main(fetch)
@@ -164,8 +171,13 @@ def preflight(directory,candidate_env,fetch=github):
     require(CURRENT.is_symlink() and old.parent==ROOT/'releases' and old!=directory,'EXISTING_PRODUCTION_RELEASE_REQUIRED')
     prior={'directory':str(old),'indexSha256':sha((old/'index.js').read_bytes()),
            'workerSha256':sha((old/'worker.js').read_bytes()),'packageLockSha256':sha((old/'package-lock.json').read_bytes())}
-    # Do not stop a live service when its current local TLS/upstream is broken.
-    local_https_ready()
+    if services_stopped:
+        # This recheck runs after the deliberate stop, before any migration.
+        # A 200 would require the old API to keep serving while supposedly drained.
+        require_services_stopped()
+    else:
+        # Initial preflight still requires the existing local TLS/upstream.
+        local_https_ready()
     return {'schemaVersion':1,'observedAtUtc':datetime.now(timezone.utc).isoformat(),'identity':identity,
             'target':target,'main':main,'candidateDirectory':str(directory),'manifestSha256':sha(protected(directory/'release-manifest.json')),
             'candidateEnvironmentSha256':sha(protected(candidate_env)),'liveEnvironmentSha256':sha(protected(LIVE)),
@@ -285,7 +297,7 @@ def cutover(plan,directory,candidate_env,q,approval,state):
         require(other==0,'UNDRAINED_PRODUCTION_DATABASE_CLIENTS')
         # Repeat independently sourced main/CI and live target check directly
         # before migration. If main moved, return to preflight/review.
-        fresh=preflight(directory,candidate_env)
+        fresh=preflight(directory,candidate_env,services_stopped=True)
         require(fresh['main']==plan['main'] and fresh['previous']==plan['previous']
                 and fresh['migrationPlan']==plan['migrationPlan']
                 and fresh['candidateEnvironmentSha256']==plan['candidateEnvironmentSha256']

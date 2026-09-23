@@ -41,3 +41,9 @@ infra/tencent/production-release.py 已直接调用 production-observation.guard
 ## 本机TLS与公网权限分离
 
 后续复核将升级入口的健康检查明确限定为127.0.0.1传输、api.cisme.cn SNI与完整证书验证，避免要求先把旧生产版本公开暴露才能准备关闭交易的新候选。无--insecure、无网络规则修改。新增一项边界回归后完整Python组92+4=96通过；公网443放行与外部HTTPS验收仍须对应批准及实测，不由本机200代替。
+
+## 停服后的复核顺序修正
+
+继续独立复核发现：cutover 停止 API/Worker 后再次调用 preflight，而 preflight 原本无条件要求旧 API 的本机 HTTPS 返回200，导致正常停服也会触发应用回滚。离线状态回归先复现失败（26项中1项错误，`UPGRADE_FAILED_APPLICATION_RESTORED_REVIEW_REQUIRED`），再修正为：首次预检仍验证本机 TLS；停服后的复核保留来源、现场目标、配置、迁移历史全部检查，并明确要求两个服务均为 inactive 且 MainPID=0。切换启动后仍验证两个实际进程及完整 TLS。没有跳过正式验收、没有修改网络或生产状态。
+
+修正后 Python 全组95+4=99项通过。3976f4f 的准确 CI35813185461 为1134单元、835集成、96项Python；它绑定修正前源码，不能作为此次修正的CI回执。后续准确HEAD/CI以PR Checks为准。所有证据均不代表production已经部署。

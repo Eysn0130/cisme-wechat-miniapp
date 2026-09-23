@@ -63,6 +63,15 @@ class MainProvenance(unittest.TestCase):
         with patch.object(m,'command',return_value=b'503'):
             with self.assertRaises(m.observe.target.Refused):m.local_https_ready()
 
+    def test_post_stop_check_requires_each_unit_inactive_and_without_a_process(self):
+        with patch.object(m,'command',side_effect=[b'inactive\n',b'0\n',b'inactive\n',b'0\n']) as command:
+            m.require_services_stopped()
+        self.assertEqual(len(command.call_args_list),4)
+        for values in ([b'active',b'1'],[b'inactive',b'7'],[b'inactive',b'0',b'activating',b'0']):
+            with self.subTest(values=values),patch.object(m,'command',side_effect=values):
+                with self.assertRaisesRegex(m.observe.target.Refused,'PRODUCTION_UNITS_NOT_STOPPED'):
+                    m.require_services_stopped()
+
 
 class Preflight(unittest.TestCase):
     def setUp(self):
@@ -81,7 +90,7 @@ class Preflight(unittest.TestCase):
         self.live_config={'APP_ENV':'staging','APP_SESSION_SECRET':'synthetic-same'}
         self.trusted_script=self.script;self.calls=[]
 
-    def execute(self):
+    def execute(self,services_stopped=False):
         def fetch(path):return {'type':'file','encoding':'base64','path':'scripts/release-migrate.mjs','content':base64.b64encode(self.trusted_script).decode()}
         def command(*args,**kwargs):self.calls.append('verify');return json.dumps({'verified':True,'sourceHead':HEAD,'sourceTree':TREE}).encode()
         with ExitStack() as stack:
@@ -93,13 +102,18 @@ class Preflight(unittest.TestCase):
             guard=stack.enter_context(patch.object(m.observe,'guard_for_upgrade',side_effect=lambda *a:self.calls.append('live-target-guard') or {}))
             stack.enter_context(patch.object(m.journal,'inspect',side_effect=lambda:self.calls.append('journal') or {'journal':['20260101_first.sql']}))
             stack.enter_context(patch.object(m,'local_https_ready',side_effect=lambda:self.calls.append('local-https')))
-            result=m.preflight(str(self.new),str(self.candidate),fetch)
+            stack.enter_context(patch.object(m,'require_services_stopped',side_effect=lambda:self.calls.append('units-stopped')))
+            result=m.preflight(str(self.new),str(self.candidate),fetch,services_stopped=services_stopped)
             guard.assert_called_once_with(str(self.candidate),self.manifest,HEAD,TREE)
             return result
 
     def test_live_guard_is_connected_before_reading_production_journal(self):
         result=self.execute();self.assertEqual(self.calls,['verify','live-target-guard','journal','local-https'])
         self.assertFalse(result['deployed']);self.assertFalse(result['permissionGranted'])
+
+    def test_post_stop_recheck_keeps_provenance_target_and_history_checks(self):
+        self.execute(services_stopped=True)
+        self.assertEqual(self.calls,['verify','live-target-guard','journal','units-stopped'])
 
     def test_branch_candidate_refused_before_any_candidate_execution(self):
         self.manifest['sourceHead']='c'*40;(self.new/'release-manifest.json').write_text(json.dumps(self.manifest))
@@ -197,7 +211,7 @@ class Cutover(unittest.TestCase):
           'migrationPlan':{'pending':['20260101_next.sql']},'liveEnvironmentSha256':m.sha(self.old_bytes),'candidateEnvironmentSha256':m.sha(self.new_bytes)}
         self.q={'backup':{'sha256':'d'*64},'reviewReference':'synthetic-only'};self.commands=[];self.switches=[];self.business=['before-cutover']
 
-    def execute(self,fail_health=False,fail_migration=False,clients=0,changed_env=False):
+    def execute(self,fail_health=False,fail_migration=False,clients=0,changed_env=False,stopped_api=False):
         def command(args,**kwargs):
             self.commands.append(args)
             if args[-1]=='up':
@@ -206,13 +220,17 @@ class Cutover(unittest.TestCase):
                 if fail_migration:raise m.observe.target.Refused('SYNTHETIC_PARTIAL_MIGRATION_FAILED')
                 return b'{"applied":"20260101_next.sql"}\n'
             return b''
+        def recheck(*args,**kwargs):
+            if stopped_api and not kwargs.get('services_stopped',False):
+                raise m.observe.target.Refused('PRODUCTION_LOCAL_HTTPS_NOT_READY')
+            return self.plan
         def switch(directory,env,label):self.switches.append(directory);self.current=directory;self.live.write_bytes(env)
         def health(directory):
             if fail_health and directory==self.new:
                 if changed_env:self.live.write_bytes(b'SYNTHETIC_OTHER_OPERATOR_CHANGE')
                 raise m.observe.target.Refused('SYNTHETIC_ACTIVATION_FAILED')
         with ExitStack() as stack:
-            for name,value in [('LIVE',self.live),('protected',lambda p,*a:Path(p).read_bytes()),('preflight',lambda *a:self.plan),('command',command),('switch',switch),('healthy',health),('receipt',lambda *a:{})]:stack.enter_context(patch.object(m,name,value))
+            for name,value in [('LIVE',self.live),('protected',lambda p,*a:Path(p).read_bytes()),('preflight',recheck),('command',command),('switch',switch),('healthy',health),('receipt',lambda *a:{})]:stack.enter_context(patch.object(m,name,value))
             stack.enter_context(patch.object(m.journal,'query',return_value=clients));guard=stack.enter_context(patch.object(m.observe,'guard_for_upgrade',return_value={}))
             result=m.cutover(self.plan,str(self.new),str(self.candidate),self.q,'synthetic-only',self.state)
             self.assertEqual(guard.call_count,1);return result
@@ -221,6 +239,11 @@ class Cutover(unittest.TestCase):
         result=self.execute();self.assertTrue(result['deployed']);self.assertFalse(result['productionValidated']);self.assertFalse(result['commerceEnabled'])
         self.assertEqual(self.current,self.new);self.assertEqual(self.live.read_bytes(),self.new_bytes)
         self.assertTrue((self.state/'previous.env').stat().st_mode&0o777==0o600)
+
+    def test_recheck_after_service_stop_does_not_require_an_offline_api_to_serve_https(self):
+        result=self.execute(stopped_api=True)
+        self.assertTrue(result['deployed'])
+        self.assertEqual(self.current,self.new)
 
     def test_activation_failure_rolls_back_application_without_reverting_new_writes(self):
         with self.assertRaisesRegex(m.observe.target.Refused,'APPLICATION_RESTORED'):self.execute(fail_health=True)
