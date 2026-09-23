@@ -14,7 +14,28 @@ export const AFTERSALE_CAPABILITIES:Capability[]=['commerce.aftersale.review','c
 const actionCaps:Record<string,Capability>={request_info:'commerce.aftersale.review',reject:'commerce.aftersale.review',
   approve_return:'commerce.aftersale.review',send_return_instruction:'commerce.aftersale.review',
   approve_refund_without_return:'commerce.aftersale.review',request_refund:'commerce.aftersale.review',reopen_refund:'commerce.aftersale.review',
+  resolve_old_route:'commerce.aftersale.review',
   receive_return:'commerce.return.receive',inspect_return:'commerce.return.inspect'};
+const attentionFilters=['requested','instruction','old_route','receiving','inspection'] as const;
+type AttentionFilter=typeof attentionFilters[number];
+function attentionFilter(value:unknown,management:boolean):AttentionFilter|null{
+  if(value===undefined)return null;
+  if(!management||typeof value!=='string'||!attentionFilters.includes(value as AttentionFilter))
+    fail('AFTERSALE_FILTER_INVALID','售后筛选条件无效',422);
+  return value as AttentionFilter;
+}
+function attentionCapability(filter:AttentionFilter):Capability{
+  return filter==='receiving'?'commerce.return.receive':filter==='inspection'?'commerce.return.inspect':'commerce.aftersale.review';
+}
+function attentionPredicate(filter:AttentionFilter):string{
+  if(filter==='requested')return "state='requested'";
+  if(filter==='instruction')return "state='awaiting_instruction'";
+  if(filter==='receiving')return "state='return_in_transit'";
+  if(filter==='inspection')return "state='return_received'";
+  return `state IN ('awaiting_return','return_in_transit') AND shipped_instruction_version IS NOT NULL
+    AND route_review_outcome IS NULL AND (return_destination->>'version') ~ '^[0-9]+$'
+    AND shipped_instruction_version < (return_destination->>'version')::integer`;
+}
 function fail(code:string,message:string,status=409):never{throw new DomainError(code,message,status);}
 function id(value:unknown):string{if(typeof value!=='string'||!UUID.test(value))fail('AFTERSALE_ID_INVALID','售后编号无效',422);return value;}
 function key(value:unknown):string{if(typeof value!=='string'||!KEY.test(value))fail('IDEMPOTENCY_KEY_INVALID','请求键无效',400);return value;}
@@ -43,6 +64,7 @@ const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).d
 type CaseRow={id:string;order_id:string;member_id:string;kind:string;state:string;reason:string;lines:unknown[];
   amount_cents:string;version:number;request_hash:string;claim_basis:string;support_conversation_id:string|null;return_destination:unknown;return_carrier:string|null;
   return_tracking:string|null;shipped_instruction_version:number|null;quality_result:string|null;refund_request_id:string|null;created_at:Date;updated_at:Date;
+  route_review_outcome:string|null;route_reviewed_at:Date|null;
   exception_kind:string|null;exception_evidence_reference:string|null;exception_approved_by:string|null;exception_approved_at:Date|null};
 
 /** Case workflow. It records local facts only; provider dispatch,
@@ -66,8 +88,9 @@ export class AftersaleService{
       amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,region:d.region??'',address:d.address,freightPayer:d.freightPayer??'to_be_confirmed',instructions:d.instructions??''}))(row.return_destination):null,
       returnCarrier:row.return_carrier,returnTracking:row.return_tracking,
       shippedInstructionVersion:row.shipped_instruction_version,
-      returnRouteReviewRequired:['awaiting_return','return_in_transit'].includes(row.state)&&row.shipped_instruction_version!==null&&
+      returnRouteReviewRequired:['awaiting_return','return_in_transit'].includes(row.state)&&row.route_review_outcome===null&&row.shipped_instruction_version!==null&&
         row.shipped_instruction_version<Number((row.return_destination as {version?:number}|null)?.version??0),
+      routeReviewOutcome:row.route_review_outcome,routeReviewedAt:row.route_reviewed_at,
       qualityResult:row.quality_result,
       exceptionResolution:row.exception_kind?{kind:row.exception_kind,evidenceReference:row.exception_evidence_reference,
         approvedAt:row.exception_approved_at}:null,
@@ -139,13 +162,15 @@ export class AftersaleService{
       return this.view(client,row);
     },'SERIALIZABLE');
   }
-  async list(memberId:string|undefined,query:{orderId?:string;limit?:string;cursor?:string}={},management=false){
+  async list(memberId:string|undefined,query:{orderId?:string;limit?:string;cursor?:string;attention?:string}={},management=false){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
-    const orderId=query.orderId?id(query.orderId):null,limit=pageLimit(query.limit),scope=pageScope(['aftersale',memberId,String(management),orderId]),cursor=readPageCursor(query.cursor,scope);
+    const orderId=query.orderId?id(query.orderId):null,filter=attentionFilter(query.attention,management),limit=pageLimit(query.limit),
+      scope=pageScope(['aftersale',memberId,String(management),orderId,filter]),cursor=readPageCursor(query.cursor,scope);
     return transaction(this.pool,async client=>{
-      if(management)await this.management(client,memberId);else await requireActiveMemberWithClient(client,memberId);
+      if(management)await this.management(client,memberId,filter?attentionCapability(filter):undefined);else await requireActiveMemberWithClient(client,memberId);
       const rows=(await client.query<CaseRow & {cursor_at:string}>(`SELECT *,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
         FROM commerce_aftersale_case WHERE ($1::boolean OR member_id=$2)
+        ${filter?`AND (${attentionPredicate(filter)})`:''}
         AND ($3::uuid IS NULL OR order_id=$3) AND ($4::timestamptz IS NULL OR (created_at,id)<($4::timestamptz,$5::uuid))
         ORDER BY created_at DESC,id DESC LIMIT $6`,[management,memberId,orderId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
       return finishPage(await Promise.all(rows.map(async row=>({...await this.view(client,row),cursorAt:row.cursor_at}))),limit,scope);
@@ -194,6 +219,9 @@ export class AftersaleService{
     if(action==='inspect_return'&&quality!=='sellable'&&quality!=='unsellable')fail('RETURN_QUALITY_INVALID','请选择质检结果',422);
     const exceptionKind=action==='approve_refund_without_return'?input.exceptionKind:null;
     const evidenceReference=action==='approve_refund_without_return'?input.evidenceReference:null;
+    const routeOutcome=action==='resolve_old_route'?input.routeOutcome:null;
+    if(action==='resolve_old_route'&&!['carrier_contacted','rerouted','received'].includes(String(routeOutcome)))
+      fail('AFTERSALE_ROUTE_OUTCOME_INVALID','请选择实际处理结果',422);
     if(action==='approve_refund_without_return'&&(
       !['lost_in_transit','item_missing','carrier_intercepted','return_impracticable'].includes(String(exceptionKind))
       ||typeof evidenceReference!=='string'||!/^[A-Za-z0-9._:/-]{8,200}$/.test(evidenceReference)))
@@ -202,7 +230,7 @@ export class AftersaleService{
     const instructionVersion=['ship_return','report_old_route'].includes(action)?input.instructionVersion:null;
     if(instructionVersion!==null&&instructionVersion!==undefined&&(!Number.isSafeInteger(instructionVersion)||Number(instructionVersion)<1))
       fail('RETURN_INSTRUCTION_VERSION_INVALID','请选择实际使用的退货指引版本',422);
-    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction,instructionVersion,exceptionKind,evidenceReference});
+    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction,instructionVersion,exceptionKind,evidenceReference,routeOutcome});
     return transaction(this.pool,async client=>{
       if(management)await this.management(client,memberId,actionCaps[action]);else await requireActiveMemberWithClient(client,memberId);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
@@ -263,6 +291,11 @@ export class AftersaleService{
           fail('AFTERSALE_OLD_ROUTE_REQUIRED','请选择实际已使用的旧版退货指引',422);
       }
       if(action==='receive_return'&&row.state==='return_in_transit')state='return_received';
+      if(action==='resolve_old_route'&&['awaiting_return','return_in_transit','return_received'].includes(row.state)
+        &&row.shipped_instruction_version!==null
+        &&row.shipped_instruction_version<Number((row.return_destination as {version?:number}|null)?.version??0)
+        &&(row.route_review_outcome===null||row.route_review_outcome==='carrier_contacted')
+        &&!(row.route_review_outcome==='carrier_contacted'&&routeOutcome==='carrier_contacted'))state=row.state;
       if(action==='inspect_return'&&row.state==='return_received')state='quality_checked';
       if(action==='request_refund'&&(row.state==='refund_exception_approved'
         ||row.kind==='refund_only'&&row.state==='requested'||row.kind==='return_refund'&&row.state==='quality_checked')){
@@ -296,9 +329,11 @@ export class AftersaleService{
         exception_kind=COALESCE($9,exception_kind),exception_evidence_reference=COALESCE($10,exception_evidence_reference),
         exception_approved_by=CASE WHEN $9::text IS NOT NULL THEN $11::uuid ELSE exception_approved_by END,
         exception_approved_at=CASE WHEN $9::text IS NOT NULL THEN clock_timestamp() ELSE exception_approved_at END,
-        shipped_instruction_version=COALESCE($12,shipped_instruction_version)
+        shipped_instruction_version=COALESCE($12,shipped_instruction_version),
+        route_review_outcome=COALESCE($13,route_review_outcome),
+        route_reviewed_at=CASE WHEN $13::text IS NOT NULL THEN clock_timestamp() ELSE route_reviewed_at END
         WHERE id=$1 RETURNING *`,
-        [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId,exceptionKind,evidenceReference,memberId,shippedInstructionVersion])).rows[0]!;
+        [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId,exceptionKind,evidenceReference,memberId,shippedInstructionVersion,routeOutcome])).rows[0]!;
       if(action==='send_return_instruction'&&instruction){
         if(!supportConversationId)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','请先关联原客服会话后发送退货指引');
         const snapshot=destination as typeof instruction&{version:number};

@@ -6,7 +6,7 @@ import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner
 
 Page({
  lastSessionToken:"",
- data:{...initialRuntimeView(),chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null as null|{support?:{count:number};newAftersales?:{count:number};returnInstructions?:{count:number};oldRouteShipments?:{count:number};refundExceptions?:{count:number};privacyRequests?:{count:number};privacyOverdue?:{count:number}},attentionHasItems:false,attentionError:false,coreReady:false,loading:true,navigating:false,error:"",epoch:0,alive:true,visible:true,runtimeEpoch:0},
+ data:{...initialRuntimeView(),chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null as null|{support?:{count:number};newAftersales?:{count:number};returnInstructions?:{count:number};oldRouteShipments?:{count:number};returnsToReceive?:{count:number};returnsToInspect?:{count:number};refundExceptions?:{count:number};privacyRequests?:{count:number};privacyOverdue?:{count:number}},attentionHasItems:false,attentionError:false,coreReady:false,loading:true,navigating:false,error:"",epoch:0,alive:true,visible:true,runtimeEpoch:0},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onShow(){this.data.alive=true;this.data.visible=true;this.setData({navigating:false});void this.load();},
  onHide(){this.data.visible=false;this.data.epoch+=1;this.data.runtimeEpoch+=1;cancelPageReads(this);cancelRuntimeRead(this);this.setData({canSupport:false,canCatalog:false,canAftersale:false,canOrders:false,canFulfillment:false,canMembers:false,canPrivacy:false,canFinance:false,attention:null,attentionHasItems:false,attentionError:false,coreReady:false});},
@@ -46,7 +46,12 @@ Page({
  can(capability:Parameters<typeof hasCapability>[1]){return this.canNavigate()&&hasCapability(this.data.authority,capability);},
  openSupport(){if(!this.can("support.read")||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-support/index",fail:()=>this.setData({navigating:false})});},
   openCatalog(){if(!this.canNavigate()||!this.data.canCatalog||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-catalog/index",fail:()=>this.setData({navigating:false})});},
- openAftersale(){if(!this.canNavigate()||!this.data.canAftersale||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/aftersale/index?mode=management",fail:()=>this.setData({navigating:false})});},
+ openAftersale(event?:WechatMiniprogram.TouchEvent){if(!this.canNavigate()||!this.data.canAftersale||this.data.navigating)return;
+  const filter=String(event?.currentTarget?.dataset?.attention??'');
+  if(filter&&!['requested','instruction','old_route','receiving','inspection'].includes(filter))return;
+  const required=filter==='receiving'?'commerce.return.receive':filter==='inspection'?'commerce.return.inspect':'commerce.aftersale.review';
+  if(filter&&!this.can(required as Capability))return;
+  this.setData({navigating:true});wx.navigateTo({url:`/pages/aftersale/index?mode=management${filter?`&attention=${filter}`:''}`,fail:()=>this.setData({navigating:false})});},
  openOrders(){if(!this.canNavigate()||!this.data.canOrders||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-orders/index",fail:()=>this.setData({navigating:false})});},
  openFulfillment(){if(!this.can("commerce.fulfillment.manage")||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-fulfillment/index",fail:()=>this.setData({navigating:false})});},
  openMembers(){if(!this.canNavigate()||!this.data.canMembers||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-members/index",fail:()=>this.setData({navigating:false})});},

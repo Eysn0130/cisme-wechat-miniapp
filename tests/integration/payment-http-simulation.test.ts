@@ -1960,6 +1960,21 @@ it('records a prior-address shipment before a waybill exists and keeps the origi
   expect(shipped).toMatchObject({state:'return_in_transit',shippedInstructionVersion:1,returnRouteReviewRequired:true});
   expect((await pool.query(`SELECT count(*)::int AS n FROM support_message WHERE conversation_id=$1
     AND client_message_id=$2`,[claim.supportConversationId,`aftersale-old-route:${claim.id}`])).rows[0].n).toBe(1);
+  const filtered=await service.list(operator.memberId,{attention:'old_route'},true);
+  expect(filtered.items.some(item=>item.id===claim.id)).toBe(true);
+  await expect(service.list(owner.memberId,{attention:'old_route'})).rejects.toMatchObject({code:'AFTERSALE_FILTER_INVALID'});
+  const before=(await new ManagementAttentionService(pool,'test').summary(operator.memberId)).counts.oldRouteShipments!.count;
+  const contacted=await service.act(operator.memberId,claim.id,'old-route-contacted-001',
+    {action:'resolve_old_route',expectedVersion:6,note:'已联系承运商核对旧地址包裹',routeOutcome:'carrier_contacted'},true);
+  expect(contacted).toMatchObject({state:'return_in_transit',routeReviewOutcome:'carrier_contacted',returnRouteReviewRequired:false});
+  expect((await new ManagementAttentionService(pool,'test').summary(operator.memberId)).counts.oldRouteShipments!.count).toBe(before-1);
+  expect((await service.list(operator.memberId,{attention:'old_route'},true)).items.some(item=>item.id===claim.id)).toBe(false);
+  const resolved=await service.act(operator.memberId,claim.id,'old-route-rerouted-001',
+    {action:'resolve_old_route',expectedVersion:7,note:'承运商确认转寄到当前地址',routeOutcome:'rerouted'},true);
+  expect(resolved).toMatchObject({routeReviewOutcome:'rerouted',version:8});
+  await expect(service.act(operator.memberId,claim.id,'old-route-change-result',
+    {action:'resolve_old_route',expectedVersion:8,note:'不可覆盖已完成的协调结果',routeOutcome:'received'},true))
+    .rejects.toMatchObject({code:'AFTERSALE_STATE_CONFLICT'});
 });
 it('rechecks revoked case permissions and rolls back a failed refund link atomically',async()=>{
   const order=await aftersalePaidOrder('atomic');const service=new AftersaleService(pool,new AuthorityService(pool,'test'));

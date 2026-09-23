@@ -22,23 +22,31 @@ export class ManagementAttentionService {
         .map(grant=>grant.capability));
       if(!capabilities.size)throw new DomainError('CAPABILITY_REQUIRED','当前账号没有管理权限',403);
       const aftersale=capabilities.has('commerce.aftersale.review');
+      const receiving=capabilities.has('commerce.return.receive');
+      const inspection=capabilities.has('commerce.return.inspect');
       const support=capabilities.has('support.read');
       const privacy=capabilities.has('privacy.request.manage');
       const finance=capabilities.has('commerce.refund.approve');
       const counts:{support?:CountRow;newAftersales?:CountRow;returnInstructions?:CountRow;oldRouteShipments?:CountRow;
+        returnsToReceive?:CountRow;returnsToInspect?:CountRow;
         refundExceptions?:CountRow;privacyRequests?:CountRow;privacyOverdue?:CountRow}={};
       if(support)counts.support=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM support_conversation
         WHERE status='waiting_human' OR team_unread_count>0`)).rows[0]!;
       if(aftersale){
         counts.newAftersales=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case
-          WHERE state IN ('requested','need_info')`)).rows[0]!;
+          WHERE state='requested'`)).rows[0]!;
         counts.returnInstructions=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case
           WHERE state='awaiting_instruction'`)).rows[0]!;
         counts.oldRouteShipments=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case
           WHERE state IN ('awaiting_return','return_in_transit') AND shipped_instruction_version IS NOT NULL
+            AND route_review_outcome IS NULL
             AND (return_destination->>'version') ~ '^[0-9]+$'
             AND shipped_instruction_version < (return_destination->>'version')::integer`)).rows[0]!;
       }
+      if(receiving)counts.returnsToReceive=(await client.query<CountRow>(`SELECT count(*)::int AS count
+        FROM commerce_aftersale_case WHERE state='return_in_transit'`)).rows[0]!;
+      if(inspection)counts.returnsToInspect=(await client.query<CountRow>(`SELECT count(*)::int AS count
+        FROM commerce_aftersale_case WHERE state='return_received'`)).rows[0]!;
       if(finance)counts.refundExceptions=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM commerce_aftersale_case c
         JOIN commerce_refund_request r ON r.id=c.refund_request_id
         LEFT JOIN commission_refund_intent i ON i.request_id=r.id
@@ -46,9 +54,9 @@ export class ManagementAttentionService {
           OR EXISTS(SELECT 1 FROM commission_refund_inbox f WHERE f.refund_intent_id=i.id AND f.state='exception'))`)).rows[0]!;
       if(privacy){
         counts.privacyRequests=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM privacy_request
-          WHERE status IN ('received','verifying','reviewing','responded','failed')`)).rows[0]!;
+          WHERE status IN ('received','verifying','reviewing','failed')`)).rows[0]!;
         counts.privacyOverdue=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM privacy_request
-          WHERE status IN ('received','verifying','reviewing','responded','failed') AND due_at<clock_timestamp()`)).rows[0]!;
+          WHERE status IN ('received','verifying','reviewing','failed') AND due_at<clock_timestamp()`)).rows[0]!;
       }
       return {version:1,counts};
     },'REPEATABLE READ');

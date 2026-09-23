@@ -614,7 +614,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     aftersales.detail(request.memberId,request.params.caseId));
   app.post<{Params:{caseId:string}}>("/v1/me/aftersales/:caseId/actions",async request=>
     aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
-  app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string}}>("/v1/management/aftersales",async request=>
+  app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string;attention?:string}}>("/v1/management/aftersales",async request=>
     aftersales.list(request.memberId,request.query,true));
   app.get<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId",async request=>
     aftersales.detail(request.memberId,request.params.caseId,true));
