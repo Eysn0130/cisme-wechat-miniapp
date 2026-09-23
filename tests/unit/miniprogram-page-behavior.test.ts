@@ -1269,3 +1269,21 @@ it('loads privacy operator, version and contact from the shared public legal sou
  requestMock.mockRejectedValueOnce(new Error('network'));
  await page.loadLegalIdentity();expect(page.data.legalIdentity).toBeNull();
 });
+
+it('routes privacy contact to the existing support conversation, including after login',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:''}};
+ (globalThis as any).getApp=()=>appState;
+ const page=mountedPage(capturedPage!,{alive:true});
+ page.openSupport();
+ expect(resumeAuthenticationMock).toHaveBeenCalledWith('/pages/support/index');
+ expect(wxMock.navigateTo).not.toHaveBeenCalled();
+ appState.globalData.sessionToken='owner-token';
+ page.openSupport();page.openSupport();
+ expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
+ expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/support/index'}));
+ const failure=wxMock.navigateTo!.mock.calls[0]![0].fail;
+ failure();
+ expect(page.data.error).toContain('重试');
+ expect(page.data.supportOpening).toBe(false);
+});

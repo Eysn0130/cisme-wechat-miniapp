@@ -9,14 +9,20 @@ const deliveryStatuses:Record<string,string>={available:'会员资料副本可�
 type PrivacyPage={items:any[];nextCursor:string|null};
 function displayRecord(r:any){return {...r,label:labels[kinds.indexOf(r.kind)]||'隐私请求',statusLabel:r.status==='responded'&&r.waitingOn==='member'?'请补充信息':statuses[r.status]||'状态待核对',executionSummary:r.execution?`${r.execution.type==='export'?'数据副本':'数据处理'}：${executionStatuses[r.execution.status]||'状态待核对'}${r.execution.scope==='member_profile_only'?'；'+(deliveryStatuses[r.execution.deliveryState]||'仅会员资料子集，完整导出仍待处理'):''}${r.execution.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；仅清除自报微信号，其他资料未删除':''}`:''};}
 Page({
- data:{chromeStyle:currentChromeStyle(),authenticated:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false},
- onShow(){this.data.alive=true;this.setData({authenticated:Boolean(getApp<IAppOption>().globalData.sessionToken)});void this.loadLegalIdentity();void this.load();},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
+ onShow(){this.data.alive=true;this.setData({authenticated:Boolean(getApp<IAppOption>().globalData.sessionToken),supportOpening:false});void this.loadLegalIdentity();void this.load();},
  onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loadingMore:false,moreError:'',replyFor:'',replyDraft:'',replyKey:'',replyBusy:false});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){this.setData({selected:Number(e.detail.value)});},
  input(e:WechatMiniprogram.TextareaInput){this.setData({message:e.detail.value});},
  login(){resumeAuthentication('/pages/privacy-rights/index');},
+ openSupport(){
+  if(this.data.supportOpening)return;
+  if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication('/pages/support/index');return;}
+  this.setData({supportOpening:true,error:''});
+  wx.navigateTo({url:'/pages/support/index',fail:()=>this.setData({supportOpening:false,error:'客服暂时无法打开，请重试。'})});
+ },
  async loadLegalIdentity(){
   const attempt=++this.data.legalAttempt;
   this.setData({legalIdentity:null});
@@ -25,7 +31,7 @@ Page({
    if(!this.data.alive||attempt!==this.data.legalAttempt)return;
    const privacy=result.documents.find(doc=>doc.document_type==='privacy');
    if(privacy)this.setData({legalIdentity:{operator:privacy.operator_name,version:privacy.version,contact:privacy.contact}});
-  }catch{/* Keep the public feedback route available while the shared policy source is unavailable. */}
+  }catch{/* The existing support entry remains available when legal metadata cannot load. */}
  },
  async load(){
   if(!this.data.authenticated){this.setData({records:[],recordToken:'',nextCursor:null});return;}

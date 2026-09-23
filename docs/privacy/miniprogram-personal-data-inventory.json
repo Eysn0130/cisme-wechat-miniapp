@@ -53,7 +53,6 @@
   "wxmlInterfaces": [
     "input-type:nickname",
     "open-type:chooseAvatar",
-    "open-type:feedback",
     "open-type:getPhoneNumber",
     "open-type:share"
   ],
