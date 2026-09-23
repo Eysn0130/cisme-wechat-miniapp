@@ -174,9 +174,11 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
   return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts };
 }
 
-export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates, onError: (error: unknown) => void) {
+export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates,
+  onError: (error: unknown) => void, onCycleSuccess?: () => Promise<void>) {
   return startWorkerLoop(async () => {
     const result = await runWorkerCycle(pool, storage, gates);
+    await onCycleSuccess?.();
     return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 || result.privacyExports>0 || result.privacyErasures>0;
   }, onError);
 }

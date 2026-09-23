@@ -12,6 +12,9 @@ import { SettlementCommandService } from "../../api/src/settlementCommand.js";
 import { safeFailureFields } from "../../api/src/observability.js";
 import { fulfillmentRuntime } from "../../api/src/fulfillmentRuntime.js";
 import { startWorkerLoop } from "./loop.js";
+import { rename, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 export { processOutboxBatch, processMediaCleanup, sweepExpired, WORKER_MAX_ATTEMPTS } from "./jobs.js";
 export { expirePendingOrders } from "../../api/src/commerceOrders.js";
 
@@ -22,8 +25,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const shipping=fulfillmentRuntime(config,pool);
   const shippingWorker=shipping?startWorkerLoop(async()=>{await shipping.runCycle();return false;},
     error=>console.error('CISME_SHIPPING_WORKER_FAILED',safeFailureFields(error)),5000):null;
+  let lastHeartbeat=0;
+  const heartbeatPath=join(tmpdir(),'cisme-worker-heartbeat.json');
+  const recordWorkerCycle=async()=>{
+    if(Date.now()-lastHeartbeat<10_000)return;
+    const temporary=`${heartbeatPath}.${process.pid}.tmp`;
+    await writeFile(temporary,JSON.stringify({completedAtUtc:new Date().toISOString()})+'\n',{mode:0o600});
+    await rename(temporary,heartbeatPath);
+    lastHeartbeat=Date.now();
+  };
   const worker = startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
-    privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null }, (error) => console.error("CISME_WORKER_TICK_FAILED", safeFailureFields(error)));
+    privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null },
+    (error) => console.error("CISME_WORKER_TICK_FAILED", safeFailureFields(error)),recordWorkerCycle);
   const isolatedProtocol=isolatedPaymentProtocol(config,pool);
   const formalProtocol=isolatedProtocol?undefined:formalPaymentProtocol(config,pool);
   const paymentProtocol=isolatedProtocol??formalProtocol;
