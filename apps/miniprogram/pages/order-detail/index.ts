@@ -15,7 +15,7 @@ type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundS
   cashRefundCents:number|null;creditReturnCents:number|null;amountLabel?:string;stateLabel?:string;
   cashLabel?:string;creditLabel?:string};
 type RefundPage={items:RefundRow[];totalCount:number;nextCursor:string|null};
-const refundLabels:Record<string,string>={requested:"待复核",rejected:"未通过",approved:"已核准，待渠道处理",prepared:"待提交渠道",succeeded:"渠道已退款",closed:"渠道已关闭",abnormal:"渠道异常"};
+const refundLabels:Record<string,string>={requested:"申请已收到",rejected:"申请未通过",approved:"退款处理中",prepared:"退款处理中",succeeded:"已退款",closed:"退款已关闭",abnormal:"退款需客服协助"};
 const orderIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type SheetCase={id:string;orderId:string;state:string;kind:string;reason:string;claimBasis:string;requestedAt:string;supportConversationId:string|null;returnDestination:any;refund:any;resolved:boolean};
 type SheetMessage={id:string;sequence:number;senderType:string;body:string;createdAt:string;deliveryState:string;orderCard:any;returnInstruction:any};
@@ -25,12 +25,12 @@ function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
   return match?Number(match[1])*100+Number((match[2]??"").padEnd(2,"0")):NaN;}
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
-  sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,
+  sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,
   data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
     tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
-    supportSheetOpen:false,sheetLoading:false,sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
+    supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetConsulting:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",sheetRequestedLabel:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
     sheetConversation:null as {id:string;teamReadSequence?:number}|null,sheetKindIndex:1,sheetKindOptions:['仅退款','退货退款'],
     sheetBasisIndex:0,sheetBasisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
@@ -51,7 +51,7 @@ Page({
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken,changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
     if(changed){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
-    if(changed){this.stopSheetPoll();this.setData({supportSheetOpen:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
+    if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
     },
   confirmationPending:false,
   trackingAttempt:0,
@@ -65,7 +65,7 @@ Page({
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;
-    this.stopSheetPoll();this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
+    this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
 
@@ -161,11 +161,11 @@ Page({
     this.setData({isolatedPayment:ready&&actions.money,paymentRecovery:ready&&(actions.money||actions.recovery)});
   },
   async loadRuntime(epoch:number,token:string){cancelRuntimeRead(this);const attempt=++this.data.runtimeEpoch,readEpoch=this.data.readEpoch;
-    this.setData({runtimeState:"loading",runtimeMode:"unknown",runtimeStatus:null,runtimeCopy:"正在核验资金操作状态，订单事实可先查看。",isolatedPayment:false,paymentRecovery:false});
+    this.setData({runtimeState:"loading",runtimeMode:"unknown",runtimeStatus:null,runtimeCopy:"正在连接支付服务…",isolatedPayment:false,paymentRecovery:false});
     try{const status=validateRuntime(await orderRuntimeStatus(runtimeReadOwner(this)));
       if(!this.readCurrent(epoch,token,readEpoch)||attempt!==this.data.runtimeEpoch)return;
       this.setData(runtimeView(status));this.applyRuntime();
-    }catch{if(this.readCurrent(epoch,token,readEpoch)&&attempt===this.data.runtimeEpoch)this.setData({runtimeState:"error",runtimeCopy:"资金操作状态暂时无法核验，付款及退款申请保持关闭；可单独重试。",isolatedPayment:false,paymentRecovery:false});}
+    }catch{if(this.readCurrent(epoch,token,readEpoch)&&attempt===this.data.runtimeEpoch)this.setData({runtimeState:"error",runtimeCopy:"支付服务暂未连接，订单与售后仍可查看。",isolatedPayment:false,paymentRecovery:false});}
   },
   async loadRefunds(epoch:number,token:string,cursor?:string){
     if(!this.data.visible||!this.data.coreReady||!this.data.order)return;
@@ -177,7 +177,7 @@ Page({
       const rows=page.items.map(row=>({...row,amountLabel:centsToYuan(row.amountCents),
         cashLabel:row.cashRefundCents===null?"":centsToYuan(row.cashRefundCents),
         creditLabel:row.creditReturnCents===null?"":centsToYuan(row.creditReturnCents),
-        stateLabel:refundLabels[row.refundState??""]??refundLabels[row.state]??row.state}));
+        stateLabel:refundLabels[row.refundState??""]??refundLabels[row.state]??"进度暂未更新"}));
       const seen=new Set(cursor?this.data.refunds.map(row=>row.id):[]);
       this.setData({refunds:[...(cursor?this.data.refunds:[]),...rows.filter(row=>!seen.has(row.id))],
         refundTotal:page.totalCount,refundCountLabel:`本单申请 ${page.totalCount} 项`,refundCursor:page.nextCursor,refundLoading:false,refundMoreLoading:false});
@@ -247,45 +247,77 @@ Page({
     try{const result=await executeCommerceCommand<CommerceOrder<MemberOrderAddress>>({kind:this.data.isolatedPayment?"cancel-verified":"cancel",objectId:id,key:cancelKey,
       payload:{expectedVersion:version,reason:"用户确认取消待支付订单"}},()=>current()&&this.data.visible&&(order.transactionSourceKind!=="verified_commerce"||this.data.isolatedPayment));
       const updated=result.result??await myOrder(id,this);
-      if(current())this.setData({order:this.normalize(updated),busy:false,cancelKey:"",actionStatus:"订单已取消，相关预留已由服务端处理。"});}
+      if(current())this.setData({order:this.normalize(updated),busy:false,cancelKey:"",actionStatus:"订单已取消。"});}
     catch(error){if(current())this.setData({busy:false,actionError:errorTitle(error,"取消结果暂未核实，请核对原单后重试原操作。")});}
     finally{this.finishAction(epoch,token);}},
   sheetCurrent(epoch:number,token:string){return this.canAct()&&this.data.supportSheetOpen&&this.current(epoch,token);},
   stopSheetPoll(){if(this.sheetTimer)clearTimeout(this.sheetTimer);this.sheetTimer=null;},
   scheduleSheetPoll(){this.stopSheetPoll();if(!this.data.supportSheetOpen||!this.data.visible)return;
     this.sheetTimer=setTimeout(()=>void this.pollSupportSheet(),supportPollDelay(this.sheetFailures,false));},
-  async pollSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct()||this.data.sheetLoading||this.data.sheetSending){this.scheduleSheetPoll();return;}
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,cursor=this.sheetCursor;
-    try{const page=await pageRead<{messages:SheetMessage[];latestCursor:number;conversation:{id:string;teamReadSequence?:number}|null}>(this,
-      {path:`/v1/me/support/messages?after=${cursor}&limit=50`,cacheTags:['support']});
-      if(!this.sheetCurrent(epoch,token))return;
-      const state=mergeSyncPage<SheetShown>({messages:this.data.sheetMessages,syncCursor:this.sheetCursor,maxSeenSequence:this.sheetCursor,readCursor:0},
-        presentSupportMessages(page.messages??[],{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}),page.latestCursor??cursor);
-      this.sheetCursor=state.syncCursor;this.setData({sheetMessages:presentSupportMessages(state.messages,{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}).slice(-30),sheetConversation:page.conversation});
-      this.sheetFailures=0;
-    }catch{this.sheetFailures=Math.min(this.sheetFailures+1,5);}finally{this.scheduleSheetPoll();}
+  sheetReadCurrent(epoch:number,token:string,generation:number){return this.sheetCurrent(epoch,token)&&generation===this.sheetReadEpoch;},
+  applySheetCases(items:SheetCase[]){
+    const selected=items.find(item=>!['cancelled','rejected'].includes(item.state))??null;
+    const stateLabels:Record<string,string>={requested:'申请已收到',need_info:'请补充信息',awaiting_instruction:'客服正在准备退货信息',
+      awaiting_return:'请按指引寄回',return_in_transit:'退货运输中',return_received:'退货已收到',quality_checked:'正在处理退款',
+      refund_exception_approved:'无需寄回，正在处理退款',refund_pending:'退款处理中'};
+    const label=!selected?'':selected.resolved?'已退款':selected.refund?.reviewState==='rejected'?'退款申请未通过':
+      ['closed','abnormal'].includes(selected.refund?.channelState)?'退款需客服协助':stateLabels[selected.state]??'进度暂未更新';
+    const at=selected?Date.parse(selected.requestedAt):NaN;
+    this.setData({sheetCase:selected,sheetPreviousCase:selected?null:items[0]??null,sheetCasesReady:true,sheetCaseLabel:label,
+      sheetRequestedLabel:Number.isFinite(at)?new Date(at).toLocaleString('zh-CN',{hour12:false}):'',
+      ...(selected&&this.data.sheetAttempt?{sheetAttempt:null}:{})});
+  },
+  async pollSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct()||this.data.sheetLoading||this.data.sheetSending||this.sheetPollInFlight){this.scheduleSheetPoll();return;}
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,cursor=this.sheetCursor,generation=this.sheetReadEpoch;
+    this.sheetPollInFlight=true;
+    try{
+      // Progress is a case fact, not inferred from the latest chat message.
+      const [messages,cases]=await Promise.allSettled([
+        pageRead<{messages:SheetMessage[];latestCursor:number;conversation:{id:string;teamReadSequence?:number}|null}>(this,
+          {path:`/v1/me/support/messages?after=${cursor}&limit=50`,cacheTags:['support']}),
+        pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`})]);
+      if(!this.sheetReadCurrent(epoch,token,generation))return;
+      if(cases.status==='fulfilled')this.applySheetCases(cases.value.items??[]);
+      if(messages.status==='fulfilled'){
+        const page=messages.value;
+        const state=mergeSyncPage<SheetShown>({messages:this.data.sheetMessages,syncCursor:this.sheetCursor,maxSeenSequence:this.sheetCursor,readCursor:0},
+          presentSupportMessages(page.messages??[],{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}),page.latestCursor??cursor);
+        this.sheetCursor=state.syncCursor;this.setData({sheetMessages:presentSupportMessages(state.messages,{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}).slice(-30),sheetConversation:page.conversation});
+      }
+      this.sheetFailures=messages.status==='rejected'||cases.status==='rejected'?Math.min(this.sheetFailures+1,5):0;
+      this.setData({sheetError:cases.status==='rejected'?'售后进度暂未更新，请重试。':messages.status==='rejected'?'消息暂未更新，请重试。':''});
+    }finally{
+      this.sheetPollInFlight=false;
+      if(this.sheetReadCurrent(epoch,token,generation))this.scheduleSheetPoll();
+    }
   },
   async loadSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct())return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    this.stopSheetPoll();this.setData({sheetLoading:true,sheetError:''});
+    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,generation=++this.sheetReadEpoch;
+    this.stopSheetPoll();this.setData({sheetLoading:true,sheetCasesReady:false,sheetError:''});
     const [cases,messages]=await Promise.allSettled([
       pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`}),
       pageRead<{messages:SheetMessage[];latestCursor:number;conversation:{id:string;teamReadSequence?:number}|null}>(this,{path:'/v1/me/support/messages?limit=30',cacheTags:['support']})]);
-    if(!this.sheetCurrent(epoch,token))return;
-    if(cases.status==='fulfilled'){
-      const items=cases.value.items??[],selected=items.find(item=>!['cancelled','rejected'].includes(item.state))??items[0]??null;
-      this.setData({sheetCase:selected});if(selected&&this.data.sheetAttempt)this.setData({sheetAttempt:null});
-    }
+    if(!this.sheetReadCurrent(epoch,token,generation))return;
+    if(cases.status==='fulfilled')this.applySheetCases(cases.value.items??[]);
     if(messages.status==='fulfilled'){
       const page=messages.value;this.sheetCursor=page.latestCursor??0;
       this.setData({sheetConversation:page.conversation,sheetMessages:presentSupportMessages(page.messages??[],{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0})});
     }
-    this.setData({sheetLoading:false,sheetError:cases.status==='rejected'?'售后记录暂时无法核对，请重试。':messages.status==='rejected'?'客服消息暂时无法同步，可先提交售后申请。':''});
+    this.setData({sheetLoading:false,sheetError:cases.status==='rejected'?'售后记录暂未加载，请重试。':messages.status==='rejected'?'消息暂未更新，仍可提交售后申请。':''});
     this.scheduleSheetPoll();
   },
   openAftersale(){if(!this.canAct()||this.data.busy||!this.data.order||this.data.navigating)return;
     this.setData({supportSheetOpen:true,sheetError:''});void this.loadSupportSheet();},
-  closeSupportSheet(){if(this.data.sheetSubmitting||this.data.sheetSending)return;this.stopSheetPoll();this.setData({supportSheetOpen:false,sheetKeyboardHeight:0});},
+  closeSupportSheet(){this.stopSheetPoll();this.sheetReadEpoch+=1;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetKeyboardHeight:0});},
+  onSupportSheetLeave(){if(this.data.supportSheetOpen)this.closeSupportSheet();},
+  copySheetReturnInstruction(){
+    if(!this.sheetCurrent(this.data.epoch,getApp<IAppOption>().globalData.sessionToken)||!this.data.sheetCasesReady)return;
+    const row=this.data.sheetCase,d=row?.returnDestination;
+    if(!row||row.state!=='awaiting_return'||!d)return;
+    wx.setClipboardData({data:`${d.recipientName} ${d.phone}\n${d.region??''} ${d.address}\n退货指引第 ${d.version} 版`});
+  },
+  toggleSheetConsulting(){if(this.data.sheetSubmitting||this.data.sheetSending||this.data.sheetAttempt||this.data.sheetSendAttempt)return;
+    this.setData({sheetConsulting:!this.data.sheetConsulting});},
   stopPropagation(){},
   expandSupport(){if(!this.canAct()||this.data.navigating||this.data.sheetSending)return;this.stopSheetPoll();
     const handoff=this.data.sheetSendAttempt?null:this.data.sheetInput;
@@ -298,18 +330,18 @@ Page({
     },fail:()=>{
       const draft=takeSupportDraft(getApp<IAppOption>().globalData.sessionToken,this.data.id);
       if(attempt)takeSupportSendAttempt(getApp<IAppOption>().globalData.sessionToken,this.data.id);
-      this.setData({navigating:false,...(draft?{sheetInput:draft}:{})});
+      this.setData({navigating:false,...(draft?{sheetInput:draft}:{})});this.scheduleSheetPoll();
     }});},
   openFullAftersale(){if(!this.canAct()||this.data.navigating)return;this.stopSheetPoll();this.setData({navigating:true});
-    const caseId=this.data.sheetCase?.id;wx.navigateTo({url:caseId?`/pages/aftersale/index?caseId=${caseId}`:`/pages/aftersale/index?orderId=${this.data.id}`,fail:()=>this.setData({navigating:false})});},
+    const caseId=this.data.sheetCase?.id;wx.navigateTo({url:caseId?`/pages/aftersale/index?caseId=${caseId}`:`/pages/aftersale/index?orderId=${this.data.id}`,fail:()=>{this.setData({navigating:false});this.scheduleSheetPoll();}});},
   chooseSheetKind(event:WechatMiniprogram.PickerChange){if(this.data.sheetSubmitting||this.data.sheetAttempt)return;
     const value=Number(event.detail.value);this.setData({sheetKindIndex:this.data.sheetBasisIndex===1?1:value});},
   chooseSheetBasis(event:WechatMiniprogram.PickerChange){if(this.data.sheetSubmitting||this.data.sheetAttempt)return;
     const value=Number(event.detail.value);this.setData({sheetBasisIndex:value,sheetKindIndex:value===1?1:this.data.sheetKindIndex});},
   editSheetReason(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSubmitting&&!this.data.sheetAttempt)this.setData({sheetReason:event.detail.value});},
   editSheetInput(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSending&&!this.data.sheetSendAttempt)this.setData({sheetInput:event.detail.value});},
-  onSheetKeyboardHeightChange(event:WechatMiniprogram.TextareaKeyboardHeightChange){this.setData({sheetKeyboardHeight:Math.max(0,Number(event.detail.height)||0)});},
-  async submitSheetAftersale(){if(!this.sheetCurrent(this.data.epoch,getApp<IAppOption>().globalData.sessionToken)||this.data.sheetSubmitting||this.data.sheetCase)return;
+  onSheetKeyboardHeightChange(event:WechatMiniprogram.TextareaKeyboardHeightChange){const height=Number(event.detail.height);this.setData({sheetKeyboardHeight:this.data.supportSheetOpen&&Number.isFinite(height)?Math.max(0,height):0});},
+  async submitSheetAftersale(){if(!this.sheetCurrent(this.data.epoch,getApp<IAppOption>().globalData.sessionToken)||this.data.sheetSubmitting||!this.data.sheetCasesReady||this.data.sheetCase)return;
     const bases=['','no_reason','quality','wrong_item','missing_item','delivery_issue','other'];
     if(!this.data.sheetAttempt){
       if(!this.data.sheetBasisIndex){this.setData({sheetError:'请选择售后问题类型。'});return;}

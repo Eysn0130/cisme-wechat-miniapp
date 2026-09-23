@@ -17,18 +17,23 @@ export function cancelRuntimeRead(page: object): void {
 }
 export function initialRuntimeView() {
   return { runtimeState: "unknown" as RuntimeState, runtimeMode: "unknown" as RuntimeMode,
-    runtimeStatus: null as CommerceOrderRuntimeStatus | null, runtimeCopy: "资金操作状态尚未核验。" };
+    runtimeStatus: null as CommerceOrderRuntimeStatus | null, runtimeCopy: "正在连接支付服务…" };
 }
-/** Version 1 is isolated; version 2 carries the explicit formal capability. Unsupported envelopes fail closed;
- * neither a truthy flag nor a client setting can authorize real money. The API
- * independently checks every write's principal, object, version and policy. */
+/** Version 1 is isolated; version 2 carries the explicit formal capability.
+ * A contradictory projection cannot enable a client action. The API still
+ * independently authorizes every write; this is not a replacement for it. */
 export function validateRuntime(value: unknown): CommerceOrderRuntimeStatus {
-  const s = value as Partial<CommerceOrderRuntimeStatus> | null;
-  const common=s&&s.currency==="CNY"&&typeof s.orderFlowEnabled==="boolean"&&typeof s.isolatedMoneyOperationsAvailable==="boolean"
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("Unsupported commerce capability contract");
+  const s = value as Partial<CommerceOrderRuntimeStatus>;
+  const common=s.currency==="CNY"&&typeof s.orderFlowEnabled==="boolean"&&typeof s.isolatedMoneyOperationsAvailable==="boolean"
     &&typeof s.isolatedTransferAvailable==="boolean"&&typeof s.isolatedCreditCheckoutAvailable==="boolean";
+  const nonfinancial=s.scope==="disabled"||s.scope==="synthetic_nonproduction";
   const isolated=common&&s.version===1&&s.paymentAvailable===false&&s.paymentOnboarding==="IN_PROGRESS"
     &&["disabled","synthetic_nonproduction","verified_isolated_test","formal_protocol_synthetic_test"].includes(s.scope??"")
-    &&s.formalMoneyOperationsAvailable!==true;
+    &&(s.formalMoneyOperationsAvailable===undefined||s.formalMoneyOperationsAvailable===false)
+    &&(s.formalRecoveryAvailable===undefined||s.formalRecoveryAvailable===false)
+    &&(!nonfinancial||!s.isolatedMoneyOperationsAvailable&&!s.isolatedTransferAvailable&&!s.isolatedCreditCheckoutAvailable);
   const formal=common&&s.version===2&&s.scope==="formal_commerce"&&typeof s.formalMoneyOperationsAvailable==="boolean"&&typeof s.formalRecoveryAvailable==="boolean"
     &&s.paymentAvailable===s.formalMoneyOperationsAvailable&&s.orderFlowEnabled===s.formalMoneyOperationsAvailable
     &&s.paymentOnboarding===(s.paymentAvailable?"READY":"IN_PROGRESS")
@@ -39,11 +44,14 @@ export function validateRuntime(value: unknown): CommerceOrderRuntimeStatus {
 export function runtimeView(status: CommerceOrderRuntimeStatus) {
   return { runtimeState: "ready" as RuntimeState, runtimeStatus: status,
     runtimeMode: (status.scope === "formal_commerce" ? "formal" : status.scope === "disabled" ? "disabled" : "test") as RuntimeMode,
-    runtimeCopy: status.scope === "formal_commerce" ? (status.paymentAvailable?"微信支付与退款以服务端核验的渠道事实为准。":"正式交易暂未开放。已有订单及售后记录仍可查看。") : status.scope === "disabled" ? "当前环境未开放资金操作。订单状态以服务端记录为准。" :
-      status.scope === "synthetic_nonproduction" ? "正式支付尚未开放，当前仅供合成订单测试。" :
-      "当前仅开放隔离协议测试，不会发生真实扣款或转账。" };
+    runtimeCopy: status.scope === "formal_commerce" ? (status.paymentAvailable?"可使用微信支付。":"付款暂不可用，订单与售后仍可查看。") : status.scope === "disabled" ? "付款暂不可用，已有订单仍可查看。" :
+      "测试环境，不会真实扣款或转账。" };
 }
 export function runtimeActions(status: CommerceOrderRuntimeStatus | null) {
+  // Some callers consume a cached projection directly. Validate here as well
+  // so an unsupported version or malformed flags cannot expose write controls.
+  try { validateRuntime(status); }
+  catch { return { money: false, recovery: false, transfer: false, credit: false }; }
   const money = Boolean(status && (status.version===2&&status.scope==="formal_commerce"&&status.formalMoneyOperationsAvailable===true || ["verified_isolated_test", "formal_protocol_synthetic_test"].includes(status.scope) && status.isolatedMoneyOperationsAvailable === true));
   return { money, recovery:Boolean(status?.version===2&&status.scope==="formal_commerce"&&status.formalRecoveryAvailable), transfer: Boolean(money && status?.scope === "verified_isolated_test" && status.isolatedTransferAvailable === true),
     credit: Boolean(status && status.scope !== "disabled" && status.isolatedCreditCheckoutAvailable === true) };
