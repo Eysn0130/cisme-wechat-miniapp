@@ -328,16 +328,17 @@ it('redrives an exhausted synthetic export without exposing an unfinished artifa
  expect(JSON.stringify((await pool.query('SELECT detail FROM privacy_request_event WHERE privacy_request_id=$1',[id])).rows)).not.toContain('PRIVATE_EXHAUSTED_EXPORT');
 });
 it('keeps partially completed requests after actionable work across queue pages',async()=>{
- const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'queue-pagination-member',displayName:'queue pagination',
-   consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
- expect(identity.statusCode).toBe(200);
- const queueMemberId=identity.json().memberId as string;
- await pool.query(`INSERT INTO privacy_request(member_id,kind,message,status,due_at)
+ const queueMemberId=(await pool.query<{id:string}>("INSERT INTO member(display_name) VALUES('queue pagination fixture') RETURNING id")).rows[0]!.id;
+ const requestIds:string[]=[];
+ try{
+ const open=(await pool.query<{id:string}>(`INSERT INTO privacy_request(member_id,kind,message,status,due_at)
    SELECT $1,'other','queue-open-'||n,'received',now()+interval '1 day'
-   FROM generate_series(1,101) n`,[queueMemberId]);
+   FROM generate_series(1,101) n RETURNING id`,[queueMemberId])).rows.map(row=>row.id);
+ requestIds.push(...open);
  const closed=(await pool.query(`INSERT INTO privacy_request(member_id,kind,message,status,due_at,completed_at)
    VALUES($1,'other','queue-partial-terminal','partially_completed',now()+interval '12 hours',now()) RETURNING id`,
    [queueMemberId])).rows[0].id;
+ requestIds.push(closed);
  const rights=new PrivacyRights(pool,config.env);
  const seen:Array<{id:string;status:string}>=[];
  let cursor:string|undefined;
@@ -347,8 +348,12 @@ it('keeps partially completed requests after actionable work across queue pages'
    cursor=page.nextCursor??undefined;
  } while(cursor);
  expect(new Set(seen.map(item=>item.id)).size).toBe(seen.length);
- expect(seen.filter(item=>item.status==='received').length).toBeGreaterThanOrEqual(101);
+ expect(open.every(id=>seen.some(item=>item.id===id))).toBe(true);
  const partialIndex=seen.findIndex(item=>item.id===closed);
- expect(partialIndex).toBeGreaterThanOrEqual(101);
+ expect(partialIndex).toBeGreaterThan(Math.max(...open.map(id=>seen.findIndex(item=>item.id===id))));
  expect(seen.slice(partialIndex+1).some(item=>!['completed','partially_completed','rejected','canceled'].includes(item.status))).toBe(false);
+ }finally{
+   await pool.query('DELETE FROM privacy_request WHERE id=ANY($1::uuid[])',[requestIds]);
+   await pool.query('DELETE FROM member WHERE id=$1',[queueMemberId]);
+ }
 });
