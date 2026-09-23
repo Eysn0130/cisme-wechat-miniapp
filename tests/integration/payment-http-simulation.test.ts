@@ -1455,6 +1455,12 @@ it("assembles pinned formal trust through isolated payment, callback, refund and
       expect((await commandApp.inject({method:'POST',url:'/v1/payments/wechat/callback',headers:{...completed.headers,'Content-Type':'application/json'},payload:completed.raw})).statusCode).toBe(204);
       await runMoneyWorkerCycle(protocol.inbox,protocol.refundInbox);
       expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[liveShape.id])).rows[0].status).toBe('paid');
+      const directRefund=await commandApp.inject({method:'POST',url:`/v1/me/orders/${liveShape.id}/refund-requests`,
+        headers:{...auth(buyer.sessionToken),'idempotency-key':'formal-direct-refund-denied'},
+        payload:{amountCents:1000,reason:'正式订单不得绕过售后案件'}});
+      expect(directRefund.statusCode).toBe(409);
+      expect(directRefund.json().code).toBe('AFTERSALE_CASE_REQUIRED');
+      expect((await pool.query('SELECT count(*)::int AS count FROM commerce_refund_request WHERE order_id=$1',[liveShape.id])).rows[0].count).toBe(0);
     }finally{await commandApp.close();await pool.query("UPDATE catalog_product SET source_kind='synthetic_test' WHERE id=(SELECT product_id FROM catalog_sku WHERE id=$1)",[skuId]);}
     expect(syntheticCalls).toBeGreaterThanOrEqual(2);
   }finally{

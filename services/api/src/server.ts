@@ -611,9 +611,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),input,true,
       input.action==='request_refund'?refundRequired():undefined);
   });
-  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/refund-requests",async request=>
-    refundRequired().request(request.memberId,request.params.orderId,idempotencyKey(request),
-      (request.body??{}) as Record<string,unknown>));
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/refund-requests",async request=>{
+    // Formal refunds must be linked to the reviewed aftersale case. The old
+    // direct route remains only for isolated protocol tests and old reads.
+    if(formalRecoveryProfile)throw new DomainError('AFTERSALE_CASE_REQUIRED','请从本单售后入口提交申请并核对退货流程',409);
+    return refundRequired().request(request.memberId,request.params.orderId,idempotencyKey(request),
+      (request.body??{}) as Record<string,unknown>);
+  });
   app.get<{Querystring:{limit?:string;cursor?:string;orderId?:string}}>("/v1/me/refund-requests",async request=>
     listMemberRefundRequests(pool,request.memberId,request.query));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/refund-requests/pending",async request=>

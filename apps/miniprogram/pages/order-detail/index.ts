@@ -164,20 +164,20 @@ Page({
   loadMoreRefunds(){const cursor=this.data.refundCursor;if(cursor&&!this.data.refundLoading&&!this.data.refundMoreLoading)
     void this.loadRefunds(this.data.epoch,getApp<IAppOption>().globalData.sessionToken,cursor);},
   retryRefunds(){void this.loadRefunds(this.data.epoch,getApp<IAppOption>().globalData.sessionToken);},
-  showRefundForm(){if(this.data.isolatedPayment&&this.data.order?.status==="paid"&&!this.data.busy)
+  showRefundForm(){if(this.data.runtimeMode!=="formal"&&this.data.isolatedPayment&&this.data.order?.status==="paid"&&!this.data.busy)
     this.setData({refundFormVisible:true,actionError:"",actionStatus:""});},
   closeRefundForm(){if(!this.data.busy)this.setData({refundFormVisible:false,actionError:""});},
   editRefundAmount(event:WechatMiniprogram.Input){if(this.data.busy)return;this.setData({refundAmount:event.detail.value,refundKey:""});},
   editRefundReason(event:WechatMiniprogram.Input){if(this.data.busy)return;this.setData({refundReason:event.detail.value,refundKey:""});},
   async submitRefund(){const order=this.data.order;
-    if(!this.canAct()||this.data.busy||!this.data.refundFormVisible||!this.data.isolatedPayment||!order||order.status!=="paid")return;
+    if(!this.canAct()||this.data.busy||!this.data.refundFormVisible||!this.data.isolatedPayment||this.data.runtimeMode==="formal"||!order||order.status!=="paid")return;
     const amountCents=refundCents(this.data.refundAmount),reason=this.data.refundReason.trim();
     if(!Number.isSafeInteger(amountCents)||amountCents<1||amountCents>order.totalCents){this.setData({actionError:`请输入不超过 ¥${order.totalYuan} 的正数金额。`});return;}
     if(Array.from(reason).length<3||Array.from(reason).length>500){this.setData({actionError:"请填写 3 至 500 字的退款原因。"});return;}
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,id=order.id,
       key=this.data.refundKey||clientOperationKey("refund-request");
-    const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.status==="paid";
-    const answer=await this.confirmOperation({title:this.data.runtimeMode==="formal"?"提交退款申请？":"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
+    const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.status==="paid"&&this.data.runtimeMode!=="formal";
+    const answer=await this.confirmOperation({title:"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,refundKey:key,actionError:"",actionStatus:""});
     try{await executeCommerceCommand({kind:"refund",objectId:id,key,payload:{amountCents,reason}},()=>current()&&this.data.visible&&this.data.isolatedPayment);

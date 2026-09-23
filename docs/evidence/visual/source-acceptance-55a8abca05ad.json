@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "095354d5730e38a7a4c60b3970938d0c2aee824f7845ee4c3fb555a2b4e41d96",
+  "packageSourceSha256": "55a8abca05ad5dd5ab9b1c68a2e4a1bc73470ef7b180445fa776c08277a6b9cc",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Package hash measured locally after formal refund entry was consolidated into the native aftersale case. The previous package manifest is archived in source-acceptance-55a8abca05ad.json. No current-package WeChat runtime or device acceptance has been recorded; all 40 route matrices and iOS/Android device acceptance remain blocked. Earlier screenshot evidence stays with its original source."
+  "note": "Package hash measured locally after explicit Shanghai shipment time parsing. The immediately prior package manifest is archived in source-acceptance-89871afeefac.json. No current-package WeChat runtime or device acceptance has been recorded; all 40 route matrices and iOS/Android device acceptance remain blocked. Earlier screenshot evidence stays with its original source."
 }
