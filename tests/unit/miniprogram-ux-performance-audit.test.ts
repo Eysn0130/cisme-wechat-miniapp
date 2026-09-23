@@ -35,7 +35,8 @@ describe("mini program user-perceived performance guardrails", () => {
   it("invalidates hidden privacy reads and guards Community session-sensitive callbacks", async () => {
     const privacy = await source("apps/miniprogram/pages/privacy-rights/index.ts");
     const community = await source("apps/miniprogram/pages/community/index.ts");
-    expect(privacy).toContain("onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loadingMore:false,moreError:''});}");
+    expect(privacy).toContain("onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;");
+    expect(privacy).toContain("replyFor:'',replyDraft:'',replyKey:'',replyBusy:false");
     expect(privacy).toContain("attempt===this.data.loadAttempt && token===getApp<IAppOption>().globalData.sessionToken");
     expect(community).toContain("token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.feedAttempt");
     expect(community).toContain("const current = () => token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt");

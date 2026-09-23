@@ -1,16 +1,17 @@
 import { request, resumeAuthentication } from '../../services/api';
 import { currentChromeStyle } from '../../services/layout';
+import { clientOperationKey } from '../../services/orders';
 const kinds=['access','correct','delete','close_account','withdraw','other'];
 const labels=['查阅或复制个人信息','更正个人信息','删除个人信息','注销会员账号','撤回个人信息处理同意','其他隐私咨询'];
 const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'待执行',executing:'正在执行',completed:'已完成',partially_completed:'部分完成',rejected:'未批准',canceled:'已取消',responded:'已回复，待处理'};
 const executionStatuses:Record<string,string>={planned:'已建立计划，尚未执行',approved:'已复核待执行',running:'正在执行',succeeded:'执行成功',partially_succeeded:'部分执行成功',failed:'执行失败待处理',expired:'导出已过期',canceled:'计划已取消'};
 const deliveryStatuses:Record<string,string>={available:'会员资料副本可查看',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
 type PrivacyPage={items:any[];nextCursor:string|null};
-function displayRecord(r:any){return {...r,label:labels[kinds.indexOf(r.kind)]||'隐私请求',statusLabel:statuses[r.status]||'状态待核对',executionSummary:r.execution?`${r.execution.type==='export'?'数据副本':'数据处理'}：${executionStatuses[r.execution.status]||'状态待核对'}${r.execution.scope==='member_profile_only'?'；'+(deliveryStatuses[r.execution.deliveryState]||'仅会员资料子集，完整导出仍待处理'):''}${r.execution.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；仅清除自报微信号，其他资料未删除':''}`:''};}
+function displayRecord(r:any){return {...r,label:labels[kinds.indexOf(r.kind)]||'隐私请求',statusLabel:r.status==='responded'&&r.waitingOn==='member'?'请补充信息':statuses[r.status]||'状态待核对',executionSummary:r.execution?`${r.execution.type==='export'?'数据副本':'数据处理'}：${executionStatuses[r.execution.status]||'状态待核对'}${r.execution.scope==='member_profile_only'?'；'+(deliveryStatuses[r.execution.deliveryState]||'仅会员资料子集，完整导出仍待处理'):''}${r.execution.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；仅清除自报微信号，其他资料未删除':''}`:''};}
 Page({
- data:{chromeStyle:currentChromeStyle(),authenticated:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string}},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false},
  onShow(){this.data.alive=true;this.setData({authenticated:Boolean(getApp<IAppOption>().globalData.sessionToken)});void this.loadLegalIdentity();void this.load();},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loadingMore:false,moreError:''});},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loadingMore:false,moreError:'',replyFor:'',replyDraft:'',replyKey:'',replyBusy:false});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){this.setData({selected:Number(e.detail.value)});},
@@ -53,6 +54,30 @@ Page({
   try{await request({path:'/v1/me/privacy-requests',method:'POST',data:{kind:kinds[this.data.selected],message:this.data.message}});if(this.data.alive && token===getApp<IAppOption>().globalData.sessionToken){this.setData({message:'',notice:'请求已受理，进度可在下方查看。'});await this.load();}}
   catch(e){if(this.data.alive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新受理记录后再试。'});}
   finally{if(this.data.alive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({busy:false});}
+ },
+ startReply(e:WechatMiniprogram.BaseEvent){
+  if(this.data.replyBusy)return;
+  const id=String(e.currentTarget.dataset.id||''),row=this.data.records.find((item:any)=>item.id===id);
+  if(row?.status==='responded'&&row.waitingOn==='member')this.setData({replyFor:id,replyDraft:'',replyKey:'',error:'',notice:''});
+ },
+ editReply(e:WechatMiniprogram.TextareaInput){if(!this.data.replyBusy)this.setData({replyDraft:e.detail.value,replyKey:'',error:''});},
+ cancelReply(){if(!this.data.replyBusy)this.setData({replyFor:'',replyDraft:'',replyKey:''});},
+ async sendReply(){
+  if(this.data.replyBusy||!this.data.replyFor)return;
+  const row=this.data.records.find((item:any)=>item.id===this.data.replyFor);
+  if(!row||row.status!=='responded'||row.waitingOn!=='member')return;
+  const message=this.data.replyDraft.trim();
+  if(!message||Array.from(message).length>2000){this.setData({error:'请填写不超过 2000 字的补充说明。'});return;}
+  const token=getApp<IAppOption>().globalData.sessionToken,id=row.id as string,
+    key=this.data.replyKey||clientOperationKey('privacy-reply');
+  this.setData({replyBusy:true,replyKey:key,error:'',notice:''});
+  try{await request({path:`/v1/me/privacy-requests/${encodeURIComponent(id)}/reply`,method:'POST',
+    idempotencyKey:key,data:{message,expectedVersion:row.version}});
+   if(this.data.alive&&token===getApp<IAppOption>().globalData.sessionToken){
+    this.setData({replyFor:'',replyDraft:'',replyKey:'',notice:'补充信息已收到，工作人员会继续处理。'});await this.load();}}
+  catch(e){if(this.data.alive&&token===getApp<IAppOption>().globalData.sessionToken)
+    this.setData({error:(e as {title?:string}).title||'结果暂未确认，请刷新记录核对；若仍待补充，可重试原内容。'});}
+  finally{if(this.data.alive&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({replyBusy:false});}
  },
  async viewExport(e:WechatMiniprogram.BaseEvent){
   const requestId=String(e.currentTarget.dataset.id||'');

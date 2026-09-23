@@ -54,9 +54,10 @@ export class ManagementAttentionService {
           OR EXISTS(SELECT 1 FROM commission_refund_inbox f WHERE f.refund_intent_id=i.id AND f.state='exception'))`)).rows[0]!;
       if(privacy){
         counts.privacyRequests=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM privacy_request
-          WHERE status IN ('received','verifying','reviewing','failed')`)).rows[0]!;
+          WHERE status IN ('received','verifying','reviewing','responded','failed') AND waiting_on='operator'`)).rows[0]!;
         counts.privacyOverdue=(await client.query<CountRow>(`SELECT count(*)::int AS count FROM privacy_request
-          WHERE status IN ('received','verifying','reviewing','failed') AND due_at<clock_timestamp()`)).rows[0]!;
+          WHERE status IN ('received','verifying','reviewing','responded','failed')
+            AND waiting_on='operator' AND due_at<clock_timestamp()`)).rows[0]!;
       }
       return {version:1,counts};
     },'REPEATABLE READ');

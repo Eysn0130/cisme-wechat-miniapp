@@ -426,20 +426,23 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/me/privacy-requests", async request =>
     privacyRights.list(request.memberId,privacyPageQuery(request.query)));
   app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
+  app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/reply", async request =>
+    privacyRights.memberReply(request.memberId,request.params.requestId,idempotencyKey(request),
+      (request.body??{}) as {message?:unknown;expectedVersion?:unknown}));
   // Native management uses the verified member's current capability. Legacy
   // operator roles cannot substitute for a revoked native capability here.
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/management/privacy-requests", async request =>
     privacyRights.queue(adminPrincipal(request,config),privacyActor(request),'capability',privacyPageQuery(request.query)));
   app.post<{Params:{requestId:string}}>("/v1/management/privacy-requests/:requestId/response", async request =>
     privacyRights.respond(adminPrincipal(request,config),request.params.requestId,
-      request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown},privacyActor(request),'capability'));
+      request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown;waitingOn?:unknown},privacyActor(request),'capability'));
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/admin/privacy-requests", async request => {
     return privacyRights.queue(adminPrincipal(request, config),privacyActor(request),'role',privacyPageQuery(request.query));
   });
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/response", async request => {
     const principal = adminPrincipal(request, config);
     await privacyRights.requireOperator(principal);
-    return privacyRights.respond(principal, request.params.requestId, request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown},privacyActor(request));
+    return privacyRights.respond(principal, request.params.requestId, request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown;waitingOn?:unknown},privacyActor(request));
   });
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/execution-plan", async request => {
     const principal = adminPrincipal(request, config);

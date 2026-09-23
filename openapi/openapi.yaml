@@ -190,6 +190,16 @@ paths:
         required: true
         content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1]}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
+  /v1/me/privacy-requests/{requestId}/reply:
+    post:
+      operationId: replyToOwnPrivacyRequest
+      description: An authenticated owner may supplement a request only after an operator explicitly asks for information. The original request and every supplement remain separate immutable facts. Exact idempotent replay returns the original receipt; a fresh reply returns the request to the operator queue.
+      security: [{session: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [message, expectedVersion], properties: {message: {type: string, minLength: 1, maxLength: 2000}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Supplement recorded and returned to operator}, '403': {description: Member inactive}, '404': {description: Request not owned}, '409': {description: Stale version, no supplement requested or idempotency conflict}, '422': {description: Invalid input}}
   /v1/management/attention:
     get:
       operationId: managementAttentionSummary
@@ -215,7 +225,7 @@ paths:
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
+        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, waitingOn: {type: string, enum: [operator, member]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
       responses: {'200': {description: Audited version-guarded reply; no execution implied}, '401': {description: Session required}, '403': {description: Capability unavailable or revoked}, '409': {description: Request changed or closed}, '422': {description: Invalid input}, '404': {description: Request not found}}
   /v1/admin/privacy-requests:
     get:
@@ -232,7 +242,7 @@ paths:
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
+        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, waitingOn: {type: string, enum: [operator, member]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
       responses: {'200': {description: Version-guarded saved response; never proof of execution}, '409': {description: Request changed or closed}, '403': {description: Missing operator role}, '404': {description: Request not found}}
   /v1/admin/privacy-requests/{requestId}/execution-plan:
     post:

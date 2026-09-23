@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "37d10026cb7084b51e4321acdf72a2a97141d17212d402c7ad5d6f774432d81a",
+  "migrationSetSha256": "8476d741e6764a4d82a5b487ecf3b0a510573da860737b77b6ebb0a8322ced64",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -389,6 +389,11 @@
           "member.id"
         ],
         [
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
           "commerce_aftersale_case.member_id -> member.id",
           "member.id"
         ],
@@ -442,6 +447,11 @@
           "member.id"
         ],
         [
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
           "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
           "support_conversation.member_id -> member.id",
           "member.id"
@@ -450,7 +460,7 @@
       "actorColumns": [
         "exception_approved_by"
       ],
-      "specialHandling": "member_id/order_id identify buyer; claim_basis, selected lines and quantities, original payment allocation, return_destination, return_tracking, shipped_instruction_version, route_review_outcome, route_reviewed_at, reason and exception_evidence_reference are private. The shipped version points to an immutable case-specific return instruction and may identify the older valid address used by the buyer. The route review fields record the actual handling of an old address, not a new delivery destination. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
+      "specialHandling": "member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, reason and exception_evidence_reference are private. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
       "exportFields": [],
       "excludedFields": [
         "id",
@@ -467,9 +477,6 @@
         "return_destination",
         "return_carrier",
         "return_tracking",
-        "shipped_instruction_version",
-        "route_review_outcome",
-        "route_reviewed_at",
         "quality_result",
         "refund_request_id",
         "created_at",
@@ -479,7 +486,10 @@
         "exception_kind",
         "exception_evidence_reference",
         "exception_approved_by",
-        "exception_approved_at"
+        "exception_approved_at",
+        "shipped_instruction_version",
+        "route_review_outcome",
+        "route_reviewed_at"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -500,6 +510,12 @@
         ],
         [
           "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.member_id -> member.id",
           "member.id"
         ],
@@ -558,6 +574,12 @@
           "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
           "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
           "member.id"
         ],
         [
@@ -4055,6 +4077,14 @@
           "media_cleanup_queue.media_id -> media_object.id",
           "media_object.bound_support_message_id -> support_message.id",
           "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.member_id -> member.id",
           "member.id"
         ],
@@ -4129,6 +4159,14 @@
           "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
           "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
           "member.id"
         ],
         [
@@ -4223,6 +4261,13 @@
         [
           "media_object.bound_support_message_id -> support_message.id",
           "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.member_id -> member.id",
           "member.id"
         ],
@@ -4289,6 +4334,13 @@
           "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
           "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
           "member.id"
         ],
         [
@@ -4916,7 +4968,8 @@
         "due_at",
         "resolution_code",
         "completed_at",
-        "scope_code"
+        "scope_code",
+        "waiting_on"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -4947,6 +5000,37 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "privacy_request_member_reply",
+      "subjectPaths": [
+        [
+          "privacy_request_member_reply.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "privacy_request_member_reply.privacy_request_id -> privacy_request.id",
+          "privacy_request.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "privacy_request_id identifies the request owner, and member_id must match it. Reply body is private to that member and authorized privacy operators; it is not a production export or erasure permission. Immutable evidence requires an object-specific retention and backup rule.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "privacy_request_id",
+        "member_id",
+        "body",
+        "idempotency_key",
+        "request_hash",
+        "request_version",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
     },
     {
       "table": "processing_purpose",
@@ -5332,6 +5416,12 @@
         ],
         [
           "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.member_id -> member.id",
           "member.id"
         ],
@@ -5390,6 +5480,12 @@
           "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
           "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
           "member.id"
         ],
         [
@@ -6639,6 +6735,14 @@
           "upload_chunk.media_id -> media_object.id",
           "media_object.bound_support_message_id -> support_message.id",
           "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.member_id -> member.id",
           "member.id"
         ],
@@ -6713,6 +6817,14 @@
           "support_message.linked_case_id -> commerce_aftersale_case.id",
           "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
           "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
           "member.id"
         ],
         [

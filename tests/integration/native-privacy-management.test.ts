@@ -52,6 +52,48 @@ it('saves an audited versioned reply without claiming an export or erasure',asyn
  expect((await pool.query('SELECT id FROM data_export_job UNION ALL SELECT id FROM data_erasure_job')).rowCount).toBe(0);
  const audit=(await pool.query("SELECT principal_id,before_state,after_state FROM audit_log WHERE action='privacy.respond' AND object_id=$1",[created.id])).rows;expect(audit).toHaveLength(1);expect(audit[0].principal_id).toBe(principal);expect(JSON.stringify(audit)).not.toContain(payload.response);
 });
+it('removes a request from new attention while waiting for the member, then restores it after an owned supplement',async()=>{
+ const created=await create('Please check my account details');
+ const attention=()=>app.inject({url:'/v1/management/attention',headers:headers()});
+ const before=(await attention()).json().counts.privacyRequests.count as number;
+ const asked=await app.inject({method:'POST',url:`${queue}/${created.id}/response`,headers:headers(),
+   payload:{status:'responded',waitingOn:'member',response:'请补充需要更正的资料。',expectedVersion:1}});
+ expect(asked.statusCode).toBe(200);
+ expect(asked.json()).toMatchObject({status:'responded',waitingOn:'member',version:2});
+ expect((await attention()).json().counts.privacyRequests.count).toBe(before-1);
+ await expect(pool.query("UPDATE privacy_request SET status='reviewing' WHERE id=$1",[created.id])).rejects.toThrow();
+ const premature=await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${created.id}/execution-plan`,
+   headers:{...headers(),'idempotency-key':'privacy-plan-before-member-001'},
+   payload:{expectedVersion:2,reasonCode:'MEMBER_REQUEST'}});
+ expect(premature.statusCode).toBe(409);
+ expect(premature.json().code).toBe('PRIVACY_MEMBER_REPLY_PENDING');
+ const path=`/v1/me/privacy-requests/${created.id}/reply`,key='privacy-supplement-member-001';
+ expect((await app.inject({method:'POST',url:path,headers:{...headers(),'idempotency-key':key},
+   payload:{message:'This is not my request',expectedVersion:2}})).statusCode).toBe(404);
+ const ownHeaders={authorization:`Bearer ${otherToken}`,'idempotency-key':key};
+ expect((await app.inject({method:'POST',url:path,headers:ownHeaders,
+   payload:{message:'My address needs correction',expectedVersion:1}})).statusCode).toBe(409);
+ const supplement={message:'My address needs correction',expectedVersion:2};
+ const replied=await app.inject({method:'POST',url:path,headers:ownHeaders,payload:supplement});
+ expect(replied.statusCode).toBe(200);
+ expect(replied.json()).toMatchObject({status:'reviewing',waitingOn:'operator',version:3});
+ expect((await app.inject({method:'POST',url:path,headers:ownHeaders,payload:supplement})).json()).toEqual(replied.json());
+ expect((await app.inject({method:'POST',url:path,headers:ownHeaders,
+   payload:{message:'Different supplement',expectedVersion:2}})).statusCode).toBe(409);
+ expect((await attention()).json().counts.privacyRequests.count).toBe(before);
+ let cursor:string|null=null,queueRow:any;
+ for(let page=0;page<10&&!queueRow;page++){
+  const queueRows:{items:any[];nextCursor:string|null}=(await app.inject({url:`${queue}?page=1${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`,headers:headers()})).json();
+  queueRow=queueRows.items.find((row:any)=>row.id===created.id);cursor=queueRows.nextCursor;
+  if(!cursor)break;
+ }
+ expect(queueRow).toMatchObject({status:'reviewing',waitingOn:'operator',
+   latestMemberReply:{body:supplement.message}});
+ const mine=(await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`}})).json();
+ expect(mine.find((row:any)=>row.id===created.id).latestMemberReply.body).toBe(supplement.message);
+ expect(JSON.stringify((await pool.query("SELECT before_state,after_state FROM audit_log WHERE action='privacy.member_reply' AND object_id=$1",[created.id])).rows))
+   .not.toContain(supplement.message);
+});
 it('rejects invalid commands without changing request facts',async()=>{
  const created=await create('Synthetic invalid-command probe');
  for(const payload of [{status:'completed',response:'done',expectedVersion:1},{status:'responded',response:' ',expectedVersion:1},{status:'responded',response:'x'.repeat(4001),expectedVersion:1},{status:'responded',response:'x',expectedVersion:0}])expect((await app.inject({method:'POST',url:`${queue}/${created.id}/response`,headers:headers(),payload})).statusCode).toBe(422);

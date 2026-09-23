@@ -23,6 +23,7 @@ const special:Record<string,string>={
  moderation_case:'target_type/target_id plus source_report_id; reporter, target author and operator have different field rights.',
  ugc_safety_callback_inbox:'trace_id joins ugc_safety_scan.trace_id or other typed scan records; callback payload is private security evidence, not a member export.',
  support_message:'conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes.',
+ privacy_request_member_reply:'privacy_request_id identifies the request owner, and member_id must match it. Reply body is private to that member and authorized privacy operators; it is not a production export or erasure permission. Immutable evidence requires an object-specific retention and backup rule.',
  ugc_author_follow:'follower and followed are different subjects; each relationship must not imply exporting the other member profile.',
  commercial_referral_relation:'referred and referrer are different subjects; only approved own projection, never both member profiles.',
  commission_order_snapshot:'buyer and referrer are distinct; financial retention and each subject projection are independent.'
