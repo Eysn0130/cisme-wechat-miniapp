@@ -27,6 +27,7 @@
     "wx.nextTick",
     "wx.offKeyboardHeightChange",
     "wx.onKeyboardHeightChange",
+    "wx.openDocument",
     "wx.openPrivacyContract",
     "wx.openSetting",
     "wx.pageScrollTo",
@@ -451,6 +452,12 @@
       "userDeletionOrClosure": "退出身份时尝试清除金额和填写理由，保留最小未知键提示供核对。损坏或存储失败时仍退出登录，不能声称原字节已被抹除；清除小程序数据或换设备不保证恢复",
       "legalHold": "服务端原申请、订单、资金和审计保留规则独立；清除本机提示不撤回申请或删除服务端事实",
       "audit": "回执返回最小状态/id/金额，不返回原理由、支付参数、收款标识或任意response_body；无需新增逐次本机日志"
+    },
+    {
+      "surface": "wx.openDocument",
+      "purpose": "Authorized native fulfillment administrator explicitly previews an audited XLSX containing recipient name, phone and shipping address. No external provider added.",
+      "boundary": "Server capability on export; native identity and capability recheck before opening; temporary file removed on hide, cancellation or identity change. Copies explicitly saved or shared through WeChat remain under operator retention duties; production retention policy pending.",
+      "source": "apps/miniprogram/pages/management-fulfillment/index.ts"
     }
   ],
   "runtimeDataEgress": [

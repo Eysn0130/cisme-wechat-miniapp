@@ -1,0 +1,33 @@
+{
+  "route": "pages/management-fulfillment/index",
+  "primaryContract": "PRD R4 §3 / §8.2 / §11 / §15.6; approved owner fulfillment workflow and sole native management client. Existing server capability, audited export and atomic dispatch/outbox remain authoritative.",
+  "acceptanceReferences": [
+    "native fulfillment capability",
+    "audited XLSX",
+    "idempotent batch shipping"
+  ],
+  "statesRequired": [
+    "loading",
+    "empty",
+    "authorized paid orders",
+    "filtered pagination",
+    "export confirmation",
+    "revoked export",
+    "batch partial result",
+    "uncertain retry",
+    "expired session",
+    "hide/show",
+    "account switch ABA",
+    "keyboard",
+    "iOS",
+    "Android",
+    "error",
+    "resume"
+  ],
+  "interaction": "Independent fulfillment capability entry. Filter paid orders, explicitly export up to 500, paste 1–25 tab-separated five-column rows copied from a spreadsheet, confirm actual dispatch, inspect per-row receipt. Does not claim XLSX file import.",
+  "recovery": "Original batch key and rows retained for retry while page remains open. Hide clears sensitive drafts. If interrupted, read system facts before new batch; server uniqueness prevents duplicate shipment facts. No automatic replay or raw local PII persistence.",
+  "authority": "Native signed member with commerce.fulfillment.manage; no dependency on commerce.order.read or PC sessions. Server remains final authority. Six-second foreground polling clears revoked access; every export/write rechecks server authorization.",
+  "privacy": "Authenticated private temporary download, explicit PII notice, pre-open authority recheck and cleanup on hide/logout/cancellation. Operator-saved copies require approved retention policy.",
+  "nativeAccepted": false,
+  "physicalDevicesAccepted": false
+}

@@ -1,0 +1,10 @@
+{
+  "scope": "Audit copy of exact staging-only scripts uploaded through authenticated OrcaTerm. Not production deployment entrypoints.",
+  "sourceHead": "f4c8df9e5be091b246e9893b1c357bc004d943b0",
+  "files": {
+    "staging-candidate-privacy-f4c8df9.py": "b50b300b6e615a33b2da8905ee8cfb5ec224b1ff88e48fd5ae32cacd9b9dbc76",
+    "staging-privacy-acceptance-f4c8df9.py": "bcb7938aafdd47a6b224eb1d8f103026f8056dad52509019156c19f60c202d11",
+    "staging-privacy-business-f4c8df9.mjs": "dc0598bf63b4d5437d0b37d4d955ac9e79f79596506cb9ef68c1e44dc8268718",
+    "staging-rollback-f4c8df9.py": "881e9cb63aa05d3165074cc0b0fa4e2d054ef8748c1c1ab04d00054ecbbd7174"
+  }
+}

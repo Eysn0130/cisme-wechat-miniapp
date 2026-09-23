@@ -1,4 +1,4 @@
-import { invalidateCommerceRecoveryContext, redactCommerceCommandPayloads } from "./commerce-command-store";
+import { commerceContextRevision, invalidateCommerceRecoveryContext, redactCommerceCommandPayloads } from "./commerce-command-store";
 import { measurementClock, metricAction, recordClientMetric } from "./performance-metrics";
 import { clearMemberIdentity } from "./member-identity";
 import { clearMemberAvatarCache } from "./member-avatar";
@@ -10,6 +10,7 @@ const authReturnKey = "cisme.authReturnUrl";
 const submissionReturnKey = "cisme.submissionReturnContext";
 const tabRoutes = new Set(["/pages/home/index", "/pages/records/index", "/pages/community/index", "/pages/profile/index"]);
 const reads = new RequestCoordinator();
+const privateDownloads = new Set<() => void>();
 let authRedirecting = false;
 let suppressedAuthRedirectPath = "";
 
@@ -18,6 +19,7 @@ function normalizedAuthPath(url: string): string {
 }
 
 export function setSessionToken(token: string): void {
+  for (const release of privateDownloads) release();
   invalidateCommerceRecoveryContext();
   if(!token){clearAllUgcBackups();try{redactCommerceCommandPayloads();}catch{/* Keep malformed recovery records fail-closed; never retain the auth session. */}}
   clearMemberAvatarCache();
@@ -327,19 +329,28 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
   });
 }
 
+/** Temporary private files live only until their caller releases them or identity changes. */
 export function downloadPrivateMedia(path: string): { promise: Promise<string>; abort(): void } {
-  const token = app.globalData.sessionToken;
+  const token = app.globalData.sessionToken, revision = commerceContextRevision();
   const origin = app.globalData.apiBaseUrl.replace(/\/$/, "");
-  let task: WechatMiniprogram.DownloadTask | null = null;
+  let task: WechatMiniprogram.DownloadTask | null = null, cancelled = false, file = "";
+  let rejectPending: (reason: unknown) => void = () => {};
+  const remove = (filePath: string) => { if (filePath) { try { wx.getFileSystemManager().unlink({filePath, fail: () => {}}); } catch { /* Temporary file may already be removed by WeChat. */ } } };
+  const abort = () => { cancelled = true; privateDownloads.delete(abort); rejectPending({code:"REQUEST_ABORTED"}); task?.abort(); remove(file); file=""; };
   const promise = new Promise<string>((resolve, reject) => {
+    rejectPending = reject;
     if (!token) { reject({ code: "AUTHENTICATION_REQUIRED" }); return; }
     if (app.globalData.cloudFunction) { reject({ code: "SUPPORT_MEDIA_PREVIEW_TRANSPORT_UNAVAILABLE" }); return; }
+    privateDownloads.add(abort);
     task = wx.downloadFile({ url: `${origin}${path}`, header: { Authorization: `Bearer ${token}` }, timeout: 30_000,
       success: (response) => {
-        if (app.globalData.sessionToken !== token) { reject({ code: "REQUEST_SESSION_CHANGED" }); return; }
-        if (response.statusCode >= 200 && response.statusCode < 300) resolve(response.tempFilePath);
-        else reject({ status: response.statusCode, code: "SUPPORT_MEDIA_PREVIEW_FAILED" });
-      }, fail: reject });
+        if (cancelled || app.globalData.sessionToken !== token || commerceContextRevision() !== revision) {
+          remove(response.tempFilePath); privateDownloads.delete(abort);
+          reject({code:cancelled?"REQUEST_ABORTED":"REQUEST_SESSION_CHANGED"}); return;
+        }
+        if (response.statusCode >= 200 && response.statusCode < 300) { file=response.tempFilePath; resolve(file); }
+        else { remove(response.tempFilePath); privateDownloads.delete(abort); reject({ status: response.statusCode, code: "SUPPORT_MEDIA_PREVIEW_FAILED" }); }
+      }, fail: error => { privateDownloads.delete(abort); reject(error); } });
   });
-  return { promise, abort() { task?.abort(); } };
+  return { promise, abort };
 }

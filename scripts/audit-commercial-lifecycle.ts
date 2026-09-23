@@ -19,6 +19,8 @@ export async function auditCommercialLifecycle(root=resolve(".")) {
   const privacyContractPath="docs/evidence/production-closure-20260922/native-privacy-interaction-contract.json";
   const privacyContract=JSON.parse(await readFile(resolve(root,privacyContractPath),"utf8")) as Requirement;
   byRoute.set(privacyContract.route,privacyContract);
+  const fulfillmentContract=JSON.parse(await readFile(resolve(root,"docs/evidence/production-closure-20260922/native-fulfillment-interaction-contract.json"),"utf8")) as Requirement;
+  byRoute.set(fulfillmentContract.route,fulfillmentContract);
   const pack=await inspectMiniProgramPackage(native);
   const routes=await Promise.all(audit.routes.map(async route=>{
     const sourceFiles=await Promise.all(["ts","wxml","wxss"].map(async extension=>{

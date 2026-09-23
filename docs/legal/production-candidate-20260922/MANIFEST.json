@@ -21,9 +21,9 @@
     "match WeChat privacy guide to released binary and approved versions"
   ],
   "checksums": {
-    "微信隐私保护指引填写候选.md": "d3da2a29bcf30ea2edaefd1d7cf598308a1018a2b8ca2dd5340458c72beb1907",
+    "微信隐私保护指引填写候选.md": "9237ee98a8fdabedac7db4bb378dbc32fcc91123e8970b9705dafa5cc007fcae",
     "用户协议.md": "21c5666a2bceff3d0903f4cd91e7cea4385831a330daedc1d9ca82b6c5264614",
-    "隐私政策.md": "c080e2a3b1955e1cbd96669b5be66c1a142b2cc5ec878ce6177603e976d40f75"
+    "隐私政策.md": "75f2d06e7ee45b4675c0a3aaafe7b57f6680764e869c4dccc33ef4c99cd00669"
   },
   "fulfillmentBusinessRulesApprovedByOwner": true,
   "businessRuleApprovalSource": "2026-09-22 current task user reply: CISME 首发履约方案",
