@@ -1,0 +1,15 @@
+# staging 44e1789 精确验收
+
+候选44e1789c5998fa21b905bf4a0fca02799ffe3e68，tree 0f96f539133f1420d7fefa9d099dd817a0db6d81。CI35809806492通过1126单元、835集成、65Python；实际PR合成checkout4ed666f04e078cb4a1a41718932fcfee6ddb0281的tree与候选一致。不是main已合并。微信凭据预览/设计验收跳过，不是真机通过。
+
+制品dist/tencent-release-44e1789c5998，压缩包SHA256 30d737edd47527a1de88fd339cf5df1be945453d01c5f555c940a1762c49ddda；440803字节；82哈希文件+manifest；没有PC Admin或环境秘密。独立本地制品演练run77c903e5c58e2ae57055bbbf：76项迁移、重跑0项、health200/受保护metrics401，已清理自己的合成DB/S3。
+
+实际目标lhins-ei4hz4fi，run rc20260922-d1afdcea；仅新建cisme_accept_rc20260922_d1afdcea及_restore、专属本地对象目录。原staging库和production未变。当前发布目录/opt/cisme/releases/rc20260922-d1afdcea-44e1789c5998。
+
+23个合成HTTP断言及26个private/no-store检查通过，包含本轮constructor/toString/__proto__拒绝、售后权限/撤权及隐私版本并发。商业门禁关闭，未执行真实微信登录/资金。恢复核验76迁移/131表及指定合成业务摘要；本地对象备份恢复成功，明确不等于COS。300秒61个健康样本，API/Worker运行且重启数0。
+
+实际执行44e1789→f346736→44e1789应用回滚，同一本轮新库与对象目录，切换后新增的合成隐私事实和对象在两个应用版本均保留；没有恢复旧数据库、down或生产演练。staging监控已绑定新SHA，Result=success；外部告警仍未配置。
+
+原始服务器下载回执STAGING-44e1789-RAW.json，24345字节，SHA256 7ea14e4cc637bfaea99dec07426c4d3aba9029f534080156896a4d4319977513。业务实际执行文件名staging-business-44e1789-final.mjs，归档为inputs/staging-business-44e1789.mjs；最初上传的未执行草稿保留在服务器，没有作为通过证据。
+
+本报告仅绑定44e1789。后来新增的维护准入及production升级入口代码需要其自身CI/制品验证，不能直接继承本回执。完整staging业务、生产COS恢复、真实设备和正式发布仍未完成。旧cisme_test事故影响UNKNOWN/未恢复。

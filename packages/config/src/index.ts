@@ -3,6 +3,14 @@ export type TransactionProfile = "MAKE" | "BUY" | null;
 export const implementedTransactionProfiles: ReadonlySet<Exclude<TransactionProfile, null>> = new Set();
 export const CANONICAL_WECHAT_MINIPROGRAM_APP_ID = "wx4eac2d4fb11d299b";
 
+/** A migration fence is strict: a typo must never silently enable writes. */
+export function migrationReadOnly(env: NodeJS.ProcessEnv = process.env): boolean {
+  const value=env.CISME_MIGRATION_READ_ONLY;
+  if(value===undefined||value==='false')return false;
+  if(value==='true')return true;
+  throw new Error('CONFIG_INVALID:CISME_MIGRATION_READ_ONLY');
+}
+
 export interface AppConfig {
   env: AppEnvironment;
   port: number;
@@ -96,6 +104,7 @@ export function assertPointsRedemptionReady(env: NodeJS.ProcessEnv, selectedTran
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  migrationReadOnly(env);
   const appEnv = (env.APP_ENV ?? "development") as AppEnvironment;
   if (!["development", "test", "staging", "production"].includes(appEnv)) throw new Error("CONFIG_INVALID:APP_ENV");
   const allowDevAdapters = bool(env.ALLOW_DEV_ADAPTERS, appEnv !== "production" && appEnv !== "staging");

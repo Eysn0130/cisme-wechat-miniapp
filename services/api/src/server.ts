@@ -13,7 +13,7 @@ import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import type pg from "pg";
-import { loadConfig, type AppConfig } from "@cisme/config";
+import { loadConfig, migrationReadOnly, type AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
 import type { CareMilestoneCommandInput, CareVersionCommandInput, EmergencySwitchKey, WorkerQueue } from "@cisme/contracts";
 import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
@@ -250,7 +250,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
 
   app.addHook("preHandler", async (request, reply) => {
-    if (process.env.CISME_MIGRATION_READ_ONLY === "true" && !["GET", "HEAD", "OPTIONS"].includes(request.method)) throw new DomainError("SERVICE_MIGRATING", "会员服务正在迁移，请稍后重试；已保存的数据不受影响", 503);
+    if (migrationReadOnly() && !["GET", "HEAD", "OPTIONS"].includes(request.method)) throw new DomainError("SERVICE_MIGRATING", "会员服务正在迁移，请稍后重试；已保存的数据不受影响", 503);
     const path = request.url.split("?")[0] ?? request.url;
     const publicCommunityRead = request.method === "GET" && /^\/v1\/community\/[^/]+$/.test(path) && !request.headers.authorization;
     const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(path);
@@ -900,7 +900,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       error=>app.log.error({ event: "money_worker_tick_failed", ...safeFailureFields(error) })) : null;
   const recoveryWorker=process.env.RUN_BACKGROUND_WORKER==="true"&&formalProtocol
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>app.log.error({event:"formal_recovery_tick_failed",...safeFailureFields(error)})):null;
-  app.addHook("onClose", async () => { await shippingWorker?.stop(); await recoveryWorker?.stop(); await moneyWorker?.stop(); safetyWorker?.stop(); await worker?.stop(); await pool.end(); });
+  app.addHook("onClose", async () => {
+    // Close admission on every lane before awaiting any slow provider call.
+    await Promise.all([shippingWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker?.stop()]);
+    await pool.end();
+  });
   const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);

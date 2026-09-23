@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertPointsRedemptionReady, loadConfig } from "@cisme/config";
+import { assertPointsRedemptionReady, loadConfig, migrationReadOnly } from "@cisme/config";
 
 const base = {
   DATABASE_URL: "postgres://local/test",
@@ -9,6 +9,14 @@ const base = {
 };
 
 describe("production configuration fails closed", () => {
+  it('parses the shared migration fence strictly without exposing its input',()=>{
+    expect(migrationReadOnly({})).toBe(false);
+    expect(migrationReadOnly({CISME_MIGRATION_READ_ONLY:'false'})).toBe(false);
+    expect(migrationReadOnly({CISME_MIGRATION_READ_ONLY:'true'})).toBe(true);
+    for(const value of ['','1','TRUE',' true ','SYNTHETIC_PRIVATE_CONFIG']){
+      expect(()=>loadConfig({...base,CISME_MIGRATION_READ_ONLY:value})).toThrow(/^CONFIG_INVALID:CISME_MIGRATION_READ_ONLY$/);
+    }
+  });
   it('accepts a separate synthetic export key only in isolated test configuration',()=>{
     const key='7'.repeat(64);
     expect(loadConfig({...base,APP_ENV:'test',PRIVACY_SYNTHETIC_EXPORT_KEY:key}).privacy.syntheticExportKey).toBe(key);

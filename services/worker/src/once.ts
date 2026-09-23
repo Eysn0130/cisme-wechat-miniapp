@@ -1,4 +1,4 @@
-import { loadConfig } from "@cisme/config";
+import { loadConfig, migrationReadOnly } from "@cisme/config";
 import { createPool } from "../../api/src/db.js";
 import { createObjectStorage } from "../../api/src/storage.js";
 import { runWorkerCycle } from "./jobs.js";
@@ -6,6 +6,7 @@ import { runWorkerCycle } from "./jobs.js";
 // One scheduled execution: await all work and release database connections.
 // This is an internal entry point, not a publicly callable HTTP route.
 export async function runOnce() {
+  if(migrationReadOnly())return {maintenance:true,workExecuted:false};
   const config = loadConfig();
   const pool = createPool(config.databaseUrl, config.database);
   try {
