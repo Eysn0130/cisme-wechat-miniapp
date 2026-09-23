@@ -40,10 +40,11 @@ describe("commission integer policy",()=>{
     expect(commissionAdjustment(12_500,[{...line,cumulativeRefundCents:4_000+6_000}],2500).deltaCents).toBe(-2_500);
     expect(cumulativeCommission([{...line,allocatedDiscountCents:5_000,pointsTenderCents:5_000}],2000).commissionCents).toBe(8_000);
     expect(cumulativeCommission([line],3500).commissionCents).toBe(17_500);
+    expect(cumulativeCommission([line],1750).commissionCents).toBe(8_750);
   });
   it("rejects out-of-range rates, excess refunds and non-integer money",()=>{
     const line={lineId:"x",merchandiseCents:10_000,allocatedDiscountCents:0,pointsTenderCents:0,cumulativeRefundCents:0};
-    for(const rate of [1999,3501,20.5,NaN])expect(()=>cumulativeCommission([line],rate)).toThrow();
+    for(const rate of [-1,10001,20.5,NaN])expect(()=>cumulativeCommission([line],rate)).toThrow();
     expect(()=>cumulativeCommission([{...line,cumulativeRefundCents:10_001}],2000)).toThrow();
     expect(()=>allocateDiscount([{lineId:"x",merchandiseCents:100}],101)).toThrow();
   });

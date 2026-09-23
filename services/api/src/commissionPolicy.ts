@@ -14,8 +14,8 @@ function cents(value:unknown,label:string):number{
   return Number(value);
 }
 function basisPoints(value:unknown):number{
-  if(!Number.isInteger(value)||Number(value)<2000||Number(value)>3500)
-    throw new DomainError("COMMISSION_RATE_INVALID","佣金比例须在 20%–35% 之间",422);
+  if(!Number.isInteger(value)||Number(value)<0||Number(value)>10000)
+    throw new DomainError("COMMISSION_RATE_INVALID","佣金比例须在 0%–100% 之间",422);
   return Number(value);
 }
 

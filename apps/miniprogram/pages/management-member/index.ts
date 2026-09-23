@@ -135,11 +135,12 @@ Page({
   },
   openRateForm(){const detail=this.data.detail;if(!detail||!this.data.canManageRate||this.data.busy)return;
     if(this.rateCommand){void this.sendRateCommand();return;}
-    if(!this.data.rateBasisPoints.length){this.setData({actionError:"当前可提议的费率范围尚未配置，请先核对经营规则。"});return;}
+    const formal=detail.membershipPolicy.kind==="operator_explicit";
+    if(!formal&&!this.data.rateBasisPoints.length){this.setData({actionError:"当前可提议的费率范围尚未配置，请先核对经营规则。"});return;}
     const when=rateDateParts(detail.membershipPolicy.rateProposalSuggestedAt);
     const index=this.data.rateBasisPoints.indexOf(detail.rate?.basisPoints??this.data.rateBasisPoints[0]!);
     const selected=Math.max(0,index);
-    this.setData({rateFormVisible:true,rateFormIndex:selected,rateForm:{mode:"override",percent:(this.data.rateBasisPoints[selected]!/100).toFixed(2),
+    this.setData({rateFormVisible:true,rateFormIndex:selected,rateForm:{mode:"override",percent:formal?(detail.rate?.basisPoints==null?"":(detail.rate.basisPoints/100).toFixed(2)):(this.data.rateBasisPoints[selected]!/100).toFixed(2),
       date:when.date,time:when.time,reason:""},actionError:"",actionStatus:""});
   },
   closeRateForm(){if(this.data.busy||this.rateCommand)return;this.setData({rateFormVisible:false,actionError:""});},
@@ -148,15 +149,18 @@ Page({
   selectRatePercent(event:WechatMiniprogram.PickerChange){const index=Number(event.detail.value);
     if(!Number.isInteger(index)||index<0||index>=this.data.rateBasisPoints.length)return;
     this.setData({rateFormIndex:index,rateForm:{...this.data.rateForm,percent:(this.data.rateBasisPoints[index]!/100).toFixed(2)}});},
+  editRatePercent(event:WechatMiniprogram.Input){this.setData({rateForm:{...this.data.rateForm,percent:event.detail.value}});},
   editRateReason(event:WechatMiniprogram.Input){this.setData({rateForm:{...this.data.rateForm,reason:event.detail.value}});},
   changeRateDate(event:WechatMiniprogram.PickerChange){this.setData({rateForm:{...this.data.rateForm,date:String(event.detail.value)}});},
   changeRateTime(event:WechatMiniprogram.PickerChange){this.setData({rateForm:{...this.data.rateForm,time:String(event.detail.value)}});},
   async submitRateForm(){const detail=this.data.detail;if(!detail||!this.data.canManageRate||this.data.busy||!this.data.rateFormVisible)return;
     if(this.rateCommand){void this.sendRateCommand();return;}
-    const form=this.data.rateForm,reason=form.reason.trim(),parts=/^(\d{2})(?:\.(\d{1,2}))?$/.exec(form.percent.trim());
+    const form=this.data.rateForm,reason=form.reason.trim(),parts=/^(\d{1,3})(?:\.(\d{1,2}))?$/.exec(form.percent.trim());
     const basisPoints=parts?Number(parts[1])*100+Number((parts[2]||"").padEnd(2,"0")):NaN;
-    if(form.mode==="override"&&!this.data.rateBasisPoints.includes(basisPoints)){
-      this.setData({actionError:"请选择当前可提议的费率。"});return;}
+    if(form.mode==="override"&&(detail.membershipPolicy.kind==="operator_explicit"
+      ?!Number.isSafeInteger(basisPoints)||basisPoints<0||basisPoints>10000
+      :!this.data.rateBasisPoints.includes(basisPoints))){
+      this.setData({actionError:"请输入 0.00%–100.00% 的费率。"});return;}
     if(reason.length<4||reason.length>300){this.setData({actionError:"请填写 4–300 字的变更依据。"});return;}
     const effective=new Date(`${form.date}T${form.time}:00`);
     if(!Number.isFinite(effective.getTime())){this.setData({actionError:"请选择有效的生效日期和时间。"});return;}

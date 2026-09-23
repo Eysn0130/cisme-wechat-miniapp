@@ -30,9 +30,12 @@ function codeValue(): string {
   const bytes = randomBytes(10);
   return `CM${Array.from(bytes, byte => codeAlphabet[byte! % codeAlphabet.length]).join("")}`;
 }
-function rate(value: unknown): number {
-  if (!Number.isInteger(value) || !engineeringRateOptions.some(option=>option===Number(value))) {
-    throw new DomainError("COMMISSION_RATE_INVALID", "新费率仅支持 20%、25%、30%、35%", 422);
+function rate(value: unknown,engineeringRules:boolean): number {
+  if (!Number.isInteger(value) || (engineeringRules
+    ? !engineeringRateOptions.some(option=>option===Number(value))
+    : Number(value)<0||Number(value)>10000)) {
+    throw new DomainError("COMMISSION_RATE_INVALID", engineeringRules
+      ? "新费率仅支持 20%、25%、30%、35%" : "费率须为 0.00%–100.00%", 422);
   }
   return Number(value);
 }
@@ -308,7 +311,7 @@ export class CommercialMembershipService {
       commission:balance?{...balance,settlementAvailable:false}:null,
       membershipPolicy:{kind:this.engineeringRules?"engineering_calendar_v2":"operator_explicit",
         termMonths:this.engineeringRules?engineeringMembershipMonths:null,
-        rateOptions:[...engineeringRateOptions],
+        rateOptions:this.engineeringRules?[...engineeringRateOptions]:[],
         serverTime:person.server_time,
         renewalExpiresAt:this.engineeringRules?person.renewal_expires_at:null,
         rateProposalSuggestedAt:person.rate_proposal_suggested_at} };
@@ -383,6 +386,9 @@ export class CommercialMembershipService {
     if (state!=="active" && state!=="suspended" && state!=="expired") throw new DomainError("MEMBERSHIP_STATE_INVALID", "会员资格状态无效", 422);
     const fixtureTerm=input.term==="engineering_12_calendar_months"||input.term==="engineering_365_day";
     const expiry = typeof input.expiresAt === "string" && Number.isFinite(Date.parse(input.expiresAt)) ? new Date(input.expiresAt) : null;
+    if(input.expiresAt!=null&&!expiry)throw new DomainError("MEMBERSHIP_EXPIRY_INVALID","资格到期时间无效",422);
+    if(state!=="active"&&(input.expiresAt!=null||input.term!=null))
+      throw new DomainError("MEMBERSHIP_EXPIRY_CONFLICT","暂停或到期操作无需重新设置期限",422);
     if(fixtureTerm&&input.expiresAt!=null)throw new DomainError("MEMBERSHIP_TERM_CONFLICT","请选择一种资格期限方式",422);
     const expected = Number(input.expectedVersion);
     if (!Number.isSafeInteger(expected) || expected<0) throw new DomainError("MEMBERSHIP_VERSION_INVALID", "请刷新成员资料后重试", 422);
@@ -434,7 +440,7 @@ export class CommercialMembershipService {
     if(action!=="override"&&action!=="inherit")throw new DomainError("RATE_ACTION_INVALID","费率处理方式无效",422);
     if(action==="inherit"&&(target===null||input.basisPoints!=null))
       throw new DomainError("RATE_INHERIT_INVALID","恢复继承仅适用于单个会员，且无需填写费率",422);
-    const basisPoints=action==="inherit"?null:rate(input.basisPoints);const why=reason(input.reason);
+    const basisPoints=action==="inherit"?null:rate(input.basisPoints,this.engineeringRules);const why=reason(input.reason);
     const effective=input.effectiveAt==null?null:typeof input.effectiveAt==="string"?new Date(input.effectiveAt):new Date(NaN);
     if(effective&&!Number.isFinite(effective.getTime()))throw new DomainError("RATE_EFFECTIVE_INVALID","生效时间无效",422);
     if(!principalId)throw new DomainError("AUTH_REQUIRED","请重新登录后操作",401);
@@ -452,9 +458,10 @@ export class CommercialMembershipService {
       const proposed=effective??suggested;
       const result=await client.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,
         effective_at,proposed_effective_at,rule_version,created_by,reason,request_key,request_fingerprint)
-        VALUES($1,$2,$3,'proposed',$4,$4,'commercial-rate-v2',$5,$6,$7,$8)
+        VALUES($1,$2,$3,'proposed',$4,$4,$9,$5,$6,$7,$8)
         RETURNING id,action,basis_points,effective_at,proposed_effective_at,state,version`,
-        [target,action,basisPoints,proposed,principalId,why,request,fingerprint]);
+        [target,action,basisPoints,proposed,principalId,why,request,fingerprint,
+          this.engineeringRules?'commercial-rate-v2':'operator-rate-v1']);
       return {...result.rows[0],alreadyCreated:false};
     });
   }
@@ -480,7 +487,7 @@ export class CommercialMembershipService {
       [this.environment==='test'||this.environment==='development'])).rows[0];
     return {basisPoints:row?.basis_points??null,effectiveAt:row?.effective_at??null,
       serverTime:row?.server_time??null,suggestedEffectiveAt:row?.suggested_effective_at??null,
-      rateOptions:[...engineeringRateOptions],
+      rateOptions:this.engineeringRules?[...engineeringRateOptions]:[],
       policyKind:this.engineeringRules?"engineering_fixture":
         row?.id?"approved_rule":"unconfigured",paymentAvailable:false};
   }

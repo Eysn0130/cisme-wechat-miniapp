@@ -360,8 +360,8 @@
       "informationType": "会员资格、稳定推荐码、直接推荐关系和关联订单标识",
       "purpose": "限定一级推荐资格、归属与可审计订单快照",
       "activation": "授权管理员授予商业资格；被推荐人首次主动确认有效关系",
-      "serverStorage": "CISME PostgreSQL 资格、码、关系、规则和审计事实",
-      "currentGate": "服务端 capability 分离；推荐会员只看本人必要聚合，管理员读订单另需 commerce.order.read",
+      "serverStorage": "CISME PostgreSQL 资格、码、关系、版本化费率规则、订单快照和审计事实",
+      "currentGate": "正式费率须由授权管理员提议、独立复核并生效；工程默认费率不使正式推荐开放；推荐会员只看本人必要聚合，管理员读订单另需 commerce.order.read",
       "retention": "POLICY PENDING；现金事实启用前另定争议及法定保存期限"
     },
     {
@@ -530,7 +530,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "24e04a2bb0a0e63c7db615cd543d0f625839287339176e6d1d1b9c34cdd51387",
+  "migrationSetSha256": "37abafd6600e3e262107338fd9555932857bafb2c0abdecd7fbf5a3a919d3906",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",

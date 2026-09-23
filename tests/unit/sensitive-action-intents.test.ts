@@ -62,14 +62,30 @@ it("does not turn an unconfigured formal commercial policy into a client-side fe
     rateBasisPoints:[]});
   list.openGlobalRateForm();
   expect(list.data.globalRateFormVisible).toBe(false);
-  expect(list.data.globalRateError).toContain("费率范围尚未配置");
+  expect(list.data.globalRateError).toContain("费率状态暂不可用");
   expect(requestMock).not.toHaveBeenCalled();
+});
+
+it("lets an authorized operator propose a formal rate outside engineering fixtures",async()=>{
+  await load("../../apps/miniprogram/pages/management-members/index");
+  const page=mounted({canManageRate:true,alive:true,attempt:1,globalRate:{basisPoints:null,policyKind:"unconfigured",
+    suggestedEffectiveAt:"2027-09-13T01:00:00Z",rateOptions:[]},rateBasisPoints:[]});
+  page.lastRevision=(await import("../../apps/miniprogram/services/commerce-command-store")).commerceContextRevision();
+  page.openGlobalRateForm();
+  expect(page.data.globalRateFormVisible).toBe(true);
+  page.editGlobalRate({detail:{value:"17.50"}});
+  page.data.globalRateForm={...page.data.globalRateForm,reason:"经营方费率提议"};
+  modal.mockResolvedValueOnce({confirm:true});
+  requestMock.mockResolvedValue({id:"00000000-0000-4000-8000-000000000001"});
+  await page.submitGlobalRateForm();
+  await Promise.resolve();
+  expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({basisPoints:1750})}));
 });
 
 it("requires an explicit end date for a new formal membership and sends that date without an engineering term",async()=>{
   await load("../../apps/miniprogram/pages/management-member/index");
   const detail={member:{id:"member-formal",displayName:"正式成员",membershipState:"none",version:0,expiresAt:null},
-    membershipPolicy:{kind:"operator_explicit",termMonths:null,rateOptions:[2000,2500,3000,3500]}};
+    membershipPolicy:{kind:"operator_explicit",termMonths:null,rateOptions:[]}};
   const page=mounted({detail,alive:true,attempt:1,canManageMembership:true,expiryMinDate:"2026-09-23"});
   await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
   expect(page.data.actionError).toContain("选择资格截止日");

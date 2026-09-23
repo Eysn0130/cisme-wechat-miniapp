@@ -82,10 +82,10 @@ it("separates ordinary accounts, commercial qualification, management scope and 
     .toMatchObject({basisPoints:2000,policyKind:"engineering_fixture",paymentAvailable:false,
       rateOptions:[2000,2500,3000,3500]});
   const formalRead=new CommercialMembershipService(pool,new AuthorityService(pool,"test"),"production");
-  expect(await formalRead.currentGlobalRate(manager.memberId)).toMatchObject({basisPoints:null,effectiveAt:null,rateOptions:[2000,2500,3000,3500],policyKind:"unconfigured"});
+  expect(await formalRead.currentGlobalRate(manager.memberId)).toMatchObject({basisPoints:null,effectiveAt:null,rateOptions:[],policyKind:"unconfigured"});
   const formalMember=await formalRead.memberDetail(manager.memberId,a.memberId);
   expect(formalMember.rate).toMatchObject({basisPoints:null,source:"none"});
-  expect(formalMember.membershipPolicy).toMatchObject({kind:"operator_explicit",termMonths:null,rateOptions:[2000,2500,3000,3500],renewalExpiresAt:null});
+  expect(formalMember.membershipPolicy).toMatchObject({kind:"operator_explicit",termMonths:null,rateOptions:[],renewalExpiresAt:null});
   const broader=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
   expect(broader.scope).toEqual({referrals:true,orders:false,ownOrders:false});
   const direct=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}/sections/referrals`,headers:auth(manager)})).json();
@@ -270,11 +270,11 @@ it("runs production-shaped membership and referral only with explicit term and r
   expect(await formal.myStatus(sponsor)).toMatchObject({eligible:true,membershipState:'active',referralCode:null});
   await expect(formal.ensureCode(sponsor)).rejects.toMatchObject({code:'REFERRAL_POLICY_UNAVAILABLE'});
   const proposal=await formal.proposeRate(operator,'wechat:formal-operator','formal-rate-proposal-001',
-    {basisPoints:2500,reason:'正式全局费率提议隔离测试'});
+    {basisPoints:1750,reason:'正式全局费率提议隔离测试'});
   expect(proposal).toMatchObject({state:'proposed'});
   const decision=await formal.approveRate(reviewer,'wechat:formal-reviewer',proposal.id,'formal-rate-approval-001',
     {decision:'active',expectedVersion:1,reason:'独立复核正式费率提议'});
-  expect(decision).toMatchObject({state:'active',basis_points:2500});
+  expect(decision).toMatchObject({state:'active',basis_points:1750});
   // A future effective date does not silently open today's referral benefit.
   await expect(formal.ensureCode(sponsor)).rejects.toMatchObject({code:'REFERRAL_POLICY_UNAVAILABLE'});
   await pool.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,
