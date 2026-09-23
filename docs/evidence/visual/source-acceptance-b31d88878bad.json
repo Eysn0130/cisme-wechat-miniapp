@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "3bd295d0cbda09209f25e561fa05c183a4d3ffd56aa79f0e79f9d789478f1d6a",
+  "packageSourceSha256": "b31d88878badcb2f004742dbc1a30f4adca20f632dfad839d592ae71c83ce4ff",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current native source adds capability-scoped management attention counts, including the existing privacy request due date. The prior blocked manifest is archived byte-for-byte as source-acceptance-b31d88878bad.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "This source labels unconfirmed support sends as needing verification rather than proven failure. The immediately prior committed blocked manifest is archived byte-for-byte as source-acceptance-7b317b7c4622.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }

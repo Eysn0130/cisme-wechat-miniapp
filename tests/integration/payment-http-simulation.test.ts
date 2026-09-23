@@ -1968,4 +1968,15 @@ it('shows only current capability-scoped management attention and clears it afte
   const revoked=await app.inject({url:path,headers:auth(actor.sessionToken)});
   expect(revoked.statusCode,revoked.body).toBe(200);
   expect(Object.keys(revoked.json().counts)).toEqual(['support']);
+  await aftersaleGrant(actor,'privacy.request.manage');
+  const before=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(before.statusCode,before.body).toBe(200);
+  const privacy=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:auth(owner.sessionToken),
+    payload:{kind:'access',message:'Access request for the isolated attention test'}});
+  expect(privacy.statusCode,privacy.body).toBe(200);
+  await pool.query("UPDATE privacy_request SET created_at=clock_timestamp()-interval '31 days', due_at=clock_timestamp()-interval '1 day' WHERE id=$1",[privacy.json().id]);
+  const overdue=await app.inject({url:path,headers:auth(actor.sessionToken)});
+  expect(overdue.statusCode,overdue.body).toBe(200);
+  expect(overdue.json().counts.privacyOverdue.count).toBe(before.json().counts.privacyOverdue.count+1);
+  expect(overdue.json().counts).not.toHaveProperty('newAftersales');
 });
