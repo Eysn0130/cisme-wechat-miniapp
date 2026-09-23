@@ -32,7 +32,7 @@ it("does not change membership or propose a rate after the actor switches while 
     rate:{basisPoints:2500},
     membershipPolicy:{kind:"engineering_calendar_v2",termMonths:12,rateOptions:[2000,2500,3000,3500],renewalExpiresAt:"2027-09-13T00:00:00Z",
       rateProposalSuggestedAt:"2027-09-13T01:00:00Z"}};
-  const page=mounted({detail,attempt:2,alive:true,canManageRate:true,rateBasisPoints:[2000,2500,3000,3500]});
+  const page=mounted({detail,attempt:2,alive:true,canManageRate:true,canManageMembership:true,rateBasisPoints:[2000,2500,3000,3500]});
   const first=deferred<{confirm:boolean;content:string}>();modal.mockReturnValueOnce(first.promise);
   const membership=page.changeMembership({currentTarget:{dataset:{state:"active"}}});
   session="actor-b";first.resolve({confirm:true,content:"合成资格变更依据"});await membership;
@@ -54,7 +54,7 @@ it("does not turn an unconfigured formal commercial policy into a client-side fe
   page.openRateForm();
   await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
   expect(page.data.rateFormVisible).toBe(false);
-  expect(page.data.actionError).toContain("资格有效期规则尚未配置");
+  expect(page.data.actionError).toContain("资格规则暂不可用");
   expect(modal).not.toHaveBeenCalled();
   expect(requestMock).not.toHaveBeenCalled();
   await load("../../apps/miniprogram/pages/management-members/index");
@@ -64,6 +64,23 @@ it("does not turn an unconfigured formal commercial policy into a client-side fe
   expect(list.data.globalRateFormVisible).toBe(false);
   expect(list.data.globalRateError).toContain("费率范围尚未配置");
   expect(requestMock).not.toHaveBeenCalled();
+});
+
+it("requires an explicit end date for a new formal membership and sends that date without an engineering term",async()=>{
+  await load("../../apps/miniprogram/pages/management-member/index");
+  const detail={member:{id:"member-formal",displayName:"正式成员",membershipState:"none",version:0,expiresAt:null},
+    membershipPolicy:{kind:"operator_explicit",termMonths:null,rateOptions:[2000,2500,3000,3500]}};
+  const page=mounted({detail,alive:true,attempt:1,canManageMembership:true,expiryMinDate:"2026-09-23"});
+  await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
+  expect(page.data.actionError).toContain("选择资格截止日");
+  expect(modal).not.toHaveBeenCalled();
+  page.chooseExpiryDate({detail:{value:"2027-09-30"}});
+  modal.mockResolvedValueOnce({confirm:true,content:"经营方明确授予资格"});
+  requestMock.mockResolvedValue({});
+  await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
+  const command=requestMock.mock.calls.find(([input])=>input.method==="POST")?.[0];
+  expect(command?.data).toMatchObject({state:"active",expiresAt:"2027-09-30T16:00:00.000Z",expectedVersion:0});
+  expect(command?.data).not.toHaveProperty("term");
 });
 
 it("does not approve a rate when the member list reloads before confirmation",async()=>{

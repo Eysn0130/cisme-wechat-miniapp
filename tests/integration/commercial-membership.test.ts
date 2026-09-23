@@ -82,10 +82,10 @@ it("separates ordinary accounts, commercial qualification, management scope and 
     .toMatchObject({basisPoints:2000,policyKind:"engineering_fixture",paymentAvailable:false,
       rateOptions:[2000,2500,3000,3500]});
   const formalRead=new CommercialMembershipService(pool,new AuthorityService(pool,"test"),"production");
-  expect(await formalRead.currentGlobalRate(manager.memberId)).toMatchObject({basisPoints:null,effectiveAt:null,rateOptions:[],policyKind:"unconfigured"});
+  expect(await formalRead.currentGlobalRate(manager.memberId)).toMatchObject({basisPoints:null,effectiveAt:null,rateOptions:[2000,2500,3000,3500],policyKind:"unconfigured"});
   const formalMember=await formalRead.memberDetail(manager.memberId,a.memberId);
   expect(formalMember.rate).toMatchObject({basisPoints:null,source:"none"});
-  expect(formalMember.membershipPolicy).toMatchObject({kind:"unconfigured",termMonths:null,rateOptions:[],renewalExpiresAt:null});
+  expect(formalMember.membershipPolicy).toMatchObject({kind:"operator_explicit",termMonths:null,rateOptions:[2000,2500,3000,3500],renewalExpiresAt:null});
   const broader=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}`,headers:auth(manager)})).json();
   expect(broader.scope).toEqual({referrals:true,orders:false,ownOrders:false});
   const direct=(await app.inject({method:"GET",url:`/v1/management/members/${a.memberId}/sections/referrals`,headers:auth(manager)})).json();
@@ -245,11 +245,55 @@ it("renews twelve Shanghai calendar months at month ends without shortening life
   expect(response.statusCode).toBe(200);expect(response.json().expiresAt).toBeNull();
 });
 
-it("keeps unapproved commercial qualification and attribution writes closed outside engineering environments",async()=>{
-  const closed=new CommercialMembershipService(pool,new AuthorityService(pool,"test"),"production");
-  await expect(closed.ensureCode(a.memberId)).rejects.toMatchObject({code:"COMMERCIAL_RULES_NOT_APPROVED"});
-  await expect(closed.setMembership(manager.memberId,manager.principalId,c.memberId,{state:"active",
-    expiresAt:"2027-09-12T00:00:00Z",expectedVersion:0,reason:"未获正式业务批准"}))
-    .rejects.toMatchObject({code:"COMMERCIAL_RULES_NOT_APPROVED"});
-  expect(await closed.myStatus(a.memberId)).toMatchObject({eligible:false,referralCode:null});
+it("runs production-shaped membership and referral only with explicit term and reviewed effective rate",async()=>{
+  const names=['formal-operator','formal-reviewer','formal-sponsor','formal-buyer'];
+  const ids:string[]=[];
+  for(const name of names){
+    const row=(await pool.query<{id:string}>("INSERT INTO member(display_name) VALUES($1) RETURNING id",[name])).rows[0]!;
+    ids.push(row.id);
+    await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+      VALUES($1,'wechat_miniprogram','wx4eac2d4fb11d299b',$2,'wechat')`,[row.id,`isolated-${name}`]);
+  }
+  const [operator,reviewer,sponsor,buyer]=ids as [string,string,string,string];
+  for(const [id,capability] of [[operator,'member.manage'],[operator,'commission.rate.manage'],
+    [operator,'commission.read'],[reviewer,'commission.rate.approve']])
+    await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+      VALUES($1,$2,'fixture','formal isolated authority','production','integration_fixture')`,[id,capability]);
+  const formal=new CommercialMembershipService(pool,new AuthorityService(pool,'production'),'production');
+  const expiry=new Date(Date.now()+365*86400_000).toISOString();
+  await expect(formal.setMembership(operator,'wechat:formal-operator',sponsor,
+    {state:'active',term:'engineering_12_calendar_months',expectedVersion:0,reason:'正式资格期限必须明确'}))
+    .rejects.toMatchObject({code:'MEMBERSHIP_TERM_UNAVAILABLE'});
+  const membership=await formal.setMembership(operator,'wechat:formal-operator',sponsor,
+    {state:'active',expiresAt:expiry,expectedVersion:0,reason:'正式资格手工授予测试'});
+  expect(membership).toMatchObject({state:'active',version:1,policyKind:'operator_explicit'});
+  expect(await formal.myStatus(sponsor)).toMatchObject({eligible:true,membershipState:'active',referralCode:null});
+  await expect(formal.ensureCode(sponsor)).rejects.toMatchObject({code:'REFERRAL_POLICY_UNAVAILABLE'});
+  const proposal=await formal.proposeRate(operator,'wechat:formal-operator','formal-rate-proposal-001',
+    {basisPoints:2500,reason:'正式全局费率提议隔离测试'});
+  expect(proposal).toMatchObject({state:'proposed'});
+  const decision=await formal.approveRate(reviewer,'wechat:formal-reviewer',proposal.id,'formal-rate-approval-001',
+    {decision:'active',expectedVersion:1,reason:'独立复核正式费率提议'});
+  expect(decision).toMatchObject({state:'active',basis_points:2500});
+  // A future effective date does not silently open today's referral benefit.
+  await expect(formal.ensureCode(sponsor)).rejects.toMatchObject({code:'REFERRAL_POLICY_UNAVAILABLE'});
+  await pool.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,effective_at,
+    proposed_effective_at,rule_version,created_by,approved_by,reason,decided_at)
+    VALUES(NULL,'override',2500,'active',now()-interval '1 day',now()-interval '1 day',
+      'commercial-rate-v2','fixture-formal-operator','fixture-formal-reviewer','已生效隔离政策夹具',now()-interval '1 day')`);
+  expect(await formal.currentGlobalRate(operator)).toMatchObject({basisPoints:2500,policyKind:'approved_rule'});
+  const code=(await formal.ensureCode(sponsor)).code;
+  expect((await formal.previewReferral(buyer,code)).relationState).toBe('unbound');
+  expect(await formal.confirmReferral(buyer,'wechat:formal-buyer',code,'formal-referral-0001'))
+    .toMatchObject({confirmed:true,alreadyConfirmed:false});
+  expect(await formal.confirmReferral(buyer,'wechat:formal-buyer',code,'formal-referral-0001'))
+    .toMatchObject({confirmed:true,alreadyConfirmed:true});
+  await expect(formal.setMembership(sponsor,'wechat:formal-sponsor',sponsor,
+    {state:'suspended',expectedVersion:1,reason:'不得变更本人资格'}))
+    .rejects.toMatchObject({code:'MEMBERSHIP_SELF_CHANGE_FORBIDDEN'});
+  await pool.query(`INSERT INTO commercial_membership(member_id,state,effective_at,expires_at,version,changed_by,change_reason)
+    VALUES($1,'suspended',now()-interval '1 year',NULL,1,'fixture','历史长期资格')`,[buyer]);
+  const lifetime=await formal.setMembership(operator,'wechat:formal-operator',buyer,
+    {state:'active',expectedVersion:1,reason:'恢复历史长期资格'});
+  expect(lifetime).toMatchObject({state:'active',version:2,expiresAt:null});
 });

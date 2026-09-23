@@ -19,6 +19,7 @@
         <text wx:if="{{detail.rate}}" class="member-caveat">调整仅影响生效后的新订单，已有订单保留原费率。</text>
         <view wx:if="{{detail.commission}}" class="member-fact"><text>可用佣金</text><text class="ux-strong">{{detail.commission.availableCents}} 分 · 当前不可结算</text></view>
         <view wx:if="{{canManageMembership || canManageRate}}" class="member-actions">
+          <picker wx:if="{{canManageMembership && detail.membershipPolicy.kind==='operator_explicit' && (detail.member.membershipState==='none' || detail.member.expiresAt)}}" mode="date" start="{{expiryMinDate}}" value="{{expiryDate||expiryMinDate}}" bindchange="chooseExpiryDate" disabled="{{busy}}" aria-label="选择资格截止日"><view class="rate-form-input">{{expiryDate?'有效至 '+expiryDate:'选择资格截止日'}}</view></picker>
           <button wx:if="{{canManageMembership}}" data-state="active" class="{{busy ? 'control--disabled' : ''}}" bindtap="changeMembership" disabled="{{busy}}">变更／续期资格</button>
           <button wx:if="{{canManageMembership}}" data-state="suspended" class="{{busy || detail.member.membershipState!=='active' ? 'control--disabled' : ''}}" bindtap="changeMembership" disabled="{{busy || detail.member.membershipState!=='active'}}">暂停资格</button>
           <button wx:if="{{canManageRate}}" class="{{busy ? 'control--disabled' : ''}}" bindtap="openRateForm" disabled="{{busy}}">设置会员费率</button>
