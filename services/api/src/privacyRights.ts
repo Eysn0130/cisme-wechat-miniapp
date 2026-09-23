@@ -92,11 +92,11 @@ export class PrivacyRights {
     } else await this.requireOperator(principalId,client);
   }
 
-  async list(memberId: string | undefined, page?:{cursor?:string}) {
+  async list(memberId: string | undefined, page?:{cursor?:string},closedRights=false) {
     const id=owner(memberId);
     const cursor=page?parsePageCursor(page.cursor,'member'):null;
     return transaction(this.pool,async client=>{
-      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[id]);
+      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status=$2 FOR SHARE",[id,closedRights?'deleted':'active']);
       if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可访问数据权利记录',403);
       const rows=(await client.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.status,pr.waiting_on AS "waitingOn",pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       (SELECT jsonb_build_object('body',reply.body,'createdAt',reply.created_at) FROM privacy_request_member_reply reply
@@ -111,7 +111,7 @@ export class PrivacyRights {
     });
   }
 
-  async submit(memberId: string | undefined, input: {kind?:unknown;message?:unknown;scopeCode?:unknown}) {
+  async submit(memberId: string | undefined, input: {kind?:unknown;message?:unknown;scopeCode?:unknown},closedRights=false) {
     const id=owner(memberId);
     if(!input || typeof input.kind!=='string' || !kinds.has(input.kind) || typeof input.message!=='string' || !input.message.trim() || Array.from(input.message).length>2000) {
       throw new DomainError('PRIVACY_REQUEST_INVALID','请选择请求类型并填写不超过 2000 字的说明',422);
@@ -122,7 +122,7 @@ export class PrivacyRights {
     const message=input.message.trim();
     return transaction(this.pool,async client=>{
       // Prevent duplicate taps and unbounded per-account submission bursts.
-      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE",[id]);
+      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status=$2 FOR UPDATE",[id,closedRights?'deleted':'active']);
       if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可提交数据权利请求',403);
       if(scopeCode!==null){
         const identity=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test'",[id]);
@@ -205,7 +205,7 @@ export class PrivacyRights {
     });
   }
 
-  async memberReply(memberId:string|undefined,id:string,idempotencyKey:string,input:{message?:unknown;expectedVersion?:unknown}) {
+  async memberReply(memberId:string|undefined,id:string,idempotencyKey:string,input:{message?:unknown;expectedVersion?:unknown},closedRights=false) {
     const member=owner(memberId);
     if(!uuidPattern.test(id))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
     if(typeof input?.message!=='string'||!input.message.trim()||Array.from(input.message.trim()).length>2000||
@@ -213,7 +213,7 @@ export class PrivacyRights {
       throw new DomainError('PRIVACY_REPLY_INVALID','请填写不超过 2000 字的补充说明并刷新当前记录',422);
     const message=input.message.trim(),fingerprint=requestDigest({id,message,expectedVersion:input.expectedVersion});
     return transaction(this.pool,async client=>{
-      const subject=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[member]);
+      const subject=await client.query("SELECT id FROM member WHERE id=$1 AND status=$2 FOR SHARE",[member,closedRights?'deleted':'active']);
       if(!subject.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可补充请求',403);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`privacy-member-reply:${member}:${idempotencyKey}`]);
       const previous=(await client.query<{privacy_request_id:string;request_hash:string;request_version:number}>(

@@ -26,11 +26,20 @@ export function setSessionToken(token: string): void {
   clearMemberIdentity();
   reads.invalidate();
   app.globalData.sessionToken = token;
+  app.globalData.privacyRightsToken = "";
   wx.setStorageSync(app.globalData.sessionStorageKey || "cisme.sessionToken", token);
+  wx.removeStorageSync(`${app.globalData.sessionStorageKey || "cisme.sessionToken"}.privacyRightsToken`);
   if (token) {
     authRedirecting = false;
     suppressedAuthRedirectPath = "";
   }
+}
+
+export function setPrivacyRightsToken(token:string):void {
+  setSessionToken("");
+  app.globalData.privacyRightsToken=token;
+  const key=`${app.globalData.sessionStorageKey || "cisme.sessionToken"}.privacyRightsToken`;
+  if(token)wx.setStorageSync(key,token);else wx.removeStorageSync(key);
 }
 
 function currentRouteUrl(): string {
@@ -183,7 +192,10 @@ const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "本次操作�
 
 function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", authMode = options.authMode ?? "required";
-  const session = app.globalData.sessionToken, token = authMode === "public" ? "" : session;
+  const session = app.globalData.sessionToken;
+  const rightsPath=/^\/v1\/me\/privacy-requests(?:\/|\?|$)/.test(options.path);
+  const rightsSession=app.globalData.privacyRightsToken;
+  const token = authMode === "public" ? "" : session || (rightsPath ? rightsSession : "");
   const origin = currentRouteUrl();
   const budgetMs = options.budgetMs ?? 12_000;
   if (!Number.isInteger(budgetMs) || budgetMs < 1 || budgetMs > 60_000)
@@ -195,6 +207,8 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const remaining = () => {
     if (stopped) throw stopped;
     if (app.globalData.sessionToken !== session) throw { code: "REQUEST_SESSION_CHANGED", title: "会员身份已变化，请重新加载" };
+    if (token === rightsSession && rightsSession && app.globalData.privacyRightsToken !== rightsSession)
+      throw { code: "REQUEST_SESSION_CHANGED", title: "隐私请求身份已变化，请重新加载" };
     const left = Math.ceil(deadline - measurementClock());
     if (left <= 0) throw deadlineProblem();
     return left;
@@ -220,6 +234,8 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
           if ((response.statusCode === 401 || problem?.code === "MEMBER_NOT_FOUND") && token && app.globalData.sessionToken === token) {
             setSessionToken("");
             if (!accountUnavailable && authMode === "required" && currentRouteUrl() === origin) beginAuthentication(origin);
+          }else if(response.statusCode===401&&token&&app.globalData.privacyRightsToken===token){
+            setPrivacyRightsToken("");
           }
           fail({ ...problem, status: response.statusCode });
         }, fail });

@@ -19,6 +19,7 @@ const initialChrome = readChromeMetrics();
 App({
   globalData: {
     sessionToken: "",
+    privacyRightsToken: "",
     sessionStorageKey: "cisme.sessionToken",
     apiBaseUrl: "",
     cloudFunction: null as import("./release-config").CloudHttpTarget | null,
@@ -36,6 +37,8 @@ App({
       ? `cisme.sessionToken.cloud.${runtime.cloudFunction.env}.${runtime.cloudFunction.name}`
       : `cisme.sessionToken.origin.${runtime.origin}`;
     this.globalData.sessionToken = wx.getStorageSync<string>(this.globalData.sessionStorageKey) || "";
+    this.globalData.privacyRightsToken = this.globalData.sessionToken ? "" :
+      wx.getStorageSync<string>(`${this.globalData.sessionStorageKey}.privacyRightsToken`) || "";
     this.globalData.remoteDebugMode = runtime.remoteDebugMode;
     const metrics = readChromeMetrics();
     this.globalData.chromeMetrics = metrics;

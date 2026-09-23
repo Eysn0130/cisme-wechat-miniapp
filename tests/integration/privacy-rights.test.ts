@@ -9,8 +9,9 @@ import {PrivacyRights} from '../../services/api/src/privacyRights';
 import {runWorkerCycle} from '../../services/worker/src/jobs';
 import {operatorHeaders} from './operator-session';
 const pool=testPool();
-const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'privacy-test',ADMIN_API_TOKEN:'privacy-admin',UPLOAD_TOKEN_SECRET:'privacy-upload',OBJECT_STORAGE_DRIVER:'api_gateway',PRIVACY_SYNTHETIC_EXPORT_KEY:'7'.repeat(64)});
-const storage=createApiGatewayStorage(config);const app=await createApp({pool,config,storage});
+const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'privacy-test',ADMIN_API_TOKEN:'privacy-admin',UPLOAD_TOKEN_SECRET:'privacy-upload',OBJECT_STORAGE_DRIVER:'api_gateway',PRIVACY_SYNTHETIC_EXPORT_KEY:'7'.repeat(64),WECHAT_APP_ID:'wx4eac2d4fb11d299b',WECHAT_APP_SECRET:'controlled-identity-secret'});
+const storage=createApiGatewayStorage(config);const app=await createApp({pool,config,storage,
+  wechatIdentityFetcher:async()=>new Response(JSON.stringify({openid:'closed-rights-openid'}),{status:200})});
 let token:string,otherToken:string,requestId:string,ownerMemberId:string;
 const admin=(principal:string,extras:Record<string,string>={})=>operatorHeaders(config,principal,ownerMemberId,extras);
 async function syntheticIdentity(externalUserId:string){
@@ -365,4 +366,41 @@ it('keeps partially completed requests after actionable work across queue pages'
    await pool.query('DELETE FROM privacy_request WHERE id=ANY($1::uuid[])',[requestIds]);
    await pool.query('DELETE FROM member WHERE id=$1',[queueMemberId]);
  }
+});
+
+it('lets a deleted WeChat member continue only their existing rights channel after fresh code exchange',async()=>{
+ const member=(await pool.query<{id:string}>(`INSERT INTO member(display_name,status)
+   VALUES('closed rights fixture','deleted') RETURNING id`)).rows[0]!;
+ await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+   VALUES($1,'wechat_miniprogram',$2,'closed-rights-openid','wechat')`,[member.id,config.wechat.appId]);
+ const exchanged=await app.inject({method:'POST',url:'/v1/identity/wechat/privacy-rights',
+   payload:{code:'fresh-rights-code'}});
+ expect(exchanged.statusCode,exchanged.body).toBe(200);
+ expect(exchanged.json().scope).toBe('privacy_rights');
+ const rightsToken=exchanged.json().sessionToken as string;
+ const headers={authorization:`Bearer ${rightsToken}`};
+ expect((await app.inject({url:'/v1/me/privacy-requests',headers})).statusCode).toBe(200);
+ const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
+   payload:{kind:'other',message:'请继续核对历史隐私事项'}});
+ expect(created.statusCode,created.body).toBe(200);
+ const requestId=created.json().id as string;
+ const mine=await app.inject({url:'/v1/me/privacy-requests',headers});
+ expect(mine.json()).toEqual(expect.arrayContaining([expect.objectContaining({id:requestId})]));
+ for(const url of ['/v1/me','/v1/me/support/summary',`/v1/me/privacy-requests/${requestId}/export`,
+   '/v1/management/privacy-requests'])
+   expect((await app.inject({url,headers})).statusCode,url).toBe(403);
+ const response=await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${requestId}/response`,
+   headers:admin('support-user'),payload:{status:'responded',waitingOn:'member',
+     response:'请补充需要核对的历史事项。',expectedVersion:1}});
+ expect(response.statusCode,response.body).toBe(200);
+ const reply=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/reply`,
+   headers:{...headers,'idempotency-key':'closed-rights-reply-001'},
+   payload:{message:'补充历史事项说明',expectedVersion:2}});
+ expect(reply.statusCode,reply.body).toBe(200);
+ expect(reply.json()).toMatchObject({requestId,status:'reviewing',waitingOn:'operator'});
+ await pool.query("UPDATE member SET status='active' WHERE id=$1",[member.id]);
+ expect((await app.inject({url:'/v1/me/privacy-requests',headers})).statusCode).toBe(401);
+ await pool.query("UPDATE member SET status='deleted' WHERE id=$1",[member.id]);
+ const outsider=(await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${otherToken}`}})).json();
+ expect(outsider.some((item:{id:string})=>item.id===requestId)).toBe(false);
 });

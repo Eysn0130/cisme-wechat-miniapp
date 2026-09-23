@@ -65,6 +65,7 @@ declare module "fastify" {
   interface FastifyRequest {
     memberId?: string;
     principalId?: string;
+    authScope?: "member" | "privacy_rights";
   }
 }
 
@@ -80,6 +81,7 @@ interface AppDependencies {
   loggerInstance?: FastifyBaseLogger;
   phoneFetcher?: typeof fetch;
   shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'>;
+  wechatIdentityFetcher?: typeof fetch;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -276,11 +278,21 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
-    if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
+    if(principal.scope==="privacy_rights"){
+      const rightsRoute=path==='/v1/me/privacy-requests'&&['GET','POST'].includes(request.method) ||
+        request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/reply$/i.test(path);
+      if(!rightsRoute)throw new DomainError('AUTH_SCOPE_FORBIDDEN','此身份核验仅用于隐私请求',403);
+      const identity=(await pool.query(`SELECT 1 FROM wechat_identity w JOIN member m ON m.id=w.member_id
+        WHERE w.member_id=$1 AND w.provider='wechat_miniprogram' AND w.app_id=$2
+          AND ('wechat_miniprogram:'||w.id::text)=$3 AND m.status='deleted'`,
+        [principal.memberId,config.wechat.appId,principal.id])).rowCount;
+      if(!identity)throw new DomainError('AUTH_REVOKED','身份状态已变化，请重新核验',401);
+    }else if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
       await service.assertActiveMember(principal.memberId);
     }
     if (principal.memberId) request.memberId = principal.memberId;
     request.principalId = principal.id;
+    request.authScope = principal.scope;
     await rateChecks.afterAuth(request, reply);
   });
 
@@ -395,7 +407,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post("/v1/identity/wechat", async (request) => {
     if (!config.wechat.appId || !config.wechat.appSecret) throw new DomainError("WECHAT_NOT_CONFIGURED", "WeChat credentials are not configured", 503);
     const body = (request.body ?? {}) as { code: unknown; displayName: string; consents: Array<{ documentType: string; version: string }> };
-    const session = await exchangeWechatIdentity(config.wechat.appId,config.wechat.appSecret,body.code);
+    const session = await exchangeWechatIdentity(config.wechat.appId,config.wechat.appSecret,body.code,
+      config.env==='test'?dependencies.wechatIdentityFetcher:undefined);
     const now = service.now();
     const result = await service.identity({
       provider: "wechat_miniprogram",
@@ -407,6 +420,23 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       consents: body.consents
     }, now);
     return { ...result, phoneBindingEnabled: phone.enabled(), sessionToken: issueSessionToken({ principalId: result.principalId, memberId: result.memberId, adapter: "wechat", provider: "wechat_miniprogram", appId: config.wechat.appId }, config.sessionSecret) };
+  });
+
+  // A fresh WeChat code can re-identify a closed member without reactivating
+  // the account. The short token only reaches the existing rights records.
+  app.post('/v1/identity/wechat/privacy-rights',async request=>{
+    if(!config.wechat.appId||!config.wechat.appSecret)throw new DomainError('WECHAT_NOT_CONFIGURED','微信身份核验暂不可用',503);
+    const body=(request.body??{}) as {code?:unknown};
+    const session=await exchangeWechatIdentity(config.wechat.appId,config.wechat.appSecret,body.code,
+      config.env==='test'?dependencies.wechatIdentityFetcher:undefined);
+    const row=(await pool.query<{identity_id:string;member_id:string}>(`SELECT w.id AS identity_id,w.member_id
+      FROM wechat_identity w JOIN member m ON m.id=w.member_id
+      WHERE w.provider='wechat_miniprogram' AND w.app_id=$1 AND w.openid=$2 AND m.status='deleted'`,
+      [config.wechat.appId,session.openid])).rows[0];
+    if(!row)throw new DomainError('PRIVACY_IDENTITY_NOT_FOUND','未找到可继续核验的历史账号',404);
+    return {scope:'privacy_rights',sessionToken:issueSessionToken({principalId:`wechat_miniprogram:${row.identity_id}`,
+      memberId:row.member_id,adapter:'wechat',provider:'wechat_miniprogram',appId:config.wechat.appId,
+      scope:'privacy_rights'},config.sessionSecret)};
   });
 
   app.post("/v1/qualifications/dev", async (request) => {
@@ -424,11 +454,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.get('/v1/management/attention', async request => managementAttention.summary(request.memberId));
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/me/privacy-requests", async request =>
-    privacyRights.list(request.memberId,privacyPageQuery(request.query)));
-  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
+    privacyRights.list(request.memberId,privacyPageQuery(request.query),request.authScope==='privacy_rights'));
+  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown},request.authScope==='privacy_rights'));
   app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/reply", async request =>
     privacyRights.memberReply(request.memberId,request.params.requestId,idempotencyKey(request),
-      (request.body??{}) as {message?:unknown;expectedVersion?:unknown}));
+      (request.body??{}) as {message?:unknown;expectedVersion?:unknown},request.authScope==='privacy_rights'));
   // Native management uses the verified member's current capability. Legacy
   // operator roles cannot substitute for a revoked native capability here.
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/management/privacy-requests", async request =>

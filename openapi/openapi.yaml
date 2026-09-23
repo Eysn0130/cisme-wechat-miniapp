@@ -459,6 +459,14 @@ paths:
       security: []
       requestBody: {$ref: '#/components/requestBodies/Identity'}
       responses: {'200': {$ref: '#/components/responses/Identity'}, '502': {$ref: '#/components/responses/Problem'}}
+  /v1/identity/wechat/privacy-rights:
+    post:
+      tags: [Identity]
+      operationId: verifyClosedAccountPrivacyIdentity
+      security: []
+      description: Fresh WeChat code for an existing closed account. Returns a 30-minute restricted token usable only for listing, filing and replying to that account's privacy requests; it never reactivates membership.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [code], properties: {code: {type: string}}}}}}
+      responses: {'200': {description: Restricted privacy-rights session, content: {application/json: {schema: {type: object, required: [scope, sessionToken], properties: {scope: {type: string, enum: [privacy_rights]}, sessionToken: {type: string}}}}}}, '404': {$ref: '#/components/responses/Problem'}, '502': {$ref: '#/components/responses/Problem'}}
   /v1/qualifications/dev:
     post:
       tags: [Care]

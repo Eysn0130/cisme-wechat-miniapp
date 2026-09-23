@@ -1,6 +1,6 @@
 import { publishMemberIdentity } from "../../services/member-identity";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
-import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setSessionToken, suppressAuthenticationRedirectOnce } from "../../services/api";
+import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce } from "../../services/api";
 import { legalDocumentVersions, shouldUseDevelopmentIdentity } from "../../release-config";
 import type { LegalDocumentVersions } from "../../release-config";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
@@ -17,8 +17,29 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
-  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false },
-  openAccountHelp(){wx.navigateTo({url:"/pages/privacy-rights/index",fail:()=>wx.showToast({title:"联系入口暂时无法打开，请重试",icon:"none"})});},
+  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  async openAccountHelp(){
+    if(this.data.accountHelpBusy)return;
+    const attempt=++this.data.authAttempt;
+    this.setData({accountHelpBusy:true,error:""});
+    try{
+      const login=await wx.login();
+      if(!this.data.pageAlive||attempt!==this.data.authAttempt)return;
+      const result=await request<{sessionToken:string;scope:string}>({path:"/v1/identity/wechat/privacy-rights",
+        method:"POST",authMode:"public",data:{code:login.code}});
+      if(!this.data.pageAlive||attempt!==this.data.authAttempt)return;
+      if(result.scope!=="privacy_rights"||!result.sessionToken)throw new Error("PRIVACY_IDENTITY_INVALID");
+      setPrivacyRightsToken(result.sessionToken);
+      const landed=await navigateAfterAuthentication("/pages/privacy-rights/index");
+      if(this.data.pageAlive&&attempt===this.data.authAttempt&&landed!=="target")
+        this.setData({error:"身份已核验，隐私请求页暂时无法打开，请重试。"},scrollToAccountError);
+    }catch{
+      if(this.data.pageAlive&&attempt===this.data.authAttempt)
+        this.setData({error:"历史账号核验暂未完成，请重试。"},scrollToAccountError);
+    }finally{
+      if(this.data.pageAlive&&attempt===this.data.authAttempt)this.setData({accountHelpBusy:false});
+    }
+  },
   documents(): LegalDocumentVersions | null { return currentLegalDocuments() || this.data.serverLegalDocuments; },
   async syncLegalDocuments() {
     const previous = this.documents();
@@ -266,8 +287,8 @@ Page({
       if (this.data.pageAlive && this.data.authAttempt === attempt) {
         const code=(error as {code?:string})?.code;
         const unavailable=code==="ACCOUNT_CLOSED"||code==="MEMBER_NOT_ACTIVE";
-        this.setData({accountHelpAvailable:unavailable,error:unavailable
-          ?code==="ACCOUNT_CLOSED"?"账号已注销。如需处理历史事项，请通过小程序内的微信反馈联系。":"账号暂不可登录。请通过小程序内的微信反馈联系。"
+        this.setData({accountHelpAvailable:code==="ACCOUNT_CLOSED",error:unavailable
+          ?code==="ACCOUNT_CLOSED"?"账号已注销。可重新核验微信身份，继续处理历史隐私请求。":"账号暂不可登录，请稍后重试或联系小程序客服。"
           :this.data.identityCommitStarted
             ?"暂未收到身份确认结果，服务端可能已完成核验。请检查网络后重试，本页尚未切换会员身份。"
             :"微信身份确认暂时未完成，请重试。身份核验请求尚未发送。"},scrollToAccountError);

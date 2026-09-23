@@ -8,6 +8,8 @@ const requireMemberAccessMock = vi.hoisted(() => vi.fn(() => true));
 const retainMemberSnapshotMock = vi.hoisted(() => vi.fn(() => true));
 const resumeAuthenticationMock = vi.hoisted(() => vi.fn());
 const uploadAuthorizedMock = vi.hoisted(() => vi.fn());
+const setSessionTokenMock = vi.hoisted(() => vi.fn());
+const setPrivacyRightsTokenMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../apps/miniprogram/services/api", () => ({
   allowPublicBrowsing: vi.fn(() => true),
@@ -22,7 +24,8 @@ vi.mock("../../apps/miniprogram/services/api", () => ({
   navigateAfterAuthentication: vi.fn(async () => "target"),
   request: requestMock,
   uploadAuthorized: uploadAuthorizedMock,
-  setSessionToken: vi.fn(),
+  setSessionToken: setSessionTokenMock,
+  setPrivacyRightsToken: setPrivacyRightsTokenMock,
   submissionReturnUrl: () => "/pages/task/index?id=task-1"
 }));
 
@@ -64,6 +67,8 @@ beforeEach(() => {
   retainMemberSnapshotMock.mockReturnValue(true);
   resumeAuthenticationMock.mockReset();
   uploadAuthorizedMock.mockReset();
+  setSessionTokenMock.mockReset();
+  setPrivacyRightsTokenMock.mockReset();
   capturedPage = null;
   wxMock = {
     navigateTo: vi.fn(),
@@ -85,6 +90,7 @@ beforeEach(() => {
     hideShareMenu: vi.fn(),
     showShareMenu: vi.fn(),
     showModal: vi.fn(),
+    login: vi.fn(async()=>({code:'fresh-wechat-code'})),
     requirePrivacyAuthorize: vi.fn(),
     chooseMedia: vi.fn(),
     nextTick: vi.fn((callback: () => void) => callback()),
@@ -970,7 +976,7 @@ describe("mini-program page behavior", () => {
     expect(context.data.loading).toBe(false);
     expect(context.data.identityCommitStarted).toBe(false);
   });
-  it("shows a public contact path when the server confirms a closed account", async () => {
+  it("re-identifies a closed account for its existing rights record without a member session", async () => {
     requestMock.mockRejectedValueOnce({status:410,code:"ACCOUNT_CLOSED",title:"账号已注销"});
     await vi.importActual("../../apps/miniprogram/pages/account/index");
     const page=capturedPage!;
@@ -979,8 +985,13 @@ describe("mini-program page behavior", () => {
     expect(context.data.error).toContain("账号已注销");
     expect(context.data.error).not.toContain("服务端可能已完成核验");
     expect(context.data.accountHelpAvailable).toBe(true);
-    page.openAccountHelp.call(context);
-    expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/privacy-rights/index"}));
+    requestMock.mockResolvedValueOnce({scope:'privacy_rights',sessionToken:'rights-only-token'});
+    await page.openAccountHelp.call(context);
+    expect(requestMock).toHaveBeenLastCalledWith({path:'/v1/identity/wechat/privacy-rights',
+      method:'POST',authMode:'public',data:{code:'fresh-wechat-code'}});
+    expect(setPrivacyRightsTokenMock).toHaveBeenCalledWith('rights-only-token');
+    expect(setSessionTokenMock).not.toHaveBeenCalled();
+    expect(context.data.accountHelpBusy).toBe(false);
   });
   it("drops a late Account avatar result after the page is hidden", async () => {
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: "member-a" } });

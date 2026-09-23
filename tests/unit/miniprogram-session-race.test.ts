@@ -1,15 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-let state: { globalData: { apiBaseUrl: string; sessionToken: string } };
-let wxMock: { request: ReturnType<typeof vi.fn>; navigateTo: ReturnType<typeof vi.fn>; setStorageSync: ReturnType<typeof vi.fn> };
+let state: { globalData: { apiBaseUrl: string; sessionToken: string; privacyRightsToken?: string } };
+let wxMock: { request: ReturnType<typeof vi.fn>; navigateTo: ReturnType<typeof vi.fn>; setStorageSync: ReturnType<typeof vi.fn>; removeStorageSync: ReturnType<typeof vi.fn> };
 let taskAbort: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.resetModules();
   state = { globalData: { apiBaseUrl: "https://example.test", sessionToken: "old-session" } };
   taskAbort = vi.fn();
-  wxMock = { request: vi.fn(() => ({ abort: taskAbort })), navigateTo: vi.fn(), setStorageSync: vi.fn() };
+  wxMock = { request: vi.fn(() => ({ abort: taskAbort })), navigateTo: vi.fn(), setStorageSync: vi.fn(), removeStorageSync: vi.fn() };
   Object.assign(globalThis, { wx: wxMock, getApp: () => state, getCurrentPages: () => [{ route: "pages/records/index" }] });
+});
+
+it('keeps closed-account rights separate from member routes and rejects a stale rights response',async()=>{
+  const api=await vi.importActual<any>('../../apps/miniprogram/services/api');
+  api.setPrivacyRightsToken('rights-a');
+  expect(state.globalData.sessionToken).toBe('');
+  const rights=api.request({path:'/v1/me/privacy-requests?page=1'});
+  const member=api.request({path:'/v1/me',authMode:'optional'});
+  expect(wxMock.request.mock.calls[0]![0].header.Authorization).toBe('Bearer rights-a');
+  expect(wxMock.request.mock.calls[1]![0].header.Authorization).toBe('');
+  wxMock.request.mock.calls[1]![0].success({statusCode:200,data:{guest:true}});
+  await expect(member).resolves.toEqual({guest:true});
+  api.setPrivacyRightsToken('rights-b');
+  wxMock.request.mock.calls[0]![0].success({statusCode:200,data:{items:[{id:'old-account'}]}});
+  await expect(rights).rejects.toMatchObject({code:'REQUEST_SESSION_CHANGED'});
 });
 
 describe("native delayed authentication responses", () => {
