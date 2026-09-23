@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "57a5bdcaf9dec316a373841602f40269de0c291155aa5333593dca25e7339e82",
+  "packageSourceSha256": "28ed890543be4b2337b67af04d1a67bb840001150d06c083f970dcfaa11090d3",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "This source adds the reviewed no-return exception path to the case and management screens while preserving the earlier order support sheet and versioned return instructions. The immediately prior blocked manifest is archived byte-for-byte as source-acceptance-28ed890543be.json. No new DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "This source adds an order support sheet, case-linked aftersale intake and per-case return instruction cards. The prior blocked manifest is archived byte-for-byte as source-acceptance-c32bef1074b5.json. No new DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }

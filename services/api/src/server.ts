@@ -506,7 +506,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     aftersales.forConversation(request.memberId,request.params.conversationId));
   app.post<{Params:{conversationId:string;caseId:string}}>("/v1/management/support/conversations/:conversationId/aftersales/:caseId/actions", async request =>{
     const input=(request.body??{}) as Record<string,unknown>;
-    if(input.action!=='approve_return'&&input.action!=='send_return_instruction')
+    if(input.action!=='approve_return'&&input.action!=='send_return_instruction'&&input.action!=='approve_refund_without_return')
       throw new DomainError('AFTERSALE_ACTION_INVALID','请在售后案件中选择有效操作',422);
     return aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),input,true,
       undefined,{conversationId:request.params.conversationId,principalId:request.principalId});

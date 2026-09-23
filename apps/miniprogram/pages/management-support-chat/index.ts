@@ -356,6 +356,11 @@ Page({
   },
   openAftersales(){if(this.data.canManageAftersale&&!this.data.busy){this.setData({aftersaleOpen:true,contextOpen:false});void this.loadAftersales();}},
   closeAftersales(){if(!this.data.busy)this.setData({aftersaleOpen:false});},
+  openManageAftersale(event:WechatMiniprogram.TouchEvent){
+    const id=String(event.currentTarget.dataset.id??'');
+    if(!this.data.canManageAftersale||!this.data.visible||this.data.busy||!this.data.aftersaleCases.some(item=>item.id===id))return;
+    wx.navigateTo({url:`/pages/aftersale/index?mode=management&caseId=${id}`});
+  },
   selectReturnCase(event:WechatMiniprogram.TouchEvent){
     if(!this.data.assignedToMe||this.data.busy||this.data.returnAttempt)return;
     const id=String(event.currentTarget.dataset.id??""),row=this.data.aftersaleCases.find(item=>item.id===id);

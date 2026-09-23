@@ -1735,6 +1735,66 @@ it('adopts an existing unlinked case in the original support conversation withou
   expect(new Date(sent.requestedAt).toISOString()).toBe(originalAt);
   expect((await pool.query('SELECT count(*)::int AS n FROM commerce_aftersale_return_instruction WHERE case_id=$1',[legacy.id])).rows[0].n).toBe(1);
 });
+it('requires the live assigned operator for actions from the existing support chat',async()=>{
+  const order=await aftersalePaidOrder('chat-assignment');
+  await aftersaleGrant(operator,'commerce.aftersale.review');
+  await aftersaleGrant(operator,'support.read');
+  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  const claim=await service.request(buyer.memberId,order.id,'chat-assignment-claim',
+    {kind:'return_refund',reason:'隔离客服分配校验'});
+  const path=`/v1/management/support/conversations/${claim.supportConversationId}/aftersales/${claim.id}/actions`;
+  const command={action:'approve_return',expectedVersion:1,note:'已确认本案需要真实退货指引'};
+  expect((await aftersalePost(operator,path,command,'chat-assignment-before')).statusCode).toBe(403);
+  await pool.query(`UPDATE support_conversation SET status='human_active',current_handler_principal_id=$2,
+    version=version+1,updated_at=clock_timestamp() WHERE id=$1`,[claim.supportConversationId,operator.principalId]);
+  const accepted=await aftersalePost(operator,path,command,'chat-assignment-accepted');
+  expect(accepted.statusCode,accepted.body).toBe(200);
+  expect(accepted.json().state).toBe('awaiting_instruction');
+  let another=(await pool.query<{id:string}>('SELECT id FROM support_conversation WHERE member_id=$1',[referrer.memberId])).rows[0];
+  if(!another)another=(await pool.query<{id:string}>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id",[referrer.memberId])).rows[0]!;
+  const wrong=await aftersalePost(operator,`/v1/management/support/conversations/${another.id}/aftersales/${claim.id}/actions`,
+    {action:'send_return_instruction',expectedVersion:2,note:'错误会话不能发送收件信息',
+      recipientName:'合成收件人',phone:'13800000000',region:'合成地区',address:'合成测试地址禁止寄送',freightPayer:'merchant'},'chat-wrong-conversation');
+  expect(wrong.statusCode).toBe(403);
+  const sent=await aftersalePost(operator,path,{action:'send_return_instruction',expectedVersion:2,note:'已核对并发送本案退货指引',
+    recipientName:'合成收件人',phone:'13800000000',region:'合成地区',address:'合成测试地址禁止寄送',freightPayer:'merchant'},'chat-instruction-authorized');
+  expect(sent.statusCode,sent.body).toBe(200);
+  expect(sent.json()).toMatchObject({state:'awaiting_return',returnDestination:{version:1}});
+  expect((await pool.query("SELECT count(*)::int AS n FROM support_message WHERE linked_case_id=$1 AND content_type='return_instruction'",[claim.id])).rows[0].n).toBe(1);
+});
+it('keeps a lost-delivery claim without forcing a return, then routes a reviewed exception into the real refund budget',async()=>{
+  const order=await aftersalePaidOrder('lost-delivery');
+  await aftersaleGrant(operator,'commerce.aftersale.review');
+  await pool.query(`INSERT INTO commerce_shipping_sync
+    (order_id,created_by_member_id,request_key,request_hmac,encrypted_parcel,key_version,evidence_reference)
+    VALUES($1,$2,$3,$4,'synthetic-ciphertext','synthetic','synthetic-dispatch-evidence')`,
+    [order.id,operator.memberId,'synthetic-lost-delivery',createHash('sha256').update('lost').digest('hex')]);
+  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  await expect(service.request(buyer.memberId,order.id,'lost-generic-refund',
+    {kind:'refund_only',claimBasis:'other',reason:'包裹未收到'})).rejects.toMatchObject({code:'AFTERSALE_RETURN_REQUIRED'});
+  const claim=await service.request(buyer.memberId,order.id,'lost-delivery-claim',
+    {kind:'refund_only',claimBasis:'delivery_issue',reason:'承运商核实包裹丢失'});
+  expect(claim).toMatchObject({state:'requested',claimBasis:'delivery_issue',returnDestination:null,refundRequestId:null});
+  await expect(service.act(operator.memberId,claim.id,'lost-invalid-evidence',{
+    action:'approve_refund_without_return',expectedVersion:1,note:'承运商已核实丢件',
+    exceptionKind:'lost_in_transit',evidenceReference:'bad'},true)).rejects.toMatchObject({code:'AFTERSALE_EXCEPTION_EVIDENCE_REQUIRED'});
+  const decision={action:'approve_refund_without_return',expectedVersion:1,note:'承运商已核实丢件',
+    exceptionKind:'lost_in_transit',evidenceReference:'synthetic-trace-001'};
+  const approved=await service.act(operator.memberId,claim.id,'lost-exception-approve',decision,true);
+  expect(approved).toMatchObject({state:'refund_exception_approved',version:2,
+    exceptionResolution:{kind:'lost_in_transit',evidenceReference:'synthetic-trace-001'},refundRequestId:null});
+  expect((await service.act(operator.memberId,claim.id,'lost-exception-approve',decision,true)).version).toBe(2);
+  const requested=await service.act(operator.memberId,claim.id,'lost-exception-refund',
+    {action:'request_refund',expectedVersion:2,note:'按已核实丢件例外申请原路退款'},true,refundCommands);
+  expect(requested).toMatchObject({state:'refund_pending',version:3,amountCents:10000});
+  expect((await pool.query('SELECT count(*)::int AS n FROM commerce_refund_request WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
+  expect((await pool.query('SELECT count(*)::int AS n FROM commerce_aftersale_return_instruction WHERE case_id=$1',[claim.id])).rows[0].n).toBe(0);
+  await refundCommands.decide(operator.memberId,requested.refundRequestId!,'lost-exception-finance',
+    {decision:'reject',expectedVersion:1,reason:'隔离验证财务拒绝后保持原例外事实'});
+  const reopened=await service.act(operator.memberId,claim.id,'lost-exception-reopen',
+    {action:'reopen_refund',expectedVersion:3,note:'原退款已拒绝，保留丢件依据'},true);
+  expect(reopened).toMatchObject({state:'refund_exception_approved',exceptionResolution:{kind:'lost_in_transit'}});
+});
 it('keeps the original application time, sends versioned case instructions in chat and separates later physical and payment facts',async()=>{
   const order=await aftersalePaidOrder('return');
   await aftersaleGrant(operator,'commerce.aftersale.review');await aftersaleGrant(reviewer,'commerce.return.receive');

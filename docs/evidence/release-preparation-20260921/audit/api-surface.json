@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "routeCount": 250,
-  "sourceSha256": "2a58aafab6c7fa553ebbeb8725072825512e8edcfc5f0c8056c43e990cb0d437",
+  "sourceSha256": "324675dbe7489ef82998ff52b18d6bd0fe8399e4b3530e999adb145a8caa8834",
   "releaseReady": false,
   "scope": "Exact method denominator. Candidate references are discovery aids, not per-axis security proof. Service source review and executed semantic tests must supply acceptance.",
   "nonRouteSurfaces": [
@@ -4209,7 +4209,7 @@
       "path": "/v1/management/support/conversations/{conversationId}/aftersales/{caseId}/actions",
       "family": "support",
       "handler": "services/api/src/server.ts:507",
-      "handlerSliceSha256": "6871ee8b9cc034a693aa49608136908fcfe18fa27228a094385500349ca5d19c",
+      "handlerSliceSha256": "3193eeef957e6197bc5863326e6558726d021efabf50c9a3616f767b1100a3b9",
       "serviceCalls": [
         {
           "owner": "services/api/src/aftersale.ts",

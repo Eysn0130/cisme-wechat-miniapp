@@ -17,7 +17,7 @@
       <text wx:if="{{sheetLoading}}" class="support-sheet__notice">正在核对售后与会话…</text>
       <text wx:if="{{sheetError}}" class="support-sheet__error" aria-live="polite">{{sheetError}}</text>
       <view wx:if="{{sheetCase}}" class="support-sheet__case">
-        <strong>{{sheetCase.resolved?'退款已核验成功':sheetCase.state==='requested'?'申请已收到':sheetCase.state==='need_info'?'请补充信息':sheetCase.state==='awaiting_instruction'?'待发送退货指引':sheetCase.state==='awaiting_return'?'请按指引寄回':sheetCase.state==='refund_pending'?'退款处理中':'售后处理中'}}</strong>
+        <strong>{{sheetCase.resolved?'退款已核验成功':sheetCase.state==='requested'?'申请已收到':sheetCase.state==='need_info'?'请补充信息':sheetCase.state==='awaiting_instruction'?'待发送退货指引':sheetCase.state==='awaiting_return'?'请按指引寄回':sheetCase.state==='refund_exception_approved'?'无需寄回，待退款审批':sheetCase.state==='refund_pending'?'退款处理中':'售后处理中'}}</strong>
         <text>售后编号 {{sheetCase.id}}</text><text>申请时间 {{sheetCase.requestedAt}}</text>
         <text wx:if="{{sheetCase.state==='awaiting_instruction'}}">客服正在核对本案收件信息，收到指引前无需寄回。</text>
         <button bindtap="openFullAftersale">查看案件与下一步</button>

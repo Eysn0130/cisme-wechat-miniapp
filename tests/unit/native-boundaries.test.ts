@@ -220,7 +220,7 @@ describe("native mini program boundary", () => {
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "submit", "closeDetail"],
       "management-finance": ["back", "selectSection", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
       "management-support": ["back", "open", "retry"],
-      "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "sendReturnInstruction", "closeAftersales"],
+      "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       points: ["back", "openShop", "load"],
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
       "privacy-rights": ["back", "submit", "load", "viewExport", "revokeExport", "loadMore", "login", "@feedback"],

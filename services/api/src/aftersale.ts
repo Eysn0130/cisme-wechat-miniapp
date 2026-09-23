@@ -12,7 +12,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const KEY=/^[A-Za-z0-9._:-]{8,200}$/;
 export const AFTERSALE_CAPABILITIES:Capability[]=['commerce.aftersale.review','commerce.return.receive','commerce.return.inspect'];
 const actionCaps:Record<string,Capability>={request_info:'commerce.aftersale.review',reject:'commerce.aftersale.review',
-  approve_return:'commerce.aftersale.review',send_return_instruction:'commerce.aftersale.review',request_refund:'commerce.aftersale.review',reopen_refund:'commerce.aftersale.review',
+  approve_return:'commerce.aftersale.review',send_return_instruction:'commerce.aftersale.review',
+  approve_refund_without_return:'commerce.aftersale.review',request_refund:'commerce.aftersale.review',reopen_refund:'commerce.aftersale.review',
   receive_return:'commerce.return.receive',inspect_return:'commerce.return.inspect'};
 function fail(code:string,message:string,status=409):never{throw new DomainError(code,message,status);}
 function id(value:unknown):string{if(typeof value!=='string'||!UUID.test(value))fail('AFTERSALE_ID_INVALID','售后编号无效',422);return value;}
@@ -39,7 +40,8 @@ export function returnInstruction(input:Record<string,unknown>){
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 type CaseRow={id:string;order_id:string;member_id:string;kind:string;state:string;reason:string;lines:unknown[];
   amount_cents:string;version:number;request_hash:string;claim_basis:string;support_conversation_id:string|null;return_destination:unknown;return_carrier:string|null;
-  return_tracking:string|null;quality_result:string|null;refund_request_id:string|null;created_at:Date;updated_at:Date};
+  return_tracking:string|null;quality_result:string|null;refund_request_id:string|null;created_at:Date;updated_at:Date;
+  exception_kind:string|null;exception_evidence_reference:string|null;exception_approved_by:string|null;exception_approved_at:Date|null};
 
 /** Case workflow. It records local facts only; provider dispatch,
  * refunds and inventory are never inferred from a review or a returned parcel. */
@@ -61,6 +63,8 @@ export class AftersaleService{
       supportConversationId:row.support_conversation_id,requestedAt:row.created_at,lines:row.lines,
       amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,region:d.region??'',address:d.address,freightPayer:d.freightPayer??'to_be_confirmed',instructions:d.instructions??''}))(row.return_destination):null,
       returnCarrier:row.return_carrier,returnTracking:row.return_tracking,qualityResult:row.quality_result,
+      exceptionResolution:row.exception_kind?{kind:row.exception_kind,evidenceReference:row.exception_evidence_reference,
+        approvedAt:row.exception_approved_at}:null,
       refundRequestId:row.refund_request_id,refund:refund?{reviewState:refund.state,channelState:refund.refund_state??null,
         submissionState:refund.submission_state??null}:null,
       resolved:refund?.refund_state==='succeeded',inventoryStatus:'separate_ledger_required',
@@ -99,9 +103,10 @@ export class AftersaleService{
       // Dispatch takes the same order lock. A refund-only case created after
       // handoff cannot reach its refund command; direct the buyer to the
       // return path before recording a case that an operator cannot finish.
-      if(kind==='refund_only'&&(await client.query(`SELECT 1 FROM commerce_shipment WHERE order_id=$1
+      if(kind==='refund_only'&&!['delivery_issue','missing_item'].includes(claimBasis)
+        &&(await client.query(`SELECT 1 FROM commerce_shipment WHERE order_id=$1
         UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1`,[orderId])).rowCount)
-        fail('AFTERSALE_RETURN_REQUIRED','本单已登记交寄，请选择退货退款；特殊情况请联系在线客服核对');
+        fail('AFTERSALE_RETURN_REQUIRED','本单已登记交寄，请选择退货退款；未收到或漏发请选相应问题类型');
       const lines=(await client.query('SELECT id,product_name,sku_label,quantity,line_total_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY id',[orderId])).rows;
       if(!lines.length)fail('AFTERSALE_LINES_MISSING','商品事实缺失，请联系在线客服');
       // The case, support association, message and durable notification event
@@ -175,8 +180,14 @@ export class AftersaleService{
     if(action==='ship_return'&&(typeof carrier!=='string'||carrier.trim().length<1||carrier.length>80||typeof tracking!=='string'||!/^[A-Za-z0-9-]{6,64}$/.test(tracking)))fail('RETURN_TRACKING_INVALID','请填写真实快递公司和 6 至 64 位运单号',422);
     const quality=action==='inspect_return'?input.qualityResult:null;
     if(action==='inspect_return'&&quality!=='sellable'&&quality!=='unsellable')fail('RETURN_QUALITY_INVALID','请选择质检结果',422);
+    const exceptionKind=action==='approve_refund_without_return'?input.exceptionKind:null;
+    const evidenceReference=action==='approve_refund_without_return'?input.evidenceReference:null;
+    if(action==='approve_refund_without_return'&&(
+      !['lost_in_transit','item_missing','carrier_intercepted','return_impracticable'].includes(String(exceptionKind))
+      ||typeof evidenceReference!=='string'||!/^[A-Za-z0-9._:/-]{8,200}$/.test(evidenceReference)))
+      fail('AFTERSALE_EXCEPTION_EVIDENCE_REQUIRED','请核对无需寄回的情形和依据编号',422);
     const instruction=action==='send_return_instruction'?returnInstruction(input):null;
-    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction});
+    const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction,exceptionKind,evidenceReference});
     return transaction(this.pool,async client=>{
       if(management)await this.management(client,memberId,actionCaps[action]);else await requireActiveMemberWithClient(client,memberId);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
@@ -187,7 +198,7 @@ export class AftersaleService{
       const row=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 FOR UPDATE',[caseId])).rows[0]!;
       if(context){
         const linked=(await client.query<{status:string;current_handler_principal_id:string|null}>(
-          'SELECT status,current_handler_principal_id FROM support_conversation WHERE id=$1 AND member_id=$2',
+          'SELECT status,current_handler_principal_id FROM support_conversation WHERE id=$1 AND member_id=$2 FOR UPDATE',
           [context.conversationId,row.member_id])).rows[0];
         if(row.support_conversation_id!==null&&row.support_conversation_id!==context.conversationId||linked?.status!=='human_active'
           ||!context.principalId||linked.current_handler_principal_id!==context.principalId)
@@ -211,12 +222,22 @@ export class AftersaleService{
           WHERE case_id=$1 ORDER BY version DESC LIMIT 1`,[caseId])).rows[0];
         destination={version:(latest?.version??0)+1,...instruction};state='awaiting_return';
       }
+      if(action==='approve_refund_without_return'&&
+        ['requested','need_info','awaiting_instruction','awaiting_return','return_in_transit'].includes(row.state)
+        &&row.exception_kind===null){
+        if(row.kind==='refund_only'&&!['delivery_issue','missing_item'].includes(row.claim_basis)
+          &&!(await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1 UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1',[row.order_id])).rowCount)
+          fail('AFTERSALE_EXCEPTION_NOT_APPLICABLE','本案尚无免寄回例外依据');
+        state='refund_exception_approved';
+      }
       if(action==='ship_return'&&row.state==='awaiting_return')state='return_in_transit';
       if(action==='receive_return'&&row.state==='return_in_transit')state='return_received';
       if(action==='inspect_return'&&row.state==='return_received')state='quality_checked';
-      if(action==='request_refund'&&(row.kind==='refund_only'&&row.state==='requested'||row.kind==='return_refund'&&row.state==='quality_checked')){
+      if(action==='request_refund'&&(row.state==='refund_exception_approved'
+        ||row.kind==='refund_only'&&row.state==='requested'||row.kind==='return_refund'&&row.state==='quality_checked')){
         if(!refund)fail('REFUND_UNAVAILABLE','退款提交仍需经过正式交易授权',503);
-        if(row.kind==='refund_only'&&(await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1 UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1',[row.order_id])).rowCount)
+        if(row.kind==='refund_only'&&row.state!=='refund_exception_approved'
+          &&(await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1 UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1',[row.order_id])).rowCount)
           fail('AFTERSALE_RETURN_REQUIRED','商品已发货，请核对退货流程后处理');
         const requested=await refund.requestWithClient(client,row.member_id,row.order_id,`aftersale-refund:${row.id}:${row.version}`,
           {amountCents:Number(row.amount_cents),reason:row.claim_basis==='no_reason'?'七日无理由退货申请':row.reason},row.id);
@@ -226,7 +247,7 @@ export class AftersaleService{
         const prior=(await client.query(`SELECT r.state,i.state AS channel_state FROM commerce_refund_request r
           LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.id=$1`,[row.refund_request_id])).rows[0];
         if(prior?.state==='rejected'||prior?.channel_state==='closed'){
-          state=row.kind==='return_refund'?'quality_checked':'requested';refundId=null;
+          state=row.exception_kind?'refund_exception_approved':row.kind==='return_refund'?'quality_checked':'requested';refundId=null;
         }
       }
       if(!state)fail('AFTERSALE_STATE_CONFLICT','当前案件状态不允许此操作，请刷新核对');
@@ -240,8 +261,12 @@ export class AftersaleService{
       }
       const changed=(await client.query<CaseRow>(`UPDATE commerce_aftersale_case SET state=$2,version=version+1,updated_at=clock_timestamp(),
         return_destination=$3,return_carrier=COALESCE($4,return_carrier),return_tracking=COALESCE($5,return_tracking),
-        quality_result=COALESCE($6,quality_result),refund_request_id=$7,support_conversation_id=$8 WHERE id=$1 RETURNING *`,
-        [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId])).rows[0]!;
+        quality_result=COALESCE($6,quality_result),refund_request_id=$7,support_conversation_id=$8,
+        exception_kind=COALESCE($9,exception_kind),exception_evidence_reference=COALESCE($10,exception_evidence_reference),
+        exception_approved_by=CASE WHEN $9::text IS NOT NULL THEN $11::uuid ELSE exception_approved_by END,
+        exception_approved_at=CASE WHEN $9::text IS NOT NULL THEN clock_timestamp() ELSE exception_approved_at END
+        WHERE id=$1 RETURNING *`,
+        [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId,exceptionKind,evidenceReference,memberId])).rows[0]!;
       if(action==='send_return_instruction'&&instruction){
         if(!supportConversationId)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','请先关联原客服会话后发送退货指引');
         const snapshot=destination as typeof instruction&{version:number};

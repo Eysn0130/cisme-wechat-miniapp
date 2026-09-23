@@ -113,6 +113,7 @@
         <text>案件 {{item.id}} · {{item.state==='requested'?'待处理':item.state==='awaiting_instruction'?'待发送退货指引':item.state==='awaiting_return'?'待用户寄回':item.state}}</text>
         <button wx:if="{{assignedToMe && item.kind==='return_refund' && item.state==='requested' && !returnAttempt}}" class="{{busy?'control--disabled':''}}" data-id="{{item.id}}" bindtap="approveReturn" disabled="{{busy}}">确认需退货核对</button>
         <button wx:if="{{assignedToMe && item.kind==='return_refund' && (item.state==='awaiting_instruction'||item.state==='awaiting_return')}}" class="{{busy||returnAttempt?'control--disabled':''}}" data-id="{{item.id}}" bindtap="selectReturnCase" disabled="{{busy||returnAttempt}}">{{item.state==='awaiting_return'?'发送新版本指引':'填写退货指引'}}</button>
+        <button wx:if="{{assignedToMe && (item.claimBasis==='delivery_issue'||item.claimBasis==='missing_item'||item.kind==='return_refund')}}" class="{{busy||returnAttempt?'control--disabled':''}}" data-id="{{item.id}}" bindtap="openManageAftersale" disabled="{{busy||returnAttempt}}">核对例外与退款</button>
       </view>
       <view wx:if="{{returnFormCaseId}}" class="aftersale-sheet__form">
         <text>本案收件信息</text>

@@ -1214,9 +1214,9 @@ paths:
       tags: [Support, Authority, Commerce]
       operationId: operatorConversationAftersaleAction
       security: [{session: []}]
-      description: The assigned operator with commerce.aftersale.review records a versioned case action. Sending a return instruction atomically stores an immutable version, structured chat card and outbox event.
+      description: The assigned operator with commerce.aftersale.review records a versioned case action. Sending a return instruction atomically stores an immutable version, structured chat card and outbox event. A reviewed no-return exception records its kind and evidence reference before a separate refund request and approval.
       parameters: [{$ref: '#/components/parameters/SupportConversationId'}, {name: caseId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [approve_return, send_return_instruction]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [approve_return, send_return_instruction, approve_refund_without_return]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
       responses: {'200': {description: Versioned case and instruction}, '403': {description: Assigned operator and aftersale capability required}, '409': {description: Version or idempotency conflict}}
   /v1/management/support/conversations/{conversationId}/claim:
     post:
@@ -1571,7 +1571,7 @@ paths:
         '404': {description: Owned case or order not found}
         '409': {description: State, version or idempotency conflict}
         '422': {description: Invalid bounded input}
-        '503': {description: Return destination or money authorization unavailable}
+        '503': {description: Money authorization unavailable}
   /v1/me/aftersales/{caseId}:
     get:
       operationId: myAftersale
@@ -1644,7 +1644,7 @@ paths:
       parameters:
         - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
         - {$ref: '#/components/parameters/IdempotencyKey'}
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, receive_return, inspect_return, request_refund, reopen_refund]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}

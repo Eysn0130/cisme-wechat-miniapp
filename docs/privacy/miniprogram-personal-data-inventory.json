@@ -475,7 +475,7 @@
     },
     {
       "surface": "commerce_aftersale_case",
-      "purpose": "售后受理时间、申请依据、逐单退货物流与退款事实关联；收件信息由授权管理员逐单发送",
+      "purpose": "售后受理时间、申请依据、逐单退货物流与退款事实关联；逐单收件信息及无需寄回例外的依据编号由授权管理员记录。例外依据可能指向承运商或客服材料，不能作为公开会员资料。",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "boundary": "仅本人及当前授权售后人员可见；不自动退款、不自动回补库存；生产导出/删除仍未完成"
     },
@@ -530,7 +530,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "244ade2e2bec3ca282375d3fcf00f6d2b568df502fd0ffb7456d0a7b9a988e65",
+  "migrationSetSha256": "08bc7ec4abc50cbee65d92318c5ba475db0fb72b9eedcefa89e405925cb33170",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",
