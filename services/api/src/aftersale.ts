@@ -110,10 +110,11 @@ export class AftersaleService{
     const orderId=query.orderId?id(query.orderId):null,limit=pageLimit(query.limit),scope=pageScope(['aftersale',memberId,String(management),orderId]),cursor=readPageCursor(query.cursor,scope);
     return transaction(this.pool,async client=>{
       if(management)await this.management(client,memberId);else await requireActiveMemberWithClient(client,memberId);
-      const rows=(await client.query<CaseRow>(`SELECT * FROM commerce_aftersale_case WHERE ($1::boolean OR member_id=$2)
+      const rows=(await client.query<CaseRow & {cursor_at:string}>(`SELECT *,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
+        FROM commerce_aftersale_case WHERE ($1::boolean OR member_id=$2)
         AND ($3::uuid IS NULL OR order_id=$3) AND ($4::timestamptz IS NULL OR (created_at,id)<($4::timestamptz,$5::uuid))
         ORDER BY created_at DESC,id DESC LIMIT $6`,[management,memberId,orderId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
-      return finishPage(await Promise.all(rows.map(async row=>({...await this.view(client,row),cursorAt:row.created_at.toISOString()}))),limit,scope);
+      return finishPage(await Promise.all(rows.map(async row=>({...await this.view(client,row),cursorAt:row.cursor_at}))),limit,scope);
     },'REPEATABLE READ');
   }
   async detail(memberId:string|undefined,caseInput:string,management=false){

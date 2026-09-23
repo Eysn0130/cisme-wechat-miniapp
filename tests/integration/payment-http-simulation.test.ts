@@ -1685,8 +1685,18 @@ it('records bounded owned cases, serializes duplicate claims and supports non-de
   const cancelled=await aftersalePost(buyer,`/v1/me/aftersales/${row.id}/actions`,{action:'cancel',expectedVersion:1,note:'未发生任何退货'},'aftersale-cancel-001');
   expect(cancelled.statusCode,cancelled.body).toBe(200);expect(cancelled.json().state).toBe('cancelled');
   const again=await aftersalePost(buyer,url,payload,'aftersale-intake-003');expect(again.statusCode,again.body).toBe(200);
+  // Two synthetic historical cases in one millisecond expose cursor timestamp truncation.
+  const syntheticCase=async(key:string,at:string)=>(await pool.query(`INSERT INTO commerce_aftersale_case
+    (order_id,member_id,kind,state,reason,lines,amount_cents,idempotency_key,request_hash,created_at)
+    SELECT order_id,member_id,kind,'cancelled',reason,lines,amount_cents,$2,request_hash,$3::timestamptz
+    FROM commerce_aftersale_case WHERE id=$1 RETURNING id`,[row.id,key,at])).rows[0].id as string;
+  const firstId=await syntheticCase('synthetic-page-newer','2099-01-01T00:00:00.001900Z');
+  const secondId=await syntheticCase('synthetic-page-older','2099-01-01T00:00:00.001800Z');
   const page=await app.inject({url:`/v1/me/aftersales?orderId=${order.id}&limit=1`,headers:auth(buyer.sessionToken)});
   expect(page.json()).toMatchObject({hasMore:true,loadedCount:1});
+  expect(page.json().items.map((item:{id:string})=>item.id)).toEqual([firstId]);
+  const nextPage=await app.inject({url:`/v1/me/aftersales?orderId=${order.id}&limit=1&cursor=${encodeURIComponent(page.json().nextCursor)}`,headers:auth(buyer.sessionToken)});
+  expect(nextPage.json().items.map((item:{id:string})=>item.id)).toEqual([secondId]);
   expect((await app.inject({url:`/v1/me/aftersales?cursor=${page.json().nextCursor}`,headers:auth(referrer.sessionToken)})).statusCode).toBe(422);
   await expect(pool.query('DELETE FROM commerce_aftersale_event WHERE case_id=$1',[row.id])).rejects.toMatchObject({code:'55000'});
   expect((await pool.query('SELECT count(*)::int AS n FROM commerce_refund_request WHERE order_id=$1',[order.id])).rows[0].n).toBe(0);

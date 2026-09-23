@@ -145,10 +145,11 @@ export class FulfillmentReleaseService{
       const totalCount=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM
         commerce_fulfillment_attestation WHERE state='submitted'`)).rows[0]?.n??0;
       const rows=(await client.query(`SELECT id,order_id,source_reference,evidence_sha256,delivered_at,
-        proposed_by_member_id,version,created_at FROM commerce_fulfillment_attestation WHERE state='submitted'
+        proposed_by_member_id,version,created_at,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
+        FROM commerce_fulfillment_attestation WHERE state='submitted'
         AND ($1::timestamptz IS NULL OR (created_at,id)>($1::timestamptz,$2::uuid))
         ORDER BY created_at,id LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
-      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
+      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:row.cursor_at,
         orderId:row.order_id,sourceReference:row.source_reference,evidenceSha256:row.evidence_sha256,
         deliveredAt:row.delivered_at,proposedByMemberId:row.proposed_by_member_id,
         version:row.version,createdAt:row.created_at})),limit,scope),totalCount};

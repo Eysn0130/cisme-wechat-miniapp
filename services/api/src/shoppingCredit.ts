@@ -220,7 +220,8 @@ export class ShoppingCreditService{
     return transaction(this.pool,async client=>{
     const count=(await client.query<{n:number}>(`SELECT count(*)::int AS n
       FROM commission_credit_conversion WHERE member_id=$1`,[memberId])).rows[0]?.n??0;
-    const rows=(await client.query<Conversion>(`SELECT c.*,
+    const rows=(await client.query<Conversion & {cursor_at:string}>(`SELECT c.*,
+      to_char(c.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
       COALESCE((SELECT sum(e.amount_cents) FROM commission_credit_source s
         JOIN commission_credit_entry e ON e.source_id=s.id WHERE s.conversion_id=c.id),0)::text AS available_cents,
       (SELECT count(*)::int FROM commission_credit_source s
@@ -249,7 +250,7 @@ export class ShoppingCreditService{
     ) SELECT COALESCE(sum(amount_cents),0)::text AS amount_cents,
       COALESCE(sum(amount_cents) FILTER (WHERE can_checkout AND amount_cents>0),0)::text AS checkout_cents
       FROM eligible`,[memberId])).rows[0]!;
-    return {...finishPage(rows.map(row=>({...this.view(row),cancellable:this.environment==="test"&&this.view(row).cancellable,cursorAt:row.created_at.toISOString()})),limit,scope),
+    return {...finishPage(rows.map(row=>({...this.view(row),cancellable:this.environment==="test"&&this.view(row).cancellable,cursorAt:row.cursor_at})),limit,scope),
       totalCount:count,availableCents:Number(available.amount_cents),
       checkoutAvailableCents:this.environment==="test"?Number(available.checkout_cents):0,spendable:this.environment==="test"&&Number(available.checkout_cents)>0,
       redemptionStatus:"ISOLATED_TEST_ONLY" as const};

@@ -242,10 +242,11 @@ export class RefundCommandService{
       const count=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request
         WHERE state='requested'`)).rows[0]?.n??0;
       const rows=(await client.query(`SELECT id,order_id,requested_by_member_id,amount_cents,reason,
-        version,created_at FROM commerce_refund_request WHERE state='requested'
+        version,created_at,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
+        FROM commerce_refund_request WHERE state='requested'
         AND ($1::timestamptz IS NULL OR (created_at,id)>($1::timestamptz,$2::uuid))
         ORDER BY created_at,id LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
-      const page=finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
+      const page=finishPage(rows.map(row=>({id:row.id,cursorAt:row.cursor_at,
         orderId:row.order_id,requestedByMemberId:row.requested_by_member_id,
         amountCents:Number(row.amount_cents),reason:row.reason,version:row.version,
         createdAt:row.created_at})),limit,scope);
