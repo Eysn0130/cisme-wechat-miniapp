@@ -142,6 +142,18 @@ it("retains a newer order display without authorizing an older business version"
   core = deferred(); void page.load(); core.resolve({ ...order, version: 1, totalCents: 1 }); await flush();
   expect(page.data.order).toMatchObject({ version: 2, totalYuan: "12.00" }); expect(page.data.coreReady).toBe(false); closed("order-detail");
 });
+it("keeps formal refunds on the aftersale route even when money commands are available", async () => {
+  await loadPage("order-detail"); void page.load(); core.resolve(order);
+  auxiliary.resolve({version:2,orderFlowEnabled:true,paymentAvailable:true,paymentOnboarding:"READY",currency:"CNY",
+    scope:"formal_commerce",formalMoneyOperationsAvailable:true,formalRecoveryAvailable:true,
+    isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false});
+  await flush();
+  expect(page.data.runtimeMode).toBe("formal");
+  page.showRefundForm(); expect(page.data.refundFormVisible).toBe(false);
+  page.setData({refundFormVisible:true,refundAmount:"2.00",refundReason:"合成正式退款原因"});
+  await page.submitRefund();
+  expect(mocks.request.mock.calls.some(([options])=>options.method==="POST")).toBe(false);
+});
 it("revoked management authority closes financial and ordinary navigation despite a successful runtime", async () => {
   await loadPage("management"); void page.load(); core.resolve(authority); auxiliary.resolve(runtime); await flush();
   core = deferred(); void page.load(); core.resolve({ version: 1, managementAvailable: false, capabilities: [] }); await flush();
