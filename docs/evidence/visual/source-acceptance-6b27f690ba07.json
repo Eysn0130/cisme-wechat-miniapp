@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "89871afeefacc3cad25de7559bb8b71fd63fb5c047c5989890405d308a4206d1",
+  "packageSourceSha256": "6b27f690ba07f13bb687db882da4f354afdb9e8b7a459cbbadc3eb5827c27282",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Package hash measured locally from current source after privacy pagination and identity-clear changes; GitHub CI and WeChat runtime have not yet validated this package. All 40 route matrices and iOS/Android device acceptance remain blocked. The prior committed package manifest is archived in source-acceptance-6b27f690ba07.json; older screenshot evidence remains with its original source and is not promoted to this package."
+  "note": "Package hash measured by CI35819643824 job107048546608 at source commit 94fca58365c4284678f8b0c1823c9254d39d7173. All 40 route matrices and iOS/Android acceptance remain blocked. Prior native evidence is preserved byte-for-byte in source-acceptance-6ec7f596056c.json (original Git blob 2d4978c67ac4004314054b83d0d715f9d1f92c96); no screenshots or runtime claims are promoted to this package."
 }

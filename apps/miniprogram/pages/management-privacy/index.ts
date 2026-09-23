@@ -4,38 +4,51 @@ import { request } from "../../services/api";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 type PrivacyRow={id:string;kind:string;message:string;status:string;response:string|null;version:number;due_at:string;execution:{type:string;status:string}|null;kindLabel?:string;statusLabel?:string;dueLabel?:string;editable?:boolean};
+type PrivacyPage={items:PrivacyRow[];nextCursor:string|null};
 const kinds:Record<string,string>={access:"查询 / 导出",correct:"信息更正",delete:"删除请求",close_account:"注销账号",withdraw:"撤回同意",other:"其他请求"};
 const states:Record<string,string>={received:"待受理",verifying:"待核验",reviewing:"处理中",approved:"已批准",executing:"执行中",completed:"已完成",partially_completed:"部分完成",failed:"执行失败",rejected:"已拒绝",canceled:"已取消",responded:"已回复"};
 const editable=new Set(["received","verifying","reviewing","responded"]);
+function displayRow(row:PrivacyRow):PrivacyRow{return {...row,kindLabel:kinds[row.kind]||"其他请求",statusLabel:states[row.status]||"待核验",dueLabel:new Date(row.due_at).toLocaleDateString("zh-CN"),editable:editable.has(row.status)};}
 Page({
  lastToken:"",lastRevision:-1,epoch:0,visible:false,readPending:false,timer:null as ReturnType<typeof setInterval>|null,
- data:{chromeStyle:currentChromeStyle(),items:[] as PrivacyRow[],selected:null as PrivacyRow|null,response:"",statusIndex:0,statusOptions:["处理中","已回复"],loading:true,busy:false,coreReady:false,error:"",actionError:"",notice:""},
+ data:{chromeStyle:currentChromeStyle(),items:[] as PrivacyRow[],nextCursor:null as string|null,moreBusy:false,moreError:"",selected:null as PrivacyRow|null,response:"",statusIndex:0,statusOptions:["处理中","已回复"],loading:true,busy:false,coreReady:false,error:"",actionError:"",notice:""},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onShow(){this.visible=true;return this.load();},
- onHide(){this.visible=false;this.epoch++;cancelPageReads(this);this.stopPolling();this.readPending=false;this.setData({items:[],selected:null,response:"",coreReady:false,busy:false,actionError:"",notice:""});},
+ onHide(){this.visible=false;this.epoch++;cancelPageReads(this);this.stopPolling();this.readPending=false;this.setData({items:[],nextCursor:null,moreBusy:false,moreError:"",selected:null,response:"",coreReady:false,busy:false,actionError:"",notice:""});},
  onUnload(){this.onHide();},
  current(epoch:number,token:string){return this.visible&&epoch===this.epoch&&token===this.lastToken&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision();},
  stopPolling(){if(this.timer!==null)clearInterval(this.timer);this.timer=null;},
- startPolling(){this.stopPolling();if(this.visible&&this.data.coreReady)this.timer=setInterval(()=>void this.load(true),6000);},
- invalidate(message:string){this.stopPolling();this.setData({items:[],selected:null,response:"",coreReady:false,busy:false,error:message});},
+ startPolling(){this.stopPolling();if(this.visible&&this.data.coreReady&&!this.data.moreBusy&&this.data.items.length<=30)this.timer=setInterval(()=>void this.load(true),6000);},
+ invalidate(message:string){this.stopPolling();this.setData({items:[],nextCursor:null,moreBusy:false,moreError:"",selected:null,response:"",coreReady:false,busy:false,error:message});},
  async load(silent=false){
   if(!this.visible||this.readPending||(silent&&this.data.busy))return;
   if(silent&&!this.current(this.epoch,this.lastToken)){this.invalidate("身份已变化，请重新核验权限。");return;}
-  if(!silent){cancelPageReads(this);this.stopPolling();this.epoch++;this.lastToken=getApp<IAppOption>().globalData.sessionToken;this.lastRevision=commerceContextRevision();this.setData({items:[],selected:null,response:"",coreReady:false,loading:true,error:"",actionError:""});}
+  if(!silent){cancelPageReads(this);this.stopPolling();this.epoch++;this.lastToken=getApp<IAppOption>().globalData.sessionToken;this.lastRevision=commerceContextRevision();this.setData({items:[],nextCursor:null,moreBusy:false,moreError:"",selected:null,response:"",coreReady:false,loading:true,error:"",actionError:""});}
   const epoch=this.epoch,token=this.lastToken;this.readPending=true;
   try{
    if(!token)throw {status:401};
    const authority=await authorityProjection(this);
    if(!this.current(epoch,token))return;
    if(authority.version!==1||!authority.managementAvailable||!hasCapability(authority,"privacy.request.manage"))throw {status:403};
-   const rows=await pageRead<PrivacyRow[]>(this,{path:"/v1/management/privacy-requests"});
+   const page=await pageRead<PrivacyPage>(this,{path:"/v1/management/privacy-requests?page=1"});
    if(!this.current(epoch,token))return;
-   const items=rows.map(row=>({...row,kindLabel:kinds[row.kind]||"其他请求",statusLabel:states[row.status]||"待核验",dueLabel:new Date(row.due_at).toLocaleDateString("zh-CN"),editable:editable.has(row.status)}));
+   const items=page.items.map(displayRow);
    const chosen=this.data.selected,latest=chosen?items.find(row=>row.id===chosen.id):null;
    const changed=chosen&&(!latest||latest.version!==chosen.version);
-   this.setData({items,coreReady:true,error:"",...(changed?{selected:null,response:"",actionError:"受理记录已变化，请重新选择后查看最新结果。"}:{})});
+   this.setData({items,nextCursor:page.nextCursor,coreReady:true,error:"",...(changed?{selected:null,response:"",actionError:"受理记录已变化，请重新选择后查看最新结果。"}:{})});
   }catch(error){if(this.current(epoch,token))this.invalidate([401,403].includes((error as {status?:number})?.status??0)?"当前身份没有隐私受理权限，请返回管理中心或重试。":"受理记录暂时无法同步，请重试。");}
   finally{if(this.visible&&epoch===this.epoch){this.readPending=false;this.setData({loading:false});if(!this.current(epoch,token))this.invalidate("身份已变化，请重新核验权限。");else if(this.data.coreReady)this.startPolling();}}
+ },
+ async loadMore(){
+  const cursor=this.data.nextCursor;if(!cursor||!this.visible||!this.data.coreReady||this.readPending||this.data.moreBusy||this.data.busy)return;
+  this.stopPolling();const epoch=this.epoch,token=this.lastToken;this.data.moreBusy=true;this.setData({moreBusy:true,moreError:""});
+  try{const page=await pageRead<PrivacyPage>(this,{path:`/v1/management/privacy-requests?page=1&cursor=${encodeURIComponent(cursor)}`});
+   if(!this.current(epoch,token))return;
+   const seen=new Set(this.data.items.map(row=>row.id));this.setData({items:[...this.data.items,...page.items.filter(row=>!seen.has(row.id)).map(displayRow)],nextCursor:page.nextCursor});
+  }catch(error){if(!this.current(epoch,token))return;
+   if([401,403].includes((error as {status?:number})?.status??0))this.invalidate("当前身份没有隐私受理权限，请返回管理中心或重试。");
+   else this.setData({moreError:"后续请求加载失败，请重试。"});
+  }finally{if(this.visible&&epoch===this.epoch){this.data.moreBusy=false;this.setData({moreBusy:false});if(!this.current(epoch,token))this.invalidate("身份已变化，请重新核验权限。");}}
  },
  canAct(){return this.data.coreReady&&this.current(this.epoch,this.lastToken)&&!this.data.busy;},
  select(event:WechatMiniprogram.TouchEvent){if(!this.canAct())return;const row=this.data.items.find(row=>row.id===String(event.currentTarget.dataset.id||""));if(row)this.setData({selected:row,response:row.response||"",statusIndex:row.status==="responded"?1:0,actionError:"",notice:""});},

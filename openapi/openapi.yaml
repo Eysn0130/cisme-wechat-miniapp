@@ -179,7 +179,9 @@ paths:
     get:
       operationId: listMyPrivacyRequests
       security: [{session: []}]
-      responses: {'200': {description: Last 100 requests belonging only to the current member}}
+      description: Without page, preserves the legacy array of up to 100 own records. With page=1, returns items (up to 30) and nextCursor; pass the opaque cursor to reach older records. A refreshed first page starts a new traversal.
+      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}]
+      responses: {'200': {description: Own records; paged object when page=1, otherwise legacy array}, '422': {description: Invalid page or cursor}}
     post:
       operationId: submitPrivacyRequest
       security: [{session: []}]
@@ -191,9 +193,10 @@ paths:
   /v1/management/privacy-requests:
     get:
       operationId: nativePrivacyRequestQueue
-      description: Native management queue. Requires an active signed member session and current environment-bound privacy.request.manage capability; legacy operator roles cannot replace this capability. Locks authority for the read. No export payload is returned.
+      description: Native management queue. Requires an active signed member session and current environment-bound privacy.request.manage capability; legacy operator roles cannot replace this capability. Locks authority for each page read. Without page, preserves the legacy array of up to 100 records; page=1 returns items (up to 30) and nextCursor. No export payload is returned.
       security: [{session: []}]
-      responses: {'200': {description: Up to 100 requests ordered by due date and open status}, '401': {description: Member session required}, '403': {description: Capability unavailable or revoked}}
+      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}]
+      responses: {'200': {description: Requests ordered by open status and due date}, '401': {description: Member session required}, '403': {description: Capability unavailable or revoked}, '422': {description: Invalid page or cursor}}
   /v1/management/privacy-requests/{requestId}/response:
     post:
       operationId: nativeRespondPrivacyRequest
@@ -207,9 +210,10 @@ paths:
   /v1/admin/privacy-requests:
     get:
       operationId: privacyRequestQueue
-      description: Requires a signed active operator session and support or review_lead role; a client-supplied principal cannot select the actor.
+      description: Requires a signed active operator session and support or review_lead role; a client-supplied principal cannot select the actor. Without page, returns the legacy array of up to 100; page=1 returns items (up to 30) and nextCursor.
       security: [{session: []}]
-      responses: {'200': {description: Requests with pending first}, '403': {description: Missing operator role}}
+      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}]
+      responses: {'200': {description: Requests with pending first}, '403': {description: Missing operator role}, '422': {description: Invalid page or cursor}}
   /v1/admin/privacy-requests/{requestId}/response:
     post:
       operationId: respondPrivacyRequest

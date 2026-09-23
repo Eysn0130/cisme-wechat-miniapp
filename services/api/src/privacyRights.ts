@@ -6,6 +6,31 @@ import { requirePrivacyActor } from './privacyAuthority.js';
 import type { AppEnvironment } from '@cisme/config';
 import { AuthorityService } from './authority.js';
 
+const pageSize=30;
+const base64UrlPattern=/^[A-Za-z0-9_-]+$/;
+type PrivacyPageCursor={v:1;scope:'member'|'queue';createdAt:string;id:string;dueAt?:string;terminal?:boolean};
+
+function parsePageCursor(value:string|undefined,scope:PrivacyPageCursor['scope']):PrivacyPageCursor|null {
+  if(value===undefined)return null;
+  if(value.length>512||!base64UrlPattern.test(value))throw new DomainError('PRIVACY_PAGE_INVALID','分页位置无效，请刷新记录',422);
+  try {
+    const parsed=JSON.parse(Buffer.from(value,'base64url').toString('utf8')) as PrivacyPageCursor;
+    const validDate=(date:unknown)=>typeof date==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(date)&&
+      Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,19)===date.slice(0,19);
+    if(parsed.v!==1||parsed.scope!==scope||!uuidPattern.test(parsed.id)||!validDate(parsed.createdAt)||
+      (scope==='queue'&&(!validDate(parsed.dueAt)||typeof parsed.terminal!=='boolean')))
+      throw new Error('invalid cursor');
+    return parsed;
+  } catch {throw new DomainError('PRIVACY_PAGE_INVALID','分页位置无效，请刷新记录',422);}
+}
+
+function pageResult<T extends {id:string;cursor_created_at:string;cursor_due_at?:string;status?:string}>(rows:T[],scope:PrivacyPageCursor['scope']) {
+  const items=rows.slice(0,pageSize),last=items.at(-1);
+  const nextCursor=rows.length>pageSize&&last?Buffer.from(JSON.stringify({v:1,scope,createdAt:last.cursor_created_at,id:last.id,
+    ...(scope==='queue'?{dueAt:last.cursor_due_at!,terminal:['completed','rejected','canceled'].includes(last.status!)}:{})} satisfies PrivacyPageCursor)).toString('base64url'):null;
+  return {items:items.map(({cursor_created_at:unusedCreated,cursor_due_at:unusedDue,...row})=>row),nextCursor};
+}
+
 const kinds = new Set(['access','correct','delete','close_account','withdraw','other']);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -53,14 +78,20 @@ export class PrivacyRights {
     } else await this.requireOperator(principalId,client);
   }
 
-  async list(memberId: string | undefined) {
+  async list(memberId: string | undefined, page?:{cursor?:string}) {
     const id=owner(memberId);
+    const cursor=page?parsePageCursor(page.cursor,'member'):null;
     return transaction(this.pool,async client=>{
       const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[id]);
       if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可访问数据权利记录',403);
-      return (await client.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+      const rows=(await client.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+      ${page?`to_char(pr.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,`:''}
       ${executionProjection}
-      FROM privacy_request pr WHERE pr.member_id=$1 ORDER BY pr.created_at DESC LIMIT 100`,[id])).rows;
+      FROM privacy_request pr WHERE pr.member_id=$1
+      ${cursor?'AND (pr.created_at,pr.id)<($2::timestamptz,$3::uuid)':''}
+      ORDER BY pr.created_at DESC,pr.id DESC LIMIT ${page?pageSize+1:100}`,
+      cursor?[id,cursor.createdAt,cursor.id]:[id])).rows;
+      return page?pageResult(rows,'member'):rows;
     });
   }
 
@@ -103,13 +134,20 @@ export class PrivacyRights {
     if(!result.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可建立数据权利执行计划',403);
   }
 
-  async queue(principalId:string,actorMemberId?:string,mode:'role'|'capability'='role') {
+  async queue(principalId:string,actorMemberId?:string,mode:'role'|'capability'='role',page?:{cursor?:string}) {
+    const cursor=page?parsePageCursor(page.cursor,'queue'):null;
     return transaction(this.pool,async client=>{
       await requirePrivacyActor(client,actorMemberId);
       await this.requireQueueOperator(principalId,actorMemberId,mode,client);
-      return (await client.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+      const rows=(await client.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.status,pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+      ${page?`to_char(pr.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
+        to_char(pr.due_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_due_at,`:''}
       ${executionProjection}
-      FROM privacy_request pr ORDER BY (pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at LIMIT 100`)).rows;
+      FROM privacy_request pr
+      ${cursor?"WHERE ((pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at,pr.id)>($1::boolean,$2::timestamptz,$3::timestamptz,$4::uuid)":''}
+      ORDER BY (pr.status IN ('completed','rejected','canceled')),pr.due_at,pr.created_at,pr.id LIMIT ${page?pageSize+1:100}`,
+      cursor?[cursor.terminal,cursor.dueAt,cursor.createdAt,cursor.id]:[])).rows;
+      return page?pageResult(rows,'queue'):rows;
     });
   }
 

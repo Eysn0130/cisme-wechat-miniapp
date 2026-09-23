@@ -5,10 +5,12 @@ const labels=['查阅或复制个人信息','更正个人信息','删除个人�
 const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'已批准待执行',executing:'正在执行',completed:'已完成',partially_completed:'部分完成',rejected:'未批准',canceled:'已取消',responded:'已回复，尚不代表执行完成'};
 const executionStatuses:Record<string,string>={planned:'已建立计划，尚未执行',approved:'已复核待执行',running:'正在执行',succeeded:'执行成功',partially_succeeded:'部分执行成功',failed:'执行失败待处理',expired:'导出已过期',canceled:'计划已取消'};
 const deliveryStatuses:Record<string,string>={available:'合成会员资料子集可查看',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
+type PrivacyPage={items:any[];nextCursor:string|null};
+function displayRecord(r:any){return {...r,label:labels[kinds.indexOf(r.kind)]||r.kind,statusLabel:statuses[r.status]||r.status,executionSummary:r.execution?`${r.execution.type==='export'?'数据副本':'数据处理'}：${executionStatuses[r.execution.status]||r.execution.status}${r.execution.scope==='member_profile_only'?'；'+(deliveryStatuses[r.execution.deliveryState]||'仅会员资料子集，完整导出仍待处理'):''}${r.execution.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；仅清除自报微信号，其他资料未删除':''}`:''};}
 Page({
- data:{chromeStyle:currentChromeStyle(),authenticated:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string}},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string}},
  onShow(){this.data.alive=true;this.setData({authenticated:Boolean(getApp<IAppOption>().globalData.sessionToken)});void this.loadLegalIdentity();void this.load();},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null});},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loadingMore:false,moreError:''});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){this.setData({selected:Number(e.detail.value)});},
@@ -25,13 +27,23 @@ Page({
   }catch{/* Keep the public feedback route available while the shared policy source is unavailable. */}
  },
  async load(){
-  if(!this.data.authenticated){this.setData({records:[]});return;}
+  if(!this.data.authenticated){this.setData({records:[],recordToken:'',nextCursor:null});return;}
   const attempt=++this.data.loadAttempt;
   const token=getApp<IAppOption>().globalData.sessionToken;
-  this.setData({loading:true,error:'',records:[]});
-  try{const records=await request<any[]>({path:'/v1/me/privacy-requests'});if(this.data.alive && attempt===this.data.loadAttempt && token===getApp<IAppOption>().globalData.sessionToken)this.setData({records:records.map(r=>({...r,label:labels[kinds.indexOf(r.kind)]||r.kind,statusLabel:statuses[r.status]||r.status,executionSummary:r.execution?`${r.execution.type==='export'?'数据副本':'数据处理'}：${executionStatuses[r.execution.status]||r.execution.status}${r.execution.scope==='member_profile_only'?'；'+(deliveryStatuses[r.execution.deliveryState]||'仅会员资料子集，完整导出仍待处理'):''}${r.execution.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；仅清除自报微信号，其他资料未删除':''}`:''}))});}
+  this.setData({loading:true,error:'',records:[],recordToken:token,nextCursor:null,loadingMore:false,moreError:''});
+  try{const page=await request<PrivacyPage>({path:'/v1/me/privacy-requests?page=1'});if(this.data.alive && attempt===this.data.loadAttempt && token===getApp<IAppOption>().globalData.sessionToken)this.setData({records:page.items.map(displayRecord),nextCursor:page.nextCursor});}
   catch(e){if(this.data.alive && attempt===this.data.loadAttempt && token===getApp<IAppOption>().globalData.sessionToken)this.setData({error:(e as {title?:string}).title||'受理记录加载失败，请重试。'});}
   finally{if(this.data.alive && attempt===this.data.loadAttempt && token===getApp<IAppOption>().globalData.sessionToken)this.setData({loading:false});}
+ },
+ async loadMore(){
+  const cursor=this.data.nextCursor;if(!cursor||this.data.loading||this.data.loadingMore||!this.data.authenticated)return;
+  const attempt=this.data.loadAttempt,token=getApp<IAppOption>().globalData.sessionToken;
+  if(token!==this.data.recordToken){this.setData({records:[],recordToken:'',nextCursor:null,visibleExport:null,error:'身份已变化，请刷新后查看自己的记录。'});return;}
+  this.setData({loadingMore:true,moreError:''});
+  try{const page=await request<PrivacyPage>({path:`/v1/me/privacy-requests?page=1&cursor=${encodeURIComponent(cursor)}`});
+   if(this.data.alive&&attempt===this.data.loadAttempt&&token===getApp<IAppOption>().globalData.sessionToken){const seen=new Set(this.data.records.map((r:any)=>r.id));this.setData({records:[...this.data.records,...page.items.filter(r=>!seen.has(r.id)).map(displayRecord)],nextCursor:page.nextCursor});}}
+  catch(e){if(this.data.alive&&attempt===this.data.loadAttempt&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({moreError:(e as {title?:string}).title||'后续记录加载失败，请重试。'});}
+  finally{if(this.data.alive&&attempt===this.data.loadAttempt){if(token!==getApp<IAppOption>().globalData.sessionToken)this.setData({records:[],recordToken:'',nextCursor:null,visibleExport:null,loadingMore:false,error:'身份已变化，请刷新后查看自己的记录。'});else this.setData({loadingMore:false});}}
  },
  async submit(){
   if(this.data.busy)return;

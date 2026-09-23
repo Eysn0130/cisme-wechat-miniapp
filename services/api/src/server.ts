@@ -91,6 +91,13 @@ function privacyActor(request: FastifyRequest): string {
   return request.memberId;
 }
 
+function privacyPageQuery(query:{page?:string;cursor?:string}):{cursor?:string}|undefined {
+  if(query.page===undefined&&query.cursor===undefined)return undefined;
+  if(query.page!=='1'||(query.cursor!==undefined&&typeof query.cursor!=='string'))
+    throw new DomainError('PRIVACY_PAGE_INVALID','分页参数无效，请刷新记录',422);
+  return query.cursor===undefined?{}:{cursor:query.cursor};
+}
+
 function adminPrincipal(request: FastifyRequest, _config: AppConfig): string {
   // The legacy shared secret is not an actor credential. Only the signed
   // session resolved by the common preHandler may select an audit principal.
@@ -413,17 +420,18 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const documents = await pool.query("SELECT document_type,version,title,body,operator_name,contact,published_at FROM legal_document WHERE active=true ORDER BY document_type");
     return { ready: ["terms", "privacy"].every(type => documents.rows.some(doc => doc.document_type === type)), documents: documents.rows };
   });
-  app.get("/v1/me/privacy-requests", async request => privacyRights.list(request.memberId));
+  app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/me/privacy-requests", async request =>
+    privacyRights.list(request.memberId,privacyPageQuery(request.query)));
   app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown}));
   // Native management uses the verified member's current capability. Legacy
   // operator roles cannot substitute for a revoked native capability here.
-  app.get("/v1/management/privacy-requests", async request =>
-    privacyRights.queue(adminPrincipal(request,config),privacyActor(request),'capability'));
+  app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/management/privacy-requests", async request =>
+    privacyRights.queue(adminPrincipal(request,config),privacyActor(request),'capability',privacyPageQuery(request.query)));
   app.post<{Params:{requestId:string}}>("/v1/management/privacy-requests/:requestId/response", async request =>
     privacyRights.respond(adminPrincipal(request,config),request.params.requestId,
       request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown},privacyActor(request),'capability'));
-  app.get("/v1/admin/privacy-requests", async request => {
-    return privacyRights.queue(adminPrincipal(request, config),privacyActor(request));
+  app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/admin/privacy-requests", async request => {
+    return privacyRights.queue(adminPrincipal(request, config),privacyActor(request),'role',privacyPageQuery(request.query));
   });
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/response", async request => {
     const principal = adminPrincipal(request, config);
