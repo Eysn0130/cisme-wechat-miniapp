@@ -1730,6 +1730,13 @@ it('adopts an existing unlinked case in the original support conversation withou
       'legacy-chat-intake',createHash('sha256').update('legacy-chat').digest('hex'),originalAt])).rows[0]!;
   let conversation=(await pool.query<{id:string}>('SELECT id FROM support_conversation WHERE member_id=$1',[buyer.memberId])).rows[0];
   if(!conversation)conversation=(await pool.query<{id:string}>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id",[buyer.memberId])).rows[0]!;
+  const assigned=(await pool.query<{version:number}>(`UPDATE support_conversation SET status='human_active',
+    current_handler_principal_id=$2,version=version+1 WHERE id=$1 RETURNING version`,
+    [conversation.id,operator.principalId])).rows[0]!;
+  const unresolved=await aftersalePost(operator,`/v1/management/support/conversations/${conversation.id}/resolve`,
+    {expectedVersion:assigned.version},'legacy-chat-premature-resolve');
+  expect(unresolved.statusCode).toBe(409);
+  expect(unresolved.json().code).toBe('AFTERSALE_CASE_ACTIVE');
   const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
   expect((await service.forConversation(operator.memberId,conversation.id)).items.some(item=>item.id===legacy.id)).toBe(true);
   const accepted=await service.act(operator.memberId,legacy.id,'legacy-chat-approve',
@@ -1748,9 +1755,12 @@ it('requires the live assigned operator for actions from the existing support ch
   const order=await aftersalePaidOrder('chat-assignment');
   await aftersaleGrant(operator,'commerce.aftersale.review');
   await aftersaleGrant(operator,'support.read');
+  await aftersaleGrant(operator,'support.reply');
   const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
   const claim=await service.request(buyer.memberId,order.id,'chat-assignment-claim',
     {kind:'return_refund',reason:'隔离客服分配校验'});
+  await pool.query(`UPDATE support_conversation SET status='waiting_human',current_handler_principal_id=NULL,
+    version=version+1,updated_at=clock_timestamp() WHERE id=$1`,[claim.supportConversationId]);
   const path=`/v1/management/support/conversations/${claim.supportConversationId}/aftersales/${claim.id}/actions`;
   const command={action:'approve_return',expectedVersion:1,note:'已确认本案需要真实退货指引'};
   expect((await aftersalePost(operator,path,command,'chat-assignment-before')).statusCode).toBe(403);
