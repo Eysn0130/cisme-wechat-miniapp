@@ -31,7 +31,9 @@ export function returnInstruction(input:Record<string,unknown>){
     return raw.trim();
   };
   const recipientName=field('recipientName',1,80),phone=field('phone',7,20),region=field('region',2,100),address=field('address',5,300);
-  if(!/^\+?[0-9-]{7,20}$/.test(phone))fail('RETURN_INSTRUCTION_INVALID','请填写可联系的收件电话',422);
+  const phoneDigits=phone.replace(/\D/g,'');
+  if(!/^\+?[0-9]+(?:-[0-9]+)*$/.test(phone)||phoneDigits.length<7||phoneDigits.length>15)
+    fail('RETURN_INSTRUCTION_INVALID','请填写可联系的收件电话',422);
   const freightPayer=input.freightPayer;
   if(!['merchant','member'].includes(String(freightPayer)))fail('RETURN_INSTRUCTION_INVALID','请确认本案运费承担方',422);
   const instructions=input.instructions===undefined?'':field('instructions',0,500);

@@ -5,9 +5,12 @@ const valid={recipientName:'张女士',phone:'13800000000',region:'上海市浦�
 
 it('keeps only validated per-case return fields',()=>{
   expect(returnInstruction({...valid,privateExtra:'not in the business snapshot'})).toEqual(valid);
+  expect(returnInstruction({...valid,phone:'+86-21-12345678'}).phone).toBe('+86-21-12345678');
 });
 it.each([
-  {...valid,recipientName:''},{...valid,phone:'not-a-phone'},{...valid,region:''},
+  {...valid,recipientName:''},{...valid,phone:'not-a-phone'},
+  {...valid,phone:'-------'},{...valid,phone:'123----'},{...valid,phone:'1234567-'},
+  {...valid,phone:'1234567890123456'},{...valid,region:''},
   {...valid,address:''},{...valid,freightPayer:'to_be_confirmed'},
   {...valid,instructions:'x'.repeat(501)}
 ])('rejects incomplete return instructions before a transaction',input=>{
