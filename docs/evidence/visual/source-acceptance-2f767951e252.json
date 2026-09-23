@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "c090b443ffcfbf2d4c84bf16183f2b802232356a12e48dbb9ed157e4e131f52f",
+  "packageSourceSha256": "2f767951e252de0d5ea570c56678f562f62f184475e2ecfd561193d7a2535307",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current native source lets the buyer report shipment to an earlier valid return address before a waybill exists, then register the waybill against that same version. Management attention shows the route review. The privacy export card now describes its limited member-data scope without internal test terminology. The previous package manifest is archived byte-for-byte as source-acceptance-2f767951e252.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
+  "note": "Current native source lets the buyer report shipment to an earlier valid return address before a waybill exists, then register the waybill against that same version. Management attention shows the route review. Prior blocked manifests are archived byte-for-byte as source-acceptance-9cc0aa15a335.json, source-acceptance-07fcb0f14ccd.json and source-acceptance-b2d3a2c983ca.json. No DevTools, screenshot, iOS or Android acceptance is claimed; all 40 route matrices and both devices remain blocked."
 }
