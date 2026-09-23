@@ -35,7 +35,7 @@ Page({
  normalize(row:Row){return {...row,canReviewOldRoute:['awaiting_return','return_in_transit','return_received'].includes(row.state)
   &&row.shippedInstructionVersion!==null&&row.shippedInstructionVersion<Number(row.returnDestination?.version??0)
   &&(row.routeReviewOutcome===null||row.routeReviewOutcome==='carrier_contacted'),
-  label:row.resolved?'已退款':row.refund?.reviewState==='rejected'?'退款审批未通过，待核对':row.refund?.channelState==='closed'?'退款已关闭，待恢复':row.refund?.channelState==='abnormal'?'退款异常，待核对':row.returnRouteReviewRequired?(row.returnTracking?'旧地址寄件，待客服核对':'已寄出，待补运单'):labels[row.state]??'进度暂未更新',amountLabel:centsToYuan(row.amountCents)};},
+  label:row.resolved?(row.refund?.executionKind==='local_credit'?'购物权益已退回':'已退款'):row.refund?.reviewState==='rejected'?'退款审批未通过，待核对':row.refund?.channelState==='closed'?'退款已关闭，待恢复':row.refund?.channelState==='abnormal'?'退款异常，待核对':row.returnRouteReviewRequired?(row.returnTracking?'旧地址寄件，待客服核对':'已寄出，待补运单'):labels[row.state]??'进度暂未更新',amountLabel:centsToYuan(row.amountCents)};},
  selectActions(row:Row){const out:string[]=[];
   if(this.data.management){
    if(this.data.capabilities.includes('commerce.aftersale.review')){

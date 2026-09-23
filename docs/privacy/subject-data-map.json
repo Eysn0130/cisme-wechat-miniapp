@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "6288bacb6e8b27316e0dc0447d7ef0682f3eddaf300b2d8f255c339b164dcb31",
+  "migrationSetSha256": "2478c324cd5decd60f26ad9e3d517c6d2a70891181317d31de92e25335084a2d",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -3123,7 +3123,8 @@
         "reconcile_attempt_count",
         "reconcile_last_error_code",
         "first_dispatch_started_at",
-        "submission_lease_token"
+        "submission_lease_token",
+        "execution_kind"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

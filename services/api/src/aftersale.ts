@@ -83,7 +83,8 @@ export class AftersaleService{
   }
   private async view(client:DbClient,row:CaseRow){
     const refund=row.refund_request_id?(await client.query(`SELECT r.state,i.state AS refund_state,
-      i.submission_state FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.id=$1`,[row.refund_request_id])).rows[0]:null;
+      i.submission_state,i.execution_kind FROM commerce_refund_request r
+      LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.id=$1`,[row.refund_request_id])).rows[0]:null;
     return {id:row.id,orderId:row.order_id,kind:row.kind,state:row.state,reason:row.reason,claimBasis:row.claim_basis,
       supportConversationId:row.support_conversation_id,requestedAt:row.created_at,lines:row.lines,
       amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,region:d.region??'',address:d.address,freightPayer:d.freightPayer??'to_be_confirmed',instructions:d.instructions??''}))(row.return_destination):null,
@@ -96,7 +97,7 @@ export class AftersaleService{
       exceptionResolution:row.exception_kind?{kind:row.exception_kind,evidenceReference:row.exception_evidence_reference,
         approvedAt:row.exception_approved_at}:null,
       refundRequestId:row.refund_request_id,refund:refund?{reviewState:refund.state,channelState:refund.refund_state??null,
-        submissionState:refund.submission_state??null}:null,
+        submissionState:refund.submission_state??null,executionKind:refund.execution_kind??null}:null,
       resolved:refund?.refund_state==='succeeded',inventoryStatus:'separate_ledger_required',
       createdAt:row.created_at,updatedAt:row.updated_at};
   }
@@ -175,8 +176,9 @@ export class AftersaleService{
         'SELECT cash_merchandise_cents FROM commission_order_snapshot WHERE order_id=$1',[orderId])).rows[0]?.cash_merchandise_cents??0);
       const allocation=allocateAftersaleClaim({lines,shippingCents:Number(order.shipping_cents),eligibleCashCents:eligible,
         prior:prior.map(line=>({lineId:line.lineId,quantity:Number(line.quantity)})),selected:selection});
-      if(allocation.amountCents<1||allocation.cashRefundCents<1)
-        fail('AFTERSALE_CASH_COMPONENT_REQUIRED','本次商品金额无法原路退款，请联系客服核对权益退回',409);
+      if(allocation.amountCents<1||allocation.cashRefundCents<0||
+        allocation.cashRefundCents===0&&allocation.creditRefundCents!==allocation.amountCents)
+        fail('AFTERSALE_REFUND_COMPONENT_INVALID','本次商品金额与原支付组成不一致，请联系客服核对',409);
       const labels=new Map(lines.map(line=>[line.id,line]));
       const claimLines=allocation.lines.map((line,index)=>({...line,
         productName:labels.get(line.lineId)!.product_name,skuLabel:labels.get(line.lineId)!.sku_label,

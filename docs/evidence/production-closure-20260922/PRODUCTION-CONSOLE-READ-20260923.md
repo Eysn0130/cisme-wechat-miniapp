@@ -7,6 +7,7 @@
 - 使用该实例“执行命令”运行只读 `ss -ltn`，控制台回执为 ExitCode 0，开始及结束时间 2026-09-23 10:54:49（控制台本地显示）。主机监听 IPv4 `0.0.0.0:443`、`0.0.0.0:5432`、`0.0.0.0:22`、`0.0.0.0:3100`；PostgreSQL 另监听 `[::]:5432`。本机监听不证明公网可达；公网 5432 放行与全接口监听组合需在检查合法依赖和管理回滚路径后收紧。
 - 同一入口运行只读 `systemctl show cisme-api cisme-worker -p ActiveState -p MainPID -p FragmentPath --no-pager`，ExitCode 0，控制台时间 2026-09-23 10:55:15；两个服务均为 `ActiveState=active`。这只证明 systemd 服务活动，不证明当前源码版本或业务健康。
 - 只读 `readlink -f /opt/cisme/current` 在控制台时间 2026-09-23 10:56:24 返回 `/opt/cisme/releases/20260909-native-login`。这是当前版本目录名，不能把它冒充 Git 提交 SHA；需继续核对该目录的制品来源、数据库迁移和进程环境。
+- 使用 `curl --noproxy '*' --proto '=https' --connect-timeout 3 --max-time 8 --resolve api.cisme.cn:443:127.0.0.1 -sS -o /dev/null -w '%{http_code} %{ssl_verify_result}' https://api.cisme.cn/health/ready` 在实例本机只读验证，控制台时间 2026-09-23 11:06:36，ExitCode 0，结果 `200 0`。这说明原服务器本机以目标域名 SNI 完成证书校验并返回就绪 200；尚未证明外部网络可达、当前候选已部署或真实业务闭环。
 - 本机网络环境 `dig +short A api.cisme.cn` 返回代理保留地址 `198.18.0.124`；从这里 `curl` HTTPS 握手超时。该 DNS 结果不能当成公网权威解析，超时也不能单独定位根因。
 - 腾讯云“我的备案”页显示一笔 2026-09-09 创建的“待验证备案 - 草稿”，阶段为“提交初审：未提交”，主体信息及互联网信息服务均显示“暂无备案”。这是当前腾讯云账号的ICP备案页状态，不能推断微信小程序备案状态。
 

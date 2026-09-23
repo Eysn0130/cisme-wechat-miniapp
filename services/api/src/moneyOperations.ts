@@ -78,7 +78,7 @@ export class MoneyOperationsService{
         if(!row)throw new DomainError("PAYMENT_ATTEMPT_NOT_FOUND","原支付意图不存在",404);
         number=row.order_number;
       }else{
-        const query=kind==="refund"?"SELECT id FROM commission_refund_intent WHERE id=$1":
+        const query=kind==="refund"?"SELECT id FROM commission_refund_intent WHERE id=$1 AND execution_kind='wechat'":
           "SELECT id FROM commission_settlement_request WHERE id=$1";
         if(!(await client.query(query,[target])).rowCount)
           throw new DomainError("MONEY_RECHECK_TARGET_NOT_FOUND","原资金意图不存在",404);

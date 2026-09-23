@@ -143,6 +143,7 @@ export class RefundCommandService{
         throw new DomainError("REFUND_BENEFICIARY_DECISION_FORBIDDEN","佣金受益人不能审批关联订单退款",403);
       const amount=cents(request.amount_cents);
       let allocation:{lineId:string;eligibleCashRefundCents:number;otherCashRefundCents:number}[]=[];
+      let localCreditIntent:{id:string;sources:{sourceId:string;amount:number}[]}|null=null;
       let eligible=0;
       if(decision==="approve"){
         const missingIntent=(await client.query<{has_gap:boolean}>(`SELECT EXISTS(
@@ -183,7 +184,8 @@ export class RefundCommandService{
         const creditRefund=selected?selected.reduce((sum,line)=>sum+line.creditRefundCents,0):amount-cashRefund;
         if(cashRefund+creditRefund!==amount)
           throw new DomainError('REFUND_COMPONENT_MISMATCH','售后退款组成与申请金额不一致',409);
-        if(cashRefund<1||creditRefund<0||creditRefund>creditTotal)
+        if(cashRefund<0||cashRefund===0&&(!selected||creditRefund!==amount)||
+          creditRefund<0||creditRefund>creditTotal)
           throw new DomainError("REFUND_CASH_COMPONENT_REQUIRED","本次金额无法形成可核验的原路现金退款，请调整退款金额",409);
         if(totalReserved+cashRefund>cashTotal)
           throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计核准金额超过原支付",409);
@@ -260,16 +262,20 @@ export class RefundCommandService{
           }
           if(creditRemaining)throw new DomainError("REFUND_CREDIT_OVERDRAW","权益退款批次不足",409);
         }
-        const outRefundNo=`CR${request.id.replaceAll("-","").toUpperCase()}`;
+        const localCredit=cashRefund===0;
+        const outRefundNo=`${localCredit?'LC':'CR'}${request.id.replaceAll("-","").toUpperCase()}`;
         const intent=(await client.query<{id:string}>(`INSERT INTO commission_refund_intent(order_id,payment_inbox_id,out_refund_no,
           refund_cents,payer_refund_cents,eligible_merchandise_refund_cents,
           other_merchandise_refund_cents,shipping_cash_refund_cents,line_allocation,
-          allocation_policy_version,created_by,request_id)
-          VALUES($1,$2,$3,$4,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-          [order.id,payment.id,outRefundNo,cashRefund,eligible,cashRefund-eligible-shippingRefund,shippingRefund,JSON.stringify(allocation),
-            selected?"quantity-net-components-v1":historicalComponents?"historical-full-components-v1":creditTotal?"isolated-split-tender-v1":"isolated-cash-lines-v1",`member:${approver}`,request.id])).rows[0]!;
+          allocation_policy_version,created_by,request_id,execution_kind,submission_state)
+          VALUES($1,$2,$3,$4,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+          [order.id,payment.id,outRefundNo,cashRefund,eligible,cashRefund-eligible-shippingRefund,shippingRefund,
+            JSON.stringify(localCredit?[]:allocation),
+            selected?"quantity-net-components-v1":historicalComponents?"historical-full-components-v1":creditTotal?"isolated-split-tender-v1":"isolated-cash-lines-v1",
+            `member:${approver}`,request.id,localCredit?'local_credit':'wechat',localCredit?'closed':'prepared'])).rows[0]!;
         for(const source of sourceAllocations)await client.query(`INSERT INTO commission_credit_refund_allocation
           (refund_intent_id,source_id,amount_cents) VALUES($1,$2,$3)`,[intent.id,source.sourceId,source.amount]);
+        if(localCredit)localCreditIntent={id:intent.id,sources:sourceAllocations};
       }
       const updated=(await client.query<RequestRow>(`UPDATE commerce_refund_request SET
         state=$2,version=version+1,decided_by_member_id=$3,decision_key=$4,decision_hash=$5,
@@ -278,19 +284,37 @@ export class RefundCommandService{
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
         after_state,trace_id) VALUES($1,'commerce.refund.decision','commerce_refund_request',$2,$3,$4,$5)`,
         [`member:${approver}`,request.id,decision.toUpperCase(),{amountCents:amount,eligibleCents:eligible},`refund-decision:${request.id}`]);
+      if(localCreditIntent){
+        // This is a local return of the exact original credit lots. The
+        // approved request, terminal fact and immutable entries commit or
+        // roll back together; no zero-value WeChat refund is created.
+        await client.query(`UPDATE commission_refund_intent SET state='succeeded',finalized_at=clock_timestamp()
+          WHERE id=$1 AND state='prepared'`,[localCreditIntent.id]);
+        for(const source of localCreditIntent.sources)await client.query(`INSERT INTO commission_credit_entry
+          (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+          VALUES($1,$2,'refund_return',$3,$4,$5)`,[source.sourceId,
+            `credit-local-refund-return:${localCreditIntent.id}:${source.sourceId}`,source.amount,
+            order.id,`member:${approver}`]);
+        await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
+          after_state,trace_id) VALUES($1,'commerce.credit_refund_applied','commission_refund_intent',
+          $2,'ORIGINAL_CREDIT_RETURN',$3,$4)`,[`member:${approver}`,localCreditIntent.id,
+          {orderId:order.id,creditReturnedCents:amount,sourceCount:localCreditIntent.sources.length},
+          `credit-local-refund:${localCreditIntent.id}`]);
+      }
       return this.decisionView(client,updated);
     },"SERIALIZABLE");
   }
 
   private async decisionView(client:pg.PoolClient,row:RequestRow){
-    const intent=(await client.query<{id:string;out_refund_no:string;state:string;payer_refund_cents:string;
+    const intent=(await client.query<{id:string;out_refund_no:string;state:string;execution_kind:string;payer_refund_cents:string;
       credit_refund_cents:string}>(`SELECT i.id,i.out_refund_no,i.state,i.payer_refund_cents,
+      i.execution_kind,
       COALESCE((SELECT sum(a.amount_cents) FROM commission_credit_refund_allocation a
         WHERE a.refund_intent_id=i.id),0)::text AS credit_refund_cents
       FROM commission_refund_intent i WHERE i.request_id=$1`,[row.id])).rows[0];
     return {id:row.id,orderId:row.order_id,state:row.state,version:row.version,
       amountCents:Number(row.amount_cents),intent:intent?{id:intent.id,outRefundNo:intent.out_refund_no,
-        state:intent.state,cashRefundCents:Number(intent.payer_refund_cents),
+        state:intent.state,executionKind:intent.execution_kind,cashRefundCents:Number(intent.payer_refund_cents),
         creditReturnCents:Number(intent.credit_refund_cents)}:null};
   }
 

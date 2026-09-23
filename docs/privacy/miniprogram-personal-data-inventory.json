@@ -530,7 +530,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "989e7630bd4759fe87905a5074314492779ad7f0ba23ac3f69de295109d15cef",
+  "migrationSetSha256": "ad6d03ccdd1786233cdfe3c20880e10295d45c2d8a8fbaf39bfabd42c6502058",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -662,5 +662,9 @@
     "productionApplyExecuted": false,
     "formalPolicyApproved": false,
     "businessRetentionApproved": false
+  },
+  "localCreditRefundReview": {
+    "date": "2026-09-23",
+    "scope": "Reviewed new refund execution_kind and guard migration. The same approved request, order, original source lot, aftersale and audit records remain; no additional personal field or external recipient is created. A zero-cash credit return is a local ledger fact and must never be submitted to WeChat. Retention remains governed by the confirmed transaction category."
   }
 }

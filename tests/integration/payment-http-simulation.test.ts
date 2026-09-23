@@ -374,6 +374,75 @@ async function creditSpendCase(){
     expect((await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands)).refunds)
       .toContainEqual(expect.objectContaining({state:"applied"}));
   }
+  // One paid order can have a credit-only remaining unit even though its
+  // original payment contained cash. The first unit uses the one cash cent;
+  // the second must return only its original lot without calling WeChat.
+  const lowPriceSku=(await pool.query<{id:string}>(`INSERT INTO catalog_sku(product_id,code,label,created_by,updated_by)
+    SELECT product_id,'PAYMENT_HTTP_CREDIT_UNIT','Credit unit','fixture','fixture'
+    FROM catalog_sku WHERE id=$1 RETURNING id`,[skuId])).rows[0]!.id;
+  await pool.query(`INSERT INTO catalog_price(sku_id,currency,amount_cents,created_by,updated_by)
+    VALUES($1,'CNY',1000,'fixture','fixture')`,[lowPriceSku]);
+  await pool.query(`INSERT INTO catalog_inventory_level(sku_id,stock_on_hand,updated_by)
+    VALUES($1,2,'fixture')`,[lowPriceSku]);
+  const tinyQuote=await app.inject({method:'POST',url:'/v1/me/commerce/quotes',
+    headers:{...auth(referrer.sessionToken),'idempotency-key':'credit-local-quote-001'},
+    payload:{skuId:lowPriceSku,quantity:2,addressId:address.json().id,
+      addressVersion:address.json().version,creditCents:1999}});
+  expect(tinyQuote.statusCode,tinyQuote.body).toBe(200);
+  expect(tinyQuote.json()).toMatchObject({totalCents:2000,creditTenderCents:1999,cashPayableCents:1});
+  const tinyOrderResponse=await app.inject({method:'POST',url:'/v1/me/orders',
+    headers:{...auth(referrer.sessionToken),'idempotency-key':'credit-local-order-001'},
+    payload:{quoteId:tinyQuote.json().id}});
+  expect(tinyOrderResponse.statusCode,tinyOrderResponse.body).toBe(200);
+  const tinyOrder=tinyOrderResponse.json() as {id:string;orderNumber:string};
+  expect((await app.inject({method:'POST',url:`/v1/me/orders/${tinyOrder.id}/payment-intent`,
+    headers:auth(referrer.sessionToken),payload:{}})).statusCode).toBe(200);
+  const tinyPaid=paidCallback(tinyOrder.orderNumber);
+  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/callback',
+    headers:{...tinyPaid.headers,'Content-Type':'application/json'},payload:tinyPaid.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox);
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.aftersale.review','fixture','Credit-only line refund','test','integration_fixture')
+    ON CONFLICT DO NOTHING`,[operator.memberId]);
+  const tinyLine=(await pool.query<{id:string}>(`SELECT id FROM commerce_order_line WHERE order_id=$1`,[tinyOrder.id])).rows[0]!.id;
+  const tinyAftersales=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  for(const [index,expectedCash,expectedCredit] of [[1,1,999],[2,0,1000]]){
+    const claim=await tinyAftersales.request(referrer.memberId,tinyOrder.id,`credit-local-claim-${index}`,
+      {kind:'refund_only',reason:'隔离权益单件退款',lines:[{lineId:tinyLine,quantity:1}]});
+    expect(claim.amountCents).toBe(1000);
+    const pending=await tinyAftersales.act(operator.memberId,claim.id,`credit-local-claim-action-${index}`,
+      {action:'request_refund',expectedVersion:1,note:'隔离原支付组成复核'},true,refundCommands);
+    const approved=await refundCommands.decide(operator.memberId,pending.refundRequestId!,
+      `credit-local-approval-${index}`,{decision:'approve',expectedVersion:1,reason:'隔离退款组成审批'});
+    expect(approved.intent).toMatchObject({cashRefundCents:expectedCash,creditReturnCents:expectedCredit,
+      executionKind:expectedCash?'wechat':'local_credit'});
+    if(expectedCash){
+      await refundCommands.processDue();
+      const callback=refundCallback(approved.intent!.outRefundNo);
+      expect((await app.inject({method:'POST',url:'/v1/payments/wechat/refund-callback',
+        headers:{...callback.headers,'Content-Type':'application/json'},payload:callback.raw})).statusCode).toBe(204);
+      await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+    }else{
+      const sentBefore=channelRefunds.size;
+      expect((await pool.query('SELECT state FROM commission_refund_intent WHERE id=$1',[approved.intent!.id])).rows[0].state).toBe('succeeded');
+      const sourceId=(await pool.query<{source_id:string}>(`SELECT source_id FROM commission_credit_refund_allocation
+        WHERE refund_intent_id=$1 LIMIT 1`,[approved.intent!.id])).rows[0]!.source_id;
+      await expect(pool.query(`INSERT INTO commission_credit_entry
+        (source_id,event_key,kind,amount_cents,purchase_order_id,actor_principal_id)
+        VALUES($1,'credit-local-overreturn-001','refund_return',1,$2,'fixture')`,
+        [sourceId,tinyOrder.id])).rejects.toMatchObject({code:'23514'});
+      const forbiddenChannel={queryRefundByMerchantRefundNumberWithEvidence:()=>{
+        throw new Error('local credit must not query WeChat');
+      }} as unknown as WechatPayV3Client;
+      await expect(refundInbox.receiveQueried(forbiddenChannel,approved.intent!.id)).rejects.toMatchObject({code:'REFUND_INTENT_UNMATCHED'});
+      const falseChannelQuery=await app.inject({method:'POST',url:`/v1/management/money/recheck/refund/${approved.intent!.id}`,
+        headers:auth(operator.sessionToken),payload:{}});
+      expect(falseChannelQuery.statusCode).toBe(404);
+      expect(await refundCommands.processDue()).toEqual([]);
+      expect(channelRefunds.size).toBe(sentBefore);
+      expect((await tinyAftersales.availability(referrer.memberId,tinyOrder.id)).lines[0]?.remainingQuantity).toBe(0);
+    }
+  }
   const pending=await creditOrder("cancel",500);
   const cancelled=await app.inject({method:"POST",url:`/v1/me/orders/${pending.id}/cancel-verified`,
     headers:{...auth(referrer.sessionToken),"idempotency-key":"credit-order-cancel-001"},

@@ -178,7 +178,8 @@ Page({
       const rows=page.items.map(row=>({...row,amountLabel:centsToYuan(row.amountCents),
         cashLabel:row.cashRefundCents===null?"":centsToYuan(row.cashRefundCents),
         creditLabel:row.creditReturnCents===null?"":centsToYuan(row.creditReturnCents),
-        stateLabel:refundLabels[row.refundState??""]??refundLabels[row.state]??"进度暂未更新"}));
+        stateLabel:row.refundState==='succeeded'&&row.cashRefundCents===0&&Number(row.creditReturnCents)>0
+          ?'购物权益已退回':refundLabels[row.refundState??""]??refundLabels[row.state]??"进度暂未更新"}));
       const seen=new Set(cursor?this.data.refunds.map(row=>row.id):[]);
       this.setData({refunds:[...(cursor?this.data.refunds:[]),...rows.filter(row=>!seen.has(row.id))],
         refundTotal:page.totalCount,refundCountLabel:`本单申请 ${page.totalCount} 项`,refundCursor:page.nextCursor,refundLoading:false,refundMoreLoading:false});
@@ -261,7 +262,7 @@ Page({
     const stateLabels:Record<string,string>={requested:'申请已收到',need_info:'请补充信息',awaiting_instruction:'客服正在准备退货信息',
       awaiting_return:'请按指引寄回',return_in_transit:'退货运输中',return_received:'退货已收到',quality_checked:'正在处理退款',
       refund_exception_approved:'无需寄回，正在处理退款',refund_pending:'退款处理中'};
-    const label=!selected?'':selected.resolved?'已退款':selected.refund?.reviewState==='rejected'?'退款申请未通过':
+    const label=!selected?'':selected.resolved?(selected.refund?.executionKind==='local_credit'?'购物权益已退回':'已退款'):selected.refund?.reviewState==='rejected'?'退款申请未通过':
       ['closed','abnormal'].includes(selected.refund?.channelState)?'退款需客服协助':stateLabels[selected.state]??'进度暂未更新';
     const at=selected?Date.parse(selected.requestedAt):NaN;
     this.setData({sheetCase:selected,sheetPreviousCase:selected?null:items[0]??null,sheetCasesReady:true,sheetCaseLabel:label,
