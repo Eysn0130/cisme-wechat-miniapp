@@ -111,6 +111,10 @@ export class RefundCommandService{
       if(!request)throw new DomainError("REFUND_REQUEST_NOT_FOUND","退款申请不存在",404);
       if(request.requested_by_member_id===approver)
         throw new DomainError("REFUND_SELF_APPROVAL_FORBIDDEN","退款申请人与审批人必须不同",403);
+      const exception=(await client.query<{exception_approved_by:string|null}>(
+        'SELECT exception_approved_by FROM commerce_aftersale_case WHERE refund_request_id=$1',[requestId])).rows[0];
+      if(exception?.exception_approved_by===approver)
+        throw new DomainError("REFUND_EXCEPTION_DUAL_REVIEW_REQUIRED","无需寄回的例外决定与退款审批须由不同人员完成",403);
       if(request.state!=="requested"){
         if(request.decided_by_member_id===approver&&request.decision_key===decisionKey&&request.decision_hash===fingerprint)
           return this.decisionView(client,request);

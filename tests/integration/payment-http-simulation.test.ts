@@ -1789,7 +1789,11 @@ it('keeps a lost-delivery claim without forcing a return, then routes a reviewed
   expect(requested).toMatchObject({state:'refund_pending',version:3,amountCents:10000});
   expect((await pool.query('SELECT count(*)::int AS n FROM commerce_refund_request WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
   expect((await pool.query('SELECT count(*)::int AS n FROM commerce_aftersale_return_instruction WHERE case_id=$1',[claim.id])).rows[0].n).toBe(0);
-  await refundCommands.decide(operator.memberId,requested.refundRequestId!,'lost-exception-finance',
+  await expect(refundCommands.decide(operator.memberId,requested.refundRequestId!,'lost-exception-same-reviewer',
+    {decision:'reject',expectedVersion:1,reason:'隔离验证同一操作员不得复核自己的免寄回决定'}))
+    .rejects.toMatchObject({code:'REFUND_EXCEPTION_DUAL_REVIEW_REQUIRED'});
+  await aftersaleGrant(reviewer,'commerce.refund.approve');
+  await refundCommands.decide(reviewer.memberId,requested.refundRequestId!,'lost-exception-finance',
     {decision:'reject',expectedVersion:1,reason:'隔离验证财务拒绝后保持原例外事实'});
   const reopened=await service.act(operator.memberId,claim.id,'lost-exception-reopen',
     {action:'reopen_refund',expectedVersion:3,note:'原退款已拒绝，保留丢件依据'},true);
