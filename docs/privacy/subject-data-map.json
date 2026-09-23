@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "a3db4d46f33ec56ecbe1b4ad393e4a65585ef771922ad7736e11afadceb9b30c",
+  "migrationSetSha256": "35c31bce9a345a5fd567007ceb831795adad3b4754839857613a253a7e45e8bd",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": false,
@@ -3809,7 +3809,8 @@
         "active",
         "version",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "duration_months"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

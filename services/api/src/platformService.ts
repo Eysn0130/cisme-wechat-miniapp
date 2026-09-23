@@ -192,6 +192,11 @@ export class PlatformService {
           [identityId, memberId, input.provider, input.appId, input.openid, input.unionid ?? null, input.adapter]
         );
         await client.query("INSERT INTO points_projection(member_id) VALUES ($1) ON CONFLICT DO NOTHING", [memberId]);
+      } else {
+        const state=(await client.query<{status:string}>(
+          'SELECT status FROM member WHERE id=$1 FOR UPDATE',[memberId])).rows[0]?.status;
+        if(state==='deleted')throw new DomainError('ACCOUNT_CLOSED','该账号已注销，如需处理历史事项请通过小程序客服反馈',410);
+        if(state!=='active')throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可登录',403);
       }
       // Re-authentication never overwrites member-managed or reviewed profile data.
       const principalId = `${input.provider}:${identityId}`;

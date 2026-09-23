@@ -188,16 +188,31 @@ export class SupportService {
   }
 
   private async retentionState(client: DbClient | pg.Pool, row: ConversationRow) {
-    const policy = await client.query<{code:string;duration_days:number|null;enforcement_state:"declared"|"enforced";active:boolean;version:number}>(`SELECT code,duration_days,enforcement_state,active,version
-      FROM data_retention_policy WHERE code='support_conversation_policy_pending'`);
-    if (!policy.rows[0]) throw new DomainError("SUPPORT_RETENTION_POLICY_MISSING", "Support retention policy is not configured", 503);
-    const current = policy.rows[0];
+    // The original conversation can contain both ordinary consultation and
+    // order/aftersale evidence. Never let the ordinary policy purge both.
+    const linked=await client.query<{linked:boolean}>(`SELECT (
+      EXISTS(SELECT 1 FROM support_message WHERE conversation_id=$1
+        AND (linked_order_id IS NOT NULL OR linked_case_id IS NOT NULL))
+      OR EXISTS(SELECT 1 FROM commerce_aftersale_case WHERE support_conversation_id=$1)
+    ) AS linked`,[row.id]);
     const hold = await client.query<{count:number}>(`SELECT count(*)::int AS count FROM legal_hold_binding binding
       JOIN legal_hold hold ON hold.id=binding.hold_id
       WHERE hold.status='active' AND hold.expires_at>clock_timestamp() AND (
         (binding.object_type='support_conversation' AND binding.object_id=$1)
         OR (binding.object_type='member' AND binding.object_id=$2)
       )`, [row.id, row.member_id]);
+    if(linked.rows[0]?.linked){
+      const policy=(await client.query<{code:string;version:number;duration_months:number|null}>(
+        "SELECT code,version,duration_months FROM data_retention_policy WHERE code='support_transaction_three_years'")).rows[0];
+      if(!policy)throw new DomainError('SUPPORT_RETENTION_POLICY_MISSING','交易客服保留规则尚未装配',503);
+      return {eligible:false,reason:'transaction_scope_requires_separate_execution',policyCode:policy.code,
+        policyVersion:policy.version,durationDays:null,durationMonths:policy.duration_months,eligibleAt:null,
+        activeLegalHolds:hold.rows[0]!.count};
+    }
+    const policy = await client.query<{code:string;duration_days:number|null;enforcement_state:"declared"|"enforced";active:boolean;version:number}>(`SELECT code,duration_days,enforcement_state,active,version
+      FROM data_retention_policy WHERE code='support_conversation_policy_pending'`);
+    if (!policy.rows[0]) throw new DomainError("SUPPORT_RETENTION_POLICY_MISSING", "Support retention policy is not configured", 503);
+    const current = policy.rows[0];
     const due = current.duration_days !== null && row.resolved_at
       ? await client.query<{eligible:boolean;eligible_at:Date}>(`SELECT clock_timestamp() >= $1::timestamptz + make_interval(days=>$2) AS eligible,
           $1::timestamptz + make_interval(days=>$2) AS eligible_at`, [row.resolved_at, current.duration_days])
@@ -596,6 +611,8 @@ export class SupportService {
       if(row.version!==expected)throw new DomainError("VERSION_CONFLICT","Conversation changed; reload before purging",409);
       const state=await this.retentionState(client,row);
       if(state.reason==="policy_pending")throw new DomainError("SUPPORT_RETENTION_POLICY_PENDING","Support retention remains POLICY PENDING and cannot delete data",409);
+      if(state.reason==='transaction_scope_requires_separate_execution')throw new DomainError(
+        'SUPPORT_TRANSACTION_RETENTION_SCOPE','关联订单或售后的客服事实必须按交易范围单独处理，不能整段清除',409);
       if(state.reason==="not_resolved")throw new DomainError("SUPPORT_RETENTION_NOT_RESOLVED","Only resolved conversations can become purge eligible",409);
       if(state.reason==="legal_hold")throw new DomainError("SUPPORT_RETENTION_LEGAL_HOLD","An active legal hold blocks this purge",423);
       if(state.reason!=="eligible")throw new DomainError("SUPPORT_RETENTION_NOT_DUE","The approved retention period has not elapsed",409);
