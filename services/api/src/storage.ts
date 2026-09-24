@@ -1,7 +1,8 @@
 import { createHmac, randomUUID, timingSafeEqual, createHash } from "node:crypto";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, unlink, writeFile } from "node:fs/promises";
 import { resolve, basename } from "node:path";
 import { readFileSync,lstatSync } from "node:fs";
+import { Writable } from "node:stream";
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
@@ -31,7 +32,7 @@ export interface ObjectStorage {
   ensureReady(): Promise<void>;
   authorize(input: { mediaId: string; objectKey: string; mimeType: string; maxBytes: number; baseUrl: string; now: Date }): Promise<UploadAuthorization>;
   verify(objectKey: string): Promise<StoredObject>;
-  read(objectKey: string): Promise<{ bytes: Uint8Array; mimeType: ReadableMime }>;
+  read(objectKey: string, maxBytes?: number): Promise<{ bytes: Uint8Array; mimeType: ReadableMime }>;
   delete(objectKey: string): Promise<void>;
   writeDerivedImage(objectKey: string, bytes: Uint8Array): Promise<void>;
   acceptsGatewayUpload: boolean;
@@ -50,7 +51,7 @@ function observeStorage(storage: ObjectStorage): ObjectStorage {
     ensureReady: () => timed(() => storage.ensureReady()),
     authorize: (input) => timed(() => storage.authorize(input)),
     verify: (key) => timed(() => storage.verify(key)),
-    read: (key) => timed(() => storage.read(key)),
+    read: (key, maxBytes) => timed(() => storage.read(key, maxBytes)),
     delete: (key) => timed(() => storage.delete(key)),
     writeDerivedImage: (key, bytes) => timed(() => storage.writeDerivedImage(key, bytes)),
     ...(storage.writeGatewayObject ? { writeGatewayObject: (input: Parameters<NonNullable<ObjectStorage["writeGatewayObject"]>>[0]) => timed(() => storage.writeGatewayObject!(input)) } : {})
@@ -87,15 +88,77 @@ function s3Client(config: AppConfig): S3Client {
   return new S3Client(clientConfig);
 }
 
-async function readS3Body(body: { transformToByteArray(): Promise<Uint8Array> } | undefined): Promise<Uint8Array | undefined> {
+function checkedReadLimit(maxBytes:number|undefined):number|undefined {
+  if(maxBytes!==undefined&&(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>64*1024*1024))
+    throw new DomainError("STORAGE_READ_LIMIT_INVALID","Storage read limit is invalid",422);
+  return maxBytes;
+}
+
+function readLimitExceeded():DomainError {
+  return new DomainError("STORAGE_READ_LIMIT_EXCEEDED","Stored object exceeds the allowed read size",413);
+}
+
+async function readS3Body(body: { transformToByteArray(): Promise<Uint8Array> } | undefined,
+  maxBytes?:number): Promise<Uint8Array | undefined> {
   if (!body) return undefined;
   assertOperationActive();
   const signal = dependencySignal(30_000);
   const destroy = () => (body as { destroy?: (reason: Error) => void }).destroy?.(new Error("STORAGE_READ_CANCELLED"));
   signal.addEventListener("abort", destroy, { once: true });
   if (signal.aborted) destroy();
-  try { const bytes = await body.transformToByteArray(); assertOperationActive(); return bytes; }
+  try {
+    if(maxBytes===undefined){const bytes=await body.transformToByteArray();assertOperationActive();return bytes;}
+    const stream=body as unknown as AsyncIterable<Uint8Array>;
+    if(typeof stream[Symbol.asyncIterator]!=="function")
+      throw new DomainError("STORAGE_BOUNDED_STREAM_UNAVAILABLE","Bounded object read is unavailable",503);
+    const chunks:Buffer[]=[];
+    let total=0;
+    for await(const chunk of stream){
+      assertOperationActive();
+      total+=chunk.byteLength;
+      if(total>maxBytes)throw readLimitExceeded();
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks,total);
+  }
   finally { signal.removeEventListener("abort", destroy); }
+}
+
+async function readLocalBounded(path:string,maxBytes:number):Promise<Buffer>{
+  const file=await open(path,"r");
+  try{
+    const bytes=Buffer.allocUnsafe(maxBytes+1);
+    let total=0;
+    while(total<bytes.length){
+      assertOperationActive();
+      const {bytesRead}=await file.read(bytes,total,bytes.length-total,total);
+      if(bytesRead===0)break;
+      total+=bytesRead;
+    }
+    if(total>maxBytes)throw readLimitExceeded();
+    return bytes.subarray(0,total);
+  }finally{await file.close();}
+}
+
+async function readCosBounded(client:COS,location:{Bucket:string;Region:string},objectKey:string,maxBytes:number):Promise<Buffer>{
+  const chunks:Buffer[]=[];
+  let total=0;
+  let exceeded=false;
+  const output=new Writable({write(chunk:Buffer,_encoding,done){
+    total+=chunk.byteLength;
+    if(total>maxBytes){exceeded=true;done(readLimitExceeded());return;}
+    chunks.push(Buffer.from(chunk));
+    done();
+  }});
+  // COS sends stream failures through both the output and its promise.
+  output.on("error",()=>undefined);
+  try{
+    try{await client.getObject({...location,Key:objectKey,Range:`bytes=0-${maxBytes}`,Output:output});}
+    catch(error){if(exceeded)throw readLimitExceeded();throw error;}
+    if(exceeded)throw readLimitExceeded();
+    assertOperationActive();
+    return Buffer.concat(chunks,total);
+  }finally{output.destroy();}
 }
 
 /** COS retries can run outside the original ALS context. Bind a request-scoped
@@ -159,9 +222,11 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       if (!bytes) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 422);
       return { bytes: Number(head.ContentLength ?? bytes.length), checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
     },
-    async read(objectKey) {
-      const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
-      const bytes = await readS3Body(object.Body);
+    async read(objectKey,maxBytes) {
+      const limit=checkedReadLimit(maxBytes);
+      const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey,
+        ...(limit===undefined?{}:{Range:`bytes=0-${limit}`}) }), { abortSignal: dependencySignal(30_000) });
+      const bytes = await readS3Body(object.Body,limit);
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectReadableMime(bytes) };
     },
@@ -222,8 +287,12 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")), { signal: dependencySignal(30_000) });
       return { bytes: bytes.length, checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
     },
-    async read(objectKey) {
-      const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")), { signal: dependencySignal(30_000) });
+    async read(objectKey,maxBytes) {
+      const limit=checkedReadLimit(maxBytes);
+      const path=resolve(directory, objectKey.replaceAll("/", "__"));
+      const bytes = limit===undefined
+        ?await readFile(path,{signal:dependencySignal(30_000)})
+        :await readLocalBounded(path,limit);
       if (!bytes.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectReadableMime(bytes) };
     },
@@ -371,9 +440,11 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 422);
       return { bytes: bytes.length, checksumBase64: checksum(bytes), detectedMime: detectImageMime(bytes) };
     },
-    async read(objectKey) {
-      const result = await getClient().getObject({ ...location, Key: objectKey });
-      const bytes = result.Body;
+    async read(objectKey,maxBytes) {
+      const limit=checkedReadLimit(maxBytes);
+      const bytes = limit===undefined
+        ?(await getClient().getObject({ ...location, Key: objectKey })).Body
+        :await readCosBounded(getClient(),location,objectKey,limit);
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectReadableMime(bytes) };
     },

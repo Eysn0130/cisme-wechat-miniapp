@@ -221,7 +221,11 @@ export class FormalPrivacyExecution {
       if(!media||!Number.isSafeInteger(size)||size<1||size>maxSupplementaryBytes||
         (expectedMime?media.mime_type!==expectedMime:!['image/jpeg','image/png','image/webp'].includes(media.mime_type)))
         throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','补充素材不存在或已失效',404);
-      const object=await this.storage.read(media.object_key);
+      const object=await this.storage.read(media.object_key,maxSupplementaryBytes).catch(error=>{
+        if(error instanceof DomainError&&error.code==='STORAGE_READ_LIMIT_EXCEEDED')
+          throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','补充素材暂不可读取',503);
+        throw error;
+      });
       if(object.mimeType!==media.mime_type||object.bytes.byteLength>maxSupplementaryBytes)
         throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','补充素材暂不可读取',503);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,

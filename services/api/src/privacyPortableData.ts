@@ -213,14 +213,16 @@ export async function materializeMemberPortableData(snapshot:Awaited<ReturnType<
       unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,reason:'inline_copy_size_limit'});continue;
     }
     try{
-      const source=await storage.read(row.object_key);
+      const source=await storage.read(row.object_key,remaining);
       if(source.bytes.byteLength>remaining){
         unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,reason:'inline_copy_size_limit'});continue;
       }
       mediaBytes+=source.bytes.byteLength;
       media.push({id:row.id,kind:row.kind,mimeType:source.mimeType,base64:Buffer.from(source.bytes).toString('base64')});
-    }catch{
-      unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,reason:'stored_copy_unavailable'});
+    }catch(error){
+      unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,
+        reason:error instanceof DomainError&&error.code==='STORAGE_READ_LIMIT_EXCEEDED'
+          ?'inline_copy_size_limit':'stored_copy_unavailable'});
     }
   }
   sections.media=media;
