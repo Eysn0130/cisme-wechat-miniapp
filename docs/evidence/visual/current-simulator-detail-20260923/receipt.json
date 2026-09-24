@@ -19,5 +19,6 @@
       "observed": "Title, request picker, input, primary button and first record render in the simulator. The local fixture displays local-acceptance-v1 and local@example.invalid; these are not production legal facts."
     }
   ],
-  "scopeLimit": "Two simulator layout states and one quantity interaction only. No device, keyboard, full route matrix, real WeChat credential, formal policy, or production acceptance is claimed."
+  "routeOpenSmoke": "route-open-smoke.json records 40 of 40 app.json routes opened without parameters in the DevTools simulator; it does not assert business state or interactions.",
+  "scopeLimit": "Two simulator layout states, one quantity interaction and route entry smoke only. No device, keyboard, full state matrix, real WeChat credential, formal policy, or production acceptance is claimed."
 }

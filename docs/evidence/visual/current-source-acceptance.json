@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current-source DevTools simulator evidence in current-simulator-detail-20260923 covers checkout quantity alignment and 1-to-2-to-1 taps plus one privacy layout state at 333x719 with local fixtures. Earlier stepper-alignment screenshots remain limited to their earlier hash. Full route journeys, iOS, and Android acceptance remain blocked."
+  "note": "Current-source DevTools simulator evidence in current-simulator-detail-20260923 covers checkout quantity alignment and 1-to-2-to-1 taps, one privacy layout state at 333x719, and 40 of 40 parameter-free route opens with local fixtures. Earlier stepper-alignment screenshots remain limited to their earlier hash. Full route state journeys, iOS, and Android acceptance remain blocked."
 }
