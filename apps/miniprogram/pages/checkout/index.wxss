@@ -2,3 +2,7 @@
 .credit-option{display:flex;flex-direction:column;gap:12rpx}.credit-option strong{font-size:27rpx;font-weight:500}.credit-option text{font-size:23rpx;line-height:1.55;color:var(--cisme-muted)}.credit-option input{box-sizing:border-box;width:100%;height:80rpx;padding:0 18rpx;border:1rpx solid var(--cisme-line);border-radius:18rpx;background:#fff;color:var(--cisme-ink);font-size:28rpx}
 
 .fulfillment-policy{display:flex;flex-direction:column;gap:16rpx}.fulfillment-policy text{font-size:26rpx;line-height:1.65;word-break:break-word}
+
+/* Center the vector within the 44 px tap target, independent of the font baseline. */
+.quantity button{display:flex;align-items:center;justify-content:center;flex:none;line-height:1}
+.quantity__icon{width:18px;height:18px;flex:none}

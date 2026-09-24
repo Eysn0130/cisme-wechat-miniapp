@@ -55,3 +55,6 @@
 .support-sheet__error{display:flex;align-items:center;gap:12rpx}
 .support-sheet__error>text{flex:1;min-width:0}
 .support-sheet__error>button{min-width:88rpx;min-height:44px;flex-shrink:0}
+
+.support-sheet__stepper button{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;flex:none;line-height:1}
+.support-sheet__stepper-icon{width:18px;height:18px;flex:none}

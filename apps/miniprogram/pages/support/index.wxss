@@ -674,6 +674,12 @@
   font-size: 21rpx;
 }
 
+.support-draft__remove-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
 .support-sheet-mask {
   position: fixed;
   z-index: 80;
