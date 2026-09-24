@@ -1,16 +1,17 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "2478c324cd5decd60f26ad9e3d517c6d2a70891181317d31de92e25335084a2d",
+  "migrationSetSha256": "7205021185d43183e3dbb6d7fe5a0dc78e764915e45c390e901bfb65a6afcf80",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
-  "productionErasureEnabled": false,
+  "productionErasureEnabled": true,
   "retentionApproved": false,
   "releaseReady": false,
   "rules": {
-    "export": "Only existing synthetic member_profile_only archive fields are allowed. All other columns excluded; no SELECT * exporter.",
+    "export": "A verified WeChat member can receive an encrypted short-lived copy of the explicit account, contact, address, care, commerce, support, community, membership and rights projections plus supported owned image bytes. Video and oversized copies remain explicit partial/failed cases; internal secrets and other people are excluded. Synthetic dev identity remains profile-only.",
     "subject": "FK paths are candidate relationships, not authorization. Actor, beneficiary, reporter and owner must remain distinct; polymorphic notes require typed resolver.",
-    "retention": "Transaction and transaction-linked support have a declared 36-month baseline. Ordinary support needs a finite, enabled category policy and a separate automatic purge gate. Every object remains subject to legal holds; no general account erasure is authorized.",
-    "identity": "Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key."
+    "retention": "Transaction and transaction-linked support have a confirmed 36-calendar-month business baseline subject to longer legal duties. Ordinary support has a separate finite policy and automatic purge gate. Legal holds block erasure until release; not all classes have an enforced retention configuration.",
+    "identity": "Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key.",
+    "erasure": "A verified WeChat member may delete the fixed optional account/contact/address scope without a second administrator. The independent suppression marker prevents restored old data from becoming active. Transaction, finance, support evidence and legal holds are preserved; unscoped requests stay non-executable until assessed."
   },
   "tables": [
     {
@@ -113,18 +114,19 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "member_id",
-        "qualification_fact_id",
         "phase",
         "started_on",
         "timezone",
         "protocol_version",
-        "version",
         "created_at",
-        "updated_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "qualification_fact_id",
+        "version",
         "schedule_offset_days"
       ],
       "syntheticErasureFields": [],
@@ -184,8 +186,7 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "cycle_id",
         "milestone",
@@ -194,6 +195,7 @@
         "protocol_version",
         "self_assessment"
       ],
+      "excludedFields": [],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
@@ -218,14 +220,14 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "record_id",
         "step_code",
         "sequence",
         "completed_at",
         "protocol_version"
       ],
+      "excludedFields": [],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
@@ -461,27 +463,28 @@
         "exception_approved_by"
       ],
       "specialHandling": "member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, reason and exception_evidence_reference are private. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "order_id",
-        "member_id",
         "kind",
         "state",
         "reason",
         "lines",
         "amount_cents",
+        "return_carrier",
+        "return_tracking",
+        "quality_result",
+        "created_at",
+        "updated_at",
+        "claim_basis"
+      ],
+      "excludedFields": [
+        "member_id",
         "version",
         "idempotency_key",
         "request_hash",
         "return_destination",
-        "return_carrier",
-        "return_tracking",
-        "quality_result",
         "refund_request_id",
-        "created_at",
-        "updated_at",
-        "claim_basis",
         "support_conversation_id",
         "exception_kind",
         "exception_evidence_reference",
@@ -915,29 +918,30 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "order_number",
-        "member_id",
-        "source_quote_id",
         "status",
-        "currency",
         "subtotal_cents",
         "member_discount_cents",
         "shipping_cents",
         "total_cents",
+        "created_at",
+        "updated_at",
+        "credit_tender_cents"
+      ],
+      "excludedFields": [
+        "member_id",
+        "source_quote_id",
+        "currency",
         "pricing_rule_version",
         "version",
         "expires_at",
         "cancelled_at",
         "expired_at",
         "terminal_reason",
-        "created_at",
-        "updated_at",
         "paid_at",
         "transaction_source_kind",
-        "credit_tender_cents",
         "fulfillment_policy"
       ],
       "syntheticErasureFields": [],
@@ -973,10 +977,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. The formal copy includes decrypted owned order-address snapshots.",
+      "exportFields": [
+        "order_id"
+      ],
       "excludedFields": [
-        "order_id",
         "encrypted_payload",
         "payload_hmac",
         "key_version",
@@ -1013,25 +1018,26 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "id",
+      "exportFields": [
         "order_id",
         "line_number",
+        "product_name",
+        "sku_label",
+        "quantity",
+        "unit_price_cents",
+        "line_discount_cents",
+        "line_total_cents",
+        "credit_tender_cents"
+      ],
+      "excludedFields": [
+        "id",
         "product_id",
         "sku_id",
         "product_code",
-        "product_name",
         "sku_code",
-        "sku_label",
         "image_path",
-        "quantity",
-        "unit_price_cents",
         "line_subtotal_cents",
-        "line_discount_cents",
-        "line_total_cents",
-        "created_at",
-        "credit_tender_cents"
+        "created_at"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -1182,23 +1188,24 @@
         "decided_by_member_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "order_id",
-        "requested_by_member_id",
-        "idempotency_key",
-        "request_hash",
         "amount_cents",
         "reason",
         "state",
+        "decided_at",
+        "created_at"
+      ],
+      "excludedFields": [
+        "requested_by_member_id",
+        "idempotency_key",
+        "request_hash",
         "version",
         "decided_by_member_id",
         "decision_key",
         "decision_hash",
-        "decision_reason",
-        "decided_at",
-        "created_at"
+        "decision_reason"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -1579,16 +1586,17 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "member_id",
+      "exportFields": [
         "state",
         "effective_at",
         "expires_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
         "version",
         "changed_by",
-        "change_reason",
-        "updated_at"
+        "change_reason"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -2173,16 +2181,17 @@
         "actor_principal_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "source_id",
-        "event_key",
         "kind",
         "amount_cents",
         "purchase_order_id",
-        "actor_principal_id",
         "occurred_at"
+      ],
+      "excludedFields": [
+        "source_id",
+        "event_key",
+        "actor_principal_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -2585,18 +2594,19 @@
         "actor_principal_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
+        "kind",
+        "amount_cents",
+        "occurred_at"
+      ],
+      "excludedFields": [
         "order_id",
         "referrer_member_id",
         "event_key",
-        "kind",
-        "amount_cents",
         "reverse_of",
         "source_fact_id",
-        "actor_principal_id",
-        "occurred_at"
+        "actor_principal_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -3680,20 +3690,21 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "id",
-        "member_id",
+      "exportFields": [
         "purpose_code",
-        "purpose_version",
         "document_type",
         "document_version",
         "scope",
-        "channel",
-        "proof_sha256",
         "status",
         "granted_at",
-        "withdrawn_at",
+        "withdrawn_at"
+      ],
+      "excludedFields": [
+        "id",
+        "member_id",
+        "purpose_version",
+        "channel",
+        "proof_sha256",
         "created_at"
       ],
       "syntheticErasureFields": [],
@@ -4390,10 +4401,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. Owned uploaded image bytes are included when available within the bounded artifact; video and unavailable media are listed for follow-up.",
+      "exportFields": [
+        "id"
+      ],
       "excludedFields": [
-        "id",
         "submission_id",
         "kind",
         "object_key",
@@ -4428,13 +4440,12 @@
       "exportFields": [
         "id",
         "display_name",
-        "created_at"
-      ],
-      "excludedFields": [
+        "created_at",
         "status"
       ],
+      "excludedFields": [],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -4447,7 +4458,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. The formal copy derives the owner phone from phone_encrypted and never exposes ciphertext or phone_hmac.",
       "exportFields": [],
       "excludedFields": [
         "member_id",
@@ -4458,7 +4469,7 @@
         "bound_at"
       ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -4471,24 +4482,25 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. The formal copy includes decrypted owned address values; erased payloads stay null.",
+      "exportFields": [
         "id",
-        "member_id",
-        "encrypted_payload",
-        "payload_hmac",
-        "key_version",
         "label",
         "is_default",
-        "version",
-        "client_request_key",
         "created_at",
         "updated_at",
         "deleted_at"
       ],
+      "excludedFields": [
+        "member_id",
+        "encrypted_payload",
+        "payload_hmac",
+        "key_version",
+        "version",
+        "client_request_key"
+      ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -4506,17 +4518,17 @@
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
       "exportFields": [
         "wechat_handle",
-        "updated_at"
+        "updated_at",
+        "avatar_data_url",
+        "completed_at",
+        "public_status"
       ],
       "excludedFields": [
         "member_id",
         "handle_source",
-        "avatar_data_url",
         "avatar_revision",
         "profile_revision",
-        "completed_at",
         "community_visible",
-        "public_status",
         "public_review_note",
         "public_reviewed_by",
         "public_reviewed_at"
@@ -4524,7 +4536,7 @@
       "syntheticErasureFields": [
         "wechat_handle"
       ],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -4668,7 +4680,7 @@
         "consumed_at"
       ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -4956,22 +4968,23 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "member_id",
         "kind",
         "message",
         "status",
         "response",
-        "responded_by",
         "created_at",
+        "resolution_code",
+        "completed_at",
+        "scope_code"
+      ],
+      "excludedFields": [
+        "member_id",
+        "responded_by",
         "updated_at",
         "version",
         "due_at",
-        "resolution_code",
-        "completed_at",
-        "scope_code",
         "waiting_on"
       ],
       "syntheticErasureFields": [],
@@ -5549,22 +5562,23 @@
         "sender_principal_id"
       ],
       "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "conversation_id",
         "sequence",
         "sender_type",
-        "sender_principal_id",
         "body",
-        "attachment_refs",
-        "client_message_id",
-        "delivery_state",
         "created_at",
         "content_type",
         "linked_order_id",
+        "linked_case_id"
+      ],
+      "excludedFields": [
+        "conversation_id",
+        "sender_principal_id",
+        "attachment_refs",
+        "client_message_id",
+        "delivery_state",
         "order_snapshot",
-        "linked_case_id",
         "return_instruction_snapshot"
       ],
       "syntheticErasureFields": [],
@@ -5755,20 +5769,21 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "post_id",
-        "author_member_id",
         "parent_id",
         "reply_to_id",
         "body",
         "state",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "author_member_id",
         "was_public",
         "operation_id",
         "version",
-        "created_at",
-        "updated_at",
         "deleted_at"
       ],
       "syntheticErasureFields": [],
@@ -5985,10 +6000,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. Owned uploaded image bytes are included when available within the bounded artifact; video and unavailable media are listed for follow-up.",
+      "exportFields": [
+        "id"
+      ],
       "excludedFields": [
-        "id",
         "owner_member_id",
         "kind",
         "object_key",
@@ -6078,19 +6094,20 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "author_member_id",
         "state",
         "visibility",
+        "published_at",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "author_member_id",
         "current_revision",
         "client_request_key",
         "version",
-        "published_at",
         "deleted_at",
-        "created_at",
-        "updated_at",
         "published_revision"
       ],
       "syntheticErasureFields": [],
@@ -6426,16 +6443,17 @@
         "created_by_member_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "post_id",
         "revision",
-        "created_by_member_id",
         "title",
         "body",
         "content_warning",
+        "created_at"
+      ],
+      "excludedFields": [
+        "created_by_member_id",
         "moderation_state",
-        "created_at",
         "ai_usage",
         "rights_confirmed",
         "public_consent_confirmed"
@@ -6935,21 +6953,24 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "id",
-        "member_id",
+      "exportFields": [
         "openid",
         "unionid",
-        "adapter",
         "created_at",
         "app_id",
         "provider"
       ],
+      "excludedFields": [
+        "id",
+        "member_id",
+        "adapter"
+      ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     }
-  ]
+  ],
+  "formalSelfServiceErasureScope": "member_optional_profile_v1; optional account/contact/address data only; transactions retained; legal holds delay execution",
+  "transactionRetentionBusinessBaselineConfirmed": true
 }

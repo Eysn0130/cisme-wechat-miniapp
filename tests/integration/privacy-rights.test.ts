@@ -391,9 +391,9 @@ it('lets a deleted WeChat member continue only their existing rights channel aft
  const requestId=created.json().id as string;
  const mine=await app.inject({url:'/v1/me/privacy-requests',headers});
  expect(mine.json()).toEqual(expect.arrayContaining([expect.objectContaining({id:requestId})]));
- for(const url of ['/v1/me','/v1/me/support/summary',`/v1/me/privacy-requests/${requestId}/export`,
-   '/v1/management/privacy-requests'])
+ for(const url of ['/v1/me','/v1/me/support/summary','/v1/management/privacy-requests'])
    expect((await app.inject({url,headers})).statusCode,url).toBe(403);
+ expect((await app.inject({url:`/v1/me/privacy-requests/${requestId}/export`,headers})).statusCode).toBe(404);
  const response=await app.inject({method:'POST',url:`/v1/admin/privacy-requests/${requestId}/response`,
    headers:admin('support-user'),payload:{status:'responded',waitingOn:'member',
      response:'请补充需要核对的历史事项。',expectedVersion:1}});

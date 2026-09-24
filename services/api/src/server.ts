@@ -23,6 +23,7 @@ import { PrivacyRights } from "./privacyRights.js";
 import { AccountClosure, type SuppressionRemote } from './accountClosure.js';
 import { createCosSuppressionRemote } from './accountClosureRemote.js';
 import { SyntheticPrivacyExecution } from "./privacyExecution.js";
+import { FormalPrivacyExecution } from './formalPrivacyExecution.js';
 import { PhoneBinding } from "./phoneBinding.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CloudUpload } from "./cloudUpload.js";
@@ -230,8 +231,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const tradeBills=paymentProfile&&dependencies.paymentProtocol
     ?new TradeBillReconciliationService(pool,authority,dependencies.paymentProtocol.channel,
       paymentProfile.merchantId):null;
-  const privacyRights = new PrivacyRights(pool,config.env,accountClosure);
+  const privacyRights = new PrivacyRights(pool,config.env,accountClosure,Boolean(config.privacy.formalExportKey));
   const privacyExecution = new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
+  const formalPrivacyExecution = new FormalPrivacyExecution(pool,config,storage);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
   registerCloudHttpTransport(app);
@@ -288,7 +290,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if(principal.scope==="privacy_rights"){
       const rightsRoute=path==='/v1/me/privacy-requests'&&['GET','POST'].includes(request.method) ||
-        request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/reply$/i.test(path);
+        request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/reply$/i.test(path) ||
+        request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export$/i.test(path) ||
+        request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export-(revoke|retry)$/i.test(path);
       if(!rightsRoute)throw new DomainError('AUTH_SCOPE_FORBIDDEN','此身份核验仅用于隐私请求',403);
       const identity=(await pool.query(`SELECT 1 FROM wechat_identity w JOIN member m ON m.id=w.member_id
         WHERE w.member_id=$1 AND w.provider='wechat_miniprogram' AND w.app_id=$2
@@ -500,13 +504,25 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{requestId:string}}>("/v1/admin/privacy-requests/:requestId/execution-redrive", async request =>
     privacyExecution.redrive(adminPrincipal(request,config),request.params.requestId,
       request.body as {reasonCode?:unknown;expectedVersion?:unknown}|undefined,privacyActor(request)));
+  const formalExportFor=async(memberId:string|undefined,requestId:string)=>{
+    if(!memberId)return Boolean(config.privacy.formalExportKey);
+    const result=await pool.query<{formal:boolean}>(`SELECT scope->>'formalSelfService'='true' AS formal
+      FROM data_export_job WHERE privacy_request_id=$1 AND member_id=$2`,[requestId,memberId]);
+    return result.rows[0]?.formal??Boolean(config.privacy.formalExportKey);
+  };
   app.get<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export", async (request,reply) => {
-    const bytes=await privacyExecution.download(request.memberId,request.params.requestId);
-    return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment; filename="cisme-profile.json"')
+    const bytes=await formalExportFor(request.memberId,request.params.requestId)
+      ?await formalPrivacyExecution.download(request.memberId,request.params.requestId,request.authScope==='privacy_rights')
+      :await privacyExecution.download(request.memberId,request.params.requestId);
+    return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment; filename="cisme-data.json"')
       .type('application/json').send(bytes);
   });
   app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export-revoke", async request =>
-    privacyExecution.revoke(request.memberId,request.params.requestId));
+    await formalExportFor(request.memberId,request.params.requestId)
+      ?formalPrivacyExecution.revoke(request.memberId,request.params.requestId,request.authScope==='privacy_rights')
+      :privacyExecution.revoke(request.memberId,request.params.requestId));
+  app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export-retry", async request =>
+    formalPrivacyExecution.retry(request.memberId,request.params.requestId,request.authScope==='privacy_rights'));
   const memberProfile = new MemberProfile(pool,config.env);
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
   app.get("/v1/me/commercial-membership", async request => commercial.myStatus(request.memberId));
@@ -952,7 +968,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
       privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null,accountClosure:new AccountClosure(
-        config.privacy.suppressionDirectory,config.env==='production'?createCosSuppressionRemote(config):undefined) },
+        config.privacy.suppressionDirectory,config.env==='production'?createCosSuppressionRemote(config):undefined),
+      formalPrivacyConfig:config },
       (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
     : null;
   const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl

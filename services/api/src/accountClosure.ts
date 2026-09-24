@@ -5,7 +5,10 @@ import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
 
-export type Marker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
+export type ClosureMarker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
+export type ProfileErasureMarker={version:2;memberId:string;identityDigest:string;requestId:string;createdAt:string;
+  scope:'member_optional_profile_v1';displayNameSha256:string};
+export type Marker=ClosureMarker|ProfileErasureMarker;
 export interface SuppressionRemote {
   put(marker:Marker):Promise<void>;
   list():Promise<Marker[]>;
@@ -13,12 +16,15 @@ export interface SuppressionRemote {
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const digest=/^[0-9a-f]{64}$/;
 const pendingMarker=/^\.[0-9a-f-]{36}\.[0-9a-f-]{36}\.tmp$/i;
+const profileMarker=/^([0-9a-f-]{36})\.profile\.([0-9a-f-]{36})\.json$/i;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
   constructor(private readonly directory:string|null,private readonly remote?:SuppressionRemote) {}
 
   private path(memberId:string) {if(!uuid.test(memberId))throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');return join(this.directory!,`${memberId}.json`);}
+  private markerFilename(row:Marker){return row.version===1?`${row.memberId}.json`:`${row.memberId}.profile.${row.requestId}.json`;}
+  private markerPath(row:Marker){return join(this.directory!,this.markerFilename(row));}
   static identityDigest(provider:string,appId:string,openid:string) {
     return createHash('sha256').update(JSON.stringify([provider,appId,openid])).digest('hex');
   }
@@ -33,9 +39,22 @@ export class AccountClosure {
   private valid(row:Marker,memberId:string) {
     if(row.version!==1||row.memberId!==memberId||!digest.test(row.identityDigest)||!uuid.test(row.requestId)||!Number.isFinite(Date.parse(row.createdAt)))
       throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');
+    return row as ClosureMarker;
+  }
+  private validProfile(row:ProfileErasureMarker,memberId:string,requestId:string){
+    if(row.version!==2||!uuid.test(memberId)||!uuid.test(requestId)||row.memberId!==memberId||row.requestId!==requestId||row.scope!=='member_optional_profile_v1'||
+      !digest.test(row.identityDigest)||!digest.test(row.displayNameSha256)||!Number.isFinite(Date.parse(row.createdAt)))
+      throw new Error('PROFILE_ERASURE_MARKER_INVALID');
     return row;
   }
-  private async marker(memberId:string):Promise<Marker|null> {
+  private async readFilename(filename:string):Promise<Marker>{
+    await this.requireDirectory();
+    const match=profileMarker.exec(filename);
+    if(!match&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
+    const row=JSON.parse(await readFile(join(this.directory!,filename),'utf8')) as Marker;
+    return match?this.validProfile(row as ProfileErasureMarker,match[1]!,match[2]!):this.valid(row,filename.slice(0,-5));
+  }
+  private async marker(memberId:string):Promise<ClosureMarker|null> {
     if(!this.directory)return null;
     await this.requireDirectory();
     try {
@@ -50,8 +69,8 @@ export class AccountClosure {
     const wanted=AccountClosure.identityDigest(provider,appId,openid);
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
-      if(!uuid.test(filename.slice(0,-5))||!filename.endsWith('.json'))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
-      if((await this.marker(filename.slice(0,-5)))?.identityDigest===wanted)return true;
+      const row=await this.readFilename(filename);
+      if(row.version===1&&row.identityDigest===wanted)return true;
     }
     return false;
   }
@@ -69,16 +88,26 @@ export class AccountClosure {
     try{await this.remote?.put(row);}catch{throw new DomainError('ACCOUNT_CLOSURE_PENDING','注销结果暂未确认，请稍后重试',503);}
     return row;
   }
+  async recordProfileErasure(memberId:string,identityDigest:string,requestId:string,displayNameSha256:string,createdAt:Date){
+    await this.requireDirectory();
+    const row=this.validProfile({version:2,memberId,identityDigest,requestId,
+      createdAt:createdAt.toISOString(),scope:'member_optional_profile_v1',displayNameSha256},memberId,requestId);
+    await this.writeLocal(row);
+    try{await this.remote?.put(row);}catch{throw new DomainError('PROFILE_ERASURE_PENDING','删除请求处理结果暂未确认，请稍后查看',503);}
+    return row;
+  }
   private async writeLocal(row:Marker) {
-    const old=await this.marker(row.memberId);
+    const filename=this.markerFilename(row);
+    let old:Marker|null=null;
+    try{old=await this.readFilename(filename);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
     if(old){if(JSON.stringify(old)!==JSON.stringify(row))throw new Error('ACCOUNT_CLOSURE_MARKER_MISMATCH');return;}
     const temporary=join(this.directory!,`.${row.memberId}.${randomUUID()}.tmp`);
     try{
       const handle=await open(temporary,'wx',0o600);
       try{await handle.writeFile(JSON.stringify(row));await handle.sync();}finally{await handle.close();}
-      try{await link(temporary,this.path(row.memberId));}catch(error){
+      try{await link(temporary,this.markerPath(row));}catch(error){
         if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error;
-        const concurrent=await this.marker(row.memberId);
+        const concurrent=await this.readFilename(filename);
         if(!concurrent||JSON.stringify(concurrent)!==JSON.stringify(row))throw error;
       }
       // hard-link publication never replaces an existing marker; readers see
@@ -92,17 +121,17 @@ export class AccountClosure {
     await this.requireDirectory();
     if(this.remote){
       for(const row of await this.remote.list()){
-        this.valid(row,row.memberId);
+        if(row.version===1)this.valid(row,row.memberId);
+        else this.validProfile(row,row.memberId,row.requestId);
         await this.writeLocal(row);
       }
     }
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
-      if(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5)))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
-      const row=await this.marker(filename.slice(0,-5));
-      if(!row)throw new Error('ACCOUNT_CLOSURE_MARKER_MISSING');
+      const row=await this.readFilename(filename);
       await this.remote?.put(row);
-      await transaction(pool,client=>applyAccountClosure(client,row));
+      if(row.version===1)await transaction(pool,client=>applyAccountClosure(client,row));
+      else await transaction(pool,client=>applyProfileErasure(client,row));
     }
   }
   async replayMember(pool:pg.Pool,memberId:string) {
@@ -120,15 +149,32 @@ export class AccountClosure {
     let repaired=0;
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
-      if(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5)))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
-      const memberId=filename.slice(0,-5);
-      const marker=await this.marker(memberId);
-      if(!marker)throw new Error('ACCOUNT_CLOSURE_MARKER_MISSING');
+      const marker=await this.readFilename(filename);
+      if(marker.version===2){
+        const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member m
+          WHERE m.id=$1 AND m.status='active' AND NOT EXISTS(
+            SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+            WHERE h.status='active' AND h.expires_at>clock_timestamp() AND
+              (b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=m.id::text
+                OR b.object_type='member_delivery_address' AND b.object_id IN
+                  (SELECT id::text FROM member_delivery_address WHERE member_id=m.id))) AND (
+            (m.display_name<>'用户' AND encode(digest(m.display_name,'sha256'),'hex')=$2) OR
+            EXISTS(SELECT 1 FROM member_contact WHERE member_id=m.id AND bound_at<=$3::timestamptz) OR
+            EXISTS(SELECT 1 FROM wechat_identity WHERE member_id=m.id AND unionid IS NOT NULL) OR
+            EXISTS(SELECT 1 FROM phone_authorization WHERE member_id=m.id AND consumed_at<=$3::timestamptz) OR
+            EXISTS(SELECT 1 FROM member_profile WHERE member_id=m.id AND updated_at<=$3::timestamptz) OR
+            EXISTS(SELECT 1 FROM member_delivery_address WHERE member_id=m.id AND key_version<>'erased'
+              AND updated_at<=$3::timestamptz))) AS pending`,
+          [marker.memberId,marker.displayNameSha256,marker.createdAt])).rows[0]?.pending;
+        if(pending){await this.remote?.put(marker);await transaction(pool,client=>applyProfileErasure(client,marker));repaired++;}
+        continue;
+      }
+      const memberId=marker.memberId;
       const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member m
         WHERE m.id=$1 AND (m.status<>'deleted' OR (
           NOT EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
             WHERE h.status='active' AND h.expires_at>clock_timestamp() AND
-              (b.object_type IN ('member','member_profile','member_contact') AND b.object_id=m.id::text
+              (b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=m.id::text
                 OR b.object_type='member_delivery_address' AND b.object_id IN
                   (SELECT id::text FROM member_delivery_address WHERE member_id=m.id)))
           AND (m.display_name<>'已注销用户'
@@ -144,7 +190,7 @@ export class AccountClosure {
   }
 }
 
-export async function applyAccountClosure(client:DbClient,marker:Marker) {
+export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) {
   const member=(await client.query<{status:string}>('SELECT status FROM member WHERE id=$1 FOR UPDATE',[marker.memberId])).rows[0];
   // A restored snapshot may predate the original registration. The external
   // identity digest still blocks a fresh account, so no database row is needed.
@@ -164,7 +210,7 @@ export async function applyAccountClosure(client:DbClient,marker:Marker) {
   // Keep financial, order, refund, aftersale and their support evidence intact.
   const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
     WHERE h.status='active' AND h.expires_at>now() AND
-      ((b.object_type IN ('member','member_profile','member_contact') AND b.object_id=$1)
+      ((b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=$1)
        OR (b.object_type='member_delivery_address' AND b.object_id IN
           (SELECT id::text FROM member_delivery_address WHERE member_id=$2))) LIMIT 1`,
     [marker.memberId,marker.memberId])).rowCount);
@@ -179,6 +225,8 @@ export async function applyAccountClosure(client:DbClient,marker:Marker) {
       key_version='erased',is_default=false,deleted_at=COALESCE(deleted_at,now()),updated_at=now()
       WHERE member_id=$1 AND key_version<>'erased'`,[marker.memberId]);
   }
+  await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
+    [marker.memberId]);
   const previousMembership=(await client.query<{state:string}>(
     'SELECT state FROM commercial_membership WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];
   const membership=(await client.query<{version:number;effective_at:Date;expires_at:Date|null}>(
@@ -207,4 +255,75 @@ export async function applyAccountClosure(client:DbClient,marker:Marker) {
       [`member:${marker.memberId}`,marker.memberId,member.status,randomUUID()]);
   }
   return {id:marker.requestId,kind:'close_account',status:'completed',accountClosed:true};
+}
+
+/** A bounded self-service deletion: only optional live account data from at
+ * or before this immutable marker is removed. Transaction evidence and any
+ * profile information supplied after the request remain intact. */
+export async function applyProfileErasure(client:DbClient,marker:ProfileErasureMarker){
+  const member=(await client.query<{status:string}>(
+    'SELECT status FROM member WHERE id=$1 FOR UPDATE',[marker.memberId])).rows[0];
+  if(!member)return {id:marker.requestId,kind:'delete',status:'suppressed_without_member'};
+  const identity=(await client.query<{provider:string;app_id:string;openid:string}>(
+    'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR SHARE',[marker.memberId])).rows[0];
+  if(!identity||AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid)!==marker.identityDigest)
+    throw new Error('PROFILE_ERASURE_IDENTITY_MISMATCH');
+  if(member.status==='deleted')return {id:marker.requestId,kind:'delete',status:'account_closed'};
+  if(member.status!=='active')throw new DomainError('PROFILE_ERASURE_MEMBER_UNAVAILABLE','账号暂不可执行删除',409);
+  await client.query(`INSERT INTO privacy_request(id,member_id,kind,message,due_at,scope_code)
+    VALUES($1,$2,'delete','删除可清除的账户资料',now()+interval '30 days','member_optional_profile_v1')
+    ON CONFLICT(id) DO NOTHING`,[marker.requestId,marker.memberId]);
+  const request=(await client.query<{member_id:string;kind:string;scope_code:string;status:string}>(
+    'SELECT member_id,kind,scope_code,status FROM privacy_request WHERE id=$1 FOR UPDATE',[marker.requestId])).rows[0];
+  if(!request||request.member_id!==marker.memberId||request.kind!=='delete'||request.scope_code!==marker.scope)
+    throw new Error('PROFILE_ERASURE_REQUEST_MISMATCH');
+  if(request.status==='received'){
+    for(const status of ['reviewing','approved','executing'] as const)
+      await client.query('UPDATE privacy_request SET status=$2,version=version+1,updated_at=now() WHERE id=$1',[marker.requestId,status]);
+  }else if(!['executing','completed'].includes(request.status))throw new Error('PROFILE_ERASURE_REQUEST_STATE_UNEXPECTED');
+  await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+  await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+  const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+    WHERE h.status='active' AND h.expires_at>now() AND
+      ((b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=$1)
+       OR (b.object_type='member_delivery_address' AND b.object_id IN
+          (SELECT id::text FROM member_delivery_address WHERE member_id=$2))) LIMIT 1`,
+    [marker.memberId,marker.memberId])).rowCount);
+  if(held){
+    await client.query(`UPDATE privacy_request SET response=$2,resolution_code='PROFILE_ERASURE_HOLD',updated_at=now()
+      WHERE id=$1 AND status='executing'`,[marker.requestId,
+      '账号资料删除已受理；相关资料受保全约束，解除后继续处理。交易和售后记录仍按必要期限保存。']);
+    return {id:marker.requestId,kind:'delete',status:'executing',legalHold:true};
+  }
+  const name=await client.query(`UPDATE member SET display_name='用户' WHERE id=$1 AND display_name<>'用户'
+    AND encode(digest(display_name,'sha256'),'hex')=$2`,[marker.memberId,marker.displayNameSha256]);
+  const unionid=await client.query('UPDATE wechat_identity SET unionid=NULL WHERE member_id=$1 AND unionid IS NOT NULL',
+    [marker.memberId]);
+  const contact=await client.query('DELETE FROM member_contact WHERE member_id=$1 AND bound_at<=$2::timestamptz',
+    [marker.memberId,marker.createdAt]);
+  const authorization=await client.query('DELETE FROM phone_authorization WHERE member_id=$1 AND consumed_at<=$2::timestamptz',
+    [marker.memberId,marker.createdAt]);
+  const profile=await client.query('DELETE FROM member_profile WHERE member_id=$1 AND updated_at<=$2::timestamptz',
+    [marker.memberId,marker.createdAt]);
+  const addresses=await client.query(`UPDATE member_delivery_address SET encrypted_payload='',
+    payload_hmac=encode(digest(id::text,'sha256'),'hex'),key_version='erased',is_default=false,
+    deleted_at=COALESCE(deleted_at,now()),updated_at=now()
+    WHERE member_id=$1 AND key_version<>'erased' AND updated_at<=$2::timestamptz`,
+    [marker.memberId,marker.createdAt]);
+  await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
+    [marker.memberId]);
+  if(request.status==='executing'){
+    await client.query(`UPDATE privacy_request SET status='completed',resolution_code='SELF_PROFILE_ERASED',
+      response='可清除的账户资料已删除，旧数据副本已撤销；交易与售后记录按必要期限保留。',
+      completed_at=now(),version=version+1,updated_at=now() WHERE id=$1`,[marker.requestId]);
+    await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+      VALUES($1,$2,'execution_succeeded',$3)`,[marker.requestId,`member:${marker.memberId}`,
+      {scope:marker.scope,retainedTransactions:true}]);
+  }
+  const changed=[name,unionid,contact,authorization,profile,addresses].reduce((sum,result)=>sum+(result.rowCount??0),0);
+  if(changed||request.status==='executing')await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,
+    reason_code,after_state,trace_id) VALUES($1,'privacy.profile.erase','privacy_request',$2,
+    'VERIFIED_MEMBER_PROFILE_ERASURE',$3,gen_random_uuid()::text)`,[`member:${marker.memberId}`,marker.requestId,
+    {scope:marker.scope,changed,restoredReplay:request.status==='completed'}]);
+  return {id:marker.requestId,kind:'delete',status:'completed',scopeCode:marker.scope};
 }

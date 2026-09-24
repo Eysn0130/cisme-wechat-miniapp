@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "d38938dd4ff2f0d6418c8b870c260eb4c0f0bb20ecec565637e9604d52780f5b",
+  "packageSourceSha256": "c6ccfbe35a8ac7f65284ff08b55aa5346f42543d2f9a94d7b5a4c00c8b05a11c",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source includes the centered quantity SVG controls and scoped privacy request changes. The checkout and product screenshots in stepper-alignment-20260923 come from an earlier source hash, so they verify only those layouts and interactions, not this package. Current-source full route, iOS, and Android acceptance remains blocked."
+  "note": "Current source shortens the privacy request number and supports copying the full number on demand. The immediately prior source package 5c56c5a has a 333x719 DevTools simulator checkout capture with the action text centered; current c6ccfbe only changes an unshown quote note. DevTools requested fresh screenshot authorization and returned pending, so there is no current-source native screenshot. All route matrices and both device platforms remain blocked."
 }

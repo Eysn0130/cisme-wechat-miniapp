@@ -5,20 +5,31 @@ const kinds=['access','correct','delete','close_account','withdraw','other'];
 const labels=['查阅或复制个人信息','更正个人信息','删除个人信息','申请注销账号','撤回个人信息处理同意','其他隐私咨询'];
 const closedKinds=kinds.filter(kind=>kind!=='close_account');
 const closedLabels=labels.filter((_,index)=>kinds[index]!=='close_account');
-const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'处理中',executing:'处理中',completed:'已完成',partially_completed:'部分完成',rejected:'暂无法办理',canceled:'已取消',responded:'已回复'};
+const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'处理中',executing:'处理中',completed:'已完成',partially_completed:'部分完成',failed:'处理未完成',rejected:'暂无法办理',canceled:'已取消',responded:'已回复'};
 const executionStatuses:Record<string,string>={succeeded:'已处理',partially_succeeded:'部分资料已处理',failed:'处理遇到问题',expired:'副本已过期',canceled:'已取消'};
-const deliveryStatuses:Record<string,string>={available:'会员资料副本可查看',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
+const deliveryStatuses:Record<string,string>={available:'数据副本可获取',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
+function exportFilePath(){
+ const directory=wx.env?.USER_DATA_PATH;
+ if(!directory)throw new Error('PRIVATE_COPY_DIRECTORY_UNAVAILABLE');
+ return `${directory}/cisme-private-data-copy.json`;
+}
+function clearExportFile(){
+ if(!wx.env?.USER_DATA_PATH||!wx.getFileSystemManager)return;
+ wx.getFileSystemManager().unlink({filePath:exportFilePath(),fail:()=>{/* No local copy remains. */}});
+}
 type PrivacyPage={items:any[];nextCursor:string|null};
 function privacyToken():string {const data=getApp<IAppOption>().globalData;return data.sessionToken||data.privacyRightsToken||'';}
 function displayRecord(r:any,closedRights=false){
- const delivery=closedRights&&r.execution?.deliveryState==='available'
+ const delivery=closedRights&&r.execution?.scope==='member_profile_only'&&r.execution?.deliveryState==='available'
   ? '如需历史副本，请在本页提交请求'
-  : deliveryStatuses[r.execution?.deliveryState]||'';
+  : r.execution?.scope==='member_profile_only'&&r.execution?.deliveryState==='available'
+   ? '会员资料副本可查看'
+   : deliveryStatuses[r.execution?.deliveryState]||'';
  const executionStatus=executionStatuses[r.execution?.status]||'';
- const scopeDetail=r.execution?.scope==='member_profile_only'&&delivery?`；${delivery}`:
+ const scopeDetail=['member_profile_only','member_portable_copy_v1'].includes(r.execution?.scope)&&delivery?`；${delivery}`:
   r.execution?.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；已清除自报微信号，其他资料仍保留':'';
  const response=typeof r.response==='string'?r.response.trim():'';
- return {...r,execution:closedRights&&r.execution?{...r.execution,downloadAvailable:false}:r.execution,
+ return {...r,execution:closedRights&&r.execution?.scope==='member_profile_only'?{...r.execution,downloadAvailable:false}:r.execution,
   shortId:typeof r.id==='string'?r.id.slice(-6).toUpperCase():'',
   label:labels[kinds.indexOf(r.kind)]||'隐私请求',
   statusLabel:r.status==='responded'&&r.waitingOn==='member'?'请补充信息':statuses[r.status]||'状态待核对',
@@ -27,8 +38,10 @@ function displayRecord(r:any,closedRights=false){
 }
 Page({
  identityToken:'',
+ onLoad(){clearExportFile();},
  data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
  onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
+  if(changed)clearExportFile();
   this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
   this.setData({authenticated:Boolean(token),closedRights,labels:closedRights?closedLabels:labels,
     ...(changed?{selected:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
@@ -78,20 +91,25 @@ Page({
  async submit(){
   if(this.data.busy)return;
   const kind=(this.data.closedRights?closedKinds:kinds)[this.data.selected];
-  if(kind!=='close_account'&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
+  const optionalProfileDelete=kind==='delete'&&!this.data.closedRights;
+  if(kind!=='close_account'&&!optionalProfileDelete&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
   const token=privacyToken(),attempt=++this.data.operationAttempt;
-  if(kind==='close_account'){
+  if(kind==='close_account'||optionalProfileDelete){
    this.setData({busy:true,error:''});
-   const confirmed=await new Promise<boolean>(resolve=>wx.showModal({title:'注销账号',
-    content:'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私请求。',
-    confirmText:'确认注销',confirmColor:'#6b3975',success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
+   const confirmed=await new Promise<boolean>(resolve=>wx.showModal({
+    title:optionalProfileDelete?'删除账户资料':'注销账号',
+    content:optionalProfileDelete?'昵称、手机号、头像和地址将清除；交易及售后记录按必要期限保留。账号仍可使用。':'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私请求。',
+    confirmText:optionalProfileDelete?'确认删除':'确认注销',confirmColor:'#6b3975',
+    success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
    if(!confirmed||!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken()){if(this.data.alive&&attempt===this.data.operationAttempt)this.setData({busy:false});return;}
   }
   this.setData({busy:true,error:'',notice:''});
-  try{const result=await request<{accountClosed?:boolean}>({path:'/v1/me/privacy-requests',method:'POST',data:{kind,message:kind==='close_account'?'本人申请注销 CISME 账号':this.data.message}});
+  try{const result=await request<{accountClosed?:boolean;status?:string}>({path:'/v1/me/privacy-requests',method:'POST',
+   data:{kind,message:kind==='close_account'?'本人申请注销 CISME 账号':optionalProfileDelete?'删除可清除的账户资料':this.data.message,
+    ...(optionalProfileDelete?{scopeCode:'member_optional_profile_v1'}:{})}});
    if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken()){
     if(result.accountClosed){setSessionToken('');this.identityToken='';this.setData({authenticated:false,closedRights:false,records:[],message:'',busy:false,notice:'账号已注销。交易和售后记录按必要期限保留；历史资料仍可核验身份后申请处理。'});return;}
-    this.setData({message:'',notice:'请求已受理，进度可在下方查看。'});await this.load();}}
+    this.setData({message:'',notice:result.status==='completed'?'账户资料已处理，可在下方查看结果。':'请求已受理，进度可在下方查看。'});await this.load();}}
   catch(e){if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新受理记录后再试。'});}
   finally{if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({busy:false});}
  },
@@ -121,15 +139,31 @@ Page({
  },
  async viewExport(e:WechatMiniprogram.BaseEvent){
   const requestId=String(e.currentTarget.dataset.id||'');
+  const row=this.data.records.find((item:any)=>item.id===requestId);
+  if(!row?.execution?.downloadAvailable)return;
   const token=privacyToken();
   const attempt=++this.data.operationAttempt;
   this.setData({visibleExport:null,error:''});
   try{
-   const archive=await request<{scope:string;member:{displayName:string};profile:{wechatHandle:string|null}|null}>({path:`/v1/me/privacy-requests/${requestId}/export`});
+   const archive=await request<any>({path:`/v1/me/privacy-requests/${requestId}/export`});
    if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
-   if(archive.scope!=='member_profile_only')throw new Error('EXPORT_SCOPE_UNEXPECTED');
-   this.setData({visibleExport:{requestId,displayName:archive.member.displayName,wechatHandle:archive.profile?.wechatHandle||'未填写'}});
-  }catch(e){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
+   if(row.execution.scope==='member_portable_copy_v1'&&archive?.schema==='cisme.member.portable.v1'){
+    const fs=wx.getFileSystemManager();
+    const filePath=exportFilePath();
+    await new Promise<void>((resolve,reject)=>fs.writeFile({filePath,data:JSON.stringify(archive),
+      encoding:'utf8',success:()=>resolve(),fail:reject}));
+    if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken()){
+      clearExportFile();return;
+    }
+    await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath,
+      fileName:`CISME-个人信息副本-${requestId.slice(-6)}.json`,success:()=>resolve(),fail:reject,
+      complete:clearExportFile}));
+    if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+      this.setData({notice:'数据副本已交给微信，请在接收会话查看。'});
+   }else if(archive?.scope==='member_profile_only'){
+    this.setData({visibleExport:{requestId,displayName:archive.member.displayName,wechatHandle:archive.profile?.wechatHandle||'未填写'}});
+   }else throw new Error('EXPORT_SCOPE_UNEXPECTED');
+  }catch(e){clearExportFile();if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
  },
  async revokeExport(e:WechatMiniprogram.BaseEvent){
   const requestId=String(e.currentTarget.dataset.id||'');
@@ -143,6 +177,20 @@ Page({
    this.setData({visibleExport:null,notice:'这份资料副本已撤销；原始资料未因此删除。'});
    await this.load();
   }catch(e){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'撤销结果尚未确认，请刷新记录后重试。'});}
+ },
+ async retryExport(e:WechatMiniprogram.BaseEvent){
+  const requestId=String(e.currentTarget.dataset.id||'');
+  const row=this.data.records.find((item:any)=>item.id===requestId);
+  if(!row||row.status!=='failed'||row.execution?.scope!=='member_portable_copy_v1')return;
+  const token=privacyToken(),attempt=++this.data.operationAttempt;
+  this.setData({error:'',notice:''});
+  try{
+   await request({path:`/v1/me/privacy-requests/${requestId}/export-retry`,method:'POST'});
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken()){
+    this.setData({notice:'已重新开始生成副本，请稍后刷新记录。'});await this.load();
+   }
+  }catch(e){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData({error:(e as {title?:string}).title||'重试结果暂未确认，请刷新记录。'});}
  },
  copyRequestId(e:WechatMiniprogram.BaseEvent){
   const id=String(e.currentTarget.dataset.id||'');

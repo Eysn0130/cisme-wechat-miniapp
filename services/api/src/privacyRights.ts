@@ -5,7 +5,7 @@ import { transaction, type DbClient } from './db.js';
 import { requirePrivacyActor } from './privacyAuthority.js';
 import type { AppEnvironment } from '@cisme/config';
 import { AuthorityService } from './authority.js';
-import { AccountClosure, applyAccountClosure } from './accountClosure.js';
+import { AccountClosure, applyAccountClosure, applyProfileErasure } from './accountClosure.js';
 import { randomUUID } from 'node:crypto';
 
 const pageSize=30;
@@ -50,7 +50,8 @@ function requestDigest(value: unknown): string {
 const executionProjection = `COALESCE(
   (SELECT jsonb_build_object(
     'type','export','id',job.id,'status',job.status,'executionMode',job.execution_mode,
-    'scope',CASE WHEN job.execution_mode='generate_archive' THEN 'member_profile_only' ELSE 'plan_only' END,
+    'scope',CASE WHEN job.scope->>'formalSelfService'='true' THEN 'member_portable_copy_v1'
+      WHEN job.execution_mode='generate_archive' THEN 'member_profile_only' ELSE 'plan_only' END,
     'downloadAvailable',EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id
       AND artifact.revoked_at IS NULL AND artifact.expires_at>now() AND job.status='succeeded'),
     'deliveryState',CASE
@@ -83,7 +84,8 @@ const replyHistoryProjection = `(SELECT COALESCE(jsonb_agg(jsonb_build_object(
 
 export class PrivacyRights {
   private readonly authority: AuthorityService;
-  constructor(private pool: pg.Pool, private environment:AppEnvironment='production',private accountClosure?:AccountClosure) {
+  constructor(private pool: pg.Pool, private environment:AppEnvironment='production',private accountClosure?:AccountClosure,
+    private formalExportEnabled=false) {
     this.authority=new AuthorityService(pool,environment);
   }
 
@@ -120,16 +122,21 @@ export class PrivacyRights {
     }
     if(closedRights&&input.kind==='close_account')
       throw new DomainError('PRIVACY_ACCOUNT_ALREADY_CLOSED','账号已注销，可继续申请处理历史资料',409);
+    if(input.kind==='access'&&this.environment==='production'&&!this.formalExportEnabled)
+      throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','数据副本暂不可生成，请稍后重试',503);
     const scopeCode=input.scopeCode??null;
-    if(scopeCode!==null && (this.environment!=='test'||input.kind!=='delete'||scopeCode!=='member_profile_handle_v1'))
+    const syntheticScope=this.environment==='test'&&input.kind==='delete'&&scopeCode==='member_profile_handle_v1';
+    const formalScope=!closedRights&&input.kind==='delete'&&scopeCode==='member_optional_profile_v1';
+    if(scopeCode!==null&&!syntheticScope&&!formalScope)
       throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','当前环境或请求类型不支持此精确数据范围',422);
     const message=input.message.trim();
     if(input.kind==='close_account')return this.closeAccount(id);
+    if(formalScope)return this.eraseOptionalProfile(id);
     return transaction(this.pool,async client=>{
       // Prevent duplicate taps and unbounded per-account submission bursts.
       const active=await client.query("SELECT id FROM member WHERE id=$1 AND status=$2 FOR UPDATE",[id,closedRights?'deleted':'active']);
       if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可提交数据权利请求',403);
-      if(scopeCode!==null){
+      if(syntheticScope){
         const identity=await client.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='dev_test'",[id]);
         if(!identity.rowCount)throw new DomainError('PRIVACY_SYNTHETIC_IDENTITY_REQUIRED','此精确数据范围仅供合成测试身份使用',403);
       }
@@ -141,6 +148,23 @@ export class PrivacyRights {
         VALUES($1,$2,$3,now()+interval '30 days',$4) RETURNING id,kind,status,version,due_at,created_at,scope_code`,[id,input.kind,message,scopeCode])).rows[0];
       await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
         VALUES($1,$2,'received',jsonb_build_object('kind',$3::text))`,[created.id,`member:${id}`,input.kind]);
+      if(input.kind==='access'&&this.formalExportEnabled){
+        const formal=(await client.query(`SELECT 1 FROM wechat_identity
+          WHERE member_id=$1 AND provider='wechat_miniprogram'`,[id])).rowCount;
+        if(formal){
+          const job=(await client.query<{id:string}>(`INSERT INTO data_export_job
+            (privacy_request_id,member_id,scope,requested_by)
+            VALUES($1,$2,$3,$4) RETURNING id`,[created.id,id,
+              {formalSelfService:true,dataClass:'member_portable_copy_v1'},`member:${id}`])).rows[0]!;
+          await client.query(`UPDATE data_export_job SET execution_mode='generate_archive',status='approved',
+            approved_by='system:verified-self',updated_at=now() WHERE id=$1`,[job.id]);
+          await client.query("UPDATE privacy_request SET status='reviewing',version=version+1,updated_at=now() WHERE id=$1",[created.id]);
+          await client.query("UPDATE privacy_request SET status='approved',version=version+1,updated_at=now() WHERE id=$1",[created.id]);
+          await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+            VALUES($1,$2,'approved',$3)`,[created.id,`member:${id}`,{jobId:job.id,verifiedSelf:true}]);
+          return {...created,status:'approved',version:3};
+        }
+      }
       return created;
     });
   }
@@ -166,6 +190,27 @@ export class PrivacyRights {
         if(repaired?.status==='completed')return repaired;
       }
       throw error;
+    }
+  }
+
+  private async eraseOptionalProfile(memberId:string){
+    if(!this.accountClosure)throw new DomainError('PROFILE_ERASURE_UNAVAILABLE','删除服务暂不可用，请稍后重试',503);
+    const identity=await transaction(this.pool,async client=>{
+      const row=(await client.query<{display_name:string;provider:string;app_id:string;openid:string;decision_time:Date}>(`
+        SELECT m.display_name,w.provider,w.app_id,w.openid,clock_timestamp() AS decision_time FROM member m
+        JOIN wechat_identity w ON w.member_id=m.id
+        WHERE m.id=$1 AND m.status='active' AND w.provider='wechat_miniprogram' FOR SHARE OF m,w`,
+        [memberId])).rows[0];
+      if(!row)throw new DomainError('PRIVACY_FORMAL_IDENTITY_REQUIRED','请用当前微信身份重新登录后再试',403);
+      return row;
+    });
+    const marker=await this.accountClosure.recordProfileErasure(memberId,
+      AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),randomUUID(),
+      createHash('sha256').update(identity.display_name).digest('hex'),identity.decision_time);
+    try{return await transaction(this.pool,client=>applyProfileErasure(client,marker));}
+    catch(error){
+      try{return await transaction(this.pool,client=>applyProfileErasure(client,marker));}
+      catch{throw error;}
     }
   }
 

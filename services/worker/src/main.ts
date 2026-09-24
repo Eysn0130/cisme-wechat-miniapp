@@ -42,7 +42,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     lastHeartbeat=Date.now();
   };
   const worker = startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
-    privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null,accountClosure },
+    privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null,
+    formalPrivacyConfig:config,accountClosure },
     (error) => console.error("CISME_WORKER_TICK_FAILED", safeFailureFields(error)),recordWorkerCycle);
   const isolatedProtocol=isolatedPaymentProtocol(config,pool);
   const formalProtocol=isolatedProtocol?undefined:formalPaymentProtocol(config,pool);

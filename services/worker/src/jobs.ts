@@ -9,6 +9,8 @@ import { safeFailureFields } from "../../api/src/observability.js";
 import { SyntheticPrivacyExecution, purgeExpiredPrivacyArtifacts } from "../../api/src/privacyExecution.js";
 import { purgeDueOrdinarySupport, purgeDueLinkedSupport } from "../../api/src/supportRetention.js";
 import type { AccountClosure } from "../../api/src/accountClosure.js";
+import { FormalPrivacyExecution } from '../../api/src/formalPrivacyExecution.js';
+import type { AppConfig } from '@cisme/config';
 
 interface EventRow {
   id: string;
@@ -19,7 +21,7 @@ interface EventRow {
 }
 
 interface WorkerGates { ugcGoLiveGate: boolean; privacyEnvironment?:string; privacySyntheticExportKey?:string|null;
-  accountClosure?:AccountClosure }
+  accountClosure?:AccountClosure;formalPrivacyConfig?:AppConfig }
 type DeliveryOutcome = "applied" | "suppressed" | "audit_only";
 
 export const WORKER_MAX_ATTEMPTS = 5;
@@ -172,11 +174,14 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
   const privacyExecutor=gates.privacyEnvironment==='test'&&gates.privacySyntheticExportKey
     ?new SyntheticPrivacyExecution(pool,gates.privacyEnvironment,gates.privacySyntheticExportKey):null;
   const privacyExports=privacyExecutor?Number(await privacyExecutor.runExportOnce()):0;
+  const formalExports=gates.formalPrivacyConfig?.privacy.formalExportKey
+    ?Number(await new FormalPrivacyExecution(pool,gates.formalPrivacyConfig,storage).runExportOnce()):0;
   const privacyErasures=privacyExecutor?Number(await privacyExecutor.runProfileErasureOnce()):0;
   const purgedPrivacyArtifacts=await purgeExpiredPrivacyArtifacts(pool);
   const purgedOrdinarySupport=await purgeDueOrdinarySupport(pool);
   const purgedLinkedSupport=await purgeDueLinkedSupport(pool);
-  return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts,purgedOrdinarySupport,purgedLinkedSupport };
+  return { published, cleaned, expiredOrders, privacyExports, formalExports,privacyErasures,
+    purgedPrivacyArtifacts,purgedOrdinarySupport,purgedLinkedSupport };
 }
 
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates,
@@ -190,6 +195,7 @@ export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gat
     const result = await runWorkerCycle(pool, storage, gates);
     await onCycleSuccess?.();
     return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 ||
-      result.privacyExports>0 || result.privacyErasures>0 || result.purgedOrdinarySupport===20 || result.purgedLinkedSupport===20;
+      result.privacyExports>0 || result.formalExports>0 || result.privacyErasures>0 ||
+      result.purgedOrdinarySupport===20 || result.purgedLinkedSupport===20;
   }, onError);
 }

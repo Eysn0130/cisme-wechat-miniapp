@@ -1188,7 +1188,7 @@ it('discards a late synthetic privacy export after leaving the page or switching
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  const appState={globalData:{sessionToken:'owner-token'}};
  (globalThis as any).getApp=()=>appState;
- const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true,records:[{id:'request-a',execution:{scope:'member_profile_only',downloadAvailable:true}}]});
  let resolveArchive!: (value:unknown)=>void;
  requestMock.mockImplementationOnce(()=>new Promise(resolve=>{resolveArchive=resolve;}));
  const pending=page.viewExport({currentTarget:{dataset:{id:'request-a'}}});
@@ -1201,7 +1201,7 @@ it('discards a late synthetic privacy export after leaving the page or switching
 it('shows only an explicitly opened own profile subset and clears it on hide',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
- const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true,records:[{id:'request-a',execution:{scope:'member_profile_only',downloadAvailable:true}}]});
  requestMock.mockResolvedValueOnce({scope:'member_profile_only',member:{displayName:'Owner'},profile:{wechatHandle:'ownerwx'}});
  await page.viewExport({currentTarget:{dataset:{id:'request-a'}}});
  expect(page.data.visibleExport).toEqual({requestId:'request-a',displayName:'Owner',wechatHandle:'ownerwx'});

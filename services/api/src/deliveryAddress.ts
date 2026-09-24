@@ -212,6 +212,17 @@ export class DeliveryAddressService {
     return { enabled: true, maxAddresses: 10, addresses: result.rows.map((row) => this.view(row)) };
   }
 
+  /** Used only while an authenticated member's private data copy is built.
+   * Erased rows expose no former address content. */
+  async exportOwned(client: DbClient, memberId: string) {
+    this.requireEnabled();
+    const rows=(await client.query<AddressRow>(`SELECT * FROM member_delivery_address
+      WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows;
+    return rows.map(row=>({id:row.id,label:row.label,isDefault:row.is_default,
+      createdAt:row.created_at,updatedAt:row.updated_at,deletedAt:row.deleted_at,
+      address:row.key_version==='erased'?null:this.decrypt(row)}));
+  }
+
   async create(memberId: string | undefined, clientRequestKey: string, input: AddressInput) {
     const owner = this.requireMember(memberId);
     this.requireEnabled();

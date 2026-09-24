@@ -5,7 +5,8 @@ import { currentOperationBudget, type OperationBudget } from './operationBudget.
 import { bindCosOperationBudget } from './storage.js';
 
 const prefix='privacy-suppression/v1/';
-const name=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/i;
+const uuid='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const name=new RegExp(`^${uuid}(?:\\.profile\\.${uuid})?\\.json$`,'i');
 
 /** Uses the existing private COS bucket; a failed read or write blocks closure/replay. */
 export function createCosSuppressionRemote(config:AppConfig,client?:COS):SuppressionRemote {
@@ -24,30 +25,32 @@ export function createCosSuppressionRemote(config:AppConfig,client?:COS):Suppres
     return active;
   };
   const location={Bucket:config.objectStorage.bucket,Region:config.objectStorage.region};
-  const key=(id:string)=>`${prefix}${config.wechat.appId}/${id}.json`;
+  const filename=(row:Marker)=>row.version===1?`${row.memberId}.json`:`${row.memberId}.profile.${row.requestId}.json`;
+  const key=(name:string)=>`${prefix}${config.wechat.appId}/${name}`;
   const requireNoVersioning=async(active:COS)=>{
     const versioning=await active.getBucketVersioning(location);
     if(versioning.VersioningConfiguration?.Status)throw new Error('ACCOUNT_CLOSURE_REMOTE_VERSIONING_UNSAFE');
   };
-  const read=async(active:COS,id:string)=>{
-    const result=await active.getObject({...location,Key:key(id)});
+  const read=async(active:COS,name:string)=>{
+    const result=await active.getObject({...location,Key:key(name)});
     if(!result.Body)throw new Error('ACCOUNT_CLOSURE_REMOTE_MARKER_EMPTY');
     const row=JSON.parse(Buffer.from(result.Body).toString('utf8')) as Marker;
-    if(row.memberId!==id)throw new Error('ACCOUNT_CLOSURE_REMOTE_MARKER_MISMATCH');
+    if(filename(row)!==name)throw new Error('ACCOUNT_CLOSURE_REMOTE_MARKER_MISMATCH');
     return row;
   };
   return {
     async put(row){
       const active=getClient();
+      if(!name.test(filename(row)))throw new Error('ACCOUNT_CLOSURE_REMOTE_MARKER_INVALID');
       await requireNoVersioning(active);
       const bytes=Buffer.from(JSON.stringify(row));
-      try{await active.putObject({...location,Key:key(row.memberId),Body:bytes,ContentType:'application/json',
+      try{await active.putObject({...location,Key:key(filename(row)),Body:bytes,ContentType:'application/json',
         Headers:{'x-cos-forbid-overwrite':'true'}});}
       catch(error){
-        try{if(JSON.stringify(await read(active,row.memberId))===JSON.stringify(row))return;}catch{/* Preserve put failure. */}
+        try{if(JSON.stringify(await read(active,filename(row)))===JSON.stringify(row))return;}catch{/* Preserve put failure. */}
         throw error;
       }
-      if(JSON.stringify(await read(active,row.memberId))!==JSON.stringify(row))throw new Error('ACCOUNT_CLOSURE_REMOTE_MARKER_MISMATCH');
+      if(JSON.stringify(await read(active,filename(row)))!==JSON.stringify(row))throw new Error('ACCOUNT_CLOSURE_REMOTE_MARKER_MISMATCH');
     },
     async list(){
       const active=getClient();
@@ -61,7 +64,7 @@ export function createCosSuppressionRemote(config:AppConfig,client?:COS):Suppres
           const filename=item.Key.slice(`${prefix}${config.wechat.appId}/`.length);
           if(!name.test(filename)||seen.has(item.Key))throw new Error('ACCOUNT_CLOSURE_REMOTE_LIST_INVALID');
           seen.add(item.Key);
-          rows.push(await read(active,filename.slice(0,-5)));
+          rows.push(await read(active,filename));
         }
         if(page.IsTruncated!=='true')return rows;
         const next=page.NextMarker??page.Contents?.at(-1)?.Key;

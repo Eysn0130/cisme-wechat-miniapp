@@ -185,10 +185,10 @@ paths:
     post:
       operationId: submitPrivacyRequest
       security: [{session: []}]
-      description: Registers access, correct, delete, close_account, withdraw or other request; deduplicates identical open requests and limits to 10 per day. Optional scopeCode is test-only for a dev_test identity and the profile-handle deletion class; unscoped requests never authorize automatic erasure. Submission alone does not execute deletion or account closure.
+      description: Registers access, correct, delete, close_account, withdraw or other request. A verified WeChat identity can request a fixed optional-account-profile deletion scope or short-lived owner-scoped data copy without a second administrator. The profile scope removes only live nickname, contact, avatar and address data while preserving transaction evidence and honoring legal holds; an immutable external suppression marker prevents old backups from restoring it. Unscoped free-text deletion remains non-executable until assessed. The existing minimal close_account path closes the identity separately.
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1]}}}}}
+        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1, member_optional_profile_v1]}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
   /v1/me/privacy-requests/{requestId}/reply:
     post:
@@ -286,18 +286,25 @@ paths:
       responses: {'200': {description: Audited synthetic redrive}, '403': {description: Missing review lead role}, '409': {description: Not exhausted or prerequisites absent}, '503': {description: Synthetic execution disabled}}
   /v1/me/privacy-requests/{requestId}/export:
     get:
-      operationId: downloadOwnSyntheticProfileExport
+      operationId: downloadOwnPrivateDataCopy
       security: [{session: []}]
-      description: Test-only private encrypted-at-rest profile subset. Member session, exact owner, unexpired and unrevoked artifact required; no-store response.
+      description: Owner-scoped encrypted-at-rest data copy. Formal WeChat requests use the documented account-data scope; test-only dev requests retain the synthetic profile subset. An active member or a verified closed-rights session may retrieve an eligible formal copy. No-store response.
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: JSON profile subset}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Synthetic execution disabled or key unavailable}}
+      responses: {'200': {description: Private JSON data copy}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Execution key unavailable}}
   /v1/me/privacy-requests/{requestId}/export-revoke:
     post:
-      operationId: revokeOwnSyntheticProfileExport
+      operationId: revokeOwnPrivateDataCopy
       security: [{session: []}]
-      description: Test-only owner revocation of a synthetic export artifact; audited and no longer downloadable.
+      description: Owner revocation of a private export artifact; audited and no longer downloadable.
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: Revoked}, '404': {description: Not owned or unavailable}, '503': {description: Synthetic execution disabled}}
+      responses: {'200': {description: Revoked}, '404': {description: Not owned or unavailable}, '503': {description: Execution key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export-retry:
+    post:
+      operationId: retryOwnFormalDataCopy
+      security: [{session: []}]
+      description: Verified owner retries the same failed formal export job after attempts are exhausted; no second administrator is required.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Existing job queued again}, '404': {description: Not owned}, '409': {description: Job is not ready for retry}}
   /v1/legal:
     get:
       operationId: currentLegalDocuments

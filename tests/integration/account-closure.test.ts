@@ -8,22 +8,26 @@ import { TEST_DATABASE_URL, resetDatabase, testPool } from '@cisme/testkit';
 import { createApp } from '../../services/api/src/server';
 import { createApiGatewayStorage } from '../../services/api/src/storage';
 import { AccountClosure, type Marker, type SuppressionRemote } from '../../services/api/src/accountClosure';
+import { FormalPrivacyExecution } from '../../services/api/src/formalPrivacyExecution';
 
 const pool=testPool();
 let directory:string;
 let app:Awaited<ReturnType<typeof createApp>>;
 let remoteAvailable=true;
 const remoteRows=new Map<string,Marker>();
+const markerKey=(row:Marker)=>row.version===1?row.memberId:`${row.memberId}.profile.${row.requestId}`;
 const suppressionRemote:SuppressionRemote={
-  async put(row){if(!remoteAvailable)throw new Error('REMOTE_UNAVAILABLE');const existing=remoteRows.get(row.memberId);
+  async put(row){if(!remoteAvailable)throw new Error('REMOTE_UNAVAILABLE');const existing=remoteRows.get(markerKey(row));
     if(existing&&JSON.stringify(existing)!==JSON.stringify(row))throw new Error('REMOTE_MARKER_CONFLICT');
-    remoteRows.set(row.memberId,{...row});},
+    remoteRows.set(markerKey(row),{...row});},
   async list(){if(!remoteAvailable)throw new Error('REMOTE_UNAVAILABLE');return [...remoteRows.values()].map(row=>({...row}));}
 };
 const appId='wx4eac2d4fb11d299b';
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'account-closure-test',
   UPLOAD_TOKEN_SECRET:'account-closure-upload',OBJECT_STORAGE_DRIVER:'api_gateway',
   WECHAT_APP_ID:appId,WECHAT_APP_SECRET:'controlled-wechat-secret',
+  PRIVACY_FORMAL_EXPORT_KEY:'9'.repeat(64),
+  CONTACT_ENCRYPTION_KEY:'8'.repeat(64),CONTACT_HASH_KEY:'7'.repeat(64),
   PRIVACY_SUPPRESSION_DIR:'/tmp/account-closure-test-placeholder'});
 const consents=[{documentType:'terms',version:'test-v1'},{documentType:'privacy',version:'test-v1'}];
 const identityFetcher=async(input:RequestInfo|URL)=>{
@@ -31,7 +35,9 @@ const identityFetcher=async(input:RequestInfo|URL)=>{
   return new Response(JSON.stringify({openid:code?.startsWith('missing-')?'formal-shaped-missing-openid':
     code?.startsWith('hold-')?'formal-shaped-hold-openid':
     code?.startsWith('concurrent-')?'formal-shaped-concurrent-openid':
-    code?.startsWith('remote-')?'formal-shaped-remote-openid':'formal-shaped-closure-openid',
+    code?.startsWith('remote-')?'formal-shaped-remote-openid':
+    code?.startsWith('profile-held-')?'formal-shaped-profile-held-openid':
+    code?.startsWith('profile-')?'formal-shaped-profile-openid':'formal-shaped-closure-openid',
     unionid:'optional-unionid'}),{status:200});
 };
 const makeApp=()=>createApp({pool,config,storage:createApiGatewayStorage(config),wechatIdentityFetcher:identityFetcher,suppressionRemote});
@@ -211,4 +217,76 @@ it('closes a self-verified account, retains transaction facts, and suppresses ol
     expect((await app.inject({url:'/health/ready'})).statusCode).toBe(500);
     expect((await app.inject({url:'/v1/bootstrap/profile',headers})).statusCode).toBe(500);
   }finally{await chmod(directory,0o700);}
+});
+
+it('deletes optional live data for a verified member and suppresses it after restoring an older backup',async()=>{
+  const login=await app.inject({method:'POST',url:'/v1/identity/wechat',
+    payload:{code:'profile-login',displayName:'Original private name',consents}});
+  expect(login.statusCode,login.body).toBe(200);
+  const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  const headers={authorization:`Bearer ${sessionToken}`};
+  await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'PrivateHandle','self_reported')",[memberId]);
+  const copyRequest=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
+    payload:{kind:'access',message:'删除前获取资料副本'}});
+  expect(copyRequest.statusCode,copyRequest.body).toBe(200);
+  expect(await new FormalPrivacyExecution(pool,config,createApiGatewayStorage(config)).runExportOnce()).toBe(true);
+  expect((await app.inject({url:`/v1/me/privacy-requests/${copyRequest.json().id}/export`,headers})).statusCode).toBe(200);
+  await pool.query(`INSERT INTO member_contact(member_id,phone_encrypted,phone_hmac,phone_masked,key_version)
+    VALUES($1,'private-phone',$2,'***1234','test')`,[memberId,'a'.repeat(64)]);
+  const addressId=randomUUID();
+  await pool.query(`INSERT INTO member_delivery_address(id,member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key)
+    VALUES($1,$2,'private-address',$3,'test','home','profile-erasure-address')`,[addressId,memberId,'b'.repeat(64)]);
+  const deleted=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
+    payload:{kind:'delete',scopeCode:'member_optional_profile_v1',message:'删除可清除的账户资料'}});
+  expect(deleted.statusCode,deleted.body).toBe(200);
+  expect(deleted.json()).toMatchObject({kind:'delete',status:'completed',scopeCode:'member_optional_profile_v1'});
+  expect((await pool.query('SELECT status,display_name FROM member WHERE id=$1',[memberId])).rows[0])
+    .toMatchObject({status:'active',display_name:'用户'});
+  expect((await pool.query('SELECT 1 FROM member_contact WHERE member_id=$1',[memberId])).rowCount).toBe(0);
+  expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[memberId])).rowCount).toBe(0);
+  expect((await pool.query('SELECT key_version FROM member_delivery_address WHERE id=$1',[addressId])).rows[0].key_version).toBe('erased');
+  expect((await app.inject({url:`/v1/me/privacy-requests/${copyRequest.json().id}/export`,headers})).statusCode).toBe(404);
+  expect((await app.inject({url:'/v1/bootstrap/profile',headers})).statusCode).toBe(200);
+  const marker=[...remoteRows.values()].find(row=>row.memberId===memberId&&row.version===2);
+  expect(marker?.version).toBe(2);
+  const prior=new Date(Date.parse(marker!.createdAt)-60_000);
+  await pool.query("UPDATE member SET display_name='Original private name' WHERE id=$1",[memberId]);
+  await pool.query(`INSERT INTO member_contact(member_id,phone_encrypted,phone_hmac,phone_masked,key_version,bound_at)
+    VALUES($1,'restored-phone',$2,'***9999','test',$3)`,[memberId,'c'.repeat(64),prior]);
+  await pool.query(`INSERT INTO member_profile(member_id,wechat_handle,handle_source,updated_at)
+    VALUES($1,'RestoredHandle','self_reported',$2)`,[memberId,prior]);
+  await pool.query(`UPDATE member_delivery_address SET encrypted_payload='restored-address',key_version='test',
+    deleted_at=NULL,updated_at=$2 WHERE id=$1`,[addressId,prior]);
+  const replayer=new AccountClosure(directory,suppressionRemote);
+  expect(await replayer.replayPendingErasure(pool)).toBe(1);
+  expect((await pool.query('SELECT display_name FROM member WHERE id=$1',[memberId])).rows[0].display_name).toBe('用户');
+  expect((await pool.query('SELECT 1 FROM member_contact WHERE member_id=$1',[memberId])).rowCount).toBe(0);
+  expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[memberId])).rowCount).toBe(0);
+  expect((await pool.query('SELECT key_version FROM member_delivery_address WHERE id=$1',[addressId])).rows[0].key_version).toBe('erased');
+  await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'NewHandle','self_reported')",[memberId]);
+  expect(await replayer.replayPendingErasure(pool)).toBe(0);
+  expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[memberId])).rows[0].wechat_handle).toBe('NewHandle');
+});
+
+it('keeps profile deletion pending during an active legal hold, then completes it without a new request',async()=>{
+  const login=await app.inject({method:'POST',url:'/v1/identity/wechat',
+    payload:{code:'profile-held-login',displayName:'Held optional name',consents}});
+  expect(login.statusCode,login.body).toBe(200);
+  const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'HeldOptional','self_reported')",[memberId]);
+  const hold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+    VALUES('PROFILE_EVIDENCE','Scoped unresolved dispute','fixture',now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0].id;
+  await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'member',$2)",[hold,memberId]);
+  const result=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${sessionToken}`},
+    payload:{kind:'delete',scopeCode:'member_optional_profile_v1',message:'删除可清除的账户资料'}});
+  expect(result.statusCode,result.body).toBe(200);
+  expect(result.json()).toMatchObject({status:'executing',legalHold:true});
+  expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[memberId])).rows[0].wechat_handle).toBe('HeldOptional');
+  const replayer=new AccountClosure(directory,suppressionRemote);
+  expect(await replayer.replayPendingErasure(pool)).toBe(0);
+  await pool.query("UPDATE legal_hold SET status='released',released_by='fixture',released_at=now() WHERE id=$1",[hold]);
+  expect(await replayer.replayPendingErasure(pool)).toBe(1);
+  expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[memberId])).rowCount).toBe(0);
+  expect((await pool.query('SELECT status FROM privacy_request WHERE id=$1',[result.json().id])).rows[0].status).toBe('completed');
 });

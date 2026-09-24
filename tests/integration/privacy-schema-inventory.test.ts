@@ -46,11 +46,15 @@ it("exports only migrated schema metadata as a complete policy-review denominato
     migrationSetSha256:string;tables:Array<{table:string;exportFields:string[];excludedFields:string[];productionErasure:string}>};
   expect(subjectMap.migrationSetSha256).toBe(result.migrationSetSha256);
   expect(subjectMap.tables.map(t=>t.table).sort()).toEqual(tables.map(t=>t.table).sort());
+  const optionalProfileErasure=new Set(['member','wechat_identity','member_contact','phone_authorization',
+    'member_profile','member_delivery_address']);
   for(const table of tables){
     const policy=subjectMap.tables.find(t=>t.table===table.table)!;
     expect([...policy.exportFields,...policy.excludedFields].sort(),table.table).toEqual(table.columns.map(c=>c.name).sort());
-    expect(policy.productionErasure).toBe('DISABLED');
+    expect(policy.productionErasure).toBe(optionalProfileErasure.has(table.table)?'SELF_OPTIONAL_PROFILE_V1':'DISABLED');
   }
+  for(const name of ['audit_log','commerce_order','commerce_refund_request','support_message'])
+    expect(subjectMap.tables.find(t=>t.table===name)?.productionErasure).toBe('DISABLED');
 
   expect(new Set(tables.map(t=>t.table)).size).toBe(tableRows.length);
   console.log(JSON.stringify({schemaMetadataOnly:true,tableCount:result.tableCount,columnCount:result.columnCount,foreignKeyColumnCount:result.foreignKeyColumnCount,privacyPolicyApproved:false}));
