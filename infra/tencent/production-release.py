@@ -228,7 +228,8 @@ def qualifications(path,plan):
         if key=='restore':
             require(value.get('backupSha256')==q.get('backup',{}).get('sha256')
                     and value.get('globalsAndRolesVerified') is True and value.get('cosObjectRestoreVerified') is True
-                    and value.get('encryptionKeyRecoveryVerified') is True,'COMPLETE_PRODUCTION_RESTORE_REQUIRED')
+                    and value.get('encryptionKeyRecoveryVerified') is True
+                    and value.get('privacySuppressionRestoreVerified') is True,'COMPLETE_PRODUCTION_RESTORE_REQUIRED')
         if key=='rollback':
             require(value.get('sameDatabase') is True and value.get('newWritesPreserved') is True
                     and value.get('coversPartialForwardMigration') is True,'DATA_PRESERVING_ROLLBACK_REQUIRED')

@@ -20,7 +20,8 @@ import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
 import { installRequestBudgets, dependencySignal } from "./operationBudget.js";
 import { createPool, requestBudgetPool } from "./db.js";
 import { PrivacyRights } from "./privacyRights.js";
-import { AccountClosure } from './accountClosure.js';
+import { AccountClosure, type SuppressionRemote } from './accountClosure.js';
+import { createCosSuppressionRemote } from './accountClosureRemote.js';
 import { SyntheticPrivacyExecution } from "./privacyExecution.js";
 import { PhoneBinding } from "./phoneBinding.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
@@ -83,6 +84,7 @@ interface AppDependencies {
   phoneFetcher?: typeof fetch;
   shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'>;
   wechatIdentityFetcher?: typeof fetch;
+  suppressionRemote?: SuppressionRemote;
 }
 
 function devClock(request: FastifyRequest): string | undefined {
@@ -123,7 +125,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const pool = requestBudgetPool(dependencies.pool, config.database);
   if(config.env==='production'&&!config.privacy.suppressionDirectory)
     throw new Error('FAIL_CLOSED:PRIVACY_SUPPRESSION_DIR_REQUIRED');
-  const accountClosure=new AccountClosure(config.privacy.suppressionDirectory);
+  const remote=dependencies.suppressionRemote??(config.env==='production'?createCosSuppressionRemote(config):undefined);
+  const accountClosure=new AccountClosure(config.privacy.suppressionDirectory,remote);
   await accountClosure.replay(pool);
   const app = Fastify({ ...(dependencies.loggerInstance && config.env === "test"
     ? { loggerInstance: dependencies.loggerInstance } : { logger: safeLoggerOptions(config.observability.logLevel) }),

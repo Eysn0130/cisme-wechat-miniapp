@@ -147,17 +147,18 @@ export class PrivacyRights {
 
   private async closeAccount(memberId:string) {
     if(!this.accountClosure)throw new DomainError('ACCOUNT_CLOSURE_UNAVAILABLE','注销服务暂不可用，请稍后重试',503);
-    try{return await transaction(this.pool,async client=>{
-      const member=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE",[memberId]);
+    const identity=await transaction(this.pool,async client=>{
+      const member=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[memberId]);
       if(!member.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可提交注销请求',403);
-      const identity=(await client.query<{provider:string;app_id:string;openid:string}>(
-        'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR UPDATE',[memberId])).rows[0];
-      if(!identity)throw new DomainError('AUTH_REVOKED','微信身份已变化，请重新登录',401);
-      const requestId=randomUUID();
-      const marker=await this.accountClosure!.record(memberId,
-        AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),requestId);
-      return applyAccountClosure(client,marker);
-    });}catch(error){
+      const row=(await client.query<{provider:string;app_id:string;openid:string}>(
+        'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR SHARE',[memberId])).rows[0];
+      if(!row)throw new DomainError('AUTH_REVOKED','微信身份已变化，请重新登录',401);
+      return row;
+    });
+    // Durable local and COS markers are written outside the short SQL transaction.
+    const marker=await this.accountClosure.record(memberId,
+      AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),randomUUID());
+    try{return await transaction(this.pool,client=>applyAccountClosure(client,marker));}catch(error){
       // The independent marker is written before the database transaction.
       // If that transaction failed, retry the same idempotent closure now.
       if(await this.accountClosure.hasMember(memberId)){

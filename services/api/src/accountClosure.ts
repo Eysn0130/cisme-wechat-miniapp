@@ -5,13 +5,17 @@ import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
 
-type Marker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
+export type Marker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
+export interface SuppressionRemote {
+  put(marker:Marker):Promise<void>;
+  list():Promise<Marker[]>;
+}
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const digest=/^[0-9a-f]{64}$/;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
-  constructor(private readonly directory:string|null) {}
+  constructor(private readonly directory:string|null,private readonly remote?:SuppressionRemote) {}
 
   private path(memberId:string) {if(!uuid.test(memberId))throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');return join(this.directory!,`${memberId}.json`);}
   static identityDigest(provider:string,appId:string,openid:string) {
@@ -20,17 +24,22 @@ export class AccountClosure {
   private async requireDirectory() {
     if(!this.directory)throw new DomainError('ACCOUNT_CLOSURE_UNAVAILABLE','注销服务暂不可用，请稍后重试',503);
     const info=await lstat(this.directory);
-    if(!info.isDirectory()||(info.mode&0o077)!==0)throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNSAFE');
+    const uid=process.getuid?.();
+    if(!info.isDirectory()||(info.mode&0o077)!==0||(uid!==undefined&&info.uid!==uid))
+      throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNSAFE');
   }
   async assertReady() {if(this.directory)await this.requireDirectory();}
+  private valid(row:Marker,memberId:string) {
+    if(row.version!==1||row.memberId!==memberId||!digest.test(row.identityDigest)||!uuid.test(row.requestId)||!Number.isFinite(Date.parse(row.createdAt)))
+      throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');
+    return row;
+  }
   private async marker(memberId:string):Promise<Marker|null> {
     if(!this.directory)return null;
     await this.requireDirectory();
     try {
       const row=JSON.parse(await readFile(this.path(memberId),'utf8')) as Marker;
-      if(row.version!==1||row.memberId!==memberId||!digest.test(row.identityDigest)||!uuid.test(row.requestId)||!Number.isFinite(Date.parse(row.createdAt)))
-        throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');
-      return row;
+      return this.valid(row,memberId);
     }catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return null;throw error;}
   }
   async hasMember(memberId:string) {return Boolean(await this.marker(memberId));}
@@ -47,26 +56,53 @@ export class AccountClosure {
   async record(memberId:string,identityDigest:string,requestId:string) {
     await this.requireDirectory();
     const old=await this.marker(memberId);
-    if(old){if(old.identityDigest!==identityDigest)throw new Error('ACCOUNT_CLOSURE_IDENTITY_MISMATCH');return old;}
-    const row:Marker={version:1,memberId,identityDigest,requestId,createdAt:new Date().toISOString()};
-    const handle=await open(this.path(memberId),'wx',0o600);
+    if(old&&old.identityDigest!==identityDigest)throw new Error('ACCOUNT_CLOSURE_IDENTITY_MISMATCH');
+    let row=old??this.valid({version:1,memberId,identityDigest,requestId,createdAt:new Date().toISOString()},memberId);
+    if(!old){try{await this.writeLocal(row);}catch(error){
+      const concurrent=await this.marker(memberId);
+      if(!concurrent||concurrent.identityDigest!==identityDigest)throw error;
+      row=concurrent;
+    }}
+    // Success is returned only after the independent copy is verified.
+    try{await this.remote?.put(row);}catch{throw new DomainError('ACCOUNT_CLOSURE_PENDING','注销结果暂未确认，请稍后重试',503);}
+    return row;
+  }
+  private async writeLocal(row:Marker) {
+    const old=await this.marker(row.memberId);
+    if(old){if(JSON.stringify(old)!==JSON.stringify(row))throw new Error('ACCOUNT_CLOSURE_MARKER_MISMATCH');return;}
+    let handle;
+    try{handle=await open(this.path(row.memberId),'wx',0o600);}catch(error){
+      if((error as NodeJS.ErrnoException).code==='EEXIST'){
+        const concurrent=await this.marker(row.memberId);
+        if(concurrent&&JSON.stringify(concurrent)===JSON.stringify(row))return;
+      }
+      throw error;
+    }
     try{await handle.writeFile(JSON.stringify(row));await handle.sync();}finally{await handle.close();}
     const dir=await open(this.directory!,'r');try{await dir.sync();}finally{await dir.close();}
-    return row;
   }
   async replay(pool:pg.Pool) {
     if(!this.directory)return;
     await this.requireDirectory();
+    if(this.remote){
+      for(const row of await this.remote.list()){
+        this.valid(row,row.memberId);
+        await this.writeLocal(row);
+      }
+    }
     for(const filename of await readdir(this.directory)){
       if(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5)))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
       const row=await this.marker(filename.slice(0,-5));
       if(!row)throw new Error('ACCOUNT_CLOSURE_MARKER_MISSING');
+      await this.remote?.put(row);
       await transaction(pool,client=>applyAccountClosure(client,row));
     }
   }
   async replayMember(pool:pg.Pool,memberId:string) {
     const row=await this.marker(memberId);
-    return row?transaction(pool,client=>applyAccountClosure(client,row)):null;
+    if(!row)return null;
+    try{await this.remote?.put(row);}catch{throw new DomainError('ACCOUNT_CLOSURE_PENDING','注销处理中，请稍后重试',503);}
+    return transaction(pool,client=>applyAccountClosure(client,row));
   }
 }
 

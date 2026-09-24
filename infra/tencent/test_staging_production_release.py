@@ -204,7 +204,8 @@ class Qualifications(unittest.TestCase):
         for key,kind in [('restore','production-protected-restore'),('rollback','same-data-application-rollback'),('writers','production-writer-inventory-and-drain'),('migrationReview','production-history-and-sql-review')]:
             value={'kind':kind,'instanceId':'lhins-61ikz4mi','candidateHead':HEAD,'previous':self.plan['previous'],
                    'verified':True,'syntheticOnly':False,'observedAtUtc':datetime.now(timezone.utc).isoformat()}
-            if key=='restore':value.update(backupSha256='d'*64,globalsAndRolesVerified=True,cosObjectRestoreVerified=True,encryptionKeyRecoveryVerified=True)
+            if key=='restore':value.update(backupSha256='d'*64,globalsAndRolesVerified=True,cosObjectRestoreVerified=True,
+                                           encryptionKeyRecoveryVerified=True,privacySuppressionRestoreVerified=True)
             if key=='rollback':value.update(sameDatabase=True,newWritesPreserved=True,coversPartialForwardMigration=True)
             if key=='writers':value.update(externalConsumersDisabled=True,unresolvedConsumers=[])
             if key=='migrationReview':value.update(approvedPendingMigrations=self.plan['migrationPlan']['pending'],historicalSqlIntegrityVerified=True)
@@ -226,7 +227,8 @@ class Qualifications(unittest.TestCase):
             self.q[key]=original
 
     def test_partial_restore_or_unrelated_backup_refused(self):
-        for key,value in [('backupSha256','e'*64),('globalsAndRolesVerified',False),('cosObjectRestoreVerified',False),('encryptionKeyRecoveryVerified',False)]:
+        for key,value in [('backupSha256','e'*64),('globalsAndRolesVerified',False),('cosObjectRestoreVerified',False),
+                          ('encryptionKeyRecoveryVerified',False),('privacySuppressionRestoreVerified',False)]:
             original=self.values['restore'][key];self.values['restore'][key]=value
             with self.subTest(key=key),self.assertRaises(m.observe.target.Refused):self.check()
             self.values['restore'][key]=original

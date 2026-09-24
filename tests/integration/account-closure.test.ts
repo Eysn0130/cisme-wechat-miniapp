@@ -1,4 +1,4 @@
-import { mkdtemp, chmod, rm } from 'node:fs/promises';
+import { mkdtemp, chmod, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -7,11 +7,19 @@ import { loadConfig } from '@cisme/config';
 import { TEST_DATABASE_URL, resetDatabase, testPool } from '@cisme/testkit';
 import { createApp } from '../../services/api/src/server';
 import { createApiGatewayStorage } from '../../services/api/src/storage';
-import { AccountClosure } from '../../services/api/src/accountClosure';
+import { AccountClosure, type Marker, type SuppressionRemote } from '../../services/api/src/accountClosure';
 
 const pool=testPool();
 let directory:string;
 let app:Awaited<ReturnType<typeof createApp>>;
+let remoteAvailable=true;
+const remoteRows=new Map<string,Marker>();
+const suppressionRemote:SuppressionRemote={
+  async put(row){if(!remoteAvailable)throw new Error('REMOTE_UNAVAILABLE');const existing=remoteRows.get(row.memberId);
+    if(existing&&JSON.stringify(existing)!==JSON.stringify(row))throw new Error('REMOTE_MARKER_CONFLICT');
+    remoteRows.set(row.memberId,{...row});},
+  async list(){if(!remoteAvailable)throw new Error('REMOTE_UNAVAILABLE');return [...remoteRows.values()].map(row=>({...row}));}
+};
 const appId='wx4eac2d4fb11d299b';
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'account-closure-test',
   UPLOAD_TOKEN_SECRET:'account-closure-upload',OBJECT_STORAGE_DRIVER:'api_gateway',
@@ -21,15 +29,17 @@ const consents=[{documentType:'terms',version:'test-v1'},{documentType:'privacy'
 const identityFetcher=async(input:RequestInfo|URL)=>{
   const code=new URL(String(input)).searchParams.get('js_code');
   return new Response(JSON.stringify({openid:code?.startsWith('missing-')?'formal-shaped-missing-openid':
-    code?.startsWith('hold-')?'formal-shaped-hold-openid':'formal-shaped-closure-openid',
+    code?.startsWith('hold-')?'formal-shaped-hold-openid':
+    code?.startsWith('remote-')?'formal-shaped-remote-openid':'formal-shaped-closure-openid',
     unionid:'optional-unionid'}),{status:200});
 };
+const makeApp=()=>createApp({pool,config,storage:createApiGatewayStorage(config),wechatIdentityFetcher:identityFetcher,suppressionRemote});
 beforeAll(async()=>{
   await resetDatabase(pool);
   directory=await mkdtemp(join(tmpdir(),'cisme-closure-'));
   await chmod(directory,0o700);
   config.privacy.suppressionDirectory=directory;
-  app=await createApp({pool,config,storage:createApiGatewayStorage(config),wechatIdentityFetcher:identityFetcher});
+  app=await makeApp();
   for(const type of ['terms','privacy'])await pool.query(`INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active)
     VALUES($1,'test-v1','Test document','Isolated identity fixture','Fixture','小程序客服',true)`,[type]);
 });
@@ -52,7 +62,7 @@ it('closes access while preserving a legally held profile until the hold is rele
     .toBe('SELF_ACCOUNT_CLOSED_WITH_LEGAL_HOLD');
   await pool.query("UPDATE legal_hold SET status='released',released_by='fixture',released_at=now() WHERE id=$1",[hold]);
   await app.close();
-  app=await createApp({pool,config,storage:createApiGatewayStorage(config),wechatIdentityFetcher:identityFetcher});
+  app=await makeApp();
   expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[memberId])).rowCount).toBe(0);
   expect((await pool.query('SELECT display_name FROM member WHERE id=$1',[memberId])).rows[0].display_name).toBe('已注销用户');
 });
@@ -61,11 +71,30 @@ it('keeps an identity closed when the restored database predates its registratio
   const closure=new AccountClosure(directory);
   await closure.record(randomUUID(),AccountClosure.identityDigest('wechat_miniprogram',appId,'formal-shaped-missing-openid'),randomUUID());
   await app.close();
-  app=await createApp({pool,config,storage:createApiGatewayStorage(config),wechatIdentityFetcher:identityFetcher});
+  app=await makeApp();
   const login=await app.inject({method:'POST',url:'/v1/identity/wechat',
     payload:{code:'missing-login',displayName:'Should not be created',consents}});
   expect(login.statusCode).toBe(410);
   expect((await pool.query("SELECT 1 FROM wechat_identity WHERE openid='formal-shaped-missing-openid'")).rowCount).toBe(0);
+});
+
+it('does not claim closure before the independent suppression marker is durable',async()=>{
+  const login=await app.inject({method:'POST',url:'/v1/identity/wechat',
+    payload:{code:'remote-login',displayName:'Remote failure case',consents}});
+  expect(login.statusCode,login.body).toBe(200);
+  const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  const headers={authorization:`Bearer ${sessionToken}`};
+  remoteAvailable=false;
+  try{
+    const result=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
+      payload:{kind:'close_account',message:'本人申请注销 CISME 账号'}});
+    expect(result.statusCode).toBe(503);
+    expect((await pool.query('SELECT status FROM member WHERE id=$1',[memberId])).rows[0].status).toBe('active');
+    expect((await app.inject({url:'/v1/bootstrap/profile',headers})).statusCode).toBe(503);
+  }finally{remoteAvailable=true;}
+  expect((await app.inject({url:'/v1/bootstrap/profile',headers})).statusCode).toBe(401);
+  expect((await pool.query('SELECT status FROM member WHERE id=$1',[memberId])).rows[0].status).toBe('deleted');
+  expect(remoteRows.has(memberId)).toBe(true);
 });
 afterAll(async()=>{await app?.close();await pool.end();if(directory)await rm(directory,{recursive:true,force:true});});
 
@@ -131,7 +160,9 @@ it('closes a self-verified account, retains transaction facts, and suppresses ol
   expect((await app.inject({method:'POST',url:'/v1/identity/wechat',payload:{code:'restored-login',displayName:'Restored',consents}})).statusCode).toBe(410);
   expect((await app.inject({url:'/v1/bootstrap/profile',headers})).statusCode).toBe(401);
   await app.close();
-  app=await createApp({pool,config,storage:createApiGatewayStorage(config),wechatIdentityFetcher:identityFetcher});
+  await rm(directory,{recursive:true,force:true});
+  await mkdir(directory,{mode:0o700});
+  app=await makeApp();
   expect((await pool.query('SELECT status,display_name FROM member WHERE id=$1',[memberId])).rows[0]).toMatchObject({status:'deleted',display_name:'已注销用户'});
   expect((await pool.query('SELECT 1 FROM member_contact WHERE member_id=$1',[memberId])).rowCount).toBe(0);
   expect((await pool.query('SELECT encrypted_payload,key_version FROM member_delivery_address WHERE id=$1',[addressId])).rows[0])
