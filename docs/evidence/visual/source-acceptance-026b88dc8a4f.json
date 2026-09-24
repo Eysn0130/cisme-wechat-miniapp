@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "8f154efb70413b047cdce558753cdedbbf8bf29fe714a47dd07bc7be2f950e25",
+  "packageSourceSha256": "026b88dc8a4fc8bee5e9a4870ed9ecbe2ee3fc5e2bd2c42cdc8ee0ec88cfa070",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current native source changes order aftersale entry, privacy interruption and result display, support order context and return instruction copy semantics. Prior blocked manifest archived byte-for-byte as source-acceptance-026b88dc8a4f.json. Package gate passes; no current DevTools screenshot or device acceptance is claimed. All 40 route matrices and both devices remain blocked pending current-source native checks."
+  "note": "This source narrows actionable management reminders by current support permissions, assigned conversation state, and finance availability. The prior blocked manifest is archived byte-for-byte as source-acceptance-3a3dbebfb68e.json. No screenshot or device acceptance is claimed for this package; all 40 route matrices and both devices remain blocked."
 }

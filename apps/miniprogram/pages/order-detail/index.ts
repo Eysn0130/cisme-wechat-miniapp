@@ -26,6 +26,7 @@ function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
   return match?Number(match[1])*100+Number((match[2]??"").padEnd(2,"0")):NaN;}
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
+  launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,
   data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
     tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
@@ -37,6 +38,7 @@ Page({
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
     sheetInput:"",sheetSending:false,sheetSendAttempt:null as {key:string;body:string}|null,sheetKeyboardHeight:0},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
+    this.launchAftersale=query.aftersale==='1';
     this.setData({id,invalidId:!orderIdPattern.test(id)});},
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
     if(!requireMemberAccess())return;
@@ -116,7 +118,8 @@ Page({
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
       this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadShipment();void this.loadRefunds(epoch,token);void this.loadRecovery();this.refreshRecordedCommands();
-      if(this.data.supportSheetOpen)void this.loadSupportSheet();
+      if(this.launchAftersale){this.launchAftersale=false;this.openAftersale();}
+      else if(this.data.supportSheetOpen)void this.loadSupportSheet();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({order:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.order,coreReady:false,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}
   },
   async loadShipment(){

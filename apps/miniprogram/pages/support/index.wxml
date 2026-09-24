@@ -21,12 +21,12 @@
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
       <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system"><text>{{item.body}}</text>
         <view wx:if="{{item.returnInstruction}}" class="return-card">
-          <strong>本案退货指引 · 第 {{item.returnInstruction.version}} 版</strong>
-          <text user-select>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>
-          <text user-select>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text>
-          <text>运费：{{item.returnInstruction.freightPayer==='merchant'?'商家承担':'用户承担'}}</text>
+          <strong>发送时的退货指引 · 第 {{item.returnInstruction.version}} 版</strong>
+          <text>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>
+          <text>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text>
+          <text>退货寄件运费：{{item.returnInstruction.freightPayer==='merchant'?'商家承担':item.returnInstruction.freightPayer==='member'?'你承担':'请与客服确认'}}</text>
           <text wx:if="{{item.returnInstruction.instructions}}">{{item.returnInstruction.instructions}}</text>
-          <view class="return-card__actions"><button data-id="{{item.id}}" bindtap="copyReturnInstruction">复制退货信息</button><button data-id="{{item.returnInstruction.caseId}}" bindtap="openAftersaleCase">填写寄回物流</button></view>
+          <view class="return-card__actions"><button data-id="{{item.returnInstruction.caseId}}" bindtap="openAftersaleCase">核对当前指引并登记物流</button></view>
         </view>
       </view>
       <view wx:else id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}} {{item.groupStart ? 'support-message--group-start' : 'support-message--grouped'}}">

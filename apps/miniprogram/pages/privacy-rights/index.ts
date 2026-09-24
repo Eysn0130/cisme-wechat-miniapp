@@ -17,16 +17,22 @@ function displayRecord(r:any,closedRights=false){
  const executionStatus=executionStatuses[r.execution?.status]||'';
  const scopeDetail=r.execution?.scope==='member_profile_only'&&delivery?`；${delivery}`:
   r.execution?.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；已清除自报微信号，其他资料仍保留':'';
+ const response=typeof r.response==='string'?r.response.trim():'';
  return {...r,execution:closedRights&&r.execution?{...r.execution,downloadAvailable:false}:r.execution,
   label:labels[kinds.indexOf(r.kind)]||'隐私请求',
   statusLabel:r.status==='responded'&&r.waitingOn==='member'?'请补充信息':statuses[r.status]||'状态待核对',
-  executionSummary:executionStatus?`${executionStatus}${scopeDetail}`:''};
+  executionSummary:executionStatus?`${executionStatus}${scopeDetail}`:'',
+  responseSummary:response&&!r.replyHistory?.some((entry:{body?:string})=>entry.body?.trim()===response)?response:''};
 }
 Page({
+ identityToken:'',
  data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
- onShow(){this.data.alive=true;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
-  this.setData({authenticated:Boolean(privacyToken()),closedRights,labels:closedRights?closedLabels:labels,selected:0,supportOpening:false});void this.loadLegalIdentity();void this.load();},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loadingMore:false,moreError:'',replyFor:'',replyDraft:'',replyKey:'',replyBusy:false});},
+ onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
+  this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
+  this.setData({authenticated:Boolean(token),closedRights,labels:closedRights?closedLabels:labels,
+    ...(changed?{selected:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
+    busy:false,replyBusy:false,supportOpening:false});void this.loadLegalIdentity();void this.load();},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,supportOpening:false});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){this.setData({selected:Number(e.detail.value)});},
@@ -72,21 +78,21 @@ Page({
   if(this.data.busy)return;
   const kind=(this.data.closedRights?closedKinds:kinds)[this.data.selected];
   if(kind!=='close_account'&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
-  const token=privacyToken();
+  const token=privacyToken(),attempt=++this.data.operationAttempt;
   if(kind==='close_account'){
    this.setData({busy:true,error:''});
    const confirmed=await new Promise<boolean>(resolve=>wx.showModal({title:'注销账号',
     content:'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私请求。',
     confirmText:'确认注销',confirmColor:'#6b3975',success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
-   if(!confirmed||!this.data.alive||token!==privacyToken()){this.setData({busy:false});return;}
+   if(!confirmed||!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken()){if(this.data.alive&&attempt===this.data.operationAttempt)this.setData({busy:false});return;}
   }
   this.setData({busy:true,error:'',notice:''});
   try{const result=await request<{accountClosed?:boolean}>({path:'/v1/me/privacy-requests',method:'POST',data:{kind,message:kind==='close_account'?'本人申请注销 CISME 账号':this.data.message}});
-   if(this.data.alive && token===privacyToken()){
-    if(result.accountClosed){setSessionToken('');this.setData({authenticated:false,closedRights:false,records:[],message:'',busy:false,notice:'账号已注销。需要处理历史资料时，可重新核验微信身份。'});return;}
+   if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken()){
+    if(result.accountClosed){setSessionToken('');this.identityToken='';this.setData({authenticated:false,closedRights:false,records:[],message:'',busy:false,notice:'账号已注销。交易和售后记录按必要期限保留；历史资料仍可核验身份后申请处理。'});return;}
     this.setData({message:'',notice:'请求已受理，进度可在下方查看。'});await this.load();}}
-  catch(e){if(this.data.alive && token===privacyToken())this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新受理记录后再试。'});}
-  finally{if(this.data.alive && token===privacyToken())this.setData({busy:false});}
+  catch(e){if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新受理记录后再试。'});}
+  finally{if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({busy:false});}
  },
  startReply(e:WechatMiniprogram.BaseEvent){
   if(this.data.replyBusy)return;
@@ -101,16 +107,16 @@ Page({
   if(!row||row.status!=='responded'||row.waitingOn!=='member')return;
   const message=this.data.replyDraft.trim();
   if(!message||Array.from(message).length>2000){this.setData({error:'请填写不超过 2000 字的补充说明。'});return;}
-  const token=privacyToken(),id=row.id as string,
+  const token=privacyToken(),attempt=++this.data.operationAttempt,id=row.id as string,
     key=this.data.replyKey||clientOperationKey('privacy-reply');
   this.setData({replyBusy:true,replyKey:key,error:'',notice:''});
   try{await request({path:`/v1/me/privacy-requests/${encodeURIComponent(id)}/reply`,method:'POST',
     idempotencyKey:key,data:{message,expectedVersion:row.version}});
-   if(this.data.alive&&token===privacyToken()){
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken()){
     this.setData({replyFor:'',replyDraft:'',replyKey:'',notice:'补充信息已收到，工作人员会继续处理。'});await this.load();}}
-  catch(e){if(this.data.alive&&token===privacyToken())
+  catch(e){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
     this.setData({error:(e as {title?:string}).title||'结果暂未确认，请刷新记录核对；若仍待补充，可重试原内容。'});}
-  finally{if(this.data.alive&&token===privacyToken())this.setData({replyBusy:false});}
+  finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({replyBusy:false});}
  },
  async viewExport(e:WechatMiniprogram.BaseEvent){
   const requestId=String(e.currentTarget.dataset.id||'');

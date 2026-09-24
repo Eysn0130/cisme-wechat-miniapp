@@ -22,7 +22,7 @@
           <strong>本案退货指引 · 第 {{item.returnInstruction.version}} 版</strong>
           <text>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>
           <text>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text>
-          <text>运费：{{item.returnInstruction.freightPayer==='merchant'?'商家承担':'用户承担'}}</text>
+          <text>退货寄件运费：{{item.returnInstruction.freightPayer==='merchant'?'商家承担':item.returnInstruction.freightPayer==='member'?'用户承担':'待确认'}}</text>
           <text wx:if="{{item.returnInstruction.instructions}}">{{item.returnInstruction.instructions}}</text>
         </view>
       </view>

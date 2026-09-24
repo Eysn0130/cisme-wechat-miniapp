@@ -215,7 +215,7 @@ describe("native mini program boundary", () => {
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
       "management-order-detail": ["back", "back", "load", "reconcile", "submitShipment", "load"],
-      aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "submit", "list", "openChat", "submit"],
+      aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit"],
       "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "submit", "reconcileBatch", "newBatch"],
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "submit", "closeDetail"],
       "management-finance": ["back", "selectSection", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
@@ -235,7 +235,7 @@ describe("native mini program boundary", () => {
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
       submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
-      support: ["back", "loadOlder", "copyReturnInstruction", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],
+      support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],
       task: ["back", "continueSubmission", "load", "back", "goCommunity", "claim", "@disabled", "continueSubmission"]
     };
 

@@ -33,7 +33,7 @@ type OrderChoice = { id: string; orderNumberTail: string; status: string; status
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null };
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
-const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", cancelled: "已取消", expired: "已超时" };
+const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", paid:"已付款", shipped:"已发货", delivered:"已签收", completed:"已完成", cancelled: "已取消", expired: "已超时" };
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 function isCancellation(error: unknown): boolean { return /cancel|abort/i.test(String((error as {errMsg?:string})?.errMsg ?? (error as {code?:string})?.code ?? error)); }
 function memberComposerCanSend(input: string, image: SelectedImage | null, order: OrderChoice | null): boolean {
@@ -124,12 +124,6 @@ Page({
     else if(this.linkedOrderId&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
       stageSupportDraft(sessionToken(),this.linkedOrderId,this.data.input);
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
-  copyReturnInstruction(event:WechatMiniprogram.TouchEvent){
-    const id=String(event.currentTarget.dataset.id??''),card=this.data.messages.find(item=>item.id===id)?.returnInstruction;
-    if(!card||!this.data.visible)return;
-    const text=`${card.recipientName} ${card.phone}\n${card.region} ${card.address}\n运费：${card.freightPayer==='merchant'?'商家承担':'用户承担'}${card.instructions?`\n${card.instructions}`:''}`;
-    wx.setClipboardData({data:text});
-  },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??'');
     if(!this.data.visible||!this.data.messages.some(item=>item.returnInstruction?.caseId===id))return;

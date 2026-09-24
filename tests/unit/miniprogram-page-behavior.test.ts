@@ -1233,6 +1233,37 @@ it('describes a limited privacy copy without exposing test or unknown status cod
  expect(page.data.records[1]).toMatchObject({label:'隐私请求',statusLabel:'状态待核对',executionSummary:''});
 });
 
+it('shows a distinct privacy decision once, including the closure retention explanation',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce({items:[
+  {id:'closure',kind:'close_account',status:'completed',response:'账号已注销。历史交易与售后资料按必要期限隔离保留。',replyHistory:[]},
+  {id:'duplicate',kind:'access',status:'responded',response:'请补充范围',replyHistory:[{actor:'operator',body:'请补充范围'}]}
+ ],nextCursor:null});
+ await page.load();
+ expect(page.data.records[0].responseSummary).toContain('历史交易与售后资料');
+ expect(page.data.records[1].responseSummary).toBe('');
+});
+
+it('resumes a privacy draft after interruption without a stuck busy state or a late result',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'owner-token'}};
+ (globalThis as any).getApp=()=>appState;
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true,selected:0});
+ requestMock.mockImplementation(async ({path}:{path:string})=>path==='/v1/legal'?{documents:[]}:{items:[],nextCursor:null});
+ page.onShow();await Promise.resolve();await Promise.resolve();page.setData({message:'导出我的资料'});
+ let resolveWrite!:(value:unknown)=>void;
+ requestMock.mockImplementationOnce(()=>new Promise(resolve=>{resolveWrite=resolve;}));
+ const pending=page.submit();expect(page.data.busy).toBe(true);
+ page.onHide();expect(page.data.busy).toBe(false);expect(page.data.message).toBe('导出我的资料');
+ resolveWrite({id:'old-result'});await pending;
+ expect(page.data.notice).toBe('');
+ requestMock.mockImplementation(async ({path}:{path:string})=>path==='/v1/legal'?{documents:[]}:{items:[],nextCursor:null});
+ page.onShow();expect(page.data.selected).toBe(0);expect(page.data.message).toBe('导出我的资料');
+ appState.globalData.sessionToken='other-token';page.onHide();page.onShow();expect(page.data.message).toBe('');
+});
+
 it('loads later privacy records without duplicating a row and clears them after identity changes',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  const appState={globalData:{sessionToken:'owner-token'}};

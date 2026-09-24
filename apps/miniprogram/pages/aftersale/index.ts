@@ -62,7 +62,17 @@ Page({
   return out.map(action=>({action,label:actions[action]!}));
  },
  async recheck(){if(!this.visible||this.data.loading||this.data.busy)return;if(!this.current()){this.deny('身份已变化，请重新核验。');return;}
-  if(!this.data.management||!this.data.coreReady)return;const epoch=this.epoch,token=this.token;
+  if(!this.data.coreReady)return;const epoch=this.epoch,token=this.token;
+  if(!this.data.management){
+   if(!this.selection)return;
+   try{const selected=await pageRead<Row>(this,{path:`${this.base()}/${this.selection}`});if(!this.current(epoch,token)||selected.id!==this.selection)return;
+    const history=selected.returnInstructionHistory??[],previousVersion=this.data.shipmentInstruction?.version,
+      index=Math.max(0,history.findIndex(item=>item.version===previousVersion));
+    this.setData({selected:this.normalize(selected),available:this.selectActions(selected),shipmentIndex:index,
+      shipmentOptions:history.map(item=>`第 ${item.version} 版 · ${item.region} ${item.address}`),shipmentInstruction:history[index]??null});
+   }catch{if(this.current(epoch,token))this.setData({notice:'售后进度暂未更新，可点击刷新重试。'});}
+   return;
+  }
   try{const a=await authorityProjection(this);if(!this.current(epoch,token))return;
    if(a.version!==1||!a.managementAvailable||!caps.some(c=>a.capabilities.includes(c)))throw Error();
    this.setData({capabilities:a.capabilities});if(this.data.selected)this.setData({available:this.selectActions(this.data.selected)});
@@ -100,14 +110,18 @@ Page({
   if(Number.isInteger(index)&&index>=0&&index<history.length)this.setData({shipmentIndex:index,shipmentInstruction:history[index]!});},
  chooseException(e:WechatMiniprogram.PickerChange){if(!this.canAct()||this.pending||this.data.needsReconcile)return;
   const value=Number(e.detail.value);this.setData({exceptionIndex:Number.isInteger(value)&&value>=0&&value<=4?value:0});},
+ chooseOrderItems(){if(!this.canAct()||this.data.management||!this.data.orderId||this.pending)return;
+  const pages=typeof getCurrentPages==='function'?getCurrentPages():[];
+  const previous=pages.length>1?pages[pages.length-2]:null;
+  if(previous?.route==='pages/order-detail/index'&&(previous as any).data?.id===this.data.orderId){
+   wx.navigateBack({delta:1,fail:()=>wx.redirectTo({url:`/pages/order-detail/index?id=${this.data.orderId}&aftersale=1`})});
+  }else wx.redirectTo({url:`/pages/order-detail/index?id=${this.data.orderId}&aftersale=1`});
+ },
  async submit(e?:WechatMiniprogram.TouchEvent){if(!this.canAct()||this.data.needsReconcile)return;
-  const action=String(e?.currentTarget.dataset.action??'request'),row=this.data.selected;
+  const action=String(e?.currentTarget.dataset.action??''),row=this.data.selected;
   if(!this.pending){
-   const noReason=action==='request'&&this.data.basisIndex===1;
-   if(action==='request'&&this.data.basisIndex===0){this.setData({notice:'请选择问题类型。'});return;}
-   if(!noReason&&Array.from(this.data.note.trim()).length<3){this.setData({notice:'请填写至少 3 字的说明。'});return;}
-   if(action==='request'&&(this.data.management||!this.data.orderId||row))return;
-   if(action!=='request'&&(!row||!this.data.available.some(a=>a.action===action)))return;
+   if(!row||!this.data.available.some(a=>a.action===action))return;
+   if(Array.from(this.data.note.trim()).length<3){this.setData({notice:'请填写至少 3 字的说明。'});return;}
    // Inspection is an explicit fact, not a default or a selection from another case.
    if(action==='inspect_return'&&![1,2].includes(this.data.qualityIndex)){this.setData({notice:'请选择本次实际质检结果，再提交记录。'});return;}
    if(action==='approve_refund_without_return'&&(!this.data.exceptionIndex||!/^[A-Za-z0-9._:/-]{8,200}$/.test(this.data.exceptionEvidence.trim()))){
@@ -116,9 +130,7 @@ Page({
    if(['ship_return','report_old_route'].includes(action)&&!this.data.shipmentInstruction){this.setData({notice:'请先选择实际寄件时使用的退货指引。'});return;}
    if(action==='report_old_route'&&this.data.shipmentInstruction!.version>=Number(row?.returnDestination?.version??0)){
     this.setData({notice:'请选择已使用的旧版有效退货指引；当前版本无需人工改址协助。'});return;}
-   const bases=['','no_reason','quality','wrong_item','missing_item','delivery_issue','other'];
-   const data:Record<string,unknown>=action==='request'?{kind:this.data.kindIndex===1?'return_refund':'refund_only',claimBasis:bases[this.data.basisIndex],reason:this.data.note.trim()}:
-    {action,expectedVersion:row!.version,note:this.data.note.trim(),...(['ship_return','report_old_route'].includes(action)?{instructionVersion:this.data.shipmentInstruction!.version}:{}),...(action==='ship_return'?{carrier:this.data.carrier.trim(),tracking:this.data.tracking.trim()}:{}),...(action==='inspect_return'?{qualityResult:this.data.qualityIndex===2?'unsellable':'sellable'}:{}),
+   const data:Record<string,unknown>={action,expectedVersion:row.version,note:this.data.note.trim(),...(['ship_return','report_old_route'].includes(action)?{instructionVersion:this.data.shipmentInstruction!.version}:{}),...(action==='ship_return'?{carrier:this.data.carrier.trim(),tracking:this.data.tracking.trim()}:{}),...(action==='inspect_return'?{qualityResult:this.data.qualityIndex===2?'unsellable':'sellable'}:{}),
      ...(action==='approve_refund_without_return'?{exceptionKind:['','lost_in_transit','item_missing','carrier_intercepted','return_impracticable'][this.data.exceptionIndex],evidenceReference:this.data.exceptionEvidence.trim()}:{})};
    if(action==='resolve_old_route')data.routeOutcome=['','carrier_contacted','rerouted','received'][this.data.routeOutcomeIndex];
    const epoch=this.epoch,token=this.token;this.setData({busy:true});
@@ -126,11 +138,11 @@ Page({
     action==='inspect_return'?`质检结果：${this.data.qualityOptions[this.data.qualityIndex]}。\n`:
     action==='resolve_old_route'?`处理结果：${this.data.routeOutcomeOptions[this.data.routeOutcomeIndex]}。\n`:
     action==='approve_refund_without_return'?`例外：${this.data.exceptionOptions[this.data.exceptionIndex]}。\n依据：${this.data.exceptionEvidence.trim()}。\n此操作不等于已退款。\n`:'';
-   const yes=await new Promise<boolean>(resolve=>wx.showModal({title:action==='request'?'提交售后申请':actions[action]!,
+   const yes=await new Promise<boolean>(resolve=>wx.showModal({title:actions[action]!,
     content:extra+'提交后由服务端记录申请时间和案件编号；退货指引、收件、质检及退款分别留痕。',
     confirmText:'确认提交',success:r=>resolve(r.confirm),fail:()=>resolve(false)}));
    if(!this.current(epoch,token)){if(this.visible&&epoch===this.epoch)this.deny('身份已变化，请重新核验。');return;}this.setData({busy:false});if(!yes)return;
-   this.pending={key:clientOperationKey('aftersale'),path:action==='request'?`/v1/me/orders/${this.data.orderId}/aftersales`:`${this.base()}/${row!.id}/actions`,data};
+   this.pending={key:clientOperationKey('aftersale'),path:`${this.base()}/${row.id}/actions`,data};
   }
   const pending=this.pending,epoch=this.epoch,token=this.token;this.setData({busy:true,locked:true,reconciliationReady:false,notice:'正在提交，请勿重复操作。'});
   try{const result=await request<Row>({path:pending.path,method:'POST',idempotencyKey:pending.key,data:pending.data});if(!this.current(epoch,token))return;
@@ -150,7 +162,7 @@ Page({
  retry(){void this.load();},next(){if(this.canAct()&&!this.pending){this.selection='';void this.load(true);}},
  openChat(){const conversationId=this.data.selected?.supportConversationId;
   if(!conversationId||!this.canAct())return;
-  wx.navigateTo({url:this.data.management?`/pages/management-support-chat/index?id=${conversationId}`:'/pages/support/index'});
+  wx.navigateTo({url:this.data.management?`/pages/management-support-chat/index?id=${conversationId}`:`/pages/support/index?orderId=${this.data.selected!.orderId}`});
  },
  back(){if(this.data.busy)return;wx.navigateBack({fail:()=>wx.redirectTo({url:this.data.management?'/pages/management/index':'/pages/orders/index'})});}
 });
