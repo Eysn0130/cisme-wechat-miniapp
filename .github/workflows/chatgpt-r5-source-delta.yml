@@ -33,12 +33,7 @@ jobs:
           p=pathlib.Path('services/api/src/accountClosure.ts'); s=p.read_text()
           assert hashlib.sha256(p.read_bytes()).hexdigest()=='3de6fe4ff11a75f82e5f3849fbb74338bb104fea441d3990716f42e5ac122f54'
           old="  }else if(!['executing','completed'].includes(request.status))throw new Error('PROFILE_ERASURE_REQUEST_STATE_UNEXPECTED');"
-          new="""    // Keep the in-memory state aligned with the transitions just persisted.
-              // Otherwise the first execution returns completed while its database row
-              // stays executing, and an unchanged replay revokes a newly generated copy.
-              request.status='executing';
-            }else if(!['executing','completed'].includes(request.status))throw new Error('PROFILE_ERASURE_REQUEST_STATE_UNEXPECTED');"""
-          new='\n'.join(line[10:] if i else line for i,line in enumerate(new.splitlines()))
+          new="    // Keep the in-memory state aligned with the transitions just persisted.\n    // Otherwise the first execution returns completed while its database row\n    // stays executing, and an unchanged replay revokes a newly generated copy.\n    request.status='executing';\n"+old
           assert s.count(old)==1; s=s.replace(old,new)
           assert hashlib.sha256(s.encode()).hexdigest()=='2dac2e47046037b4e46b7f6382017e4641429e211bf41a4fa80e268641a0c1c0'
           p.write_text(s)
