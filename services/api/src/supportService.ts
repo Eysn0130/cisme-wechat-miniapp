@@ -194,8 +194,8 @@ export class SupportService {
       EXISTS(SELECT 1 FROM support_message WHERE conversation_id=$1
         AND (linked_order_id IS NOT NULL OR linked_case_id IS NOT NULL))
       OR EXISTS(SELECT 1 FROM commerce_aftersale_case WHERE support_conversation_id=$1
-        OR support_conversation_id IS NULL AND member_id=$2)
-    ) AS linked`,[row.id,row.member_id]);
+        OR support_conversation_id IS NULL AND member_id=$2 AND created_at<=$3::timestamptz)
+    ) AS linked`,[row.id,row.member_id,row.resolved_at]);
     const hold = await client.query<{count:number}>(`SELECT count(*)::int AS count FROM legal_hold_binding binding
       JOIN legal_hold hold ON hold.id=binding.hold_id
       WHERE hold.status='active' AND hold.expires_at>clock_timestamp() AND (
