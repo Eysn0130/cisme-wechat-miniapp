@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "09530506dc04f6cd1f8c03560504342641e0a7fa5dea2932d8e367800b53c431",
+  "packageSourceSha256": "3c21dd881fd449d23809af11d4d617a46b3169a0e0c304d22171eed4984f3e3f",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -48,5 +48,5 @@
   ],
   "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
   "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Current 09530506 source distinguishes an unreachable legal service from unpublished legal documents on Account. The prior f9f72432 preview entered Home on an iPhone but Account could not load the legal documents or proceed to login; the user also reported that iPhone Safari could not open the staging /v1/legal URL. The user screenshot is preserved separately with its original f9f72432 package identity and is failure evidence, not acceptance of this package. Current QR/compile, route states, iOS login and Android device acceptance remain blocked until observed against this package."
+  "note": "Current 3c21dd88 source distinguishes an unreachable legal service from unpublished legal documents on Account and clears only the obsolete legal error on retry. The prior f9f72432 preview entered Home on an iPhone but Account could not load the legal documents or proceed to login; the user also reported that iPhone Safari could not open the staging /v1/legal URL. The user screenshot is preserved separately with its original f9f72432 package identity and is failure evidence, not acceptance of this package. Current QR/compile, route states, iOS login and Android device acceptance remain blocked until observed against this package."
 }

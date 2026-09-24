@@ -10,6 +10,12 @@ function scrollToAccountError() {
   wx.pageScrollTo({ selector: "#account-error-summary", duration: motionDuration(200) });
 }
 
+const legalReadErrors = new Set([
+  "协议服务暂时无法连接，请稍后重试。",
+  "当前用户协议尚未发布，请稍后重试。",
+  "当前隐私指引尚未发布，请稍后重试。"
+]);
+
 function currentLegalDocuments(): LegalDocumentVersions | null {
   const account = wx.getAccountInfoSync();
   const runtime = getApp<IAppOption>().globalData;
@@ -44,7 +50,7 @@ Page({
   async syncLegalDocuments() {
     const previous = this.documents();
     const attempt = ++this.data.legalAttempt;
-    this.setData({legalLoading:true,legalLoadError:""});
+    this.setData({legalLoading:true,legalLoadError:"",...(legalReadErrors.has(this.data.error)?{error:""}:{})});
     let documents = currentLegalDocuments();
     let legalLoadError: "" | "unreachable" | "unpublished" = "";
     if (!documents) {

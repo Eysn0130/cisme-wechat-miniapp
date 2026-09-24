@@ -125,7 +125,7 @@ describe("mini-program page behavior", () => {
     ] });
     await account.syncLegalDocuments();
     expect(requestMock).toHaveBeenLastCalledWith({ path: "/v1/legal", authMode: "public" });
-    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: true, agreementAccepted: false, legalLoadError: "" });
+    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: true, agreementAccepted: false, legalLoadError: "", error: "" });
   });
 
   it("does not describe unpublished legal documents as a connection failure", async () => {
