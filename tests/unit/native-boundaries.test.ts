@@ -198,7 +198,7 @@ describe("native mini program boundary", () => {
   it("locks the per-route button action inventory and verifies every handler exists", async () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
-      account: ["back", "openLegalDocuments", "openCrossBorder", "openAccountHelp", "loginTap", "browseCommunity"],
+      account: ["back", "openLegalDocuments", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
@@ -313,7 +313,7 @@ describe("native mini program boundary", () => {
     expect(account).toMatch(/\.account-row \{[^}]*min-height:104rpx;/);
     expect(account).toMatch(/\.account-legal-entry \{[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;[^}]*line-height:20px;/);
     expect(accountMarkup).not.toContain('class="account-caret"');
-    expect(accountMarkup).toContain("已有账号直接登录，首次登录自动注册");
+    expect(accountMarkup).toContain("阅读并勾选协议后，点击下方登录");
     expect(account).toMatch(/\.account-agreement__label \{[^}]*min-height:128rpx;/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-card \{ margin-top:32rpx; \}/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-login \{ margin-top:24rpx; \}[\s\S]*\.account-browse \{ margin-top:12rpx; \}/);
