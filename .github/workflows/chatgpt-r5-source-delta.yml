@@ -1,0 +1,33 @@
+name: CISME R5 pinned source delta
+on:
+  pull_request:
+    paths: ['.github/workflows/chatgpt-r5-source-delta.yml']
+permissions:
+  contents: read
+jobs:
+  export:
+    if: github.repository == 'Eysn0130/cisme-wechat-miniapp' && github.event.pull_request.number == 22 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: d2420682729a04b41f9908094da25d2853141682
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export tracked delta only
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/r5-delta"
+          mkdir -p "$out"
+          test "$(git rev-parse HEAD)" = d2420682729a04b41f9908094da25d2853141682
+          git bundle create "$out/delta.bundle" b4db47dc105d7f449a9822c49aed619384fce5c0..HEAD
+          git diff --binary b4db47dc105d7f449a9822c49aed619384fce5c0 HEAD > "$out/delta.patch"
+          git rev-parse HEAD > "$out/head.txt"
+          (cd "$out" && sha256sum delta.bundle delta.patch head.txt > SHA256SUMS)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cisme-r5-delta-d242068
+          path: ${{ runner.temp }}/r5-delta/
+          retention-days: 3
