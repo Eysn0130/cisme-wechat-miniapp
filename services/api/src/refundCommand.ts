@@ -76,7 +76,8 @@ export class RefundCommandService{
       if(aftersaleCaseId&&(!claim||Number(claim.amount_cents)!==amount))
         throw new DomainError('AFTERSALE_REFUND_MISMATCH','售后申请金额与退款申请不一致',409);
       const allocatedClaim=Boolean(claim?.lines?.length&&claim.lines.every(line=>
-        typeof line==='object'&&line!==null&&(line as {allocationPolicyVersion?:string}).allocationPolicyVersion==='quantity-net-components-v1'));
+        typeof line==='object'&&line!==null&&['quantity-net-components-v1','quantity-net-components-v2']
+          .includes((line as {allocationPolicyVersion?:string}).allocationPolicyVersion??'')));
       const historicalComponents=Number(order.shipping_cents)!==0||Number(order.member_discount_cents)!==0||
         Number(order.subtotal_cents)!==Number(order.total_cents);
       // A complete reversal uses the immutable paid order components. Partial
@@ -178,7 +179,9 @@ export class RefundCommandService{
           creditRefundCents:number;eligibleCashRefundCents:number;otherCashRefundCents:number;
           shippingRefundCents:number;allocationPolicyVersion:string}>}>(
           'SELECT lines FROM commerce_aftersale_case WHERE refund_request_id=$1',[request.id])).rows[0];
-        const selected=claim?.lines?.length&&claim.lines.every(line=>line.allocationPolicyVersion==='quantity-net-components-v1')
+        const selected=claim?.lines?.length&&claim.lines.every(line=>
+          line.allocationPolicyVersion===claim.lines[0]!.allocationPolicyVersion&&
+          ['quantity-net-components-v1','quantity-net-components-v2'].includes(line.allocationPolicyVersion))
           ?claim.lines:null;
         const cumulativeCash=Number((BigInt(grossReserved+amount)*BigInt(cashTotal)+BigInt(Math.floor(grossTotal/2)))/BigInt(grossTotal));
         const cashRefund=selected?selected.reduce((sum,line)=>sum+line.cashRefundCents+line.shippingRefundCents,0):cumulativeCash-totalReserved;
@@ -273,7 +276,7 @@ export class RefundCommandService{
           VALUES($1,$2,$3,$4,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
           [order.id,payment.id,outRefundNo,cashRefund,eligible,cashRefund-eligible-shippingRefund,shippingRefund,
             JSON.stringify(localCredit?[]:allocation),
-            selected?"quantity-net-components-v1":historicalComponents?"historical-full-components-v1":creditTotal?"isolated-split-tender-v1":"isolated-cash-lines-v1",
+            selected?selected[0]!.allocationPolicyVersion:historicalComponents?"historical-full-components-v1":creditTotal?"isolated-split-tender-v1":"isolated-cash-lines-v1",
             `member:${approver}`,request.id,localCredit?'local_credit':'wechat',localCredit?'closed':'prepared'])).rows[0]!;
         for(const source of sourceAllocations)await client.query(`INSERT INTO commission_credit_refund_allocation
           (refund_intent_id,source_id,amount_cents) VALUES($1,$2,$3)`,[intent.id,source.sourceId,source.amount]);

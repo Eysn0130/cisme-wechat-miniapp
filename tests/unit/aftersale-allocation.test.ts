@@ -41,20 +41,58 @@ it('conserves every cent across varied small paid orders regardless of claim ord
     const units=[...Array(quantityA)].map(()=>({lineId:'a',quantity:1}))
       .concat([...Array(quantityB)].map(()=>({lineId:'b',quantity:1})));
     if(seed%2)units.reverse();
-    const prior:{lineId:string;quantity:number}[]=[];
+    const prior:Array<{lineId:string;quantity:number;amountCents:number;cashRefundCents:number;
+      creditRefundCents:number;eligibleCashRefundCents:number;otherCashRefundCents:number}>=[];
     const totals={amountCents:0,cashRefundCents:0,creditRefundCents:0,shippingRefundCents:0,eligibleCashRefundCents:0};
     for(const selected of units){
       const claim=allocateAftersaleClaim({lines:paid,shippingCents,eligibleCashCents,prior,selected:[selected]});
       expect(claim.amountCents).toBeGreaterThanOrEqual(0);
       expect(claim.cashRefundCents).toBeGreaterThanOrEqual(0);
       expect(claim.creditRefundCents).toBeGreaterThanOrEqual(0);
+      for(const line of claim.lines){
+        expect(line.cashRefundCents).toBeGreaterThanOrEqual(0);
+        expect(line.creditRefundCents).toBeGreaterThanOrEqual(0);
+        expect(line.eligibleCashRefundCents).toBeGreaterThanOrEqual(0);
+        expect(line.otherCashRefundCents).toBeGreaterThanOrEqual(0);
+        expect(line.cashRefundCents+line.creditRefundCents).toBe(line.amountCents);
+        expect(line.eligibleCashRefundCents+line.otherCashRefundCents).toBe(line.cashRefundCents);
+      }
       totals.amountCents+=claim.amountCents;totals.cashRefundCents+=claim.cashRefundCents;
       totals.creditRefundCents+=claim.creditRefundCents;totals.shippingRefundCents+=claim.shippingRefundCents;
       totals.eligibleCashRefundCents+=claim.lines.reduce((sum,line)=>sum+line.eligibleCashRefundCents,0);
-      prior.push(selected);
+      prior.push(...claim.lines);
     }
     expect(totals).toEqual({amountCents:grossA+grossB+shippingCents,
       cashRefundCents:cashMerchandise+shippingCents,creditRefundCents:creditA+creditB,
       shippingRefundCents:shippingCents,eligibleCashRefundCents:eligibleCashCents});
   }
+});
+
+it('uses actual v1 refund snapshots as consumed budget without rewriting them',()=>{
+  const mixed=[{id:'mixed',quantity:5,line_total_cents:10003,credit_tender_cents:10002}];
+  const old=[
+    {lineId:'mixed',quantity:1,amountCents:2000,cashRefundCents:0,creditRefundCents:2000,
+      eligibleCashRefundCents:0,otherCashRefundCents:0,allocationPolicyVersion:'quantity-net-components-v1'},
+    {lineId:'mixed',quantity:1,amountCents:2001,cashRefundCents:1,creditRefundCents:2000,
+      eligibleCashRefundCents:1,otherCashRefundCents:0,allocationPolicyVersion:'quantity-net-components-v1'}
+  ];
+  const third=allocateAftersaleClaim({lines:mixed,shippingCents:0,eligibleCashCents:1,
+    prior:old,selected:[{lineId:'mixed',quantity:1}]});
+  expect(third.lines[0]).toMatchObject({amountCents:2000,cashRefundCents:0,creditRefundCents:2000,
+    eligibleCashRefundCents:0,otherCashRefundCents:0,allocationPolicyVersion:'quantity-net-components-v2'});
+  const rest=allocateAftersaleClaim({lines:mixed,shippingCents:0,eligibleCashCents:1,
+    prior:[...old,...third.lines],selected:[{lineId:'mixed',quantity:2}]});
+  expect(rest).toMatchObject({amountCents:4002,cashRefundCents:0,creditRefundCents:4002});
+  expect(()=>allocateAftersaleClaim({lines:mixed,shippingCents:0,eligibleCashCents:1,
+    prior:[{...old[1]!,cashRefundCents:2}],selected:[{lineId:'mixed',quantity:1}]})).toThrow();
+});
+
+it('never allocates negative cash when one cent of cash is mixed with many credits',()=>{
+  const mixed=[{id:'mixed',quantity:5,line_total_cents:10003,credit_tender_cents:10002}];
+  const third=allocateAftersaleClaim({lines:mixed,shippingCents:0,eligibleCashCents:1,
+    prior:[{lineId:'mixed',quantity:2}],selected:[{lineId:'mixed',quantity:1}]});
+  expect(third.cashRefundCents).toBeGreaterThanOrEqual(0);
+  expect(third.creditRefundCents).toBeLessThanOrEqual(third.amountCents);
+  expect(third.lines[0]?.eligibleCashRefundCents).toBeGreaterThanOrEqual(0);
+  expect(third.lines[0]?.otherCashRefundCents).toBeGreaterThanOrEqual(0);
 });

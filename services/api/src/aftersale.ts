@@ -169,13 +169,20 @@ export class AftersaleService{
         fail('AFTERSALE_RETURN_REQUIRED','本单已登记交寄，请选择退货退款；未收到或漏发请选相应问题类型');
       const lines=(await client.query('SELECT id,product_name,sku_label,quantity,line_total_cents,credit_tender_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number',[orderId])).rows;
       if(!lines.length)fail('AFTERSALE_LINES_MISSING','商品事实缺失，请联系在线客服');
-      const prior=(await client.query<{lines:Array<{lineId:string;quantity:number}>}>(`SELECT c.lines FROM commerce_aftersale_case c
+      const prior=(await client.query<{lines:Array<{lineId:string;quantity:number;amountCents:number;
+        cashRefundCents:number;creditRefundCents:number;eligibleCashRefundCents:number;
+        otherCashRefundCents:number;allocationPolicyVersion?:string}>}>(`SELECT c.lines FROM commerce_aftersale_case c
         JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
         WHERE c.order_id=$1 AND i.state='succeeded' ORDER BY c.created_at,c.id`,[orderId])).rows.flatMap(row=>row.lines);
+      if(prior.some(line=>[line.amountCents,line.cashRefundCents,line.creditRefundCents,
+        line.eligibleCashRefundCents,line.otherCashRefundCents].some(value=>value===undefined)))
+        fail('AFTERSALE_PRIOR_COMPONENT_MISSING','历史退款组成缺失，请联系售后核对',409);
       const eligible=Number((await client.query<{cash_merchandise_cents:string}>(
         'SELECT cash_merchandise_cents FROM commission_order_snapshot WHERE order_id=$1',[orderId])).rows[0]?.cash_merchandise_cents??0);
       const allocation=allocateAftersaleClaim({lines,shippingCents:Number(order.shipping_cents),eligibleCashCents:eligible,
-        prior:prior.map(line=>({lineId:line.lineId,quantity:Number(line.quantity)})),selected:selection});
+        prior:prior.map(line=>({lineId:line.lineId,quantity:Number(line.quantity),amountCents:line.amountCents,
+          cashRefundCents:line.cashRefundCents,creditRefundCents:line.creditRefundCents,
+          eligibleCashRefundCents:line.eligibleCashRefundCents,otherCashRefundCents:line.otherCashRefundCents})),selected:selection});
       if(allocation.amountCents<1||allocation.cashRefundCents<0||
         allocation.cashRefundCents===0&&allocation.creditRefundCents!==allocation.amountCents)
         fail('AFTERSALE_REFUND_COMPONENT_INVALID','本次商品金额与原支付组成不一致，请联系客服核对',409);

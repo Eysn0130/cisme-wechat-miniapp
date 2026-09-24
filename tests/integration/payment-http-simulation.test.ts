@@ -374,9 +374,9 @@ async function creditSpendCase(){
     expect((await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands)).refunds)
       .toContainEqual(expect.objectContaining({state:"applied"}));
   }
-  // One paid order can have a credit-only remaining unit even though its
-  // original payment contained cash. The first unit uses the one cash cent;
-  // the second must return only its original lot without calling WeChat.
+  // One paid order can have a credit-only unit even though its original
+  // payment contained cash. The single cash cent stays within the cumulative
+  // budget and is returned with the remaining unit.
   const lowPriceSku=(await pool.query<{id:string}>(`INSERT INTO catalog_sku(product_id,code,label,created_by,updated_by)
     SELECT product_id,'PAYMENT_HTTP_CREDIT_UNIT','Credit unit','fixture','fixture'
     FROM catalog_sku WHERE id=$1 RETURNING id`,[skuId])).rows[0]!.id;
@@ -406,7 +406,7 @@ async function creditSpendCase(){
     ON CONFLICT DO NOTHING`,[operator.memberId]);
   const tinyLine=(await pool.query<{id:string}>(`SELECT id FROM commerce_order_line WHERE order_id=$1`,[tinyOrder.id])).rows[0]!.id;
   const tinyAftersales=new AftersaleService(pool,new AuthorityService(pool,'test'));
-  for(const [index,expectedCash,expectedCredit] of [[1,1,999],[2,0,1000]]){
+  for(const [index,expectedCash,expectedCredit] of [[1,0,1000],[2,1,999]]){
     const claim=await tinyAftersales.request(referrer.memberId,tinyOrder.id,`credit-local-claim-${index}`,
       {kind:'refund_only',reason:'隔离权益单件退款',lines:[{lineId:tinyLine,quantity:1}]});
     expect(claim.amountCents).toBe(1000);
@@ -440,7 +440,7 @@ async function creditSpendCase(){
       expect(falseChannelQuery.statusCode).toBe(404);
       expect(await refundCommands.processDue()).toEqual([]);
       expect(channelRefunds.size).toBe(sentBefore);
-      expect((await tinyAftersales.availability(referrer.memberId,tinyOrder.id)).lines[0]?.remainingQuantity).toBe(0);
+      expect((await tinyAftersales.availability(referrer.memberId,tinyOrder.id)).lines[0]?.remainingQuantity).toBe(1);
     }
   }
   const pending=await creditOrder("cancel",500);
@@ -559,7 +559,7 @@ async function creditSpendCase(){
   expect((await pool.query("SELECT status FROM commerce_order WHERE id=$1",[pendingAtRisk.id])).rows[0].status)
     .toBe("paid");
   const riskLine=(await pool.query<{id:string}>('SELECT id FROM commerce_order_line WHERE order_id=$1',[riskOrder.id])).rows[0]!.id;
-  for(const [index,expectedCash] of [[1,1],[2,0]]){
+  for(const [index,expectedCash] of [[1,0],[2,1]]){
     const claim=await tinyAftersales.request(referrer.memberId,riskOrder.id,`credit-risk-unit-claim-${index}`,
       {kind:'refund_only',reason:'来源订单冲正后的权益退回',lines:[{lineId:riskLine,quantity:1}]});
     const pending=await tinyAftersales.act(operator.memberId,claim.id,`credit-risk-unit-action-${index}`,
@@ -1978,7 +1978,7 @@ it('reverses an old paid discount and shipping snapshot in full with explicit co
     WHERE request_id=$1`,[requested.refundRequestId])).rows[0];
   expect(Number(intent.shipping_cash_refund_cents)).toBe(500);
   expect(Number(intent.eligible_merchandise_refund_cents)+Number(intent.other_merchandise_refund_cents)).toBe(9000);
-  expect(intent.allocation_policy_version).toBe('quantity-net-components-v1');
+  expect(intent.allocation_policy_version).toBe('quantity-net-components-v2');
   expect(intent.line_allocation).toHaveLength(1);
   await refundCommands.processDue();
   const callback=refundCallback(reviewed.intent!.outRefundNo);
