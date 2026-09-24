@@ -30,6 +30,7 @@ const identityFetcher=async(input:RequestInfo|URL)=>{
   const code=new URL(String(input)).searchParams.get('js_code');
   return new Response(JSON.stringify({openid:code?.startsWith('missing-')?'formal-shaped-missing-openid':
     code?.startsWith('hold-')?'formal-shaped-hold-openid':
+    code?.startsWith('concurrent-')?'formal-shaped-concurrent-openid':
     code?.startsWith('remote-')?'formal-shaped-remote-openid':'formal-shaped-closure-openid',
     unionid:'optional-unionid'}),{status:200});
 };
@@ -65,6 +66,39 @@ it('closes access while preserving a legally held profile until the hold is rele
   app=await makeApp();
   expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[memberId])).rowCount).toBe(0);
   expect((await pool.query('SELECT display_name FROM member WHERE id=$1',[memberId])).rows[0].display_name).toBe('已注销用户');
+});
+
+it('honors a legal hold committed while closure is waiting for the hold decision',async()=>{
+  const login=await app.inject({method:'POST',url:'/v1/identity/wechat',
+    payload:{code:'concurrent-login',displayName:'Pending hold',consents}});
+  expect(login.statusCode,login.body).toBe(200);
+  const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'HeldDuringClosure','self_reported')",[memberId]);
+  const blocker=await pool.connect();
+  let pending:Promise<{statusCode:number;body:string}>|undefined;
+  let blocked=false;
+  try{
+    await blocker.query('BEGIN');
+    const blockerPid=(await blocker.query<{pid:number}>('SELECT pg_backend_pid() AS pid')).rows[0]!.pid;
+    const hold=(await blocker.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+      VALUES('PENDING_DISPUTE','Unresolved dispute evidence','fixture',now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0].id;
+    await blocker.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'member',$2)",[hold,memberId]);
+    pending=app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:{authorization:`Bearer ${sessionToken}`},
+      payload:{kind:'close_account',message:'本人申请注销 CISME 账号'}});
+    for(let attempt=0;attempt<100;attempt++){
+      const waiting=await pool.query<{blocked:boolean}>(`SELECT EXISTS(SELECT 1 FROM pg_stat_activity
+        WHERE pg_blocking_pids(pid) @> ARRAY[$1::int]) AS blocked`,[blockerPid]);
+      if(waiting.rows[0]?.blocked){blocked=true;break;}
+      await new Promise(resolve=>setTimeout(resolve,20));
+    }
+    await blocker.query('COMMIT');
+    const result=await pending!;
+    expect(blocked).toBe(true);
+    expect(result.statusCode,result.body).toBe(200);
+    expect((await pool.query('SELECT status FROM member WHERE id=$1',[memberId])).rows[0].status).toBe('deleted');
+    expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[memberId])).rows[0].wechat_handle)
+      .toBe('HeldDuringClosure');
+  }finally{await blocker.query('ROLLBACK');blocker.release();if(pending)await pending;}
 });
 
 it('keeps an identity closed when the restored database predates its registration',async()=>{

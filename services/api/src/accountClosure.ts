@@ -120,6 +120,9 @@ export async function applyAccountClosure(client:DbClient,marker:Marker) {
   const request=(await client.query<{member_id:string;kind:string;status:string}>(
     'SELECT member_id,kind,status FROM privacy_request WHERE id=$1 FOR UPDATE',[marker.requestId])).rows[0];
   if(!request||request.member_id!==marker.memberId||request.kind!=='close_account')throw new Error('ACCOUNT_CLOSURE_REQUEST_MISMATCH');
+  // Keep a concurrent legal hold from appearing after the deletion decision.
+  await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+  await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
   // Keep financial, order, refund, aftersale and their support evidence intact.
   const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
     WHERE h.status='active' AND h.expires_at>now() AND
