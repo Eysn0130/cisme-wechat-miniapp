@@ -10,8 +10,8 @@
   <view wx:if="{{!items.length}}" class="state">当前没有售后记录。</view>
   <button wx:for="{{items}}" wx:key="id" class="case-row {{busy||locked?'control--disabled':''}}" data-id="{{item.id}}" bindtap="open" disabled="{{busy||locked}}"><text>{{item.label}} · ¥{{item.amountLabel}}</text><text class="muted">{{item.kind==='return_refund'?'退货退款':'仅退款'}} · {{item.reason||'七日无理由退货'}}</text><text class="muted">查看案件与处理记录</text></button>
   <button wx:if="{{nextCursor}}" class="secondary {{busy||locked?'control--disabled':''}}" bindtap="next" disabled="{{busy||locked}}">下一页</button>
-  <view wx:if="{{!management&&orderId}}" class="case-card"><text class="case-title">申请剩余商品售后</text><text class="muted">在订单中选择本次申请的商品和数量。</text>
-   <button class="primary {{busy||locked||needsReconcile?'primary--disabled':''}}" bindtap="chooseOrderItems" disabled="{{busy||locked||needsReconcile}}">返回订单选择商品</button>
+  <view wx:if="{{!management&&orderId}}" class="case-card"><text class="case-title">{{hasOpenCase?'本次售后处理中':items.length?'申请剩余商品售后':'申请订单售后'}}</text><text class="muted">{{hasOpenCase?'处理完成后，可回订单申请剩余商品售后。':'在订单中选择本次申请的商品和数量。'}}</text>
+   <button wx:if="{{!hasOpenCase}}" class="primary {{busy||locked||needsReconcile?'primary--disabled':''}}" bindtap="chooseOrderItems" disabled="{{busy||locked||needsReconcile}}">返回订单选择商品</button>
   </view>
  </block>
  <block wx:if="{{coreReady&&selected}}">

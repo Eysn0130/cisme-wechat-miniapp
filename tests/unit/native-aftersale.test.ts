@@ -16,10 +16,19 @@ it('clears private data and ignores late responses on hide',async()=>{const p=aw
 it('requires fresh facts and explicit reconciliation after an interrupted request',async()=>{const p=await page();p.selection=record.id;p.data.selected=record;p.data.available=[{action:'cancel',label:'撤回申请'}];p.data.note='合成未确认操作';m.request.mockRejectedValueOnce({status:504});const event={currentTarget:{dataset:{action:'cancel'}}};await p.submit(event);await p.reconcile();expect(p.pending).not.toBeNull();expect(p.data.notice).toContain('刷新');p.onHide();expect(p.pending).toBeNull();expect(p.data.needsReconcile).toBe(true);await p.onShow();p.data.note='新的申请';await p.submit(event);expect(m.request.mock.calls.filter(([x])=>x.method==='POST')).toHaveLength(1);await p.reconcile();expect(p.data.needsReconcile).toBe(false);expect(p.data.note).toBe('');});
 it('revocation and session change erase case contacts and pending text',async()=>{const p=await page(true);p.data.selected={...record,returnDestination:{phone:'synthetic'}};p.data.note='private';m.authority.mockResolvedValueOnce({version:1,managementAvailable:false,capabilities:[]});await p.recheck();expect(p.data.selected).toBeNull();expect(p.data.note).toBe('');expect(p.data.coreReady).toBe(false);const q=await page();token='changed';await q.recheck();expect(q.data.items).toEqual([]);expect(q.data.coreReady).toBe(false);});
 it('does not write after a modal returns to a different account',async()=>{const p=await page();p.selection=record.id;p.data.selected=record;p.data.available=[{action:'cancel',label:'撤回申请'}];p.data.note='合成审批说明';(globalThis as any).wx.showModal=(o:any)=>{token='another';o.success({confirm:true});};await p.submit({currentTarget:{dataset:{action:'cancel'}}});expect(m.request.mock.calls.some(([x])=>x.method==='POST')).toBe(false);});
-it('routes new applications to the order item picker and cannot submit without a selected case',async()=>{
+it('offers remaining-item application only after the current case closes',async()=>{
  const p=await page();(globalThis as any).getCurrentPages=()=>[{route:'pages/order-detail/index',data:{id:record.orderId}},{route:'pages/aftersale/index'}];
- p.chooseOrderItems();expect((globalThis as any).wx.navigateBack).toHaveBeenCalledWith(expect.objectContaining({delta:1}));
+ expect(p.data.hasOpenCase).toBe(true);p.chooseOrderItems();expect((globalThis as any).wx.navigateBack).not.toHaveBeenCalled();
+ m.request.mockResolvedValueOnce({items:[{...record,state:'cancelled'}],nextCursor:null});await p.load();
+ expect(p.data.hasOpenCase).toBe(false);p.chooseOrderItems();expect((globalThis as any).wx.navigateBack).toHaveBeenCalledWith(expect.objectContaining({delta:1}));
  await p.submit({currentTarget:{dataset:{action:'request'}}});expect(m.request.mock.calls.some(([x])=>x.method==='POST')).toBe(false);
+});
+it('keeps the active-case guard when paging older cases',async()=>{
+ m.request.mockResolvedValueOnce({items:[record],nextCursor:'older'});
+ const p=await page();expect(p.data.hasOpenCase).toBe(true);
+ m.request.mockResolvedValueOnce({items:[{...record,id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',state:'cancelled'}],nextCursor:null});
+ await p.load(true);expect(p.data.hasOpenCase).toBe(true);
+ p.chooseOrderItems();expect((globalThis as any).wx.redirectTo).not.toHaveBeenCalled();
 });
 it('opens this order in support and refreshes customer case progress without clearing a draft',async()=>{
  const p=await page();p.selection=record.id;p.data.selected={...record,supportConversationId:'conversation'};p.data.note='我的运单说明';
