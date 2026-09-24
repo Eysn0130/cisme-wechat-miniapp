@@ -32,7 +32,11 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
         AND NOT EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
           WHERE h.status='active' AND h.expires_at>$3 AND
             (b.object_type='support_conversation' AND b.object_id=c.id::text OR
-             b.object_type='member' AND b.object_id=c.member_id::text))
+             b.object_type='member' AND b.object_id=c.member_id::text OR
+             b.object_type='support_message' AND EXISTS(SELECT 1 FROM support_message m
+               WHERE m.conversation_id=c.id AND m.id::text=b.object_id) OR
+             b.object_type='media_object' AND EXISTS(SELECT 1 FROM media_object media
+               WHERE media.support_conversation_id=c.id AND media.id::text=b.object_id)))
       ORDER BY c.resolved_at,c.id LIMIT $4 FOR UPDATE OF c SKIP LOCKED`,
       [policy.duration_days??0,policy.duration_months??0,now,limit])).rows;
     if(!due.length)return 0;
@@ -59,7 +63,12 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
         SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
         WHERE h.status='active' AND h.expires_at>$3 AND
           (b.object_type='support_conversation' AND b.object_id=$1 OR
-           b.object_type='member' AND b.object_id=$2)) AS held`,[row.id,row.member_id,now])).rows[0]?.held;
+           b.object_type='member' AND b.object_id=$2 OR
+           b.object_type='support_message' AND EXISTS(SELECT 1 FROM support_message m
+             WHERE m.conversation_id=$1::uuid AND m.id::text=b.object_id) OR
+           b.object_type='media_object' AND EXISTS(SELECT 1 FROM media_object media
+             WHERE media.support_conversation_id=$1::uuid AND media.id::text=b.object_id))) AS held`,
+        [row.id,row.member_id,now])).rows[0]?.held;
       if(held)continue;
       const messages=(await client.query<{count:number}>(`SELECT count(*)::int AS count
         FROM support_message WHERE conversation_id=$1`,[row.id])).rows[0]?.count??0;

@@ -96,6 +96,33 @@ describe('ordinary support retention worker',()=>{
     expect((await pool.query('SELECT id FROM support_conversation WHERE id=$1',[held.id])).rowCount).toBe(0);
   });
 
+  it('preserves an ordinary message or attachment held on its own',async()=>{
+    const messageHeld=await conversation('held single message','2026-07-01T12:00:00Z');
+    const mediaHeld=await conversation('held single attachment','2026-07-02T12:00:00Z');
+    const message=(await pool.query<{id:string}>(
+      'SELECT id FROM support_message WHERE conversation_id=$1',[messageHeld.id])).rows[0]!;
+    const media=(await pool.query<{id:string}>(`INSERT INTO media_object(kind,object_key,mime_type,size_bytes,
+      upload_state,uploaded_at,support_conversation_id,support_member_id,support_expires_at)
+      VALUES('chat_image',$1,'image/jpeg',3,'uploaded',$2,$3,$4,$5) RETURNING id`,
+      [`held-support-${randomUUID()}`,now,mediaHeld.id,mediaHeld.memberId,
+        new Date('2026-11-01T12:00:00Z')])).rows[0]!;
+    const hold=(await pool.query<{id:string}>(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+      VALUES('SUPPORT_MESSAGE_MEDIA_HOLD','Isolated message and attachment hold','test-reviewer',$1,$2) RETURNING id`,
+      [new Date('2026-10-01T12:00:00Z'),new Date('2026-11-01T12:00:00Z')])).rows[0]!;
+    await pool.query(`INSERT INTO legal_hold_binding(hold_id,object_type,object_id)
+      VALUES($1,'support_message',$2),($1,'media_object',$3)`, [hold.id,message.id,media.id]);
+    expect(await purgeDueOrdinarySupport(pool,now)).toBe(0);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE id=$1',[message.id])).rowCount).toBe(1);
+    expect((await pool.query('SELECT 1 FROM media_object WHERE id=$1',[media.id])).rowCount).toBe(1);
+    await pool.query(`DELETE FROM legal_hold_binding WHERE hold_id=$1 AND object_type='support_message'`,[hold.id]);
+    expect(await purgeDueOrdinarySupport(pool,now)).toBe(1);
+    expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[messageHeld.id])).rowCount).toBe(0);
+    expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[mediaHeld.id])).rowCount).toBe(1);
+    await pool.query("UPDATE legal_hold SET status='released',released_by='test-reviewer',released_at=$2 WHERE id=$1",[hold.id,now]);
+    expect(await purgeDueOrdinarySupport(pool,now)).toBe(1);
+    expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[mediaHeld.id])).rowCount).toBe(0);
+  });
+
   it('keeps consultation history while the member has an open privacy request',async()=>{
     const subject=await conversation('rights inquiry evidence','2026-07-01T12:00:00Z');
     const request=(await pool.query<{id:string}>(`INSERT INTO privacy_request(member_id,kind,message,due_at)

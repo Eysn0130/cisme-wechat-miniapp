@@ -201,6 +201,10 @@ export class SupportService {
       WHERE hold.status='active' AND hold.expires_at>clock_timestamp() AND (
         (binding.object_type='support_conversation' AND binding.object_id=$1)
         OR (binding.object_type='member' AND binding.object_id=$2)
+        OR (binding.object_type='support_message' AND EXISTS(SELECT 1 FROM support_message m
+          WHERE m.conversation_id=$1::uuid AND m.id::text=binding.object_id))
+        OR (binding.object_type='media_object' AND EXISTS(SELECT 1 FROM media_object media
+          WHERE media.support_conversation_id=$1::uuid AND media.id::text=binding.object_id))
       )`, [row.id, row.member_id]);
     const openRights=(await client.query<{open:boolean}>(`SELECT EXISTS(SELECT 1 FROM privacy_request
       WHERE member_id=$1 AND status NOT IN ('completed','partially_completed','rejected','canceled')) AS open`,
