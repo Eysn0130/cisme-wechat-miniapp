@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "345170e882acd2f6e803d17ec264926148c0551e58cb385279dccbaf1883a9a3",
+  "packageSourceSha256": "8f154efb70413b047cdce558753cdedbbf8bf29fe714a47dd07bc7be2f950e25",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current native source shortens the displayed aftersale receipt and order identifier. WeChat DevTools simulator verified the order support sheet and current case status at 333x719; this is partial route evidence only. Full route matrices, keyboard on device, iOS and Android remain unverified."
+  "note": "Current native source changes order aftersale entry, privacy interruption and result display, support order context and return instruction copy semantics. Prior blocked manifest archived byte-for-byte as source-acceptance-026b88dc8a4f.json. Package gate passes; no current DevTools screenshot or device acceptance is claimed. All 40 route matrices and both devices remain blocked pending current-source native checks."
 }

@@ -19,7 +19,7 @@
 
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
-      <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system"><text>{{item.body}}</text>
+      <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system"><text>{{item.displayBody}}</text>
         <view wx:if="{{item.returnInstruction}}" class="return-card">
           <strong>发送时的退货指引 · 第 {{item.returnInstruction.version}} 版</strong>
           <text>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>

@@ -203,7 +203,7 @@ export class AftersaleService{
       const message=(await client.query<{id:string;created_at:Date}>(`INSERT INTO support_message
         (conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id)
         VALUES($1,$2,'system','system:aftersale',$3,'system',$4) RETURNING id,created_at`,
-        [conversation.id,conversation.next_sequence,`售后申请已收到 · 编号 ${row.id}。客服将按本案处理。`,`aftersale-request:${row.id}`])).rows[0]!;
+        [conversation.id,conversation.next_sequence,'售后申请已收到，客服会继续处理。',`aftersale-request:${row.id}`])).rows[0]!;
       const support=(await client.query<{version:number}>(`UPDATE support_conversation SET next_sequence=next_sequence+1,
         team_unread_count=team_unread_count+1,status=CASE WHEN status IN ('resolved','ai_active') THEN 'waiting_human' ELSE status END,
         current_handler_principal_id=CASE WHEN status='resolved' THEN NULL ELSE current_handler_principal_id END,

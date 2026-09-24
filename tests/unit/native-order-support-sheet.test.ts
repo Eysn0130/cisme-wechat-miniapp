@@ -33,6 +33,7 @@ afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 describe('order support sheet owns reads and reflects current cases',()=>{
  it('updates the case while polling instead of deriving progress from chat text',async()=>{
   const p=await page();await p.loadSupportSheet();
+  expect(p.data.sheetCaseShortId).toBe(record.id.slice(-6));
   m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state:'awaiting_instruction'}])));
   await p.pollSupportSheet();expect(p.data.sheetCase.state).toBe('awaiting_instruction');expect(p.data.sheetCaseLabel).toBe('客服正在准备退货信息');
  });

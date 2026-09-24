@@ -87,6 +87,13 @@ describe("support thread state", () => {
       .toBe("结果待核对");
   });
 
+  it("keeps an old full case id in the underlying event while showing a short receipt", () => {
+    const body="售后申请已收到 · 编号 8bb27d44-9e66-4bcd-8471-dd7535263e02。客服将按本案处理。";
+    const shown=presentSupportMessages([{...message(1,"system"),body}],{ownSenderType:"user"})[0]!;
+    expect(shown.body).toBe(body);
+    expect(shown.displayBody).toBe("售后申请已收到，客服会继续处理。");
+  });
+
   it("never turns an assignment into a green online claim without an unexpired heartbeat", () => {
     expect(supportHeaderPresentation({ status: "human_active", agentDisplayName: "小熹", operatorOnline: false })).toEqual({ tone: "neutral", label: "人工客服处理中" });
     expect(supportHeaderPresentation({ status: "human_active", agentDisplayName: "小熹", operatorOnline: true })).toEqual({ tone: "online", label: "小熹 · 人工客服已接入" });
