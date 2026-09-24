@@ -10,6 +10,7 @@ const resumeAuthenticationMock = vi.hoisted(() => vi.fn());
 const uploadAuthorizedMock = vi.hoisted(() => vi.fn());
 const setSessionTokenMock = vi.hoisted(() => vi.fn());
 const setPrivacyRightsTokenMock = vi.hoisted(() => vi.fn());
+const downloadPrivateMediaMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../apps/miniprogram/services/api", () => ({
   historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken || (globalThis as any).getApp().globalData.privacyRightsToken || "",
@@ -29,6 +30,7 @@ vi.mock("../../apps/miniprogram/services/api", () => ({
   uploadAuthorized: uploadAuthorizedMock,
   setSessionToken: setSessionTokenMock,
   setPrivacyRightsToken: setPrivacyRightsTokenMock,
+  downloadPrivateMedia: downloadPrivateMediaMock,
   submissionReturnUrl: () => "/pages/task/index?id=task-1"
 }));
 
@@ -72,6 +74,7 @@ beforeEach(() => {
   uploadAuthorizedMock.mockReset();
   setSessionTokenMock.mockReset();
   setPrivacyRightsTokenMock.mockReset();
+  downloadPrivateMediaMock.mockReset();
   capturedPage = null;
   wxMock = {
     navigateTo: vi.fn(),
@@ -1333,6 +1336,22 @@ it('offers historical rights after closure without another account-closure actio
  await page.submit();
  expect(requestMock).toHaveBeenCalledWith({path:'/v1/me/privacy-requests',method:'POST',
   data:{kind:'withdraw',message:'撤回仍在使用的可选同意'}});
+});
+
+it('shares only an owner-listed supplementary image and clears its temporary file',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'',privacyRightsToken:'closed-rights-token'}});
+ const abort=vi.fn(),mediaId='ce0d8c19-22c4-47a4-b1a8-4d15efb5df13';
+ downloadPrivateMediaMock.mockReturnValue({promise:Promise.resolve('/tmp/owned-image'),abort});
+ wxMock.shareFileMessage=vi.fn(({success}:{success:()=>void})=>success());
+ const page=mountedPage(capturedPage!,{alive:true,closedRights:true,records:[{
+  id:'request-a',execution:{downloadAvailable:true,unavailableMedia:[{id:mediaId,mimeType:'image/webp',reason:'inline_copy_size_limit'}]}}]});
+ await page.viewSupplementary({currentTarget:{dataset:{requestId:'request-a',mediaId}}});
+ expect(downloadPrivateMediaMock).toHaveBeenCalledWith(`/v1/me/privacy-requests/request-a/media/${mediaId}`,true);
+ expect(wxMock.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({filePath:'/tmp/owned-image',
+  fileName:`CISME-补充图片-${mediaId.slice(-6)}.webp`}));
+ expect(abort).toHaveBeenCalledOnce();
+ expect(page.data.notice).toContain('补充图片');
 });
 
 it('confirms self account closure once and rejects an identity switch while the modal is open',async()=>{

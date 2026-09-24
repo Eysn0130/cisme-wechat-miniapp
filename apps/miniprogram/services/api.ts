@@ -372,8 +372,9 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
 }
 
 /** Temporary private files live only until their caller releases them or identity changes. */
-export function downloadPrivateMedia(path: string): { promise: Promise<string>; abort(): void } {
-  const token = app.globalData.sessionToken, revision = commerceContextRevision();
+export function downloadPrivateMedia(path: string,allowClosedRights=false): { promise: Promise<string>; abort(): void } {
+  const currentToken=()=>app.globalData.sessionToken||(allowClosedRights?app.globalData.privacyRightsToken:'');
+  const token = currentToken(), revision = commerceContextRevision();
   const origin = app.globalData.apiBaseUrl.replace(/\/$/, "");
   let task: WechatMiniprogram.DownloadTask | null = null, cancelled = false, file = "";
   let rejectPending: (reason: unknown) => void = () => {};
@@ -386,7 +387,7 @@ export function downloadPrivateMedia(path: string): { promise: Promise<string>; 
     privateDownloads.add(abort);
     task = wx.downloadFile({ url: `${origin}${path}`, header: { Authorization: `Bearer ${token}` }, timeout: 30_000,
       success: (response) => {
-        if (cancelled || app.globalData.sessionToken !== token || commerceContextRevision() !== revision) {
+        if (cancelled || currentToken() !== token || commerceContextRevision() !== revision) {
           remove(response.tempFilePath); privateDownloads.delete(abort);
           reject({code:cancelled?"REQUEST_ABORTED":"REQUEST_SESSION_CHANGED"}); return;
         }

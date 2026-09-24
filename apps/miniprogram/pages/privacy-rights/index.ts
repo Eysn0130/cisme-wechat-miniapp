@@ -1,4 +1,4 @@
-import { request, resumeAuthentication, setSessionToken } from '../../services/api';
+import { downloadPrivateMedia, request, resumeAuthentication, setSessionToken } from '../../services/api';
 import { currentChromeStyle } from '../../services/layout';
 import { clientOperationKey } from '../../services/orders';
 const kinds=['access','correct','delete','close_account','withdraw','other'];
@@ -54,6 +54,7 @@ function displayRecord(r:any,closedRights=false){
 }
 Page({
  identityToken:'',
+ supplementaryDownload:null as ReturnType<typeof downloadPrivateMedia>|null,
  hiddenRecords:[] as any[],hiddenRecordToken:'',hiddenNextCursor:null as string|null,
  actionBusy(){return this.data.busy||this.data.replyBusy||this.data.exportBusy;},
  onLoad(){clearExportFile();clearAbandonedExportFiles();},
@@ -66,10 +67,10 @@ Page({
     ...(restore?{records:this.hiddenRecords,recordToken:token,nextCursor:this.hiddenNextCursor}:{}),
     ...(changed?{selected:0,deleteScopeIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
     busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});void this.loadLegalIdentity();void this.load();if(closedRights&&token)void this.loadHistoricalBalance(token);},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
   this.hiddenRecordToken=this.data.recordToken;this.hiddenRecords=this.data.records;this.hiddenNextCursor=this.data.nextCursor;
   this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});},
- onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;
+ onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
   this.hiddenRecordToken='';this.hiddenRecords=[];this.hiddenNextCursor=null;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({selected:Number(e.detail.value)});},
@@ -206,6 +207,31 @@ Page({
    }else throw new Error('EXPORT_SCOPE_UNEXPECTED');
   }catch(e){if(filePath)clearExportFile(filePath);if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
   finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
+ },
+ async viewSupplementary(e:WechatMiniprogram.BaseEvent){
+  if(this.actionBusy())return;
+  const requestId=String(e.currentTarget.dataset.requestId||''),mediaId=String(e.currentTarget.dataset.mediaId||'');
+  const row=this.data.records.find((entry:any)=>entry.id===requestId);
+  const media=row?.execution?.unavailableMedia?.find((entry:{id:string;reason:string;mimeType:string})=>
+    entry.id===mediaId&&entry.reason==='inline_copy_size_limit');
+  if(!row?.execution?.downloadAvailable||!media)return;
+  const token=privacyToken(),attempt=++this.data.operationAttempt;
+  this.setData({exportBusy:true,exportRequestId:requestId,error:'',notice:''});
+  const download=downloadPrivateMedia(`/v1/me/privacy-requests/${encodeURIComponent(requestId)}/media/${encodeURIComponent(mediaId)}`,true);
+  this.supplementaryDownload=download;
+  try{
+   const filePath=await download.promise;
+   if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
+   const extension=media.mimeType==='image/png'?'png':media.mimeType==='image/webp'?'webp':
+    media.mimeType==='image/jpeg'?'jpg':'bin';
+   await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath,
+    fileName:`CISME-补充图片-${mediaId.slice(-6)}.${extension}`,success:()=>resolve(),fail:reject}));
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData({notice:'补充图片已交给微信，请在接收会话查看。'});
+  }catch(error){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData({error:(error as {title?:string}).title||'补充图片暂不可读取，请刷新记录后重试。'});}
+  finally{download.abort();if(this.supplementaryDownload===download)this.supplementaryDownload=null;
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
  async revokeExport(e:WechatMiniprogram.BaseEvent){
   if(this.actionBusy())return;

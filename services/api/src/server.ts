@@ -292,6 +292,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       const rightsRoute=path==='/v1/me/privacy-requests'&&['GET','POST'].includes(request.method) ||
         request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/reply$/i.test(path) ||
         request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export$/i.test(path) ||
+        request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/media\/[0-9a-f-]{36}$/i.test(path) ||
         request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export-(revoke|retry)$/i.test(path);
       const historicalCommerceRoute=request.method==='GET'&&(
         path==='/v1/me/orders'||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
@@ -528,6 +529,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       :await privacyExecution.download(request.memberId,request.params.requestId);
     return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment; filename="cisme-data.json"')
       .type('application/json').send(bytes);
+  });
+  app.get<{Params:{requestId:string;mediaId:string}}>("/v1/me/privacy-requests/:requestId/media/:mediaId",async(request,reply)=>{
+    const media=await formalPrivacyExecution.downloadSupplementaryImage(request.memberId,request.params.requestId,
+      request.params.mediaId,request.authScope==='privacy_rights');
+    return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment')
+      .type(media.mimeType).send(Buffer.from(media.bytes));
   });
   app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export-revoke", async request =>
     await formalExportFor(request.memberId,request.params.requestId)

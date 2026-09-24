@@ -171,6 +171,45 @@ it('delivers readable data while naming video and missing images as incomplete',
     expect.objectContaining({id:mediaIds[1],reason:'stored_copy_unavailable'})]));
 });
 
+it('delivers only an owner-listed supplementary image while the copy remains valid',async()=>{
+  const owner=await login('supplementary-owner'),other=await login('supplementary-other');
+  const mediaId=randomUUID(),objectKey=`ugc-derived/privacy-${mediaId}/detail.webp`;
+  const bytes=Buffer.from([0x52,0x49,0x46,0x46,0,0,0,0,0x57,0x45,0x42,0x50,1,2,3,4]);
+  await storage.writeDerivedImage(objectKey,bytes);
+  await pool.query(`INSERT INTO ugc_media_asset(id,owner_member_id,kind,object_key,mime_type,size_bytes,
+    state,authorization_expires_at,uploaded_at)
+    VALUES($1,$2,'image',$3,'image/webp',$4,'uploaded',now()+interval '1 day',now())`,
+    [mediaId,owner.memberId,objectKey,bytes.length]);
+  await pool.query(`INSERT INTO ugc_media_asset(owner_member_id,kind,object_key,mime_type,size_bytes,
+    state,authorization_expires_at,uploaded_at)
+    VALUES($1,'video',$2,'video/mp4',1024,'uploaded',now()+interval '1 day',now())`,
+    [owner.memberId,`legacy-video-${randomUUID()}`]);
+  const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`},
+    payload:{kind:'access',message:'获取个人资料与图片'}});
+  expect(created.statusCode,created.body).toBe(200);
+  const requestId=created.json().id as string;
+  expect(await new FormalPrivacyExecution(pool,config,storage).runExportOnce()).toBe(true);
+  // The ordinary export in this small fixture embeds the image. Rebind the
+  // trusted job manifest to emulate an archive that reached its inline cap.
+  await pool.query(`UPDATE data_export_job SET manifest=jsonb_set(manifest,'{unavailableMedia}',
+    COALESCE(manifest->'unavailableMedia','[]'::jsonb)||$2::jsonb)
+    WHERE privacy_request_id=$1`,[requestId,JSON.stringify([{id:mediaId,kind:'community_upload',mimeType:'image/webp',reason:'inline_copy_size_limit'}])]);
+  const path=`/v1/me/privacy-requests/${requestId}/media/${mediaId}`;
+  const denied=await app.inject({url:path,headers:{authorization:`Bearer ${other.sessionToken}`}});
+  expect(denied.statusCode).toBe(404);
+  const delivered=await app.inject({url:path,headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(delivered.statusCode,delivered.body).toBe(200);
+  expect(delivered.rawPayload).toEqual(bytes);
+  const listed=await app.inject({url:'/v1/me/privacy-requests?page=1',headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(listed.json().items.find((row:{id:string})=>row.id===requestId).execution.unavailableMedia)
+    .toEqual(expect.arrayContaining([expect.objectContaining({id:mediaId,reason:'inline_copy_size_limit'})]));
+  const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(revoked.statusCode,revoked.body).toBe(200);
+  expect((await app.inject({url:path,headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+});
+
 it('recovers a stale third attempt as a failed request that its owner can retry',async()=>{
   const owner=await login('stale-owner');
   const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',

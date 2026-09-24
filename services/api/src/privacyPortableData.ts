@@ -189,27 +189,27 @@ export async function materializeMemberPortableData(snapshot:Awaited<ReturnType<
   storage:ObjectStorage){
   const {sections,uploaded}=snapshot;
   const media:Array<{id:string;kind:string;mimeType:string;base64:string}>=[];
-  const unavailableMedia:Array<{id:string;kind:string;reason:string}>=[];
+  const unavailableMedia:Array<{id:string;kind:string;mimeType:string;reason:string}>=[];
   let mediaBytes=0;
   for(const row of uploaded){
     assertOperationActive();
     if(row.mime_type==='video/mp4'){
-      unavailableMedia.push({id:row.id,kind:row.kind,reason:'video_requires_separate_copy'});
+      unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,reason:'video_requires_separate_copy'});
       continue;
     }
     const remaining=maxCopyBytes/2-mediaBytes;
     if(remaining<=0||(row.size_bytes!==null&&Number(row.size_bytes)>remaining)){
-      unavailableMedia.push({id:row.id,kind:row.kind,reason:'inline_copy_size_limit'});continue;
+      unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,reason:'inline_copy_size_limit'});continue;
     }
     try{
       const source=await storage.read(row.object_key);
       if(source.bytes.byteLength>remaining){
-        unavailableMedia.push({id:row.id,kind:row.kind,reason:'inline_copy_size_limit'});continue;
+        unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,reason:'inline_copy_size_limit'});continue;
       }
       mediaBytes+=source.bytes.byteLength;
       media.push({id:row.id,kind:row.kind,mimeType:source.mimeType,base64:Buffer.from(source.bytes).toString('base64')});
     }catch{
-      unavailableMedia.push({id:row.id,kind:row.kind,reason:'stored_copy_unavailable'});
+      unavailableMedia.push({id:row.id,kind:row.kind,mimeType:row.mime_type,reason:'stored_copy_unavailable'});
     }
   }
   sections.media=media;
