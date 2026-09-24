@@ -1,33 +1,67 @@
-name: CISME R5 pinned source delta
+name: CISME R5 complete verified erasure repair
 on:
   pull_request:
     paths: ['.github/workflows/chatgpt-r5-source-delta.yml']
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: cisme-r5-final-erasure-repair
+  cancel-in-progress: false
 jobs:
-  export:
-    if: github.repository == 'Eysn0130/cisme-wechat-miniapp' && github.event.pull_request.number == 22 && github.event.pull_request.head.repo.full_name == github.repository
+  apply:
+    if: github.repository == 'Eysn0130/cisme-wechat-miniapp' && github.event.pull_request.number == 22 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/fulfillment-lifecycle-20260922'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: d2420682729a04b41f9908094da25d2853141682
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-          persist-credentials: false
-      - name: Export tracked delta only
+      - name: Apply exact verified replacements and remove this temporary workflow
         shell: bash
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/r5-delta"
-          mkdir -p "$out"
-          test "$(git rev-parse HEAD)" = d2420682729a04b41f9908094da25d2853141682
-          git bundle create "$out/delta.bundle" b4db47dc105d7f449a9822c49aed619384fce5c0..HEAD
-          git diff --binary b4db47dc105d7f449a9822c49aed619384fce5c0 HEAD > "$out/delta.patch"
-          git rev-parse HEAD > "$out/head.txt"
-          (cd "$out" && sha256sum delta.bundle delta.patch head.txt > SHA256SUMS)
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: cisme-r5-delta-d242068
-          path: ${{ runner.temp }}/r5-delta/
-          retention-days: 3
+          python3 - <<'PY'
+          import hashlib,pathlib,subprocess
+          def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
+          baseline='d2420682729a04b41f9908094da25d2853141682'
+          branch='refs/heads/codex/fulfillment-lifecycle-20260922'
+          temp='.github/workflows/chatgpt-r5-source-delta.yml'
+          assert git('ls-remote','origin',branch).split()[0]==git('rev-parse','HEAD'), 'Remote advanced'
+          assert git('merge-base',baseline,'HEAD')==baseline
+          assert set(git('diff','--name-only',baseline,'HEAD').splitlines())=={temp}, 'Source changed since review'
+          p=pathlib.Path('services/api/src/accountClosure.ts'); s=p.read_text()
+          assert hashlib.sha256(p.read_bytes()).hexdigest()=='3de6fe4ff11a75f82e5f3849fbb74338bb104fea441d3990716f42e5ac122f54'
+          old="  }else if(!['executing','completed'].includes(request.status))throw new Error('PROFILE_ERASURE_REQUEST_STATE_UNEXPECTED');"
+          new="""    // Keep the in-memory state aligned with the transitions just persisted.
+              // Otherwise the first execution returns completed while its database row
+              // stays executing, and an unchanged replay revokes a newly generated copy.
+              request.status='executing';
+            }else if(!['executing','completed'].includes(request.status))throw new Error('PROFILE_ERASURE_REQUEST_STATE_UNEXPECTED');"""
+          new='\n'.join(line[10:] if i else line for i,line in enumerate(new.splitlines()))
+          assert s.count(old)==1; s=s.replace(old,new)
+          assert hashlib.sha256(s.encode()).hexdigest()=='2dac2e47046037b4e46b7f6382017e4641429e211bf41a4fa80e268641a0c1c0'
+          p.write_text(s)
+          p=pathlib.Path('tests/integration/formal-privacy-export.test.ts'); s=p.read_text()
+          assert hashlib.sha256(p.read_bytes()).hexdigest()=='54969ac45f790d185dd2aab5b02c8a6cd01aadf23120c58da2e106245833ecde'
+          assert s.count('RestoredOldPrivateProfile')==1
+          s=s.replace('RestoredOldPrivateProfile','RestoredOldProfile')
+          old="  const owner=await login('post-erasure-copy');\n  const marker=await profileMarker(owner.memberId);\n  await transaction(pool,c=>applyProfileErasure(c,marker));"
+          new="  const owner=await login('post-erasure-copy');\n  const marker=await profileMarker(owner.memberId);\n  expect((await transaction(pool,c=>applyProfileErasure(c,marker))).status).toBe('completed');\n  const first=(await pool.query('SELECT status,version,resolution_code,completed_at FROM privacy_request WHERE id=$1',[marker.requestId])).rows[0];\n  expect(first.status).toBe('completed');\n  expect(first.resolution_code).toBe('SELF_PROFILE_ERASED');\n  expect(first.completed_at).not.toBeNull();"
+          assert s.count(old)==1;s=s.replace(old,new)
+          old="  expect(JSON.parse((await executor.download(owner.memberId,requestId)).toString()).sections.account.id).toBe(owner.memberId);\n});\n\nit('invalidates an in-flight"
+          new="  expect(JSON.parse((await executor.download(owner.memberId,requestId)).toString()).sections.account.id).toBe(owner.memberId);\n  expect((await pool.query('SELECT version FROM privacy_request WHERE id=$1',[marker.requestId])).rows[0].version).toBe(first.version);\n  expect((await pool.query(\"SELECT count(*)::int AS count FROM privacy_request_event WHERE privacy_request_id=$1 AND event_type='execution_succeeded'\",[marker.requestId])).rows[0].count).toBe(1);\n});\n\nit('invalidates an in-flight"
+          assert s.count(old)==1;s=s.replace(old,new)
+          assert hashlib.sha256(s.encode()).hexdigest()=='fd8559cfaf41509192d089d2b0c35600c245aba0294d93da13f79f8092a657fa'
+          p.write_text(s)
+          pathlib.Path(temp).unlink()
+          paths=['services/api/src/accountClosure.ts','tests/integration/formal-privacy-export.test.ts',temp]
+          subprocess.run(['git','add','--',*paths],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          assert set(git('diff','--cached','--name-only').splitlines())==set(paths)
+          subprocess.run(['git','config','user.name','CISME review automation'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','commit','-m','fix: complete first profile erasure before replay and validate restored fixture'],check=True)
+          subprocess.run(['git','push','origin',f'HEAD:{branch}'],check=True)
+          print('REPAIR_COMMIT='+git('rev-parse','HEAD'))
+          PY
