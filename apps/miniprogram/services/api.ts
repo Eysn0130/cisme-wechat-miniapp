@@ -72,11 +72,17 @@ export function beginAuthentication(returnUrl = currentRouteUrl()): void {
   });
 }
 
+function requestEnvironment(): string {
+  const data = app.globalData;
+  return JSON.stringify([data.apiBaseUrl, data.cloudFunction?.env ?? null, data.cloudFunction?.name ?? null]);
+}
+
 const snapshotOwners = new WeakMap<object, string>();
 export function retainMemberSnapshot(page: object): boolean {
   const token = app.globalData.sessionToken;
-  const retain = Boolean(token && snapshotOwners.get(page) === token);
-  snapshotOwners.set(page, token);
+  const owner = JSON.stringify([token, commerceContextRevision(), requestEnvironment()]);
+  const retain = Boolean(token && snapshotOwners.get(page) === owner);
+  snapshotOwners.set(page, owner);
   return retain;
 }
 
@@ -201,18 +207,18 @@ function retryDelayMs(error: unknown, options: RequestOptions): number | null {
     ? 40 + Math.floor(Math.random() * 81) : null;
 }
 const cancelledProblem = () => ({ code: "REQUEST_ABORTED", title: "请求已取消；已发送写入不会因此撤回，请查询结果" });
-const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "本次操作等待已超时；写入结果请查询确认，不要更换幂等键重复提交" });
+const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "暂未确认操作结果，请先查看记录，勿重复提交。" });
 
 function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", authMode = options.authMode ?? "required";
-  const session = app.globalData.sessionToken;
+  const session = app.globalData.sessionToken, revision = commerceContextRevision(), environment = requestEnvironment();
   const path=options.path.split("?")[0]||options.path;
   const rightsPath=/^\/v1\/me\/privacy-requests(?:\/|$)/.test(path)||
     (method==="GET"&&(
       path==="/v1/me/orders"||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
       /^\/v1\/me\/orders\/[0-9a-f-]{36}\/(?:aftersales\/availability|shipment(?:\/tracking)?)$/i.test(path)||
       path==="/v1/me/aftersales"||/^\/v1\/me\/aftersales\/[0-9a-f-]{36}$/i.test(path)||
-      path==="/v1/me/refund-requests"||path==="/v1/me/support/messages"||
+      path==="/v1/me/refund-requests"||path==="/v1/me/commercial-membership"||path==="/v1/me/support/messages"||
       /^\/v1\/me\/support\/media\/[0-9a-f-]{36}$/i.test(path)||
       path==="/v1/me/commission/settlement-requests"||path==="/v1/me/commission/credit-conversions"))||
     (method==="POST"&&(/^\/v1\/me\/orders\/[0-9a-f-]{36}\/aftersales$/i.test(path)||
@@ -229,7 +235,10 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const timer = setTimeout(() => stop(deadlineProblem()), budgetMs);
   const remaining = () => {
     if (stopped) throw stopped;
-    if (app.globalData.sessionToken !== session) throw { code: "REQUEST_SESSION_CHANGED", title: "会员身份已变化，请重新加载" };
+    if (commerceContextRevision() !== revision || app.globalData.sessionToken !== session)
+      throw { code: "REQUEST_SESSION_CHANGED", title: "会员身份已变化，请重新加载" };
+    if (requestEnvironment() !== environment)
+      throw { code: "REQUEST_ENVIRONMENT_CHANGED", title: "连接已变化，请刷新后核对操作结果" };
     if (token === rightsSession && rightsSession && app.globalData.privacyRightsToken !== rightsSession)
       throw { code: "REQUEST_SESSION_CHANGED", title: "隐私请求身份已变化，请重新加载" };
     const left = Math.ceil(deadline - measurementClock());
@@ -290,9 +299,10 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
 export function requestCancelable<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", tags = options.cacheTags ?? tagsForPath(options.path);
   const session = app.globalData.sessionToken, rightsSession = app.globalData.privacyRightsToken, origin = currentRouteUrl();
+  const revision = commerceContextRevision(), environment = requestEnvironment();
   let task: { promise: Promise<T>; abort(reason?: unknown): void };
   if (method === "GET") {
-    const key = JSON.stringify([app.globalData.apiBaseUrl, app.globalData.cloudFunction, session, rightsSession, options.path, options.data, options.authMode ?? "required", options.budgetMs ?? 12_000, options.idempotencyKey]);
+    const key = JSON.stringify([environment, revision, session, rightsSession, options.path, options.data, options.authMode ?? "required", options.budgetMs ?? 12_000, options.idempotencyKey]);
     const subscription = reads.acquire(key, () => performRequest<T>(options), readPolicy(options.path, tags));
     task = subscription;
     if (subscription.coalesced) recordClientMetric({ action: metricAction(options.path), stage: "coalesced", durationMs: 0 });
@@ -304,7 +314,8 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
   // Context belongs to each consumer. A departed first reader cannot suppress
   // another page's shared retry. Lifecycle owners can cancel immediately.
   const monitor = method === "GET" ? setInterval(() => {
-    if (app.globalData.sessionToken !== session || app.globalData.privacyRightsToken !== rightsSession || currentRouteUrl() !== origin)
+    if (commerceContextRevision() !== revision || requestEnvironment() !== environment ||
+      app.globalData.sessionToken !== session || app.globalData.privacyRightsToken !== rightsSession || currentRouteUrl() !== origin)
       task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消本页读取" });
   }, 100) : null;
   const promise = task.promise.finally(() => { if (monitor) clearInterval(monitor); });

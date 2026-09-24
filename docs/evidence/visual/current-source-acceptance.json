@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "2d9d87fbb385d73e9e0757c7c45c321803a0d8dff84f6cc2ad6e1dc5228cc3ab",
+  "packageSourceSha256": "a263702eed8ea16c68f194145ce5bc9f429bbee231d84f2af97c51c0435b71e7",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -48,5 +48,5 @@
   ],
   "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
   "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "R6 source changes require current-package native verification. The c1246ea4 WeChat DevTools samples are preserved in source-acceptance-c1246ea46c4e.json and r5-current-c124-20260924; they are historical partial evidence, not acceptance of this package. This session executed source logic regressions only, not WeChat rendering, real keyboard or physical iOS/Android tests. All routes remain unaccepted until current-source evidence is recorded."
+  "note": "Prelaunch source fixes change request identity/destination checks, closed-account historical balance access, aftersale touch targets and selected copy. Current-source package checks and source regressions do not prove WeChat rendering or physical iOS/Android acceptance. Prior native evidence remains historical; all current route/device acceptance stays blocked until recorded against this package."
 }
