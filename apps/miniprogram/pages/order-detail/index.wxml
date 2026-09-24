@@ -9,7 +9,7 @@
   </view>
   <button class="text-button {{busy||recoveryLoading?'text-button--disabled':''}}" bindtap="loadRecovery" disabled="{{busy||recoveryLoading}}">重新核对原操作</button>
 </view>
-<page-container wx:if="{{order}}" show="{{supportSheetOpen}}" position="bottom" duration="220" z-index="90" overlay="{{true}}" round="{{true}}" close-on-slide-down="{{false}}" bindclickoverlay="closeSupportSheet" bindbeforeleave="onSupportSheetLeave" overlay-style="background:rgba(30,20,36,.48)" custom-style="height:78vh;max-height:calc(100vh - {{sheetKeyboardHeight}}px - 100rpx);bottom:{{sheetKeyboardHeight}}px;background:#fbf8fc;overflow:hidden;">
+<page-container wx:if="{{order}}" show="{{supportSheetOpen}}" position="bottom" duration="220" z-index="90" overlay="{{true}}" round="{{true}}" close-on-slide-down="{{false}}" bindclickoverlay="closeSupportSheet" bindbeforeleave="onSupportSheetLeave" overlay-style="height:{{sheetKeyboardHeight>0?'calc(100vh - '+sheetKeyboardHeight+'px - 120rpx)':'78vh'}};bottom:{{sheetKeyboardHeight}}px;background:#fbf8fc;overflow:hidden;">
   <view class="support-sheet" catchtap="stopPropagation">
     <view class="support-sheet__header"><strong>售后客服</strong><view><button bindtap="expandSupport" aria-label="展开完整客服会话">展开</button><button bindtap="closeSupportSheet" aria-label="关闭客服面板">关闭</button></view></view>
     <view class="support-sheet__order"><text>订单 {{order.orderNumber}}</text><text>{{order.lines[0].productName}} · ¥{{order.totalYuan}}</text></view>

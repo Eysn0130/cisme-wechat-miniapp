@@ -108,7 +108,7 @@ describe('order support sheet owns reads and reflects current cases',()=>{
  it('uses native enter/leave, keyboard-aware height, one composer, and current-case addresses in WXML',()=>{
   const wxml=readFileSync('apps/miniprogram/pages/order-detail/index.wxml','utf8');
   expect(wxml).toContain('<page-container');expect(wxml).toContain('show="{{supportSheetOpen}}"');
-  expect(wxml).toContain('bindbeforeleave="onSupportSheetLeave"');expect(wxml).toContain('max-height:calc(100vh - {{sheetKeyboardHeight}}px - 100rpx)');
+  expect(wxml).toContain('bindbeforeleave="onSupportSheetLeave"');expect(wxml).toContain('sheetKeyboardHeight>0');expect(wxml).toContain('bottom:{{sheetKeyboardHeight}}px');
   expect(wxml).toContain('!sheetCase && !sheetConsulting');expect(wxml).toContain('sheetCase || sheetConsulting');
   expect(wxml).toContain('sheetCase.returnDestination.address');expect(wxml).not.toContain('{{item.returnInstruction.address}}');
  });
