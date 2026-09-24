@@ -1303,7 +1303,7 @@ it('confirms self account closure once and rejects an identity switch while the 
  const appState={globalData:{sessionToken:'owner-token',privacyRightsToken:''}};
  (globalThis as any).getApp=()=>appState;
  let decide:(value:{confirm:boolean})=>void=()=>{};
- wxMock.showModal.mockImplementation(({success}:{success:(value:{confirm:boolean})=>void})=>{decide=success;});
+ wxMock.showModal!.mockImplementation(({success}:{success:(value:{confirm:boolean})=>void})=>{decide=success;});
  const page=mountedPage(capturedPage!,{alive:true,authenticated:true,selected:3});
  const first=page.submit();
  await page.submit();
