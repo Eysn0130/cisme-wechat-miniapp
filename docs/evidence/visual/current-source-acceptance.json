@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "a263702eed8ea16c68f194145ce5bc9f429bbee231d84f2af97c51c0435b71e7",
+  "packageSourceSha256": "f9f7243227cf24e743e9cdd95fbddb25f06e3cbf87bffa3df59f7c0265091dca",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -48,5 +48,5 @@
   ],
   "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
   "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Prelaunch source fixes change request identity/destination checks, closed-account historical balance access, aftersale touch targets and selected copy. Current-source package checks and source regressions do not prove WeChat rendering or physical iOS/Android acceptance. Prior native evidence remains historical; all current route/device acceptance stays blocked until recorded against this package."
+  "note": "Current native source includes the registered production API origin, account protocol retry and copy, and support touch-target updates. The previous a263702e preview allowed an iOS device to enter Home but Account showed protocol unavailable; this is a historical failed state, not acceptance of the current f9f72432 package. Official compile and current QR generation do not prove network access, account login or full iOS/Android acceptance. All route/device acceptance remains blocked until observed against this package."
 }
