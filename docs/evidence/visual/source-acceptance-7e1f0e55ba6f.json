@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "c6ccfbe35a8ac7f65284ff08b55aa5346f42543d2f9a94d7b5a4c00c8b05a11c",
+  "packageSourceSha256": "7e1f0e55ba6fcd04a6e67afa814083b855d296f9fd59d2dc6eb0852f1fd7c885",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source shortens the privacy request number and supports copying the full number on demand. The immediately prior source package 5c56c5a has a 333x719 DevTools simulator checkout capture with the action text centered; current c6ccfbe only changes an unshown quote note. DevTools requested fresh screenshot authorization and returned pending, so there is no current-source native screenshot. All route matrices and both device platforms remain blocked."
+  "note": "Current source shortens the privacy request number and supports copying the full number on demand. WeChat DevTools simulator at 333x719 rendered the privacy form and scrolled request card, and the copy control was tapped. These are partial simulator checks only; all route matrices and both device platforms remain blocked."
 }

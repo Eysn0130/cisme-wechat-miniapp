@@ -50,7 +50,7 @@ describe("native mini program boundary", () => {
   it("keeps internal pricing rule identifiers out of the buyer checkout surface", async () => {
     const checkout = await readFile(resolve("apps/miniprogram/pages/checkout/index.wxml"), "utf8");
     expect(checkout).not.toContain("quote.pricingRuleVersion");
-    expect(checkout).toContain("价格会在提交前再次确认");
+    expect(checkout).toContain("下单时仍会核价");
   });
 
   it("contains no React DOM, browser globals or deferred social routes", async () => {
@@ -303,7 +303,8 @@ describe("native mini program boundary", () => {
 
     expect(appStyle).toMatch(/button\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;[^}]*font-weight:\s*400;[^}]*line-height:\s*1\.25;/s);
     expect(appStyle).toMatch(/\.primary,\s*\.secondary\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*min-height:\s*50px;[^}]*font-family:\s*-apple-system[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*line-height:\s*20px;/s);
-    expect(appStyle).toMatch(/\.action-label\s*\{[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*font-weight:\s*400;[^}]*line-height:\s*20px;[^}]*transform:\s*translateY\(1px\);/s);
+    expect(appStyle).toMatch(/\.action-label\s*\{[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*font-weight:\s*400;[^}]*line-height:\s*20px;/s);
+    expect(appStyle).not.toMatch(/\.action-label\s*\{[^}]*transform:/s);
     expect(account).toContain(".account-login { flex:0 0 50px; height:50px; margin-top:36rpx; padding-top:0; padding-bottom:0; font-size:var(--cisme-text-action); line-height:20px; }");
     expect(account).toContain(".account-browse { flex:0 0 50px; height:50px; margin-top:18rpx; padding-top:0; padding-bottom:0; font-size:var(--cisme-text-action); line-height:20px; }");
     expect(account).toContain(".account-checkbox { flex:0 0 auto; width:60rpx; height:60rpx; transform:none; }");
