@@ -37,7 +37,7 @@ describe("mini program user-perceived performance guardrails", () => {
     const community = await source("apps/miniprogram/pages/community/index.ts");
     expect(privacy).toContain("onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;");
     expect(privacy).toContain("busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false");
-    expect(privacy).toContain("...(changed?{selected:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),");
+    expect(privacy).toContain("...(changed?{selected:0,deleteScopeIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),");
     expect(privacy).toContain("attempt===this.data.loadAttempt && token===privacyToken()");
     expect(community).toContain("token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.feedAttempt");
     expect(community).toContain("const current = () => token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt");

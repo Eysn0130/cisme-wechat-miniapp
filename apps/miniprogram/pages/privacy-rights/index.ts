@@ -54,17 +54,23 @@ function displayRecord(r:any,closedRights=false){
 }
 Page({
  identityToken:'',
+ hiddenRecords:[] as any[],hiddenRecordToken:'',hiddenNextCursor:null as string|null,
  actionBusy(){return this.data.busy||this.data.replyBusy||this.data.exportBusy;},
  onLoad(){clearExportFile();clearAbandonedExportFiles();},
  data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
  onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
   if(changed)clearExportFile();
   this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
+  const restore=this.hiddenRecordToken===token&&Boolean(token);
   this.setData({authenticated:Boolean(token),closedRights,labels:closedRights?closedLabels:labels,
+    ...(restore?{records:this.hiddenRecords,recordToken:token,nextCursor:this.hiddenNextCursor}:{}),
     ...(changed?{selected:0,deleteScopeIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
     busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});void this.loadLegalIdentity();void this.load();},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});},
- onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;
+  this.hiddenRecordToken=this.data.recordToken;this.hiddenRecords=this.data.records;this.hiddenNextCursor=this.data.nextCursor;
+  this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});},
+ onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;
+  this.hiddenRecordToken='';this.hiddenRecords=[];this.hiddenNextCursor=null;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({selected:Number(e.detail.value)});},
  chooseDeleteScope(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({deleteScopeIndex:Number(e.detail.value),error:''});},

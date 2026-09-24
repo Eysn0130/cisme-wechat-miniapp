@@ -79,7 +79,7 @@ it('retains same-identity rights records across a short page interruption',async
   const view=page({records:[{id:'owned'}],recordToken:'owner'});
   view.identityToken='owner';
   view.onHide();
-  expect(view.data.records).toEqual([{id:'owned'}]);
+  expect(view.data.records).toEqual([]);
   const read=deferred<any>();request.mockImplementation(({path}:any)=>path==='/v1/legal'
     ? Promise.resolve({documents:[]}) : read.promise);
   view.onShow();
