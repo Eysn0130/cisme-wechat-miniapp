@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-23",
+  "inventoryDate": "2026-09-24",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -539,7 +539,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "42b2c15d7c071dc6710ca53320b62c473d86ae6d47f2009c44f88cfcf8c55036",
+  "migrationSetSha256": "89ad5930ae712cf8f5778ff6a254ac0d623f900013f658a9d057b5f91c1ad404",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",
