@@ -24,7 +24,8 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
         AND NOT EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id
           AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL))
         AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE
-          a.support_conversation_id=c.id OR a.support_conversation_id IS NULL AND a.member_id=c.member_id)
+          a.support_conversation_id=c.id OR a.support_conversation_id IS NULL
+            AND a.member_id=c.member_id AND a.created_at<=c.resolved_at)
         AND NOT EXISTS(SELECT 1 FROM privacy_request p WHERE p.member_id=c.member_id
           AND p.status NOT IN ('completed','partially_completed','rejected','canceled'))
         AND NOT EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
@@ -44,8 +45,9 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
         EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=$1
           AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL))
         OR EXISTS(SELECT 1 FROM commerce_aftersale_case a
-          WHERE a.support_conversation_id=$1 OR a.support_conversation_id IS NULL AND a.member_id=$2)
-      ) AS linked`,[row.id,row.member_id])).rows[0]?.linked;
+          WHERE a.support_conversation_id=$1 OR a.support_conversation_id IS NULL
+            AND a.member_id=$2 AND a.created_at<=$3)
+      ) AS linked`,[row.id,row.member_id,row.resolved_at])).rows[0]?.linked;
       if(linked)continue;
       const openRights=(await client.query<{open:boolean}>(`SELECT EXISTS(
         SELECT 1 FROM privacy_request WHERE member_id=$1
