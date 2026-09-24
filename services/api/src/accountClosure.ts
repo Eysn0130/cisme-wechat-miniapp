@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, open, readFile, readdir } from 'node:fs/promises';
+import { link, lstat, open, readFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
@@ -12,6 +12,7 @@ export interface SuppressionRemote {
 }
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const digest=/^[0-9a-f]{64}$/;
+const pendingMarker=/^\.[0-9a-f-]{36}\.[0-9a-f-]{36}\.tmp$/i;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
@@ -48,6 +49,7 @@ export class AccountClosure {
     await this.requireDirectory();
     const wanted=AccountClosure.identityDigest(provider,appId,openid);
     for(const filename of await readdir(this.directory)){
+      if(pendingMarker.test(filename))continue;
       if(!uuid.test(filename.slice(0,-5))||!filename.endsWith('.json'))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
       if((await this.marker(filename.slice(0,-5)))?.identityDigest===wanted)return true;
     }
@@ -70,16 +72,20 @@ export class AccountClosure {
   private async writeLocal(row:Marker) {
     const old=await this.marker(row.memberId);
     if(old){if(JSON.stringify(old)!==JSON.stringify(row))throw new Error('ACCOUNT_CLOSURE_MARKER_MISMATCH');return;}
-    let handle;
-    try{handle=await open(this.path(row.memberId),'wx',0o600);}catch(error){
-      if((error as NodeJS.ErrnoException).code==='EEXIST'){
+    const temporary=join(this.directory!,`.${row.memberId}.${randomUUID()}.tmp`);
+    try{
+      const handle=await open(temporary,'wx',0o600);
+      try{await handle.writeFile(JSON.stringify(row));await handle.sync();}finally{await handle.close();}
+      try{await link(temporary,this.path(row.memberId));}catch(error){
+        if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error;
         const concurrent=await this.marker(row.memberId);
-        if(concurrent&&JSON.stringify(concurrent)===JSON.stringify(row))return;
+        if(!concurrent||JSON.stringify(concurrent)!==JSON.stringify(row))throw error;
       }
-      throw error;
-    }
-    try{await handle.writeFile(JSON.stringify(row));await handle.sync();}finally{await handle.close();}
-    const dir=await open(this.directory!,'r');try{await dir.sync();}finally{await dir.close();}
+      // hard-link publication never replaces an existing marker; readers see
+      // either no final path or a fully written, synced record.
+      await unlink(temporary);
+      const dir=await open(this.directory!,'r');try{await dir.sync();}finally{await dir.close();}
+    }finally{await unlink(temporary).catch(error=>{if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;});}
   }
   async replay(pool:pg.Pool) {
     if(!this.directory)return;
@@ -91,6 +97,7 @@ export class AccountClosure {
       }
     }
     for(const filename of await readdir(this.directory)){
+      if(pendingMarker.test(filename))continue;
       if(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5)))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
       const row=await this.marker(filename.slice(0,-5));
       if(!row)throw new Error('ACCOUNT_CLOSURE_MARKER_MISSING');
