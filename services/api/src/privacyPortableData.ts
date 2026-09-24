@@ -43,6 +43,12 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       phone:openContact(config,memberId,contact),addresses:addressRows},
     care:{cycles:(await client.query(`SELECT id,phase,started_on,timezone,protocol_version,created_at,updated_at
         FROM care_cycle WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      qualifications:(await client.query(`SELECT id,source,external_ref,occurred_at,created_at
+        FROM qualification_fact WHERE member_id=$1 ORDER BY occurred_at,id`,[memberId])).rows,
+      pauses:(await client.query(`SELECT p.cycle_id,p.reason_code,p.paused_at,p.paused_on,
+        p.ended_at,p.ended_on,p.end_action,p.duration_days FROM care_cycle_pause p
+        JOIN care_cycle c ON c.id=p.cycle_id WHERE c.member_id=$1
+        ORDER BY p.paused_at,p.id`,[memberId])).rows,
       records:(await client.query(`SELECT r.id,r.cycle_id,r.milestone,r.due_on,r.completed_at,r.protocol_version,r.self_assessment
         FROM care_record r JOIN care_cycle c ON c.id=r.cycle_id WHERE c.member_id=$1
         ORDER BY r.completed_at,r.id`,[memberId])).rows,
@@ -53,6 +59,9 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
     participation:{submissions:(await client.query(`SELECT id,status,post_url,platform_account,disclosure,
         license_payload,submitted_at,created_at,updated_at FROM submission
         WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      decisions:(await client.query(`SELECT d.id,d.cycle_id,d.eligible,d.reason_code,d.decided_at
+        FROM eligibility_decision d JOIN care_cycle c ON c.id=d.cycle_id
+        WHERE c.member_id=$1 ORDER BY d.decided_at,d.id`,[memberId])).rows,
       tasks:(await client.query(`SELECT id,state,expires_at FROM eligibility_task
         WHERE member_id=$1 ORDER BY expires_at,id`,[memberId])).rows,
       claims:(await client.query(`SELECT id,task_id,submission_id,claimed_at FROM task_claim
@@ -65,7 +74,12 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         available_delta,debt_delta,occurred_at FROM points_entry
         WHERE member_id=$1 ORDER BY occurred_at,id`,[memberId])).rows,
       pointBalance:(await client.query(`SELECT frozen,available,debt,updated_at FROM points_projection
-        WHERE member_id=$1`,[memberId])).rows[0]??null},
+        WHERE member_id=$1`,[memberId])).rows[0]??null,
+      consentGrants:(await client.query(`SELECT submission_id,purpose,granted_at FROM consent_grant
+        WHERE member_id=$1 ORDER BY granted_at,id`,[memberId])).rows,
+      revocations:(await client.query(`SELECT r.consent_grant_id,r.reason,r.requested_at,r.processed_at
+        FROM revocation_request r JOIN consent_grant g ON g.id=r.consent_grant_id
+        WHERE g.member_id=$1 ORDER BY r.requested_at,r.id`,[memberId])).rows},
     commerce:{orders:(await client.query(`SELECT id,order_number,status,subtotal_cents,member_discount_cents,
         shipping_cents,total_cents,credit_tender_cents,created_at,updated_at
         FROM commerce_order WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
@@ -115,7 +129,10 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       follows:(await client.query(`SELECT created_at FROM ugc_author_follow
         WHERE follower_member_id=$1 ORDER BY created_at,followed_member_id`,[memberId])).rows,
       blocks:(await client.query(`SELECT created_at FROM ugc_block_relation
-        WHERE blocker_member_id=$1 ORDER BY created_at,blocked_member_id`,[memberId])).rows},
+        WHERE blocker_member_id=$1 ORDER BY created_at,blocked_member_id`,[memberId])).rows,
+      reports:(await client.query(`SELECT id,target_type,target_id,category,description,state,
+        created_at,updated_at FROM ugc_report WHERE reporter_member_id=$1
+        ORDER BY created_at,id`,[memberId])).rows},
     membership:{state:(await client.query(`SELECT state,effective_at,expires_at,updated_at
         FROM commercial_membership WHERE member_id=$1`,[memberId])).rows[0]??null,
       referralCode:(await client.query(`SELECT code,state,created_at,disabled_at

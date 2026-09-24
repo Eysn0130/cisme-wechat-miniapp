@@ -57,6 +57,12 @@ it('lets a verified WeChat member export their own data without a second adminis
     detail:'测试路 1 号',label:'home',isDefault:true});
   await pool.query(`INSERT INTO submission(member_id,status,platform_account)
     VALUES($1,'draft','OwnChannel'),($2,'draft','OtherChannel')`,[owner.memberId,other.memberId]);
+  const ownedSubmission=(await pool.query<{id:string}>(`SELECT id FROM submission WHERE member_id=$1`,[owner.memberId])).rows[0]!.id;
+  await pool.query(`INSERT INTO consent_grant(submission_id,member_id,purpose,granted_at)
+    VALUES($1,$2,'publication',now())`,[ownedSubmission,owner.memberId]);
+  await pool.query(`INSERT INTO ugc_report(reporter_member_id,target_type,target_id,category,description)
+    VALUES($1,'post',$2,'other','本人举报'),($3,'post',$4,'other','他人举报')`,
+    [owner.memberId,randomUUID(),other.memberId,randomUUID()]);
   await pool.query(`INSERT INTO points_entry(member_id,entry_type,business_key,occurred_at,
     available_delta) VALUES($1,'adjustment',$2,now(),5),($3,'adjustment',$4,now(),7)`,
     [owner.memberId,`export-own-${randomUUID()}`,other.memberId,`export-other-${randomUUID()}`]);
@@ -99,10 +105,13 @@ it('lets a verified WeChat member export their own data without a second adminis
   expect(copy.sections.account.addresses[0].address.detail).toBe('测试路 1 号');
   expect(copy.sections.participation.submissions[0].platform_account).toBe('OwnChannel');
   expect(copy.sections.participation.points[0].available_delta).toBe(5);
+  expect(copy.sections.participation.consentGrants[0].purpose).toBe('publication');
+  expect(copy.sections.community.reports[0].description).toBe('本人举报');
   expect(copy.sections.rights.memberReplies[0].body).toBe('本人补充说明');
   expect(copy.sections.rights.operatorReplies[0].body).toBe('处理回复');
   expect(JSON.stringify(copy)).not.toContain('OtherHandle');
   expect(JSON.stringify(copy)).not.toContain('OtherChannel');
+  expect(JSON.stringify(copy)).not.toContain('他人举报');
   expect(JSON.stringify(copy)).not.toContain('phone_encrypted');
   const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
     headers:{authorization:`Bearer ${owner.sessionToken}`}});
