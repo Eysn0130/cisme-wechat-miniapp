@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-24T09:51:57.347Z",
+  "origin": "http://127.0.0.1:18080",
+  "scope": "local_devtools_synthetic_nonproduction",
+  "database": {
+    "name": "cisme_test_25dca6471259d717307ed30c",
+    "migrationCount": 89,
+    "latestMigration": "202609230013_formal_profile_erasure_scope.sql"
+  },
+  "checks": {
+    "ready": {
+      "statusCode": 200,
+      "status": "ready"
+    },
+    "orderBoundary": {
+      "statusCode": 200,
+      "orderFlowEnabled": true,
+      "paymentAvailable": false,
+      "scope": "synthetic_nonproduction"
+    },
+    "legalFixture": {
+      "statusCode": 200,
+      "ready": true,
+      "activeDocumentCount": 2
+    }
+  },
+  "result": "PASS_LOCAL_SYNTHETIC_ONLY"
+}

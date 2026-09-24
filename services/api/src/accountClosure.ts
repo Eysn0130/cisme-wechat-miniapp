@@ -88,10 +88,10 @@ export class AccountClosure {
     try{await this.remote?.put(row);}catch{throw new DomainError('ACCOUNT_CLOSURE_PENDING','注销结果暂未确认，请稍后重试',503);}
     return row;
   }
-  async recordProfileErasure(memberId:string,identityDigest:string,requestId:string,displayNameSha256:string,createdAt:Date){
+  async recordProfileErasure(memberId:string,identityDigest:string,requestId:string,displayNameSha256:string,createdAt:string){
     await this.requireDirectory();
     const row=this.validProfile({version:2,memberId,identityDigest,requestId,
-      createdAt:createdAt.toISOString(),scope:'member_optional_profile_v1',displayNameSha256},memberId,requestId);
+      createdAt,scope:'member_optional_profile_v1',displayNameSha256},memberId,requestId);
     await this.writeLocal(row);
     try{await this.remote?.put(row);}catch{throw new DomainError('PROFILE_ERASURE_PENDING','删除请求处理结果暂未确认，请稍后查看',503);}
     return row;

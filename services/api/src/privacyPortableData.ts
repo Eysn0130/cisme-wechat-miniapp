@@ -50,6 +50,22 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM care_record_step s JOIN care_record r ON r.id=s.record_id
         JOIN care_cycle c ON c.id=r.cycle_id WHERE c.member_id=$1
         ORDER BY s.record_id,s.sequence`,[memberId])).rows},
+    participation:{submissions:(await client.query(`SELECT id,status,post_url,platform_account,disclosure,
+        license_payload,submitted_at,created_at,updated_at FROM submission
+        WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      tasks:(await client.query(`SELECT id,state,expires_at FROM eligibility_task
+        WHERE member_id=$1 ORDER BY expires_at,id`,[memberId])).rows,
+      claims:(await client.query(`SELECT id,task_id,submission_id,claimed_at FROM task_claim
+        WHERE member_id=$1 ORDER BY claimed_at,id`,[memberId])).rows,
+      appeals:(await client.query(`SELECT id,review_case_id,reason,status,created_at FROM appeal
+        WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      rewards:(await client.query(`SELECT id,submission_id,amount,state,created_at FROM reward_claim
+        WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      points:(await client.query(`SELECT id,grant_id,lot_id,entry_type,frozen_delta,
+        available_delta,debt_delta,occurred_at FROM points_entry
+        WHERE member_id=$1 ORDER BY occurred_at,id`,[memberId])).rows,
+      pointBalance:(await client.query(`SELECT frozen,available,debt,updated_at FROM points_projection
+        WHERE member_id=$1`,[memberId])).rows[0]??null},
     commerce:{orders:(await client.query(`SELECT id,order_number,status,subtotal_cents,member_discount_cents,
         shipping_cents,total_cents,credit_tender_cents,created_at,updated_at
         FROM commerce_order WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
@@ -62,7 +78,27 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM commerce_aftersale_case WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       refunds:(await client.query(`SELECT r.id,r.order_id,r.amount_cents,r.reason,r.state,r.created_at,r.decided_at
         FROM commerce_refund_request r JOIN commerce_order o ON o.id=r.order_id
-        WHERE o.member_id=$1 ORDER BY r.created_at,r.id`,[memberId])).rows},
+        WHERE o.member_id=$1 ORDER BY r.created_at,r.id`,[memberId])).rows,
+      paymentAttempts:(await client.query(`SELECT id,order_id,out_trade_no,amount_cents,currency,state,
+        created_at,updated_at FROM commerce_payment_attempt WHERE member_id=$1
+        ORDER BY created_at,id`,[memberId])).rows,
+      shipments:(await client.query(`SELECT s.id,s.order_id,s.carrier_name,s.logistics_state,
+        s.shipped_at,s.delivered_at,s.receipt_confirmed_at FROM commerce_shipment s
+        JOIN commerce_order o ON o.id=s.order_id WHERE o.member_id=$1
+        ORDER BY s.shipped_at,s.id`,[memberId])).rows,
+      shipmentEvents:(await client.query(`SELECT e.shipment_id,e.event_type,e.occurred_at
+        FROM commerce_shipment_event e JOIN commerce_shipment s ON s.id=e.shipment_id
+        JOIN commerce_order o ON o.id=s.order_id WHERE o.member_id=$1
+        ORDER BY e.occurred_at,e.id`,[memberId])).rows,
+      aftersaleEvents:(await client.query(`SELECT e.case_id,e.action,e.note,e.from_state,e.to_state,
+        e.created_at FROM commerce_aftersale_event e
+        JOIN commerce_aftersale_case c ON c.id=e.case_id WHERE c.member_id=$1
+        ORDER BY e.created_at,e.id`,[memberId])).rows,
+      returnInstructions:(await client.query(`SELECT i.case_id,i.version,i.recipient_name,i.phone,
+        i.region,i.address,i.freight_payer,i.instructions,i.issued_at
+        FROM commerce_aftersale_return_instruction i
+        JOIN commerce_aftersale_case c ON c.id=i.case_id WHERE c.member_id=$1
+        ORDER BY i.case_id,i.version`,[memberId])).rows},
     support:{messages:(await client.query(`SELECT m.id,m.sequence,m.sender_type,m.body,m.content_type,
         m.linked_order_id,m.linked_case_id,m.created_at
         FROM support_message m JOIN support_conversation c ON c.id=m.conversation_id
@@ -73,11 +109,30 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM ugc_post_revision r JOIN ugc_post p ON p.id=r.post_id
         WHERE p.author_member_id=$1 ORDER BY r.post_id,r.revision`,[memberId])).rows,
       comments:(await client.query(`SELECT id,post_id,parent_id,reply_to_id,body,state,created_at,updated_at
-        FROM ugc_comment WHERE author_member_id=$1 ORDER BY created_at,id`,[memberId])).rows},
+        FROM ugc_comment WHERE author_member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      reactions:(await client.query(`SELECT post_id,kind,created_at FROM ugc_post_reaction
+        WHERE member_id=$1 ORDER BY created_at,post_id,kind`,[memberId])).rows,
+      follows:(await client.query(`SELECT created_at FROM ugc_author_follow
+        WHERE follower_member_id=$1 ORDER BY created_at,followed_member_id`,[memberId])).rows,
+      blocks:(await client.query(`SELECT created_at FROM ugc_block_relation
+        WHERE blocker_member_id=$1 ORDER BY created_at,blocked_member_id`,[memberId])).rows},
     membership:{state:(await client.query(`SELECT state,effective_at,expires_at,updated_at
         FROM commercial_membership WHERE member_id=$1`,[memberId])).rows[0]??null,
+      referralCode:(await client.query(`SELECT code,state,created_at,disabled_at
+        FROM commercial_referral_code WHERE member_id=$1`,[memberId])).rows[0]??null,
+      referralReceived:(await client.query(`SELECT confirmed_at FROM commercial_referral_relation
+        WHERE referred_member_id=$1`,[memberId])).rows[0]??null,
+      referralSent:(await client.query(`SELECT confirmed_at FROM commercial_referral_relation
+        WHERE referrer_member_id=$1 ORDER BY confirmed_at`,[memberId])).rows,
+      shares:(await client.query(`SELECT id,share_id,target_type,target_ref,state,created_at,expires_at
+        FROM share_link WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       commission:(await client.query(`SELECT id,kind,amount_cents,occurred_at
         FROM commission_ledger_entry WHERE referrer_member_id=$1 ORDER BY occurred_at,id`,[memberId])).rows,
+      settlementRequests:(await client.query(`SELECT id,amount_cents,state,created_at,decided_at,finalized_at
+        FROM commission_settlement_request WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      creditConversions:(await client.query(`SELECT id,gross_cents,withholding_cents,credit_cents,
+        state,created_at,cancelled_at FROM commission_credit_conversion WHERE member_id=$1
+        ORDER BY created_at,id`,[memberId])).rows,
       shoppingCredit:(await client.query(`SELECT e.id,e.kind,e.amount_cents,e.purchase_order_id,e.occurred_at
         FROM commission_credit_entry e JOIN commission_credit_source s ON s.id=e.source_id
         JOIN commission_credit_conversion c ON c.id=s.conversion_id
@@ -87,7 +142,13 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         ORDER BY created_at,id`,[memberId])).rows,
       consents:(await client.query(`SELECT purpose_code,document_type,document_version,scope,
         status,granted_at,withdrawn_at FROM consent_receipt WHERE member_id=$1
-        ORDER BY granted_at,id`,[memberId])).rows}
+        ORDER BY granted_at,id`,[memberId])).rows,
+      memberReplies:(await client.query(`SELECT r.privacy_request_id,r.body,r.created_at
+        FROM privacy_request_member_reply r JOIN privacy_request p ON p.id=r.privacy_request_id
+        WHERE p.member_id=$1 ORDER BY r.created_at,r.id`,[memberId])).rows,
+      operatorReplies:(await client.query(`SELECT r.privacy_request_id,r.body,r.created_at
+        FROM privacy_request_operator_reply r JOIN privacy_request p ON p.id=r.privacy_request_id
+        WHERE p.member_id=$1 ORDER BY r.created_at,r.id`,[memberId])).rows}
   };
   const orderAddresses=(await client.query<{order_id:string;encrypted_payload:string;payload_hmac:string;key_version:string}>(
     `SELECT a.order_id,a.encrypted_payload,a.payload_hmac,a.key_version FROM commerce_order_address a

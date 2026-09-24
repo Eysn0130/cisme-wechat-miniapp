@@ -196,8 +196,8 @@ export class PrivacyRights {
   private async eraseOptionalProfile(memberId:string){
     if(!this.accountClosure)throw new DomainError('PROFILE_ERASURE_UNAVAILABLE','删除服务暂不可用，请稍后重试',503);
     const identity=await transaction(this.pool,async client=>{
-      const row=(await client.query<{display_name:string;provider:string;app_id:string;openid:string;decision_time:Date}>(`
-        SELECT m.display_name,w.provider,w.app_id,w.openid,clock_timestamp() AS decision_time FROM member m
+      const row=(await client.query<{display_name:string;provider:string;app_id:string;openid:string;decision_time:string}>(`
+        SELECT m.display_name,w.provider,w.app_id,w.openid,clock_timestamp()::text AS decision_time FROM member m
         JOIN wechat_identity w ON w.member_id=m.id
         WHERE m.id=$1 AND m.status='active' AND w.provider='wechat_miniprogram' FOR SHARE OF m,w`,
         [memberId])).rows[0];

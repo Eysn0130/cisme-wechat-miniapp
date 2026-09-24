@@ -55,12 +55,24 @@ it('lets a verified WeChat member export their own data without a second adminis
   await new DeliveryAddressService(pool,config).create(owner.memberId,'formal-address-1',{
     recipientName:'自有收货人',phone:'13800001234',province:'上海市',city:'上海市',district:'浦东新区',
     detail:'测试路 1 号',label:'home',isDefault:true});
+  await pool.query(`INSERT INTO submission(member_id,status,platform_account)
+    VALUES($1,'draft','OwnChannel'),($2,'draft','OtherChannel')`,[owner.memberId,other.memberId]);
+  await pool.query(`INSERT INTO points_entry(member_id,entry_type,business_key,occurred_at,
+    available_delta) VALUES($1,'adjustment',$2,now(),5),($3,'adjustment',$4,now(),7)`,
+    [owner.memberId,`export-own-${randomUUID()}`,other.memberId,`export-other-${randomUUID()}`]);
   const response=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
     headers:{authorization:`Bearer ${owner.sessionToken}`},
     payload:{kind:'access',message:'导出我的个人资料'}});
   expect(response.statusCode,response.body).toBe(200);
   const requestId=response.json().id as string;
   expect(response.json().status).toBe('approved');
+  await pool.query(`INSERT INTO privacy_request_member_reply
+    (privacy_request_id,member_id,body,idempotency_key,request_hash,request_version)
+    VALUES($1,$2,'本人补充说明',$3,$4,1)`, [requestId,owner.memberId,
+      `reply-${randomUUID()}`,'a'.repeat(64)]);
+  await pool.query(`INSERT INTO privacy_request_operator_reply
+    (privacy_request_id,actor_principal_id,body,waiting_on,request_version)
+    VALUES($1,'operator:fixture','处理回复','operator',1)`,[requestId]);
   const job=(await pool.query(`SELECT execution_mode,status,requested_by,approved_by,scope
     FROM data_export_job WHERE privacy_request_id=$1`,[requestId])).rows[0];
   expect(job).toMatchObject({execution_mode:'generate_archive',status:'approved',
@@ -85,7 +97,12 @@ it('lets a verified WeChat member export their own data without a second adminis
   expect(copy.sections.account.profile.wechat_handle).toBe('OwnerHandle');
   expect(copy.sections.account.phone).toBe('+8613800001234');
   expect(copy.sections.account.addresses[0].address.detail).toBe('测试路 1 号');
+  expect(copy.sections.participation.submissions[0].platform_account).toBe('OwnChannel');
+  expect(copy.sections.participation.points[0].available_delta).toBe(5);
+  expect(copy.sections.rights.memberReplies[0].body).toBe('本人补充说明');
+  expect(copy.sections.rights.operatorReplies[0].body).toBe('处理回复');
   expect(JSON.stringify(copy)).not.toContain('OtherHandle');
+  expect(JSON.stringify(copy)).not.toContain('OtherChannel');
   expect(JSON.stringify(copy)).not.toContain('phone_encrypted');
   const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
     headers:{authorization:`Bearer ${owner.sessionToken}`}});
@@ -222,6 +239,7 @@ it('rejects a pre-erasure snapshot when an older held deletion executes during m
   expect(await executor.runExportOnce(async()=>{
     await pool.query("UPDATE legal_hold SET status='released',released_by='fixture',released_at=now() WHERE id=$1",[hold]);
     expect((await transaction(pool,c=>applyProfileErasure(c,marker))).status).toBe('completed');
+    expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[owner.memberId])).rowCount).toBe(0);
   })).toBe(true);
   expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1',[requestId])).rows[0].count).toBe(0);
   expect((await pool.query('SELECT last_error_code FROM data_export_job WHERE privacy_request_id=$1',[requestId])).rows[0].last_error_code).toBe('PRIVACY_EXECUTION_AUTHORITY_CHANGED');
@@ -267,10 +285,10 @@ it('invalidates an in-flight copy when restored data is removed by an already co
 });
 
 async function profileMarker(memberId:string):Promise<ProfileErasureMarker>{
-  const identity=(await pool.query(`SELECT w.provider,w.app_id,w.openid,m.display_name,clock_timestamp() AS captured_at
+  const identity=(await pool.query(`SELECT w.provider,w.app_id,w.openid,m.display_name,clock_timestamp()::text AS captured_at
     FROM wechat_identity w JOIN member m ON m.id=w.member_id WHERE w.member_id=$1`,[memberId])).rows[0];
   return {version:2,memberId,requestId:randomUUID(),identityDigest:AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),
-    createdAt:identity.captured_at.toISOString(),scope:'member_optional_profile_v1',
+    createdAt:identity.captured_at,scope:'member_optional_profile_v1',
     displayNameSha256:createHash('sha256').update(identity.display_name).digest('hex')};
 }
 async function exportRequest(owner:{memberId:string;sessionToken:string}):Promise<string>{
