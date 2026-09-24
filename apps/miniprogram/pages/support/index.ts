@@ -1,6 +1,6 @@
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
-import { downloadPrivateMedia, requireMemberAccess, request, retainMemberSnapshot, uploadAuthorized } from "../../services/api";
+import { downloadPrivateMedia, historicalCommerceClosed, historicalCommerceToken, requireHistoricalCommerceAccess, requireMemberAccess, request, retainMemberSnapshot, uploadAuthorized } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
@@ -34,7 +34,7 @@ type SendAttempt = { id: string; signature: string; body: string; mediaIds: stri
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
 const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", paid:"已付款", shipped:"已发货", delivered:"已签收", completed:"已完成", cancelled: "已取消", expired: "已超时" };
-function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
+function sessionToken(): string { return historicalCommerceToken(); }
 function isCancellation(error: unknown): boolean { return /cancel|abort/i.test(String((error as {errMsg?:string})?.errMsg ?? (error as {code?:string})?.code ?? error)); }
 function memberComposerCanSend(input: string, image: SelectedImage | null, order: OrderChoice | null): boolean {
   if (image && (image.status !== "ready" || !image.mediaId)) return false;
@@ -43,6 +43,7 @@ function memberComposerCanSend(input: string, image: SelectedImage | null, order
 
 Page({
   linkedOrderId:"",
+  snapshotToken:"",
   readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
   pollInFlight: false,
@@ -58,7 +59,7 @@ Page({
   uploadAbort: null as (() => void) | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
-    chromeStyle: currentChromeStyle(), conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
+    chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     pendingMessage: null as Message | null, loading: true, loadingOlder: false, sending: false, handoffBusy: false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
@@ -72,12 +73,14 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.measureComposer(); },
   onShow() {
     this.readRevision=commerceContextRevision();
-    const preserve = retainMemberSnapshot(this);
+    const token=sessionToken(),closedRights=historicalCommerceClosed();
+    const preserve = retainMemberSnapshot(this)||Boolean(token&&this.snapshotToken===token);
+    this.snapshotToken=token;
     this.lifecycleEpoch += 1;
     this.data.pageAlive = true;
     this.data.visible = true;
     this.lastActivityAt = Date.now();
-    this.setData({ sending: false, handoffBusy: false });
+    this.setData({ sending: false, handoffBusy: false, closedRights });
     if (!preserve) {
       this.inputRevision += 1;
       this.abortTransientWork();
@@ -86,7 +89,8 @@ Page({
         attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
-    if (!requireMemberAccess("/pages/support/index")) { this.data.visible = false; return; }
+    if(closedRights&&!this.linkedOrderId){this.data.visible=false;wx.redirectTo({url:'/pages/privacy-rights/index'});return;}
+    if (!(closedRights?requireHistoricalCommerceAccess(`/pages/support/index?orderId=${this.linkedOrderId}`):requireMemberAccess("/pages/support/index"))) { this.data.visible = false; return; }
     if(this.linkedOrderId&&!this.data.sendAttempt){
       const pending=takeSupportSendAttempt(sessionToken(),this.linkedOrderId);
       if(pending){
@@ -98,7 +102,7 @@ Page({
     }
     if(this.linkedOrderId&&!this.data.input&&!this.data.sendAttempt){
       const draft=takeSupportDraft(sessionToken(),this.linkedOrderId);
-      if(draft)this.setData({input:draft,composerSendEnabled:memberComposerCanSend(draft,this.data.selectedImage,this.data.selectedOrder)});
+      if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.selectedImage,this.data.selectedOrder)});
     }
     void this.load();
     if(this.linkedOrderId)void this.loadLinkedOrder();
@@ -149,7 +153,7 @@ Page({
         statusLabel:orderStatusLabels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:order.lines[0]?.image??null,
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
-      this.setData({selectedOrder:selected,composerSendEnabled:memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
+      this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
     }catch{if(this.owns(epoch,token))this.setData({error:'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
@@ -292,6 +296,7 @@ Page({
       newMessagesBelow: this.data.atBottom ? false : this.data.newMessagesBelow || fresh.length > 0 });
   },
   async markRead() {
+    if(this.data.closedRights)return;
     const candidate = readableSequence(this.threadState(), "user", this.data.visible, this.data.atBottom);
     if (candidate === null) return;
     const epoch = this.lifecycleEpoch;
@@ -307,10 +312,11 @@ Page({
     this.inputRevision += 1;
     this.lastActivityAt = Date.now();
     const input = event.detail.value;
-    this.setData({ input, composerSendEnabled: memberComposerCanSend(input, this.data.selectedImage, this.data.selectedOrder) });
+    this.setData({ input, composerSendEnabled: this.data.closedRights?Boolean(input.trim()):memberComposerCanSend(input, this.data.selectedImage, this.data.selectedOrder) });
     void this.publishPresence(true, Boolean(input.trim()), !input.trim());
   },
   async publishPresence(online: boolean, typing: boolean, force = false) {
+    if(this.data.closedRights)return;
     if (!this.data.conversation) return;
     const elapsed = Date.now() - this.lastPresenceSentAt;
     if (!force && elapsed < 3_000) {
@@ -335,8 +341,8 @@ Page({
   async send() {
     const body = this.data.input.trim();
     const mediaIds = this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : [];
-    const linkedOrderId = this.data.selectedOrder?.id ?? this.linkedOrderId ?? null;
-    if (!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder) || this.data.sending || this.data.uploadBusy) return;
+    const linkedOrderId = this.data.closedRights?this.linkedOrderId:(this.data.selectedOrder?.id ?? this.linkedOrderId ?? null);
+    if ((this.data.closedRights?(!body||!linkedOrderId||mediaIds.length>0):!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder)) || this.data.sending || this.data.uploadBusy) return;
     const signature = this.sendSignature(body, mediaIds, linkedOrderId);
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
@@ -346,12 +352,13 @@ Page({
     this.setData({ sending: true, error: "", errorAction: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending") });
     void this.publishPresence(true, false, true);
     try {
-      const result = await request<any>({ path: "/v1/me/support/messages", method: "POST", data: { body, clientMessageId: sendAttempt.id, mediaIds, linkedOrderId }, cacheTags: ["support"] });
+      const result = await request<any>({ path: "/v1/me/support/messages", method: "POST", data: { body, clientMessageId: sendAttempt.id,
+        ...(this.data.closedRights?{}:{mediaIds}),linkedOrderId }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const normalized = this.normalize([result.message], this.data.selectedImage);
       if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       const clearDraft = this.inputRevision === draftRevision && this.sendSignature(this.data.input.trim(), mediaIds, linkedOrderId) === signature;
-      this.setData({ ...(clearDraft ? { input: "", selectedImage: null, selectedOrder: null, sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}), pendingMessage: null,
+      this.setData({ ...(clearDraft ? { input: "", selectedImage: null, selectedOrder: this.data.closedRights?this.data.selectedOrder:null, sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}), pendingMessage: null,
         conversation: result.conversation, ...this.headerPatch(result.conversation, this.data.presence) });
       if (clearDraft) this.inputRevision += 1;
       this.uploadAbort = null;
@@ -364,6 +371,7 @@ Page({
   },
   retrySend() { void this.send(); },
   prepareAttachmentSheet(attachmentSheetMode: "image" | "attachment") {
+    if(this.data.closedRights)return;
     if (this.data.sending || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage) return;
     if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
     this.setData({ attachmentSheetOpen: true, attachmentSheetMode, composerFocused: false });
@@ -508,6 +516,7 @@ Page({
     wx.previewImage({ current, urls: attachments.map((attachment) => attachment.localPath!) });
   },
   async requestHuman() {
+    if(this.data.closedRights)return;
     if (this.data.handoffBusy) return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
@@ -520,5 +529,6 @@ Page({
   },
   retryHandoff() { void this.requestHuman(); },
   retry() { void this.load(); },
-  back() { wx.navigateBack({ fail: () => wx.switchTab({ url: "/pages/profile/index" }) }); }
+  back() { wx.navigateBack({ fail: () => this.data.closedRights
+    ?wx.redirectTo({url:'/pages/orders/index'}):wx.switchTab({ url: "/pages/profile/index" }) }); }
 });

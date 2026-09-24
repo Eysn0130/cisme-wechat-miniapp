@@ -741,6 +741,24 @@ describe("mini-program page behavior", () => {
     expect(uploadAuthorizedMock).not.toHaveBeenCalled();
   });
 
+  it("keeps closed-account support text bound to its verified historical order", async () => {
+    const orderId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    (globalThis as any).getApp=()=>({globalData:{sessionToken:"",privacyRightsToken:"historical-rights"}});
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const context=mountedPage(capturedPage!,{pageAlive:true,visible:true,closedRights:true,input:"核对原订单退款",selectedImage:null});
+    context.linkedOrderId=orderId;context.lifecycleEpoch=1;context.append=vi.fn();context.startPolling=vi.fn();
+    requestMock.mockResolvedValue({message:{id:"recorded",attachments:[],orderCard:null},
+      conversation:{id:"conversation",status:"waiting_human"}});
+    await context.send();
+    const sent=requestMock.mock.calls.find(([options])=>options.path==="/v1/me/support/messages")?.[0];
+    expect(sent).toMatchObject({method:"POST",data:{body:"核对原订单退款",linkedOrderId:orderId}});
+    expect(sent.data).not.toHaveProperty("mediaIds");
+    expect(requestMock.mock.calls.some(([options])=>["/v1/me/support/presence","/v1/me/support/read"].includes(options.path))).toBe(false);
+    context.openImageSheet();expect(context.data.attachmentSheetOpen).toBe(false);
+    const direct=mountedPage(capturedPage!);direct.onLoad({});direct.onShow();
+    expect(wxMock.redirectTo).toHaveBeenCalledWith({url:"/pages/privacy-rights/index"});
+  });
+
   it("drops support image callbacks after account switch or page hide", async () => {
     const app = { globalData: { sessionToken: "support-member-a" } };
     (globalThis as any).getApp = () => app;

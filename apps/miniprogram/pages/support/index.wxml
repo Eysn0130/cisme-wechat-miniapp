@@ -2,7 +2,7 @@
   <view class="topbar support-topbar">
     <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
     <view class="support-title">
-      <text class="topbar__title">CISME 客服</text>
+      <text class="topbar__title">{{closedRights?'历史订单客服':'CISME 客服'}}</text>
       <view class="support-presence support-presence--{{statusTone}}" aria-label="{{statusLabel}}"><text class="support-presence__dot">●</text><text class="support-presence__label">{{statusLabel}}</text></view>
     </view>
   </view>
@@ -80,16 +80,16 @@
           <view class="support-draft__content"><strong wx:if="{{selectedImage.status === 'ready'}}">图片已添加</strong><strong wx:elif="{{selectedImage.status === 'failed'}}">图片上传失败</strong><strong wx:else>正在上传 {{selectedImage.progress}}%</strong><text>{{selectedImage.status === 'failed' ? selectedImage.error : '发送前可以移除'}}</text></view>
           <button wx:if="{{selectedImage.status === 'failed'}}" bindtap="retryImageUpload">重传</button><button bindtap="removeImage" aria-label="移除图片"><image class="support-draft__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit"/></button>
         </view>
-        <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button bindtap="removeOrder" aria-label="移除订单"><image class="support-draft__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit"/></button></view>
+        <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button wx:if="{{!closedRights}}" bindtap="removeOrder" aria-label="移除订单"><image class="support-draft__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit"/></button></view>
       </view>
       <textarea class="support-input {{composerCapped ? 'support-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="true" hold-keyboard="true" disable-default-padding="true" confirm-type="send" confirm-hold="true" bindconfirm="send" cursor-spacing="16" placeholder="{{sendAttempt?'请先核对上条消息':'输入你的问题…'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt}}"/>
       <view class="support-composer__tools">
-        <button class="support-tool {{sending || sendAttempt || uploadBusy ? 'control--disabled' : ''}}" bindtap="openImageSheet" disabled="{{sending || sendAttempt || uploadBusy}}" aria-label="添加图片或拍照"><image src="/assets/icons/composer-image-plum.svg"/></button>
-        <button class="support-tool {{sending || sendAttempt || uploadBusy ? 'control--disabled' : ''}}" bindtap="openAttachmentSheet" disabled="{{sending || sendAttempt || uploadBusy}}" aria-label="关联订单附件"><image src="/assets/icons/composer-paperclip-plum.svg"/></button>
+        <button wx:if="{{!closedRights}}" class="support-tool {{sending || sendAttempt || uploadBusy ? 'control--disabled' : ''}}" bindtap="openImageSheet" disabled="{{sending || sendAttempt || uploadBusy}}" aria-label="添加图片或拍照"><image src="/assets/icons/composer-image-plum.svg"/></button>
+        <button wx:if="{{!closedRights}}" class="support-tool {{sending || sendAttempt || uploadBusy ? 'control--disabled' : ''}}" bindtap="openAttachmentSheet" disabled="{{sending || sendAttempt || uploadBusy}}" aria-label="关联订单附件"><image src="/assets/icons/composer-paperclip-plum.svg"/></button>
         <button class="support-tool support-tool--send {{!composerSendEnabled || sending || sendAttempt || uploadBusy ? 'control--disabled' : ''}} {{composerSendEnabled && !sending && !sendAttempt && !uploadBusy ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || sending || sendAttempt || uploadBusy}}" aria-label="{{sending ? '正在发送消息' : sendAttempt ? '请先核对上条消息' : '发送消息'}}"><image src="{{composerSendEnabled && !sending && !sendAttempt && !uploadBusy ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
       </view>
     </view>
-    <button wx:if="{{conversation && conversation.status === 'ai_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">需要真人帮助</button>
+    <button wx:if="{{!closedRights && conversation && conversation.status === 'ai_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">需要真人帮助</button>
   </view>
 
   <view wx:if="{{attachmentSheetOpen}}" class="support-sheet-mask" catchtap="closeAttachmentSheet" catchtouchmove="stopPropagation">

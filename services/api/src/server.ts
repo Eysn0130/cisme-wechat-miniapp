@@ -572,7 +572,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const input=(request.body??{}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown};
     if(request.authScope==='privacy_rights'&&(!input.linkedOrderId||input.mediaIds!==undefined))
       throw new DomainError('HISTORICAL_SUPPORT_SCOPE_REQUIRED','请从历史订单进入客服并发送文字说明',422);
-    return support.sendMember(request.memberId,request.principalId,input,request.id);
+    return support.sendMember(request.memberId,request.principalId,input,request.id,request.authScope==='privacy_rights');
   });
   app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId));
   app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));

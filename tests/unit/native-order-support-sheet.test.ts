@@ -103,6 +103,12 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   const p=await page();(globalThis as any).wx.navigateTo=vi.fn((input:any)=>input.fail());p.openFullAftersale();
   expect(p.data.navigating).toBe(false);expect(p.sheetTimer).not.toBeNull();
  });
+ it('opens the existing full conversation for a verified closed-account order',async()=>{
+  const p=await page();p.data.closedRights=true;p.data.sheetInput='请核对本单';
+  const navigate=vi.fn();(globalThis as any).wx.navigateTo=navigate;
+  p.expandSupport();
+  expect(navigate).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/support/index?orderId=${orderId}`}));
+ });
  it('ignores keyboard events after the popup is closed',async()=>{
   const p=await page();p.closeSupportSheet();p.onSheetKeyboardHeightChange({detail:{height:300}});expect(p.data.sheetKeyboardHeight).toBe(0);
  });

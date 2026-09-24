@@ -340,7 +340,7 @@ Page({
   toggleSheetConsulting(){if(this.data.sheetSubmitting||this.data.sheetSending||this.data.sheetAttempt||this.data.sheetSendAttempt)return;
     this.setData({sheetConsulting:!this.data.sheetConsulting});},
   stopPropagation(){},
-  expandSupport(){if(this.data.closedRights||!this.canAct()||this.data.navigating||this.data.sheetSending)return;this.stopSheetPoll();
+  expandSupport(){if(!this.canAct()||this.data.navigating||this.data.sheetSending)return;this.stopSheetPoll();
     const handoff=this.data.sheetSendAttempt?null:this.data.sheetInput;
     if(handoff?.trim())stageSupportDraft(historicalCommerceToken(),this.data.id,handoff);
     const attempt=this.data.sheetSendAttempt;

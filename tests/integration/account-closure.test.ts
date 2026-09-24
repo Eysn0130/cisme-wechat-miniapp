@@ -239,8 +239,10 @@ it('closes a self-verified account, retains transaction facts, and suppresses ol
   expect((await app.inject({url:'/v1/me/aftersales',headers:rightsHeaders})).statusCode).toBe(200);
   expect((await app.inject({method:'POST',url:'/v1/me/support/messages',headers:rightsHeaders,
     payload:{body:'无订单归属的消息',clientMessageId:'closed-no-order-0001'}})).statusCode).toBe(422);
+  await pool.query("UPDATE support_conversation SET status='resolved',resolved_at=now(),version=version+1,updated_at=clock_timestamp() WHERE member_id=$1",[memberId]);
+  await pool.query("UPDATE support_conversation SET status='ai_active',resolved_at=NULL,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1",[memberId]);
   expect((await app.inject({method:'POST',url:'/v1/me/support/messages',headers:rightsHeaders,
-    payload:{body:'请核对这笔历史订单的漏发问题',clientMessageId:'closed-order-message-0001',linkedOrderId:paidOrder}})).statusCode).toBe(200);
+    payload:{body:'请核对这笔历史订单的漏发问题',clientMessageId:'closed-order-message-0001',linkedOrderId:paidOrder}})).json().conversation.status).toBe('waiting_human');
   const historicalMessages=await app.inject({url:'/v1/me/support/messages?limit=30',headers:rightsHeaders});
   expect(historicalMessages.statusCode,historicalMessages.body).toBe(200);
   expect(historicalMessages.json().messages.map((row:{body:string})=>row.body)).toContain('请核对这笔历史订单的漏发问题');

@@ -269,7 +269,7 @@ export class SupportService {
       latestCursor: messages.at(-1)?.sequence ?? Number(row.next_sequence) - 1, olderCursor: hasOlder ? messages[0]!.sequence : null };
   }
 
-  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown }, traceId: string) {
+  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown }, traceId: string, historicalOrder=false) {
     const owner = required(memberId, "AUTH_REQUIRED");
     const principal = required(principalId, "AUTH_REQUIRED");
     const body = textBody(input.body, true); const messageKey = clientMessageId(input.clientMessageId);
@@ -301,7 +301,8 @@ export class SupportService {
       }
       const sequence = Number(row.next_sequence); const messageId = randomUUID();
       const reopened = row.status === "resolved";
-      const nextStatus: SupportConversationStatus = reopened ? "waiting_human" : row.status;
+      const needsHuman = reopened || historicalOrder && row.status === "ai_active";
+      const nextStatus: SupportConversationStatus = needsHuman ? "waiting_human" : row.status;
       const inserted = await client.query<MessageRow>(`INSERT INTO support_message
         (id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,client_message_id)
         VALUES($1,$2,$3,'user',$4,$5,$6,$7,$8,$9,$10) RETURNING ${messageColumns()}`,
@@ -309,7 +310,7 @@ export class SupportService {
       if (images.length) await client.query("UPDATE media_object SET bound_support_message_id=$1,support_expires_at='infinity' WHERE id=ANY($2::uuid[])", [messageId, images]);
       const updated = await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,team_unread_count=team_unread_count+1,
         status=$2,current_handler_principal_id=CASE WHEN $3 THEN NULL ELSE current_handler_principal_id END,resolved_at=NULL,version=version+1,updated_at=clock_timestamp()
-        WHERE id=$1 RETURNING *`, [row.id, nextStatus, reopened]);
+        WHERE id=$1 RETURNING *`, [row.id, nextStatus, needsHuman]);
       row = updated.rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='member'", [row.id]);
       await enqueue(client, { eventType: "support.message.created.v1", aggregateType: "support_conversation", aggregateId: row.id,
