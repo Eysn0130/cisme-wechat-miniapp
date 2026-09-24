@@ -183,4 +183,14 @@ describe('linked transaction support retention worker',()=>{
     expect(await purgeDueLinkedSupport(pool,now)).toBe(1);
     expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[old.conversationId])).rowCount).toBe(0);
   });
+
+  it('passes an unfinished older conversation to clear a later due conversation',async()=>{
+    // PostgreSQL microseconds must survive keyset pagination; JS Date alone
+    // would truncate the cursor and repeatedly select this blocked row.
+    const unfinished=await linkedCanceledConversation('0007','2024-01-01T12:00:00Z','2022-01-01T12:00:00.000123Z');
+    const due=await linkedCanceledConversation('0008','2022-06-01T12:00:00Z','2022-06-02T12:00:00Z');
+    expect(await purgeDueLinkedSupport(pool,now,1)).toBe(1);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[unfinished.conversationId])).rowCount).toBe(1);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[due.conversationId])).rowCount).toBe(0);
+  });
 });

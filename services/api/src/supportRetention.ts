@@ -5,6 +5,7 @@ import { enqueue } from './outbox.js';
 type Policy={code:string;version:number;duration_days:number|null;duration_months:number|null;
   active:boolean;enforcement_state:string;automatic_purge_enabled:boolean};
 type Candidate={id:string;member_id:string;version:number;resolved_at:Date};
+type LinkedCandidate=Candidate&{cursor_resolved_at:string};
 
 /** Runs only after operations explicitly enables a finite ordinary-support
  * policy. Linked order/aftersale evidence remains outside this purge path. */
@@ -116,23 +117,32 @@ export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20
       WHERE code='support_transaction_three_years' FOR SHARE`)).rows[0];
     if(!policy||!policy.active||!policy.automatic_purge_enabled||policy.enforcement_state!=='enforced'||
       policy.duration_months===null||policy.duration_days!==null)return 0;
-    const candidates=(await client.query<Candidate>(`SELECT c.id,c.member_id,c.version,c.resolved_at
-      FROM support_conversation c WHERE c.status='resolved' AND c.resolved_at IS NOT NULL
-        AND c.resolved_at+make_interval(months=>$1)<=$2
-        AND EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id)
-        AND (EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id
-          AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL))
-          OR EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE
-            a.support_conversation_id=c.id OR a.support_conversation_id IS NULL
-              AND a.member_id=c.member_id AND a.created_at<=c.resolved_at))
-      ORDER BY c.resolved_at,c.id LIMIT $3 FOR UPDATE OF c SKIP LOCKED`,
-      [policy.duration_months,now,limit])).rows;
-    if(!candidates.length)return 0;
+    // A terminal check below can reject a candidate with an unfinished order.
+    // Continue past those rows, or the first `limit` old conversations can
+    // starve every later conversation on every worker run.
+    let cursor:LinkedCandidate|null=null;
     await client.query('LOCK TABLE legal_hold IN SHARE MODE');
     await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
     await client.query('LOCK TABLE privacy_request IN SHARE MODE');
     let purged=0;
-    for(const row of candidates){
+    while(purged<limit){
+      const candidates:LinkedCandidate[]=(await client.query<LinkedCandidate>(`SELECT c.id,c.member_id,c.version,c.resolved_at,
+        to_char(c.resolved_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_resolved_at
+        FROM support_conversation c WHERE c.status='resolved' AND c.resolved_at IS NOT NULL
+          AND c.resolved_at+make_interval(months=>$1)<=$2
+          AND ($4::timestamptz IS NULL OR (c.resolved_at,c.id)>($4::timestamptz,$5::uuid))
+          AND EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id)
+          AND (EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id
+            AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL))
+            OR EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE
+              a.support_conversation_id=c.id OR a.support_conversation_id IS NULL
+                AND a.member_id=c.member_id AND a.created_at<=c.resolved_at))
+        ORDER BY c.resolved_at,c.id LIMIT $3 FOR UPDATE OF c SKIP LOCKED`,
+        [policy.duration_months,now,limit,cursor?.cursor_resolved_at??null,cursor?.id??null])).rows;
+      if(!candidates.length)break;
+      cursor=candidates[candidates.length-1]!;
+      for(const row of candidates){
+        if(purged>=limit)break;
       const openRights=(await client.query<{open:boolean}>(`SELECT EXISTS(SELECT 1 FROM privacy_request
         WHERE member_id=$1 AND status NOT IN ('completed','partially_completed','rejected','canceled')) AS open`,
         [row.member_id])).rows[0]?.open;
@@ -225,6 +235,7 @@ export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20
         payload:{conversationId:row.id,policyCode:policy.code,policyVersion:policy.version,messageCount:messages},
         occurredAt:now});
       purged++;
+      }
     }
     return purged;
   });
