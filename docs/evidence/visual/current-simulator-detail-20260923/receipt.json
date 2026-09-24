@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "72598b6fbde9fd04b5933057f0f0d7601e51fb8e",
+  "packageSourceSha256": "d38938dd4ff2f0d6418c8b870c260eb4c0f0bb20ecec565637e9604d52780f5b",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic acceptance API and member identity",
+  "captures": [
+    {
+      "file": "checkout.png",
+      "sha256": "92aa58af8dfe6e3fb60589624a66c8ba5b564714ed4630a2121b0861232b411d",
+      "route": "pages/checkout/index",
+      "observed": "Quantity button symbols are visually centered; tapping plus changed 1 to 2 and tapping minus returned 2 to 1."
+    },
+    {
+      "file": "privacy.png",
+      "sha256": "cbbd179f9871629b028cc78a59073b4efdf056d226eca8902ea417be0e310907",
+      "route": "pages/privacy-rights/index",
+      "observed": "Title, request picker, input, primary button and first record render in the simulator. The local fixture displays local-acceptance-v1 and local@example.invalid; these are not production legal facts."
+    }
+  ],
+  "scopeLimit": "Two simulator layout states and one quantity interaction only. No device, keyboard, full route matrix, real WeChat credential, formal policy, or production acceptance is claimed."
+}
