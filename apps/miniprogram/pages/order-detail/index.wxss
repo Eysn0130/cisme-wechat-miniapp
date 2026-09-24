@@ -38,6 +38,9 @@
 .support-sheet__instruction{display:flex;flex-direction:column;gap:6rpx;margin-top:10rpx;padding:16rpx;border-radius:14rpx;background:#f6f1f8}
 .support-sheet__footer{display:flex;flex-direction:column;gap:10rpx;padding:12rpx 28rpx calc(env(safe-area-inset-bottom) + 14rpx);background:#fff;box-shadow:0 -4rpx 18rpx rgba(58,37,67,.06)}
 .support-sheet__choice,.support-sheet__footer textarea{box-sizing:border-box;width:100%;min-height:44px;padding:14rpx 18rpx;border:1rpx solid #e5dce8;border-radius:14rpx;color:#4d4054;font-size:24rpx}
+.support-sheet__selectors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10rpx}
+.support-sheet__selectors picker{min-width:0}
+.support-sheet__choice{display:flex;align-items:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .support-sheet__footer textarea{max-height:125rpx}
 .support-sheet__primary{width:100%;min-height:48px;margin:0;border-radius:24px;background:#56306f;color:#fff;font-size:26rpx}
 .support-sheet__composer{display:flex;align-items:flex-end;gap:12rpx}

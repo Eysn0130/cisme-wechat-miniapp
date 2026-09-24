@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "14953e9bb3d981da85a1ea4903fad1ceff36c9de828571b16fd2014a0bfec05b",
+  "packageSourceSha256": "c1246ea46c4e476f8aab24743e945baae0d09b3453983619ae2627f3ce238c2f",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "This b6073d63 package was captured in WeChat DevTools on 40/40 healthy synthetic routes at 333x719; raw frames and route/runtime evidence are in review-r5-closure-b607-20260924. Checkout stepper buttons and icons measured 44x44 and 18x18 with equal 13px insets; plus/minus taps changed quantity 1→2→1. Paid-order aftersale sheet → full support → back retained the same order ID and unsent draft. Full keyboard, interruption, large-text and physical iOS/Android journeys have not been accepted, so overall native acceptance remains blocked. Historical ed0c3ce screenshots retain their earlier scope."
+  "note": "Current c1246ea4 package has focused WeChat DevTools evidence at r5-current-c124-20260924: paid-order aftersale on iPhone 5 simulator 320x568 at font settings 16 and 23, and iPhone 12/13 Pro simulator 333x719 at setting 16. The compact sheet now keeps the selected product and quantity controls visible above two side-by-side issue selectors and the submit action; tapping minus changed 2 to 1. This is partial native evidence only. The older r5-current-1495, b607 and ed0c screenshots belong to earlier package hashes. Real system keyboard, physical iOS/Android, all route states and interruption paths remain unaccepted."
 }

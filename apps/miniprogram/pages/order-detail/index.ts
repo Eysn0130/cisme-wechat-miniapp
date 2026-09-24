@@ -24,6 +24,10 @@ type SheetShown=ReturnType<typeof presentSupportMessages<SheetMessage>>[number];
 const errorTitle=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
 function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
   return match?Number(match[1])*100+Number((match[2]??"").padEnd(2,"0")):NaN;}
+function supportSheetHeight(){
+  try{return wx.getWindowInfo().windowHeight<=640?'86vh':'78vh';}
+  catch{return '78vh';}
+}
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
   launchAftersale:false,
@@ -36,10 +40,10 @@ Page({
     sheetConversation:null as {id:string;teamReadSequence?:number}|null,sheetKindIndex:1,sheetKindOptions:['仅退款','退货退款'],
     sheetBasisIndex:0,sheetBasisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
-    sheetInput:"",sheetSending:false,sheetSendAttempt:null as {key:string;body:string}|null,sheetKeyboardHeight:0},
-  onResize(){this.setData({chromeStyle:currentChromeStyle()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
+    sheetInput:"",sheetSending:false,sheetSendAttempt:null as {key:string;body:string}|null,sheetKeyboardHeight:0,sheetHeight:'78vh'},
+  onResize(){this.setData({chromeStyle:currentChromeStyle(),sheetHeight:supportSheetHeight()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
     this.launchAftersale=query.aftersale==='1';
-    this.setData({id,invalidId:!orderIdPattern.test(id)});},
+    this.setData({id,invalidId:!orderIdPattern.test(id),sheetHeight:supportSheetHeight()});},
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
     if(!requireHistoricalCommerceAccess())return;
     if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){

@@ -9,7 +9,7 @@
   </view>
   <button class="text-button {{busy||recoveryLoading?'text-button--disabled':''}}" bindtap="loadRecovery" disabled="{{busy||recoveryLoading}}">重新核对原操作</button>
 </view>
-<page-container wx:if="{{order}}" show="{{supportSheetOpen}}" position="bottom" duration="220" z-index="90" overlay="{{true}}" round="{{true}}" close-on-slide-down="{{false}}" bindclickoverlay="closeSupportSheet" bindbeforeleave="onSupportSheetLeave" overlay-style="background:rgba(30,20,36,.48)" custom-style="height:78vh;bottom:{{sheetKeyboardHeight}}px;background:transparent;overflow:hidden;">
+<page-container wx:if="{{order}}" show="{{supportSheetOpen}}" position="bottom" duration="220" z-index="90" overlay="{{true}}" round="{{true}}" close-on-slide-down="{{false}}" bindclickoverlay="closeSupportSheet" bindbeforeleave="onSupportSheetLeave" overlay-style="background:rgba(30,20,36,.48)" custom-style="height:{{sheetHeight}};bottom:{{sheetKeyboardHeight}}px;background:transparent;overflow:hidden;">
   <view class="support-sheet" style="height:calc(100% - {{sheetKeyboardHeight}}px);transform:translateY({{sheetKeyboardHeight}}px)" catchtap="stopPropagation">
     <view class="support-sheet__header"><strong>售后客服</strong><view><button bindtap="expandSupport" aria-label="展开完整客服会话">展开</button><button bindtap="closeSupportSheet" aria-label="关闭客服面板">关闭</button></view></view>
     <view class="support-sheet__order"><text>订单 {{order.orderNumber}}</text><text>{{order.lines[0].productName}} · ¥{{order.totalYuan}}</text></view>
@@ -34,8 +34,8 @@
     </scroll-view>
     <view class="support-sheet__footer">
       <block wx:if="{{!sheetCase && !sheetConsulting && sheetHasRemaining}}">
-        <picker range="{{sheetKindOptions}}" value="{{sheetKindIndex}}" bindchange="chooseSheetKind" disabled="{{sheetSubmitting||sheetAttempt}}"><view class="support-sheet__choice">{{sheetKindOptions[sheetKindIndex]}}</view></picker>
-        <picker range="{{sheetBasisOptions}}" value="{{sheetBasisIndex}}" bindchange="chooseSheetBasis" disabled="{{sheetSubmitting||sheetAttempt}}"><view class="support-sheet__choice">{{sheetBasisOptions[sheetBasisIndex]}}</view></picker>
+        <view class="support-sheet__selectors"><picker range="{{sheetKindOptions}}" value="{{sheetKindIndex}}" bindchange="chooseSheetKind" disabled="{{sheetSubmitting||sheetAttempt}}"><view class="support-sheet__choice">{{sheetKindOptions[sheetKindIndex]}}</view></picker>
+        <picker range="{{sheetBasisOptions}}" value="{{sheetBasisIndex}}" bindchange="chooseSheetBasis" disabled="{{sheetSubmitting||sheetAttempt}}"><view class="support-sheet__choice">{{sheetBasisOptions[sheetBasisIndex]}}</view></picker></view>
         <textarea aria-label="售后说明" value="{{sheetReason}}" placeholder="{{sheetBasisIndex===1?'补充说明（选填）':'简要说明问题'}}" maxlength="500" auto-height bindinput="editSheetReason" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSubmitting||sheetAttempt}}"/>
         <button class="support-sheet__primary {{sheetSubmitting||sheetLoading||!sheetCasesReady||!sheetLinesReady?'control--disabled':''}}" bindtap="submitSheetAftersale" disabled="{{sheetSubmitting||sheetLoading||!sheetCasesReady||!sheetLinesReady}}" loading="{{sheetSubmitting}}">{{sheetAttempt?'重试原申请':'提交申请'}}</button>
       </block>
