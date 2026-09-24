@@ -10,7 +10,7 @@ import { MemberProfile } from '../../services/api/src/memberProfile';
 import { transaction } from '../../services/api/src/db';
 import { DeliveryAddressService } from '../../services/api/src/deliveryAddress';
 import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -204,6 +204,35 @@ it('delivers only an owner-listed supplementary image while the copy remains val
   const listed=await app.inject({url:'/v1/me/privacy-requests?page=1',headers:{authorization:`Bearer ${owner.sessionToken}`}});
   expect(listed.json().items.find((row:{id:string})=>row.id===requestId).execution.unavailableMedia)
     .toEqual(expect.arrayContaining([expect.objectContaining({id:mediaId,reason:'inline_copy_size_limit'})]));
+  const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(revoked.statusCode,revoked.body).toBe(200);
+  expect((await app.inject({url:path,headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+});
+
+it('delivers an owner-listed legacy video through the existing supplementary copy route',async()=>{
+  const owner=await login('video-copy-owner'),other=await login('video-copy-other');
+  const mediaId=randomUUID(),objectKey=`legacy-video-${mediaId}`;
+  const bytes=Buffer.from([0,0,0,20,0x66,0x74,0x79,0x70,0x69,0x73,0x6f,0x6d,0,0,0,0,0,0,0,0]);
+  const root=process.env.CISME_TEST_OBJECT_ROOT;
+  if(!root)throw new Error('DISPOSABLE_OBJECT_ROOT_REQUIRED');
+  await mkdir(join(root,'objects'),{recursive:true});
+  await writeFile(join(root,'objects',objectKey),bytes);
+  await pool.query(`INSERT INTO ugc_media_asset(id,owner_member_id,kind,object_key,mime_type,size_bytes,
+    state,authorization_expires_at,uploaded_at)
+    VALUES($1,$2,'video',$3,'video/mp4',$4,'uploaded',now()+interval '1 day',now())`,
+    [mediaId,owner.memberId,objectKey,bytes.length]);
+  const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`},payload:{kind:'access',message:'获取本人视频副本'}});
+  expect(created.statusCode,created.body).toBe(200);
+  const requestId=created.json().id as string;
+  expect(await new FormalPrivacyExecution(pool,config,storage).runExportOnce()).toBe(true);
+  const path=`/v1/me/privacy-requests/${requestId}/media/${mediaId}`;
+  expect((await app.inject({url:path,headers:{authorization:`Bearer ${other.sessionToken}`}})).statusCode).toBe(404);
+  const delivered=await app.inject({url:path,headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(delivered.statusCode,delivered.body).toBe(200);
+  expect(delivered.headers['content-type']).toContain('video/mp4');
+  expect(delivered.rawPayload).toEqual(bytes);
   const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
     headers:{authorization:`Bearer ${owner.sessionToken}`}});
   expect(revoked.statusCode,revoked.body).toBe(200);

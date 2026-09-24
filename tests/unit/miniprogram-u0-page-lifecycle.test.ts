@@ -11,6 +11,9 @@ const downloadPrivateMediaMock = vi.hoisted(() => vi.fn(() => ({ promise: Promis
 vi.mock("../../apps/miniprogram/services/api", () => ({
   request: requestMock,
   requireMemberAccess: requireMemberAccessMock,
+  requireHistoricalCommerceAccess: requireMemberAccessMock,
+  historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken,
+  historicalCommerceClosed: () => false,
   retainMemberSnapshot: retainMemberSnapshotMock,
   uploadAuthorized: uploadAuthorizedMock,
   downloadPrivateMedia: downloadPrivateMediaMock

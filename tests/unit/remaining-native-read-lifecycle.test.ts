@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const mocks=vi.hoisted(()=>({request:vi.fn(),token:'synthetic-a'}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:mocks.request,requireMemberAccess:()=>true,
+  historicalCommerceToken:()=>mocks.token,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>true,
   retainMemberSnapshot:()=>true,resumeAuthentication:vi.fn(),uploadAuthorized:vi.fn(),downloadPrivateMedia:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/authority',()=>({authorityProjection:async()=>({capabilities:['member.profile.read','support.read']}),

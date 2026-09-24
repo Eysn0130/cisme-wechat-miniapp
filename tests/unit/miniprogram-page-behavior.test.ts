@@ -1372,6 +1372,20 @@ it('shares only an owner-listed supplementary image and clears its temporary fil
  expect(page.data.notice).toContain('补充图片');
 });
 
+it('shares an owner-listed supplementary video from the existing privacy request',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token',privacyRightsToken:''}});
+ const mediaId='ce0d8c19-22c4-47a4-b1a8-4d15efb5df14';
+ downloadPrivateMediaMock.mockReturnValue({promise:Promise.resolve('/tmp/owned-video'),abort:vi.fn()});
+ wxMock.shareFileMessage=vi.fn(({success}:{success:()=>void})=>success());
+ const page=mountedPage(capturedPage!,{alive:true,records:[{id:'request-video',execution:{downloadAvailable:true,
+  unavailableMedia:[{id:mediaId,mimeType:'video/mp4',reason:'video_requires_separate_copy'}]}}]});
+ await page.viewSupplementary({currentTarget:{dataset:{requestId:'request-video',mediaId}}});
+ expect(wxMock.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({filePath:'/tmp/owned-video',
+  fileName:`CISME-补充视频-${mediaId.slice(-6)}.mp4`}));
+ expect(page.data.notice).toContain('补充视频');
+});
+
 it('confirms self account closure once and rejects an identity switch while the modal is open',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  const appState={globalData:{sessionToken:'owner-token',privacyRightsToken:''}};

@@ -10,6 +10,7 @@ import { OperationBudget, runWithOperationBudget } from './operationBudget.js';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const lifetimeMs=60*60*1000;
+const maxSupplementaryBytes=64*1024*1024;
 type Job={id:string;privacy_request_id:string;member_id:string;attempts:number;status:string};
 
 // Request creation time is not a deletion barrier: a held request may have
@@ -181,10 +182,10 @@ export class FormalPrivacyExecution {
     });
   }
 
-  /** Deliver a single owned image omitted only because the inline archive is
-   * bounded. Keep the subject, artifact and media locked while reading COS so
+  /** Deliver a single owned asset omitted from the bounded inline archive.
+   * Keep the subject, artifact and media locked while reading COS so
    * a concurrent erasure cannot revoke the copy during this response. */
-  async downloadSupplementaryImage(memberId:string|undefined,requestId:string,mediaId:string,closedRights=false){
+  async downloadSupplementaryMedia(memberId:string|undefined,requestId:string,mediaId:string,closedRights=false){
     this.key();
     if(!memberId||!uuid.test(requestId)||!uuid.test(mediaId))
       throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','补充素材不存在',404);
@@ -201,26 +202,30 @@ export class FormalPrivacyExecution {
           AND a.member_id=$2 AND a.revoked_at IS NULL AND a.expires_at>clock_timestamp()
           AND j.archive_expires_at>clock_timestamp() FOR SHARE OF j,p,a`,[requestId,memberId])).rows[0];
       const listed=job?.manifest?.unavailableMedia?.find(row=>row.id===mediaId&&
-        row.reason==='inline_copy_size_limit'&&['member_upload','community_upload'].includes(row.kind));
+        ['inline_copy_size_limit','video_requires_separate_copy'].includes(row.reason)&&
+        ['member_upload','community_upload'].includes(row.kind));
       if(!listed)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','补充素材不存在或已失效',404);
       const media=listed.kind==='community_upload'
         ?(await client.query<{object_key:string;mime_type:string;size_bytes:string}>(`
           SELECT object_key,mime_type,size_bytes FROM ugc_media_asset WHERE id=$1 AND owner_member_id=$2
-          AND kind='image' AND state IN ('uploaded','scanning','approved','rejected') FOR SHARE`,[mediaId,memberId])).rows[0]
+          AND kind=$3 AND state IN ('uploaded','scanning','approved','rejected') FOR SHARE`,
+          [mediaId,memberId,listed.reason==='video_requires_separate_copy'?'video':'image'])).rows[0]
         :(await client.query<{object_key:string;mime_type:string;size_bytes:string}>(`
           SELECT m.object_key,m.mime_type,m.size_bytes FROM media_object m
           WHERE m.id=$1 AND m.upload_state='uploaded' AND m.deleted_at IS NULL AND
           (EXISTS(SELECT 1 FROM submission s WHERE s.id=m.submission_id AND s.member_id=$2)
             OR EXISTS(SELECT 1 FROM support_conversation c WHERE c.id=m.support_conversation_id AND c.member_id=$2))
           FOR SHARE OF m`,[mediaId,memberId])).rows[0];
-      if(!media||!['image/jpeg','image/png','image/webp'].includes(media.mime_type)||
-        Number(media.size_bytes)>10*1024*1024)
+      const expectedMime=listed.reason==='video_requires_separate_copy'?'video/mp4':null;
+      const size=Number(media?.size_bytes);
+      if(!media||!Number.isSafeInteger(size)||size<1||size>maxSupplementaryBytes||
+        (expectedMime?media.mime_type!==expectedMime:!['image/jpeg','image/png','image/webp'].includes(media.mime_type)))
         throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','补充素材不存在或已失效',404);
       const object=await this.storage.read(media.object_key);
-      if(object.mimeType!==media.mime_type||object.bytes.byteLength>10*1024*1024)
+      if(object.mimeType!==media.mime_type||object.bytes.byteLength>maxSupplementaryBytes)
         throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','补充素材暂不可读取',503);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
-        after_state,trace_id) VALUES($1,'privacy.export.supplementary_image','privacy_request',$2,
+        after_state,trace_id) VALUES($1,'privacy.export.supplementary_media','privacy_request',$2,
         'VERIFIED_MEMBER_MEDIA_DOWNLOAD',$3,gen_random_uuid()::text)`,[`member:${memberId}`,requestId,
         {mediaId,kind:listed.kind,bytes:object.bytes.byteLength}]);
       return object;

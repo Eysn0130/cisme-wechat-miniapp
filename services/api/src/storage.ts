@@ -25,12 +25,13 @@ export interface StoredObject {
   checksumBase64: string;
   detectedMime: "image/jpeg" | "image/png" | "image/webp";
 }
+type ReadableMime=StoredObject["detectedMime"] | "video/mp4";
 
 export interface ObjectStorage {
   ensureReady(): Promise<void>;
   authorize(input: { mediaId: string; objectKey: string; mimeType: string; maxBytes: number; baseUrl: string; now: Date }): Promise<UploadAuthorization>;
   verify(objectKey: string): Promise<StoredObject>;
-  read(objectKey: string): Promise<{ bytes: Uint8Array; mimeType: StoredObject["detectedMime"] }>;
+  read(objectKey: string): Promise<{ bytes: Uint8Array; mimeType: ReadableMime }>;
   delete(objectKey: string): Promise<void>;
   writeDerivedImage(objectKey: string, bytes: Uint8Array): Promise<void>;
   acceptsGatewayUpload: boolean;
@@ -65,6 +66,13 @@ function detectImageMime(bytes: Uint8Array): StoredObject["detectedMime"] {
   if (bytes.length >= 8 && Buffer.from(bytes.slice(0, 8)).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
   if (bytes.length >= 12 && Buffer.from(bytes.slice(0, 4)).toString("ascii") === "RIFF" && Buffer.from(bytes.slice(8, 12)).toString("ascii") === "WEBP") return "image/webp";
   throw new DomainError("UPLOAD_CONTENT_INVALID", "Uploaded bytes are not an allowed image format", 422);
+}
+
+function detectReadableMime(bytes:Uint8Array):ReadableMime {
+  // Legacy owned videos may need a privacy copy. Upload validation remains
+  // image-only; reading an existing MP4 does not enable a new upload path.
+  if(bytes.length>=12&&Buffer.from(bytes.subarray(4,8)).toString("ascii")==="ftyp")return "video/mp4";
+  return detectImageMime(bytes);
 }
 
 function s3Client(config: AppConfig): S3Client {
@@ -155,7 +163,7 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
       const bytes = await readS3Body(object.Body);
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
-      return { bytes, mimeType: detectImageMime(bytes) };
+      return { bytes, mimeType: detectReadableMime(bytes) };
     },
     async delete(objectKey) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
@@ -217,7 +225,7 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
     async read(objectKey) {
       const bytes = await readFile(resolve(directory, objectKey.replaceAll("/", "__")), { signal: dependencySignal(30_000) });
       if (!bytes.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
-      return { bytes, mimeType: detectImageMime(bytes) };
+      return { bytes, mimeType: detectReadableMime(bytes) };
     },
     async writeDerivedImage(objectKey, bytes) {
       if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
@@ -367,7 +375,7 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
       const result = await getClient().getObject({ ...location, Key: objectKey });
       const bytes = result.Body;
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
-      return { bytes, mimeType: detectImageMime(bytes) };
+      return { bytes, mimeType: detectReadableMime(bytes) };
     },
     async delete(objectKey) { await getClient().deleteObject({ ...location, Key: objectKey }); },
     async writeDerivedImage(objectKey, bytes) {

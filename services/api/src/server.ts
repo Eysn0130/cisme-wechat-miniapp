@@ -531,7 +531,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       .type('application/json').send(bytes);
   });
   app.get<{Params:{requestId:string;mediaId:string}}>("/v1/me/privacy-requests/:requestId/media/:mediaId",async(request,reply)=>{
-    const media=await formalPrivacyExecution.downloadSupplementaryImage(request.memberId,request.params.requestId,
+    const media=await formalPrivacyExecution.downloadSupplementaryMedia(request.memberId,request.params.requestId,
       request.params.mediaId,request.authScope==='privacy_rights');
     return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment')
       .type(media.mimeType).send(Buffer.from(media.bytes));

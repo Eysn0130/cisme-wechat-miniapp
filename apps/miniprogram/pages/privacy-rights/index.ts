@@ -213,7 +213,7 @@ Page({
   const requestId=String(e.currentTarget.dataset.requestId||''),mediaId=String(e.currentTarget.dataset.mediaId||'');
   const row=this.data.records.find((entry:any)=>entry.id===requestId);
   const media=row?.execution?.unavailableMedia?.find((entry:{id:string;reason:string;mimeType:string})=>
-    entry.id===mediaId&&entry.reason==='inline_copy_size_limit');
+    entry.id===mediaId&&['inline_copy_size_limit','video_requires_separate_copy'].includes(entry.reason));
   if(!row?.execution?.downloadAvailable||!media)return;
   const token=privacyToken(),attempt=++this.data.operationAttempt;
   this.setData({exportBusy:true,exportRequestId:requestId,error:'',notice:''});
@@ -222,14 +222,15 @@ Page({
   try{
    const filePath=await download.promise;
    if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
-   const extension=media.mimeType==='image/png'?'png':media.mimeType==='image/webp'?'webp':
+   const extension=media.mimeType==='video/mp4'?'mp4':media.mimeType==='image/png'?'png':media.mimeType==='image/webp'?'webp':
     media.mimeType==='image/jpeg'?'jpg':'bin';
+   const label=media.mimeType==='video/mp4'?'视频':'图片';
    await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath,
-    fileName:`CISME-补充图片-${mediaId.slice(-6)}.${extension}`,success:()=>resolve(),fail:reject}));
+    fileName:`CISME-补充${label}-${mediaId.slice(-6)}.${extension}`,success:()=>resolve(),fail:reject}));
    if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
-    this.setData({notice:'补充图片已交给微信，请在接收会话查看。'});
+    this.setData({notice:`补充${label}已交给微信，请在接收会话查看。`});
   }catch(error){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
-    this.setData({error:(error as {title?:string}).title||'补充图片暂不可读取，请刷新记录后重试。'});}
+    this.setData({error:(error as {title?:string}).title||'补充素材暂不可读取，请刷新记录后重试。'});}
   finally{download.abort();if(this.supplementaryDownload===download)this.supplementaryDownload=null;
    if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
