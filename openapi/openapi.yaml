@@ -291,6 +291,13 @@ paths:
       description: Owner-scoped encrypted-at-rest data copy. Formal WeChat requests use the documented account-data scope; test-only dev requests retain the synthetic profile subset. An active member or a verified closed-rights session may retrieve an eligible formal copy. No-store response.
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {'200': {description: Private JSON data copy}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Execution key unavailable}}
+  /v1/me/privacy-requests/{requestId}/media/{mediaId}:
+    get:
+      operationId: downloadOwnSupplementaryExportImage
+      security: [{session: []}]
+      description: Verified owner downloads an image omitted from an active partial formal export solely because it exceeded the inline copy limit. The request and image must belong to the same member, and the export artifact must remain unexpired and unrevoked. The binary response is private and no-store.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Owned supplementary image}, '404': {description: Not owned, not eligible, expired or revoked}, '503': {description: Image or execution key unavailable}}
   /v1/me/privacy-requests/{requestId}/export-revoke:
     post:
       operationId: revokeOwnPrivateDataCopy
