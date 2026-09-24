@@ -94,6 +94,7 @@ Page({
       const credit=runtime.isolatedCreditCheckoutAvailable?await isolatedCreditSummary().catch(()=>null):null;
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const selected = product.variants.find((item) => item.id === this.data.requestedSkuId && item.active) ?? product.variants.find((item) => item.active) ?? null;
+      const effectiveQuantity = selected ? Math.min(this.data.quantity, Math.max(1, selected.availableQuantity)) : 1;
       const addresses = addressBook.addresses;
       const current = addresses.find((item) => item.id === this.data.selectedAddressId);
       const preferred = current ?? addresses.find((item) => item.isDefault) ?? addresses[0] ?? null;
@@ -101,7 +102,7 @@ Page({
       const quoteStillMatches = !this.data.quote || Boolean(
         selected && quoteAddress &&
         selected.id === this.data.quote.item.skuId &&
-        this.data.quantity === this.data.quote.quantity &&
+        effectiveQuantity === this.data.quote.quantity &&
         (this.data.quote.creditTenderCents===0||credit!==null)&&
         this.data.quote.creditTenderCents===(this.data.creditInput?creditCents(this.data.creditInput):0) &&
         quoteAddress.version === this.data.quote.addressVersion &&
@@ -109,7 +110,7 @@ Page({
       );
       const publicPatch = {
         product, selectedSku: selected, requestedSkuId: selected?.id ?? "",
-        quantity: selected ? Math.min(this.data.quantity, Math.max(1, selected.availableQuantity)) : 1,
+        quantity: effectiveQuantity,
         addresses, selectedAddressId: preferred?.id ?? "", runtimeEnabled: runtime.orderFlowEnabled,
         isolatedPayment:runtime.isolatedMoneyOperationsAvailable,formalPayment:runtime.scope==="formal_commerce"&&runtime.paymentAvailable,
         creditEnabled:runtime.isolatedCreditCheckoutAvailable&&credit!==null,

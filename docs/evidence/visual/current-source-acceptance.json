@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "ed0c3ce24e90abd6b03c961a32d73ed08a0502793081cc99989a6927ca646f78",
+  "packageSourceSha256": "896db226379f646a5b8b642a8334705bb1f397156b911194b5eb93a04f1bd3b3",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current-source DevTools simulator evidence in current-simulator-detail-20260923 covers checkout quantity alignment and 1-to-2-to-1 taps, one privacy layout state at 333x719, and 40 of 40 parameter-free route opens with local fixtures. Earlier stepper-alignment screenshots remain limited to their earlier hash. Full route state journeys, iOS, and Android acceptance remain blocked."
+  "note": "R5 ChatGPT source-only fixes. This package has not been captured in WeChat DevTools or verified on iOS/Android. Historical simulator samples for ed0c3ce24e90abd6b03c961a32d73ed08a0502793081cc99989a6927ca646f78 remain in current-simulator-detail-20260923 with their original hashes and limited scope; they are not evidence for this package. Keep blocked until current-package native evidence is recorded."
 }

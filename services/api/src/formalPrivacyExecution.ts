@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import type pg from 'pg';
 import type { AppConfig } from '@cisme/config';
 import { DomainError } from '@cisme/domain';
-import { transaction } from './db.js';
+import { transaction, type DbClient } from './db.js';
 import type { ObjectStorage } from './storage.js';
 import { DeliveryAddressService } from './deliveryAddress.js';
 import { collectMemberPortableData, materializeMemberPortableData } from './privacyPortableData.js';
@@ -11,6 +11,18 @@ import { OperationBudget, runWithOperationBudget } from './operationBudget.js';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const lifetimeMs=60*60*1000;
 type Job={id:string;privacy_request_id:string;member_id:string;attempts:number;status:string};
+
+// Request creation time is not a deletion barrier: a held request may have
+// existed before the export snapshot and execute while objects are read.
+// Reuse existing immutable request IDs + monotonic versions as the subject's
+// erasure revision. The final read is protected by the same member row lock
+// that every supported profile erasure and account-closure writer takes.
+async function erasureRevision(client:DbClient,memberId:string):Promise<string>{
+  return (await client.query<{revision:string}>(`SELECT COALESCE(
+    jsonb_agg(jsonb_build_array(id,version,status,resolution_code) ORDER BY id)::text,'[]') AS revision
+    FROM privacy_request WHERE member_id=$1 AND
+      (scope_code='member_optional_profile_v1' OR kind='close_account')`,[memberId])).rows[0]!.revision;
+}
 
 /** Existing privacy jobs and artifact table, with a verified WeChat subject.
  * This never reads a dev_test identity or inherits the synthetic approval. */
@@ -27,7 +39,7 @@ export class FormalPrivacyExecution {
     return Buffer.from(value,'hex');
   }
 
-  async runExportOnce(failBeforeArchiveWrite?:()=>void):Promise<boolean>{
+  async runExportOnce(failBeforeArchiveWrite?:()=>void|Promise<void>):Promise<boolean>{
     const key=this.key();
     const claim=await transaction(this.pool,async client=>{
       const job=(await client.query<Job>(`SELECT id,privacy_request_id,member_id,attempts,status
@@ -56,7 +68,7 @@ export class FormalPrivacyExecution {
     const job=claim.job;
     try{
       const snapshot=await transaction(this.pool,async client=>{
-        const asOf=(await client.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+        const revision=await erasureRevision(client,job.member_id);
         const authority=(await client.query<{valid:boolean}>(`SELECT EXISTS(
           SELECT 1 FROM privacy_request p JOIN member m ON m.id=p.member_id
           JOIN wechat_identity w ON w.member_id=m.id
@@ -68,13 +80,13 @@ export class FormalPrivacyExecution {
             AND j.approved_by='system:verified-self' AND j.scope->>'formalSelfService'='true') AS valid`,
           [job.privacy_request_id,job.member_id,job.id,job.attempts])).rows[0]?.valid;
         if(!authority)throw new DomainError('PRIVACY_EXECUTION_AUTHORITY_CHANGED','申请身份或范围已变化',409);
-        return {asOf,data:await collectMemberPortableData(client,this.config,this.addresses,job.member_id)};
+        return {revision,data:await collectMemberPortableData(client,this.config,this.addresses,job.member_id)};
       },'REPEATABLE READ READ ONLY',1,20_000);
       const budget=new OperationBudget(120_000);
       let copy:Awaited<ReturnType<typeof materializeMemberPortableData>>;
       try{copy=await runWithOperationBudget(budget,()=>materializeMemberPortableData(snapshot.data,this.storage));}
       finally{budget.dispose();}
-      failBeforeArchiveWrite?.();
+      await failBeforeArchiveWrite?.();
       const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
       const ciphertext=Buffer.concat([cipher.update(copy.bytes),cipher.final()]);
       const digest=createHash('sha256').update(ciphertext).digest('hex');
@@ -83,16 +95,19 @@ export class FormalPrivacyExecution {
           'SELECT attempts,status FROM data_export_job WHERE id=$1 FOR UPDATE',[job.id])).rows[0];
         if(!locked||locked.status!=='running'||locked.attempts!==job.attempts)
           throw new DomainError('PRIVACY_EXPORT_LEASE_CHANGED','数据副本处理状态已变化',409);
-        const stillValid=(await client.query<{valid:boolean}>(`SELECT EXISTS(
-          SELECT 1 FROM privacy_request p JOIN member m ON m.id=p.member_id
-          JOIN wechat_identity w ON w.member_id=m.id WHERE p.id=$1 AND p.member_id=$2
-          AND p.status='executing' AND m.status IN ('active','deleted')
-          AND w.provider='wechat_miniprogram' AND NOT EXISTS(
-            SELECT 1 FROM privacy_request changed WHERE changed.member_id=m.id
-              AND changed.created_at>$3::timestamptz AND changed.status IN ('executing','completed')
-              AND (changed.scope_code='member_optional_profile_v1' OR changed.kind='close_account'))
-          ) AS valid`,[job.privacy_request_id,job.member_id,snapshot.asOf])).rows[0]?.valid;
-        if(!stillValid)throw new DomainError('PRIVACY_EXECUTION_AUTHORITY_CHANGED','申请身份或范围已变化',409);
+        // Hold the subject through publication. A concurrent erasure either
+        // completes first and changes the revision, or waits and then revokes
+        // this new artifact. No unlocked check/insert window is permitted.
+        const subject=await client.query(`SELECT m.id FROM member m
+          JOIN wechat_identity w ON w.member_id=m.id WHERE m.id=$1
+          AND m.status IN ('active','deleted') AND w.provider='wechat_miniprogram'
+          FOR SHARE OF m,w`,[job.member_id]);
+        const request=await client.query(`SELECT id FROM privacy_request
+          WHERE id=$1 AND member_id=$2 AND kind='access' AND status='executing'
+          FOR UPDATE`,[job.privacy_request_id,job.member_id]);
+        if(!subject.rowCount||!request.rowCount||
+          await erasureRevision(client,job.member_id)!==snapshot.revision)
+          throw new DomainError('PRIVACY_EXECUTION_AUTHORITY_CHANGED','申请身份或范围已变化',409);
         const dbTime=(await client.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
         const expiresAt=new Date(dbTime.getTime()+lifetimeMs);
         await client.query(`INSERT INTO privacy_export_artifact(job_id,member_id,ciphertext,iv,auth_tag,expires_at)

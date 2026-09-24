@@ -8,14 +8,29 @@ const closedLabels=labels.filter((_,index)=>kinds[index]!=='close_account');
 const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'处理中',executing:'处理中',completed:'已完成',partially_completed:'部分完成',failed:'处理未完成',rejected:'暂无法办理',canceled:'已取消',responded:'已回复'};
 const executionStatuses:Record<string,string>={succeeded:'已处理',partially_succeeded:'部分资料已处理',failed:'处理遇到问题',expired:'副本已过期',canceled:'已取消'};
 const deliveryStatuses:Record<string,string>={available:'数据副本可获取',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
-function exportFilePath(){
+const activeExportFiles=new Set<string>();
+function exportFilePath(name='cisme-private-data-copy'){
  const directory=wx.env?.USER_DATA_PATH;
  if(!directory)throw new Error('PRIVATE_COPY_DIRECTORY_UNAVAILABLE');
- return `${directory}/cisme-private-data-copy.json`;
+ return `${directory}/${name}.json`;
 }
-function clearExportFile(){
+function clearExportFile(path?:string){
+ if(path)activeExportFiles.delete(path);
  if(!wx.env?.USER_DATA_PATH||!wx.getFileSystemManager)return;
- wx.getFileSystemManager().unlink({filePath:exportFilePath(),fail:()=>{/* No local copy remains. */}});
+ wx.getFileSystemManager().unlink({filePath:path??exportFilePath(),fail:()=>{/* Retry abandoned copies on the next page open. */}});
+}
+function clearAbandonedExportFiles(){
+ if(!wx.env?.USER_DATA_PATH||!wx.getFileSystemManager)return;
+ const fs=wx.getFileSystemManager();
+ if(typeof fs?.readdir!=='function')return;
+ fs.readdir({dirPath:wx.env.USER_DATA_PATH,success:result=>{
+  for(const name of result.files){
+   if(!/^cisme-private-data-copy-[a-z0-9-]+\.json$/.test(name))continue;
+   const path=`${wx.env.USER_DATA_PATH}/${name}`;
+   // A second page instance must not unlink a file still used by WeChat.
+   if(!activeExportFiles.has(path))clearExportFile(path);
+  }
+ },fail:()=>{/* Retain other app files; never clear the entire directory. */}});
 }
 type PrivacyPage={items:any[];nextCursor:string|null};
 function privacyToken():string {const data=getApp<IAppOption>().globalData;return data.sessionToken||data.privacyRightsToken||'';}
@@ -38,19 +53,20 @@ function displayRecord(r:any,closedRights=false){
 }
 Page({
  identityToken:'',
- onLoad(){clearExportFile();},
- data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
+ actionBusy(){return this.data.busy||this.data.replyBusy||this.data.exportBusy;},
+ onLoad(){clearExportFile();clearAbandonedExportFiles();},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
  onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
   if(changed)clearExportFile();
   this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
   this.setData({authenticated:Boolean(token),closedRights,labels:closedRights?closedLabels:labels,
     ...(changed?{selected:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
-    busy:false,replyBusy:false,supportOpening:false});void this.loadLegalIdentity();void this.load();},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,supportOpening:false});},
+    busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});void this.loadLegalIdentity();void this.load();},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
- choose(e:WechatMiniprogram.PickerChange){this.setData({selected:Number(e.detail.value)});},
- input(e:WechatMiniprogram.TextareaInput){this.setData({message:e.detail.value});},
+ choose(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({selected:Number(e.detail.value)});},
+ input(e:WechatMiniprogram.TextareaInput){if(this.actionBusy())return;this.setData({message:e.detail.value});},
  login(){resumeAuthentication('/pages/privacy-rights/index');},
  openSupport(){
   if(this.data.supportOpening)return;
@@ -73,10 +89,10 @@ Page({
   if(!this.data.authenticated){this.setData({records:[],recordToken:'',nextCursor:null});return;}
   const attempt=++this.data.loadAttempt;
   const token=privacyToken();
-  this.setData({loading:true,error:'',records:[],recordToken:token,nextCursor:null,loadingMore:false,moreError:''});
+  this.setData({loading:true,error:'',...(this.data.recordToken!==token?{records:[],nextCursor:null}:{}),recordToken:token,loadingMore:false,moreError:''});
   try{const page=await request<PrivacyPage>({path:'/v1/me/privacy-requests?page=1'});if(this.data.alive && attempt===this.data.loadAttempt && token===privacyToken())this.setData({records:page.items.map(r=>displayRecord(r,this.data.closedRights)),nextCursor:page.nextCursor});}
-  catch(e){if(this.data.alive && attempt===this.data.loadAttempt && token===privacyToken())this.setData({error:(e as {title?:string}).title||'受理记录加载失败，请重试。'});}
-  finally{if(this.data.alive && attempt===this.data.loadAttempt && token===privacyToken())this.setData({loading:false});}
+  catch(e){if(this.data.alive && attempt===this.data.loadAttempt && token===privacyToken())this.setData({...([401,403,404].includes((e as {status?:number})?.status??0)?{records:[],recordToken:'',nextCursor:null,visibleExport:null}:{}),error:(e as {title?:string}).title||'受理记录加载失败，请重试。'});}
+  finally{if(this.data.alive && attempt===this.data.loadAttempt)this.setData({loading:false,...(token!==privacyToken()?{records:[],recordToken:'',nextCursor:null,visibleExport:null,error:'账号已切换，请重新加载记录。'}:{})});}
  },
  async loadMore(){
   const cursor=this.data.nextCursor;if(!cursor||this.data.loading||this.data.loadingMore||!this.data.authenticated)return;
@@ -89,7 +105,7 @@ Page({
   finally{if(this.data.alive&&attempt===this.data.loadAttempt){if(token!==privacyToken())this.setData({records:[],recordToken:'',nextCursor:null,visibleExport:null,loadingMore:false,error:'身份已变化，请刷新后查看自己的记录。'});else this.setData({loadingMore:false});}}
  },
  async submit(){
-  if(this.data.busy)return;
+  if(this.actionBusy())return;
   const kind=(this.data.closedRights?closedKinds:kinds)[this.data.selected];
   const optionalProfileDelete=kind==='delete'&&!this.data.closedRights;
   if(kind!=='close_account'&&!optionalProfileDelete&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
@@ -114,14 +130,14 @@ Page({
   finally{if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({busy:false});}
  },
  startReply(e:WechatMiniprogram.BaseEvent){
-  if(this.data.replyBusy)return;
+  if(this.actionBusy())return;
   const id=String(e.currentTarget.dataset.id||''),row=this.data.records.find((item:any)=>item.id===id);
   if(row?.status==='responded'&&row.waitingOn==='member')this.setData({replyFor:id,replyDraft:'',replyKey:'',error:'',notice:''});
  },
  editReply(e:WechatMiniprogram.TextareaInput){if(!this.data.replyBusy)this.setData({replyDraft:e.detail.value,replyKey:'',error:''});},
  cancelReply(){if(!this.data.replyBusy)this.setData({replyFor:'',replyDraft:'',replyKey:''});},
  async sendReply(){
-  if(this.data.replyBusy||!this.data.replyFor)return;
+  if(this.actionBusy()||!this.data.replyFor)return;
   const row=this.data.records.find((item:any)=>item.id===this.data.replyFor);
   if(!row||row.status!=='responded'||row.waitingOn!=='member')return;
   const message=this.data.replyDraft.trim();
@@ -138,52 +154,62 @@ Page({
   finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({replyBusy:false});}
  },
  async viewExport(e:WechatMiniprogram.BaseEvent){
+  if(this.actionBusy())return;
   const requestId=String(e.currentTarget.dataset.id||'');
   const row=this.data.records.find((item:any)=>item.id===requestId);
   if(!row?.execution?.downloadAvailable)return;
   const token=privacyToken();
   const attempt=++this.data.operationAttempt;
-  this.setData({visibleExport:null,error:''});
+  this.setData({visibleExport:null,error:'',exportBusy:true,exportRequestId:requestId});
+  let filePath:string|undefined;
   try{
    const archive=await request<any>({path:`/v1/me/privacy-requests/${requestId}/export`});
    if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
    if(row.execution.scope==='member_portable_copy_v1'&&archive?.schema==='cisme.member.portable.v1'){
     const fs=wx.getFileSystemManager();
-    const filePath=exportFilePath();
-    await new Promise<void>((resolve,reject)=>fs.writeFile({filePath,data:JSON.stringify(archive),
+    const currentPath=exportFilePath(clientOperationKey('cisme-private-data-copy'));
+    filePath=currentPath;activeExportFiles.add(currentPath);
+    await new Promise<void>((resolve,reject)=>fs.writeFile({filePath:currentPath,data:JSON.stringify(archive),
       encoding:'utf8',success:()=>resolve(),fail:reject}));
     if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken()){
-      clearExportFile();return;
+      clearExportFile(filePath);return;
     }
-    await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath,
+    await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath:currentPath,
       fileName:`CISME-个人信息副本-${requestId.slice(-6)}.json`,success:()=>resolve(),fail:reject,
-      complete:clearExportFile}));
+      complete:()=>clearExportFile(filePath)}));
     if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
       this.setData({notice:'数据副本已交给微信，请在接收会话查看。'});
    }else if(archive?.scope==='member_profile_only'){
     this.setData({visibleExport:{requestId,displayName:archive.member.displayName,wechatHandle:archive.profile?.wechatHandle||'未填写'}});
    }else throw new Error('EXPORT_SCOPE_UNEXPECTED');
-  }catch(e){clearExportFile();if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
+  }catch(e){if(filePath)clearExportFile(filePath);if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
+  finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
  async revokeExport(e:WechatMiniprogram.BaseEvent){
+  if(this.actionBusy())return;
   const requestId=String(e.currentTarget.dataset.id||'');
-  const token=privacyToken();
-  const attempt=++this.data.operationAttempt;
-  const confirmation=await new Promise<boolean>(resolve=>wx.showModal({title:'撤销这份资料副本？',content:'撤销后该副本将无法再次查看；原始会员资料不会因此删除。',confirmText:'撤销副本',success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
-  if(!confirmation||!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
+  if(!this.data.records.some((row:any)=>row.id===requestId&&row.execution?.downloadAvailable))return;
+  const token=privacyToken(),attempt=++this.data.operationAttempt;
+  this.setData({exportBusy:true,exportRequestId:requestId,error:''});
   try{
+   const confirmation=await new Promise<boolean>(resolve=>wx.showModal({title:'撤销副本访问？',
+    content:'撤销后不能再从小程序获取这份副本。已发送的文件不会被收回，原始资料不会删除。',
+    confirmText:'撤销访问',success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
+   if(!confirmation||!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
    await request({path:`/v1/me/privacy-requests/${requestId}/export-revoke`,method:'POST'});
    if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
-   this.setData({visibleExport:null,notice:'这份资料副本已撤销；原始资料未因此删除。'});
+   this.setData({visibleExport:null,notice:'副本访问已撤销，已发送的文件和原始资料不受影响。'});
    await this.load();
   }catch(e){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'撤销结果尚未确认，请刷新记录后重试。'});}
+  finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
  async retryExport(e:WechatMiniprogram.BaseEvent){
+  if(this.actionBusy())return;
   const requestId=String(e.currentTarget.dataset.id||'');
   const row=this.data.records.find((item:any)=>item.id===requestId);
   if(!row||row.status!=='failed'||row.execution?.scope!=='member_portable_copy_v1')return;
   const token=privacyToken(),attempt=++this.data.operationAttempt;
-  this.setData({error:'',notice:''});
+  this.setData({error:'',notice:'',exportBusy:true,exportRequestId:requestId});
   try{
    await request({path:`/v1/me/privacy-requests/${requestId}/export-retry`,method:'POST'});
    if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken()){
@@ -191,6 +217,7 @@ Page({
    }
   }catch(e){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
     this.setData({error:(e as {title?:string}).title||'重试结果暂未确认，请刷新记录。'});}
+  finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
  copyRequestId(e:WechatMiniprogram.BaseEvent){
   const id=String(e.currentTarget.dataset.id||'');

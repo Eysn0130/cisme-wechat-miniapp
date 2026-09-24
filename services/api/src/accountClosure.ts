@@ -158,7 +158,8 @@ export class AccountClosure {
               (b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=m.id::text
                 OR b.object_type='member_delivery_address' AND b.object_id IN
                   (SELECT id::text FROM member_delivery_address WHERE member_id=m.id))) AND (
-            (m.display_name<>'用户' AND encode(digest(m.display_name,'sha256'),'hex')=$2) OR
+            (m.display_name<>'用户' AND encode(digest(m.display_name,'sha256'),'hex')=$2 AND
+              NOT EXISTS(SELECT 1 FROM member_profile WHERE member_id=m.id AND updated_at>$3::timestamptz)) OR
             EXISTS(SELECT 1 FROM member_contact WHERE member_id=m.id AND bound_at<=$3::timestamptz) OR
             EXISTS(SELECT 1 FROM wechat_identity WHERE member_id=m.id AND unionid IS NOT NULL) OR
             EXISTS(SELECT 1 FROM phone_authorization WHERE member_id=m.id AND consumed_at<=$3::timestamptz) OR
@@ -214,31 +215,39 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
        OR (b.object_type='member_delivery_address' AND b.object_id IN
           (SELECT id::text FROM member_delivery_address WHERE member_id=$2))) LIMIT 1`,
     [marker.memberId,marker.memberId])).rowCount);
-  await client.query("UPDATE member SET status='deleted',display_name=CASE WHEN $2::boolean THEN display_name ELSE '已注销用户' END WHERE id=$1",
-    [marker.memberId,held]);
+  let changed=(await client.query(`UPDATE member SET status='deleted',
+    display_name=CASE WHEN $2::boolean THEN display_name ELSE '已注销用户' END
+    WHERE id=$1 AND (status<>'deleted' OR NOT $2::boolean AND display_name<>'已注销用户')`,
+    [marker.memberId,held])).rowCount??0;
   if(!held){
-    await client.query('UPDATE wechat_identity SET unionid=NULL WHERE member_id=$1',[marker.memberId]);
-    await client.query('DELETE FROM member_contact WHERE member_id=$1',[marker.memberId]);
-    await client.query('DELETE FROM phone_authorization WHERE member_id=$1',[marker.memberId]);
-    await client.query('DELETE FROM member_profile WHERE member_id=$1',[marker.memberId]);
-    await client.query(`UPDATE member_delivery_address SET encrypted_payload='',payload_hmac=encode(digest(id::text,'sha256'),'hex'),
+    changed+=(await client.query('UPDATE wechat_identity SET unionid=NULL WHERE member_id=$1 AND unionid IS NOT NULL',[marker.memberId])).rowCount??0;
+    changed+=(await client.query('DELETE FROM member_contact WHERE member_id=$1',[marker.memberId])).rowCount??0;
+    changed+=(await client.query('DELETE FROM phone_authorization WHERE member_id=$1',[marker.memberId])).rowCount??0;
+    changed+=(await client.query('DELETE FROM member_profile WHERE member_id=$1',[marker.memberId])).rowCount??0;
+    changed+=(await client.query(`UPDATE member_delivery_address SET encrypted_payload='',payload_hmac=encode(digest(id::text,'sha256'),'hex'),
       key_version='erased',is_default=false,deleted_at=COALESCE(deleted_at,now()),updated_at=now()
-      WHERE member_id=$1 AND key_version<>'erased'`,[marker.memberId]);
+      WHERE member_id=$1 AND key_version<>'erased'`,[marker.memberId])).rowCount??0;
   }
-  await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
-    [marker.memberId]);
+
   const previousMembership=(await client.query<{state:string}>(
     'SELECT state FROM commercial_membership WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];
   const membership=(await client.query<{version:number;effective_at:Date;expires_at:Date|null}>(
     "UPDATE commercial_membership SET state='expired',version=version+1,changed_by=$2,change_reason='本人注销账号',updated_at=now() WHERE member_id=$1 AND state<>'expired' RETURNING version,effective_at,expires_at",
     [marker.memberId,`member:${marker.memberId}`])).rows[0];
+  if(membership)changed++;
   if(membership)await client.query(`INSERT INTO commercial_membership_event(member_id,version,from_state,to_state,effective_at,expires_at,actor_principal_id,reason)
     VALUES($1,$2,$3,'expired',$4,$5,$6,'本人注销账号')`,[marker.memberId,membership.version,previousMembership?.state??null,membership.effective_at,membership.expires_at,`member:${marker.memberId}`]);
-  await client.query(`UPDATE commercial_referral_code SET state='disabled',disabled_at=now(),disabled_by=$2,disable_reason='本人注销账号'
-    WHERE member_id=$1 AND state='active'`,[marker.memberId,`member:${marker.memberId}`]);
-  await client.query(`UPDATE authority_grant SET revoked_at=now(),revoked_by=$2,revoke_reason='本人注销账号'
-    WHERE member_id=$1 AND revoked_at IS NULL`,[marker.memberId,`member:${marker.memberId}`]);
-  await client.query("UPDATE consent_receipt SET status='withdrawn',withdrawn_at=now() WHERE member_id=$1 AND status='active'",[marker.memberId]);
+  changed+=(await client.query(`UPDATE commercial_referral_code SET state='disabled',disabled_at=now(),disabled_by=$2,disable_reason='本人注销账号'
+    WHERE member_id=$1 AND state='active'`,[marker.memberId,`member:${marker.memberId}`])).rowCount??0;
+  changed+=(await client.query(`UPDATE authority_grant SET revoked_at=now(),revoked_by=$2,revoke_reason='本人注销账号'
+    WHERE member_id=$1 AND revoked_at IS NULL`,[marker.memberId,`member:${marker.memberId}`])).rowCount??0;
+  changed+=(await client.query("UPDATE consent_receipt SET status='withdrawn',withdrawn_at=now() WHERE member_id=$1 AND status='active'",[marker.memberId])).rowCount??0;
+  if(changed||request.status!=='completed'){
+    await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
+      [marker.memberId]);
+    if(request.status==='completed')await client.query(
+      'UPDATE privacy_request SET version=version+1,updated_at=now() WHERE id=$1',[marker.requestId]);
+  }
   if(request.status!=='completed'){
     if(request.status!=='received')throw new Error('ACCOUNT_CLOSURE_REQUEST_STATE_UNEXPECTED');
     for(const status of ['reviewing','approved','executing'] as const)
@@ -296,7 +305,9 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
     return {id:marker.requestId,kind:'delete',status:'executing',legalHold:true};
   }
   const name=await client.query(`UPDATE member SET display_name='用户' WHERE id=$1 AND display_name<>'用户'
-    AND encode(digest(display_name,'sha256'),'hex')=$2`,[marker.memberId,marker.displayNameSha256]);
+    AND encode(digest(display_name,'sha256'),'hex')=$2 AND NOT EXISTS(
+      SELECT 1 FROM member_profile WHERE member_id=$1 AND updated_at>$3::timestamptz)`,
+    [marker.memberId,marker.displayNameSha256,marker.createdAt]);
   const unionid=await client.query('UPDATE wechat_identity SET unionid=NULL WHERE member_id=$1 AND unionid IS NOT NULL',
     [marker.memberId]);
   const contact=await client.query('DELETE FROM member_contact WHERE member_id=$1 AND bound_at<=$2::timestamptz',
@@ -310,8 +321,15 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
     deleted_at=COALESCE(deleted_at,now()),updated_at=now()
     WHERE member_id=$1 AND key_version<>'erased' AND updated_at<=$2::timestamptz`,
     [marker.memberId,marker.createdAt]);
-  await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
-    [marker.memberId]);
+  const changed=[name,unionid,contact,authorization,profile,addresses].reduce((sum,result)=>sum+(result.rowCount??0),0);
+  if(changed||request.status==='executing'){
+    await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
+      [marker.memberId]);
+    // A restore replay can erase data after the original request completed.
+    // Exports must observe this mutation even though created_at is unchanged.
+    if(request.status==='completed')await client.query(
+      'UPDATE privacy_request SET version=version+1,updated_at=now() WHERE id=$1',[marker.requestId]);
+  }
   if(request.status==='executing'){
     await client.query(`UPDATE privacy_request SET status='completed',resolution_code='SELF_PROFILE_ERASED',
       response='可清除的账户资料已删除，旧数据副本已撤销；交易与售后记录按必要期限保留。',
@@ -320,7 +338,6 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
       VALUES($1,$2,'execution_succeeded',$3)`,[marker.requestId,`member:${marker.memberId}`,
       {scope:marker.scope,retainedTransactions:true}]);
   }
-  const changed=[name,unionid,contact,authorization,profile,addresses].reduce((sum,result)=>sum+(result.rowCount??0),0);
   if(changed||request.status==='executing')await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,
     reason_code,after_state,trace_id) VALUES($1,'privacy.profile.erase','privacy_request',$2,
     'VERIFIED_MEMBER_PROFILE_ERASURE',$3,gen_random_uuid()::text)`,[`member:${marker.memberId}`,marker.requestId,

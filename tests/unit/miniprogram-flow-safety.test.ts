@@ -221,7 +221,7 @@ describe("mini program submission flow safety", () => {
     expect(task).toContain("this.data.task?.submission_id || this.data.continuationSubmissionId");
     expect(task).toContain("const refreshed = await this.load()");
     expect(task).toContain("邀请资格已更新");
-    expect(taskView).toContain("继续完成已生成的投稿");
+    expect(taskView).toContain("继续完成投稿");
     expect(community).toContain("投稿与邀请暂时无法打开");
     expect(profile).toContain("设置与隐私暂时无法打开");
     for (const [logic, view] of [[shop, shopView], [points, pointsView]]) {
@@ -319,9 +319,10 @@ describe("mini program submission flow safety", () => {
     expect(communityView).toContain('bindtap="loadTasks"');
     expect(profileView).toContain("同步失败 · 点此重试");
     expect(profileView).toContain('wx:if="{{tasksError && member}}"');
-    expect(profileView).toContain("微信支付与真实配送尚未开放");
-    expect(shopView).toContain("已完成资质确认并上架");
-    expect(shopView).toContain("结算与支付尚未开放");
+    expect(profileView).not.toContain("微信支付与真实配送尚未开放");
+    expect(shopView).toContain("全部商品");
+    expect(shopView).toContain("catalog && catalog.items.length && !purchaseAvailable");
+    expect(shopView).toContain("商品可浏览，暂不能下单。");
     expect(editorial).toContain("内容授权尚待确认");
   });
 

@@ -4,7 +4,7 @@ import { cancelPageReads } from "../../services/page-requests";
 import { centsToYuan } from "../../services/commerce";
 import { myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
-const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付，待履约"};
+const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已付款"};
 Page({
   lastToken:"",lastRevision:-1,
   data:{chromeStyle:currentChromeStyle(),items:[] as any[],nextCursor:null as string|null,loading:true,refreshing:false,loadingMore:false,navigating:false,error:"",pageAlive:true,visible:true,coreReady:false,loadAttempt:0},
@@ -19,7 +19,7 @@ Page({
   onUnload(){this.onHide();this.data.pageAlive=false;},
   current(attempt:number,token:string){return this.data.pageAlive&&this.data.visible&&this.data.loadAttempt===attempt&&this.lastToken===token&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision();},
   canOpen(){return this.data.coreReady&&this.current(this.data.loadAttempt,this.lastToken)&&!this.data.navigating;},
-  normalize(items:CommerceOrderSummary[]){return items.map(item=>({...item,statusLabel:labels[item.status]??item.status,totalYuan:centsToYuan(item.totalCents),createdLabel:new Date(item.createdAt).toLocaleString("zh-CN",{hour12:false}),summary:item.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")}));},
+  normalize(items:CommerceOrderSummary[]){return items.map(item=>({...item,statusLabel:labels[item.status]??"状态更新中",totalYuan:centsToYuan(item.totalCents),createdLabel:new Date(item.createdAt).toLocaleString("zh-CN",{hour12:false}),summary:item.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")}));},
   async load(event?:WechatMiniprogram.TouchEvent){
     if(!this.data.visible||!this.data.pageAlive)return;
     if(event?.type)clearAuthenticationRedirectSuppression();this.syncSession();

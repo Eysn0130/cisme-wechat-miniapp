@@ -95,7 +95,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
   (sections.commerce as Record<string,unknown>).deliveryAddresses=orderAddresses.map(row=>({orderId:row.order_id,
     address:addresses.openOrderSnapshot(memberId,row.order_id,row.encrypted_payload,row.payload_hmac,row.key_version)}));
   const uploaded=(await client.query<MediaRow>(`SELECT m.id,m.object_key,m.mime_type,m.size_bytes,'member_upload' AS kind
-    FROM media_object m WHERE m.upload_state='uploaded' AND (
+    FROM media_object m WHERE m.upload_state='uploaded' AND m.deleted_at IS NULL AND (
       EXISTS(SELECT 1 FROM submission s WHERE s.id=m.submission_id AND s.member_id=$1)
       OR EXISTS(SELECT 1 FROM support_conversation c WHERE c.id=m.support_conversation_id AND c.member_id=$1))
     UNION ALL SELECT id,object_key,mime_type,size_bytes,'community_upload' AS kind

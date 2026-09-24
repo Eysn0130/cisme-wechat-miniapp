@@ -4,8 +4,12 @@ import { TEST_DATABASE_URL, resetDatabase, testPool } from '@cisme/testkit';
 import { createApp } from '../../services/api/src/server';
 import { createApiGatewayStorage } from '../../services/api/src/storage';
 import { FormalPrivacyExecution } from '../../services/api/src/formalPrivacyExecution';
+import { AccountClosure, applyAccountClosure, applyProfileErasure, type ProfileErasureMarker } from '../../services/api/src/accountClosure';
+import { PrivacyRights } from '../../services/api/src/privacyRights';
+import { MemberProfile } from '../../services/api/src/memberProfile';
+import { transaction } from '../../services/api/src/db';
 import { DeliveryAddressService } from '../../services/api/src/deliveryAddress';
-import { createCipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -202,4 +206,94 @@ it('runs the verified self export in production mode with controlled WeChat iden
     expect((await productionApp.inject({url:'/v1/bootstrap/profile',
       headers:{authorization:`Bearer ${sessionToken}`}})).statusCode).toBe(401);
   }finally{fetchSpy.mockRestore();await productionApp.close();await rm(directory,{recursive:true,force:true});}
+});
+
+it('rejects a pre-erasure snapshot when an older held deletion executes during materialization',async()=>{
+  const owner=await login('held-export-race');
+  await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'BeforeHeldErasure','self_reported')",[owner.memberId]);
+  const marker=await profileMarker(owner.memberId);
+  const hold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+    VALUES('EXPORT_RACE_HOLD','Controlled isolation test','fixture',now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0].id;
+  await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'member',$2)",[hold,owner.memberId]);
+  expect((await transaction(pool,c=>applyProfileErasure(c,marker))).status).toBe('executing');
+  const requestId=await exportRequest(owner);
+  const executor=new FormalPrivacyExecution(pool,config,storage);
+  // Request creation predates the snapshot. Only its later execution matters.
+  expect(await executor.runExportOnce(async()=>{
+    await pool.query("UPDATE legal_hold SET status='released',released_by='fixture',released_at=now() WHERE id=$1",[hold]);
+    expect((await transaction(pool,c=>applyProfileErasure(c,marker))).status).toBe('completed');
+  })).toBe(true);
+  expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1',[requestId])).rows[0].count).toBe(0);
+  expect((await pool.query('SELECT last_error_code FROM data_export_job WHERE privacy_request_id=$1',[requestId])).rows[0].last_error_code).toBe('PRIVACY_EXECUTION_AUTHORITY_CHANGED');
+  await pool.query('UPDATE data_export_job SET next_attempt_at=now() WHERE privacy_request_id=$1',[requestId]);
+  expect(await executor.runExportOnce()).toBe(true);
+  const copy=await executor.download(owner.memberId,requestId);
+  expect(copy.toString()).not.toContain('BeforeHeldErasure');
+  expect(JSON.parse(copy.toString()).sections.account.profile).toBeNull();
+});
+
+it('does not revoke a fresh post-erasure export on an unchanged marker replay',async()=>{
+  const owner=await login('post-erasure-copy');
+  const marker=await profileMarker(owner.memberId);
+  await transaction(pool,c=>applyProfileErasure(c,marker));
+  const requestId=await exportRequest(owner);
+  const executor=new FormalPrivacyExecution(pool,config,storage);
+  expect(await executor.runExportOnce()).toBe(true);
+  await transaction(pool,c=>applyProfileErasure(c,marker));
+  expect(JSON.parse((await executor.download(owner.memberId,requestId)).toString()).sections.account.id).toBe(owner.memberId);
+});
+
+it('invalidates an in-flight copy when restored data is removed by an already completed erasure',async()=>{
+  const owner=await login('restored-export-race');
+  const marker=await profileMarker(owner.memberId);
+  await transaction(pool,c=>applyProfileErasure(c,marker));
+  // Simulate restored data only in this disposable database.
+  await pool.query(`INSERT INTO member_profile(member_id,wechat_handle,handle_source,updated_at)
+    VALUES($1,'RestoredOldPrivateProfile','self_reported',$2)`,[owner.memberId,marker.createdAt]);
+  const requestId=await exportRequest(owner);
+  expect(await new FormalPrivacyExecution(pool,config,storage).runExportOnce(async()=>{
+    await transaction(pool,c=>applyProfileErasure(c,marker));
+  })).toBe(true);
+  expect((await pool.query('SELECT last_error_code FROM data_export_job WHERE privacy_request_id=$1',[requestId])).rows[0].last_error_code).toBe('PRIVACY_EXECUTION_AUTHORITY_CHANGED');
+  expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id WHERE j.privacy_request_id=$1',[requestId])).rows[0].count).toBe(0);
+  await pool.query('UPDATE data_export_job SET next_attempt_at=now() WHERE privacy_request_id=$1',[requestId]);
+  expect(await new FormalPrivacyExecution(pool,config,storage).runExportOnce()).toBe(true);
+});
+
+async function profileMarker(memberId:string):Promise<ProfileErasureMarker>{
+  const identity=(await pool.query(`SELECT w.provider,w.app_id,w.openid,m.display_name,clock_timestamp() AS captured_at
+    FROM wechat_identity w JOIN member m ON m.id=w.member_id WHERE w.member_id=$1`,[memberId])).rows[0];
+  return {version:2,memberId,requestId:randomUUID(),identityDigest:AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),
+    createdAt:identity.captured_at.toISOString(),scope:'member_optional_profile_v1',
+    displayNameSha256:createHash('sha256').update(identity.display_name).digest('hex')};
+}
+async function exportRequest(owner:{memberId:string;sessionToken:string}):Promise<string>{
+  const response=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`},payload:{kind:'access',message:'获取当前本人资料'}});
+  expect(response.statusCode,response.body).toBe(200);return response.json().id;
+}
+
+
+it("keeps a closed member's newly generated rights copy available across an unchanged closure replay",async()=>{
+  const owner=await login('closed-copy-replay');
+  const profile=await profileMarker(owner.memberId);
+  const marker={version:1 as const,memberId:profile.memberId,identityDigest:profile.identityDigest,
+    requestId:profile.requestId,createdAt:profile.createdAt};
+  await transaction(pool,c=>applyAccountClosure(c,marker));
+  const request=await new PrivacyRights(pool,'test',undefined,true).submit(owner.memberId,
+    {kind:'access',message:'获取注销后的历史资料'},true);
+  const executor=new FormalPrivacyExecution(pool,config,storage);
+  expect(await executor.runExportOnce()).toBe(true);
+  await transaction(pool,c=>applyAccountClosure(c,marker));
+  expect(JSON.parse((await executor.download(owner.memberId,request.id,true)).toString()).sections.account.id).toBe(owner.memberId);
+});
+
+it('preserves the same nickname when it was explicitly supplied again after deletion',async()=>{
+  const owner=await login('name-resubmission');
+  const originalName=(await pool.query('SELECT display_name FROM member WHERE id=$1',[owner.memberId])).rows[0].display_name;
+  const marker=await profileMarker(owner.memberId);
+  await transaction(pool,c=>applyProfileErasure(c,marker));
+  await new MemberProfile(pool).update(owner.memberId,{displayName:originalName,expectedVersion:0});
+  await transaction(pool,c=>applyProfileErasure(c,marker));
+  expect((await pool.query('SELECT display_name FROM member WHERE id=$1',[owner.memberId])).rows[0].display_name).toBe(originalName);
 });
