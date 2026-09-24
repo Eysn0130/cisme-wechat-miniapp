@@ -111,7 +111,9 @@ describe("mini program submission flow safety", () => {
     expect(accountView).toContain('bindtap="openLegalDocuments"');
     expect(accountView).toContain("选择查看用户协议或隐私保护指引");
     expect(accountView).toContain('disabled="{{loading || leaving || !legalTextsReady}}"');
-    expect(accountView).toContain("协议暂不可用");
+    expect(accountView).toContain("暂时无法登录");
+    expect(accountView).toContain("协议服务暂时无法连接，请重试");
+    expect(accountView).toContain("当前协议尚未发布，请稍后重试");
   });
 
   it("keeps public entry APIs public while preventing no-session protected requests", async () => {

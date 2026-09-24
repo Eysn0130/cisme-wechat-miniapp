@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "f9f7243227cf24e743e9cdd95fbddb25f06e3cbf87bffa3df59f7c0265091dca",
+  "packageSourceSha256": "09530506dc04f6cd1f8c03560504342641e0a7fa5dea2932d8e367800b53c431",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -48,5 +48,5 @@
   ],
   "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
   "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Current native source includes the registered production API origin, account protocol retry and copy, and support touch-target updates. The previous a263702e preview allowed an iOS device to enter Home but Account showed protocol unavailable; this is a historical failed state, not acceptance of the current f9f72432 package. Official compile and current QR generation do not prove network access, account login or full iOS/Android acceptance. All route/device acceptance remains blocked until observed against this package."
+  "note": "Current 09530506 source distinguishes an unreachable legal service from unpublished legal documents on Account. The prior f9f72432 preview entered Home on an iPhone but Account could not load the legal documents or proceed to login; the user also reported that iPhone Safari could not open the staging /v1/legal URL. The user screenshot is preserved separately with its original f9f72432 package identity and is failure evidence, not acceptance of this package. Current QR/compile, route states, iOS login and Android device acceptance remain blocked until observed against this package."
 }

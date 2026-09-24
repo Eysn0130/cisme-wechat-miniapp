@@ -17,7 +17,7 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
-  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as "" | "unreachable" | "unpublished", chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
     const attempt=++this.data.authAttempt;
@@ -44,8 +44,9 @@ Page({
   async syncLegalDocuments() {
     const previous = this.documents();
     const attempt = ++this.data.legalAttempt;
-    this.setData({legalLoading:true});
+    this.setData({legalLoading:true,legalLoadError:""});
     let documents = currentLegalDocuments();
+    let legalLoadError: "" | "unreachable" | "unpublished" = "";
     if (!documents) {
       try {
         const response = await request<{ready:boolean;documents:Array<{document_type:string;version:string}>}>({path:"/v1/legal",authMode:"public"});
@@ -54,13 +55,15 @@ Page({
         const terms = response.documents.find(item=>item.document_type === "terms")?.version;
         const crossBorder = response.documents.find(item=>item.document_type === "cross_border")?.version;
         documents = response.ready && privacy && terms ? {privacy,terms,crossBorder,localFixture:false} : null;
-      } catch { documents = null; }
+        if (!documents) legalLoadError = "unpublished";
+      } catch { documents = null; legalLoadError = "unreachable"; }
       if (!this.data.pageAlive || attempt !== this.data.legalAttempt) return;
       this.setData({ serverLegalDocuments: documents });
     }
     this.setData({
       legalTextsReady: Boolean(documents),
       legalLoading: false,
+      legalLoadError,
       crossBorderRequired: Boolean(documents?.crossBorder),
       crossBorderAccepted: documents && previous?.crossBorder === documents.crossBorder ? this.data.crossBorderAccepted : false,
       localLegalFixture: documents?.localFixture === true,
@@ -113,7 +116,7 @@ Page({
   async openTerms() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: "用户协议正在准备，发布后即可自主注册。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "unreachable" ? "协议服务暂时无法连接，请稍后重试。" : "当前用户协议尚未发布，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {
@@ -132,7 +135,7 @@ Page({
   openPrivacy() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: "隐私指引正在准备，发布后即可自主注册。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "unreachable" ? "协议服务暂时无法连接，请稍后重试。" : "当前隐私指引尚未发布，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {

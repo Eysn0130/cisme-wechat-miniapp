@@ -115,7 +115,9 @@ describe("mini-program page behavior", () => {
     await vi.importActual("../../apps/miniprogram/pages/account/index");
     const account = mountedPage(capturedPage!);
     await account.syncLegalDocuments();
-    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: false, agreementAccepted: false });
+    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: false, agreementAccepted: false, legalLoadError: "unreachable" });
+    await account.openTerms();
+    expect(account.data.error).toBe("协议服务暂时无法连接，请稍后重试。");
 
     requestMock.mockResolvedValueOnce({ ready: true, documents: [
       { document_type: "privacy", version: "privacy-staging" },
@@ -123,7 +125,18 @@ describe("mini-program page behavior", () => {
     ] });
     await account.syncLegalDocuments();
     expect(requestMock).toHaveBeenLastCalledWith({ path: "/v1/legal", authMode: "public" });
-    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: true, agreementAccepted: false });
+    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: true, agreementAccepted: false, legalLoadError: "" });
+  });
+
+  it("does not describe unpublished legal documents as a connection failure", async () => {
+    wxMock.getDeviceInfo!.mockReturnValue({ platform: "ios" });
+    requestMock.mockResolvedValueOnce({ ready: false, documents: [] });
+    await vi.importActual("../../apps/miniprogram/pages/account/index");
+    const account = mountedPage(capturedPage!);
+    await account.syncLegalDocuments();
+    expect(account.data).toMatchObject({ legalTextsReady: false, legalLoadError: "unpublished" });
+    account.openPrivacy();
+    expect(account.data.error).toBe("当前隐私指引尚未发布，请稍后重试。");
   });
 
   it("clears task, review, and settings snapshots before a guest can return from login", async () => {
