@@ -20,6 +20,7 @@ import { bearer, issueSessionToken, verifySessionToken } from "./auth.js";
 import { installRequestBudgets, dependencySignal } from "./operationBudget.js";
 import { createPool, requestBudgetPool } from "./db.js";
 import { PrivacyRights } from "./privacyRights.js";
+import { AccountClosure } from './accountClosure.js';
 import { SyntheticPrivacyExecution } from "./privacyExecution.js";
 import { PhoneBinding } from "./phoneBinding.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
@@ -120,6 +121,10 @@ function idempotencyKey(request: FastifyRequest): string {
 export async function createApp(dependencies: AppDependencies): Promise<FastifyInstance> {
   const { config, storage } = dependencies;
   const pool = requestBudgetPool(dependencies.pool, config.database);
+  if(config.env==='production'&&!config.privacy.suppressionDirectory)
+    throw new Error('FAIL_CLOSED:PRIVACY_SUPPRESSION_DIR_REQUIRED');
+  const accountClosure=new AccountClosure(config.privacy.suppressionDirectory);
+  await accountClosure.replay(pool);
   const app = Fastify({ ...(dependencies.loggerInstance && config.env === "test"
     ? { loggerInstance: dependencies.loggerInstance } : { logger: safeLoggerOptions(config.observability.logLevel) }),
     logController: new LogController({ disableRequestLogging: true }),
@@ -139,7 +144,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     }
     return payload;
   });
-  const service = new PlatformService(pool, config, storage);
+  const service = new PlatformService(pool, config, storage,undefined,accountClosure);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
   const aftersales = new AftersaleService(pool,authority);
@@ -222,7 +227,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const tradeBills=paymentProfile&&dependencies.paymentProtocol
     ?new TradeBillReconciliationService(pool,authority,dependencies.paymentProtocol.channel,
       paymentProfile.merchantId):null;
-  const privacyRights = new PrivacyRights(pool,config.env);
+  const privacyRights = new PrivacyRights(pool,config.env,accountClosure);
   const privacyExecution = new SyntheticPrivacyExecution(pool,config.env,config.privacy.syntheticExportKey);
   await app.register(cors, { origin: config.env === "production" ? false : true });
   await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024, fields: 8 } });
@@ -287,8 +292,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
           AND ('wechat_miniprogram:'||w.id::text)=$3 AND m.status='deleted'`,
         [principal.memberId,config.wechat.appId,principal.id])).rowCount;
       if(!identity)throw new DomainError('AUTH_REVOKED','身份状态已变化，请重新核验',401);
-    }else if (principal.memberId && !path.startsWith("/v1/bootstrap/")) {
-      await service.assertActiveMember(principal.memberId);
+    }else if (principal.memberId) {
+      if(await accountClosure.hasMember(principal.memberId)){
+        await accountClosure.replayMember(pool,principal.memberId);
+        throw new DomainError('AUTH_REVOKED','账号已注销，请重新核验身份',401);
+      }
+      if(!path.startsWith("/v1/bootstrap/"))await service.assertActiveMember(principal.memberId);
     }
     if (principal.memberId) request.memberId = principal.memberId;
     request.principalId = principal.id;
@@ -299,6 +308,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/health/live", async () => ({ status: "ok" }));
   app.get("/health/ready", async () => {
     await pool.query("SELECT 1");
+    await accountClosure.assertReady();
     return { status: "ready" };
   });
 

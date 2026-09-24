@@ -5,6 +5,8 @@ import { transaction, type DbClient } from './db.js';
 import { requirePrivacyActor } from './privacyAuthority.js';
 import type { AppEnvironment } from '@cisme/config';
 import { AuthorityService } from './authority.js';
+import { AccountClosure, applyAccountClosure } from './accountClosure.js';
+import { randomUUID } from 'node:crypto';
 
 const pageSize=30;
 const base64UrlPattern=/^[A-Za-z0-9_-]+$/;
@@ -81,7 +83,7 @@ const replyHistoryProjection = `(SELECT COALESCE(jsonb_agg(jsonb_build_object(
 
 export class PrivacyRights {
   private readonly authority: AuthorityService;
-  constructor(private pool: pg.Pool, private environment:AppEnvironment='production') {
+  constructor(private pool: pg.Pool, private environment:AppEnvironment='production',private accountClosure?:AccountClosure) {
     this.authority=new AuthorityService(pool,environment);
   }
 
@@ -122,6 +124,7 @@ export class PrivacyRights {
     if(scopeCode!==null && (this.environment!=='test'||input.kind!=='delete'||scopeCode!=='member_profile_handle_v1'))
       throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','当前环境或请求类型不支持此精确数据范围',422);
     const message=input.message.trim();
+    if(input.kind==='close_account')return this.closeAccount(id);
     return transaction(this.pool,async client=>{
       // Prevent duplicate taps and unbounded per-account submission bursts.
       const active=await client.query("SELECT id FROM member WHERE id=$1 AND status=$2 FOR UPDATE",[id,closedRights?'deleted':'active']);
@@ -140,6 +143,29 @@ export class PrivacyRights {
         VALUES($1,$2,'received',jsonb_build_object('kind',$3::text))`,[created.id,`member:${id}`,input.kind]);
       return created;
     });
+  }
+
+  private async closeAccount(memberId:string) {
+    if(!this.accountClosure)throw new DomainError('ACCOUNT_CLOSURE_UNAVAILABLE','注销服务暂不可用，请稍后重试',503);
+    try{return await transaction(this.pool,async client=>{
+      const member=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE",[memberId]);
+      if(!member.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可提交注销请求',403);
+      const identity=(await client.query<{provider:string;app_id:string;openid:string}>(
+        'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR UPDATE',[memberId])).rows[0];
+      if(!identity)throw new DomainError('AUTH_REVOKED','微信身份已变化，请重新登录',401);
+      const requestId=randomUUID();
+      const marker=await this.accountClosure!.record(memberId,
+        AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),requestId);
+      return applyAccountClosure(client,marker);
+    });}catch(error){
+      // The independent marker is written before the database transaction.
+      // If that transaction failed, retry the same idempotent closure now.
+      if(await this.accountClosure.hasMember(memberId)){
+        const repaired=await this.accountClosure.replayMember(this.pool,memberId);
+        if(repaired?.status==='completed')return repaired;
+      }
+      throw error;
+    }
   }
 
   async requireOperator(principalId:string,client?:DbClient) {

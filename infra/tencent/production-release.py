@@ -170,6 +170,14 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
     target=observe.guard_for_upgrade(candidate_env,manifest,main['sha'],main['tree'])
     candidate=observe.protected_environment(candidate_env)
     require(all(candidate.get(k)==v for k,v in CLOSED.items()),'CLOSED_COMMERCE_MAINTENANCE_CONFIG_REQUIRED')
+    suppression=Path(candidate.get('PRIVACY_SUPPRESSION_DIR',''))
+    require(str(suppression)=='/var/lib/cisme/privacy-suppression','PRIVACY_SUPPRESSION_TARGET_REQUIRED')
+    try:suppression_info=suppression.lstat()
+    except OSError:raise observe.target.Refused('PRIVACY_SUPPRESSION_DIRECTORY_MISSING')
+    require(stat.S_ISDIR(suppression_info.st_mode) and suppression_info.st_uid==pwd.getpwnam('cisme').pw_uid
+            and suppression_info.st_mode&0o077==0,'PRIVACY_SUPPRESSION_DIRECTORY_UNSAFE')
+    writable=command(['systemctl','show','cisme-api.service','--property=ReadWritePaths','--value']).decode().split()
+    require(str(suppression) in writable,'PRIVACY_SUPPRESSION_SERVICE_ACCESS_REQUIRED')
     require(not any(k.startswith(('LD_','DYLD_','PG','PYTHON')) or (k.startswith('NODE_') and k!='NODE_ENV')
                     or k in ('BASH_ENV','ENV','PATH','HOME','PWD','SHELL','IFS') for k in candidate),
             'PROCESS_INJECTION_CONFIGURATION_REFUSED')

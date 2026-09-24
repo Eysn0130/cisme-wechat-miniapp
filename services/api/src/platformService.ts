@@ -10,6 +10,7 @@ import { enqueue } from "./outbox.js";
 import { objectKey, type ObjectStorage } from "./storage.js";
 import { EVENT_DELIVERY_POLICIES, type EventType } from "@cisme/contracts";
 import { cursorTimestamp } from "./keysetPage.js";
+import type { AccountClosure } from './accountClosure.js';
 
 type JsonObject = Record<string, unknown>;
 
@@ -132,7 +133,8 @@ export class PlatformService {
     private readonly pool: pg.Pool,
     private readonly config: AppConfig,
     private readonly storage: ObjectStorage,
-    private readonly clock: () => Date = () => new Date()
+    private readonly clock: () => Date = () => new Date(),
+    private readonly accountClosure?: AccountClosure
   ) {}
 
   now(override?: string): Date {
@@ -178,6 +180,8 @@ export class PlatformService {
       // yet. Serialize the natural identity key before checking/inserting it.
       if ((input.provider === "wechat_miniprogram") !== (input.adapter === "wechat")) throw new DomainError("IDENTITY_PROVIDER_INVALID", "Identity provider and adapter do not match", 422);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [`external-identity:${input.provider}:${input.appId}:${input.openid}`]);
+      if(await this.accountClosure?.hasIdentity(input.provider,input.appId,input.openid))
+        throw new DomainError('ACCOUNT_CLOSED','账号已注销；可从登录页核验微信身份后处理历史隐私请求',410);
       const existing = await client.query<{ member_id: string; identity_id: string }>(
         "SELECT member_id, id AS identity_id FROM wechat_identity WHERE provider=$1 AND app_id=$2 AND openid=$3 FOR UPDATE", [input.provider, input.appId, input.openid]
       );

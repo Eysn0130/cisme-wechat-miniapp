@@ -9,6 +9,7 @@ from datetime import datetime,timezone,timedelta
 import importlib.util
 import io
 import json
+import stat
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -122,14 +123,24 @@ class Preflight(unittest.TestCase):
         (self.new/'release-manifest.json').write_text(json.dumps(self.manifest))
         self.live=self.root/'runtime.env';self.live.write_text('SYNTHETIC=old')
         self.candidate=self.root/'candidate.env';self.candidate.write_text('SYNTHETIC=new')
-        self.candidate_config={**m.CLOSED,'APP_SESSION_SECRET':'synthetic-same'}
+        self.candidate_config={**m.CLOSED,'APP_SESSION_SECRET':'synthetic-same',
+                               'PRIVACY_SUPPRESSION_DIR':'/var/lib/cisme/privacy-suppression'}
         self.live_config={'APP_ENV':'staging','APP_SESSION_SECRET':'synthetic-same'}
-        self.trusted_script=self.script;self.calls=[]
+        self.trusted_script=self.script;self.calls=[];self.suppression_mode=stat.S_IFDIR|0o700
 
     def execute(self,services_stopped=False):
         def fetch(path):return {'type':'file','encoding':'base64','path':'scripts/release-migrate.mjs','content':base64.b64encode(self.trusted_script).decode()}
-        def command(*args,**kwargs):self.calls.append('verify');return json.dumps({'verified':True,'sourceHead':HEAD,'sourceTree':TREE}).encode()
+        def command(*args,**kwargs):
+            if args[0][0]=='systemctl':return b'/opt/cisme/tmp /var/lib/cisme/privacy-suppression'
+            self.calls.append('verify');return json.dumps({'verified':True,'sourceHead':HEAD,'sourceTree':TREE}).encode()
         with ExitStack() as stack:
+            original_lstat=Path.lstat
+            def fixture_lstat(path,*args,**kwargs):
+                if str(path)=='/var/lib/cisme/privacy-suppression':
+                    return SimpleNamespace(st_mode=self.suppression_mode,st_uid=12345)
+                return original_lstat(path,*args,**kwargs)
+            stack.enter_context(patch.object(Path,'lstat',fixture_lstat))
+            stack.enter_context(patch.object(m.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=12345)))
             for name,value in [('ROOT',self.root),('CURRENT',self.current),('LIVE',self.live),('release_directory',lambda p:Path(p)),
                                ('protected',lambda p,*args:Path(p).read_bytes()),('receipt',lambda p:json.loads(Path(p).read_bytes())),
                                ('reviewed_main',lambda fetch:{'sha':HEAD,'tree':TREE,'ciRunId':1}),('command',command)]:stack.enter_context(patch.object(m,name,value))
@@ -173,6 +184,13 @@ class Preflight(unittest.TestCase):
     def test_child_process_injection_is_refused(self):
         self.candidate_config['NODE_TLS_REJECT_UNAUTHORIZED']='0'
         with self.assertRaisesRegex(m.observe.target.Refused,'PROCESS_INJECTION_CONFIGURATION_REFUSED'):self.execute()
+
+    def test_suppression_directory_is_required_and_private(self):
+        del self.candidate_config['PRIVACY_SUPPRESSION_DIR']
+        with self.assertRaisesRegex(m.observe.target.Refused,'PRIVACY_SUPPRESSION_TARGET_REQUIRED'):self.execute()
+        self.candidate_config['PRIVACY_SUPPRESSION_DIR']='/var/lib/cisme/privacy-suppression'
+        self.suppression_mode=stat.S_IFDIR|0o755
+        with self.assertRaisesRegex(m.observe.target.Refused,'PRIVACY_SUPPRESSION_DIRECTORY_UNSAFE'):self.execute()
 
 
 class Qualifications(unittest.TestCase):

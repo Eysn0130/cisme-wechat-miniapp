@@ -1,8 +1,8 @@
-import { request, resumeAuthentication } from '../../services/api';
+import { request, resumeAuthentication, setSessionToken } from '../../services/api';
 import { currentChromeStyle } from '../../services/layout';
 import { clientOperationKey } from '../../services/orders';
 const kinds=['access','correct','delete','close_account','withdraw','other'];
-const labels=['查阅或复制个人信息','更正个人信息','删除个人信息','注销会员账号','撤回个人信息处理同意','其他隐私咨询'];
+const labels=['查阅或复制个人信息','更正个人信息','删除个人信息','申请注销账号','撤回个人信息处理同意','其他隐私咨询'];
 const closedKinds=kinds.filter(kind=>kind!=='close_account');
 const closedLabels=labels.filter((_,index)=>kinds[index]!=='close_account');
 const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'待执行',executing:'正在执行',completed:'已完成',partially_completed:'部分完成',rejected:'未批准',canceled:'已取消',responded:'已回复，待处理'};
@@ -67,10 +67,20 @@ Page({
  },
  async submit(){
   if(this.data.busy)return;
-  if(!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
+  const kind=(this.data.closedRights?closedKinds:kinds)[this.data.selected];
+  if(kind!=='close_account'&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
+  if(kind==='close_account'){
+   const confirmed=await new Promise<boolean>(resolve=>wx.showModal({title:'注销账号',
+    content:'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私请求。',
+    confirmText:'确认注销',confirmColor:'#6b3975',success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
+   if(!confirmed)return;
+  }
   const token=privacyToken();
   this.setData({busy:true,error:'',notice:''});
-  try{await request({path:'/v1/me/privacy-requests',method:'POST',data:{kind:(this.data.closedRights?closedKinds:kinds)[this.data.selected],message:this.data.message}});if(this.data.alive && token===privacyToken()){this.setData({message:'',notice:'请求已受理，进度可在下方查看。'});await this.load();}}
+  try{const result=await request<{accountClosed?:boolean}>({path:'/v1/me/privacy-requests',method:'POST',data:{kind,message:kind==='close_account'?'本人申请注销 CISME 账号':this.data.message}});
+   if(this.data.alive && token===privacyToken()){
+    if(result.accountClosed){setSessionToken('');this.setData({authenticated:false,closedRights:false,records:[],message:'',busy:false,notice:'账号已注销。需要处理历史资料时，可重新核验微信身份。'});return;}
+    this.setData({message:'',notice:'请求已受理，进度可在下方查看。'});await this.load();}}
   catch(e){if(this.data.alive && token===privacyToken())this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新受理记录后再试。'});}
   finally{if(this.data.alive && token===privacyToken())this.setData({busy:false});}
  },
