@@ -18,7 +18,8 @@ export interface AppConfig {
   allowDevAdapters: boolean;
   devClock: string | null;
   sessionSecret: string;
-  privacy: { syntheticExportKey: string | null; formalExportKey: string | null; suppressionDirectory: string | null };
+  privacy: { syntheticExportKey: string | null; formalExportKey: string | null; suppressionDirectory: string | null;
+    suppressionBucket: string | null };
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
   wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean;
     messageToken: string | null; messageAesKey: string | null; plaintextCallbackTestOnly: boolean };
@@ -118,6 +119,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const suppressionDirectory=env.PRIVACY_SUPPRESSION_DIR?.trim() || null;
   if(suppressionDirectory && (!suppressionDirectory.startsWith('/') || suppressionDirectory.includes('\0')))
     throw new Error('CONFIG_INVALID:PRIVACY_SUPPRESSION_DIR');
+  const suppressionBucket=env.PRIVACY_SUPPRESSION_BUCKET?.trim() || null;
+  if(suppressionBucket && !/^[a-z0-9][a-z0-9-]{2,58}-[0-9]{9,12}$/.test(suppressionBucket))
+    throw new Error('CONFIG_INVALID:PRIVACY_SUPPRESSION_BUCKET');
 
   const transactionRaw = env.SELECTED_TRANSACTION_PROFILE?.trim() || null;
   const pointsRulesEnabled = bool(env.POINTS_RULES_ENABLED);
@@ -300,7 +304,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowDevAdapters,
     devClock: env.DEV_CLOCK ?? null,
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
-    privacy: { syntheticExportKey, formalExportKey, suppressionDirectory },
+    privacy: { syntheticExportKey, formalExportKey, suppressionDirectory, suppressionBucket },
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
     wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null,
       phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null,

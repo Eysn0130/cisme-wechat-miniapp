@@ -8,17 +8,20 @@ it('stores only immutable identity digests and replays every paginated remote ma
   const config=loadConfig({APP_ENV:'test',DATABASE_URL:'postgres://unused/cisme_test',APP_SESSION_SECRET:'closure-remote',
     UPLOAD_TOKEN_SECRET:'closure-remote-upload',
     OBJECT_STORAGE_DRIVER:'cos_gateway',S3_ACCESS_KEY_ID:'fixture',S3_SECRET_ACCESS_KEY:'fixture',
-    S3_BUCKET:'fixture-bucket',S3_REGION:'ap-shanghai',WECHAT_APP_ID:'wx4eac2d4fb11d299b'});
+    S3_BUCKET:'lhcos-81ddf-1257392443',S3_REGION:'ap-shanghai',WECHAT_APP_ID:'wx4eac2d4fb11d299b',
+    PRIVACY_SUPPRESSION_BUCKET:'cisme-privacy-1257392443'});
   const objects=new Map<string,Buffer>();let versioned=false;
   const client={
-    getBucketVersioning:async()=>({VersioningConfiguration:versioned?{Status:'Enabled'}:{}}),
-    putObject:async(input:{Key:string;Body:Buffer;Headers:Record<string,string>})=>{
+    getBucketVersioning:async(input:{Bucket:string})=>{expect(input.Bucket).toBe('cisme-privacy-1257392443');return {VersioningConfiguration:versioned?{Status:'Enabled'}:{}};},
+    putObject:async(input:{Bucket:string;Key:string;Body:Buffer;Headers:Record<string,string>})=>{
+      expect(input.Bucket).toBe('cisme-privacy-1257392443');
       expect(input.Headers['x-cos-forbid-overwrite']).toBe('true');
       if(objects.has(input.Key))throw new Error('ObjectAlreadyExists');
       objects.set(input.Key,Buffer.from(input.Body));return {};
     },
-    getObject:async(input:{Key:string})=>{const Body=objects.get(input.Key);if(!Body)throw new Error('NoSuchKey');return {Body};},
-    getBucket:async(input:{Prefix:string;Marker?:string})=>{
+    getObject:async(input:{Bucket:string;Key:string})=>{expect(input.Bucket).toBe('cisme-privacy-1257392443');const Body=objects.get(input.Key);if(!Body)throw new Error('NoSuchKey');return {Body};},
+    getBucket:async(input:{Bucket:string;Prefix:string;Marker?:string})=>{
+      expect(input.Bucket).toBe('cisme-privacy-1257392443');
       const keys=[...objects.keys()].filter(key=>key.startsWith(input.Prefix)&&(!input.Marker||key>input.Marker)).sort();
       const first=keys[0];
       return {Contents:first?[{Key:first}]:[],IsTruncated:keys.length>1?'true':'false',NextMarker:first};
@@ -39,4 +42,6 @@ it('stores only immutable identity digests and replays every paginated remote ma
   versioned=true;
   await expect(remote.list()).rejects.toThrow('ACCOUNT_CLOSURE_REMOTE_VERSIONING_UNSAFE');
   await expect(remote.put(rows[0]!)).rejects.toThrow('ACCOUNT_CLOSURE_REMOTE_VERSIONING_UNSAFE');
+  expect(()=>createCosSuppressionRemote({...config,env:'production',privacy:{...config.privacy,suppressionBucket:null}},client))
+    .toThrow('ACCOUNT_CLOSURE_STANDARD_COS_BUCKET_REQUIRED');
 });

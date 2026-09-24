@@ -128,4 +128,11 @@ describe("production configuration fails closed", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "development", COS_DIRECT_UPLOAD_ENABLED: "true" })).toThrow("COS_DIRECT_UPLOAD_REQUIRES_COS_GATEWAY");
     expect(() => loadConfig({ ...base, APP_ENV: "development", OBJECT_STORAGE_DRIVER: "cos_gateway", COS_DIRECT_UPLOAD_ENABLED: "true" })).toThrow("COS_DIRECT_UPLOAD_CREDENTIALS_REQUIRED");
   });
+
+  it("validates a separately configured privacy suppression bucket", () => {
+    const configured=loadConfig({...base,APP_ENV:"test",PRIVACY_SUPPRESSION_BUCKET:"cisme-privacy-1257392443"});
+    expect(configured.privacy.suppressionBucket).toBe("cisme-privacy-1257392443");
+    expect(() => loadConfig({...base,APP_ENV:"test",PRIVACY_SUPPRESSION_BUCKET:"invalid/path"}))
+      .toThrow("CONFIG_INVALID:PRIVACY_SUPPRESSION_BUCKET");
+  });
 });

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "target": {"instanceId": "lhins-61ikz4mi", "region": "ap-shanghai", "mediaBucket": "lhcos-81ddf-1257392443"},
+  "observed": [
+    "The signed-in Tencent Cloud main account APPID is 1257392443, matching the media bucket suffix.",
+    "The bucket is absent from the standard COS console but present in Lighthouse object storage, ap-shanghai, with private read/write access.",
+    "The existing service credential can head the bucket but its bucket-versioning and prefix-list preflight returned AccessDenied; the active API/Worker were not upgraded."
+  ],
+  "vendorDocumentation": [
+    "https://cloud.tencent.com/document/product/436/30748",
+    "https://cloud.tencent.com/document/product/1207/108904"
+  ],
+  "diagnosis": "Tencent documents that Lighthouse COS buckets may not appear in the standard COS list and that its SDK compatibility excludes bucket-level operations. The suppression replay implementation requires GetBucketVersioning and GetBucket. A standard private COS bucket must be selected for those markers; the existing media bucket stays in place.",
+  "sourceChange": "PRIVACY_SUPPRESSION_BUCKET selects a separate standard COS bucket for the existing suppression remote; production rejects use of a Lighthouse COS bucket for that remote. No new product module or media migration is required.",
+  "status": "Code prepared; standard private bucket and its effective service access have not been provisioned or verified."
+}
