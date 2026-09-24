@@ -10,6 +10,7 @@ This pack is bound to Mini Program source SHA-256 `b6073d63231fd61c14e0b4b4930cb
 - Current-source raw native screenshots: 40/40; each is an untouched 333×719 simulator frame.
 - Interaction recordings: 0; iOS sessions: 0; Android sessions: 0.
 - The checkout stepper was operated in this simulator; button/icon geometry and 1→2→1 result are in `checkout-stepper-interaction.json`. The support composer focus probe did not raise a simulator keyboard; `keyframes/support-focus-no-keyboard.png` is evidence of that limit, not a keyboard pass.
+- The paid-order aftersale sheet → full support → return journey retained the order ID and unsent draft; see `order-support-journey.json` and its two raw keyframes. No service request or message was submitted in that journey.
 - Fixture schema: 89. Environment checks, when present, are local synthetic checks only.
 - Route runtime results are supplied separately by the capture runner. This generator does not turn captured frames into passed interactions or visual review.
 - Final visual status: **BLOCKED**. Source/package tests may pass while visual/device evidence remains blocked.
