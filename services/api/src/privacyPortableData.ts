@@ -114,7 +114,8 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         JOIN commerce_aftersale_case c ON c.id=i.case_id WHERE c.member_id=$1
         ORDER BY i.case_id,i.version`,[memberId])).rows},
     support:{messages:(await client.query(`SELECT m.id,m.sequence,m.sender_type,m.body,m.content_type,
-        m.linked_order_id,m.linked_case_id,m.created_at
+        m.attachment_refs,m.linked_order_id,m.order_snapshot,m.linked_case_id,
+        m.return_instruction_snapshot,m.created_at
         FROM support_message m JOIN support_conversation c ON c.id=m.conversation_id
         WHERE c.member_id=$1 ORDER BY m.sequence,m.id`,[memberId])).rows},
     community:{posts:(await client.query(`SELECT id,state,visibility,published_at,created_at,updated_at
@@ -179,7 +180,17 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
     UNION ALL SELECT id,object_key,mime_type,size_bytes,'community_upload' AS kind
       FROM ugc_media_asset WHERE owner_member_id=$1 AND state IN ('uploaded','scanning','approved','rejected')
     ORDER BY id`,[memberId])).rows;
-  return {sections,uploaded};
+  const uploadedIds=new Set(uploaded.map(row=>row.id));
+  const referenced=new Set<string>();
+  for(const row of (sections.support as {messages:Array<{attachment_refs:unknown}>}).messages){
+    if(Array.isArray(row.attachment_refs))for(const id of row.attachment_refs)
+      if(typeof id==='string')referenced.add(id);
+  }
+  // A historical attachment reference may outlive its object row. Do not
+  // report the subject copy complete merely because the media query omitted it.
+  const missingMedia=[...referenced].filter(id=>!uploadedIds.has(id)).map(id=>({id,kind:'member_upload',
+    mimeType:'application/octet-stream',reason:'stored_copy_unavailable'}));
+  return {sections,uploaded,missingMedia};
 }
 
 /** Object storage calls happen after the short database snapshot has closed.
@@ -187,9 +198,9 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
  * of the subject's readable information disappear. */
 export async function materializeMemberPortableData(snapshot:Awaited<ReturnType<typeof collectMemberPortableData>>,
   storage:ObjectStorage){
-  const {sections,uploaded}=snapshot;
+  const {sections,uploaded,missingMedia}=snapshot;
   const media:Array<{id:string;kind:string;mimeType:string;base64:string}>=[];
-  const unavailableMedia:Array<{id:string;kind:string;mimeType:string;reason:string}>=[];
+  const unavailableMedia:Array<{id:string;kind:string;mimeType:string;reason:string}>=[...missingMedia];
   let mediaBytes=0;
   for(const row of uploaded){
     assertOperationActive();

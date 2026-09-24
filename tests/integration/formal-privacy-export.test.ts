@@ -66,6 +66,13 @@ it('lets a verified WeChat member export their own data without a second adminis
   await pool.query(`INSERT INTO points_entry(member_id,entry_type,business_key,occurred_at,
     available_delta) VALUES($1,'adjustment',$2,now(),5),($3,'adjustment',$4,now(),7)`,
     [owner.memberId,`export-own-${randomUUID()}`,other.memberId,`export-other-${randomUUID()}`]);
+  for(const [memberId,body] of [[owner.memberId,'本人客服往来'],[other.memberId,'他人客服往来']]){
+    const conversation=(await pool.query<{id:string}>(`INSERT INTO support_conversation(member_id,status)
+      VALUES($1,'waiting_human') RETURNING id`,[memberId])).rows[0]!;
+    await pool.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,
+      body,client_message_id) VALUES($1,1,'user',$2,$3,$4)`,
+    [conversation.id,`member:${memberId}`,body,`privacy-export-${randomUUID()}`]);
+  }
   const response=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
     headers:{authorization:`Bearer ${owner.sessionToken}`},
     payload:{kind:'access',message:'导出我的个人资料'}});
@@ -107,11 +114,14 @@ it('lets a verified WeChat member export their own data without a second adminis
   expect(copy.sections.participation.points[0].available_delta).toBe(5);
   expect(copy.sections.participation.consentGrants[0].purpose).toBe('publication');
   expect(copy.sections.community.reports[0].description).toBe('本人举报');
+  expect(copy.sections.support.messages[0]).toMatchObject({body:'本人客服往来',attachment_refs:[],
+    order_snapshot:null,return_instruction_snapshot:null});
   expect(copy.sections.rights.memberReplies[0].body).toBe('本人补充说明');
   expect(copy.sections.rights.operatorReplies[0].body).toBe('处理回复');
   expect(JSON.stringify(copy)).not.toContain('OtherHandle');
   expect(JSON.stringify(copy)).not.toContain('OtherChannel');
   expect(JSON.stringify(copy)).not.toContain('他人举报');
+  expect(JSON.stringify(copy)).not.toContain('他人客服往来');
   expect(JSON.stringify(copy)).not.toContain('phone_encrypted');
   const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
     headers:{authorization:`Bearer ${owner.sessionToken}`}});
@@ -155,6 +165,13 @@ it('delivers readable data while naming video and missing images as incomplete',
       [owner.memberId,kind,mime])).rows[0];
     mediaIds.push(row.id);
   }
+  const missingSupportImage=randomUUID();
+  const conversation=(await pool.query<{id:string}>(`INSERT INTO support_conversation(member_id,status)
+    VALUES($1,'waiting_human') RETURNING id`,[owner.memberId])).rows[0]!;
+  await pool.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,
+    body,attachment_refs,content_type,client_message_id)
+    VALUES($1,1,'user',$2,'历史图片说明',$3,'image',$4)`, [conversation.id,
+      `member:${owner.memberId}`,JSON.stringify([missingSupportImage]),`missing-support-${randomUUID()}`]);
   const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
     headers:{authorization:`Bearer ${owner.sessionToken}`},
     payload:{kind:'access',message:'获取我的数据副本和素材'}});
@@ -168,7 +185,8 @@ it('delivers readable data while naming video and missing images as incomplete',
   expect(downloaded.statusCode,downloaded.body).toBe(200);
   expect(downloaded.json().unavailableMedia).toEqual(expect.arrayContaining([
     expect.objectContaining({id:mediaIds[0],reason:'video_requires_separate_copy'}),
-    expect.objectContaining({id:mediaIds[1],reason:'stored_copy_unavailable'})]));
+    expect.objectContaining({id:mediaIds[1],reason:'stored_copy_unavailable'}),
+    expect.objectContaining({id:missingSupportImage,reason:'stored_copy_unavailable'})]));
 });
 
 it('delivers only an owner-listed supplementary image while the copy remains valid',async()=>{
