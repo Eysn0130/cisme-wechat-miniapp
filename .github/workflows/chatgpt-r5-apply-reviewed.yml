@@ -1,0 +1,64 @@
+name: CISME R5 apply reviewed repair
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/chatgpt-r5-apply-reviewed.yml'
+permissions:
+  contents: write
+concurrency:
+  group: cisme-r5-reviewed-application
+  cancel-in-progress: false
+jobs:
+  apply:
+    if: github.repository == 'Eysn0130/cisme-wechat-miniapp' && github.event.pull_request.number == 22 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/fulfillment-lifecycle-20260922'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Verify every before and after hash; apply only the reviewed paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,pathlib,subprocess
+          baseline='b4db47dc105d7f449a9822c49aed619384fce5c0'
+          branch='refs/heads/codex/fulfillment-lifecycle-20260922'
+          def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('ls-remote','origin',branch).split()[0]==git('rev-parse','HEAD'), 'Remote moved; do not overwrite'
+          assert git('merge-base',baseline,'HEAD')==baseline
+          temporary={'.github/workflows/chatgpt-r5-review-source.yml','.github/workflows/chatgpt-r5-apply-reviewed.yml',
+            '.github/r5-reviewed-edits-1.json','.github/r5-reviewed-edits-2.json','.github/r5-reviewed-edits-3.json'}
+          assert set(git('diff','--name-only',baseline,'HEAD').splitlines())<=temporary, 'Application source changed since review'
+          rows=[]
+          for i in range(1,4): rows.extend(json.loads(pathlib.Path(f'.github/r5-reviewed-edits-{i}.json').read_text()))
+          assert len(rows)==25 and len({r['path'] for r in rows})==25
+          prepared=[]
+          for row in rows:
+            path=pathlib.Path(row['path'])
+            assert not path.is_absolute() and '..' not in path.parts and str(path).startswith(('apps/miniprogram/','services/api/src/','tests/','docs/evidence/visual/'))
+            assert not path.is_symlink()
+            old=path.read_bytes() if path.exists() else b''
+            assert hashlib.sha256(old).hexdigest()==row['before'], f'Before mismatch: {path}'
+            text=old.decode('utf-8'); last=len(text)+1
+            for start,end,replacement in reversed(row['ops']):
+              assert 0<=start<=end<=len(text) and end<=last, f'Invalid edit: {path}'
+              text=text[:start]+replacement+text[end:]; last=start
+            data=text.encode('utf-8')
+            assert hashlib.sha256(data).hexdigest()==row['after'], f'After mismatch: {path}'
+            prepared.append((path,data,row['after']))
+          for path,data,digest in prepared:
+            path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(data)
+            print(str(path),digest)
+          subprocess.run(['git','add','--',*[str(p) for p,_,_ in prepared]],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          assert set(git('diff','--cached','--name-only').splitlines())=={r['path'] for r in rows}
+          subprocess.run(['git','config','user.name','CISME review automation'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','commit','-m','fix: close privacy export races and native purchase interaction gaps'],check=True)
+          # A normal fast-forward push; a concurrent update must fail, never force.
+          subprocess.run(['git','push','origin',f'HEAD:{branch}'],check=True)
+          print('APPLICATION_COMMIT='+git('rev-parse','HEAD'))
+          PY
