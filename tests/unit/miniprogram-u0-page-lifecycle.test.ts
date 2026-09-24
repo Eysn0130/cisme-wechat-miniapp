@@ -163,14 +163,14 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       quote: { id: "quote-1", expiresAt: "2026-09-12T01:00:00.000Z", serverTime: "2026-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, createKey: ""
+      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
     }, { requestEpoch: 4, mounted: true, visible: true, countdownTimer: null });
     page.load = vi.fn();
 
     await page.confirmOrder();
 
     expect(page.data.quote).toBeNull();
-    expect(page.data.error).toBe("商品或价格已变化，请重新报价。");
+    expect(page.data.error).toBe("商品或价格有变化，请重新确认。");
     expect(page.load).toHaveBeenCalledTimes(1);
   });
 
@@ -180,7 +180,7 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       quote: { id: "quote-1", expiresAt: "2099-09-12T01:00:00.000Z", serverTime: "2099-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, createKey: ""
+      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
     }, { requestEpoch: 5, mounted: true, visible: true, countdownTimer: null });
 
     const first = page.confirmOrder();

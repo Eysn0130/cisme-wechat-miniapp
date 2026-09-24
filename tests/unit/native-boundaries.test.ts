@@ -50,7 +50,8 @@ describe("native mini program boundary", () => {
   it("keeps internal pricing rule identifiers out of the buyer checkout surface", async () => {
     const checkout = await readFile(resolve("apps/miniprogram/pages/checkout/index.wxml"), "utf8");
     expect(checkout).not.toContain("quote.pricingRuleVersion");
-    expect(checkout).toContain("下单时仍会核价");
+    expect(checkout).toContain("费用已过期，请重新确认。");
+    expect(checkout).toContain('bindtap="refreshQuote"');
   });
 
   it("contains no React DOM, browser globals or deferred social routes", async () => {
@@ -225,7 +226,7 @@ describe("native mini program boundary", () => {
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
       "privacy-rights": ["back", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "copyRequestId", "loadMore", "login", "openSupport"],
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
-      checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
+      checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "loadSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "openAftersale", "loadShipment", "confirmReceipt", "loadTracking", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
       profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "load", "retryTasks"],
