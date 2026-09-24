@@ -52,6 +52,34 @@ jobs:
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $archive" | shasum -a 256 -c -
           tar -xzf "$archive" -C "$scanner_dir" gitleaks
           "$scanner_dir/gitleaks" git . --no-banner --no-color --redact=100
+      - name: Capture tracked source for independent review (not acceptance)
+        id: source_review_snapshot
+        continue-on-error: true
+        env:
+          SOURCE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REF" =~ ^[0-9a-f]{40}$ ]]
+          out="$RUNNER_TEMP/source-review"
+          mkdir -p "$out"
+          git rev-parse --verify "$SOURCE_REF^{commit}" > "$out/source-commit.txt"
+          git rev-parse "$SOURCE_REF^{tree}" > "$out/source-tree.txt"
+          git rev-parse HEAD > "$out/tested-checkout-commit.txt"
+          # Archive committed files only, after the existing secret scan.
+          # Never package the working tree, .git, credentials, or test output.
+          git archive --format=tar.gz --output="$out/source.tar.gz" "$SOURCE_REF"
+          test "$(wc -c < "$out/source.tar.gz")" -le 52428800
+          (cd "$out" && sha256sum source.tar.gz source-commit.txt source-tree.txt tested-checkout-commit.txt > SHA256SUMS)
+          printf '%s\n' 'SOURCE REVIEW ONLY. This archive does not prove tests, native-device acceptance, main validation, or production deployment. For a PR, source-commit is the actual PR head; tested-checkout-commit is the synthetic merge checkout.' > "$out/README.txt"
+      - name: Upload source review snapshot
+        if: ${{ success() && steps.source_review_snapshot.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: source-review-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/source-review/
+          retention-days: 3
+          if-no-files-found: error
       - name: Create bounded verification evidence directory
         run: mkdir -p "$RUNNER_TEMP/native-validation"
       - run: npm ci 2>&1 | tee "$RUNNER_TEMP/native-validation/ci.log"
