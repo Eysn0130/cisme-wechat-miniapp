@@ -784,6 +784,15 @@
   margin-top: 20rpx;
 }
 
+.support-order-more {
+  min-height: 44px;
+  margin: 12rpx 0 4rpx;
+  color: #56306f;
+  background: #f3edf6;
+  font-size: 26rpx;
+}
+
+
 .support-order-choice {
   display: grid;
   grid-template-columns: 82rpx minmax(0, 1fr) 26rpx;

@@ -759,7 +759,7 @@ describe("mini-program page behavior", () => {
     expect(wxMock.redirectTo).toHaveBeenCalledWith({url:"/pages/privacy-rights/index"});
   });
 
-  it("drops support image callbacks after account switch or page hide", async () => {
+  it("drops support image callbacks after account switch, including a native page handoff", async () => {
     const app = { globalData: { sessionToken: "support-member-a" } };
     (globalThis as any).getApp = () => app;
     let allow!: () => void;
@@ -787,10 +787,12 @@ describe("mini-program page behavior", () => {
     context.abortTransientWork = vi.fn();
     page.onHide.call(context);
     resolveChosen({ tempFiles: [{ tempFilePath: "/synthetic/private.jpg", size: 100 }] });
+    app.globalData.sessionToken = "support-member-b";
+    page.onShow.call(context);
     await hidden;
     expect(context.data.input).toBe("尚未发送的文字");
     expect(context.data.selectedImage).toBeNull();
-    expect(requestMock).not.toHaveBeenCalled();
+    expect(requestMock.mock.calls.some(([options]) => options.path === "/v1/me/support/media/authorize")).toBe(false);
     expect(uploadAuthorizedMock).not.toHaveBeenCalled();
   });
 

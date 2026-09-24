@@ -61,6 +61,7 @@ Page({
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
   uploadAttempt: 0,
   choosingImage: false,
+  nativePickerReturn: null as (() => void) | null,
   uploadAbort: null as (() => void) | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
@@ -69,7 +70,7 @@ Page({
     pendingMessage: null as Message | null, loading: true, loadingOlder: false, sending: false, handoffBusy: false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
-    attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
+    attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
     selectedImage: null as SelectedImage | null, uploadBusy: false
   },
   onLoad(options:Record<string,string>) { this.data.pageAlive = true;
@@ -78,17 +79,20 @@ Page({
   onReady() { this.measureComposer(); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.measureComposer(); },
   onShow() {
+    const previousRevision = this.readRevision;
     this.readRevision=commerceContextRevision();
     const token=sessionToken(),closedRights=historicalCommerceClosed();
-    const preserve = retainMemberSnapshot(this)||Boolean(token&&this.snapshotToken===token);
+    const preserve = (retainMemberSnapshot(this)||Boolean(token&&this.snapshotToken===token)) && previousRevision===this.readRevision;
     this.snapshotToken=token;
     this.lifecycleEpoch += 1;
     this.data.pageAlive = true;
     this.data.visible = true;
+    this.nativePickerReturn?.();
+    this.nativePickerReturn = null;
     this.lastActivityAt = Date.now();
     this.orderPickerRevision += 1;
     this.orderPickerToken = "";
-    this.setData({ sending: false, handoffBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderChoices: [], orderPickerError: "" });
+    this.setData({ sending: false, handoffBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
     if (!preserve) {
       this.inputRevision += 1;
       this.orderSelectionRevision += 1;
@@ -114,32 +118,42 @@ Page({
       const draft=takeSupportDraft(sessionToken(),this.linkedOrderId);
       if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.input?this.data.selectedImage:this.data.selectedImage,this.data.selectedOrder)});
     }
-    void this.load();
+    if (preserve && this.data.conversation && !this.data.loading) {
+      // Keep the existing scroll-view and its reading position through native
+      // image preview, privacy authorization and temporary page navigation.
+      this.downloadMedia(this.data.messages);
+      void this.poll();
+    } else void this.load();
     if(this.linkedOrderId)void this.loadLinkedOrder();
     wx.nextTick(() => this.measureComposer());
   },
   onHide() {
     cancelPageReads(this);
     void this.publishPresence(false, false, true);
+    if (this.data.sending && this.data.sendAttempt) this.setData({
+      sending: false, pendingMessage: this.pendingFrom(this.data.sendAttempt, "unknown"),
+      error: "发送结果尚未确认，内容已保留，请重试。", errorAction: ""
+    });
     const interruptedUpload = this.data.uploadBusy && this.data.selectedImage
       ? { ...this.data.selectedImage, status: "failed" as const, error: "页面离开时上传已中断，图片和正文仍保留。" }
       : null;
     this.data.visible = false;
     this.lifecycleEpoch += 1;
-    this.choosingImage = false;
+    // The system album/camera can hide this page. Its result is checked again
+    // against the live identity after onShow instead of being discarded here.
     this.stopPolling();
     this.clearPresenceTimer();
     this.abortTransientWork();
     this.orderPickerRevision += 1;
     this.orderPickerToken = "";
-    this.setData({ composerFocused: false, keyboardHeight: 0, orderPickerOpen: false, orderPickerLoading: false, orderChoices: [] });
+    this.setData({ composerFocused: false, keyboardHeight: 0, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [] });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
   onUnload() { if(this.linkedOrderId&&!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===this.linkedOrderId&&
       !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),this.linkedOrderId,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId});
     else if(this.linkedOrderId&&!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
       stageSupportDraft(sessionToken(),this.linkedOrderId,this.data.input);
-    cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
+    cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); this.choosingImage = false; this.nativePickerReturn?.(); this.nativePickerReturn = null; },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??'');
     if(!this.data.visible||!this.data.messages.some(item=>item.returnInstruction?.caseId===id))return;
@@ -192,8 +206,9 @@ Page({
   },
   measureComposer() {
     if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
+    const epoch = this.lifecycleEpoch, ownerToken = sessionToken();
     wx.createSelectorQuery().select(".support-composer").boundingClientRect((rect) => {
-      if (!this.data.pageAlive || !rect || typeof rect.height !== "number") return;
+      if (!this.owns(epoch, ownerToken) || !rect || typeof rect.height !== "number") return;
       const height = Math.max(112, Math.ceil(rect.height));
       this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
     }).exec();
@@ -241,7 +256,7 @@ Page({
       void this.publishPresence(true, Boolean(this.data.input.trim()), true);
       this.startPolling();
     } catch {
-      if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, error: "连接失败，请重试。", errorAction: "sync" });
+      if (this.owns(epoch, ownerToken)) this.setData({ loading: false, error: "连接失败，请重试。", errorAction: "sync" });
     }
   },
   async poll() {
@@ -346,22 +361,23 @@ Page({
     const raw = {
       id: `local-${attempt.id}`, sequence: this.data.maxSeenSequence + 1, senderType: "user" as const, body: attempt.body,
       contentType: attempt.mediaIds.length || attempt.linkedOrderId ? "mixed" : "text", createdAt: new Date().toISOString(), deliveryState: "server_accepted" as const,
-      attachments: this.data.selectedImage ? [{ id: this.data.selectedImage.mediaId || "local", mimeType: this.data.selectedImage.mimeType, sizeBytes: this.data.selectedImage.size, previewPath: "", localPath: this.data.selectedImage.localPath }] : [],
-      orderCard: this.data.selectedOrder ? { orderId:this.data.selectedOrder.id,orderNumberTail:this.data.selectedOrder.orderNumberTail,status:this.data.selectedOrder.status,currency:this.data.selectedOrder.currency,totalCents:this.data.selectedOrder.totalCents,productName:this.data.selectedOrder.productName,productImage:this.data.selectedOrder.productImage,itemSummary:this.data.selectedOrder.itemSummary,statusLabel:this.data.selectedOrder.statusLabel,totalYuan:this.data.selectedOrder.totalYuan } : null,
+      attachments: this.data.selectedImage && attempt.mediaIds.includes(this.data.selectedImage.mediaId) ? [{ id: this.data.selectedImage.mediaId, mimeType: this.data.selectedImage.mimeType, sizeBytes: this.data.selectedImage.size, previewPath: "", localPath: this.data.selectedImage.localPath }] : [],
+      orderCard: this.data.selectedOrder?.id === attempt.linkedOrderId ? { orderId:this.data.selectedOrder.id,orderNumberTail:this.data.selectedOrder.orderNumberTail,status:this.data.selectedOrder.status,currency:this.data.selectedOrder.currency,totalCents:this.data.selectedOrder.totalCents,productName:this.data.selectedOrder.productName,productImage:this.data.selectedOrder.productImage,itemSummary:this.data.selectedOrder.itemSummary,statusLabel:this.data.selectedOrder.statusLabel,totalYuan:this.data.selectedOrder.totalYuan } : null,
       localState: state
     };
     return presentSupportMessages([raw], { ownSenderType: "user", counterpartyReadSequence: 0 })[0]! as Message;
   },
   async send() {
-    const body = this.data.input.trim();
-    const mediaIds = this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : [];
-    const linkedOrderId = this.data.closedRights?this.linkedOrderId:(this.data.selectedOrder?.id ?? (!this.linkedOrderDismissed&&this.linkedOrderId?this.linkedOrderId:null));
-    if ((this.data.closedRights?(!body||!linkedOrderId||mediaIds.length>0):!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder)) || this.data.sending || this.data.uploadBusy) return;
-    const signature = this.sendSignature(body, mediaIds, linkedOrderId);
+    const previous = this.data.sendAttempt;
+    const body = previous?.body ?? this.data.input.trim();
+    const mediaIds = previous?.mediaIds ?? (this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : []);
+    const linkedOrderId = previous ? previous.linkedOrderId : (this.data.closedRights?this.linkedOrderId:(this.data.selectedOrder?.id ?? (!this.linkedOrderDismissed&&this.linkedOrderId?this.linkedOrderId:null)));
+    if ((this.data.closedRights?(!body||!linkedOrderId||mediaIds.length>0):previous?!Boolean(body||mediaIds.length||linkedOrderId):!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder)) || this.data.sending || this.data.uploadBusy) return;
+    const signature = previous?.signature ?? this.sendSignature(body, mediaIds, linkedOrderId);
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    const sendAttempt = this.data.sendAttempt?.signature === signature ? this.data.sendAttempt : { id: `wx-user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, signature, body, mediaIds, linkedOrderId };
+    const sendAttempt = previous ?? { id: `wx-user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, signature, body, mediaIds, linkedOrderId };
     this.lastActivityAt = Date.now();
     this.setData({ sending: true, error: "", errorAction: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending") });
     void this.publishPresence(true, false, true);
@@ -371,14 +387,19 @@ Page({
       if (!this.owns(epoch, ownerToken)) return;
       const normalized = this.normalize([result.message], this.data.selectedImage);
       if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
-      const clearDraft = this.inputRevision === draftRevision && this.sendSignature(this.data.input.trim(), mediaIds, linkedOrderId) === signature;
-      this.setData({ ...(clearDraft ? { input: "", selectedImage: null, selectedOrder: this.data.closedRights?this.data.selectedOrder:null, sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}), pendingMessage: null,
+      const clearInput = this.inputRevision === draftRevision && this.data.input.trim() === body;
+      const clearImage = this.data.selectedImage?.mediaId === mediaIds[0];
+      const clearOrder = !this.data.closedRights && this.data.selectedOrder?.id === linkedOrderId;
+      this.setData({ ...(clearInput ? { input: "", composerCapped: false, composerLineCount: 1 } : {}),
+        ...(clearImage ? { selectedImage: null } : {}), ...(clearOrder ? { selectedOrder: null } : {}),
+        sendAttempt: null, composerSendEnabled: false, pendingMessage: null,
         conversation: result.conversation, ...this.headerPatch(result.conversation, this.data.presence) });
-      if (clearDraft) {
+      if (clearInput) {
         this.inputRevision += 1;
         // Clearing a sent card must not silently reattach the route order.
         if (!this.data.closedRights) { this.linkedOrderDismissed = true; this.orderSelectionRevision += 1; }
       }
+      this.setData({ composerSendEnabled: this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,this.data.selectedOrder) });
       this.uploadAbort = null;
       this.startPolling();
       await this.markRead();
@@ -402,15 +423,21 @@ Page({
   async chooseImage(event: WechatMiniprogram.TouchEvent) {
     if (this.choosingImage || !this.data.pageAlive || !this.data.visible) return;
     const source = event.currentTarget.dataset.source === "camera" ? "camera" : "album";
-    const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    const current = () => this.owns(epoch, ownerToken);
+    const revision = commerceContextRevision();
+    const current = () => this.data.pageAlive && this.data.visible && sessionToken() === ownerToken && commerceContextRevision() === revision;
+    const returned = async () => {
+      while (this.data.pageAlive && !this.data.visible && sessionToken() === ownerToken && commerceContextRevision() === revision)
+        await new Promise<void>(resolve => { this.nativePickerReturn = resolve; });
+    };
     this.choosingImage = true;
     this.setData({ attachmentSheetOpen: false, error: "", errorAction: "" });
     try {
       await new Promise<void>((resolve, reject) => wx.requirePrivacyAuthorize({ success: () => resolve(), fail: reject }));
+      if (!this.data.visible) await returned();
       if (!current()) return;
       const chosen = await wx.chooseMedia({ count: 1, mediaType: ["image"], sourceType: [source] });
+      if (!this.data.visible) await returned();
       if (!current()) return;
       const file = chosen.tempFiles[0];
       if (!file) return;
@@ -419,8 +446,10 @@ Page({
       if (size > 1024 * 1024 && typeof wx.compressImage === "function") {
         try {
           const compressed = await wx.compressImage({ src: localPath, quality: 82 });
+          if (!this.data.visible) await returned();
           if (!current()) return;
           const info = await new Promise<WechatMiniprogram.GetFileInfoSuccessCallbackResult>((resolve, reject) => wx.getFileSystemManager().getFileInfo({ filePath: compressed.tempFilePath, success: resolve, fail: reject }));
+          if (!this.data.visible) await returned();
           if (!current()) return;
           if (info.size > 0 && info.size < size) { localPath = compressed.tempFilePath; size = info.size; }
         } catch {}
@@ -437,7 +466,7 @@ Page({
       wx.nextTick(() => this.measureComposer());
       await this.uploadImage(candidate);
     } catch (error) { if (current() && !isCancellation(error)) this.setData({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
-    finally { if (this.lifecycleEpoch === epoch) this.choosingImage = false; }
+    finally { this.choosingImage = false; }
   },
   async uploadImage(candidate?: SelectedImage | null) {
     const selected = candidate ?? this.data.selectedImage;
@@ -490,7 +519,7 @@ Page({
     const epoch = this.lifecycleEpoch, token = sessionToken(), attempt = ++this.orderPickerRevision;
     this.orderPickerToken = token;
     const current = () => this.owns(epoch, token) && attempt === this.orderPickerRevision && this.data.orderPickerOpen;
-    this.setData({ attachmentSheetOpen: false, orderPickerOpen: true, orderPickerLoading: true, orderPickerError: "", orderChoices: [] });
+    this.setData({ attachmentSheetOpen: false, orderPickerOpen: true, orderPickerLoading: true, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderPickerError: "", orderChoices: [] });
     try {
       const page = await myOrders();
       if (!current()) return;
@@ -498,12 +527,32 @@ Page({
         statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
         productName: order.lines[0]?.productName ?? "订单商品", productImage: order.lines[0]?.image ?? null,
         itemSummary: order.lines.map((line) => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；") }));
-      this.setData({ orderChoices: choices, orderPickerLoading: false });
+      this.setData({ orderChoices: choices, orderPickerNextCursor: page.nextCursor ?? null, orderPickerLoading: false });
     } catch { if (current()) this.setData({ orderPickerLoading: false, orderPickerError: "订单暂时无法加载，请重试。" }); }
+  },
+  async loadMoreOrders() {
+    const cursor = this.data.orderPickerNextCursor;
+    if (!cursor || !this.data.orderPickerOpen || this.data.orderPickerLoading || this.data.orderPickerMoreBusy) return;
+    const epoch = this.lifecycleEpoch, token = sessionToken(), attempt = this.orderPickerRevision;
+    const current = () => this.owns(epoch, token) && attempt === this.orderPickerRevision && this.data.orderPickerOpen;
+    this.setData({ orderPickerMoreBusy: true, orderPickerError: "" });
+    try {
+      const page = await myOrders(cursor);
+      if (!current()) return;
+      const seen = new Set(this.data.orderChoices.map(order => order.id));
+      const choices = page.items.filter(order => !seen.has(order.id)).map((order: CommerceOrderSummary): OrderChoice => ({
+        id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
+        statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents,
+        currency: order.currency, productName: order.lines[0]?.productName ?? "订单商品", productImage: order.lines[0]?.image ?? null,
+        itemSummary: order.lines.map(line => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")
+      }));
+      this.setData({ orderChoices: [...this.data.orderChoices, ...choices], orderPickerNextCursor: page.nextCursor ?? null });
+    } catch { if (current()) this.setData({ orderPickerError: "后续订单暂时无法加载，请重试。" }); }
+    finally { if (current()) this.setData({ orderPickerMoreBusy: false }); }
   },
   closeOrderPicker() {
     this.orderPickerRevision += 1; this.orderPickerToken = "";
-    this.setData({ orderPickerOpen: false, orderPickerLoading: false, orderChoices: [], orderPickerError: "" });
+    this.setData({ orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
   },
   selectOrder(event: WechatMiniprogram.TouchEvent) {
     if(this.data.closedRights||this.data.sendAttempt||this.data.sending||this.data.orderPickerLoading||!this.data.orderPickerOpen||!this.owns(this.lifecycleEpoch,this.orderPickerToken))return;

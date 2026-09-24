@@ -236,7 +236,7 @@ describe("native mini program boundary", () => {
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
       submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
-      support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],
+      support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
       task: ["back", "continueSubmission", "load", "back", "goCommunity", "claim", "@disabled", "continueSubmission"]
     };
 

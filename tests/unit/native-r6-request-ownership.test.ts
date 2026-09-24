@@ -118,6 +118,78 @@ describe('support order actions keep identity, route and user choice aligned', (
     const page = await support(); page.linkedOrderId = orderId; page.load = vi.fn(); page.loadLinkedOrder = vi.fn();
     page.retry(); expect(page.load).toHaveBeenCalledOnce(); expect(page.loadLinkedOrder).toHaveBeenCalledOnce();
   });
+  it('keeps the original payload and key when an order card arrives after an unknown send', async () => {
+    const page = await support(); page.data.input = '请帮我看一下';
+    m.request.mockRejectedValueOnce(new Error('response lost')).mockResolvedValueOnce({
+      message: { id: 'accepted', sequence: 1, senderType: 'user', body: '请帮我看一下', attachments: [], orderCard: null },
+      conversation: { id: 'conversation', status: 'waiting_human', version: 2 }
+    });
+    await page.send();
+    const first = m.request.mock.calls[0]![0].data;
+    page.data.selectedOrder = { ...order, orderNumberTail: '1234', statusLabel: '已付款', totalYuan: '10.00', productName: '护理精华', productImage: null, itemSummary: '护理精华' };
+    await page.retrySend();
+    const second = m.request.mock.calls[1]![0].data;
+    expect(second).toEqual(first);
+    expect(second.linkedOrderId).toBeNull();
+    expect(page.data.sendAttempt).toBeNull();
+    expect(page.data.selectedOrder.id).toBe(orderId);
+  });
+  it('keeps the reading position when returning from a native preview', async () => {
+    const page = await support(); page.data.loading = false;
+    page.data.conversation = { id: 'conversation', status: 'waiting_human', version: 1 };
+    page.data.atBottom = false; page.data.anchor = '';
+    page.load = vi.fn(); page.poll = vi.fn(); page.downloadMedia = vi.fn();
+    page.onHide(); page.onShow();
+    expect(page.load).not.toHaveBeenCalled(); expect(page.poll).toHaveBeenCalledOnce();
+    expect(page.data.atBottom).toBe(false); expect(page.data.anchor).toBe('');
+  });
+  it('drops a same-token snapshot after its identity revision changes', async () => {
+    const page = await support(); page.data.loading = false; page.snapshotToken = m.token;
+    page.data.conversation = { id: 'old-conversation', status: 'waiting_human', version: 1 };
+    page.data.messages = [{ id: 'old-private-message' }]; page.load = vi.fn();
+    m.revision++;
+    page.onShow();
+    expect(page.data.messages).toEqual([]);
+    expect(page.load).toHaveBeenCalledOnce();
+  });
+  it('ignores an old composer measurement after hide and show', async () => {
+    const page = await support(); let measure!: (rect: any) => void;
+    (wx as any).createSelectorQuery = () => ({ select: () => ({ boundingClientRect(callback: any) { measure = callback; return { exec() {} }; } }) });
+    page.measureComposer = definition.measureComposer;
+    page.measureComposer(); const stale = measure; page.onHide(); page.onShow();
+    const before = page.data.threadBottomStyle;
+    stale({ height: 400 });
+    expect(page.data.threadBottomStyle).toBe(before);
+  });
+  it('marks an interrupted write as unknown while preserving its original attempt', async () => {
+    const page = await support(), response = deferred(); page.data.input = '请协助查看';
+    m.request.mockReturnValue(response.promise);
+    const pending = page.send(); const key = page.data.sendAttempt.id;
+    page.onHide(); response.resolve({ message: { id: 'accepted' } }); await pending;
+    expect(page.data.sendAttempt.id).toBe(key);
+    expect(page.data.pendingMessage.localState).toBe('unknown');
+    expect(page.data.error).toContain('尚未确认');
+  });
+  it('allows an album result after hide and show for the same identity', async () => {
+    const page = await support(), chosen = deferred(); page.load = vi.fn(); page.uploadImage = vi.fn();
+    (wx as any).requirePrivacyAuthorize = ({ success }: any) => success();
+    (wx as any).chooseMedia = vi.fn(() => chosen.promise);
+    const pending = page.chooseImage({ currentTarget: { dataset: { source: 'album' } } });
+    await Promise.resolve(); page.onHide(); expect(page.choosingImage).toBe(true);
+    chosen.resolve({ tempFiles: [{ tempFilePath: '/private/photo.jpg', size: 1000 }] });
+    await Promise.resolve(); page.onShow(); expect(page.data.visible).toBe(true); await pending;
+    expect(page.data.selectedImage.localPath).toBe('/private/photo.jpg');
+    expect(page.uploadImage).toHaveBeenCalledOnce();
+  });
+  it('pages through older orders without replacing the first page', async () => {
+    const page = await support();
+    m.orders.mockResolvedValueOnce({ items: [order], nextCursor: 'older' })
+      .mockResolvedValueOnce({ items: [order, { ...order, id: 'older-order' }], nextCursor: null });
+    await page.openOrderPicker(); await page.loadMoreOrders();
+    expect(m.orders).toHaveBeenNthCalledWith(2, 'older');
+    expect(page.data.orderChoices.map((item: any) => item.id)).toEqual([orderId, 'older-order']);
+    expect(page.data.orderPickerNextCursor).toBeNull();
+  });
 });
 
 describe('checkout revalidation cannot race a purchase', () => {
