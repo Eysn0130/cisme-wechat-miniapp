@@ -178,6 +178,10 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
             and suppression_info.st_mode&0o077==0,'PRIVACY_SUPPRESSION_DIRECTORY_UNSAFE')
     writable=command(['systemctl','show','cisme-api.service','--property=ReadWritePaths','--value']).decode().split()
     require(str(suppression) in writable,'PRIVACY_SUPPRESSION_SERVICE_ACCESS_REQUIRED')
+    worker_writable=command(['systemctl','show','cisme-worker.service','--property=ReadWritePaths','--value']).decode().split()
+    require(str(suppression) in worker_writable,'PRIVACY_SUPPRESSION_WORKER_ACCESS_REQUIRED')
+    require(candidate.get('PRIVACY_SUPPRESSION_BUCKET')=='cisme-privacy-1257392443',
+            'PRIVACY_SUPPRESSION_STANDARD_COS_REQUIRED')
     require(not any(k.startswith(('LD_','DYLD_','PG','PYTHON')) or (k.startswith('NODE_') and k!='NODE_ENV')
                     or k in ('BASH_ENV','ENV','PATH','HOME','PWD','SHELL','IFS') for k in candidate),
             'PROCESS_INJECTION_CONFIGURATION_REFUSED')
@@ -186,6 +190,10 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
     # An ordinary release must not change session, contact, webhook or upload keys.
     for key in set(live)|set(candidate):
         if re.search(r'SECRET|PASSWORD|TOKEN|(?:^|_)KEY(?:_|$)',key):
+            if key=='PRIVACY_FORMAL_EXPORT_KEY' and not live.get(key):
+                require(bool(re.fullmatch(r'[0-9a-fA-F]{64}',candidate.get(key,''))),
+                        'FORMAL_EXPORT_KEY_INITIALIZATION_REQUIRED')
+                continue
             require(candidate.get(key)==live.get(key),'IMPLICIT_SECRET_CHANGE_REFUSED')
     history=journal.inspect();plan=journal.compare(history['journal'],manifest['migrations'])
     old=CURRENT.resolve(strict=True)

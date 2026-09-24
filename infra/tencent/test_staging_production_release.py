@@ -124,14 +124,19 @@ class Preflight(unittest.TestCase):
         self.live=self.root/'runtime.env';self.live.write_text('SYNTHETIC=old')
         self.candidate=self.root/'candidate.env';self.candidate.write_text('SYNTHETIC=new')
         self.candidate_config={**m.CLOSED,'APP_SESSION_SECRET':'synthetic-same',
-                               'PRIVACY_SUPPRESSION_DIR':'/var/lib/cisme/privacy-suppression'}
+                               'PRIVACY_SUPPRESSION_DIR':'/var/lib/cisme/privacy-suppression',
+                               'PRIVACY_SUPPRESSION_BUCKET':'cisme-privacy-1257392443',
+                               'PRIVACY_FORMAL_EXPORT_KEY':'a'*64}
         self.live_config={'APP_ENV':'staging','APP_SESSION_SECRET':'synthetic-same'}
         self.trusted_script=self.script;self.calls=[];self.suppression_mode=stat.S_IFDIR|0o700
+        self.worker_writable=True
 
     def execute(self,services_stopped=False):
         def fetch(path):return {'type':'file','encoding':'base64','path':'scripts/release-migrate.mjs','content':base64.b64encode(self.trusted_script).decode()}
         def command(*args,**kwargs):
-            if args[0][0]=='systemctl':return b'/opt/cisme/tmp /var/lib/cisme/privacy-suppression'
+            if args[0][0]=='systemctl':
+                if 'cisme-worker.service' in args[0] and not self.worker_writable:return b'/opt/cisme/tmp'
+                return b'/opt/cisme/tmp /var/lib/cisme/privacy-suppression'
             self.calls.append('verify');return json.dumps({'verified':True,'sourceHead':HEAD,'sourceTree':TREE}).encode()
         with ExitStack() as stack:
             original_lstat=Path.lstat
@@ -177,6 +182,18 @@ class Preflight(unittest.TestCase):
         with self.assertRaisesRegex(m.observe.target.Refused,'IMPLICIT_SECRET_CHANGE_REFUSED'):self.execute()
         self.assertNotIn('journal',self.calls)
 
+    def test_formal_export_key_can_be_initialized_once_but_not_rotated(self):
+        self.execute()
+        self.candidate_config['PRIVACY_FORMAL_EXPORT_KEY']='invalid'
+        with self.assertRaisesRegex(m.observe.target.Refused,'FORMAL_EXPORT_KEY_INITIALIZATION_REQUIRED'):self.execute()
+        self.candidate_config['PRIVACY_FORMAL_EXPORT_KEY']='b'*64
+        self.live_config['PRIVACY_FORMAL_EXPORT_KEY']='a'*64
+        with self.assertRaisesRegex(m.observe.target.Refused,'IMPLICIT_SECRET_CHANGE_REFUSED'):self.execute()
+
+    def test_suppression_bucket_is_fixed_to_verified_standard_cos(self):
+        self.candidate_config['PRIVACY_SUPPRESSION_BUCKET']='lhcos-81ddf-1257392443'
+        with self.assertRaisesRegex(m.observe.target.Refused,'PRIVACY_SUPPRESSION_STANDARD_COS_REQUIRED'):self.execute()
+
     def test_release_cannot_implicitly_enable_traffic_or_mutating_workers(self):
         self.candidate_config['CISME_MIGRATION_READ_ONLY']='false'
         with self.assertRaisesRegex(m.observe.target.Refused,'CLOSED_COMMERCE_MAINTENANCE_CONFIG_REQUIRED'):self.execute()
@@ -191,6 +208,10 @@ class Preflight(unittest.TestCase):
         self.candidate_config['PRIVACY_SUPPRESSION_DIR']='/var/lib/cisme/privacy-suppression'
         self.suppression_mode=stat.S_IFDIR|0o755
         with self.assertRaisesRegex(m.observe.target.Refused,'PRIVACY_SUPPRESSION_DIRECTORY_UNSAFE'):self.execute()
+
+    def test_worker_must_have_access_to_suppression_directory(self):
+        self.worker_writable=False
+        with self.assertRaisesRegex(m.observe.target.Refused,'PRIVACY_SUPPRESSION_WORKER_ACCESS_REQUIRED'):self.execute()
 
 
 class Qualifications(unittest.TestCase):

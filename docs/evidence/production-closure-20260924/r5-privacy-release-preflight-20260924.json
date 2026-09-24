@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "target": {"instanceId": "lhins-61ikz4mi", "region": "ap-shanghai"},
+  "sourceGuardRepair": [
+    "A first production deployment may initialize PRIVACY_FORMAL_EXPORT_KEY only when the active environment has no value, and only with a 64-character hex value. Existing values cannot be silently rotated.",
+    "The reviewed release requires the separate standard COS suppression bucket cisme-privacy-1257392443 rather than the Lighthouse media bucket.",
+    "Both API and Worker units must have a protected writable suppression directory before the release preflight can pass."
+  ],
+  "isolatedGuardTests": "35 production-release unit tests passed, including first initialization, blocked rotation, wrong bucket and missing Worker write access.",
+  "hostPreparation": {
+    "directory": "/var/lib/cisme/privacy-suppression",
+    "owner": "cisme:cisme",
+    "mode": "0700",
+    "apiReadWritePaths": "contains /var/lib/cisme/privacy-suppression",
+    "workerReadWritePaths": "contains /var/lib/cisme/privacy-suppression",
+    "preparedEnvironment": "/opt/cisme/runtime-r5-prepared.env",
+    "preparedEnvironmentMode": "0640",
+    "preparedEnvironmentAppEnv": "staging",
+    "preparedEnvironmentDirectory": "/var/lib/cisme/privacy-suppression",
+    "preparedEnvironmentBucket": "cisme-privacy-1257392443",
+    "activeEnvironmentChanged": false,
+    "serviceUnitsRestarted": false,
+    "apiAndWorkerStayedActive": true
+  },
+  "limit": "This is guard and host preparation only. The COS service credential still lacks effective bucket access; no production migration or release activation was attempted."
+}
