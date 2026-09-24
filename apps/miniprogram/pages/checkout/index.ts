@@ -15,9 +15,9 @@ import { currentChromeStyle } from "../../services/layout";
 function problemCopy(error: unknown): string {
   const problem = error as { code?: string; title?: string };
   const known: Record<string, string> = {
-    INVENTORY_NOT_AVAILABLE: "当前库存不足，请调整数量后重新报价。", QUOTE_STALE: "商品或价格已变化，请重新报价。",
-    QUOTE_EXPIRED: "报价已过期，请重新获取。", DELIVERY_ADDRESS_CHANGED: "收货地址已变化，请重新选择并报价。",
-    CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "当前环境未开放待支付订单验证。",
+    INVENTORY_NOT_AVAILABLE: "库存不足，请调整数量后重新确认。", QUOTE_STALE: "商品或价格有变化，请重新确认。",
+    QUOTE_EXPIRED: "费用已过期，请重新确认。", DELIVERY_ADDRESS_CHANGED: "收货地址有变化，请重新选择并确认费用。",
+    CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "暂时无法下单，请稍后重试。",
     CREDIT_CHECKOUT_INSUFFICIENT:"可用测试购物权益已变化，请刷新后重新报价。",
     CREDIT_CASH_COMPONENT_REQUIRED:"本机测试订单仍需保留至少一分模拟渠道现金支付。"
   };
@@ -31,6 +31,7 @@ function creditCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
 Page({
   countdownTimer: null as ReturnType<typeof setInterval> | null,
   requestEpoch: 0,
+  loadAttempt: 0,
   mounted: false,
   visible: false,
   data: {
@@ -46,7 +47,8 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     this.mounted = true;
-    const quantity = Math.max(1, Math.min(99, Number(query.quantity) || 1));
+    const requestedQuantity = Number(query.quantity);
+    const quantity = Number.isSafeInteger(requestedQuantity) ? Math.max(1, Math.min(99, requestedQuantity)) : 1;
     this.setData({ productCode: query.product ?? "", requestedSkuId: query.sku ?? "", quantity });
   },
   onShow() {
@@ -85,6 +87,8 @@ Page({
     if (!quoteClockView(clock).expired && this.visible) this.countdownTimer = setInterval(() => this.tickCountdown(), 1_000);
   },
   async load() {
+    if (this.data.busy) return;
+    const attempt = ++this.loadAttempt;
     const epoch = this.requestEpoch;
     const ownerToken = currentSessionToken();
     this.setData({ loading: true, syncError: "" });
@@ -92,7 +96,7 @@ Page({
       const [product, addressBook, runtimeResponse] = await Promise.all([catalogDetail(this.data.productCode), memberAddresses(), orderRuntimeStatus()]);
       const runtime=validateRuntime(runtimeResponse);
       const credit=runtime.isolatedCreditCheckoutAvailable?await isolatedCreditSummary().catch(()=>null):null;
-      if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
+      if (!requestStillOwned(this.ownership(), epoch, ownerToken) || attempt !== this.loadAttempt) return;
       const selected = product.variants.find((item) => item.id === this.data.requestedSkuId && item.active) ?? product.variants.find((item) => item.active) ?? null;
       const effectiveQuantity = selected ? Math.min(this.data.quantity, Math.max(1, selected.availableQuantity)) : 1;
       const addresses = addressBook.addresses;
@@ -119,7 +123,7 @@ Page({
         creditInput:credit?this.data.creditInput:"",
         creditReadError:runtime.isolatedCreditCheckoutAvailable&&!credit?"测试购物权益暂不可核对，请仅按原价继续。":"",
         unitPriceYuan: selected ? centsToYuan(selected.priceCents) : "", loading: false,
-        syncError: addressBook.enabled ? "" : "地址簿安全存储尚未配置，当前不能创建订单。"
+        syncError: addressBook.enabled ? "" : "收货地址暂时无法使用，请稍后重试。"
       };
       if (!quoteStillMatches) {
         this.stopCountdown();
@@ -129,26 +133,28 @@ Page({
         if (this.data.quote && this.data.quoteClock) this.startCountdown(this.data.quoteClock);
       }
     } catch (error) {
-      if (requestStillOwned(this.ownership(), epoch, ownerToken)) this.setData({ loading: false, syncError: problemCopy(error) });
+      if (requestStillOwned(this.ownership(), epoch, ownerToken) && attempt === this.loadAttempt) this.setData({ loading: false, syncError: problemCopy(error) });
     }
   },
   invalidateQuote(patch: WechatMiniprogram.IAnyObject = {}, preserveError = false) {
     this.stopCountdown();
     this.setData({ ...invalidateCheckoutQuote(this.data, patch, preserveError), quoteExpired: false });
   },
+  checkoutBlocked() { return this.data.busy || this.data.loading || this.data.navigating || Boolean(this.data.syncError); },
+  retryLoad() { if (!this.data.busy && !this.data.loading) void this.load(); },
   selectSku(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.busy) return;
+    if (this.checkoutBlocked()) return;
     const sku = this.data.product?.variants.find((item) => item.id === String(event.currentTarget.dataset.id));
     if (!sku || !sku.active) return;
     this.invalidateQuote({ selectedSku: sku, requestedSkuId: sku.id, quantity: Math.min(this.data.quantity, Math.max(1, sku.availableQuantity)), unitPriceYuan: centsToYuan(sku.priceCents) });
   },
-  decrease() { if (!this.data.busy && this.data.quantity > 1) this.invalidateQuote({ quantity: this.data.quantity - 1 }); },
+  decrease() { if (!this.checkoutBlocked() && this.data.quantity > 1) this.invalidateQuote({ quantity: this.data.quantity - 1 }); },
   increase() {
     const maximum = Math.min(99, this.data.selectedSku?.availableQuantity ?? 0);
-    if (!this.data.busy && this.data.quantity < maximum) this.invalidateQuote({ quantity: this.data.quantity + 1 });
+    if (!this.checkoutBlocked() && this.data.quantity < maximum) this.invalidateQuote({ quantity: this.data.quantity + 1 });
   },
-  selectAddress(event: WechatMiniprogram.TouchEvent) { if (!this.data.busy) this.invalidateQuote({ selectedAddressId: String(event.currentTarget.dataset.id ?? "") }); },
-  editCredit(event:WechatMiniprogram.Input){if(!this.data.busy&&this.data.creditEnabled)
+  selectAddress(event: WechatMiniprogram.TouchEvent) { if (!this.checkoutBlocked()) this.invalidateQuote({ selectedAddressId: String(event.currentTarget.dataset.id ?? "") }); },
+  editCredit(event:WechatMiniprogram.Input){if(!this.checkoutBlocked()&&this.data.creditEnabled)
     this.invalidateQuote({creditInput:event.detail.value});},
   editAddresses() {
     if (this.data.busy || this.data.navigating) return;
@@ -158,8 +164,8 @@ Page({
   async requestQuote() {
     const sku = this.data.selectedSku;
     const address = this.data.addresses.find((item) => item.id === this.data.selectedAddressId);
-    if (this.data.busy || !sku || !address) return;
-    if (!this.data.runtimeEnabled) { this.setData({ error: "当前环境未开放待支付订单验证。" }); return; }
+    if (this.checkoutBlocked() || !sku || !address) return;
+    if (!this.data.runtimeEnabled) { this.setData({ error: "暂时无法下单，请稍后重试。" }); return; }
     const credit=this.data.creditInput?creditCents(this.data.creditInput):0;
     if(!Number.isSafeInteger(credit)||credit<0||credit>this.data.creditAvailableCents||
       credit>0&&!this.data.creditEnabled||credit>=sku.priceCents*this.data.quantity){
@@ -185,14 +191,15 @@ Page({
     } finally { if (requestStillOwned(this.ownership(), epoch, ownerToken)) this.setData({ busy: false }); }
   },
   refreshQuote() {
-    if (this.data.busy) return;
+    if (this.checkoutBlocked()) return;
     this.invalidateQuote({}, true);
-    this.setData({ error: "原报价已失效，请确认最新金额后再创建订单。" });
+    this.setData({ error: "请确认最新费用后再提交订单。" });
     void this.requestQuote();
   },
   async confirmOrder() {
     const quote = this.data.quote;
-    if (this.data.busy || !quote) return;
+    if (this.checkoutBlocked() || !quote) return;
+    if (!this.data.runtimeEnabled) { this.setData({ error: "暂时无法下单，请稍后重试。" }); return; }
     if (this.data.quoteExpired || quoteClockView(this.data.quoteClock ?? createQuoteClock(quote.expiresAt, quote.serverTime)).expired) { this.refreshQuote(); return; }
     const epoch = this.requestEpoch;
     const ownerToken = currentSessionToken();

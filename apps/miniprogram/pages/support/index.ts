@@ -50,6 +50,11 @@ Page({
   pollFailures: 0,
   lifecycleEpoch: 0,
   inputRevision: 0,
+  orderSelectionRevision: 0,
+  linkedOrderAttempt: 0,
+  linkedOrderDismissed: false,
+  orderPickerRevision: 0,
+  orderPickerToken: "",
   lastScrollTop: 0,
   lastActivityAt: 0,
   lastPresenceSentAt: 0,
@@ -80,9 +85,13 @@ Page({
     this.data.pageAlive = true;
     this.data.visible = true;
     this.lastActivityAt = Date.now();
-    this.setData({ sending: false, handoffBusy: false, closedRights });
+    this.orderPickerRevision += 1;
+    this.orderPickerToken = "";
+    this.setData({ sending: false, handoffBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderChoices: [], orderPickerError: "" });
     if (!preserve) {
       this.inputRevision += 1;
+      this.orderSelectionRevision += 1;
+      this.linkedOrderDismissed = false;
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
@@ -97,7 +106,7 @@ Page({
         const sendAttempt:SendAttempt={id:pending.id,body:pending.body,mediaIds:[],linkedOrderId:pending.linkedOrderId,
           signature:this.sendSignature(pending.body,[],pending.linkedOrderId)};
         this.setData({input:pending.body,sendAttempt,pendingMessage:this.pendingFrom(sendAttempt,'unknown'),
-          composerSendEnabled:true,error:'原消息结果尚未核实；重试将沿用同一消息编号。'});
+          composerSendEnabled:true,error:'发送结果尚未确认，重试不会重复发送。'});
       }
     }
     if(this.linkedOrderId&&!this.data.input&&!this.data.sendAttempt){
@@ -120,12 +129,14 @@ Page({
     this.stopPolling();
     this.clearPresenceTimer();
     this.abortTransientWork();
-    this.setData({ composerFocused: false, keyboardHeight: 0 });
+    this.orderPickerRevision += 1;
+    this.orderPickerToken = "";
+    this.setData({ composerFocused: false, keyboardHeight: 0, orderPickerOpen: false, orderPickerLoading: false, orderChoices: [] });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
   onUnload() { if(this.linkedOrderId&&!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===this.linkedOrderId&&
       !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),this.linkedOrderId,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId});
-    else if(this.linkedOrderId&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
+    else if(this.linkedOrderId&&!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
       stageSupportDraft(sessionToken(),this.linkedOrderId,this.data.input);
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
@@ -146,15 +157,17 @@ Page({
     this.uploadAbort = null;
   },
   async loadLinkedOrder(){
-    const epoch=this.lifecycleEpoch,token=sessionToken(),id=this.linkedOrderId,revision=this.inputRevision;
-    if(!id||this.data.selectedOrder)return;
-    try{const order=await myOrder(id,this);if(!this.owns(epoch,token)||order.id!==id||revision!==this.inputRevision||this.data.selectedOrder)return;
+    const epoch=this.lifecycleEpoch,token=sessionToken(),id=this.linkedOrderId,revision=this.orderSelectionRevision;
+    if(!id||this.linkedOrderDismissed||this.data.selectedOrder)return;
+    const attempt=++this.linkedOrderAttempt;
+    const current=()=>this.owns(epoch,token)&&attempt===this.linkedOrderAttempt&&revision===this.orderSelectionRevision&&!this.linkedOrderDismissed;
+    try{const order=await myOrder(id,this);if(!current()||order.id!==id||this.data.selectedOrder)return;
       const selected:OrderChoice={id,orderNumberTail:order.orderNumber.slice(-4),status:order.status,
-        statusLabel:orderStatusLabels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
+        statusLabel:orderStatusLabels[order.status]??"状态待更新",totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:order.lines[0]?.image??null,
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
-    }catch{if(this.owns(epoch,token))this.setData({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
+    }catch{if(current())this.setData({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
   threadState(): SupportThreadState<Message> { return { messages: this.data.messages, syncCursor: this.data.syncCursor, maxSeenSequence: this.data.maxSeenSequence, readCursor: this.data.readCursor }; },
@@ -208,7 +221,7 @@ Page({
   stopPolling() { if (this.pollTimer) clearTimeout(this.pollTimer); this.pollTimer = null; },
   normalize(messages: RawMessage[], localImage?: SelectedImage | null) {
     return messages.map((item) => ({ ...item, attachments: (item.attachments ?? []).map((attachment) => ({ ...attachment,
-      ...(localImage?.mediaId === attachment.id ? { localPath: localImage.localPath } : {}) })), orderCard: item.orderCard ? { ...item.orderCard, statusLabel: orderStatusLabels[item.orderCard.status] ?? item.orderCard.status, totalYuan: centsToYuan(item.orderCard.totalCents) } : null }));
+      ...(localImage?.mediaId === attachment.id ? { localPath: localImage.localPath } : {}) })), orderCard: item.orderCard ? { ...item.orderCard, statusLabel: orderStatusLabels[item.orderCard.status] ?? "状态待更新", totalYuan: centsToYuan(item.orderCard.totalCents) } : null }));
   },
   async load() {
     const epoch = this.lifecycleEpoch;
@@ -341,7 +354,7 @@ Page({
   async send() {
     const body = this.data.input.trim();
     const mediaIds = this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : [];
-    const linkedOrderId = this.data.closedRights?this.linkedOrderId:(this.data.selectedOrder?.id ?? this.linkedOrderId ?? null);
+    const linkedOrderId = this.data.closedRights?this.linkedOrderId:(this.data.selectedOrder?.id ?? (!this.linkedOrderDismissed&&this.linkedOrderId?this.linkedOrderId:null));
     if ((this.data.closedRights?(!body||!linkedOrderId||mediaIds.length>0):!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder)) || this.data.sending || this.data.uploadBusy) return;
     const signature = this.sendSignature(body, mediaIds, linkedOrderId);
     const draftRevision = this.inputRevision;
@@ -360,13 +373,17 @@ Page({
       const clearDraft = this.inputRevision === draftRevision && this.sendSignature(this.data.input.trim(), mediaIds, linkedOrderId) === signature;
       this.setData({ ...(clearDraft ? { input: "", selectedImage: null, selectedOrder: this.data.closedRights?this.data.selectedOrder:null, sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}), pendingMessage: null,
         conversation: result.conversation, ...this.headerPatch(result.conversation, this.data.presence) });
-      if (clearDraft) this.inputRevision += 1;
+      if (clearDraft) {
+        this.inputRevision += 1;
+        // Clearing a sent card must not silently reattach the route order.
+        if (!this.data.closedRights) { this.linkedOrderDismissed = true; this.orderSelectionRevision += 1; }
+      }
       this.uploadAbort = null;
       this.startPolling();
       await this.markRead();
       wx.nextTick(() => this.measureComposer());
     } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "消息尚未获得服务端确认，正文和附件仍保留。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
+      if (this.owns(epoch, ownerToken)) this.setData({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
     } finally { if (this.owns(epoch, ownerToken)) this.setData({ sending: false }); }
   },
   retrySend() { void this.send(); },
@@ -468,27 +485,40 @@ Page({
     wx.nextTick(() => this.measureComposer());
   },
   async openOrderPicker() {
-    this.setData({ attachmentSheetOpen: false, orderPickerOpen: true, orderPickerLoading: true, orderPickerError: "" });
+    if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.data.sending || this.data.sendAttempt) return;
+    const epoch = this.lifecycleEpoch, token = sessionToken(), attempt = ++this.orderPickerRevision;
+    this.orderPickerToken = token;
+    const current = () => this.owns(epoch, token) && attempt === this.orderPickerRevision && this.data.orderPickerOpen;
+    this.setData({ attachmentSheetOpen: false, orderPickerOpen: true, orderPickerLoading: true, orderPickerError: "", orderChoices: [] });
     try {
       const page = await myOrders();
-      if (!this.data.visible) return;
+      if (!current()) return;
       const choices = page.items.map((order: CommerceOrderSummary): OrderChoice => ({ id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
-        statusLabel: orderStatusLabels[order.status] ?? order.status, totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
+        statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
         productName: order.lines[0]?.productName ?? "订单商品", productImage: order.lines[0]?.image ?? null,
         itemSummary: order.lines.map((line) => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；") }));
       this.setData({ orderChoices: choices, orderPickerLoading: false });
-    } catch { if (this.data.visible) this.setData({ orderPickerLoading: false, orderPickerError: "订单暂时无法同步，请重试。" }); }
+    } catch { if (current()) this.setData({ orderPickerLoading: false, orderPickerError: "订单暂时无法加载，请重试。" }); }
   },
-  closeOrderPicker() { this.setData({ orderPickerOpen: false }); },
+  closeOrderPicker() {
+    this.orderPickerRevision += 1; this.orderPickerToken = "";
+    this.setData({ orderPickerOpen: false, orderPickerLoading: false, orderChoices: [], orderPickerError: "" });
+  },
   selectOrder(event: WechatMiniprogram.TouchEvent) {
-    if(this.data.sendAttempt)return;
+    if(this.data.closedRights||this.data.sendAttempt||this.data.sending||this.data.orderPickerLoading||!this.data.orderPickerOpen||!this.owns(this.lifecycleEpoch,this.orderPickerToken))return;
     const selected = this.data.orderChoices.find((order) => order.id === String(event.currentTarget.dataset.id ?? ""));
     if (!selected) return;
-    this.inputRevision += 1;
-    this.setData({ selectedOrder: selected, orderPickerOpen: false, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, selected) });
+    this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
+    this.closeOrderPicker();
+    this.setData({ selectedOrder: selected, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, selected) });
     wx.nextTick(() => this.measureComposer());
   },
-  removeOrder() { if(this.data.sendAttempt)return;this.inputRevision += 1; this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) }); wx.nextTick(() => this.measureComposer()); },
+  removeOrder() {
+    if(this.data.closedRights||this.data.sendAttempt||this.data.sending)return;
+    this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
+    this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) });
+    wx.nextTick(() => this.measureComposer());
+  },
   openOrder(event: WechatMiniprogram.TouchEvent) { const id = String(event.currentTarget.dataset.id ?? ""); if (id) wx.navigateTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(id)}` }); },
   downloadMedia(messages: readonly RawMessage[]) {
     const epoch = this.lifecycleEpoch;
@@ -512,7 +542,7 @@ Page({
     const id = String(event.currentTarget.dataset.mediaId ?? "");
     const attachments = this.data.messages.flatMap((message) => message.attachments).filter((attachment) => attachment.localPath);
     const current = attachments.find((attachment) => attachment.id === id)?.localPath;
-    if (!current) { wx.showToast({ title: "图片仍在安全加载，请稍后重试", icon: "none" }); return; }
+    if (!current) { wx.showToast({ title: "图片正在加载，请稍后重试", icon: "none" }); return; }
     wx.previewImage({ current, urls: attachments.map((attachment) => attachment.localPath!) });
   },
   async requestHuman() {
@@ -528,7 +558,7 @@ Page({
     finally { if (this.owns(epoch, ownerToken)) this.setData({ handoffBusy: false }); }
   },
   retryHandoff() { void this.requestHuman(); },
-  retry() { void this.load(); },
+  retry() { void this.load(); if(this.linkedOrderId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },
   back() { wx.navigateBack({ fail: () => this.data.closedRights
     ?wx.redirectTo({url:'/pages/orders/index'}):wx.switchTab({ url: "/pages/profile/index" }) }); }
 });

@@ -10,6 +10,9 @@ const statuses:Record<string,string>={received:'已受理',verifying:'身份核�
 const executionStatuses:Record<string,string>={succeeded:'已处理',partially_succeeded:'部分资料已处理',failed:'处理遇到问题',expired:'副本已过期',canceled:'已取消'};
 const deliveryStatuses:Record<string,string>={available:'数据副本可获取',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
 const activeExportFiles=new Set<string>();
+function shareWasCanceled(error: unknown): boolean {
+ return /^shareFileMessage:fail\s+cancel(?:led|ed)?\b/i.test(String((error as {errMsg?:string})?.errMsg??''));
+}
 function exportFilePath(name='cisme-private-data-copy'){
  const directory=wx.env?.USER_DATA_PATH;
  if(!directory)throw new Error('PRIVATE_COPY_DIRECTORY_UNAVAILABLE');
@@ -183,7 +186,7 @@ Page({
   if(!row?.execution?.downloadAvailable)return;
   const token=privacyToken();
   const attempt=++this.data.operationAttempt;
-  this.setData({visibleExport:null,error:'',exportBusy:true,exportRequestId:requestId});
+  this.setData({visibleExport:null,error:'',notice:'',exportBusy:true,exportRequestId:requestId});
   let filePath:string|undefined;
   try{
    const archive=await request<any>({path:`/v1/me/privacy-requests/${requestId}/export`});
@@ -205,7 +208,7 @@ Page({
    }else if(archive?.scope==='member_profile_only'){
     this.setData({visibleExport:{requestId,displayName:archive.member.displayName,wechatHandle:archive.profile?.wechatHandle||'未填写'}});
    }else throw new Error('EXPORT_SCOPE_UNEXPECTED');
-  }catch(e){if(filePath)clearExportFile(filePath);if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
+  }catch(e){if(filePath)clearExportFile(filePath);if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData(shareWasCanceled(e)?{notice:'已取消发送，副本仍可在有效期内获取。'}:{error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
   finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
  async viewSupplementary(e:WechatMiniprogram.BaseEvent){
@@ -225,12 +228,15 @@ Page({
    const extension=media.mimeType==='video/mp4'?'mp4':media.mimeType==='image/png'?'png':media.mimeType==='image/webp'?'webp':
     media.mimeType==='image/jpeg'?'jpg':'bin';
    const label=media.mimeType==='video/mp4'?'视频':'图片';
+   // Native sharing may hide the page before consuming the downloaded file.
+   // Once handed over, its callback owns cleanup rather than onHide.
+   if(this.supplementaryDownload===download)this.supplementaryDownload=null;
    await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath,
-    fileName:`CISME-补充${label}-${mediaId.slice(-6)}.${extension}`,success:()=>resolve(),fail:reject}));
+    complete:()=>download.abort(),fileName:`CISME-补充${label}-${mediaId.slice(-6)}.${extension}`,success:()=>resolve(),fail:reject}));
    if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
     this.setData({notice:`补充${label}已交给微信，请在接收会话查看。`});
   }catch(error){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
-    this.setData({error:(error as {title?:string}).title||'补充素材暂不可读取，请刷新记录后重试。'});}
+    this.setData(shareWasCanceled(error)?{notice:'已取消发送，素材仍可在有效期内获取。'}:{error:(error as {title?:string}).title||'补充素材暂不可读取，请刷新记录后重试。'});}
   finally{download.abort();if(this.supplementaryDownload===download)this.supplementaryDownload=null;
    if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },

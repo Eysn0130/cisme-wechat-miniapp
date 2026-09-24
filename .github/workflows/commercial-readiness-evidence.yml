@@ -32,9 +32,7 @@ jobs:
           git rev-parse HEAD HEAD^{tree} > "$out/checkout-identity.txt"
           ./node_modules/.bin/tsx scripts/audit-commercial-lifecycle.ts > "$out/page-state-matrix.json"
       - name: Optional exact committed source for explicit review
-        # R6: user-authorized PR22 snapshot. Restore the dispatch-only condition
-        # after retrieving this artifact; never archive runner credentials.
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.include_source == true) || (github.event_name == 'pull_request' && github.event.pull_request.number == 22 && github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.include_source == true }}
         run: |
           set -euo pipefail
           out="$RUNNER_TEMP/commercial-preparation"
