@@ -8,6 +8,7 @@ import { expirePendingOrders } from "../../api/src/commerceOrders.js";
 import { safeFailureFields } from "../../api/src/observability.js";
 import { SyntheticPrivacyExecution, purgeExpiredPrivacyArtifacts } from "../../api/src/privacyExecution.js";
 import { purgeDueOrdinarySupport, purgeDueLinkedSupport } from "../../api/src/supportRetention.js";
+import type { AccountClosure } from "../../api/src/accountClosure.js";
 
 interface EventRow {
   id: string;
@@ -17,7 +18,8 @@ interface EventRow {
   attempts: number;
 }
 
-interface WorkerGates { ugcGoLiveGate: boolean; privacyEnvironment?:string; privacySyntheticExportKey?:string|null }
+interface WorkerGates { ugcGoLiveGate: boolean; privacyEnvironment?:string; privacySyntheticExportKey?:string|null;
+  accountClosure?:AccountClosure }
 type DeliveryOutcome = "applied" | "suppressed" | "audit_only";
 
 export const WORKER_MAX_ATTEMPTS = 5;
@@ -179,7 +181,12 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
 
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates,
   onError: (error: unknown) => void, onCycleSuccess?: () => Promise<void>) {
+  let lastClosureReplay=0;
   return startWorkerLoop(async () => {
+    if(gates.accountClosure&&Date.now()-lastClosureReplay>=5*60_000){
+      await gates.accountClosure.replayPendingErasure(pool);
+      lastClosureReplay=Date.now();
+    }
     const result = await runWorkerCycle(pool, storage, gates);
     await onCycleSuccess?.();
     return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 ||

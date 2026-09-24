@@ -61,7 +61,11 @@ it('closes access while preserving a legally held profile until the hold is rele
   expect((await pool.query('SELECT wechat_handle FROM member_profile WHERE member_id=$1',[memberId])).rows[0].wechat_handle).toBe('HeldHandle');
   expect((await pool.query('SELECT resolution_code FROM privacy_request WHERE id=$1',[result.json().id])).rows[0].resolution_code)
     .toBe('SELF_ACCOUNT_CLOSED_WITH_LEGAL_HOLD');
+  const replayer=new AccountClosure(directory,suppressionRemote);
+  expect(await replayer.replayPendingErasure(pool)).toBe(0);
   await pool.query("UPDATE legal_hold SET status='released',released_by='fixture',released_at=now() WHERE id=$1",[hold]);
+  expect(await replayer.replayPendingErasure(pool)).toBe(1);
+  expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[memberId])).rowCount).toBe(0);
   await app.close();
   app=await makeApp();
   expect((await pool.query('SELECT 1 FROM member_profile WHERE member_id=$1',[memberId])).rowCount).toBe(0);

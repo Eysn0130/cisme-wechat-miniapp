@@ -951,7 +951,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     error=>app.log.error({event:"shipping_worker_tick_failed",...safeFailureFields(error)}),5000):null;
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
-      privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null }, (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
+      privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null,accountClosure:new AccountClosure(
+        config.privacy.suppressionDirectory,config.env==='production'?createCosSuppressionRemote(config):undefined) },
+      (error) => app.log.error({ event: "worker_tick_failed", ...safeFailureFields(error) }))
     : null;
   const safetyWorker=process.env.RUN_BACKGROUND_WORKER==="true" && config.media.ugcScanBaseUrl
     ? startUgcSafetyLoop(new UgcSafetyService(pool,config,storage),config.media.ugcScanBaseUrl,

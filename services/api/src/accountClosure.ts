@@ -111,6 +111,37 @@ export class AccountClosure {
     try{await this.remote?.put(row);}catch{throw new DomainError('ACCOUNT_CLOSURE_PENDING','注销处理中，请稍后重试',503);}
     return transaction(pool,client=>applyAccountClosure(client,row));
   }
+  /** Reapply only markers whose restored or newly released subject still has
+   * active profile material. This also closes a pre-deletion database restore
+   * while the worker remains alive, without waiting for another API restart. */
+  async replayPendingErasure(pool:pg.Pool):Promise<number> {
+    if(!this.directory)return 0;
+    await this.requireDirectory();
+    let repaired=0;
+    for(const filename of await readdir(this.directory)){
+      if(pendingMarker.test(filename))continue;
+      if(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5)))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
+      const memberId=filename.slice(0,-5);
+      const marker=await this.marker(memberId);
+      if(!marker)throw new Error('ACCOUNT_CLOSURE_MARKER_MISSING');
+      const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member m
+        WHERE m.id=$1 AND (m.status<>'deleted' OR (
+          NOT EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+            WHERE h.status='active' AND h.expires_at>clock_timestamp() AND
+              (b.object_type IN ('member','member_profile','member_contact') AND b.object_id=m.id::text
+                OR b.object_type='member_delivery_address' AND b.object_id IN
+                  (SELECT id::text FROM member_delivery_address WHERE member_id=m.id)))
+          AND (m.display_name<>'已注销用户'
+            OR EXISTS(SELECT 1 FROM wechat_identity WHERE member_id=m.id AND unionid IS NOT NULL)
+            OR EXISTS(SELECT 1 FROM member_contact WHERE member_id=m.id)
+            OR EXISTS(SELECT 1 FROM phone_authorization WHERE member_id=m.id)
+            OR EXISTS(SELECT 1 FROM member_profile WHERE member_id=m.id)
+            OR EXISTS(SELECT 1 FROM member_delivery_address WHERE member_id=m.id AND key_version<>'erased')))))
+        AS pending`,[memberId])).rows[0]?.pending;
+      if(pending){await this.replayMember(pool,memberId);repaired++;}
+    }
+    return repaired;
+  }
 }
 
 export async function applyAccountClosure(client:DbClient,marker:Marker) {
