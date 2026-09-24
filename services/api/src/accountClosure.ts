@@ -289,6 +289,10 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
   if(request.status==='received'){
     for(const status of ['reviewing','approved','executing'] as const)
       await client.query('UPDATE privacy_request SET status=$2,version=version+1,updated_at=now() WHERE id=$1',[marker.requestId,status]);
+    // Keep the in-memory state aligned with the transitions just persisted.
+    // Otherwise the first execution returns completed while its database row
+    // stays executing, and an unchanged replay revokes a newly generated copy.
+    request.status='executing';
   }else if(!['executing','completed'].includes(request.status))throw new Error('PROFILE_ERASURE_REQUEST_STATE_UNEXPECTED');
   await client.query('LOCK TABLE legal_hold IN SHARE MODE');
   await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');

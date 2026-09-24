@@ -235,12 +235,18 @@ it('rejects a pre-erasure snapshot when an older held deletion executes during m
 it('does not revoke a fresh post-erasure export on an unchanged marker replay',async()=>{
   const owner=await login('post-erasure-copy');
   const marker=await profileMarker(owner.memberId);
-  await transaction(pool,c=>applyProfileErasure(c,marker));
+  expect((await transaction(pool,c=>applyProfileErasure(c,marker))).status).toBe('completed');
+  const first=(await pool.query('SELECT status,version,resolution_code,completed_at FROM privacy_request WHERE id=$1',[marker.requestId])).rows[0];
+  expect(first.status).toBe('completed');
+  expect(first.resolution_code).toBe('SELF_PROFILE_ERASED');
+  expect(first.completed_at).not.toBeNull();
   const requestId=await exportRequest(owner);
   const executor=new FormalPrivacyExecution(pool,config,storage);
   expect(await executor.runExportOnce()).toBe(true);
   await transaction(pool,c=>applyProfileErasure(c,marker));
   expect(JSON.parse((await executor.download(owner.memberId,requestId)).toString()).sections.account.id).toBe(owner.memberId);
+  expect((await pool.query('SELECT version FROM privacy_request WHERE id=$1',[marker.requestId])).rows[0].version).toBe(first.version);
+  expect((await pool.query("SELECT count(*)::int AS count FROM privacy_request_event WHERE privacy_request_id=$1 AND event_type='execution_succeeded'",[marker.requestId])).rows[0].count).toBe(1);
 });
 
 it('invalidates an in-flight copy when restored data is removed by an already completed erasure',async()=>{
@@ -249,7 +255,7 @@ it('invalidates an in-flight copy when restored data is removed by an already co
   await transaction(pool,c=>applyProfileErasure(c,marker));
   // Simulate restored data only in this disposable database.
   await pool.query(`INSERT INTO member_profile(member_id,wechat_handle,handle_source,updated_at)
-    VALUES($1,'RestoredOldPrivateProfile','self_reported',$2)`,[owner.memberId,marker.createdAt]);
+    VALUES($1,'RestoredOldProfile','self_reported',$2)`,[owner.memberId,marker.createdAt]);
   const requestId=await exportRequest(owner);
   expect(await new FormalPrivacyExecution(pool,config,storage).runExportOnce(async()=>{
     await transaction(pool,c=>applyProfileErasure(c,marker));
