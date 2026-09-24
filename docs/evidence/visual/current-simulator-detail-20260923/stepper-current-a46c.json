@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "f56b63be1f648e609949ba928e38374ffaea89e0",
+  "packageSourceSha256": "a46cbb3ba88b88c2ff64ad9219377429314e198ff79d4acbaaaac3a98ad9c933",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic catalog and identity",
+  "captures": [
+    {
+      "file": "checkout-current-a46c.png",
+      "sha256": "2134fa8e5c5fce70180ef3e8cd71ce204eafb0351cef16c4fdaef19825120b19",
+      "route": "pages/checkout/index",
+      "query": "product=synthetic-acceptance-serum&sku=a80efbf8-b484-4c7b-bb6d-bb8eac012d4d&quantity=1"
+    },
+    {
+      "file": "product-current-a46c.png",
+      "sha256": "740ddb1a801a7e18b9824a4902a827e16b79ff7b6fbff8003719e110d3d47e1f",
+      "route": "pages/product/index",
+      "query": "id=synthetic-acceptance-serum"
+    }
+  ],
+  "observations": [
+    "Checkout quantity buttons measured 44 by 44 and icon 18 by 18, with 13 px inset on both axes; tapping plus and minus changed displayed quantity 1 to 2 to 1.",
+    "Product quantity plus measured 44 by 44 and its icon was offset 13 px from the button on both axes; screenshot shows both symbols centered."
+  ],
+  "scopeLimit": "Two simulator states and one quantity interaction. No device, full keyboard/state matrix, or production acceptance is claimed."
+}
