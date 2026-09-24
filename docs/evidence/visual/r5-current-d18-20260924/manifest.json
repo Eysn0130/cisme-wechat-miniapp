@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "d18b48e7ebc05d9636a24cc3980920af8c421cee9038744611090991b19c5f65",
+  "tool": "WeChat DevTools Stable simulator and wechatide 0.3.9",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "viewport": "333x719 simulator",
+  "fixture": "Disposable local test database, synthetic WeChat identity and paid order; no real payment",
+  "observed": [
+    "Privacy rights page opened after a synthetic sign-in and displayed the existing request form and received record without clipped buttons.",
+    "The paid order's native bottom support sheet opened from its order detail. Its quantity control shows centered plus and minus icons in both maximum and one-item states."
+  ],
+  "screenshots": ["privacy-rights.png", "aftersale-sheet.png", "aftersale-stepper-one.png"],
+  "interactionScope": "The sheet was opened by a simulator tap. The one-item state was reached by calling the existing page handler with the synthetic line ID because the DevTools selector did not target the button inside page-container reliably.",
+  "limits": "Simulator evidence only. The supplementary image button has no eligible media in this fixture. Physical iOS/Android, large text, real keyboard, actual closed account and production API behavior remain unverified."
+}
