@@ -1298,6 +1298,29 @@ it('offers historical rights after closure without another account-closure actio
   data:{kind:'withdraw',message:'撤回仍在使用的可选同意'}});
 });
 
+it('confirms self account closure once and rejects an identity switch while the modal is open',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'owner-token',privacyRightsToken:''}};
+ (globalThis as any).getApp=()=>appState;
+ let decide:(value:{confirm:boolean})=>void=()=>{};
+ wxMock.showModal.mockImplementation(({success}:{success:(value:{confirm:boolean})=>void})=>{decide=success;});
+ const page=mountedPage(capturedPage!,{alive:true,authenticated:true,selected:3});
+ const first=page.submit();
+ await page.submit();
+ expect(wxMock.showModal).toHaveBeenCalledTimes(1);
+ appState.globalData.sessionToken='different-member-token';
+ decide({confirm:true});await first;
+ expect(requestMock).not.toHaveBeenCalled();
+ expect(page.data.busy).toBe(false);
+ appState.globalData.sessionToken='owner-token';
+ requestMock.mockResolvedValueOnce({accountClosed:true});
+ const second=page.submit();decide({confirm:true});await second;
+ expect(requestMock).toHaveBeenCalledWith({path:'/v1/me/privacy-requests',method:'POST',
+  data:{kind:'close_account',message:'本人申请注销 CISME 账号'}});
+ expect(setSessionTokenMock).toHaveBeenCalledWith('');
+ expect(page.data.authenticated).toBe(false);
+});
+
 it('routes privacy contact to the existing support conversation, including after login',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  const appState={globalData:{sessionToken:''}};

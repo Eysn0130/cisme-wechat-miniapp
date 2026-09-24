@@ -69,13 +69,14 @@ Page({
   if(this.data.busy)return;
   const kind=(this.data.closedRights?closedKinds:kinds)[this.data.selected];
   if(kind!=='close_account'&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
+  const token=privacyToken();
   if(kind==='close_account'){
+   this.setData({busy:true,error:''});
    const confirmed=await new Promise<boolean>(resolve=>wx.showModal({title:'注销账号',
     content:'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私请求。',
     confirmText:'确认注销',confirmColor:'#6b3975',success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
-   if(!confirmed)return;
+   if(!confirmed||!this.data.alive||token!==privacyToken()){this.setData({busy:false});return;}
   }
-  const token=privacyToken();
   this.setData({busy:true,error:'',notice:''});
   try{const result=await request<{accountClosed?:boolean}>({path:'/v1/me/privacy-requests',method:'POST',data:{kind,message:kind==='close_account'?'本人申请注销 CISME 账号':this.data.message}});
    if(this.data.alive && token===privacyToken()){
