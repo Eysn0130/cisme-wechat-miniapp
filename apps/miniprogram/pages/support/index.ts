@@ -154,7 +154,7 @@ Page({
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:order.lines[0]?.image??null,
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
-    }catch{if(this.owns(epoch,token))this.setData({error:'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
+    }catch{if(this.owns(epoch,token))this.setData({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
   threadState(): SupportThreadState<Message> { return { messages: this.data.messages, syncCursor: this.data.syncCursor, maxSeenSequence: this.data.maxSeenSequence, readCursor: this.data.readCursor }; },
@@ -495,7 +495,7 @@ Page({
     const ownerToken = sessionToken();
     for (const message of messages) for (const attachment of message.attachments ?? []) {
       if (attachment.localPath || !attachment.previewPath) continue;
-      const download = downloadPrivateMedia(attachment.previewPath);
+      const download = downloadPrivateMedia(attachment.previewPath,this.data.closedRights);
       const abort = () => download.abort();
       this.mediaDownloads.push(abort);
       void download.promise.then((localPath) => {

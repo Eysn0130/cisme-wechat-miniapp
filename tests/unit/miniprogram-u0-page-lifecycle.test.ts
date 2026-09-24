@@ -57,6 +57,16 @@ beforeEach(() => {
 });
 
 describe("U0 native page lifecycle regressions", () => {
+  it("uses the verified historical-rights token to read owned support attachments after closure", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const abort = vi.fn();
+    downloadPrivateMediaMock.mockReturnValueOnce({ promise: new Promise(() => {}), abort });
+    const page = mountedPage(capturedPage!, { closedRights: true }, { mediaDownloads: [] });
+    page.downloadMedia([{ id: "message", attachments: [{ id: "image", previewPath: "/v1/me/support/media/owned" }] }]);
+    expect(downloadPrivateMediaMock).toHaveBeenCalledWith("/v1/me/support/media/owned", true);
+    page.abortDownloads();
+    expect(abort).toHaveBeenCalledOnce();
+  });
   it("drops a previous operator's finance cycle and approval keys before rechecking authority", async () => {
     requestMock.mockImplementation(() => new Promise(() => undefined));
     await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
