@@ -152,4 +152,24 @@ describe('linked transaction support retention worker',()=>{
       WHERE action='support.transaction.retention.purge' AND object_id=$1`,[linked.conversationId])).rows[0]?.retained).toBe('true');
     expect(await purgeDueLinkedSupport(pool,now)).toBe(0);
   });
+
+  it('does not extend an old linked conversation for a later unrelated order',async()=>{
+    const old=await linkedCanceledConversation('0005','2023-06-01T12:00:00Z','2023-06-02T12:00:00Z');
+    const source=(await pool.query(`SELECT q.product_id,q.sku_id,q.address_id FROM commerce_order o
+      JOIN commerce_checkout_quote q ON q.id=o.source_quote_id WHERE o.id=$1`,[old.orderId])).rows[0];
+    const quote=(await pool.query<{id:string}>(`INSERT INTO commerce_checkout_quote(member_id,product_id,sku_id,address_id,
+      address_version,quantity,currency,unit_price_cents,subtotal_cents,member_discount_cents,
+      shipping_cents,total_cents,pricing_rule_version,product_version,sku_version,price_version,
+      status,idempotency_key,request_hash,expires_at)
+      VALUES($1,$2,$3,$4,1,1,'CNY',10000,10000,0,0,10000,'fixture-r1',1,1,1,
+      'active','retention-new-order-0005',$5,now()+interval '1 day') RETURNING id`,
+      [old.memberId,source.product_id,source.sku_id,source.address_id,'d'.repeat(64)])).rows[0]!;
+    await pool.query(`UPDATE commerce_checkout_quote SET status='consumed',consumed_at=now() WHERE id=$1`,[quote.id]);
+    await pool.query(`INSERT INTO commerce_order(order_number,member_id,source_quote_id,status,currency,
+      subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at)
+      VALUES('CM20260923000000000006',$1,$2,'pending_payment','CNY',10000,0,0,10000,
+      'fixture-r1',now()+interval '1 day')`,[old.memberId,quote.id]);
+    expect(await purgeDueLinkedSupport(pool,now)).toBe(1);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[old.conversationId])).rowCount).toBe(0);
+  });
 });

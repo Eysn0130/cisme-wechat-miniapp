@@ -5,6 +5,7 @@ const kinds=['access','correct','delete','close_account','withdraw','other'];
 const labels=['查阅或复制个人信息','更正个人信息','删除个人信息','申请注销账号','撤回个人信息处理同意','其他隐私咨询'];
 const closedKinds=kinds.filter(kind=>kind!=='close_account');
 const closedLabels=labels.filter((_,index)=>kinds[index]!=='close_account');
+const deleteScopes=['清除账户资料','申请处理其他数据'];
 const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'处理中',executing:'处理中',completed:'已完成',partially_completed:'部分完成',failed:'处理未完成',rejected:'暂无法办理',canceled:'已取消',responded:'已回复'};
 const executionStatuses:Record<string,string>={succeeded:'已处理',partially_succeeded:'部分资料已处理',failed:'处理遇到问题',expired:'副本已过期',canceled:'已取消'};
 const deliveryStatuses:Record<string,string>={available:'数据副本可获取',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
@@ -55,17 +56,18 @@ Page({
  identityToken:'',
  actionBusy(){return this.data.busy||this.data.replyBusy||this.data.exportBusy;},
  onLoad(){clearExportFile();clearAbandonedExportFiles();},
- data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
  onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
   if(changed)clearExportFile();
   this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
   this.setData({authenticated:Boolean(token),closedRights,labels:closedRights?closedLabels:labels,
-    ...(changed?{selected:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
+    ...(changed?{selected:0,deleteScopeIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
     busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});void this.loadLegalIdentity();void this.load();},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.setData({visibleExport:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  choose(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({selected:Number(e.detail.value)});},
+ chooseDeleteScope(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({deleteScopeIndex:Number(e.detail.value),error:''});},
  input(e:WechatMiniprogram.TextareaInput){if(this.actionBusy())return;this.setData({message:e.detail.value});},
  login(){resumeAuthentication('/pages/privacy-rights/index');},
  openSupport(){
@@ -107,7 +109,7 @@ Page({
  async submit(){
   if(this.actionBusy())return;
   const kind=(this.data.closedRights?closedKinds:kinds)[this.data.selected];
-  const optionalProfileDelete=kind==='delete'&&!this.data.closedRights;
+  const optionalProfileDelete=kind==='delete'&&!this.data.closedRights&&this.data.deleteScopeIndex===0;
   if(kind!=='close_account'&&!optionalProfileDelete&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
   const token=privacyToken(),attempt=++this.data.operationAttempt;
   if(kind==='close_account'||optionalProfileDelete){

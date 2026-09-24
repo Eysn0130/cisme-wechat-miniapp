@@ -64,6 +64,42 @@ it('retains the current owner records during refresh and on a recoverable networ
   expect(view.data.records[0].id).toBe('updated');expect(view.data.error).not.toBe('');
 });
 
+it('keeps the deletion scope chosen by the user instead of converting every request to profile erasure',async()=>{
+  await import('../../apps/miniprogram/pages/privacy-rights/index');
+  const view=page({selected:2,deleteScopeIndex:1,message:'请删除我发布的一条社区评论'});
+  request.mockResolvedValue({status:'received',items:[],nextCursor:null});
+  await view.submit();
+  expect(request).toHaveBeenCalledWith(expect.objectContaining({method:'POST',data:{
+    kind:'delete',message:'请删除我发布的一条社区评论'}}));
+  expect(wx.showModal).not.toHaveBeenCalled();
+});
+
+it('retains same-identity rights records across a short page interruption',async()=>{
+  await import('../../apps/miniprogram/pages/privacy-rights/index');
+  const view=page({records:[{id:'owned'}],recordToken:'owner'});
+  view.identityToken='owner';
+  view.onHide();
+  expect(view.data.records).toEqual([{id:'owned'}]);
+  const read=deferred<any>();request.mockImplementation(({path}:any)=>path==='/v1/legal'
+    ? Promise.resolve({documents:[]}) : read.promise);
+  view.onShow();
+  expect(view.data.records).toEqual([{id:'owned'}]);
+  read.resolve({items:[{id:'owned',kind:'access',status:'received'}],nextCursor:null});
+  await Promise.resolve();
+});
+
+it('clears retained rights records before a different identity can see them',async()=>{
+  await import('../../apps/miniprogram/pages/privacy-rights/index');
+  const view=page({records:[{id:'old-owner'}],recordToken:'owner'});
+  view.identityToken='owner';view.onHide();
+  state.globalData.sessionToken='new-owner';
+  wx.getFileSystemManager.mockReturnValue({unlink:vi.fn()});
+  request.mockImplementation(({path}:any)=>path==='/v1/legal'
+    ? Promise.resolve({documents:[]}) : new Promise(()=>{}));
+  view.onShow();
+  expect(view.data.records).toEqual([]);
+});
+
 it('does not equate paid with unfulfilled or expose unknown order codes',async()=>{
   await import('../../apps/miniprogram/pages/orders/index');
   const view=page();

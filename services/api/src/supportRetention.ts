@@ -84,8 +84,22 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
 }
 
 type LinkedOrder={id:string;status:string;cancelled_at:Date|null;expired_at:Date|null;
-  receipt_confirmed_at:Date|null;verified_delivered_at:Date|null};
+  receipt_confirmed_at:Date|null;verified_delivered_at:Date|null;total_cents:string;
+  succeeded_refund_cents:string;refund_finalized_at:Date|null};
 type LinkedCase={id:string;state:string;updated_at:Date;refund_state:string|null;refund_finalized_at:Date|null};
+
+/** A paid order with no delivery can end through a verified full refund.
+ * Partial or unknown refunds do not establish a transaction end date. */
+export function linkedOrderTerminalAt(order:LinkedOrder):Date|null {
+  if(order.status==='cancelled')return order.cancelled_at;
+  if(order.status==='expired')return order.expired_at;
+  if(order.status!=='paid')return null;
+  const delivery=order.receipt_confirmed_at??order.verified_delivered_at;
+  if(delivery)return order.refund_finalized_at&&order.refund_finalized_at>delivery
+    ?order.refund_finalized_at:delivery;
+  return BigInt(order.succeeded_refund_cents)===BigInt(order.total_cents)
+    ?order.refund_finalized_at:null;
+}
 
 /** A member has one support conversation, so mixed consultation and commerce
  * messages share a clock. Purge only after the later of resolution and every
@@ -107,7 +121,8 @@ export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20
         AND (EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id
           AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL))
           OR EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE
-            a.support_conversation_id=c.id OR a.support_conversation_id IS NULL AND a.member_id=c.member_id))
+            a.support_conversation_id=c.id OR a.support_conversation_id IS NULL
+              AND a.member_id=c.member_id AND a.created_at<=c.resolved_at))
       ORDER BY c.resolved_at,c.id LIMIT $3 FOR UPDATE OF c SKIP LOCKED`,
       [policy.duration_months,now,limit])).rows;
     if(!candidates.length)return 0;
@@ -120,21 +135,43 @@ export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20
         WHERE member_id=$1 AND status NOT IN ('completed','partially_completed','rejected','canceled')) AS open`,
         [row.member_id])).rows[0]?.open;
       if(openRights)continue;
-      // All of this member's orders are considered, including legacy free-text
-      // consultation that did not carry an order-card link.
+      // Explicit order cards and case links define the conversation's trade
+      // scope. For legacy free-text threads without either, conservatively
+      // retain orders that existed when this conversation was resolved; a
+      // later unrelated purchase cannot extend the old thread indefinitely.
       const orders=(await client.query<LinkedOrder>(`SELECT o.id,o.status,o.cancelled_at,o.expired_at,
-        s.receipt_confirmed_at,f.delivered_at AS verified_delivered_at
+        o.total_cents,s.receipt_confirmed_at,f.delivered_at AS verified_delivered_at,
+        COALESCE(refunds.succeeded_refund_cents,0)::text AS succeeded_refund_cents,
+        refunds.refund_finalized_at
         FROM commerce_order o LEFT JOIN commerce_shipment s ON s.order_id=o.id
         LEFT JOIN commerce_fulfillment_attestation f ON f.order_id=o.id AND f.state='verified'
-        WHERE o.member_id=$1`,[row.member_id])).rows;
+        LEFT JOIN LATERAL (
+          SELECT sum(r.amount_cents) AS succeeded_refund_cents,max(i.finalized_at) AS refund_finalized_at
+          FROM commission_refund_intent i JOIN commerce_refund_request r ON r.id=i.request_id
+          WHERE i.order_id=o.id AND i.state='succeeded'
+        ) refunds ON true
+        WHERE o.member_id=$1 AND (
+          EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=$2 AND m.linked_order_id=o.id)
+          OR EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE a.order_id=o.id
+            AND a.support_conversation_id=$2)
+          OR EXISTS(SELECT 1 FROM commerce_aftersale_case a JOIN support_message m
+            ON m.linked_case_id=a.id WHERE a.order_id=o.id AND m.conversation_id=$2)
+          OR (o.created_at<=$3 AND NOT EXISTS(SELECT 1 FROM support_message m
+            WHERE m.conversation_id=$2 AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL))
+            AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE a.support_conversation_id=$2))
+        )`,[row.member_id,row.id,row.resolved_at])).rows;
       const cases=(await client.query<LinkedCase>(`SELECT c.id,c.state,c.updated_at,
         i.state AS refund_state,i.finalized_at AS refund_finalized_at
         FROM commerce_aftersale_case c LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
-        WHERE c.member_id=$1`,[row.member_id])).rows;
+        WHERE c.member_id=$1 AND (c.support_conversation_id=$2 OR c.order_id=ANY($3::uuid[]) OR
+          EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=$2 AND m.linked_case_id=c.id) OR
+          c.support_conversation_id IS NULL AND c.created_at<=$4 AND NOT EXISTS(
+            SELECT 1 FROM support_message m WHERE m.conversation_id=$2
+              AND (m.linked_order_id IS NOT NULL OR m.linked_case_id IS NOT NULL)))`,
+        [row.member_id,row.id,orders.map(order=>order.id),row.resolved_at])).rows;
       let terminalAt=row.resolved_at,unfinished=false;
       for(const order of orders){
-        const end=order.status==='cancelled'?order.cancelled_at:order.status==='expired'?order.expired_at:
-          order.status==='paid'?(order.receipt_confirmed_at??order.verified_delivered_at):null;
+        const end=linkedOrderTerminalAt(order);
         if(!end){unfinished=true;break;}
         if(end>terminalAt)terminalAt=end;
       }
