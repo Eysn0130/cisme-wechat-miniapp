@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "target": {"instanceId": "lhins-61ikz4mi", "region": "ap-shanghai"},
+  "action": "Removed UFW allow-in rules for TCP 5432 on IPv4 and IPv6; kept the existing TCP 22 management rules.",
+  "before": "UFW default incoming deny, with 22/tcp and 5432/tcp allowed from Anywhere; PostgreSQL listened on all IPv4 and IPv6 interfaces.",
+  "after": "UFW status lists only 22/tcp allowed for IPv4 and IPv6. A new SSH connection succeeded; local PostgreSQL SELECT 1 returned 1; API and Worker remained active; loopback API /health/live returned 200.",
+  "externalProbe": "A local nc TCP connect reported success, but the server showed no corresponding established PostgreSQL connection. The local route may be proxied, so this is not counted as proof of external reachability or blocking.",
+  "remaining": "Verify the Tencent Cloud firewall separately and bind PostgreSQL to loopback during the controlled service rollout after confirming backup and local connection settings."
+}
