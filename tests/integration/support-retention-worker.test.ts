@@ -52,6 +52,11 @@ afterAll(async()=>{await pool.end();});
 
 describe('ordinary support retention worker',()=>{
   it('requires an enabled finite policy and applies calendar months',async()=>{
+    const configured=(await pool.query(`SELECT duration_months,active,enforcement_state,
+      automatic_purge_enabled FROM data_retention_policy
+      WHERE code='support_conversation_policy_pending'`)).rows[0];
+    expect(configured).toMatchObject({duration_months:3,active:true,
+      enforcement_state:'enforced',automatic_purge_enabled:false});
     const old=await conversation('old ordinary inquiry','2026-07-01T12:00:00Z');
     const recent=await conversation('recent ordinary inquiry','2026-09-01T12:00:00Z');
     expect(await purgeDueOrdinarySupport(pool,now)).toBe(0);

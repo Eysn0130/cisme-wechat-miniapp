@@ -138,8 +138,8 @@ describe("R2 support authority",()=>{
     const userConversation=(await pool.query("SELECT * FROM support_conversation WHERE member_id=$1",[user.memberId])).rows[0];
     const otherConversation=(await pool.query("SELECT * FROM support_conversation WHERE member_id=$1",[memberOnly.memberId])).rows[0];
     expect((await app.inject({method:"POST",url:`/v1/management/support/conversations/${userConversation.id}/purge`,headers:{...auth(operatorA.sessionToken),"idempotency-key":"support-retention-no-cap"},payload:{expectedVersion:userConversation.version}})).statusCode).toBe(403);
-    expect((await app.inject({method:"POST",url:`/v1/management/support/conversations/${userConversation.id}/purge`,headers:{...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-pending"},payload:{expectedVersion:userConversation.version}})).json().code).toBe("SUPPORT_RETENTION_POLICY_PENDING");
-    await pool.query(`UPDATE data_retention_policy SET duration_days=1,enforcement_state='enforced',active=true,version=version+1,updated_at=now()
+    expect((await app.inject({method:"POST",url:`/v1/management/support/conversations/${userConversation.id}/purge`,headers:{...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-pending"},payload:{expectedVersion:userConversation.version}})).json().code).toBe("SUPPORT_RETENTION_NOT_RESOLVED");
+    await pool.query(`UPDATE data_retention_policy SET duration_days=1,duration_months=NULL,enforcement_state='enforced',active=true,version=version+1,updated_at=now()
       WHERE code='support_conversation_policy_pending'`);
     const resolved=(await pool.query(`UPDATE support_conversation SET status='resolved',current_handler_principal_id=NULL,resolved_at=now()-interval '2 days',
       version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[userConversation.id])).rows[0];

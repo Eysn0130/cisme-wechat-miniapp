@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "7205021185d43183e3dbb6d7fe5a0dc78e764915e45c390e901bfb65a6afcf80",
+  "migrationSetSha256": "bdd0408e920757f9af13b677b40835ed25dec3d860ece065403bc535c30eb6d8",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -9,7 +9,7 @@
   "rules": {
     "export": "A verified WeChat member can receive an encrypted short-lived copy of the explicit account, contact, address, care, commerce, support, community, membership and rights projections plus supported owned image bytes. Video and oversized copies remain explicit partial/failed cases; internal secrets and other people are excluded. Synthetic dev identity remains profile-only.",
     "subject": "FK paths are candidate relationships, not authorization. Actor, beneficiary, reporter and owner must remain distinct; polymorphic notes require typed resolver.",
-    "retention": "Transaction and transaction-linked support have a confirmed 36-calendar-month business baseline subject to longer legal duties. Ordinary support has a separate finite policy and automatic purge gate. Legal holds block erasure until release; not all classes have an enforced retention configuration.",
+    "retention": "Transaction and transaction-linked support have a confirmed 36-calendar-month business baseline subject to longer legal duties. Ordinary support has a configurable three-calendar-month policy after resolution; automatic purge remains separately gated until deployed data is previewed. Legal holds block erasure until release; other classes may lack enforcement.",
     "identity": "Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key.",
     "erasure": "A verified WeChat member may delete the fixed optional account/contact/address scope without a second administrator. The independent suppression marker prevents restored old data from becoming active. Transaction, finance, support evidence and legal holds are preserved; unscoped requests stay non-executable until assessed."
   },
