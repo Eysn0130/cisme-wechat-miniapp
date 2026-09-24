@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "target": {"instanceId": "lhins-61ikz4mi", "region": "ap-shanghai", "publicIPv4": "124.223.74.198"},
+  "before": [
+    {"source": "all IPv4", "protocol": "TCP", "port": 5432, "action": "allow", "purpose": "historic direct database rule"},
+    {"source": "all IPv4", "protocol": "TCP", "port": 22, "action": "allow"},
+    {"source": "all IPv4", "protocol": "TCP", "port": 80, "action": "allow"},
+    {"source": "all IPv4", "protocol": "ICMP", "port": "all", "action": "allow"}
+  ],
+  "action": "Deleted the explicit public IPv4 TCP/5432 rule in the production Lighthouse firewall console after confirming the active database clients were local only. This follows the earlier UFW removal of both IPv4 and IPv6 TCP/5432 allows.",
+  "afterConsole": {
+    "ruleCount": 3,
+    "tcp5432": "absent",
+    "tcp22": "allow all IPv4",
+    "tcp80": "allow all IPv4",
+    "tcp443": "absent",
+    "icmp": "allow all IPv4",
+    "consoleResult": "operation successful"
+  },
+  "afterHost": {
+    "sshNewConnection": "success",
+    "localPostgresSelect1": "success",
+    "cismeApiSystemd": "active",
+    "cismeWorkerSystemd": "active",
+    "loopbackLiveHealth": 200,
+    "ufwInboundAllows": ["22/tcp IPv4", "22/tcp IPv6"]
+  },
+  "remaining": "PostgreSQL still binds all interfaces at the process level; restrict it to loopback during the controlled release. Public HTTPS/443 remains closed at the cloud and host firewall layers and must be opened only for the production cutover with external TLS verification. This firewall change does not constitute deployment."
+}
