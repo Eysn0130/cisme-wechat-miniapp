@@ -104,7 +104,7 @@ describe('support order actions keep identity, route and user choice aligned', (
   it('sends a general enquiry without the removed route order', async () => {
     const page = await support(); page.linkedOrderId = orderId; page.data.input = '普通咨询'; page.removeOrder();
     m.request.mockRejectedValue(new Error('unknown outcome')); await page.send();
-    expect(m.request.mock.calls[0][0].data.linkedOrderId).toBeNull(); expect(page.data.sendAttempt).not.toBeNull();
+    expect(m.request.mock.calls[0]![0].data.linkedOrderId).toBeNull(); expect(page.data.sendAttempt).not.toBeNull();
   });
   it('keeps the immutable historical order for a closed account', async () => {
     const page = await support(); page.data.closedRights = true; page.linkedOrderId = orderId; page.data.selectedOrder = order;

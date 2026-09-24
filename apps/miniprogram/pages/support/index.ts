@@ -73,7 +73,8 @@ Page({
     selectedImage: null as SelectedImage | null, uploadBusy: false
   },
   onLoad(options:Record<string,string>) { this.data.pageAlive = true;
-    this.linkedOrderId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.orderId??'')?options.orderId:''; },
+    const orderId=options.orderId??'';
+    this.linkedOrderId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)?orderId:''; },
   onReady() { this.measureComposer(); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.measureComposer(); },
   onShow() {
@@ -111,7 +112,7 @@ Page({
     }
     if(this.linkedOrderId&&!this.data.input&&!this.data.sendAttempt){
       const draft=takeSupportDraft(sessionToken(),this.linkedOrderId);
-      if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.selectedImage,this.data.selectedOrder)});
+      if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.input?this.data.selectedImage:this.data.selectedImage,this.data.selectedOrder)});
     }
     void this.load();
     if(this.linkedOrderId)void this.loadLinkedOrder();
