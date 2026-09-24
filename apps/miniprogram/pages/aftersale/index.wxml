@@ -3,7 +3,7 @@
  <view wx:if="{{loading}}" class="state">正在核对售后记录…</view>
  <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button class="text-button {{busy?'control--disabled':''}}" bindtap="retry" disabled="{{busy}}">重新核验</button></view>
  <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
- <view wx:if="{{coreReady}}" class="case-card"><text class="muted">收到本案退货指引后再寄出；退款进度会在这里更新。</text><button class="secondary {{busy||loading?'control--disabled':''}}" bindtap="retry" disabled="{{busy||loading}}">刷新售后进度</button></view>
+ <view wx:if="{{coreReady}}" class="case-card"><text class="muted">{{selected&&selected.kind==='return_refund'?'收到本案退货指引后再寄出。':'售后进度会在这里更新。'}}</text><button class="secondary {{busy||loading?'control--disabled':''}}" bindtap="retry" disabled="{{busy||loading}}">刷新售后进度</button></view>
  <view wx:if="{{coreReady&&attentionLabel}}" class="case-card"><text class="case-title">{{attentionLabel}}</text><button class="secondary {{busy||loading?'control--disabled':''}}" bindtap="clearAttention" disabled="{{busy||loading}}">查看全部售后</button></view>
  <view wx:if="{{needsReconcile||locked}}" class="state"><text>上次操作需要核对。再次提交使用原请求；离开页面后的填写内容不会保留。</text><button wx:if="{{locked}}" class="secondary {{!coreReady||busy||loading?'control--disabled':''}}" bindtap="submit" disabled="{{!coreReady||busy||loading}}">重试原请求</button><button class="secondary {{!coreReady||busy||loading?'control--disabled':''}}" bindtap="reconcile" disabled="{{!coreReady||busy||loading}}">已核对原记录</button></view>
  <block wx:if="{{coreReady&&!selected}}">
