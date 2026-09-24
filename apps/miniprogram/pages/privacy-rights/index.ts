@@ -57,7 +57,7 @@ Page({
  hiddenRecords:[] as any[],hiddenRecordToken:'',hiddenNextCursor:null as string|null,
  actionBusy(){return this.data.busy||this.data.replyBusy||this.data.exportBusy;},
  onLoad(){clearExportFile();clearAbandonedExportFiles();},
- data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false,historicalBalance:null as null|{available:string;pending:string;held:string}},
  onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
   if(changed)clearExportFile();
   this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
@@ -65,10 +65,10 @@ Page({
   this.setData({authenticated:Boolean(token),closedRights,labels:closedRights?closedLabels:labels,
     ...(restore?{records:this.hiddenRecords,recordToken:token,nextCursor:this.hiddenNextCursor}:{}),
     ...(changed?{selected:0,deleteScopeIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
-    busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});void this.loadLegalIdentity();void this.load();},
+    busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});void this.loadLegalIdentity();void this.load();if(closedRights&&token)void this.loadHistoricalBalance(token);},
  onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;
   this.hiddenRecordToken=this.data.recordToken;this.hiddenRecords=this.data.records;this.hiddenNextCursor=this.data.nextCursor;
-  this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false});},
+  this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;
   this.hiddenRecordToken='';this.hiddenRecords=[];this.hiddenNextCursor=null;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
@@ -86,6 +86,16 @@ Page({
  openHistoricalOrders(){
   if(!this.data.closedRights||!privacyToken())return;
   wx.navigateTo({url:'/pages/orders/index',fail:()=>this.setData({error:'历史订单暂时无法打开，请重试。'})});
+ },
+ async loadHistoricalBalance(token:string){
+  try{
+   const status=await request<{commission:{availableCents:number;pendingCents:number;paymentHeldCents:number;currency:string}}>({path:'/v1/me/commercial-membership'});
+   if(!this.data.alive||!this.data.closedRights||token!==privacyToken())return;
+   const amounts=status.commission;
+   if(amounts?.currency!=='CNY'||![amounts.availableCents,amounts.pendingCents,amounts.paymentHeldCents].every(value=>Number.isSafeInteger(value)&&value>=0))return;
+   if(amounts.availableCents+amounts.pendingCents+amounts.paymentHeldCents===0)return;
+   this.setData({historicalBalance:{available:(amounts.availableCents/100).toFixed(2),pending:(amounts.pendingCents/100).toFixed(2),held:(amounts.paymentHeldCents/100).toFixed(2)}});
+  }catch{/* The rights request and historical orders remain available. */}
  },
  async loadLegalIdentity(){
   const attempt=++this.data.legalAttempt;

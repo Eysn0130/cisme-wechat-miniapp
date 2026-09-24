@@ -220,6 +220,9 @@ it('closes a self-verified account, retains transaction facts, and suppresses ol
   expect((await app.inject({url:`/v1/me/refund-requests?orderId=${paidOrder}`,headers:rightsHeaders})).statusCode).toBe(200);
   expect((await app.inject({url:'/v1/me/commission/settlement-requests',headers:rightsHeaders})).statusCode).toBe(200);
   expect((await app.inject({url:'/v1/me/commission/credit-conversions',headers:rightsHeaders})).statusCode).toBe(200);
+  const historicalMembership=await app.inject({url:'/v1/me/commercial-membership',headers:rightsHeaders});
+  expect(historicalMembership.statusCode,historicalMembership.body).toBe(200);
+  expect(historicalMembership.json()).toMatchObject({eligible:false,membershipState:'expired',commission:{currency:'CNY'}});
   expect((await app.inject({url:`/v1/me/orders/${randomUUID()}`,headers:rightsHeaders})).statusCode).toBe(404);
   expect((await app.inject({method:'POST',url:'/v1/me/orders',headers:rightsHeaders,payload:{}})).statusCode).toBe(403);
   expect((await app.inject({method:'POST',url:`/v1/me/orders/${order}/payment-intent`,headers:rightsHeaders})).statusCode).toBe(403);

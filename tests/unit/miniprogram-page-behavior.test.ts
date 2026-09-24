@@ -1321,10 +1321,13 @@ it('offers historical rights after closure without another account-closure actio
  (globalThis as any).getApp=()=>appState;
  requestMock.mockImplementation(async ({path,method}:{path:string;method?:string})=>
   path==='/v1/legal'?{documents:[]}:
+  path==='/v1/me/commercial-membership'?{commission:{availableCents:1234,pendingCents:200,paymentHeldCents:0,currency:'CNY'}}:
   method==='POST'?{id:'historic-rights'}:{items:[],nextCursor:null});
  const page=mountedPage(capturedPage!,{alive:true});
  page.onShow();
+ await page.loadHistoricalBalance('closed-rights-token');
  expect(page.data.closedRights).toBe(true);
+ expect(page.data.historicalBalance).toEqual({available:'12.34',pending:'2.00',held:'0.00'});
  expect(page.data.labels).not.toContain('注销会员账号');
  page.setData({selected:3,message:'撤回仍在使用的可选同意'});
  await page.submit();

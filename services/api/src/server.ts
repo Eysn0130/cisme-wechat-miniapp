@@ -298,7 +298,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         /^\/v1\/me\/orders\/[0-9a-f-]{36}\/aftersales\/availability$/i.test(path)||
         /^\/v1\/me\/orders\/[0-9a-f-]{36}\/shipment(?:\/tracking)?$/i.test(path)||
         path==='/v1/me/aftersales'||/^\/v1\/me\/aftersales\/[0-9a-f-]{36}$/i.test(path)||
-        path==='/v1/me/refund-requests'||path==='/v1/me/commission/settlement-requests'||
+        path==='/v1/me/refund-requests'||path==='/v1/me/commercial-membership'||path==='/v1/me/commission/settlement-requests'||
         path==='/v1/me/commission/credit-conversions'||path==='/v1/me/support/messages'||
         /^\/v1\/me\/support\/media\/[0-9a-f-]{36}$/i.test(path)) ||
         request.method==='POST'&&(
