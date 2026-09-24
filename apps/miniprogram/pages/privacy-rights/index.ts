@@ -5,19 +5,22 @@ const kinds=['access','correct','delete','close_account','withdraw','other'];
 const labels=['查阅或复制个人信息','更正个人信息','删除个人信息','申请注销账号','撤回个人信息处理同意','其他隐私咨询'];
 const closedKinds=kinds.filter(kind=>kind!=='close_account');
 const closedLabels=labels.filter((_,index)=>kinds[index]!=='close_account');
-const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'待执行',executing:'正在执行',completed:'已完成',partially_completed:'部分完成',rejected:'未批准',canceled:'已取消',responded:'已回复，待处理'};
-const executionStatuses:Record<string,string>={planned:'已建立计划，尚未执行',approved:'已复核待执行',running:'正在执行',succeeded:'执行成功',partially_succeeded:'部分执行成功',failed:'执行失败待处理',expired:'导出已过期',canceled:'计划已取消'};
+const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'处理中',executing:'处理中',completed:'已完成',partially_completed:'部分完成',rejected:'暂无法办理',canceled:'已取消',responded:'已回复'};
+const executionStatuses:Record<string,string>={succeeded:'已处理',partially_succeeded:'部分资料已处理',failed:'处理遇到问题',expired:'副本已过期',canceled:'已取消'};
 const deliveryStatuses:Record<string,string>={available:'会员资料副本可查看',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
 type PrivacyPage={items:any[];nextCursor:string|null};
 function privacyToken():string {const data=getApp<IAppOption>().globalData;return data.sessionToken||data.privacyRightsToken||'';}
 function displayRecord(r:any,closedRights=false){
  const delivery=closedRights&&r.execution?.deliveryState==='available'
   ? '如需历史副本，请在本页提交请求'
-  : deliveryStatuses[r.execution?.deliveryState]||'仅会员资料子集，完整导出仍待处理';
+  : deliveryStatuses[r.execution?.deliveryState]||'';
+ const executionStatus=executionStatuses[r.execution?.status]||'';
+ const scopeDetail=r.execution?.scope==='member_profile_only'&&delivery?`；${delivery}`:
+  r.execution?.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；已清除自报微信号，其他资料仍保留':'';
  return {...r,execution:closedRights&&r.execution?{...r.execution,downloadAvailable:false}:r.execution,
   label:labels[kinds.indexOf(r.kind)]||'隐私请求',
   statusLabel:r.status==='responded'&&r.waitingOn==='member'?'请补充信息':statuses[r.status]||'状态待核对',
-  executionSummary:r.execution?`${r.execution.type==='export'?'数据副本':'数据处理'}：${executionStatuses[r.execution.status]||'状态待核对'}${r.execution.scope==='member_profile_only'?'；'+delivery:''}${r.execution.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；仅清除自报微信号，其他资料未删除':''}`:''};
+  executionSummary:executionStatus?`${executionStatus}${scopeDetail}`:''};
 }
 Page({
  data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false},

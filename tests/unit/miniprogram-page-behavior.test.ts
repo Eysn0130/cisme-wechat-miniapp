@@ -1215,7 +1215,7 @@ it('labels a synthetic scoped erasure as partial and leaves unrelated data uncla
  const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
  requestMock.mockResolvedValueOnce({items:[{id:'request-a',kind:'delete',status:'partially_completed',execution:{type:'erasure',status:'partially_succeeded',scopeCode:'member_profile_handle_v1'}}],nextCursor:null});
  await page.load();
- expect(page.data.records[0].executionSummary).toContain('仅清除自报微信号，其他资料未删除');
+ expect(page.data.records[0].executionSummary).toContain('已清除自报微信号，其他资料仍保留');
  expect(page.data.records[0].statusLabel).toBe('部分完成');
 });
 
@@ -1230,7 +1230,7 @@ it('describes a limited privacy copy without exposing test or unknown status cod
  await page.load();
  expect(page.data.records[0].executionSummary).toContain('会员资料副本可查看');
  expect(page.data.records[0].executionSummary).not.toContain('合成');
- expect(page.data.records[1]).toMatchObject({label:'隐私请求',statusLabel:'状态待核对',executionSummary:'数据副本：状态待核对'});
+ expect(page.data.records[1]).toMatchObject({label:'隐私请求',statusLabel:'状态待核对',executionSummary:''});
 });
 
 it('loads later privacy records without duplicating a row and clears them after identity changes',async()=>{
