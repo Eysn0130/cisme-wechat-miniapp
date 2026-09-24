@@ -170,10 +170,16 @@ describe('linked transaction support retention worker',()=>{
       'active','retention-new-order-0005',$5,now()+interval '1 day') RETURNING id`,
       [old.memberId,source.product_id,source.sku_id,source.address_id,'d'.repeat(64)])).rows[0]!;
     await pool.query(`UPDATE commerce_checkout_quote SET status='consumed',consumed_at=now() WHERE id=$1`,[quote.id]);
-    await pool.query(`INSERT INTO commerce_order(order_number,member_id,source_quote_id,status,currency,
+    const laterOrder=(await pool.query<{id:string}>(`INSERT INTO commerce_order(order_number,member_id,source_quote_id,status,currency,
       subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at)
       VALUES('CM20260923000000000006',$1,$2,'pending_payment','CNY',10000,0,0,10000,
-      'fixture-r1',now()+interval '1 day')`,[old.memberId,quote.id]);
+      'fixture-r1',now()+interval '1 day') RETURNING id`,[old.memberId,quote.id])).rows[0]!;
+    await pool.query(`INSERT INTO commerce_aftersale_case(order_id,member_id,kind,state,
+      reason,lines,amount_cents,idempotency_key,request_hash,created_at,updated_at)
+      VALUES($1,$2,'refund_only','requested','Later unrelated request',
+        '[{"lineId":"fixture","quantity":1}]',10000,$3,$4,$5,$5)`,
+      [laterOrder.id,old.memberId,`retention-later-case-${randomUUID()}`,'d'.repeat(64),
+        '2026-09-23T12:00:00Z']);
     expect(await purgeDueLinkedSupport(pool,now)).toBe(1);
     expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[old.conversationId])).rowCount).toBe(0);
   });
