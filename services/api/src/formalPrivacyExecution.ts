@@ -142,7 +142,7 @@ export class FormalPrivacyExecution {
         const exhausted=terminal||job.attempts>=3;
         if(exhausted)await client.query(`UPDATE privacy_request SET status='failed',response=$2,
           version=version+1,updated_at=now() WHERE id=$1 AND status='executing'`,[job.privacy_request_id,
-          terminal?'数据量超出单次副本上限，请通过小程序客服申请分批获取。':'数据副本生成未完成，请点击重试。']);
+          terminal?'数据量超出单次副本上限，当前无法生成完整副本；请联系小程序客服说明所需资料范围。':'数据副本生成未完成，请点击重试。']);
         await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
           VALUES($1,'worker:formal-privacy','execution_failed',$2)`,[job.privacy_request_id,
           {jobId:job.id,code,retryable:!exhausted}]);
@@ -256,7 +256,7 @@ export class FormalPrivacyExecution {
     this.key();
     if(!memberId||!uuid.test(requestId))throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','数据副本申请不存在',404);
     return transaction(this.pool,async client=>{
-      const job=(await client.query<{id:string;status:string;attempts:number;member_id:string}>(`SELECT id,status,attempts,member_id
+      const job=(await client.query<{id:string;status:string;attempts:number;member_id:string;last_error_code:string|null}>(`SELECT id,status,attempts,member_id,last_error_code
         FROM data_export_job WHERE privacy_request_id=$1 AND member_id=$2
           AND scope->>'formalSelfService'='true' FOR UPDATE`,[requestId,memberId])).rows[0];
       const request=(await client.query<{status:string;member_id:string;kind:string}>(`SELECT status,member_id,kind
@@ -266,6 +266,8 @@ export class FormalPrivacyExecution {
         [memberId,closedRights?'deleted':'active'])).rowCount;
       if(!job||!request||request.member_id!==memberId||request.kind!=='access'||!subject)
         throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','数据副本申请不存在',404);
+      if(job.last_error_code==='PRIVACY_EXPORT_TOO_LARGE')
+        throw new DomainError('PRIVACY_EXPORT_RETRY_NOT_SUPPORTED','副本超过单次上限，原样重试无法完成；请联系小程序客服说明所需资料范围',409);
       if(job.status!=='failed'||job.attempts<3||request.status!=='failed')
         throw new DomainError('PRIVACY_EXPORT_RETRY_NOT_READY','请先刷新处理结果',409);
       await client.query(`UPDATE data_export_job SET attempts=0,next_attempt_at=now(),last_error_code=NULL,

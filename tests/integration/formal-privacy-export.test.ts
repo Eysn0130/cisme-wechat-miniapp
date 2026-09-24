@@ -155,6 +155,30 @@ it('keeps a failed formal export tied to its request and lets its owner retry',a
     [requestId])).rows[0].count).toBe(1);
 });
 
+it('does not requeue an unchanged export after a terminal size failure',async()=>{
+  const owner=await login('oversize-retry-owner');
+  const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`},
+    payload:{kind:'access',message:'申请本人资料副本'}});
+  expect(created.statusCode,created.body).toBe(200);
+  const requestId=created.json().id as string;
+  await pool.query("UPDATE privacy_request SET status='executing' WHERE id=$1",[requestId]);
+  await pool.query("UPDATE data_export_job SET status='running' WHERE privacy_request_id=$1",[requestId]);
+  await pool.query("UPDATE privacy_request SET status='failed' WHERE id=$1",[requestId]);
+  await pool.query("UPDATE data_export_job SET status='failed',attempts=3,last_error_code='PRIVACY_EXPORT_TOO_LARGE' WHERE privacy_request_id=$1",[requestId]);
+  const listed=await app.inject({url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(listed.statusCode,listed.body).toBe(200);
+  expect((listed.json() as Array<{id:string;execution?:{lastErrorCode:string}}>).find(row=>row.id===requestId)?.execution?.lastErrorCode)
+    .toBe('PRIVACY_EXPORT_TOO_LARGE');
+  const denied=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-retry`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(denied.statusCode,denied.body).toBe(409);
+  expect(denied.json().code).toBe('PRIVACY_EXPORT_RETRY_NOT_SUPPORTED');
+  expect((await pool.query('SELECT status,attempts FROM data_export_job WHERE privacy_request_id=$1',[requestId])).rows[0])
+    .toMatchObject({status:'failed',attempts:3});
+});
+
 it('delivers readable data while naming video and missing images as incomplete',async()=>{
   const owner=await login('partial-media-owner');
   const mediaIds=[];

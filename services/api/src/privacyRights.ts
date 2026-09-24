@@ -63,6 +63,7 @@ const executionProjection = `COALESCE(
     'archiveExpiresAt',job.archive_expires_at,
     'unavailableMedia',CASE WHEN job.scope->>'formalSelfService'='true'
       THEN COALESCE(job.manifest->'unavailableMedia','[]'::jsonb) ELSE '[]'::jsonb END,
+    'lastErrorCode',job.last_error_code,
     'createdAt',job.created_at,'updatedAt',job.updated_at,'completedAt',job.completed_at
   ) FROM data_export_job job WHERE job.privacy_request_id=pr.id),
   (SELECT jsonb_build_object(

@@ -1370,7 +1370,9 @@ it("downloads a hash-checked trade bill, imports once, and exposes amount confli
 });
 
 it("flags an internal paid order missing from a complete signed daily trade bill",async()=>{
-  const yesterday=new Date(Date.now()+8*60*60*1000-24*60*60*1000).toISOString().slice(0,10);
+  // Use a distinct historical bill day. Around Shanghai midnight, the prior
+  // calendar day can also contain the suite's current-time payment fixtures.
+  const billDay=new Date(Date.now()+8*60*60*1000-5*24*60*60*1000).toISOString().slice(0,10);
   await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+1,
     version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
   const order=await createOrder("bill-internal-only");
@@ -1380,15 +1382,15 @@ it("flags an internal paid order missing from a complete signed daily trade bill
   // the order's persisted payment window without changing any inbox evidence.
   await pool.query(`UPDATE commerce_order SET created_at=$2::timestamptz,
     expires_at=$3::timestamptz WHERE id=$1`,[order.id,
-      `${yesterday}T11:00:00+08:00`,`${yesterday}T13:00:00+08:00`]);
-  const paid=paidCallback(order.orderNumber,undefined,`${yesterday}T12:00:00+08:00`);
+      `${billDay}T11:00:00+08:00`,`${billDay}T13:00:00+08:00`]);
+  const paid=paidCallback(order.orderNumber,undefined,`${billDay}T12:00:00+08:00`);
   expect((await app.inject({method:"POST",url:"/v1/payments/wechat/callback",
     headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBe(204);
   await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
-  tradeBillFixtures.set(`${yesterday}:SUCCESS`,Buffer.from(
+  tradeBillFixtures.set(`${billDay}:SUCCESS`,Buffer.from(
     "交易时间,公众账号ID,商户号,微信订单号,商户订单号,用户标识,货币种类,订单金额,代金券金额\n总交易单数,0\n"));
   const imported=await app.inject({method:"POST",url:"/v1/management/money/trade-bills/import",
-    headers:auth(operator.sessionToken),payload:{billDate:yesterday,billType:"SUCCESS"}});
+    headers:auth(operator.sessionToken),payload:{billDate:billDay,billType:"SUCCESS"}});
   expect(imported.statusCode,JSON.stringify(imported.json())).toBe(200);
   expect(imported.json()).toMatchObject({matchedCount:0,exceptionCount:1});
   const row=(await pool.query(`SELECT exception_code,related_id FROM commerce_trade_bill_row
@@ -1425,7 +1427,7 @@ it("never clears a complete bill that omits a signed but quarantined discounted 
 });
 
 it("flags a channel-observed refund missing from an otherwise complete REFUND bill",async()=>{
-  const yesterday=new Date(Date.now()+8*60*60*1000-24*60*60*1000).toISOString().slice(0,10);
+  const billDay=new Date(Date.now()+8*60*60*1000-6*24*60*60*1000).toISOString().slice(0,10);
   const paid=(await pool.query<{id:string;order_id:string;order_number:string}>(`SELECT p.id,p.order_id,o.order_number
     FROM commission_payment_inbox p JOIN commerce_order o ON o.id=p.order_id
     WHERE p.state='applied' AND o.status='paid' LIMIT 1`)).rows[0]!;
@@ -1444,14 +1446,14 @@ it("flags a channel-observed refund missing from an otherwise complete REFUND bi
       (refund_intent_id,source_kind,raw_sha256,provider_refund_id,accepted_at)
       VALUES($1,'signed_query',$2,$3,$4)`,
       [refund.id,createHash("sha256").update(`refund-observed:${refund.id}`).digest("hex"),
-        `REFUND-PROVIDER-MISSING-00${index}`,`${yesterday}T12:00:00+08:00`]);
+        `REFUND-PROVIDER-MISSING-00${index}`,`${billDay}T12:00:00+08:00`]);
   }
-  tradeBillFixtures.set(`${yesterday}:REFUND`,Buffer.from(
+  tradeBillFixtures.set(`${billDay}:REFUND`,Buffer.from(
     `交易时间,退款申请时间,商户号,商户订单号,商户退款单号,微信退款单号,货币种类,申请退款金额,退款金额\n`+
-    `${yesterday} 12:00:00,${yesterday} 12:00:00,${merchantId},${paid.order_number},`+
+    `${billDay} 12:00:00,${billDay} 12:00:00,${merchantId},${paid.order_number},`+
     `RF-MISSING-PROVIDER-001,REFUND-PROVIDER-MISSING-001,CNY,0.01,0.01\n总退款单数,1\n`));
   const imported=await app.inject({method:"POST",url:"/v1/management/money/trade-bills/import",
-    headers:auth(operator.sessionToken),payload:{billDate:yesterday,billType:"REFUND"}});
+    headers:auth(operator.sessionToken),payload:{billDate:billDay,billType:"REFUND"}});
   expect(imported.statusCode,JSON.stringify(imported.json())).toBe(200);
   expect(imported.json()).toMatchObject({rowCount:2,matchedCount:1,exceptionCount:1});
   expect((await pool.query(`SELECT exception_code,related_id FROM commerce_trade_bill_row WHERE batch_id=$1`,

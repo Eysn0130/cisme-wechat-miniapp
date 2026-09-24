@@ -262,7 +262,7 @@ Page({
   if(this.actionBusy())return;
   const requestId=String(e.currentTarget.dataset.id||'');
   const row=this.data.records.find((item:any)=>item.id===requestId);
-  if(!row||row.status!=='failed'||row.execution?.scope!=='member_portable_copy_v1')return;
+  if(!row||row.status!=='failed'||row.execution?.scope!=='member_portable_copy_v1'||row.execution?.lastErrorCode==='PRIVACY_EXPORT_TOO_LARGE')return;
   const token=privacyToken(),attempt=++this.data.operationAttempt;
   this.setData({error:'',notice:'',exportBusy:true,exportRequestId:requestId});
   try{
