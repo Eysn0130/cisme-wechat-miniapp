@@ -20,3 +20,4 @@
 .account-avatar-canvas { position:fixed; left:-9999px; top:0; width:256px; height:256px; pointer-events:none; }
 .account-notice { width:100%; margin-top:18rpx; color:#796a80; font-size:26rpx; line-height:1.6; text-align:left; }
 .account-help { width:100%; min-height:44px; margin-top:12rpx; }
+.account-legal-retry { width:100%; min-height:44px; margin-top:12rpx; }

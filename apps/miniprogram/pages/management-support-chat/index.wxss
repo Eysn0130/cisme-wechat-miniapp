@@ -262,7 +262,7 @@
 
 .operator-message__meta button {
   min-width: 44px;
-  min-height: 36px;
+  min-height: 44px;
   margin-left: 8rpx;
   padding: 0 10rpx;
   color: #8d3150;
@@ -437,7 +437,7 @@
 
 .operator-error button {
   flex: none;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 16rpx;
   color: #8d3150;
   background: transparent;
@@ -506,7 +506,7 @@
 
 .operator-ai-row button {
   flex: none;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 17rpx;
   border-radius: 20px;
   color: #56306f;

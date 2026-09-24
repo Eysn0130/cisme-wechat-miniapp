@@ -109,6 +109,23 @@ beforeEach(() => {
 });
 
 describe("mini-program page behavior", () => {
+  it("lets an iOS preview retry unavailable legal documents before enabling consent", async () => {
+    wxMock.getDeviceInfo!.mockReturnValue({ platform: "ios" });
+    requestMock.mockRejectedValueOnce(new Error("network unavailable"));
+    await vi.importActual("../../apps/miniprogram/pages/account/index");
+    const account = mountedPage(capturedPage!);
+    await account.syncLegalDocuments();
+    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: false, agreementAccepted: false });
+
+    requestMock.mockResolvedValueOnce({ ready: true, documents: [
+      { document_type: "privacy", version: "privacy-staging" },
+      { document_type: "terms", version: "terms-staging" }
+    ] });
+    await account.syncLegalDocuments();
+    expect(requestMock).toHaveBeenLastCalledWith({ path: "/v1/legal", authMode: "public" });
+    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: true, agreementAccepted: false });
+  });
+
   it("clears task, review, and settings snapshots before a guest can return from login", async () => {
     retainMemberSnapshotMock.mockReturnValue(false);
     requireMemberAccessMock.mockReturnValue(false);
