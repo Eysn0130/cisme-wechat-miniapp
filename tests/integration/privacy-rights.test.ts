@@ -188,8 +188,11 @@ expect((await app.inject({url:'/v1/me/privacy-requests',headers:{authorization:`
   .find((item:{id:string})=>item.id===id).execution.deliveryState).toBe('revoked');
 expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.export.revoke' AND object_id=$1",[id])).rows[0].count).toBe(1);
 expect((await pool.query("SELECT count(*)::int AS count FROM privacy_request_event WHERE event_type='execution_partially_succeeded' AND privacy_request_id=$1",[id])).rows[0].count).toBe(1);
-expect(await executor.purgeArtifacts()).toBe(1);
+// Expiry and revocation cleanup must also run with production worker gates,
+// where the synthetic executor and its test key are deliberately absent.
+expect((await runWorkerCycle(pool,storage,{ugcGoLiveGate:false,privacyEnvironment:'production'})).purgedPrivacyArtifacts).toBe(1);
 expect((await pool.query('SELECT count(*)::int AS count FROM privacy_export_artifact WHERE job_id=$1',[failed.id])).rows[0].count).toBe(0);
+expect((await pool.query("SELECT count(*)::int AS count FROM audit_log WHERE action='privacy.export.artifact_purge' AND object_id=$1",[id])).rows[0].count).toBe(1);
 });
 it('preserves an explicit synthetic deletion scope and rejects cross-kind or production-like scope injection',async()=>{
  const dev=(await pool.query(`INSERT INTO privacy_request(member_id,kind,message,due_at,scope_code)

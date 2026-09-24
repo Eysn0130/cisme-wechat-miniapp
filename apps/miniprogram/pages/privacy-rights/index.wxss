@@ -3,3 +3,4 @@
 .rights-reply-actions{display:flex;gap:10px;align-items:center}.rights-reply-actions button{min-height:44px;flex:1;display:flex;align-items:center;justify-content:center}
 
 .rights-refresh{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;min-height:44px;margin:12px 0 0;padding:10px 16px;border:1rpx solid #d8c9dd;border-radius:12px;background:#fff;color:#56306f;font-size:14px;line-height:1.4;text-align:center;white-space:normal}
+.rights-copy-id{align-self:flex-start;display:flex;align-items:center;min-height:44px;margin:0;padding:0 12px;font-size:12px;line-height:1.4}

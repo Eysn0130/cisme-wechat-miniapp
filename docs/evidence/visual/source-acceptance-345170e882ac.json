@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "7e1f0e55ba6fcd04a6e67afa814083b855d296f9fd59d2dc6eb0852f1fd7c885",
+  "packageSourceSha256": "345170e882acd2f6e803d17ec264926148c0551e58cb385279dccbaf1883a9a3",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source shortens the privacy request number and supports copying the full number on demand. WeChat DevTools simulator at 333x719 rendered the privacy form and scrolled request card, and the copy control was tapped. These are partial simulator checks only; all route matrices and both device platforms remain blocked."
+  "note": "Current native source shortens the displayed aftersale receipt and order identifier. WeChat DevTools simulator verified the order support sheet and current case status at 333x719; this is partial route evidence only. Full route matrices, keyboard on device, iOS and Android remain unverified."
 }

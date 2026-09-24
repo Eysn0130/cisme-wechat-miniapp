@@ -19,6 +19,7 @@ function displayRecord(r:any,closedRights=false){
   r.execution?.scopeCode==='member_profile_handle_v1'&&r.execution.status==='partially_succeeded'?'；已清除自报微信号，其他资料仍保留':'';
  const response=typeof r.response==='string'?r.response.trim():'';
  return {...r,execution:closedRights&&r.execution?{...r.execution,downloadAvailable:false}:r.execution,
+  shortId:typeof r.id==='string'?r.id.slice(-6).toUpperCase():'',
   label:labels[kinds.indexOf(r.kind)]||'隐私请求',
   statusLabel:r.status==='responded'&&r.waitingOn==='member'?'请补充信息':statuses[r.status]||'状态待核对',
   executionSummary:executionStatus?`${executionStatus}${scopeDetail}`:'',
@@ -142,6 +143,11 @@ Page({
    this.setData({visibleExport:null,notice:'这份资料副本已撤销；原始资料未因此删除。'});
    await this.load();
   }catch(e){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({error:(e as {title?:string}).title||'撤销结果尚未确认，请刷新记录后重试。'});}
+ },
+ copyRequestId(e:WechatMiniprogram.BaseEvent){
+  const id=String(e.currentTarget.dataset.id||'');
+  if(!this.data.records.some((row:any)=>row.id===id))return;
+  wx.setClipboardData({data:id,success:()=>this.setData({notice:'申请编号已复制。'}),fail:()=>this.setData({error:'复制失败，请稍后重试。'})});
  },
  back(){wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/community/index'})});}
 });

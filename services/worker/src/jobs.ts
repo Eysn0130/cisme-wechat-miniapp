@@ -6,7 +6,7 @@ import { type ObjectStorage } from "../../api/src/storage.js";
 import { EVENT_DELIVERY_POLICIES, EVENT_TYPES, type EventType } from "@cisme/contracts";
 import { expirePendingOrders } from "../../api/src/commerceOrders.js";
 import { safeFailureFields } from "../../api/src/observability.js";
-import { SyntheticPrivacyExecution } from "../../api/src/privacyExecution.js";
+import { SyntheticPrivacyExecution, purgeExpiredPrivacyArtifacts } from "../../api/src/privacyExecution.js";
 import { purgeDueOrdinarySupport } from "../../api/src/supportRetention.js";
 
 interface EventRow {
@@ -171,7 +171,7 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
     ?new SyntheticPrivacyExecution(pool,gates.privacyEnvironment,gates.privacySyntheticExportKey):null;
   const privacyExports=privacyExecutor?Number(await privacyExecutor.runExportOnce()):0;
   const privacyErasures=privacyExecutor?Number(await privacyExecutor.runProfileErasureOnce()):0;
-  const purgedPrivacyArtifacts=privacyExecutor?await privacyExecutor.purgeArtifacts():0;
+  const purgedPrivacyArtifacts=await purgeExpiredPrivacyArtifacts(pool);
   const purgedOrdinarySupport=await purgeDueOrdinarySupport(pool);
   return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts,purgedOrdinarySupport };
 }
