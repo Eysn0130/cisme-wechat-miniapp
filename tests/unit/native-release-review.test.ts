@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({ request: vi.fn(), read: vi.fn(), authority: vi.fn(), operationKey: vi.fn() }));
-vi.mock('../../apps/miniprogram/services/api', () => ({ request: m.request, requireMemberAccess: () => true }));
+vi.mock('../../apps/miniprogram/services/api', () => ({ request: m.request, requireMemberAccess: () => true,
+  historicalCommerceToken:()=>token,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(token) }));
 vi.mock('../../apps/miniprogram/services/page-requests', () => ({
   pageRead: (_page: unknown, input: unknown) => m.read(input), cancelPageReads: vi.fn()
 }));

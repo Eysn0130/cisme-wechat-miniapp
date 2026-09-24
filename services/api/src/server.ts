@@ -293,7 +293,19 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/reply$/i.test(path) ||
         request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export$/i.test(path) ||
         request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export-(revoke|retry)$/i.test(path);
-      if(!rightsRoute)throw new DomainError('AUTH_SCOPE_FORBIDDEN','此身份核验仅用于隐私请求',403);
+      const historicalCommerceRoute=request.method==='GET'&&(
+        path==='/v1/me/orders'||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
+        /^\/v1\/me\/orders\/[0-9a-f-]{36}\/aftersales\/availability$/i.test(path)||
+        /^\/v1\/me\/orders\/[0-9a-f-]{36}\/shipment(?:\/tracking)?$/i.test(path)||
+        path==='/v1/me/aftersales'||/^\/v1\/me\/aftersales\/[0-9a-f-]{36}$/i.test(path)||
+        path==='/v1/me/refund-requests'||path==='/v1/me/commission/settlement-requests'||
+        path==='/v1/me/commission/credit-conversions'||path==='/v1/me/support/messages'||
+        /^\/v1\/me\/support\/media\/[0-9a-f-]{36}$/i.test(path)) ||
+        request.method==='POST'&&(
+          /^\/v1\/me\/orders\/[0-9a-f-]{36}\/aftersales$/i.test(path)||
+          /^\/v1\/me\/aftersales\/[0-9a-f-]{36}\/actions$/i.test(path)||
+          path==='/v1/me/support/messages');
+      if(!rightsRoute&&!historicalCommerceRoute)throw new DomainError('AUTH_SCOPE_FORBIDDEN','此身份核验仅用于历史事项和隐私请求',403);
       const identity=(await pool.query(`SELECT 1 FROM wechat_identity w JOIN member m ON m.id=w.member_id
         WHERE w.member_id=$1 AND w.provider='wechat_miniprogram' AND w.app_id=$2
           AND ('wechat_miniprogram:'||w.id::text)=$3 AND m.status='deleted'`,
@@ -549,7 +561,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     (request.body ?? {}) as {decision?:unknown;expectedVersion?:unknown;reason?:unknown}));
   app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
   app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async request => support.messagesForMember(request.memberId, request.query));
-  app.post("/v1/me/support/messages", async request => support.sendMember(request.memberId, request.principalId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown}, request.id));
+  app.post("/v1/me/support/messages", async request => {
+    const input=(request.body??{}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown};
+    if(request.authScope==='privacy_rights'&&(!input.linkedOrderId||input.mediaIds!==undefined))
+      throw new DomainError('HISTORICAL_SUPPORT_SCOPE_REQUIRED','请从历史订单进入客服并发送文字说明',422);
+    return support.sendMember(request.memberId,request.principalId,input,request.id);
+  });
   app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId));
   app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
   app.post("/v1/me/support/presence", async request => support.touchMemberPresence(request.memberId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
@@ -633,8 +650,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.post("/v1/me/commerce/quotes", async request => orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
   app.post("/v1/me/orders", async request => orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
-  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query));
-  app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId", async request => orders.detailMine(request.memberId,request.params.orderId));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query,request.authScope==='privacy_rights'));
+  app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId", async request => orders.detailMine(request.memberId,request.params.orderId,request.authScope==='privacy_rights'));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel", async request => orders.cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
   const recoveryGate=(capability:RecoveryCapability)=>{
     if(formalRecoveryProfile){
@@ -669,15 +686,15 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     paymentRequired("close").cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>,request.id));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/aftersales/availability",async request=>
-    aftersales.availability(request.memberId,request.params.orderId));
+    aftersales.availability(request.memberId,request.params.orderId,request.authScope==='privacy_rights'));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/aftersales",async request=>
-    aftersales.request(request.memberId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+    aftersales.request(request.memberId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.authScope==='privacy_rights'));
   app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string}}>("/v1/me/aftersales",async request=>
-    aftersales.list(request.memberId,request.query));
+    aftersales.list(request.memberId,request.query,false,request.authScope==='privacy_rights'));
   app.get<{Params:{caseId:string}}>("/v1/me/aftersales/:caseId",async request=>
-    aftersales.detail(request.memberId,request.params.caseId));
+    aftersales.detail(request.memberId,request.params.caseId,false,request.authScope==='privacy_rights'));
   app.post<{Params:{caseId:string}}>("/v1/me/aftersales/:caseId/actions",async request=>
-    aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
+    aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,false,undefined,undefined,request.authScope==='privacy_rights'));
   app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string;attention?:string}}>("/v1/management/aftersales",async request=>
     aftersales.list(request.memberId,request.query,true));
   app.get<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId",async request=>
@@ -695,7 +712,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as Record<string,unknown>);
   });
   app.get<{Querystring:{limit?:string;cursor?:string;orderId?:string}}>("/v1/me/refund-requests",async request=>
-    listMemberRefundRequests(pool,request.memberId,request.query));
+    listMemberRefundRequests(pool,request.memberId,request.query,request.authScope==='privacy_rights'));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/refund-requests/pending",async request=>
     refundRequired("read").pending(request.memberId,request.query));
   app.post<{Params:{requestId:string}}>("/v1/management/refund-requests/:requestId/decision",async request=>
@@ -710,10 +727,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/fulfillment/pending",async request=>
     fulfillment.pending(request.memberId,request.query));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment",async request=>
-    shipmentRequired().detailMine(request.memberId,request.params.orderId));
+    shipmentRequired().detailMine(request.memberId,request.params.orderId,request.authScope==='privacy_rights'));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment/tracking",async(request,reply)=>{
     reply.header('Cache-Control','no-store, private');
-    return shipmentRequired().trackingMine(request.memberId,request.params.orderId);
+    return shipmentRequired().trackingMine(request.memberId,request.params.orderId,request.authScope==='privacy_rights');
   });
   app.get("/v1/management/logistics/capabilities",async(request,reply)=>{
     reply.header('Cache-Control','no-store, private');
@@ -751,7 +768,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     settlementRequired().request(request.memberId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/commission/settlement-requests",async request=>
-    listMemberSettlements(pool,request.memberId,request.query));
+    listMemberSettlements(pool,request.memberId,request.query,request.authScope==='privacy_rights'));
   app.post("/v1/me/commission/credit-conversions",async request=>
     shoppingCredit.convert(request.memberId,idempotencyKey(request),
       (request.body??{}) as Record<string,unknown>));

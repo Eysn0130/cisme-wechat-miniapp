@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token) }));
+vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token),
+  historicalCommerceToken: () => mocks.token, historicalCommerceClosed: () => false, requireHistoricalCommerceAccess: () => Boolean(mocks.token) }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "" }));
 const deferred = <T = any>() => {
   let resolve!: (value: T) => void, reject!: (error: unknown) => void;

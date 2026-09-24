@@ -4,7 +4,7 @@ import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
 import { launchFulfillmentPolicy } from "./fulfillmentPolicy.js";
 import { enqueue } from "./outbox.js";
-import { AuthorityService, requireActiveMemberWithClient } from "./authority.js";
+import { AuthorityService, requireActiveMemberWithClient, requireHistoricalMemberWithClient } from "./authority.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
@@ -423,18 +423,18 @@ export class CommerceOrderService {
     },"SERIALIZABLE");
   }
 
-  async listMine(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown}) {
+  async listMine(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown},closedRights=false) {
     const owner=member(memberId),limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor);
     return transaction(this.pool, async client => {
-      await requireActiveMemberWithClient(client,owner);
+      await requireHistoricalMemberWithClient(client,owner,closedRights);
       return this.listPage(client, owner, limit, cursor);
     }, "REPEATABLE READ");
   }
 
-  async detailMine(memberId: string | undefined, orderIdInput: string) {
+  async detailMine(memberId: string | undefined, orderIdInput: string,closedRights=false) {
     const owner=member(memberId),orderId=uuid(orderIdInput,"ORDER_ID_INVALID");
     return transaction(this.pool,async client=>{
-      await requireActiveMemberWithClient(client,owner);
+      await requireHistoricalMemberWithClient(client,owner,closedRights);
       const row=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2",[orderId,owner])).rows[0];
       if(!row)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
       return this.orderView(client,row);

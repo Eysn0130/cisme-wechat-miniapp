@@ -4,7 +4,7 @@ import { commerceContextRevision } from "../../services/commerce-command-store";
 import { acknowledgeCommerceCommand, executeCommerceCommand, readCommerceRecovery, retryCommerceCommand, type RecoveryView } from "../../services/commerce-command-recovery";
 import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner, runtimeView, validateRuntime } from "../../services/commerce-runtime";
-import { request, requireMemberAccess } from "../../services/api";
+import { historicalCommerceClosed, historicalCommerceToken, request, requireHistoricalCommerceAccess } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
 import { clientOperationKey, myOrder, myShipment, myTracking, confirmMyReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
@@ -28,7 +28,7 @@ Page({
   lastSessionToken:"",lastSessionRevision:-1,
   launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,
-  data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
+  data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
     tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
@@ -40,32 +40,32 @@ Page({
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
     this.launchAftersale=query.aftersale==='1';
     this.setData({id,invalidId:!orderIdPattern.test(id)});},
-  onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false});this.syncSession();
-    if(!requireMemberAccess())return;
+  onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
+    if(!requireHistoricalCommerceAccess())return;
     if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){
-      const attempt=takeSupportSendAttempt(getApp<IAppOption>().globalData.sessionToken,this.data.id);
+      const attempt=takeSupportSendAttempt(historicalCommerceToken(),this.data.id);
       if(attempt)this.setData({sheetInput:attempt.body,sheetSendAttempt:{key:attempt.id,body:attempt.body},sheetError:'原消息结果尚未核实；重试将使用同一消息编号。'});
     }
     if(this.data.supportSheetOpen&&!this.data.sheetInput&&!this.data.sheetSendAttempt){
-      const draft=takeSupportDraft(getApp<IAppOption>().globalData.sessionToken,this.data.id);
+      const draft=takeSupportDraft(historicalCommerceToken(),this.data.id);
       if(draft)this.setData({sheetInput:draft});
     }
     void this.load();},
-  syncSession(){const token=getApp<IAppOption>().globalData.sessionToken,changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
+  syncSession(){const token=historicalCommerceToken(),changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
     if(changed){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
     },
   confirmationPending:false,
   trackingAttempt:0,
-  canAct(){return this.data.visible&&this.data.coreReady&&!this.confirmationPending&&this.lastSessionToken===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
+  canAct(){return this.data.visible&&this.data.coreReady&&!this.confirmationPending&&this.lastSessionToken===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   async confirmOperation(options:WechatMiniprogram.ShowModalOption):Promise<{confirm:boolean;cancel?:boolean}>{
     if(this.confirmationPending)return {confirm:false};this.confirmationPending=true;
     try{return await wx.showModal(options);}catch{return {confirm:false};}finally{this.confirmationPending=false;}
   },
   onUnload(){this.onHide();this.data.pageAlive=false;this.data.epoch+=1;},
   normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
-  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastSessionRevision===commerceContextRevision();},
+  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;
     this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
@@ -74,17 +74,17 @@ Page({
 
   refreshRecordedCommands(){
     if(!this.data.visible||!this.data.coreReady)return;
-    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
     void loadRecordedCommands(this,this.recoveryScope(),()=>this.readCurrent(epoch,token,readEpoch));
   },
   moreRecordedCommands(event:WechatMiniprogram.BaseEvent){
     if(!this.data.visible||!this.data.coreReady)return;
-    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
     void loadRecordedCommands(this,this.recoveryScope(),()=>this.readCurrent(epoch,token,readEpoch),String(event.currentTarget.dataset.kind) as CommerceCommandKind);
   },
   recoveryScope(){return {group:"order" as const,objectId:this.data.id};},
   async loadRecovery(){if(!this.data.visible||!this.data.coreReady||this.data.busy)return;
-    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
     const current=()=>this.readCurrent(epoch,token,readEpoch);
     this.setData({recoveryLoading:true,recoveryError:""});
     try{const recoveryRows=await readCommerceRecovery(this,this.recoveryScope(),current);if(current())this.setData({recoveryRows,recoveryLoading:false});}
@@ -93,7 +93,7 @@ Page({
   async resolveRecovery(event:WechatMiniprogram.BaseEvent){
     const key=String(event.currentTarget.dataset.key??""),row=this.data.recoveryRows.find(item=>item.key===key);
     if(!row||!this.canAct()||this.data.busy||!row.recorded&&!(row.kind==="cancel"||this.data.isolatedPayment))return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const epoch=this.data.epoch,token=historicalCommerceToken();
     const current=()=>this.current(epoch,token)&&this.data.visible&&this.data.coreReady&&(row.recorded||(row.kind==="cancel"||this.data.isolatedPayment));
     const answer=await this.confirmOperation({title:row.recorded?"确认已核对原操作？":"重试原操作？",content:row.recorded?"原申请已由服务端记录。确认后才可开始新的申请；付款、退款和到账仍分别按权威状态展示。":"只使用最初确认的金额、原因、版本和请求编号，先查询原结果；不会使用后来修改的内容，资金操作仍须服务端当前授权，重试可能继续原付款、退款或关单操作。",confirmText:row.recorded?"已核对":"重试原操作"});
     if(!answer.confirm||!current()||this.data.busy)return;
@@ -103,21 +103,23 @@ Page({
     }catch(error){if(current())this.setData({recoveryError:(error as {title?:string})?.title||"原操作仍未核实，请稍后重查或联系客服。"});}
     finally{this.finishAction(epoch,token,true);}
   },
-  retryRuntime(){if(!this.data.visible||this.data.busy||this.confirmationPending)return;
-    if(this.lastSessionToken!==getApp<IAppOption>().globalData.sessionToken){void this.load();return;}
-    void this.loadRuntime(this.data.epoch,getApp<IAppOption>().globalData.sessionToken);},
+  retryRuntime(){if(this.data.closedRights||!this.data.visible||this.data.busy||this.confirmationPending)return;
+    if(this.lastSessionToken!==historicalCommerceToken()){void this.load();return;}
+    void this.loadRuntime(this.data.epoch,historicalCommerceToken());},
   async load(){
     this.syncSession();
     if(!this.data.visible||this.data.busy){this.data.refreshOnShow=true;return;}
     this.data.refreshOnShow=false;cancelPageReads(this);cancelRuntimeRead(this);
-    const epoch=++this.data.epoch,readEpoch=++this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const epoch=++this.data.epoch,readEpoch=++this.data.readEpoch,token=historicalCommerceToken();
     if(this.data.invalidId){this.setData({loading:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,error:"请从订单列表选择一笔订单。",order:null});return;}
     this.setData({loading:!this.data.order,coreReady:false,error:"",isolatedPayment:false,paymentRecovery:false});
-    void this.loadRuntime(epoch,token);
+    if(!this.data.closedRights)void this.loadRuntime(epoch,token);
     try{const order=await myOrder(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
-      this.setData({order:this.normalize(order),coreReady:true,loading:false});this.applyRuntime();void this.loadShipment();void this.loadRefunds(epoch,token);void this.loadRecovery();this.refreshRecordedCommands();
+      this.setData({order:this.normalize(order),coreReady:true,loading:false});
+      if(!this.data.closedRights){this.applyRuntime();void this.loadRecovery();this.refreshRecordedCommands();}
+      void this.loadShipment();void this.loadRefunds(epoch,token);
       if(this.launchAftersale){this.launchAftersale=false;this.openAftersale();}
       else if(this.data.supportSheetOpen)void this.loadSupportSheet();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({order:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.order,coreReady:false,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}
@@ -125,7 +127,7 @@ Page({
   async loadShipment(){
     if(!this.canAct()||this.data.busy)return;
     this.trackingAttempt+=1;this.setData({tracking:null,trackingLoading:false,trackingError:""});
-    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
     this.setData({shipmentLoading:true,shipmentError:""});
     try{const row=await myShipment(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
@@ -137,7 +139,7 @@ Page({
   },
   async loadTracking(){
     if(!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id)return;
-    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=getApp<IAppOption>().globalData.sessionToken,
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken(),
       shipmentId=this.data.shipment.id,attempt=++this.trackingAttempt;
     const current=()=>this.readCurrent(epoch,token,readEpoch)&&attempt===this.trackingAttempt&&this.data.shipment?.id===shipmentId;
     this.setData({tracking:null,trackingLoading:true,trackingError:""});
@@ -150,8 +152,8 @@ Page({
     }catch{if(current())this.setData({tracking:null,trackingLoading:false,trackingError:"暂时无法提供物流轨迹。已记录的运单仍可查看，请稍后重试或联系客服。"});}
   },
   async confirmReceipt(){
-    if(!this.canAct()||this.data.busy||this.data.shipmentLoading||!this.data.shipment?.id||!this.data.shipment.version||this.data.shipment.receiptConfirmedAt)return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    if(this.data.closedRights||!this.canAct()||this.data.busy||this.data.shipmentLoading||!this.data.shipment?.id||!this.data.shipment.version||this.data.shipment.receiptConfirmedAt)return;
+    const epoch=this.data.epoch,token=historicalCommerceToken();
     const answer=await this.confirmOperation({title:"确认已收到商品？",content:"请确认本单全部商品已收到。此操作记录你的收货确认，不影响依法申请售后。",confirmText:"已收到",cancelText:"暂不确认"});
     if(!answer.confirm||!this.current(epoch,token)||!this.canAct()||this.data.busy)return;
     const receiptKey=this.data.receiptKey||clientOperationKey("receipt"),receiptVersion=this.data.receiptVersion||this.data.shipment.version!;
@@ -189,8 +191,8 @@ Page({
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({refundLoading:false,refundMoreLoading:false,
       refundCountLabel:"记录数量暂未核实",refundError:errorTitle(error,"退款记录暂时无法同步，请重试。")});}},
   loadMoreRefunds(){const cursor=this.data.refundCursor;if(cursor&&!this.data.refundLoading&&!this.data.refundMoreLoading)
-    void this.loadRefunds(this.data.epoch,getApp<IAppOption>().globalData.sessionToken,cursor);},
-  retryRefunds(){void this.loadRefunds(this.data.epoch,getApp<IAppOption>().globalData.sessionToken);},
+    void this.loadRefunds(this.data.epoch,historicalCommerceToken(),cursor);},
+  retryRefunds(){void this.loadRefunds(this.data.epoch,historicalCommerceToken());},
   showRefundForm(){if(this.data.runtimeMode!=="formal"&&this.data.isolatedPayment&&this.data.order?.status==="paid"&&!this.data.busy)
     this.setData({refundFormVisible:true,actionError:"",actionStatus:""});},
   closeRefundForm(){if(!this.data.busy)this.setData({refundFormVisible:false,actionError:""});},
@@ -201,7 +203,7 @@ Page({
     const amountCents=refundCents(this.data.refundAmount),reason=this.data.refundReason.trim();
     if(!Number.isSafeInteger(amountCents)||amountCents<1||amountCents>order.totalCents){this.setData({actionError:`请输入不超过 ¥${order.totalYuan} 的正数金额。`});return;}
     if(Array.from(reason).length<3||Array.from(reason).length>500){this.setData({actionError:"请填写 3 至 500 字的退款原因。"});return;}
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,id=order.id,
+    const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id,
       key=this.data.refundKey||clientOperationKey("refund-request");
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.status==="paid"&&this.data.runtimeMode!=="formal";
     const answer=await this.confirmOperation({title:"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
@@ -214,7 +216,7 @@ Page({
     finally{this.finishAction(epoch,token);}},
   async preparePayment(){const order=this.data.order;
     if(!this.canAct()||this.data.busy||!order||order.status!=="pending_payment"||!this.data.isolatedPayment)return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,id=order.id;
+    const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id;
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id;
     this.setData({busy:true,actionError:"",actionStatus:""});
     try{const result=await request<{state:string;simulation:boolean;requestPayment?:WechatMiniprogram.RequestPaymentOption}>({
@@ -231,7 +233,7 @@ Page({
     finally{this.finishAction(epoch,token);}},
   async recheckPayment(){const order=this.data.order;
     if(!this.canAct()||this.data.busy||!order||order.status!=="pending_payment"||!this.data.paymentRecovery)return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,id=order.id;
+    const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id;
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id;
     this.setData({busy:true,actionError:""});
     try{const result=await request<{state:string}>({path:`/v1/me/orders/${id}/payment-intent`});
@@ -241,9 +243,9 @@ Page({
       if(result.state==="paid"){this.setData({busy:false});void this.load();}
     }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}
     finally{this.finishAction(epoch,token);}},
-  async cancel(){const order=this.data.order;if(!this.canAct()||this.data.busy||order?.status!=="pending_payment"||
+  async cancel(){const order=this.data.order;if(this.data.closedRights||!this.canAct()||this.data.busy||order?.status!=="pending_payment"||
       order.transactionSourceKind==="verified_commerce"&&!this.data.isolatedPayment)return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,id=order.id,version=order.version;
+    const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id,version=order.version;
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.version===version;
     const answer=await this.confirmOperation({title:"取消待支付订单？",
       content:this.data.isolatedPayment?"系统会先按原商户订单号核对并关闭渠道订单；未知支付状态不会释放库存。":"取消后将释放本单预留库存，订单记录仍保留。",
@@ -283,7 +285,7 @@ Page({
       sheetHasRemaining:rows.some(row=>row.remainingQuantity>0),sheetLinesReady:true});
   },
   async pollSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct()||this.data.sheetLoading||this.data.sheetSending||this.sheetPollInFlight){this.scheduleSheetPoll();return;}
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,cursor=this.sheetCursor,generation=this.sheetReadEpoch;
+    const epoch=this.data.epoch,token=historicalCommerceToken(),cursor=this.sheetCursor,generation=this.sheetReadEpoch;
     this.sheetPollInFlight=true;
     try{
       // Progress is a case fact, not inferred from the latest chat message.
@@ -309,7 +311,7 @@ Page({
     }
   },
   async loadSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct())return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,generation=++this.sheetReadEpoch;
+    const epoch=this.data.epoch,token=historicalCommerceToken(),generation=++this.sheetReadEpoch;
     this.stopSheetPoll();this.setData({sheetLoading:true,sheetCasesReady:false,sheetLinesReady:false,sheetError:''});
     const [cases,messages,availability]=await Promise.allSettled([
       pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`}),
@@ -330,7 +332,7 @@ Page({
   closeSupportSheet(){this.stopSheetPoll();this.sheetReadEpoch+=1;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetKeyboardHeight:0});},
   onSupportSheetLeave(){if(this.data.supportSheetOpen)this.closeSupportSheet();},
   copySheetReturnInstruction(){
-    if(!this.sheetCurrent(this.data.epoch,getApp<IAppOption>().globalData.sessionToken)||!this.data.sheetCasesReady)return;
+    if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||!this.data.sheetCasesReady)return;
     const row=this.data.sheetCase,d=row?.returnDestination;
     if(!row||row.state!=='awaiting_return'||!d)return;
     wx.setClipboardData({data:`${d.recipientName} ${d.phone}\n${d.region??''} ${d.address}\n退货指引第 ${d.version} 版`});
@@ -338,17 +340,17 @@ Page({
   toggleSheetConsulting(){if(this.data.sheetSubmitting||this.data.sheetSending||this.data.sheetAttempt||this.data.sheetSendAttempt)return;
     this.setData({sheetConsulting:!this.data.sheetConsulting});},
   stopPropagation(){},
-  expandSupport(){if(!this.canAct()||this.data.navigating||this.data.sheetSending)return;this.stopSheetPoll();
+  expandSupport(){if(this.data.closedRights||!this.canAct()||this.data.navigating||this.data.sheetSending)return;this.stopSheetPoll();
     const handoff=this.data.sheetSendAttempt?null:this.data.sheetInput;
-    if(handoff?.trim())stageSupportDraft(getApp<IAppOption>().globalData.sessionToken,this.data.id,handoff);
+    if(handoff?.trim())stageSupportDraft(historicalCommerceToken(),this.data.id,handoff);
     const attempt=this.data.sheetSendAttempt;
-    if(attempt)stageSupportSendAttempt(getApp<IAppOption>().globalData.sessionToken,this.data.id,{id:attempt.key,body:attempt.body,linkedOrderId:this.data.id});
+    if(attempt)stageSupportSendAttempt(historicalCommerceToken(),this.data.id,{id:attempt.key,body:attempt.body,linkedOrderId:this.data.id});
     this.setData({navigating:true,...(handoff?.trim()?{sheetInput:''}:{})});
     wx.navigateTo({url:`/pages/support/index?orderId=${this.data.id}`,success:()=>{
       if(attempt?.key===this.data.sheetSendAttempt?.key)this.setData({sheetInput:'',sheetSendAttempt:null,sheetError:''});
     },fail:()=>{
-      const draft=takeSupportDraft(getApp<IAppOption>().globalData.sessionToken,this.data.id);
-      if(attempt)takeSupportSendAttempt(getApp<IAppOption>().globalData.sessionToken,this.data.id);
+      const draft=takeSupportDraft(historicalCommerceToken(),this.data.id);
+      if(attempt)takeSupportSendAttempt(historicalCommerceToken(),this.data.id);
       this.setData({navigating:false,...(draft?{sheetInput:draft}:{})});this.scheduleSheetPoll();
     }});},
   openFullAftersale(){if(!this.canAct()||this.data.navigating)return;this.stopSheetPoll();this.setData({navigating:true});
@@ -365,7 +367,7 @@ Page({
   editSheetReason(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSubmitting&&!this.data.sheetAttempt)this.setData({sheetReason:event.detail.value});},
   editSheetInput(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSending&&!this.data.sheetSendAttempt)this.setData({sheetInput:event.detail.value});},
   onSheetKeyboardHeightChange(event:WechatMiniprogram.TextareaKeyboardHeightChange){const height=Number(event.detail.height);this.setData({sheetKeyboardHeight:this.data.supportSheetOpen&&Number.isFinite(height)?Math.max(0,height):0});},
-  async submitSheetAftersale(){if(!this.sheetCurrent(this.data.epoch,getApp<IAppOption>().globalData.sessionToken)||this.data.sheetSubmitting||!this.data.sheetCasesReady||!this.data.sheetLinesReady||!this.data.sheetHasRemaining||this.data.sheetCase)return;
+  async submitSheetAftersale(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSubmitting||!this.data.sheetCasesReady||!this.data.sheetLinesReady||!this.data.sheetHasRemaining||this.data.sheetCase)return;
     const bases=['','no_reason','quality','wrong_item','missing_item','delivery_issue','other'];
     if(!this.data.sheetAttempt){
       if(!this.data.sheetBasisIndex){this.setData({sheetError:'请选择售后问题类型。'});return;}
@@ -375,7 +377,7 @@ Page({
       const payload={kind:this.data.sheetKindIndex===1?'return_refund':'refund_only',claimBasis:bases[this.data.sheetBasisIndex],reason:this.data.sheetReason.trim(),lines};
       this.setData({sheetAttempt:{key:clientOperationKey('aftersale'),payload}});
     }
-    const attempt=this.data.sheetAttempt!,epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    const attempt=this.data.sheetAttempt!,epoch=this.data.epoch,token=historicalCommerceToken();
     this.setData({sheetSubmitting:true,sheetError:''});
     try{const row=await request<SheetCase>({path:`/v1/me/orders/${this.data.id}/aftersales`,method:'POST',idempotencyKey:attempt.key,data:attempt.payload,cacheTags:['support']});
       if(!this.sheetCurrent(epoch,token))return;
@@ -384,10 +386,10 @@ Page({
       this.setData({sheetError:(error as {status?:number})?.status===409?'本单可能已有申请，请先刷新核对原案件。':'提交结果尚未核实。请用原请求重试，或刷新本单售后记录。'});
     }}finally{if(this.current(epoch,token))this.setData({sheetSubmitting:false});}
   },
-  async sendSheetMessage(){if(!this.sheetCurrent(this.data.epoch,getApp<IAppOption>().globalData.sessionToken)||this.data.sheetSending)return;
+  async sendSheetMessage(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSending)return;
     const body=this.data.sheetInput.trim();if(!this.data.sheetSendAttempt&&!body)return;
     const attempt=this.data.sheetSendAttempt??{key:clientOperationKey('support-order'),body};
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;this.setData({sheetSending:true,sheetSendAttempt:attempt,sheetError:''});
+    const epoch=this.data.epoch,token=historicalCommerceToken();this.setData({sheetSending:true,sheetSendAttempt:attempt,sheetError:''});
     try{const result=await request<{message:SheetMessage;conversation:{id:string;teamReadSequence?:number}}>({path:'/v1/me/support/messages',method:'POST',
       data:{body:attempt.body,clientMessageId:attempt.key,linkedOrderId:this.data.id},cacheTags:['support']});
       if(!this.sheetCurrent(epoch,token))return;

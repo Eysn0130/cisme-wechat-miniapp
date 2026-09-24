@@ -83,6 +83,10 @@ Page({
   this.setData({supportOpening:true,error:''});
   wx.navigateTo({url:'/pages/support/index',fail:()=>this.setData({supportOpening:false,error:'客服暂时无法打开，请重试。'})});
  },
+ openHistoricalOrders(){
+  if(!this.data.closedRights||!privacyToken())return;
+  wx.navigateTo({url:'/pages/orders/index',fail:()=>this.setData({error:'历史订单暂时无法打开，请重试。'})});
+ },
  async loadLegalIdentity(){
   const attempt=++this.data.legalAttempt;
   this.setData({legalIdentity:null});

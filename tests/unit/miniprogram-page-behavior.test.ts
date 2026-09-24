@@ -12,6 +12,9 @@ const setSessionTokenMock = vi.hoisted(() => vi.fn());
 const setPrivacyRightsTokenMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../apps/miniprogram/services/api", () => ({
+  historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken || (globalThis as any).getApp().globalData.privacyRightsToken || "",
+  historicalCommerceClosed: () => Boolean(!(globalThis as any).getApp().globalData.sessionToken && (globalThis as any).getApp().globalData.privacyRightsToken),
+  requireHistoricalCommerceAccess: () => requireMemberAccessMock(),
   allowPublicBrowsing: vi.fn(() => true),
   requireMemberAccess: requireMemberAccessMock,
   retainMemberSnapshot: retainMemberSnapshotMock,

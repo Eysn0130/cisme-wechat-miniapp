@@ -1,6 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 const m=vi.hoisted(()=>({request:vi.fn(),authority:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,requireMemberAccess:()=>true}));
+vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,requireMemberAccess:()=>true,
+ historicalCommerceToken:()=>token,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(token)}));
 vi.mock('../../apps/miniprogram/services/authority',()=>({authorityProjection:m.authority}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>0}));

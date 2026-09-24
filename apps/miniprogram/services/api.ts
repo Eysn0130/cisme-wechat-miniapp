@@ -89,6 +89,19 @@ export function requireMemberAccess(returnUrl = currentRouteUrl()): boolean {
   return false;
 }
 
+/** Fresh WeChat re-identification after closure reaches historical orders and
+ * aftersales only. The server independently enforces the narrow route scope. */
+export function historicalCommerceToken():string {
+  return app.globalData.sessionToken||app.globalData.privacyRightsToken||"";
+}
+export function historicalCommerceClosed():boolean {
+  return Boolean(!app.globalData.sessionToken&&app.globalData.privacyRightsToken);
+}
+export function requireHistoricalCommerceAccess(returnUrl=currentRouteUrl()):boolean {
+  if(historicalCommerceToken())return true;
+  beginAuthentication(returnUrl);return false;
+}
+
 export function cancelAuthentication(): void {
   authRedirecting = false;
 }
@@ -193,7 +206,17 @@ const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "本次操作�
 function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", authMode = options.authMode ?? "required";
   const session = app.globalData.sessionToken;
-  const rightsPath=/^\/v1\/me\/privacy-requests(?:\/|\?|$)/.test(options.path);
+  const path=options.path.split("?")[0]||options.path;
+  const rightsPath=/^\/v1\/me\/privacy-requests(?:\/|$)/.test(path)||
+    (method==="GET"&&(
+      path==="/v1/me/orders"||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
+      /^\/v1\/me\/orders\/[0-9a-f-]{36}\/(?:aftersales\/availability|shipment(?:\/tracking)?)$/i.test(path)||
+      path==="/v1/me/aftersales"||/^\/v1\/me\/aftersales\/[0-9a-f-]{36}$/i.test(path)||
+      path==="/v1/me/refund-requests"||path==="/v1/me/support/messages"||
+      /^\/v1\/me\/support\/media\/[0-9a-f-]{36}$/i.test(path)||
+      path==="/v1/me/commission/settlement-requests"||path==="/v1/me/commission/credit-conversions"))||
+    (method==="POST"&&(/^\/v1\/me\/orders\/[0-9a-f-]{36}\/aftersales$/i.test(path)||
+      /^\/v1\/me\/aftersales\/[0-9a-f-]{36}\/actions$/i.test(path)||path==="/v1/me/support/messages"));
   const rightsSession=app.globalData.privacyRightsToken;
   const token = authMode === "public" ? "" : session || (rightsPath ? rightsSession : "");
   const origin = currentRouteUrl();

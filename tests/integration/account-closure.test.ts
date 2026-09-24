@@ -166,8 +166,29 @@ it('closes a self-verified account, retains transaction facts, and suppresses ol
     shipping_cents,total_cents,pricing_rule_version,expires_at,cancelled_at,terminal_reason,transaction_source_kind)
     VALUES('CM20260923000000000001',$1,$2,'cancelled','CNY',10000,0,0,10000,'fixture-r1',now()+interval '1 day',now(),
     'Prior canceled transaction','verified_commerce') RETURNING id`,[memberId,quote])).rows[0].id;
+  const paidQuote=(await pool.query(`INSERT INTO commerce_checkout_quote(member_id,product_id,sku_id,address_id,address_version,quantity,currency,unit_price_cents,
+    subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,product_version,sku_version,price_version,status,
+    idempotency_key,request_hash,expires_at,consumed_at)
+    VALUES($1,$2,$3,$4,1,1,'CNY',10000,10000,0,0,10000,'fixture-r1',1,1,1,'consumed','closure-paid-quote',$5,now()+interval '1 day',now()) RETURNING id`,
+    [memberId,product,sku,addressId,'c'.repeat(64)])).rows[0].id;
+  const paidOrder=(await pool.query(`INSERT INTO commerce_order(order_number,member_id,source_quote_id,status,currency,subtotal_cents,member_discount_cents,
+    shipping_cents,total_cents,pricing_rule_version,expires_at,transaction_source_kind,paid_at,terminal_reason)
+    VALUES('CM20260923000000000002',$1,$2,'paid','CNY',10000,0,0,10000,'fixture-r1',now()+interval '1 day','verified_commerce',now(),'Verified payment') RETURNING id`,
+    [memberId,paidQuote])).rows[0].id;
+  const paidLine=(await pool.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,
+    quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents)
+    VALUES($1,1,$2,$3,'closure-product','Fixture','CLOSURE_SKU','Fixture',1,10000,10000,0,10000) RETURNING id`,
+    [paidOrder,product,sku])).rows[0].id;
+  await pool.query(`INSERT INTO commission_payment_inbox(notification_id,provider_transaction_id,order_id,app_id,merchant_id,
+    amount_cents,currency,verified_paid_at,raw_sha256,state,applied_at)
+    VALUES('closure-paid-notification','closure-paid-transaction',$1,$2,'fixture-merchant',10000,'CNY',now(),$3,'applied',now())`,
+    [paidOrder,appId,'d'.repeat(64)]);
   await pool.query(`INSERT INTO commercial_membership(member_id,state,effective_at,expires_at,changed_by,change_reason)
     VALUES($1,'active',now()-interval '1 day',now()+interval '1 year','fixture','Fixture membership')`,[memberId]);
+  expect((await app.inject({method:'POST',url:'/v1/me/support/messages',headers,
+    payload:{body:'普通咨询应与历史订单分开',clientMessageId:'closure-ordinary-support-0001'}})).statusCode).toBe(200);
+  expect((await app.inject({method:'POST',url:'/v1/me/support/messages',headers,
+    payload:{body:'这笔订单的原客服说明',clientMessageId:'closure-linked-support-0001',linkedOrderId:paidOrder}})).statusCode).toBe(200);
 
   const result=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
     payload:{kind:'close_account',message:'本人申请注销 CISME 账号'}});
@@ -192,6 +213,34 @@ it('closes a self-verified account, retains transaction facts, and suppresses ol
   const rightsHeaders={authorization:`Bearer ${rights.json().sessionToken}`};
   expect((await app.inject({url:'/v1/me/privacy-requests',headers:rightsHeaders})).json()).toEqual(
     expect.arrayContaining([expect.objectContaining({id:requestId,status:'completed'})]));
+  const historicalOrders=await app.inject({url:'/v1/me/orders',headers:rightsHeaders});
+  expect(historicalOrders.statusCode,historicalOrders.body).toBe(200);
+  expect(historicalOrders.json().items).toEqual(expect.arrayContaining([expect.objectContaining({id:order}),expect.objectContaining({id:paidOrder})]));
+  expect((await app.inject({url:`/v1/me/orders/${order}`,headers:rightsHeaders})).statusCode).toBe(200);
+  expect((await app.inject({url:`/v1/me/refund-requests?orderId=${paidOrder}`,headers:rightsHeaders})).statusCode).toBe(200);
+  expect((await app.inject({url:'/v1/me/commission/settlement-requests',headers:rightsHeaders})).statusCode).toBe(200);
+  expect((await app.inject({url:'/v1/me/commission/credit-conversions',headers:rightsHeaders})).statusCode).toBe(200);
+  expect((await app.inject({url:`/v1/me/orders/${randomUUID()}`,headers:rightsHeaders})).statusCode).toBe(404);
+  expect((await app.inject({method:'POST',url:'/v1/me/orders',headers:rightsHeaders,payload:{}})).statusCode).toBe(403);
+  expect((await app.inject({method:'POST',url:`/v1/me/orders/${order}/payment-intent`,headers:rightsHeaders})).statusCode).toBe(403);
+  expect((await app.inject({url:`/v1/me/orders/${order}/aftersales/availability`,headers:rightsHeaders})).statusCode).toBe(409);
+  const availability=await app.inject({url:`/v1/me/orders/${paidOrder}/aftersales/availability`,headers:rightsHeaders});
+  expect(availability.statusCode,availability.body).toBe(200);
+  expect(availability.json().lines).toEqual([expect.objectContaining({lineId:paidLine,remainingQuantity:1})]);
+  const historicalCase=await app.inject({method:'POST',url:`/v1/me/orders/${paidOrder}/aftersales`,
+    headers:{...rightsHeaders,'idempotency-key':'closed-history-case-0001'},
+    payload:{kind:'refund_only',claimBasis:'missing_item',reason:'注销前订单漏发商品',lines:[{lineId:paidLine,quantity:1}]}});
+  expect(historicalCase.statusCode,historicalCase.body).toBe(200);
+  expect(historicalCase.json()).toMatchObject({orderId:paidOrder,state:'requested'});
+  expect((await app.inject({url:`/v1/me/aftersales/${historicalCase.json().id}`,headers:rightsHeaders})).statusCode).toBe(200);
+  expect((await app.inject({url:'/v1/me/aftersales',headers:rightsHeaders})).statusCode).toBe(200);
+  expect((await app.inject({method:'POST',url:'/v1/me/support/messages',headers:rightsHeaders,
+    payload:{body:'无订单归属的消息',clientMessageId:'closed-no-order-0001'}})).statusCode).toBe(422);
+  expect((await app.inject({method:'POST',url:'/v1/me/support/messages',headers:rightsHeaders,
+    payload:{body:'请核对这笔历史订单的漏发问题',clientMessageId:'closed-order-message-0001',linkedOrderId:paidOrder}})).statusCode).toBe(200);
+  const historicalMessages=await app.inject({url:'/v1/me/support/messages?limit=30',headers:rightsHeaders});
+  expect(historicalMessages.statusCode,historicalMessages.body).toBe(200);
+  expect(historicalMessages.json().messages.map((row:{body:string})=>row.body)).toContain('请核对这笔历史订单的漏发问题');
   expect((await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers:rightsHeaders,
     payload:{kind:'close_account',message:'again'}})).statusCode).toBe(409);
 

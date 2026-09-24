@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 
 const request = vi.hoisted(() => vi.fn());
 vi.mock('../../apps/miniprogram/services/api', () => ({
+  historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken || "",
+  historicalCommerceClosed: () => false,
+  requireHistoricalCommerceAccess: () => true,
   request, resumeAuthentication: vi.fn(), setSessionToken: vi.fn(),
   clearAuthenticationRedirectSuppression: vi.fn(), requireMemberAccess: () => true,
   retainMemberSnapshot: () => true

@@ -3,7 +3,7 @@ import type pg from 'pg';
 import type { Capability } from '@cisme/contracts';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
-import { AuthorityService, requireActiveMemberWithClient } from './authority.js';
+import { AuthorityService, requireHistoricalMemberWithClient } from './authority.js';
 import { finishPage, pageLimit, pageScope, readPageCursor } from './keysetPage.js';
 import type { RefundCommandService } from './refundCommand.js';
 import { allocateAftersaleClaim } from './aftersaleAllocation.js';
@@ -108,11 +108,11 @@ export class AftersaleService{
       VALUES($1,$2,'commerce_aftersale_case',$3,$4,$5)`,[`member:${actor}`,`commerce.aftersale.${action}`,row.id,
       {state:row.state,version:row.version},`aftersale:${row.id}:${row.version}`]);
   }
-  async availability(memberId:string|undefined,orderInput:string){
+  async availability(memberId:string|undefined,orderInput:string,closedRights=false){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const orderId=id(orderInput);
     return transaction(this.pool,async client=>{
-      await requireActiveMemberWithClient(client,memberId);
+      await requireHistoricalMemberWithClient(client,memberId,closedRights);
       const order=(await client.query('SELECT status,transaction_source_kind FROM commerce_order WHERE id=$1 AND member_id=$2',[orderId,memberId])).rows[0];
       if(!order)fail('ORDER_NOT_FOUND','订单不存在',404);
       if(order.status!=='paid'||order.transaction_source_kind!=='verified_commerce')
@@ -126,7 +126,7 @@ export class AftersaleService{
       return {orderId,lines:lines.map(line=>({lineId:line.id,remainingQuantity:Math.max(0,line.quantity-(used.get(line.id)??0))}))};
     });
   }
-  async request(memberId:string|undefined,orderInput:string,kInput:string,input:Record<string,unknown>){
+  async request(memberId:string|undefined,orderInput:string,kInput:string,input:Record<string,unknown>,closedRights=false){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const orderId=id(orderInput),k=key(kInput),kind=input.kind,claimBasis=input.claimBasis===undefined?'other':String(input.claimBasis);
     if(kind!=='refund_only'&&kind!=='return_refund')fail('AFTERSALE_KIND_INVALID','请选择仅退款或退货退款',422);
@@ -142,7 +142,7 @@ export class AftersaleService{
     }).sort((a,b)=>a.lineId.localeCompare(b.lineId)):fail('AFTERSALE_SELECTION_INVALID','请选择商品及数量',422);
     const fingerprint=hash({orderId,kind,why,claimBasis,selection});
     return transaction(this.pool,async client=>{
-      await requireActiveMemberWithClient(client,memberId);
+      await requireHistoricalMemberWithClient(client,memberId,closedRights);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
       const replay=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE member_id=$1 AND idempotency_key=$2',[memberId,k])).rows[0];
       if(replay){if(replay.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','请求键对应不同售后内容');return this.view(client,replay);}
@@ -214,12 +214,12 @@ export class AftersaleService{
       return this.view(client,row);
     },'SERIALIZABLE');
   }
-  async list(memberId:string|undefined,query:{orderId?:string;limit?:string;cursor?:string;attention?:string}={},management=false){
+  async list(memberId:string|undefined,query:{orderId?:string;limit?:string;cursor?:string;attention?:string}={},management=false,closedRights=false){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const orderId=query.orderId?id(query.orderId):null,filter=attentionFilter(query.attention,management),limit=pageLimit(query.limit),
       scope=pageScope(['aftersale',memberId,String(management),orderId,filter]),cursor=readPageCursor(query.cursor,scope);
     return transaction(this.pool,async client=>{
-      if(management)await this.management(client,memberId,filter?attentionCapability(filter):undefined);else await requireActiveMemberWithClient(client,memberId);
+      if(management)await this.management(client,memberId,filter?attentionCapability(filter):undefined);else await requireHistoricalMemberWithClient(client,memberId,closedRights);
       const rows=(await client.query<CaseRow & {cursor_at:string}>(`SELECT *,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
         FROM commerce_aftersale_case WHERE ($1::boolean OR member_id=$2)
         ${filter?`AND (${attentionPredicate(filter)})`:''}
@@ -228,11 +228,11 @@ export class AftersaleService{
       return finishPage(await Promise.all(rows.map(async row=>({...await this.view(client,row),cursorAt:row.cursor_at}))),limit,scope);
     },'REPEATABLE READ');
   }
-  async detail(memberId:string|undefined,caseInput:string,management=false){
+  async detail(memberId:string|undefined,caseInput:string,management=false,closedRights=false){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const caseId=id(caseInput);
     return transaction(this.pool,async client=>{
-      if(management)await this.management(client,memberId);else await requireActiveMemberWithClient(client,memberId);
+      if(management)await this.management(client,memberId);else await requireHistoricalMemberWithClient(client,memberId,closedRights);
       const row=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 AND ($2::boolean OR member_id=$3)',[caseId,management,memberId])).rows[0];
       if(!row)fail('AFTERSALE_NOT_FOUND','售后案件不存在',404);
       const events=(await client.query(`SELECT action,note,from_state AS "fromState",to_state AS "toState",case_version AS "version",refund_request_id AS "refundRequestId",created_at AS "createdAt"
@@ -260,7 +260,7 @@ export class AftersaleService{
     },'REPEATABLE READ');
   }
   async act(memberId:string|undefined,caseInput:string,kInput:string,input:Record<string,unknown>,management=false,refund?:RefundCommandService,
-    context?:{conversationId:string;principalId:string|undefined}){
+    context?:{conversationId:string;principalId:string|undefined},closedRights=false){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
     const caseId=id(caseInput),k=key(kInput),action=String(input.action??''),why=note(input.note),version=input.expectedVersion;
     if(!Number.isSafeInteger(version)||Number(version)<1)fail('VERSION_INVALID','请刷新案件后重试',422);
@@ -284,7 +284,7 @@ export class AftersaleService{
       fail('RETURN_INSTRUCTION_VERSION_INVALID','请选择实际使用的退货指引版本',422);
     const fingerprint=hash({caseId,action,why,version,carrier,tracking,quality,instruction,instructionVersion,exceptionKind,evidenceReference,routeOutcome});
     return transaction(this.pool,async client=>{
-      if(management)await this.management(client,memberId,actionCaps[action]);else await requireActiveMemberWithClient(client,memberId);
+      if(management)await this.management(client,memberId,actionCaps[action]);else await requireHistoricalMemberWithClient(client,memberId,closedRights);
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`aftersale:${memberId}:${k}`]);
       const pointer=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 AND ($2::boolean OR member_id=$3)',[caseId,management,memberId])).rows[0];
       if(!pointer)fail('AFTERSALE_NOT_FOUND','售后案件不存在',404);

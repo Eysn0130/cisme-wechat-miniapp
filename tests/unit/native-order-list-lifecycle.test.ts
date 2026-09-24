@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const m=vi.hoisted(()=>({token:"member-a",request:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,requireMemberAccess:()=>Boolean(m.token),retainMemberSnapshot:()=>true,clearAuthenticationRedirectSuppression:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,requireMemberAccess:()=>Boolean(m.token),
+ historicalCommerceToken:()=>m.token,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(m.token),
+ retainMemberSnapshot:()=>true,clearAuthenticationRedirectSuppression:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
 const later=()=>{let resolve!:(x:any)=>void,reject!:(x:any)=>void;const promise=new Promise<any>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};

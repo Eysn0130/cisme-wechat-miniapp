@@ -1,7 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
 const requestMock=vi.hoisted(()=>vi.fn());
-vi.mock("../../apps/miniprogram/services/api",()=>({request:requestMock,resumeAuthentication:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/api",()=>({request:requestMock,resumeAuthentication:vi.fn(),
+ historicalCommerceToken:()=>session,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(session)}));
 vi.mock("../../apps/miniprogram/services/authority",()=>({
   authorityProjection:vi.fn(),hasCapability:vi.fn(()=>true),requireCapability:vi.fn(async()=>({capabilities:["member.profile.read"]}))
 }));

@@ -1,4 +1,4 @@
-import { clearAuthenticationRedirectSuppression, requireMemberAccess, retainMemberSnapshot } from "../../services/api";
+import { clearAuthenticationRedirectSuppression, historicalCommerceClosed, historicalCommerceToken, requireHistoricalCommerceAccess, retainMemberSnapshot } from "../../services/api";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { cancelPageReads } from "../../services/page-requests";
 import { centsToYuan } from "../../services/commerce";
@@ -7,23 +7,23 @@ import { currentChromeStyle } from "../../services/layout";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已付款"};
 Page({
   lastToken:"",lastRevision:-1,
-  data:{chromeStyle:currentChromeStyle(),items:[] as any[],nextCursor:null as string|null,loading:true,refreshing:false,loadingMore:false,navigating:false,error:"",pageAlive:true,visible:true,coreReady:false,loadAttempt:0},
+  data:{chromeStyle:currentChromeStyle(),closedRights:false,items:[] as any[],nextCursor:null as string|null,loading:true,refreshing:false,loadingMore:false,navigating:false,error:"",pageAlive:true,visible:true,coreReady:false,loadAttempt:0},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
-  syncSession(){const token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
+  syncSession(){const token=historicalCommerceToken(),revision=commerceContextRevision();
     if(token!==this.lastToken||revision!==this.lastRevision){cancelPageReads(this);this.data.loadAttempt+=1;this.lastToken=token;this.lastRevision=revision;
       this.setData({items:[],nextCursor:null,coreReady:false,loadingMore:false,error:""});}},
-  onShow(){this.data.pageAlive=true;this.data.visible=true;
+  onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({closedRights:historicalCommerceClosed()});
     if(!retainMemberSnapshot(this))this.setData({items:[],nextCursor:null,coreReady:false});
     this.setData({navigating:false});return this.load();},
   onHide(){this.data.visible=false;this.data.coreReady=false;this.data.loadAttempt+=1;cancelPageReads(this);},
   onUnload(){this.onHide();this.data.pageAlive=false;},
-  current(attempt:number,token:string){return this.data.pageAlive&&this.data.visible&&this.data.loadAttempt===attempt&&this.lastToken===token&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision();},
+  current(attempt:number,token:string){return this.data.pageAlive&&this.data.visible&&this.data.loadAttempt===attempt&&this.lastToken===token&&token===historicalCommerceToken()&&this.lastRevision===commerceContextRevision();},
   canOpen(){return this.data.coreReady&&this.current(this.data.loadAttempt,this.lastToken)&&!this.data.navigating;},
   normalize(items:CommerceOrderSummary[]){return items.map(item=>({...item,statusLabel:labels[item.status]??"状态更新中",totalYuan:centsToYuan(item.totalCents),createdLabel:new Date(item.createdAt).toLocaleString("zh-CN",{hour12:false}),summary:item.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")}));},
   async load(event?:WechatMiniprogram.TouchEvent){
     if(!this.data.visible||!this.data.pageAlive)return;
     if(event?.type)clearAuthenticationRedirectSuppression();this.syncSession();
-    if(!requireMemberAccess()){this.setData({loading:false,refreshing:false,coreReady:false,items:[],nextCursor:null,error:"请先确认身份后查看订单。"});return;}
+    if(!requireHistoricalCommerceAccess()){this.setData({loading:false,refreshing:false,coreReady:false,items:[],nextCursor:null,error:"请先确认身份后查看订单。"});return;}
     cancelPageReads(this);const attempt=++this.data.loadAttempt,token=this.lastToken;
     this.setData({loading:this.data.items.length===0,refreshing:this.data.items.length>0,coreReady:false,loadingMore:false,error:""});
     try{
@@ -44,6 +44,6 @@ Page({
   },
   open(event:WechatMiniprogram.TouchEvent){if(!this.canOpen())return;const id=String(event.currentTarget.dataset.id??"");if(!this.data.items.some(item=>item.id===id))return;
     this.setData({navigating:true});wx.navigateTo({url:`/pages/order-detail/index?id=${encodeURIComponent(id)}`,fail:()=>this.setData({navigating:false})});},
-  openShop(){if(!this.data.visible||this.data.navigating)return;this.setData({navigating:true});wx.redirectTo({url:"/pages/shop/index",fail:()=>this.setData({navigating:false})});},
-  back(){if(!this.data.visible||this.data.navigating)return;this.setData({navigating:true});wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/profile/index"})});}
+  openShop(){if(this.data.closedRights||!this.data.visible||this.data.navigating)return;this.setData({navigating:true});wx.redirectTo({url:"/pages/shop/index",fail:()=>this.setData({navigating:false})});},
+  back(){if(!this.data.visible||this.data.navigating)return;this.setData({navigating:true});wx.navigateBack({fail:()=>this.data.closedRights?wx.redirectTo({url:"/pages/privacy-rights/index"}):wx.switchTab({url:"/pages/profile/index"})});}
 });

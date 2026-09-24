@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 const m=vi.hoisted(()=>({read:vi.fn(),write:vi.fn(),token:'member-a'}));
 vi.mock('../../apps/miniprogram/services/page-requests',()=>({pageRead:m.read,cancelPageReads:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/api',()=>({request:m.write,requireMemberAccess:()=>true}));
+vi.mock('../../apps/miniprogram/services/api',()=>({request:m.write,requireMemberAccess:()=>true,
+ historicalCommerceToken:()=>m.token,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(m.token)}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>0}));
 let definition:any;

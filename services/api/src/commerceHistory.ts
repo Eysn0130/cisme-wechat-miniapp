@@ -1,7 +1,7 @@
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
-import { requireActiveMemberWithClient } from "./authority.js";
+import { requireHistoricalMemberWithClient } from "./authority.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 
 // Local, bounded historical reads do not need a payment/transfer provider.
@@ -9,12 +9,12 @@ import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.j
 // parameter, mutation service, authorization flag or credential enters this API.
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function refundOrderId(value:string){if(!UUID.test(value))throw new DomainError("REFUND_ID_INVALID","退款编号无效",422);return value;}
-export async function listMemberRefundRequests(pool:pg.Pool,memberId:string|undefined,query:{limit?:string;cursor?:string;orderId?:string}={}){
+export async function listMemberRefundRequests(pool:pg.Pool,memberId:string|undefined,query:{limit?:string;cursor?:string;orderId?:string}={},closedRights=false){
     if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
     const orderId=query.orderId?refundOrderId(query.orderId):null;
     const limit=pageLimit(query.limit),scope=pageScope(["refund-mine",memberId,orderId]),cursor=readPageCursor(query.cursor,scope);
     return transaction(pool,async client=>{
-    await requireActiveMemberWithClient(client,memberId);
+    await requireHistoricalMemberWithClient(client,memberId,closedRights);
     const count=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_refund_request
       WHERE requested_by_member_id=$1 AND ($2::uuid IS NULL OR order_id=$2)`,[memberId,orderId])).rows[0]?.n??0;
     const rows=(await client.query(`SELECT r.id,r.order_id,r.amount_cents,r.state,r.reason,
@@ -35,11 +35,11 @@ export async function listMemberRefundRequests(pool:pg.Pool,memberId:string|unde
     },"REPEATABLE READ");
 }
 
-export async function listMemberSettlements(pool:pg.Pool,memberId:string|undefined,query:{limit?:string;cursor?:string}={}){
+export async function listMemberSettlements(pool:pg.Pool,memberId:string|undefined,query:{limit?:string;cursor?:string}={},closedRights=false){
   if(!memberId)throw new DomainError("AUTH_REQUIRED","请先登录后继续",401);
   const limit=pageLimit(query.limit),scope=pageScope(["settlement-mine",memberId]),cursor=readPageCursor(query.cursor,scope);
   return transaction(pool,async client=>{
-    await requireActiveMemberWithClient(client,memberId);
+    await requireHistoricalMemberWithClient(client,memberId,closedRights);
     const totalCount=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commission_settlement_request
       WHERE member_id=$1`,[memberId])).rows[0]?.n??0;
     const rows=(await client.query(`SELECT id,member_id,amount_cents,cycle_id,gross_cents,withholding_cents,

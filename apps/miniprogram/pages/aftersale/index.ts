@@ -1,5 +1,5 @@
 import { authorityProjection, type Capability } from '../../services/authority';
-import { request, requireMemberAccess } from '../../services/api';
+import { historicalCommerceClosed, historicalCommerceToken, request, requireHistoricalCommerceAccess } from '../../services/api';
 import { pageRead, cancelPageReads } from '../../services/page-requests';
 import { currentChromeStyle } from '../../services/layout';
 import { clientOperationKey } from '../../services/orders';
@@ -26,7 +26,7 @@ Page({
  onShow(){this.visible=true;return this.load();},
  onHide(){this.visible=false;this.epoch++;this.stop();cancelPageReads(this);if(this.pending)this.setData({needsReconcile:true});this.pending=null;this.setData({reconciliationReady:false});this.clear();},
  onUnload(){this.onHide();},
- current(epoch?:number,token?:string){epoch ??= this.epoch;token ??= this.token;return this.visible&&this.epoch===epoch&&this.token===token&&token===getApp<IAppOption>().globalData.sessionToken&&this.revision===commerceContextRevision();},
+ current(epoch?:number,token?:string){epoch ??= this.epoch;token ??= this.token;return this.visible&&this.epoch===epoch&&this.token===token&&token===historicalCommerceToken()&&this.revision===commerceContextRevision();},
  canAct(){return this.current()&&this.data.coreReady&&!this.data.busy&&!this.data.loading;},
  stop(){if(this.timer!==null)clearInterval(this.timer);this.timer=null;},
  clear(){this.setData({items:[],selected:null,nextCursor:null,hasOpenCase:false,capabilities:[],available:[],note:'',carrier:'',tracking:'',shipmentIndex:0,shipmentOptions:[],shipmentInstruction:null,qualityIndex:0,basisIndex:0,routeOutcomeIndex:0,exceptionIndex:0,exceptionEvidence:'',coreReady:false,busy:false,locked:false});},
@@ -78,9 +78,9 @@ Page({
    this.setData({capabilities:a.capabilities});if(this.data.selected)this.setData({available:this.selectActions(this.data.selected)});
   }catch{if(this.current(epoch,token))this.deny('售后权限暂不可用，请重新核验。');}
  },
- async load(next=false){if(!this.visible||this.data.busy)return;if(!requireMemberAccess()){this.deny('请先确认身份。');this.setData({loading:false});return;}
+ async load(next=false){if(!this.visible||this.data.busy)return;if(this.data.management?!historicalCommerceToken()||historicalCommerceClosed():!requireHistoricalCommerceAccess()){this.deny('请先确认身份。');this.setData({loading:false});return;}
   const cursor=next?this.data.nextCursor:null;if(next&&!cursor)return;
-  this.stop();cancelPageReads(this);const epoch=++this.epoch,token=getApp<IAppOption>().globalData.sessionToken;this.token=token;this.revision=commerceContextRevision();
+  this.stop();cancelPageReads(this);const epoch=++this.epoch,token=historicalCommerceToken();this.token=token;this.revision=commerceContextRevision();
   this.setData({loading:true,coreReady:false,error:'',items:[],selected:null,nextCursor:null,hasOpenCase:next&&this.data.hasOpenCase,available:[],qualityIndex:this.pending?this.data.qualityIndex:0});
   try{
    if(this.data.management){const a=await authorityProjection(this);if(!this.current(epoch,token))return;if(a.version!==1||!a.managementAvailable||!caps.some(c=>a.capabilities.includes(c)))throw {status:403};this.setData({capabilities:a.capabilities});}
@@ -163,7 +163,8 @@ Page({
  retry(){void this.load();},next(){if(this.canAct()&&!this.pending){this.selection='';void this.load(true);}},
  openChat(){const conversationId=this.data.selected?.supportConversationId;
   if(!conversationId||!this.canAct())return;
-  wx.navigateTo({url:this.data.management?`/pages/management-support-chat/index?id=${conversationId}`:`/pages/support/index?orderId=${this.data.selected!.orderId}`});
+  wx.navigateTo({url:this.data.management?`/pages/management-support-chat/index?id=${conversationId}`:
+    historicalCommerceClosed()?`/pages/order-detail/index?id=${this.data.selected!.orderId}&aftersale=1`:`/pages/support/index?orderId=${this.data.selected!.orderId}`});
  },
  back(){if(this.data.busy)return;wx.navigateBack({fail:()=>wx.redirectTo({url:this.data.management?'/pages/management/index':'/pages/orders/index'})});}
 });

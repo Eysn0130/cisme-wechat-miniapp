@@ -2,7 +2,7 @@ import { fulfillmentWorkbook } from './fulfillmentWorkbook.js';
 import { createHash } from 'node:crypto';
 import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
-import { AuthorityService, requireActiveMemberWithClient } from './authority.js';
+import { AuthorityService, requireActiveMemberWithClient, requireHistoricalMemberWithClient } from './authority.js';
 import { transaction, type DbClient } from './db.js';
 import { DeliveryAddressService } from './deliveryAddress.js';
 import { ShippingSyncService } from './shippingSync.js';
@@ -103,20 +103,20 @@ export class OrderFulfillmentService {
       return result;
     },'SERIALIZABLE');
   }
-  async detailMine(actor:string|undefined,orderId:string){
+  async detailMine(actor:string|undefined,orderId:string,closedRights=false){
     this.gate();if(!uuid.test(orderId))fail('ORDER_NOT_FOUND',404);
     return transaction(this.pool,async client=>{
-      const owner=await requireActiveMemberWithClient(client,actor);
+      const owner=await requireHistoricalMemberWithClient(client,actor,closedRights);
       const order=(await client.query('SELECT status FROM commerce_order WHERE id=$1 AND member_id=$2',[orderId,owner])).rows[0];
       if(!order)fail('ORDER_NOT_FOUND',404);
       const row=(await client.query<Shipment>('SELECT * FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
       return row?this.projection(client,row):{orderId,logisticsState:order.status==='paid'?'awaiting_dispatch':'not_ready',shipment:null};
     });
   }
-  async trackingMine(actor:string|undefined,orderId:string){
+  async trackingMine(actor:string|undefined,orderId:string,closedRights=false){
     this.gate();if(!uuid.test(orderId))fail('ORDER_NOT_FOUND',404);
     const source=await transaction(this.pool,async client=>{
-      const owner=await requireActiveMemberWithClient(client,actor);
+      const owner=await requireHistoricalMemberWithClient(client,actor,closedRights);
       const order=(await client.query('SELECT id,order_number FROM commerce_order WHERE id=$1 AND member_id=$2',[orderId,owner])).rows[0];
       if(!order)fail('ORDER_NOT_FOUND',404);
       const row=(await client.query<Shipment>('SELECT * FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
