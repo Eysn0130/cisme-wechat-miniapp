@@ -225,6 +225,23 @@ export class DeliveryAddressService {
       address:row.key_version==='erased'?null:this.decrypt(row)}));
   }
 
+  async walkOwnedForExport(client:DbClient,memberId:string,each:(row:Awaited<ReturnType<DeliveryAddressService['exportOwned']>>[number])=>Promise<void>){
+    this.requireEnabled();
+    await client.query(`DECLARE privacy_export_addresses NO SCROLL CURSOR FOR
+      SELECT * FROM member_delivery_address WHERE member_id=$1 ORDER BY created_at,id`,[memberId]);
+    try{
+      for(;;){
+        const rows=(await client.query<AddressRow>('FETCH FORWARD 100 FROM privacy_export_addresses')).rows;
+        if(!rows.length)break;
+        for(const row of rows){
+          await each({id:row.id,label:row.label,isDefault:row.is_default,
+            createdAt:row.created_at,updatedAt:row.updated_at,deletedAt:row.deleted_at,
+            address:row.key_version==='erased'?null:this.decrypt(row)});
+        }
+      }
+    }finally{await client.query('CLOSE privacy_export_addresses');}
+  }
+
   async create(memberId: string | undefined, clientRequestKey: string, input: AddressInput) {
     const owner = this.requireMember(memberId);
     this.requireEnabled();

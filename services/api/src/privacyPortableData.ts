@@ -9,7 +9,7 @@ import { assertOperationActive } from './operationBudget.js';
 const maxCopyBytes=64*1024*1024;
 type MediaRow={id:string;object_key:string;mime_type:string;size_bytes:string|null;kind:string};
 
-function openContact(config:AppConfig,memberId:string,row:{phone_encrypted:string;key_version:string}|undefined){
+export function openContact(config:AppConfig,memberId:string,row:{phone_encrypted:string;key_version:string}|undefined){
   if(!row)return null;
   if(!config.contacts.encryptionKey||row.key_version!==config.contacts.keyVersion)
     throw new DomainError('PRIVACY_EXPORT_CONTACT_KEY_UNAVAILABLE','手机号暂时无法安全读取',503);

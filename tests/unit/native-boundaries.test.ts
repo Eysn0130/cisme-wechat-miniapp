@@ -224,7 +224,7 @@ describe("native mini program boundary", () => {
       "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       points: ["back", "openShop", "load"],
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
-      "privacy-rights": ["back", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "copyRequestId", "loadMore", "login", "openSupport"],
+      "privacy-rights": ["back", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login", "openSupport"],
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
       checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],

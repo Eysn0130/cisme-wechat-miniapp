@@ -1,15 +1,111 @@
 import type pg from 'pg';
 import { transaction } from './db.js';
 import { enqueue } from './outbox.js';
+import {randomUUID} from 'node:crypto';
+import type {AccountClosure} from './accountClosure.js';
+import {applySupportMessageSuppression} from './supportMessageSuppression.js';
 
 type Policy={code:string;version:number;duration_days:number|null;duration_months:number|null;
   active:boolean;enforcement_state:string;automatic_purge_enabled:boolean};
 type Candidate={id:string;member_id:string;version:number;resolved_at:Date};
 type LinkedCandidate=Candidate&{cursor_resolved_at:string};
 
+export async function recordWholeSuppression(client:import('./db.js').DbClient,suppression:AccountClosure|undefined,
+  row:Candidate,policyCode:string,removeConversation:boolean,now:Date){
+  if(!suppression)return;
+  const member=(await client.query<{created_at:Date}>('SELECT created_at FROM member WHERE id=$1 FOR SHARE',
+    [row.member_id])).rows[0];
+  if(!member)throw new Error('SUPPORT_RETENTION_MEMBER_MISSING');
+  const count=Number((await client.query<{count:string}>(`SELECT count(*)::text AS count FROM support_message
+    WHERE conversation_id=$1`,[row.id])).rows[0]?.count??0);
+  if(!Number.isSafeInteger(count)||count<1)throw new Error('SUPPORT_RETENTION_EMPTY_CONVERSATION');
+  await client.query(`DECLARE privacy_support_suppression NO SCROLL CURSOR FOR
+    SELECT id FROM support_message WHERE conversation_id=$1 ORDER BY sequence`,[row.id]);
+  let lastMessageIds:string[]=[];
+  try{
+    for(let offset=0;offset<count;offset+=100){
+      const messages=(await client.query<{id:string}>(`FETCH FORWARD 100 FROM privacy_support_suppression`)).rows;
+      if(!messages.length)throw new Error('SUPPORT_RETENTION_CURSOR_SHORT');
+      lastMessageIds=messages.map(item=>item.id);
+      await suppression.recordSupportMessageSuppression({memberId:row.member_id,
+        conversationId:row.id,batchId:randomUUID(),messageIds:lastMessageIds,
+        mediaIds:[],memberCreatedAt:member.created_at.toISOString(),
+        createdAt:now.toISOString(),policyCode,removeConversation:false});
+    }
+  }finally{await client.query('CLOSE privacy_support_suppression');}
+  let lastMediaId:string|null=null;
+  for(;;){
+    const media:(Array<{id:string}>)=(await client.query<{id:string}>(`SELECT id FROM media_object
+      WHERE support_conversation_id=$1 AND upload_state IN ('authorized','uploaded')
+        AND ($2::uuid IS NULL OR id>$2::uuid) ORDER BY id LIMIT 1000`,[row.id,lastMediaId])).rows;
+    if(!media.length)break;
+    await suppression.recordSupportMessageSuppression({memberId:row.member_id,
+      conversationId:row.id,batchId:randomUUID(),messageIds:lastMessageIds,
+      mediaIds:media.map(item=>item.id),memberCreatedAt:member.created_at.toISOString(),
+      createdAt:now.toISOString(),policyCode,removeConversation:false});
+    lastMediaId=media[media.length-1]!.id;
+  }
+  if(removeConversation)await suppression.recordSupportMessageSuppression({memberId:row.member_id,
+    conversationId:row.id,batchId:randomUUID(),messageIds:lastMessageIds,
+    mediaIds:[],memberCreatedAt:member.created_at.toISOString(),
+    createdAt:now.toISOString(),policyCode,removeConversation:true});
+}
+
+/** Remove only messages explicitly classified as ordinary inside a mixed
+ * conversation. Legacy ambiguous messages remain on the linked clock. The
+ * independent marker is durable before deletion and replays after restore. */
+export async function purgeDueMixedOrdinarySupport(pool:pg.Pool,suppression:AccountClosure,
+  now=new Date(),limit=20):Promise<number>{
+  if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('SUPPORT_RETENTION_LIMIT_INVALID');
+  return transaction(pool,async client=>{
+    const policy=(await client.query<Policy>(`SELECT code,version,duration_days,duration_months,active,
+      enforcement_state,automatic_purge_enabled FROM data_retention_policy
+      WHERE code='support_conversation_policy_pending' FOR SHARE`)).rows[0];
+    if(!policy||!policy.active||!policy.automatic_purge_enabled||policy.enforcement_state!=='enforced'||
+      policy.duration_days===null&&policy.duration_months===null)return 0;
+    let cursor:LinkedCandidate|null=null,purged=0;
+    while(purged<limit){
+      const candidates:LinkedCandidate[]=(await client.query<LinkedCandidate>(`SELECT c.id,c.member_id,c.version,c.resolved_at,
+        to_char(c.resolved_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_resolved_at
+        FROM support_conversation c WHERE c.status='resolved' AND c.resolved_at IS NOT NULL
+          AND c.resolved_at+make_interval(days=>$1,months=>$2)<=$3
+          AND ($4::timestamptz IS NULL OR (c.resolved_at,c.id)>($4::timestamptz,$5::uuid))
+          AND EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id
+            AND m.retention_purpose='ordinary')
+          AND (EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id
+            AND m.retention_purpose IN ('transaction','legacy_unknown'))
+            OR EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE a.support_conversation_id=c.id))
+        ORDER BY c.resolved_at,c.id LIMIT $6 FOR UPDATE OF c SKIP LOCKED`,
+        [policy.duration_days??0,policy.duration_months??0,now,cursor?.cursor_resolved_at??null,
+          cursor?.id??null,limit])).rows;
+      if(!candidates.length)break;
+      cursor=candidates[candidates.length-1]!;
+      for(const row of candidates){
+        if(purged>=limit)break;
+        const member=(await client.query<{created_at:Date}>(`SELECT created_at FROM member WHERE id=$1
+          FOR SHARE`,[row.member_id])).rows[0];
+        if(!member)continue;
+        const messages=(await client.query<{id:string;attachment_refs:string[]}>(`SELECT id,attachment_refs
+          FROM support_message WHERE conversation_id=$1 AND retention_purpose='ordinary'
+          ORDER BY sequence LIMIT 100 FOR UPDATE`,[row.id])).rows;
+        if(!messages.length)continue;
+        const mediaIds=[...new Set(messages.flatMap(message=>message.attachment_refs??[]))];
+        if(mediaIds.length>1000)throw new Error('SUPPORT_RETENTION_MARKER_MEDIA_LIMIT');
+        const marker=await suppression.recordSupportMessageSuppression({memberId:row.member_id,
+          conversationId:row.id,batchId:randomUUID(),messageIds:messages.map(message=>message.id),mediaIds,
+          memberCreatedAt:member.created_at.toISOString(),createdAt:now.toISOString(),
+          policyCode:policy.code,removeConversation:false});
+        const result=await applySupportMessageSuppression(client,marker,now);
+        if(result.deleted)purged++;
+      }
+    }
+    return purged;
+  },'READ COMMITTED',1,60_000);
+}
+
 /** Runs only after operations explicitly enables a finite ordinary-support
  * policy. Linked order/aftersale evidence remains outside this purge path. */
-export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=20):Promise<number>{
+export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=20,suppression?:AccountClosure):Promise<number>{
   if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('SUPPORT_RETENTION_LIMIT_INVALID');
   return transaction(pool,async client=>{
     const policy=(await client.query<Policy>(`SELECT code,version,duration_days,duration_months,active,
@@ -72,20 +168,30 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
       if(held)continue;
       const messages=(await client.query<{count:number}>(`SELECT count(*)::int AS count
         FROM support_message WHERE conversation_id=$1`,[row.id])).rows[0]?.count??0;
+      if(!messages)continue;
+      await recordWholeSuppression(client,suppression,row,policy.code,true,now);
       await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
         SELECT id,object_key,'support_purged',$2 FROM media_object
         WHERE support_conversation_id=$1 AND upload_state IN ('authorized','uploaded')
+          AND NOT EXISTS(SELECT 1 FROM support_message external_message
+            WHERE external_message.conversation_id<>$1 AND external_message.attachment_refs ? media_object.id::text)
         ON CONFLICT DO NOTHING`,[row.id,now]);
       await client.query("SELECT set_config('cisme.support_purge_conversation_id',$1,true)",[row.id]);
       await client.query('DELETE FROM support_message WHERE conversation_id=$1',[row.id]);
-      await client.query('DELETE FROM support_conversation WHERE id=$1',[row.id]);
+      const removed=Boolean((await client.query(`DELETE FROM support_conversation c WHERE c.id=$1
+        AND NOT EXISTS(SELECT 1 FROM media_object media WHERE media.support_conversation_id=c.id
+          AND media.upload_state IN ('authorized','uploaded')
+          AND NOT EXISTS(SELECT 1 FROM media_cleanup_queue queued WHERE queued.media_id=media.id))`,
+        [row.id])).rowCount);
+      if(!removed)await client.query(`UPDATE support_conversation SET member_unread_count=0,
+        team_unread_count=0,version=version+1,updated_at=clock_timestamp() WHERE id=$1`,[row.id]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
         before_state,after_state,trace_id)
         VALUES('worker:support-retention','support.retention.purge','support_conversation',$1,
           'SUPPORT_RETENTION_POLICY',$2,$3,$4)`,[row.id,
           {policyCode:policy.code,policyVersion:policy.version,messageCount:messages,resolvedAt:row.resolved_at},
-          {purged:true},`support-retention:${row.id}`]);
-      await enqueue(client,{eventType:'support.conversation.purged.v1',aggregateType:'support_conversation',
+          {messagesPurged:true,conversationRemoved:removed},`support-retention:${row.id}`]);
+      if(removed)await enqueue(client,{eventType:'support.conversation.purged.v1',aggregateType:'support_conversation',
         aggregateId:row.id,aggregateVersion:row.version+1,businessKey:`support-purge:${row.id}`,
         payload:{conversationId:row.id,policyCode:policy.code,policyVersion:policy.version,messageCount:messages},
         occurredAt:now});
@@ -118,7 +224,7 @@ export function linkedOrderTerminalAt(order:LinkedOrder):Date|null {
  * related transaction's terminal fact; an unfinished order/case blocks it.
  * Cases retain the conversation row for their FK, while message bodies and
  * attachments are removed. The policy is off by default on migration. */
-export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20):Promise<number>{
+export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20,suppression?:AccountClosure):Promise<number>{
   if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('SUPPORT_RETENTION_LIMIT_INVALID');
   return transaction(pool,async client=>{
     const policy=(await client.query<Policy>(`SELECT code,version,duration_days,duration_months,active,
@@ -219,27 +325,34 @@ export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20
       const messages=(await client.query<{count:number}>(`SELECT count(*)::int AS count
         FROM support_message WHERE conversation_id=$1`,[row.id])).rows[0]?.count??0;
       if(!messages)continue;
+      const referenced=cases.length>0&&Boolean((await client.query(`SELECT 1 FROM commerce_aftersale_case
+        WHERE support_conversation_id=$1 LIMIT 1`,[row.id])).rowCount);
+      await recordWholeSuppression(client,suppression,row,policy.code,!referenced,now);
       await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
         SELECT id,object_key,'support_purged',$2 FROM media_object
         WHERE support_conversation_id=$1 AND upload_state IN ('authorized','uploaded')
+          AND NOT EXISTS(SELECT 1 FROM support_message external_message
+            WHERE external_message.conversation_id<>$1 AND external_message.attachment_refs ? media_object.id::text)
         ON CONFLICT DO NOTHING`,[row.id,now]);
       await client.query("SELECT set_config('cisme.support_purge_conversation_id',$1,true)",[row.id]);
       await client.query('DELETE FROM support_message WHERE conversation_id=$1',[row.id]);
-      const referenced=cases.length>0&&Boolean((await client.query(`SELECT 1 FROM commerce_aftersale_case
-        WHERE support_conversation_id=$1 LIMIT 1`,[row.id])).rowCount);
-      if(referenced)await client.query(`UPDATE support_conversation SET member_unread_count=0,
+      const removed=!referenced&&Boolean((await client.query(`DELETE FROM support_conversation c WHERE c.id=$1
+        AND NOT EXISTS(SELECT 1 FROM media_object media WHERE media.support_conversation_id=c.id
+          AND media.upload_state IN ('authorized','uploaded')
+          AND NOT EXISTS(SELECT 1 FROM media_cleanup_queue queued WHERE queued.media_id=media.id))`,
+        [row.id])).rowCount);
+      if(!removed)await client.query(`UPDATE support_conversation SET member_unread_count=0,
         team_unread_count=0,member_last_read_sequence=next_sequence-1,
         team_last_read_sequence=next_sequence-1,version=version+1,updated_at=clock_timestamp()
         WHERE id=$1`,[row.id]);
-      else await client.query('DELETE FROM support_conversation WHERE id=$1',[row.id]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
         before_state,after_state,trace_id)
         VALUES('worker:support-retention','support.transaction.retention.purge','support_conversation',$1,
           'SUPPORT_TRANSACTION_RETENTION',$2,$3,gen_random_uuid()::text)`,
         [row.id,{policyCode:policy.code,policyVersion:policy.version,messageCount:messages,
           resolvedAt:row.resolved_at,terminalAt,orderCount:orders.length,caseCount:cases.length},
-          {messagesPurged:true,conversationRetained:referenced}]);
-      if(!referenced)await enqueue(client,{eventType:'support.conversation.purged.v1',aggregateType:'support_conversation',
+          {messagesPurged:true,conversationRetained:!removed}]);
+      if(removed)await enqueue(client,{eventType:'support.conversation.purged.v1',aggregateType:'support_conversation',
         aggregateId:row.id,aggregateVersion:row.version+1,businessKey:`support-purge:${row.id}`,
         payload:{conversationId:row.id,policyCode:policy.code,policyVersion:policy.version,messageCount:messages},
         occurredAt:now});

@@ -53,7 +53,15 @@ const executionProjection = `COALESCE(
     'scope',CASE WHEN job.scope->>'formalSelfService'='true' THEN 'member_portable_copy_v1'
       WHEN job.execution_mode='generate_archive' THEN 'member_profile_only' ELSE 'plan_only' END,
     'downloadAvailable',EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id
-      AND artifact.revoked_at IS NULL AND artifact.expires_at>now() AND job.status='succeeded'),
+      AND artifact.revoked_at IS NULL AND artifact.expires_at>now() AND job.status='succeeded'
+      AND (job.manifest->>'schema' IS DISTINCT FROM 'cisme.member.portable.v2' OR
+        (SELECT count(*)=(job.manifest->>'partCount')::int AND min(part_number)=1
+          AND max(part_number)=(job.manifest->>'partCount')::int
+         FROM privacy_export_part part WHERE part.job_id=job.id))),
+    'partCount',CASE WHEN job.manifest->>'schema'='cisme.member.portable.v2'
+      THEN (job.manifest->>'partCount')::int ELSE NULL END,
+    'unavailableMediaCount',CASE WHEN job.manifest->>'schema'='cisme.member.portable.v2'
+      THEN (job.manifest->>'unavailableMediaCount')::int ELSE NULL END,
     'deliveryState',CASE
       WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.revoked_at IS NOT NULL) THEN 'revoked'
       WHEN EXISTS(SELECT 1 FROM privacy_export_artifact artifact WHERE artifact.job_id=job.id AND artifact.expires_at<=now()) THEN 'expired'

@@ -6,6 +6,7 @@ import { transaction, type DbClient } from './db.js';
 import type { ObjectStorage } from './storage.js';
 import { DeliveryAddressService } from './deliveryAddress.js';
 import { collectMemberPortableData, materializeMemberPortableData } from './privacyPortableData.js';
+import {buildPortableParts,needsPortableParts} from './privacyPortableParts.js';
 import { OperationBudget, runWithOperationBudget } from './operationBudget.js';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -53,6 +54,7 @@ export class FormalPrivacyExecution {
         ORDER BY next_attempt_at,created_at FOR UPDATE SKIP LOCKED LIMIT 1`)).rows[0];
       if(!job)return {job:null as Job|null,processed:false};
       if(job.status==='running'&&job.attempts>=3){
+        await client.query('DELETE FROM privacy_export_part WHERE job_id=$1',[job.id]);
         await client.query("UPDATE data_export_job SET status='failed',last_error_code='WORKER_INTERRUPTED',updated_at=now() WHERE id=$1",[job.id]);
         await client.query("UPDATE privacy_request SET status='failed',response='数据副本生成中断，请点击重试。',version=version+1,updated_at=now() WHERE id=$1 AND status='executing'",[job.privacy_request_id]);
         await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
@@ -61,8 +63,11 @@ export class FormalPrivacyExecution {
         return {job:null as Job|null,processed:true};
       }
       const attempts=job.attempts+1;
+      // A crashed generation may have committed parts before publishing the
+      // single artifact. No previous failed attempt may leak into this one.
+      await client.query('DELETE FROM privacy_export_part WHERE job_id=$1',[job.id]);
       await client.query(`UPDATE data_export_job SET status='running',attempts=$2,
-        next_attempt_at=now()+interval '3 minutes',updated_at=now() WHERE id=$1`,[job.id,attempts]);
+        next_attempt_at=now()+interval '15 minutes',updated_at=now() WHERE id=$1`,[job.id,attempts]);
       await client.query("UPDATE privacy_request SET status='executing',version=version+1,updated_at=now() WHERE id=$1 AND status='approved'",[job.privacy_request_id]);
       return {job:{...job,attempts,status:'running'},processed:true};
     });
@@ -83,16 +88,31 @@ export class FormalPrivacyExecution {
             AND j.approved_by='system:verified-self' AND j.scope->>'formalSelfService'='true') AS valid`,
           [job.privacy_request_id,job.member_id,job.id,job.attempts])).rows[0]?.valid;
         if(!authority)throw new DomainError('PRIVACY_EXECUTION_AUTHORITY_CHANGED','申请身份或范围已变化',409);
-        return {revision,data:await collectMemberPortableData(client,this.config,this.addresses,job.member_id)};
-      },'REPEATABLE READ READ ONLY',1,20_000);
-      const budget=new OperationBudget(120_000);
-      let copy:Awaited<ReturnType<typeof materializeMemberPortableData>>;
-      try{copy=await runWithOperationBudget(budget,()=>materializeMemberPortableData(snapshot.data,this.storage));}
-      finally{budget.dispose();}
+        const multipart=await needsPortableParts(client,job.member_id);
+        return {revision,multipart,data:multipart?null:
+          await collectMemberPortableData(client,this.config,this.addresses,job.member_id)};
+      },'REPEATABLE READ READ ONLY',1,60_000);
+      let copy:{bytes:Buffer;complete:boolean;sectionNames:string[];unavailableMedia:Array<{id:string;kind:string;mimeType:string;reason:string}>;
+        partCount?:number;totalBytes?:number;unavailableMediaCount?:number;snapshot?:string;counts?:Record<string,number>};
+      if(snapshot.multipart){
+        const built=await transaction(this.pool,async client=>{
+          if(await erasureRevision(client,job.member_id)!==snapshot.revision)
+            throw new DomainError('PRIVACY_EXECUTION_AUTHORITY_CHANGED','资料在分卷生成前已变化',409);
+          return buildPortableParts(client,this.config,this.addresses,this.storage,job.id,job.member_id,key);
+        },'REPEATABLE READ',1,600_000);
+        copy={bytes:Buffer.from(JSON.stringify({schema:built.schema,generatedAt:built.generatedAt,
+          snapshot:built.snapshot,partCount:built.partCount,totalBytes:built.totalBytes,
+          counts:built.counts,unavailableMediaCount:built.unavailableMediaCount,
+          unavailableMediaSample:built.unavailableMedia})),
+          complete:built.complete,sectionNames:built.sections,unavailableMedia:built.unavailableMedia,
+          partCount:built.partCount,totalBytes:built.totalBytes,
+          unavailableMediaCount:built.unavailableMediaCount,snapshot:built.snapshot,counts:built.counts};
+      }else{
+        const budget=new OperationBudget(120_000);
+        try{copy=await runWithOperationBudget(budget,()=>materializeMemberPortableData(snapshot.data!,this.storage));}
+        finally{budget.dispose();}
+      }
       await failBeforeArchiveWrite?.();
-      const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
-      const ciphertext=Buffer.concat([cipher.update(copy.bytes),cipher.final()]);
-      const digest=createHash('sha256').update(ciphertext).digest('hex');
       await transaction(this.pool,async client=>{
         const locked=(await client.query<{attempts:number;status:string}>(
           'SELECT attempts,status FROM data_export_job WHERE id=$1 FOR UPDATE',[job.id])).rows[0];
@@ -113,10 +133,21 @@ export class FormalPrivacyExecution {
           throw new DomainError('PRIVACY_EXECUTION_AUTHORITY_CHANGED','申请身份或范围已变化',409);
         const dbTime=(await client.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
         const expiresAt=new Date(dbTime.getTime()+lifetimeMs);
+        const archiveBytes=copy.partCount?Buffer.from(JSON.stringify({...JSON.parse(copy.bytes.toString('utf8')),
+          memberId:job.member_id,requestId:job.privacy_request_id,exportId:job.id,
+          expiresAt:expiresAt.toISOString(),partManifestPageSize:100,
+          partManifestPageCount:Math.ceil(copy.partCount/100)})):copy.bytes;
+        const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
+        const ciphertext=Buffer.concat([cipher.update(archiveBytes),cipher.final()]);
+        const digest=createHash('sha256').update(ciphertext).digest('hex');
         await client.query(`INSERT INTO privacy_export_artifact(job_id,member_id,ciphertext,iv,auth_tag,expires_at)
           VALUES($1,$2,$3,$4,$5,$6)`,[job.id,job.member_id,ciphertext,iv,cipher.getAuthTag(),expiresAt]);
-        const manifest={schema:'cisme.member.portable.v1',format:'json',bytes:copy.bytes.length,
-          sections:copy.sectionNames,unavailableMedia:copy.unavailableMedia};
+        const manifest={schema:copy.partCount?'cisme.member.portable.v2':'cisme.member.portable.v1',
+          format:copy.partCount?'ndjson.parts':'json',bytes:copy.totalBytes??copy.bytes.length,
+          sections:copy.sectionNames,unavailableMedia:copy.unavailableMedia,
+          ...(copy.partCount?{partCount:copy.partCount,snapshot:copy.snapshot,counts:copy.counts,
+            unavailableMediaCount:copy.unavailableMediaCount,partManifestPageSize:100,
+            partManifestPageCount:Math.ceil(copy.partCount/100)}:{})};
         await client.query(`UPDATE data_export_job SET status='succeeded',manifest=$2,archive_object_key=$3,
           result_sha256=$4,archive_expires_at=$5,completed_at=now(),last_error_code=NULL,updated_at=now()
           WHERE id=$1`,[job.id,manifest,`private-db/${job.id}`,digest,expiresAt]);
@@ -127,11 +158,12 @@ export class FormalPrivacyExecution {
         await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
           VALUES($1,'worker:formal-privacy',$2,$3)`,[job.privacy_request_id,
           copy.complete?'execution_succeeded':'execution_partially_succeeded',
-          {jobId:job.id,expiresAt,sections:copy.sectionNames,unavailableMediaCount:copy.unavailableMedia.length}]);
+          {jobId:job.id,expiresAt,sections:copy.sectionNames,
+            unavailableMediaCount:copy.unavailableMediaCount??copy.unavailableMedia.length}]);
         await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
           after_state,trace_id) VALUES('worker:formal-privacy','privacy.export.generate','privacy_request',$1,
           'VERIFIED_MEMBER_EXPORT',$2,gen_random_uuid()::text)`,[job.privacy_request_id,
-          {jobId:job.id,bytes:copy.bytes.length,complete:copy.complete}]);
+          {jobId:job.id,bytes:copy.totalBytes??copy.bytes.length,complete:copy.complete}]);
       },'READ COMMITTED',1,20_000);
     }catch(error){
       const code=error instanceof DomainError?error.code:'EXPORT_TASK_FAILED';
@@ -141,6 +173,7 @@ export class FormalPrivacyExecution {
           last_error_code=$2,next_attempt_at=now()+interval '30 seconds',updated_at=now()
           WHERE id=$1 AND status='running' AND attempts=$4 RETURNING id`,[job.id,code,terminal,job.attempts]);
         if(!changed.rowCount)return;
+        await client.query('DELETE FROM privacy_export_part WHERE job_id=$1',[job.id]);
         const exhausted=terminal||job.attempts>=3;
         if(exhausted)await client.query(`UPDATE privacy_request SET status='failed',response=$2,
           version=version+1,updated_at=now() WHERE id=$1 AND status='executing'`,[job.privacy_request_id,
@@ -169,7 +202,12 @@ export class FormalPrivacyExecution {
         JOIN privacy_request p ON p.id=j.privacy_request_id
         WHERE p.id=$1 AND p.member_id=$2 AND j.member_id=$2 AND a.member_id=$2
           AND j.status='succeeded' AND a.revoked_at IS NULL AND a.expires_at>clock_timestamp()
-          AND j.archive_expires_at>clock_timestamp() FOR SHARE OF a,j,p`,[requestId,memberId])).rows[0];
+          AND j.archive_expires_at>clock_timestamp()
+          AND (j.manifest->>'schema' IS DISTINCT FROM 'cisme.member.portable.v2' OR
+            (SELECT count(*)=(j.manifest->>'partCount')::int AND min(part_number)=1
+              AND max(part_number)=(j.manifest->>'partCount')::int
+             FROM privacy_export_part part WHERE part.job_id=j.id))
+          FOR SHARE OF a,j,p`,[requestId,memberId])).rows[0];
       if(!artifact)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','数据副本不存在或已失效',404);
       if(artifact.expires_at<=new Date())throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','数据副本已过期',404);
       try{
@@ -181,6 +219,89 @@ export class FormalPrivacyExecution {
           'VERIFIED_MEMBER_DOWNLOAD',$3,gen_random_uuid()::text)`,[`member:${memberId}`,requestId,{bytes:bytes.length}]);
         return bytes;
       }catch{throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','数据副本暂不可读取',503);}
+    });
+  }
+
+  async downloadPart(memberId:string|undefined,requestId:string,partNumber:number,closedRights=false):Promise<Buffer>{
+    const key=this.key();
+    if(!memberId||!uuid.test(requestId)||!Number.isSafeInteger(partNumber)||partNumber<1)
+      throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','数据分卷不存在',404);
+    return transaction(this.pool,async client=>{
+      const subject=await client.query(`SELECT 1 FROM member m JOIN wechat_identity w ON w.member_id=m.id
+        WHERE m.id=$1 AND m.status=$2 AND w.provider='wechat_miniprogram' FOR SHARE OF m,w`,
+        [memberId,closedRights?'deleted':'active']);
+      if(!subject.rowCount)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','数据分卷不存在',404);
+      const row=(await client.query<{ciphertext:Buffer;iv:Buffer;auth_tag:Buffer;plain_bytes:number;plain_sha256:string}>(`
+        SELECT part.ciphertext,part.iv,part.auth_tag,part.plain_bytes,part.plain_sha256
+        FROM privacy_export_part part JOIN data_export_job job ON job.id=part.job_id
+        JOIN privacy_request request ON request.id=job.privacy_request_id
+        JOIN privacy_export_artifact artifact ON artifact.job_id=job.id
+        WHERE request.id=$1 AND request.member_id=$2 AND request.kind='access'
+          AND job.member_id=$2 AND job.status='succeeded' AND job.scope->>'formalSelfService'='true'
+          AND job.manifest->>'schema'='cisme.member.portable.v2'
+          AND part.part_number=$3 AND part.part_number<=(job.manifest->>'partCount')::int
+          AND artifact.member_id=$2 AND artifact.revoked_at IS NULL
+          AND artifact.expires_at>clock_timestamp() AND job.archive_expires_at>clock_timestamp()
+          AND (SELECT count(*)=(job.manifest->>'partCount')::int AND min(part_number)=1
+            AND max(part_number)=(job.manifest->>'partCount')::int
+            FROM privacy_export_part complete WHERE complete.job_id=job.id)
+        FOR SHARE OF part,job,request,artifact`,[requestId,memberId,partNumber])).rows[0];
+      if(!row)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','数据分卷不存在或已失效',404);
+      try{
+        const decipher=createDecipheriv('aes-256-gcm',key,row.iv);decipher.setAuthTag(row.auth_tag);
+        const bytes=Buffer.concat([decipher.update(row.ciphertext),decipher.final()]);
+        if(bytes.length!==row.plain_bytes||createHash('sha256').update(bytes).digest('hex')!==row.plain_sha256)
+          throw new Error('PART_DIGEST_MISMATCH');
+        await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
+          after_state,trace_id) VALUES($1,'privacy.export.part_download','privacy_request',$2,
+          'VERIFIED_MEMBER_PART_DOWNLOAD',$3,gen_random_uuid()::text)`,
+          [`member:${memberId}`,requestId,{partNumber,bytes:bytes.length}]);
+        return bytes;
+      }catch{throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','数据分卷暂不可读取',503);}
+    });
+  }
+
+  async downloadPartManifestPage(memberId:string|undefined,requestId:string,pageNumber:number,closedRights=false){
+    this.key();
+    if(!memberId||!uuid.test(requestId)||!Number.isSafeInteger(pageNumber)||pageNumber<1)
+      throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','分卷校验清单不存在',404);
+    return transaction(this.pool,async client=>{
+      const subject=await client.query(`SELECT 1 FROM member m JOIN wechat_identity w ON w.member_id=m.id
+        WHERE m.id=$1 AND m.status=$2 AND w.provider='wechat_miniprogram' FOR SHARE OF m,w`,
+        [memberId,closedRights?'deleted':'active']);
+      if(!subject.rowCount)throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','分卷校验清单不存在',404);
+      const job=(await client.query<{id:string;manifest:{partCount:number;snapshot:string};expires_at:Date}>(`
+        SELECT job.id,job.manifest,artifact.expires_at FROM data_export_job job
+        JOIN privacy_request request ON request.id=job.privacy_request_id
+        JOIN privacy_export_artifact artifact ON artifact.job_id=job.id
+        WHERE request.id=$1 AND request.member_id=$2 AND request.kind='access'
+          AND job.member_id=$2 AND job.status='succeeded' AND job.scope->>'formalSelfService'='true'
+          AND job.manifest->>'schema'='cisme.member.portable.v2'
+          AND artifact.member_id=$2 AND artifact.revoked_at IS NULL
+          AND artifact.expires_at>clock_timestamp() AND job.archive_expires_at>clock_timestamp()
+          AND (SELECT count(*)=(job.manifest->>'partCount')::int AND min(part_number)=1
+            AND max(part_number)=(job.manifest->>'partCount')::int
+            FROM privacy_export_part part WHERE part.job_id=job.id)
+        FOR SHARE OF job,request,artifact`,[requestId,memberId])).rows[0];
+      const partCount=job?.manifest?.partCount;
+      if(!job||typeof partCount!=='number'||!Number.isSafeInteger(partCount)||partCount<1||pageNumber>Math.ceil(partCount/100))
+        throw new DomainError('PRIVACY_EXPORT_NOT_FOUND','分卷校验清单不存在或已失效',404);
+      const start=(pageNumber-1)*100+1,end=Math.min(pageNumber*100,partCount);
+      const parts=(await client.query<{part_number:number;plain_bytes:number;plain_sha256:string}>(`
+        SELECT part_number,plain_bytes,plain_sha256 FROM privacy_export_part
+        WHERE job_id=$1 AND part_number BETWEEN $2 AND $3 ORDER BY part_number
+        FOR SHARE`,[job.id,start,end])).rows;
+      if(parts.length!==end-start+1||parts.some((part,index)=>part.part_number!==start+index))
+        throw new DomainError('PRIVACY_EXPORT_UNAVAILABLE','分卷校验清单不完整',503);
+      const result={schema:'cisme.member.portable.part-manifest.v1',memberId,requestId,
+        exportId:job.id,snapshot:job.manifest.snapshot,expiresAt:job.expires_at.toISOString(),
+        pageNumber,pageCount:Math.ceil(partCount/100),partCount,
+        parts:parts.map(part=>({number:part.part_number,bytes:part.plain_bytes,sha256:part.plain_sha256}))};
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
+        after_state,trace_id) VALUES($1,'privacy.export.part_manifest','privacy_request',$2,
+        'VERIFIED_MEMBER_MANIFEST_DOWNLOAD',$3,gen_random_uuid()::text)`,
+        [`member:${memberId}`,requestId,{pageNumber,partCount:parts.length}]);
+      return result;
     });
   }
 

@@ -156,7 +156,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
-  const support = new SupportService(pool, authority, service, storage);
+  const support = new SupportService(pool, authority, service, storage, accountClosure);
   const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
   const access = new CommunityAccess(pool, config, authority);
   const cloudUpload = new CloudUpload(pool, config, service);
@@ -293,6 +293,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       const rightsRoute=path==='/v1/me/privacy-requests'&&['GET','POST'].includes(request.method) ||
         request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/reply$/i.test(path) ||
         request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export$/i.test(path) ||
+        request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export\/parts\/[1-9][0-9]*$/i.test(path) ||
+        request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export\/manifest-pages\/[1-9][0-9]*$/i.test(path) ||
         request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/media\/[0-9a-f-]{36}$/i.test(path) ||
         request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export-(revoke|retry)$/i.test(path);
       const historicalCommerceRoute=request.method==='GET'&&(
@@ -533,6 +535,18 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       :await privacyExecution.download(request.memberId,request.params.requestId);
     return reply.header('Cache-Control','private, no-store').header('Content-Disposition','attachment; filename="cisme-data.json"')
       .type('application/json').send(bytes);
+  });
+  app.get<{Params:{requestId:string;partNumber:string}}>("/v1/me/privacy-requests/:requestId/export/parts/:partNumber",async(request,reply)=>{
+    const bytes=await formalPrivacyExecution.downloadPart(request.memberId,request.params.requestId,
+      Number(request.params.partNumber),request.authScope==='privacy_rights');
+    return reply.header('Cache-Control','private, no-store')
+      .header('Content-Disposition',`attachment; filename="cisme-data-part-${request.params.partNumber}.ndjson"`)
+      .type('application/x-ndjson').send(bytes);
+  });
+  app.get<{Params:{requestId:string;pageNumber:string}}>("/v1/me/privacy-requests/:requestId/export/manifest-pages/:pageNumber",async(request,reply)=>{
+    const page=await formalPrivacyExecution.downloadPartManifestPage(request.memberId,request.params.requestId,
+      Number(request.params.pageNumber),request.authScope==='privacy_rights');
+    return reply.header('Cache-Control','private, no-store').type('application/json').send(page);
   });
   app.get<{Params:{requestId:string;mediaId:string}}>("/v1/me/privacy-requests/:requestId/media/:mediaId",async(request,reply)=>{
     const media=await formalPrivacyExecution.downloadSupplementaryMedia(request.memberId,request.params.requestId,

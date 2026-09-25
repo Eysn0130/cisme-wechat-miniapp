@@ -5,6 +5,7 @@ import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
 import { enqueue } from './outbox.js';
+import { applySupportMessageSuppression } from './supportMessageSuppression.js';
 
 export type ClosureMarker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
 export type ProfileErasureMarker={version:2;memberId:string;identityDigest:string;requestId:string;createdAt:string;
@@ -13,7 +14,10 @@ export type AddressErasureMarker={version:3;memberId:string;identityDigest:strin
   scope:'member_delivery_address_v1';addressId:string;addressVersion:number;payloadHmac:string};
 export type ConsentWithdrawalMarker={version:4;memberId:string;identityDigest:string;requestId:string;createdAt:string;
   scope:'submission_consent_withdrawal_v1';grantId:string;submissionId:string;purpose:'feed_readonly'|'publication'};
-export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker|ConsentWithdrawalMarker;
+export type SupportMessageMarker={version:5;memberId:string;conversationId:string;batchId:string;
+  messageIds:string[];mediaIds:string[];memberCreatedAt:string;createdAt:string;
+  scope:'support_retention_messages_v1';policyCode:string;removeConversation:boolean};
+export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker|ConsentWithdrawalMarker|SupportMessageMarker;
 export interface SuppressionRemote {
   put(marker:Marker):Promise<void>;
   list():Promise<Marker[]>;
@@ -24,16 +28,19 @@ const pendingMarker=/^\.[0-9a-f-]{36}\.[0-9a-f-]{36}\.tmp$/i;
 const profileMarker=/^([0-9a-f-]{36})\.profile\.([0-9a-f-]{36})\.json$/i;
 const addressMarker=/^([0-9a-f-]{36})\.address\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 const consentMarker=/^([0-9a-f-]{36})\.consent\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
+const supportMarker=/^([0-9a-f-]{36})\.support\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
   constructor(private readonly directory:string|null,private readonly remote?:SuppressionRemote) {}
+  suppressionEnabled(){return Boolean(this.directory);}
 
   private path(memberId:string) {if(!uuid.test(memberId))throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');return join(this.directory!,`${memberId}.json`);}
   private markerFilename(row:Marker){return row.version===1?`${row.memberId}.json`:
     row.version===2?`${row.memberId}.profile.${row.requestId}.json`:
     row.version===3?`${row.memberId}.address.${row.addressId}.${row.requestId}.json`:
-    `${row.memberId}.consent.${row.grantId}.${row.requestId}.json`;}
+    row.version===4?`${row.memberId}.consent.${row.grantId}.${row.requestId}.json`:
+    `${row.memberId}.support.${row.conversationId}.${row.batchId}.json`;}
   private markerPath(row:Marker){return join(this.directory!,this.markerFilename(row));}
   static identityDigest(provider:string,appId:string,openid:string) {
     return createHash('sha256').update(JSON.stringify([provider,appId,openid])).digest('hex');
@@ -73,14 +80,28 @@ export class AccountClosure {
       throw new Error('CONSENT_WITHDRAWAL_MARKER_INVALID');
     return row;
   }
+  private validSupport(row:SupportMessageMarker,memberId:string,conversationId:string,batchId:string){
+    if(row.version!==5||row.memberId!==memberId||row.conversationId!==conversationId||row.batchId!==batchId||
+      ![memberId,conversationId,batchId].every(value=>uuid.test(value))||
+      row.scope!=='support_retention_messages_v1'||
+      !['support_conversation_policy_pending','support_transaction_three_years'].includes(row.policyCode)||
+      typeof row.removeConversation!=='boolean'||!Number.isFinite(Date.parse(row.createdAt))||
+      !Number.isFinite(Date.parse(row.memberCreatedAt))||!Array.isArray(row.messageIds)||
+      row.messageIds.length<1||row.messageIds.length>100||new Set(row.messageIds).size!==row.messageIds.length||
+      !row.messageIds.every(value=>uuid.test(value))||!Array.isArray(row.mediaIds)||
+      row.mediaIds.length>1000||new Set(row.mediaIds).size!==row.mediaIds.length||
+      !row.mediaIds.every(value=>uuid.test(value)))throw new Error('SUPPORT_SUPPRESSION_MARKER_INVALID');
+    return row;
+  }
   private async readFilename(filename:string):Promise<Marker>{
     await this.requireDirectory();
-    const match=profileMarker.exec(filename),address=addressMarker.exec(filename),consent=consentMarker.exec(filename);
-    if(!match&&!address&&!consent&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
+    const match=profileMarker.exec(filename),address=addressMarker.exec(filename),consent=consentMarker.exec(filename),support=supportMarker.exec(filename);
+    if(!match&&!address&&!consent&&!support&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
     const row=JSON.parse(await readFile(join(this.directory!,filename),'utf8')) as Marker;
     return match?this.validProfile(row as ProfileErasureMarker,match[1]!,match[2]!):
       address?this.validAddress(row as AddressErasureMarker,address[1]!,address[2]!,address[3]!):
       consent?this.validConsent(row as ConsentWithdrawalMarker,consent[1]!,consent[2]!,consent[3]!):
+      support?this.validSupport(row as SupportMessageMarker,support[1]!,support[2]!,support[3]!):
       this.valid(row,filename.slice(0,-5));
   }
   private async marker(memberId:string):Promise<ClosureMarker|null> {
@@ -142,6 +163,15 @@ export class AccountClosure {
     try{await this.remote?.put(row);}catch{throw new DomainError('CONSENT_WITHDRAWAL_PENDING','撤回结果暂未确认，请稍后查看',503);}
     return row;
   }
+  async recordSupportMessageSuppression(input:Omit<SupportMessageMarker,'version'|'scope'>){
+    if(!this.directory)throw new DomainError('SUPPORT_RETENTION_SUPPRESSION_UNAVAILABLE','客服保留抑制记录不可用',503);
+    await this.requireDirectory();
+    const row=this.validSupport({version:5,scope:'support_retention_messages_v1',...input},
+      input.memberId,input.conversationId,input.batchId);
+    await this.writeLocal(row);
+    try{await this.remote?.put(row);}catch{throw new DomainError('SUPPORT_RETENTION_SUPPRESSION_PENDING','客服清理结果暂未确认',503);}
+    return row;
+  }
   private async writeLocal(row:Marker) {
     const filename=this.markerFilename(row);
     let old:Marker|null=null;
@@ -170,10 +200,12 @@ export class AccountClosure {
         if(row.version===1)this.valid(row,row.memberId);
         else if(row.version===2)this.validProfile(row,row.memberId,row.requestId);
         else if(row.version===3)this.validAddress(row,row.memberId,row.addressId,row.requestId);
-        else this.validConsent(row,row.memberId,row.grantId,row.requestId);
+        else if(row.version===4)this.validConsent(row,row.memberId,row.grantId,row.requestId);
+        else this.validSupport(row,row.memberId,row.conversationId,row.batchId);
         await this.writeLocal(row);
       }
     }
+    const supportToFinalize:SupportMessageMarker[]=[];
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
       const row=await this.readFilename(filename);
@@ -189,8 +221,12 @@ export class AccountClosure {
           if(!(error instanceof DomainError&&error.code==='DELIVERY_ADDRESS_CHANGED'))throw error;
         }
       }
-      else await transaction(pool,client=>applyConsentWithdrawal(client,row));
+      else if(row.version===4)await transaction(pool,client=>applyConsentWithdrawal(client,row));
+      else {await transaction(pool,client=>applySupportMessageSuppression(client,row));
+        if(row.removeConversation)supportToFinalize.push(row);}
     }
+    for(const row of supportToFinalize)
+      await transaction(pool,client=>applySupportMessageSuppression(client,row));
   }
   async replayMember(pool:pg.Pool,memberId:string) {
     const row=await this.marker(memberId);
@@ -223,6 +259,21 @@ export class AccountClosure {
                 AND p.target_ref=$1 AND p.status IN ('completed','partially_completed')))) AS pending`,
           [marker.grantId,marker.memberId,marker.submissionId,marker.requestId])).rows[0]?.pending;
         if(pending){await transaction(pool,client=>applyConsentWithdrawal(client,marker));repaired++;}
+        continue;
+      }else if(marker.version===5){
+        const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM support_message
+          WHERE conversation_id=$1 AND id=ANY($2::uuid[])) OR EXISTS(SELECT 1 FROM media_object
+          WHERE support_conversation_id=$1 AND id=ANY($3::uuid[]) AND upload_state IN ('authorized','uploaded')
+            AND bound_support_message_id IS NULL
+            AND NOT EXISTS(SELECT 1 FROM support_message remaining
+              WHERE remaining.attachment_refs ? media_object.id::text)
+            AND NOT EXISTS(SELECT 1 FROM media_cleanup_queue q WHERE q.media_id=media_object.id))
+          OR ($4::boolean AND EXISTS(SELECT 1 FROM support_conversation c WHERE c.id=$1 AND c.status='resolved'
+            AND NOT EXISTS(SELECT 1 FROM support_message m WHERE m.conversation_id=c.id)
+            AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case a WHERE a.support_conversation_id=c.id))) AS pending`,
+          [marker.conversationId,marker.messageIds,marker.mediaIds,marker.removeConversation])).rows[0]?.pending;
+        if(pending){const applied=await transaction(pool,client=>applySupportMessageSuppression(client,marker));
+          if(applied.deleted||applied.queued||applied.removed)repaired++;}
         continue;
       }else if(marker.version===2){
         const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member m

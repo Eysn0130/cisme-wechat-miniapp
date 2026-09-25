@@ -12,7 +12,7 @@ const pool=testPool();
 const directory=await mkdtemp(join(tmpdir(),'cisme-consent-withdrawal-'));
 await chmod(directory,0o700);
 const markers=new Map<string,Marker>();
-const remote:SuppressionRemote={async put(row){markers.set(`${row.memberId}:${row.version}:${row.requestId}`,row);},
+const remote:SuppressionRemote={async put(row){markers.set(`${row.memberId}:${row.version}:${row.version===5?row.batchId:row.requestId}`,row);},
   async list(){return [...markers.values()];}};
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,
   APP_SESSION_SECRET:'scoped-withdrawal-fixture',UPLOAD_TOKEN_SECRET:'scoped-withdrawal-storage',

@@ -364,6 +364,7 @@ export async function purgeExpiredPrivacyArtifacts(pool:pg.Pool,limit=50):Promis
     for(const row of due){
       if(row.status==='succeeded'&&row.expired)
         await client.query("UPDATE data_export_job SET status='expired',updated_at=now() WHERE id=$1",[row.job_id]);
+      await client.query('DELETE FROM privacy_export_part WHERE job_id=$1',[row.job_id]);
       await client.query('DELETE FROM privacy_export_artifact WHERE job_id=$1',[row.job_id]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
         VALUES('worker:privacy-retention','privacy.export.artifact_purge','privacy_request',$1,'EXPORT_COPY_EXPIRED_OR_REVOKED',$2,$3,gen_random_uuid()::text)`,

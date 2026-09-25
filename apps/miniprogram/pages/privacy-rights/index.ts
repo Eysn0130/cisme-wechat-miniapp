@@ -61,7 +61,7 @@ Page({
  hiddenRecords:[] as any[],hiddenRecordToken:'',hiddenNextCursor:null as string|null,
  actionBusy(){return this.data.busy||this.data.replyBusy||this.data.exportBusy;},
  onLoad(){clearExportFile();clearAbandonedExportFiles();},
- data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,consentGrants:[] as Array<{id:string;label:string}>,consentGrantIndex:0,consentAttempt:0,consentsLoading:false,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false,historicalBalance:null as null|{available:string;pending:string;held:string}},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,consentGrants:[] as Array<{id:string;label:string}>,consentGrantIndex:0,consentAttempt:0,consentsLoading:false,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},visibleParts:null as null|{requestId:string;partCount:number;partNumber:number;manifestPageNumber:number;manifestPageCount:number;exportId:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false,historicalBalance:null as null|{available:string;pending:string;held:string}},
  onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
   if(changed)clearExportFile();
   this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
@@ -72,7 +72,7 @@ Page({
     busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});void this.loadLegalIdentity();void this.load();if((closedRights?closedKinds:kinds)[this.data.selected]==='withdraw')void this.loadConsents();if(closedRights&&token)void this.loadHistoricalBalance(token);},
  onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.consentAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
   this.hiddenRecordToken=this.data.recordToken;this.hiddenRecords=this.data.records;this.hiddenNextCursor=this.data.nextCursor;
-  this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,consentGrants:[],consentGrantIndex:0,consentsLoading:false,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});},
+  this.setData({visibleExport:null,visibleParts:null,records:[],recordToken:'',nextCursor:null,consentGrants:[],consentGrantIndex:0,consentsLoading:false,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});},
  onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.consentAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
   this.hiddenRecordToken='';this.hiddenRecords=[];this.hiddenNextCursor=null;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
@@ -207,7 +207,15 @@ Page({
   try{
    const archive=await request<any>({path:`/v1/me/privacy-requests/${requestId}/export`});
    if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
-   if(row.execution.scope==='member_portable_copy_v1'&&archive?.schema==='cisme.member.portable.v1'){
+   if(row.execution.scope==='member_portable_copy_v1'&&
+      (archive?.schema==='cisme.member.portable.v1'||
+       (archive?.schema==='cisme.member.portable.v2'&&Number.isSafeInteger(archive.partCount)&&archive.partCount>0&&
+        archive.partCount===row.execution.partCount&&Number.isSafeInteger(archive.partManifestPageCount)&&
+        archive.partManifestPageCount===Math.ceil(archive.partCount/100)&&typeof archive.exportId==='string'&&
+        archive.exportId.length>0&&archive.requestId===requestId))){
+    const multipart=archive.schema==='cisme.member.portable.v2';
+    this.setData({visibleParts:multipart?{requestId,partCount:archive.partCount,partNumber:1,
+      manifestPageNumber:1,manifestPageCount:archive.partManifestPageCount,exportId:archive.exportId}:null});
     const fs=wx.getFileSystemManager();
     const currentPath=exportFilePath(clientOperationKey('cisme-private-data-copy'));
     filePath=currentPath;activeExportFiles.add(currentPath);
@@ -217,15 +225,82 @@ Page({
       clearExportFile(filePath);return;
     }
     await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath:currentPath,
-      fileName:`CISME-个人信息副本-${requestId.slice(-6)}.json`,success:()=>resolve(),fail:reject,
+      fileName:`CISME-个人信息副本-${requestId.slice(-6)}${multipart?'-清单':''}.json`,success:()=>resolve(),fail:reject,
       complete:()=>clearExportFile(filePath)}));
     if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
-      this.setData({notice:'数据副本已交给微信，请在接收会话查看。'});
+      this.setData({notice:multipart?'清单已发送。请依次发送下方各卷，全部收齐才是完整副本。':'数据副本已交给微信，请在接收会话查看。'});
    }else if(archive?.scope==='member_profile_only'){
     this.setData({visibleExport:{requestId,displayName:archive.member.displayName,wechatHandle:archive.profile?.wechatHandle||'未填写'}});
    }else throw new Error('EXPORT_SCOPE_UNEXPECTED');
   }catch(e){if(filePath)clearExportFile(filePath);if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData(shareWasCanceled(e)?{notice:'已取消发送，副本仍可在有效期内获取。'}:{error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
   finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
+ },
+ changePart(e:WechatMiniprogram.BaseEvent){
+  const value=this.data.visibleParts,step=Number(e.currentTarget.dataset.step);
+  if(this.actionBusy()||!value||![-1,1].includes(step))return;
+  this.setData({visibleParts:{...value,partNumber:Math.max(1,Math.min(value.partCount,value.partNumber+step))}});
+ },
+ changeManifestPage(e:WechatMiniprogram.BaseEvent){
+  const value=this.data.visibleParts,step=Number(e.currentTarget.dataset.step);
+  if(this.actionBusy()||!value||![-1,1].includes(step))return;
+  this.setData({visibleParts:{...value,manifestPageNumber:Math.max(1,
+    Math.min(value.manifestPageCount,value.manifestPageNumber+step))}});
+ },
+ async sendManifestPage(){
+  const selected=this.data.visibleParts;
+  if(this.actionBusy()||!selected||!this.data.records.some((row:any)=>row.id===selected.requestId&&
+    row.execution?.downloadAvailable&&row.execution?.partCount===selected.partCount))return;
+  const token=privacyToken(),attempt=++this.data.operationAttempt;
+  this.setData({exportBusy:true,exportRequestId:selected.requestId,error:'',notice:''});
+  let filePath:string|undefined;
+  try{
+   const page=await request<any>({path:`/v1/me/privacy-requests/${encodeURIComponent(selected.requestId)}/export/manifest-pages/${selected.manifestPageNumber}`});
+   if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
+   if(page?.schema!=='cisme.member.portable.part-manifest.v1'||page.requestId!==selected.requestId||
+      page.exportId!==selected.exportId||page.partCount!==selected.partCount||
+      page.pageNumber!==selected.manifestPageNumber||page.pageCount!==selected.manifestPageCount||
+      !Array.isArray(page.parts)||page.parts.length<1||page.parts.length>100)
+    throw new Error('PART_MANIFEST_INVALID');
+   filePath=exportFilePath(clientOperationKey('cisme-private-data-copy'));
+   activeExportFiles.add(filePath);
+   await new Promise<void>((resolve,reject)=>wx.getFileSystemManager().writeFile({filePath:filePath!,
+    data:JSON.stringify(page),encoding:'utf8',success:()=>resolve(),fail:reject}));
+   if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken()){
+    clearExportFile(filePath);return;
+   }
+   await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath:filePath!,
+    fileName:`CISME-分卷校验清单-${selected.requestId.slice(-6)}-第${selected.manifestPageNumber}页.json`,
+    complete:()=>clearExportFile(filePath),success:()=>resolve(),fail:reject}));
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData({notice:`第 ${selected.manifestPageNumber} 页校验清单已发送。`});
+  }catch(error){if(filePath)clearExportFile(filePath);
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData(shareWasCanceled(error)?{notice:'已取消发送，可继续获取校验清单。'}:
+      {error:(error as {title?:string}).title||'校验清单暂不可读取，请刷新后重试。'});}
+  finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData({exportBusy:false,exportRequestId:''});}
+ },
+ async sendPart(){
+  const selected=this.data.visibleParts;
+  if(this.actionBusy()||!selected||!this.data.records.some((row:any)=>row.id===selected.requestId&&
+    row.execution?.downloadAvailable&&row.execution?.partCount===selected.partCount))return;
+  const token=privacyToken(),attempt=++this.data.operationAttempt;
+  this.setData({exportBusy:true,exportRequestId:selected.requestId,error:'',notice:''});
+  const download=downloadPrivateMedia(`/v1/me/privacy-requests/${encodeURIComponent(selected.requestId)}/export/parts/${selected.partNumber}`,true);
+  this.supplementaryDownload=download;
+  try{
+   const filePath=await download.promise;
+   if(!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken())return;
+   if(this.supplementaryDownload===download)this.supplementaryDownload=null;
+   await new Promise<void>((resolve,reject)=>wx.shareFileMessage({filePath,
+    fileName:`CISME-个人信息副本-${selected.requestId.slice(-6)}-第${selected.partNumber}卷.ndjson`,
+    complete:()=>download.abort(),success:()=>resolve(),fail:reject}));
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData({notice:`第 ${selected.partNumber} 卷已发送。共 ${selected.partCount} 卷，请逐卷保存。`});
+  }catch(error){if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())
+    this.setData(shareWasCanceled(error)?{notice:'已取消发送，可继续获取本卷。'}:{error:(error as {title?:string}).title||'分卷暂不可读取，请刷新记录后重试。'});}
+  finally{download.abort();if(this.supplementaryDownload===download)this.supplementaryDownload=null;
+   if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
  async viewSupplementary(e:WechatMiniprogram.BaseEvent){
   if(this.actionBusy())return;

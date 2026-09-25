@@ -1,9 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import {chmod,mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import { TEST_DATABASE_URL, resetDatabase, testPool } from '@cisme/testkit';
-import { purgeDueOrdinarySupport, purgeDueLinkedSupport } from '../../services/api/src/supportRetention.js';
+import { purgeDueOrdinarySupport, purgeDueLinkedSupport, purgeDueMixedOrdinarySupport } from '../../services/api/src/supportRetention.js';
+import {AccountClosure} from '../../services/api/src/accountClosure.js';
+import {SupportService} from '../../services/api/src/supportService.js';
 
 const pool=testPool();
+const suppressionDirectory=await mkdtemp(join(tmpdir(),'cisme-support-suppression-'));
+await chmod(suppressionDirectory,0o700);
+const suppression=new AccountClosure(suppressionDirectory);
 const now=new Date('2026-09-23T12:00:00.000Z');
 async function conversation(label:string,resolvedAt:string){
   const member=(await pool.query<{id:string}>('INSERT INTO member(display_name) VALUES($1) RETURNING id',[label])).rows[0]!;
@@ -14,7 +22,7 @@ async function conversation(label:string,resolvedAt:string){
   return {id:row.id,memberId:member.id};
 }
 
-async function linkedCanceledConversation(suffix:string,finishedAt:string,resolvedAt:string){
+async function linkedCanceledConversation(suffix:string,finishedAt:string,resolvedAt:string,sharedMediaId?:string){
   const member=(await pool.query<{id:string}>('INSERT INTO member(display_name) VALUES($1) RETURNING id',[`linked-${suffix}`])).rows[0]!;
   const product=(await pool.query<{id:string}>(`INSERT INTO catalog_product(code,name,source_kind,qualification_status,
     publication_status,created_by,updated_by,published_at)
@@ -41,14 +49,15 @@ async function linkedCanceledConversation(suffix:string,finishedAt:string,resolv
   const row=(await pool.query<{id:string}>(`INSERT INTO support_conversation(member_id,status,resolved_at,created_at,updated_at)
     VALUES($1,'resolved',$2,$2,$2) RETURNING id`,[member.id,resolvedAt])).rows[0]!;
   await pool.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,
-    body,content_type,linked_order_id,order_snapshot,client_message_id,created_at)
-    VALUES($1,1,'user',$2,'Order consultation','order',$3,'{}'::jsonb,$4,$5)`,
-    [row.id,`member:${member.id}`,order.id,`retention-linked-${suffix}`,resolvedAt]);
+    body,content_type,linked_order_id,order_snapshot,attachment_refs,client_message_id,created_at)
+    VALUES($1,1,'user',$2,'Order consultation',$6,$3,'{}'::jsonb,$7::jsonb,$4,$5)`,
+    [row.id,`member:${member.id}`,order.id,`retention-linked-${suffix}`,resolvedAt,
+      sharedMediaId?'mixed':'order',JSON.stringify(sharedMediaId?[sharedMediaId]:[])]);
   return {conversationId:row.id,memberId:member.id,orderId:order.id};
 }
 
 beforeAll(async()=>{await resetDatabase(pool);});
-afterAll(async()=>{await pool.end();});
+afterAll(async()=>{await pool.end();await rm(suppressionDirectory,{recursive:true,force:true});});
 
 describe('ordinary support retention worker',()=>{
   it('requires an enabled finite policy and applies calendar months',async()=>{
@@ -133,22 +142,62 @@ describe('ordinary support retention worker',()=>{
     await pool.query("UPDATE privacy_request SET status='canceled' WHERE id=$1",[request.id]);
     expect(await purgeDueOrdinarySupport(pool,now)).toBe(1);
   });
+  it('persists suppression before whole-conversation cleanup and reapplies it after restore',async()=>{
+    await pool.query(`UPDATE data_retention_policy SET active=true,enforcement_state='enforced',
+      automatic_purge_enabled=true,version=version+1 WHERE code='support_conversation_policy_pending'`);
+    const old=await conversation('suppressed old support inquiry','2026-04-01T12:00:00Z');
+    const message=(await pool.query<{id:string}>(`SELECT id FROM support_message WHERE conversation_id=$1`,
+      [old.id])).rows[0]!;
+    expect(await purgeDueOrdinarySupport(pool,now,20,suppression)).toBe(1);
+    expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[old.id])).rowCount).toBe(0);
+    await pool.query(`INSERT INTO support_conversation(id,member_id,status,resolved_at)
+      VALUES($1,$2,'resolved',$3)`,[old.id,old.memberId,'2026-04-01T12:00:00Z']);
+    await pool.query(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,
+      sender_principal_id,body,client_message_id,retention_purpose)
+      VALUES($1,$2,1,'user',$3,'旧备份中的咨询',$4,'ordinary')`,
+      [message.id,old.id,`member:${old.memberId}`,`restored-whole-${randomUUID()}`]);
+    await suppression.replayPendingErasure(pool);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE id=$1',[message.id])).rowCount).toBe(0);
+    expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[old.id])).rowCount).toBe(0);
+  });
+  it('records every attachment in bounded marker pages before removing a large old conversation',async()=>{
+    const old=await conversation('many old support attachments','2026-04-01T12:00:00Z');
+    await pool.query(`INSERT INTO media_object(kind,object_key,mime_type,size_bytes,upload_state,
+      uploaded_at,support_conversation_id,support_member_id,support_expires_at)
+      SELECT 'chat_image','retention-many-'||$3::text||'-'||n,'image/jpeg',3,'uploaded',$4,
+        $1,$2,'infinity' FROM generate_series(1,1001) n`,[old.id,old.memberId,randomUUID(),now]);
+    expect(await purgeDueOrdinarySupport(pool,now,20,suppression)).toBe(1);
+    expect((await pool.query(`SELECT count(*)::int AS count FROM media_cleanup_queue
+      WHERE reason='support_purged' AND object_key LIKE 'retention-many-%'`)).rows[0].count).toBe(1001);
+    expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[old.id])).rowCount).toBe(0);
+  });
 });
 
 describe('linked transaction support retention worker',()=>{
   it('honors the separate 36-month policy and the later conversation close',async()=>{
     const due=await linkedCanceledConversation('0001','2023-08-01T12:00:00Z','2023-08-02T12:00:00Z');
+    const message=(await pool.query<{id:string}>(`SELECT id FROM support_message WHERE conversation_id=$1`,
+      [due.conversationId])).rows[0]!;
     expect(await purgeDueLinkedSupport(pool,now)).toBe(0);
     await pool.query(`UPDATE data_retention_policy SET active=true,enforcement_state='enforced',
       automatic_purge_enabled=true,version=version+1,updated_at=now()
       WHERE code='support_transaction_three_years'`);
-    expect(await purgeDueLinkedSupport(pool,now)).toBe(1);
+    expect(await purgeDueLinkedSupport(pool,now,20,suppression)).toBe(1);
     expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[due.conversationId])).rowCount).toBe(0);
     expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[due.conversationId])).rowCount).toBe(0);
     expect((await pool.query('SELECT 1 FROM commerce_order WHERE id=$1',[due.orderId])).rowCount).toBe(1);
     expect((await pool.query(`SELECT before_state FROM audit_log WHERE action='support.transaction.retention.purge'
       AND object_id=$1`,[due.conversationId])).rows[0]?.before_state).toMatchObject({
         policyCode:'support_transaction_three_years',messageCount:1,orderCount:1});
+    await pool.query(`INSERT INTO support_conversation(id,member_id,status,resolved_at)
+      VALUES($1,$2,'resolved',$3)`,[due.conversationId,due.memberId,'2023-08-02T12:00:00Z']);
+    await pool.query(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,
+      sender_principal_id,body,content_type,linked_order_id,order_snapshot,client_message_id)
+      VALUES($1,$2,1,'user',$3,'恢复的订单咨询','order',$4,'{}'::jsonb,$5)`,
+      [message.id,due.conversationId,`member:${due.memberId}`,due.orderId,`restored-linked-${randomUUID()}`]);
+    await suppression.replayPendingErasure(pool);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE id=$1',[message.id])).rowCount).toBe(0);
+    expect((await pool.query('SELECT 1 FROM support_conversation WHERE id=$1',[due.conversationId])).rowCount).toBe(0);
   });
 
   it('holds a linked conversation until the latest transaction and any legal hold end',async()=>{
@@ -219,5 +268,58 @@ describe('linked transaction support retention worker',()=>{
     expect(await purgeDueLinkedSupport(pool,now,1)).toBe(1);
     expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[unfinished.conversationId])).rowCount).toBe(1);
     expect((await pool.query('SELECT 1 FROM support_message WHERE conversation_id=$1',[due.conversationId])).rowCount).toBe(0);
+  });
+  it('purges only due ordinary messages in a mixed thread and suppresses backup restoration',async()=>{
+    await pool.query(`UPDATE data_retention_policy SET active=true,enforcement_state='enforced',
+      automatic_purge_enabled=true,version=version+1 WHERE code='support_conversation_policy_pending'`);
+    const sharedId=randomUUID(),orphanId=randomUUID();
+    const linked=await linkedCanceledConversation('0010','2023-06-01T12:00:00Z','2023-06-02T12:00:00Z',sharedId);
+    await pool.query('UPDATE support_conversation SET next_sequence=2,version=version+1 WHERE id=$1',[linked.conversationId]);
+    const ordinary=(await pool.query<{id:string}>(`INSERT INTO support_message(conversation_id,sequence,
+      sender_type,sender_principal_id,body,content_type,attachment_refs,client_message_id,retention_purpose,created_at)
+      VALUES($1,2,'user',$2,'其他咨询','image',$5::jsonb,$3,'ordinary',$4) RETURNING id`,
+      [linked.conversationId,`member:${linked.memberId}`,`mixed-ordinary-${randomUUID()}`,
+        '2023-06-02T12:00:00Z',JSON.stringify([sharedId,orphanId])])).rows[0]!;
+    await pool.query<{id:string}>(`INSERT INTO media_object(id,kind,object_key,mime_type,size_bytes,
+      upload_state,uploaded_at,support_conversation_id,support_member_id,bound_support_message_id,support_expires_at)
+      VALUES($1,'chat_image',$2,'image/jpeg',3,'uploaded',$3,$4,$5,$6,'infinity')`,
+      [sharedId,`shared-support-${randomUUID()}`,now,linked.conversationId,linked.memberId,ordinary.id]);
+    await pool.query<{id:string}>(`INSERT INTO media_object(id,kind,object_key,mime_type,size_bytes,
+      upload_state,uploaded_at,support_conversation_id,support_member_id,bound_support_message_id,support_expires_at)
+      VALUES($1,'chat_image',$2,'image/jpeg',3,'uploaded',$3,$4,$5,$6,'infinity')`,
+      [orphanId,`orphan-support-${randomUUID()}`,now,linked.conversationId,linked.memberId,ordinary.id]);
+    await pool.query(`UPDATE support_conversation SET next_sequence=3,team_unread_count=2,version=version+1
+      WHERE id=$1`,[linked.conversationId]);
+    expect(await purgeDueMixedOrdinarySupport(pool,suppression,now)).toBe(1);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE id=$1',[ordinary.id])).rowCount).toBe(0);
+    expect((await pool.query(`SELECT 1 FROM support_message WHERE conversation_id=$1
+      AND linked_order_id IS NOT NULL`,[linked.conversationId])).rowCount).toBe(1);
+    expect((await pool.query('SELECT team_unread_count,next_sequence FROM support_conversation WHERE id=$1',
+      [linked.conversationId])).rows[0]).toMatchObject({team_unread_count:1,next_sequence:'3'});
+    expect((await pool.query('SELECT 1 FROM media_cleanup_queue WHERE media_id=$1',[sharedId])).rowCount).toBe(0);
+    expect((await pool.query('SELECT 1 FROM media_cleanup_queue WHERE media_id=$1',[orphanId])).rowCount).toBe(1);
+    const support=new SupportService(pool,null as never,null as never,
+      {read:async()=>({bytes:Uint8Array.of(0xff,0xd8,0xff),mimeType:'image/jpeg'})} as never);
+    const page=await support.messagesForMember(linked.memberId,{limit:20});
+    expect(page.messages).toHaveLength(1);
+    expect(page.messages[0]?.attachments[0]?.id).toBe(sharedId);
+    expect((await support.memberSupportMedia(linked.memberId,sharedId)).bytes).toEqual(Uint8Array.of(0xff,0xd8,0xff));
+    expect((await support.messagesForMember(linked.memberId,{after:1,limit:20})).messages).toHaveLength(0);
+    // A restored old database contains the same message again. The marker
+    // outside that backup removes it, without touching the transaction row.
+    await pool.query(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,
+      body,content_type,attachment_refs,client_message_id,retention_purpose)
+      VALUES($1,$2,3,'user',$3,'恢复的旧咨询','image',$4::jsonb,$5,'ordinary')`,
+      [ordinary.id,linked.conversationId,`member:${linked.memberId}`,JSON.stringify([sharedId,orphanId]),
+        `restored-${randomUUID()}`]);
+    await suppression.replayPendingErasure(pool);
+    expect((await pool.query('SELECT 1 FROM support_message WHERE id=$1',[ordinary.id])).rowCount).toBe(0);
+    expect((await pool.query('SELECT 1 FROM media_cleanup_queue WHERE media_id=$1',[sharedId])).rowCount).toBe(0);
+    const ambiguous=(await pool.query<{retention_purpose:string}>(`INSERT INTO support_message(conversation_id,
+      sequence,sender_type,sender_principal_id,body,client_message_id)
+      VALUES($1,3,'user',$3,'历史未判明用途',$2) RETURNING retention_purpose`,
+      [linked.conversationId,`legacy-mixed-${randomUUID()}`,`member:${linked.memberId}`])).rows[0]!;
+    expect(ambiguous.retention_purpose).toBe('legacy_unknown');
+    expect(await purgeDueMixedOrdinarySupport(pool,suppression,now)).toBe(0);
   });
 });

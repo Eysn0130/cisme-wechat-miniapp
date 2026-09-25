@@ -2,7 +2,7 @@ import { expect,it } from 'vitest';
 import type COS from 'cos-nodejs-sdk-v5';
 import { loadConfig } from '@cisme/config';
 import { createCosSuppressionRemote } from '../../services/api/src/accountClosureRemote';
-import type { Marker } from '../../services/api/src/accountClosure';
+import type { ClosureMarker,Marker } from '../../services/api/src/accountClosure';
 
 it('stores only immutable identity digests and replays every paginated remote marker',async()=>{
   const config=loadConfig({APP_ENV:'test',DATABASE_URL:'postgres://unused/cisme_test',APP_SESSION_SECRET:'closure-remote',
@@ -28,7 +28,7 @@ it('stores only immutable identity digests and replays every paginated remote ma
     }
   } as unknown as COS;
   const remote=createCosSuppressionRemote(config,client);
-  const rows:Marker[]=[1,2].map(n=>({version:1,memberId:`00000000-0000-4000-8000-00000000000${n}`,
+  const rows:ClosureMarker[]=[1,2].map(n=>({version:1,memberId:`00000000-0000-4000-8000-00000000000${n}`,
     identityDigest:String(n).repeat(64),requestId:`11111111-1111-4111-8111-11111111111${n}`,createdAt:'2026-09-23T00:00:00.000Z'}));
   for(const row of rows)await remote.put(row);
   const profile:Marker={version:2,memberId:rows[0]!.memberId,identityDigest:rows[0]!.identityDigest,
@@ -45,8 +45,14 @@ it('stores only immutable identity digests and replays every paginated remote ma
     scope:'submission_consent_withdrawal_v1',grantId:'66666666-6666-4666-8666-666666666666',
     submissionId:'77777777-7777-4777-8777-777777777777',purpose:'feed_readonly'};
   await remote.put(consent);
+  const support:Marker={version:5,memberId:rows[0]!.memberId,
+    conversationId:'88888888-8888-4888-8888-888888888888',batchId:'99999999-9999-4999-8999-999999999999',
+    messageIds:['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],mediaIds:[],
+    memberCreatedAt:'2026-09-23T00:00:00.000Z',createdAt:'2026-09-23T04:00:00.000Z',
+    scope:'support_retention_messages_v1',policyCode:'support_conversation_policy_pending',removeConversation:true};
+  await remote.put(support);
   await remote.put(rows[0]!);
-  expect(await remote.list()).toEqual([address,consent,rows[0],profile,rows[1]]);
+  expect(await remote.list()).toEqual([address,consent,rows[0],profile,support,rows[1]]);
   expect(JSON.stringify([...objects.values()].map(value=>value.toString()))).not.toContain('openid');
   await expect(remote.put({...rows[0]!,identityDigest:'f'.repeat(64)})).rejects.toThrow('ObjectAlreadyExists');
   versioned=true;

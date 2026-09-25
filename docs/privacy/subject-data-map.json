@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "e6d926777e4ae21df0cef68114764c1f417433f687f30b1253a09c1a02d3cdce",
+  "migrationSetSha256": "30d91676fb35f78c01b81b9872a02b84be8a50adb57da2aa2dd058f2ff6ef817",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
   "retentionApproved": false,
   "releaseReady": false,
   "rules": {
-    "export": "A verified WeChat member can receive an encrypted short-lived copy of the explicit account, contact, address, care, commerce, support, community, membership and rights projections plus supported owned image bytes. Video and oversized copies remain explicit partial/failed cases; internal secrets and other people are excluded. Synthetic dev identity remains profile-only.",
+    "export": "A verified WeChat member can receive a bounded, encrypted, short-lived copy of fixed owner-scoped projections and owned media in ordered volumes. Each volume requires the same owner and parent artifact authority. Missing source media is stated explicitly. Internal secrets and other people are excluded; synthetic dev identity remains profile-only.",
     "subject": "FK paths are candidate relationships, not authorization. Actor, beneficiary, reporter and owner must remain distinct; polymorphic notes require typed resolver.",
     "retention": "Transaction and transaction-linked support have a confirmed 36-calendar-month business baseline subject to longer legal duties. Ordinary support has a configurable three-calendar-month policy after resolution; automatic purge remains separately gated until deployed data is previewed. Legal holds block erasure until release; other classes may lack enforcement.",
     "identity": "Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key.",
@@ -4961,6 +4961,33 @@
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
+      "table": "privacy_export_part",
+      "subjectPaths": [
+        [
+          "privacy_export_part.job_id -> data_export_job.id",
+          "data_export_job.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Encrypted ordered member export volumes. The parent artifact controls owner download, expiry and revocation; purge removes every volume. Never export ciphertext or keys as subject records.",
+      "exportFields": [],
+      "excludedFields": [
+        "job_id",
+        "part_number",
+        "ciphertext",
+        "iv",
+        "auth_tag",
+        "plain_bytes",
+        "plain_sha256",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PARENT_ARTIFACT_ONE_HOUR_OR_REVOKE",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
       "table": "privacy_request",
       "subjectPaths": [
         [
@@ -5564,7 +5591,7 @@
       "actorColumns": [
         "sender_principal_id"
       ],
-      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes.",
+      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes. New messages carry per-message ordinary/transaction purpose; ambiguous mixed legacy messages remain on the conservative linked clock. Independently durable purge markers suppress restoration.",
       "exportFields": [
         "id",
         "sequence",
@@ -5582,7 +5609,8 @@
         "client_message_id",
         "delivery_state",
         "order_snapshot",
-        "return_instruction_snapshot"
+        "return_instruction_snapshot",
+        "retention_purpose"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

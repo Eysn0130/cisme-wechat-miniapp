@@ -130,6 +130,114 @@ it('lets a verified WeChat member export their own data without a second adminis
     headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
 });
 
+it('delivers a large owner copy in ordered volumes, then enforces revocation',async()=>{
+  const owner=await login('large-volume-owner'),other=await login('large-volume-other');
+  await pool.query(`INSERT INTO privacy_request(member_id,kind,message,due_at,created_at,updated_at)
+    SELECT $1,'other',repeat('volume',300)||n::text,now()+interval '30 days',
+      now()-interval '31 days',now()-interval '31 days'
+    FROM generate_series(1,3000) n`,[owner.memberId]);
+  const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`},payload:{kind:'access',message:'申请本人完整分卷'} });
+  expect(created.statusCode,created.body).toBe(200);
+  const requestId=created.json().id as string;
+  expect(await new FormalPrivacyExecution(pool,config,storage).runExportOnce()).toBe(true);
+  const manifestResponse=await app.inject({url:`/v1/me/privacy-requests/${requestId}/export`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(manifestResponse.statusCode,manifestResponse.body).toBe(200);
+  const manifest=manifestResponse.json();
+  expect(manifest).toMatchObject({schema:'cisme.member.portable.v2',memberId:owner.memberId,
+    requestId,unavailableMediaCount:0,partManifestPageSize:100,partManifestPageCount:1});
+  expect(manifest.partCount).toBeGreaterThanOrEqual(2);
+  expect(manifest.exportId).toMatch(/^[0-9a-f-]{36}$/);
+  expect(Date.parse(manifest.expiresAt)).toBeGreaterThan(Date.now());
+  const pagePath=`/v1/me/privacy-requests/${requestId}/export/manifest-pages/1`;
+  expect((await app.inject({url:pagePath,headers:{authorization:`Bearer ${other.sessionToken}`}})).statusCode).toBe(404);
+  const pageResponse=await app.inject({url:pagePath,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(pageResponse.statusCode,pageResponse.body).toBe(200);
+  expect(pageResponse.headers['cache-control']).toBe('private, no-store');
+  const page=pageResponse.json();
+  expect(page).toMatchObject({schema:'cisme.member.portable.part-manifest.v1',memberId:owner.memberId,
+    requestId,exportId:manifest.exportId,snapshot:manifest.snapshot,
+    pageNumber:1,pageCount:1,partCount:manifest.partCount});
+  expect(page.parts).toHaveLength(manifest.partCount);
+  let count=0,previous='';
+  for(let number=1;number<=manifest.partCount;number++){
+    const path=`/v1/me/privacy-requests/${requestId}/export/parts/${number}`;
+    expect((await app.inject({url:path,headers:{authorization:`Bearer ${other.sessionToken}`}})).statusCode).toBe(404);
+    const response=await app.inject({url:path,headers:{authorization:`Bearer ${owner.sessionToken}`}});
+    expect(response.statusCode,response.body).toBe(200);
+    expect(response.rawPayload.length).toBeLessThanOrEqual(4*1024*1024);
+    expect(page.parts[number-1]).toEqual({number,bytes:response.rawPayload.length,
+      sha256:createHash('sha256').update(response.rawPayload).digest('hex')});
+    for(const line of response.body.trim().split('\n')){
+      const record=JSON.parse(line);
+      if(record.section==='rights'&&record.collection==='requests'){
+        expect(record.row.id).not.toBe(previous);previous=record.row.id;count++;
+      }
+    }
+  }
+  expect(count).toBe(3001);
+  expect(manifest.partCount).toBeLessThan(100);
+  const savedJobManifest=(await pool.query<{manifest:Record<string,unknown>}>(
+    'SELECT manifest FROM data_export_job WHERE id=$1',[manifest.exportId])).rows[0]!.manifest;
+  // Exercise the 100-descriptor boundary without generating hundreds of MB.
+  // These temporary synthetic rows only test the metadata pagination route.
+  await pool.query(`INSERT INTO privacy_export_part
+    (job_id,part_number,ciphertext,iv,auth_tag,plain_bytes,plain_sha256)
+    SELECT $1,n,source.ciphertext,source.iv,source.auth_tag,source.plain_bytes,source.plain_sha256
+    FROM generate_series($2::int,101) n CROSS JOIN privacy_export_part source
+    WHERE source.job_id=$1 AND source.part_number=1`,[manifest.exportId,manifest.partCount+1]);
+  await pool.query(`UPDATE data_export_job SET manifest=jsonb_set(jsonb_set(manifest,
+    '{partCount}','101'::jsonb),'{partManifestPageCount}','2'::jsonb) WHERE id=$1`,[manifest.exportId]);
+  const firstPage=await app.inject({url:pagePath,headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  const secondPage=await app.inject({url:`/v1/me/privacy-requests/${requestId}/export/manifest-pages/2`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(firstPage.json().parts).toHaveLength(100);
+  expect(secondPage.json().parts).toMatchObject([{number:101}]);
+  expect(secondPage.json()).toMatchObject({pageNumber:2,pageCount:2,partCount:101});
+  await pool.query('DELETE FROM privacy_export_part WHERE job_id=$1 AND part_number>$2',
+    [manifest.exportId,manifest.partCount]);
+  await pool.query('UPDATE data_export_job SET manifest=$2 WHERE id=$1',
+    [manifest.exportId,savedJobManifest]);
+  expect((await app.inject({url:`/v1/me/privacy-requests/${requestId}/export/parts/${manifest.partCount+1}`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+  expect((await app.inject({url:`/v1/me/privacy-requests/${requestId}/export/manifest-pages/2`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+  const missingPart=(await pool.query(`DELETE FROM privacy_export_part WHERE job_id=$1 AND part_number=$2
+    RETURNING job_id,part_number,ciphertext,iv,auth_tag,plain_bytes,plain_sha256`,
+    [manifest.exportId,manifest.partCount])).rows[0];
+  expect(missingPart).toBeDefined();
+  const incomplete=await app.inject({url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(incomplete.json().find((row:{id:string})=>row.id===requestId).execution.downloadAvailable).toBe(false);
+  expect((await app.inject({url:pagePath,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+  expect((await app.inject({url:`/v1/me/privacy-requests/${requestId}/export`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+  expect((await app.inject({url:`/v1/me/privacy-requests/${requestId}/export/parts/1`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+  await pool.query(`INSERT INTO privacy_export_part(job_id,part_number,ciphertext,iv,auth_tag,plain_bytes,plain_sha256)
+    VALUES($1,$2,$3,$4,$5,$6,$7)`,[missingPart.job_id,missingPart.part_number,
+      missingPart.ciphertext,missingPart.iv,missingPart.auth_tag,missingPart.plain_bytes,
+      missingPart.plain_sha256]);
+  await pool.query(`UPDATE privacy_export_artifact SET created_at=now()-interval '2 hours',
+    expires_at=now()-interval '1 second'
+    WHERE job_id=$1`,[manifest.exportId]);
+  for(const path of [pagePath,`/v1/me/privacy-requests/${requestId}/export/parts/1`])
+    expect((await app.inject({url:path,
+      headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+  await pool.query(`UPDATE privacy_export_artifact SET created_at=now(),expires_at=now()+interval '1 hour'
+    WHERE job_id=$1`,[manifest.exportId]);
+  const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(revoked.statusCode,revoked.body).toBe(200);
+  expect((await app.inject({url:`/v1/me/privacy-requests/${requestId}/export/parts/1`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+  expect((await app.inject({url:pagePath,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
+});
+
 it('keeps a failed formal export tied to its request and lets its owner retry',async()=>{
   const owner=await login('retry-owner'),other=await login('retry-other');
   const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
@@ -207,8 +315,8 @@ it('delivers readable data while naming video and missing images as incomplete',
   const downloaded=await app.inject({url:`/v1/me/privacy-requests/${requestId}/export`,
     headers:{authorization:`Bearer ${owner.sessionToken}`}});
   expect(downloaded.statusCode,downloaded.body).toBe(200);
-  expect(downloaded.json().unavailableMedia).toEqual(expect.arrayContaining([
-    expect.objectContaining({id:mediaIds[0],reason:'video_requires_separate_copy'}),
+  expect(downloaded.json().unavailableMediaSample).toEqual(expect.arrayContaining([
+    expect.objectContaining({id:mediaIds[0],reason:'stored_copy_unavailable'}),
     expect.objectContaining({id:mediaIds[1],reason:'stored_copy_unavailable'}),
     expect.objectContaining({id:missingSupportImage,reason:'stored_copy_unavailable'})]));
 });
@@ -252,7 +360,7 @@ it('delivers only an owner-listed supplementary image while the copy remains val
   expect((await app.inject({url:path,headers:{authorization:`Bearer ${owner.sessionToken}`}})).statusCode).toBe(404);
 });
 
-it('delivers an owner-listed legacy video through the existing supplementary copy route',async()=>{
+it('delivers an owned video in authenticated ordered volumes and revokes every volume',async()=>{
   const owner=await login('video-copy-owner'),other=await login('video-copy-other');
   const mediaId=randomUUID(),objectKey=`legacy-video-${mediaId}`;
   const bytes=Buffer.from([0,0,0,20,0x66,0x74,0x79,0x70,0x69,0x73,0x6f,0x6d,0,0,0,0,0,0,0,0]);
@@ -269,12 +377,17 @@ it('delivers an owner-listed legacy video through the existing supplementary cop
   expect(created.statusCode,created.body).toBe(200);
   const requestId=created.json().id as string;
   expect(await new FormalPrivacyExecution(pool,config,storage).runExportOnce()).toBe(true);
-  const path=`/v1/me/privacy-requests/${requestId}/media/${mediaId}`;
+  const manifest=(await app.inject({url:`/v1/me/privacy-requests/${requestId}/export`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}})).json();
+  expect(manifest).toMatchObject({schema:'cisme.member.portable.v2',partCount:1,unavailableMediaCount:0});
+  const path=`/v1/me/privacy-requests/${requestId}/export/parts/1`;
   expect((await app.inject({url:path,headers:{authorization:`Bearer ${other.sessionToken}`}})).statusCode).toBe(404);
   const delivered=await app.inject({url:path,headers:{authorization:`Bearer ${owner.sessionToken}`}});
   expect(delivered.statusCode,delivered.body).toBe(200);
-  expect(delivered.headers['content-type']).toContain('video/mp4');
-  expect(delivered.rawPayload).toEqual(bytes);
+  const records=delivered.body.trim().split('\n').map((line:string)=>JSON.parse(line));
+  expect(records).toEqual(expect.arrayContaining([
+    expect.objectContaining({type:'media_start',id:mediaId,bytes:bytes.length}),
+    expect.objectContaining({type:'media_chunk',id:mediaId,offset:0,base64:bytes.toString('base64')})]));
   const revoked=await app.inject({method:'POST',url:`/v1/me/privacy-requests/${requestId}/export-revoke`,
     headers:{authorization:`Bearer ${owner.sessionToken}`}});
   expect(revoked.statusCode,revoked.body).toBe(200);

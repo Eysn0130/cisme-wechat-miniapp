@@ -1,52 +1,269 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "efc08c4cdcfd07a53ad12a30007d3b48b270c0b983fd9c1f18935de3e677a48c",
+  "packageSourceSha256": "a549b67d00edceabca73517e63a81bbeef9252541294e1f71d45bdfbf9a33b01",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
   "routeCoverage": [
-    {"route":"pages/home/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/records/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/community/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/profile/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/account/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/task/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/submit/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/progress/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/points/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/post/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/shop/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/product/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/checkout/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/orders/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/order-detail/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/settings/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/invite/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/legal/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/privacy-rights/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/support/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-catalog/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-product/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-orders/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-order-detail/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-support/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-support-chat/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-members/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-member/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/referral/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/community-compose/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/community-post/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/community-author/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/community-review/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/community-activity/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-finance/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/commission/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-privacy/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/aftersale/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/management-fulfillment/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]}
+    {
+      "route": "pages/home/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/records/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/profile/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/account/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/task/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/submit/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/progress/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/points/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/shop/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/checkout/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/orders/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/order-detail/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/settings/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/invite/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/legal/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/support/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-orders/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-support/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-members/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-member/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/referral/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-compose/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-author/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-review/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-activity/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-finance/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/commission/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/aftersale/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    }
   ],
-  "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
-  "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
+  "devices": [
+    {
+      "platform": "ios",
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "platform": "android",
+      "result": "blocked",
+      "evidenceFiles": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED",
+      "severity": "P1",
+      "status": "blocked"
+    }
+  ],
   "note": "Current source identity is bound to the package gate after the privacy correction UI change. This hash update records code identity only: all route states and both devices remain blocked, with no new native screenshots or real WeChat login evidence. Earlier c8bf75f1 and f9f72432 evidence retains its original source identity and cannot establish this package as passing. Official-tool compilation, iOS and Android journeys require new observation after candidate freeze."
 }

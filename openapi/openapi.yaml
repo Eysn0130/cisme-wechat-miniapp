@@ -301,6 +301,20 @@ paths:
       description: Owner-scoped encrypted-at-rest data copy. Formal WeChat requests use the documented account-data scope; test-only dev requests retain the synthetic profile subset. An active member or a verified closed-rights session may retrieve an eligible formal copy. No-store response.
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {'200': {description: Private JSON data copy}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Execution key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export/parts/{partNumber}:
+    get:
+      operationId: downloadOwnPrivateDataPart
+      security: [{session: []}]
+      description: Verified owner downloads one ordered NDJSON volume of a formal portable copy. The parent artifact controls expiry and revocation; ciphertext authentication and plaintext digest are checked before delivery. Private no-store response.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {name: partNumber, in: path, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {'200': {description: Private NDJSON volume}, '404': {description: Not owned, absent, expired or revoked}, '503': {description: Volume or execution key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export/manifest-pages/{pageNumber}:
+    get:
+      operationId: downloadOwnPrivateDataPartManifest
+      security: [{session: []}]
+      description: Verified owner downloads one bounded page of ordered volume numbers, sizes and SHA-256 digests. The parent export controls expiry and revocation. Private no-store response.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {name: pageNumber, in: path, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {'200': {description: Private bounded volume manifest page}, '404': {description: Not owned, absent, expired or revoked}, '503': {description: Manifest unavailable}}
   /v1/me/privacy-requests/{requestId}/media/{mediaId}:
     get:
       operationId: downloadOwnSupplementaryExportImage

@@ -499,6 +499,24 @@
       "serverStorage": "副本由本人请求的 CISME 加密服务端工件解密；本机仅保留临时文件，分享后的微信副本由接收人管理",
       "currentGate": "服务端再次核验本人及副本有效期；客户端身份切换和中断后不继续展示旧结果",
       "retention": "服务端副本1小时；接收会话中的复制件由本人选择与管理"
+    },
+    {
+      "surface": "privacy_export_part",
+      "informationType": "本人数据副本分卷密文、认证标签、卷号、字节数及摘要",
+      "purpose": "分卷交付大体量本人资料",
+      "activation": "正式微信身份本人申请，worker 生成，仍受父副本的本人、撤销和到期校验",
+      "serverStorage": "CISME PostgreSQL 加密分卷；每卷至多 4 MiB 明文",
+      "currentGate": "仅本人按编号读取，分卷摘要校验；父副本失效后不可访问",
+      "retention": "随父副本撤销或到期清理，默认 1 小时"
+    },
+    {
+      "surface": "support_message.retention_purpose",
+      "informationType": "每条客服消息的普通咨询、交易关联或历史未判明用途分类",
+      "purpose": "在同一会话内分别计算客服内容保留期限",
+      "activation": "服务端在消息落库时写入或保守迁移历史记录",
+      "serverStorage": "CISME PostgreSQL support_message.retention_purpose；独立本机/COS 抑制标记仅保存待抑制的消息及附件 ID",
+      "currentGate": "普通消息仅在有限期限和保留条件满足后清理；历史未判明消息不按普通咨询清理",
+      "retention": "普通咨询三个月、交易关联三十六个月的业务基线，均受保全和正式政策开关约束"
     }
   ],
   "runtimeDataEgress": [
@@ -539,7 +557,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "8577d3694d388738ecd2b5e0860ce976aabd3611709bb9611fba0b520c076298",
+  "migrationSetSha256": "9be498a8831abbb53d297a641d9b40d4f0d9131d015fc1ca5db9ffb862695c68",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",

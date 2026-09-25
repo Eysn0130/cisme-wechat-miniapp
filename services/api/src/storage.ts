@@ -33,6 +33,7 @@ export interface ObjectStorage {
   authorize(input: { mediaId: string; objectKey: string; mimeType: string; maxBytes: number; baseUrl: string; now: Date }): Promise<UploadAuthorization>;
   verify(objectKey: string): Promise<StoredObject>;
   read(objectKey: string, maxBytes?: number): Promise<{ bytes: Uint8Array; mimeType: ReadableMime }>;
+  readRange?(objectKey: string, offset: number, length: number): Promise<Uint8Array>;
   delete(objectKey: string): Promise<void>;
   writeDerivedImage(objectKey: string, bytes: Uint8Array): Promise<void>;
   acceptsGatewayUpload: boolean;
@@ -52,6 +53,7 @@ function observeStorage(storage: ObjectStorage): ObjectStorage {
     authorize: (input) => timed(() => storage.authorize(input)),
     verify: (key) => timed(() => storage.verify(key)),
     read: (key, maxBytes) => timed(() => storage.read(key, maxBytes)),
+    ...(storage.readRange?{readRange:(key:string,offset:number,length:number)=>timed(()=>storage.readRange!(key,offset,length))}:{}),
     delete: (key) => timed(() => storage.delete(key)),
     writeDerivedImage: (key, bytes) => timed(() => storage.writeDerivedImage(key, bytes)),
     ...(storage.writeGatewayObject ? { writeGatewayObject: (input: Parameters<NonNullable<ObjectStorage["writeGatewayObject"]>>[0]) => timed(() => storage.writeGatewayObject!(input)) } : {})
@@ -92,6 +94,12 @@ function checkedReadLimit(maxBytes:number|undefined):number|undefined {
   if(maxBytes!==undefined&&(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>64*1024*1024))
     throw new DomainError("STORAGE_READ_LIMIT_INVALID","Storage read limit is invalid",422);
   return maxBytes;
+}
+
+function checkedRange(offset:number,length:number){
+  if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(length)||length<1||length>1024*1024)
+    throw new DomainError('STORAGE_RANGE_INVALID','Storage range is invalid',422);
+  return `bytes=${offset}-${offset+length-1}`;
 }
 
 function readLimitExceeded():DomainError {
@@ -230,6 +238,14 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectReadableMime(bytes) };
     },
+    async readRange(objectKey,offset,length){
+      const object=await client.send(new GetObjectCommand({Bucket:bucket,Key:objectKey,
+        Range:checkedRange(offset,length)}),{abortSignal:dependencySignal(30_000)});
+      if(object.$metadata.httpStatusCode!==206)throw new DomainError('STORAGE_RANGE_UNAVAILABLE','Stored range is unavailable',503);
+      const bytes=await readS3Body(object.Body,length);
+      if(!bytes||bytes.length!==length)throw new DomainError('STORAGE_RANGE_UNAVAILABLE','Stored range is incomplete',503);
+      return bytes;
+    },
     async delete(objectKey) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
     },
@@ -295,6 +311,21 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
         :await readLocalBounded(path,limit);
       if (!bytes.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectReadableMime(bytes) };
+    },
+    async readRange(objectKey,offset,length){
+      checkedRange(offset,length);
+      const file=await open(resolve(directory,objectKey.replaceAll('/','__')),'r');
+      try{
+        const bytes=Buffer.allocUnsafe(length);let total=0;
+        while(total<length){
+          assertOperationActive();
+          const result=await file.read(bytes,total,length-total,offset+total);
+          if(!result.bytesRead)break;
+          total+=result.bytesRead;
+        }
+        if(total!==length)throw new DomainError('STORAGE_RANGE_UNAVAILABLE','Stored range is incomplete',503);
+        return bytes;
+      }finally{await file.close();}
     },
     async writeDerivedImage(objectKey, bytes) {
       if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
@@ -447,6 +478,12 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
         :await readCosBounded(getClient(),location,objectKey,limit);
       if (!bytes?.length) throw new DomainError("MEDIA_NOT_FOUND", "Uploaded object is empty", 404);
       return { bytes, mimeType: detectReadableMime(bytes) };
+    },
+    async readRange(objectKey,offset,length){
+      const result=await getClient().getObject({...location,Key:objectKey,Range:checkedRange(offset,length)});
+      if(result.statusCode!==206||!result.Body||result.Body.length!==length)
+        throw new DomainError('STORAGE_RANGE_UNAVAILABLE','Stored range is incomplete',503);
+      return result.Body;
     },
     async delete(objectKey) { await getClient().deleteObject({ ...location, Key: objectKey }); },
     async writeDerivedImage(objectKey, bytes) {

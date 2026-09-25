@@ -7,7 +7,7 @@ import { EVENT_DELIVERY_POLICIES, EVENT_TYPES, type EventType } from "@cisme/con
 import { expirePendingOrders } from "../../api/src/commerceOrders.js";
 import { safeFailureFields } from "../../api/src/observability.js";
 import { SyntheticPrivacyExecution, purgeExpiredPrivacyArtifacts } from "../../api/src/privacyExecution.js";
-import { purgeDueOrdinarySupport, purgeDueLinkedSupport } from "../../api/src/supportRetention.js";
+import { purgeDueOrdinarySupport, purgeDueLinkedSupport, purgeDueMixedOrdinarySupport } from "../../api/src/supportRetention.js";
 import type { AccountClosure } from "../../api/src/accountClosure.js";
 import { FormalPrivacyExecution } from '../../api/src/formalPrivacyExecution.js';
 import type { AppConfig } from '@cisme/config';
@@ -178,10 +178,12 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
     ?Number(await new FormalPrivacyExecution(pool,gates.formalPrivacyConfig,storage).runExportOnce()):0;
   const privacyErasures=privacyExecutor?Number(await privacyExecutor.runProfileErasureOnce()):0;
   const purgedPrivacyArtifacts=await purgeExpiredPrivacyArtifacts(pool);
-  const purgedOrdinarySupport=await purgeDueOrdinarySupport(pool);
-  const purgedLinkedSupport=await purgeDueLinkedSupport(pool);
+  const purgedOrdinarySupport=await purgeDueOrdinarySupport(pool,new Date(),20,gates.accountClosure);
+  const purgedMixedOrdinarySupport=gates.accountClosure
+    ?await purgeDueMixedOrdinarySupport(pool,gates.accountClosure):0;
+  const purgedLinkedSupport=await purgeDueLinkedSupport(pool,new Date(),20,gates.accountClosure);
   return { published, cleaned, expiredOrders, privacyExports, formalExports,privacyErasures,
-    purgedPrivacyArtifacts,purgedOrdinarySupport,purgedLinkedSupport };
+    purgedPrivacyArtifacts,purgedOrdinarySupport,purgedMixedOrdinarySupport,purgedLinkedSupport };
 }
 
 export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates,
@@ -196,6 +198,6 @@ export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gat
     await onCycleSuccess?.();
     return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 ||
       result.privacyExports>0 || result.formalExports>0 || result.privacyErasures>0 ||
-      result.purgedOrdinarySupport===20 || result.purgedLinkedSupport===20;
+      result.purgedOrdinarySupport===20 || result.purgedMixedOrdinarySupport===20 || result.purgedLinkedSupport===20;
   }, onError);
 }

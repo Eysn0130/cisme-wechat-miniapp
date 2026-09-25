@@ -15,7 +15,8 @@ let directory:string;
 let app:Awaited<ReturnType<typeof createApp>>;
 let remoteAvailable=true;
 const remoteRows=new Map<string,Marker>();
-const markerKey=(row:Marker)=>row.version===1?row.memberId:`${row.memberId}.profile.${row.requestId}`;
+const markerKey=(row:Marker)=>row.version===1?row.memberId:row.version===5
+  ?`${row.memberId}.support.${row.conversationId}.${row.batchId}`:`${row.memberId}.profile.${row.requestId}`;
 const suppressionRemote:SuppressionRemote={
   async put(row){if(!remoteAvailable)throw new Error('REMOTE_UNAVAILABLE');const existing=remoteRows.get(markerKey(row));
     if(existing&&JSON.stringify(existing)!==JSON.stringify(row))throw new Error('REMOTE_MARKER_CONFLICT');
