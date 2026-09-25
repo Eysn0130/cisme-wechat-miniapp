@@ -156,7 +156,15 @@ export class AccountClosure {
       await this.remote?.put(row);
       if(row.version===1)await transaction(pool,client=>applyAccountClosure(client,row));
       else if(row.version===2)await transaction(pool,client=>applyProfileErasure(client,row));
-      else await transaction(pool,client=>applyAddressErasure(client,row));
+      else {
+        try{await transaction(pool,client=>applyAddressErasure(client,row));}
+        catch(error){
+          // A marker may have been durably written before its SQL transaction
+          // rolled back. A later, explicit address edit supersedes that
+          // version; it must not prevent the API from starting on restore.
+          if(!(error instanceof DomainError&&error.code==='DELIVERY_ADDRESS_CHANGED'))throw error;
+        }
+      }
     }
   }
   async replayMember(pool:pg.Pool,memberId:string) {

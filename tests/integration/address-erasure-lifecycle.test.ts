@@ -9,6 +9,7 @@ import { createApiGatewayStorage } from '../../services/api/src/storage';
 import { AccountClosure, type Marker, type SuppressionRemote } from '../../services/api/src/accountClosure';
 import { DeliveryAddressService } from '../../services/api/src/deliveryAddress';
 import { transaction } from '../../services/api/src/db';
+import { randomUUID } from 'node:crypto';
 
 const pool=testPool();
 let directory:string;
@@ -87,4 +88,26 @@ it('hides a held address while preserving its payload until the hold ends',async
   expect(await new AccountClosure(directory,remote).replayPendingErasure(pool)).toBeGreaterThan(0);
   expect((await pool.query('SELECT encrypted_payload,key_version FROM member_delivery_address WHERE id=$1',[saved.id])).rows[0])
     .toMatchObject({encrypted_payload:'',key_version:'erased'});
+});
+
+it('ignores a superseded address marker after an explicit newer edit',async()=>{
+  const owner=await member('superseded');
+  const saved=await address(owner.memberId,'address-erasure-superseded');
+  const original=(await pool.query<{payload_hmac:string;version:number}>(
+    'SELECT payload_hmac,version FROM member_delivery_address WHERE id=$1',[saved.id])).rows[0]!;
+  const identity=(await pool.query<{provider:string;app_id:string;openid:string}>(
+    'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1',[owner.memberId])).rows[0]!;
+  const suppression=new AccountClosure(directory,remote);
+  await suppression.recordAddressErasure({memberId:owner.memberId,addressId:saved.id,
+    identityDigest:AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),
+    requestId:randomUUID(),createdAt:new Date().toISOString(),addressVersion:original.version,
+    payloadHmac:original.payload_hmac});
+  const revised=await new DeliveryAddressService(pool,config).update(owner.memberId,saved.id,
+    {...payload,detail:'隔离测试路 2 号',expectedVersion:saved.version});
+  expect(revised.version).toBe(saved.version+1);
+  await suppression.replay(pool);
+  const current=(await pool.query('SELECT deleted_at,key_version FROM member_delivery_address WHERE id=$1',
+    [saved.id])).rows[0];
+  expect(current.deleted_at).toBeNull();
+  expect(current.key_version).not.toBe('erased');
 });
