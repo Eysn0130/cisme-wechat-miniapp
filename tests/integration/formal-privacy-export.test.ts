@@ -181,13 +181,17 @@ it('delivers a large owner copy in ordered volumes, then enforces revocation',as
   expect(manifest.partCount).toBeLessThan(100);
   const savedJobManifest=(await pool.query<{manifest:Record<string,unknown>}>(
     'SELECT manifest FROM data_export_job WHERE id=$1',[manifest.exportId])).rows[0]!.manifest;
-  // Exercise the 100-descriptor boundary without generating hundreds of MB.
-  // These temporary synthetic rows only test the metadata pagination route.
+  // Exercise the 100-descriptor boundary with small, valid encrypted volumes.
+  // The delivered multi-volume copy above checks the real content and digest.
+  const syntheticPlain=Buffer.from('{"type":"pagination_fixture"}\n');
+  const syntheticIv=randomBytes(12);
+  const syntheticCipher=createCipheriv('aes-256-gcm',Buffer.from(config.privacy.formalExportKey!,'hex'),syntheticIv);
+  const syntheticEncrypted=Buffer.concat([syntheticCipher.update(syntheticPlain),syntheticCipher.final()]);
   await pool.query(`INSERT INTO privacy_export_part
     (job_id,part_number,ciphertext,iv,auth_tag,plain_bytes,plain_sha256)
-    SELECT $1,n,source.ciphertext,source.iv,source.auth_tag,source.plain_bytes,source.plain_sha256
-    FROM generate_series($2::int,101) n CROSS JOIN privacy_export_part source
-    WHERE source.job_id=$1 AND source.part_number=1`,[manifest.exportId,manifest.partCount+1]);
+    SELECT $1,n,$3,$4,$5,$6,$7 FROM generate_series($2::int,101) n`,
+  [manifest.exportId,manifest.partCount+1,syntheticEncrypted,syntheticIv,syntheticCipher.getAuthTag(),
+    syntheticPlain.length,createHash('sha256').update(syntheticPlain).digest('hex')]);
   await pool.query(`UPDATE data_export_job SET manifest=jsonb_set(jsonb_set(manifest,
     '{partCount}','101'::jsonb),'{partManifestPageCount}','2'::jsonb) WHERE id=$1`,[manifest.exportId]);
   const firstPage=await app.inject({url:pagePath,headers:{authorization:`Bearer ${owner.sessionToken}`}});

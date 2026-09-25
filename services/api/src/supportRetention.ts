@@ -198,7 +198,7 @@ export async function purgeDueOrdinarySupport(pool:pg.Pool,now=new Date(),limit=
       purged++;
     }
     return purged;
-  });
+  },'READ COMMITTED',1,60_000);
 }
 
 type LinkedOrder={id:string;status:string;cancelled_at:Date|null;expired_at:Date|null;
@@ -360,5 +360,5 @@ export async function purgeDueLinkedSupport(pool:pg.Pool,now=new Date(),limit=20
       }
     }
     return purged;
-  });
+  },'READ COMMITTED',1,60_000);
 }

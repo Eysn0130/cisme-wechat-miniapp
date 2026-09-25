@@ -682,6 +682,6 @@ export class SupportService {
       await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
         VALUES($1,$2,$3,$4,$5,200,$6)`,[principal,operation,idempotencyKey,`support-purge:${id}`,hash,response]);
       return response;
-    });
+    },'READ COMMITTED',1,60_000);
   }
 }
