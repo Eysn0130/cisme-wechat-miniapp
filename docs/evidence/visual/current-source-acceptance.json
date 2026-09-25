@@ -2,7 +2,20 @@
   "schemaVersion": 2,
   "packageSourceSha256": "a549b67d00edceabca73517e63a81bbeef9252541294e1f71d45bdfbf9a33b01",
   "finalResult": "blocked",
-  "evidenceIndex": {},
+  "evidenceIndex": {
+    "docs/evidence/visual/native/ios-account-legal-failure-a549b67d-20260924.png": {
+      "sha256": "8d6dfa71c22fa8650937bda3e14f82cfaa4497a2f1df425540869d7a1f2a8966",
+      "bytes": 241408,
+      "mimeType": "image/png",
+      "widthPx": 590,
+      "heightPx": 1280,
+      "kind": "user_provided_native_failure",
+      "packageSourceSha256": "a549b67d00edceabca73517e63a81bbeef9252541294e1f71d45bdfbf9a33b01",
+      "route": "pages/account/index",
+      "state": "legal_connectivity_error",
+      "platform": "ios"
+    }
+  },
   "devtools": null,
   "routeCoverage": [
     {
@@ -250,7 +263,9 @@
     {
       "platform": "ios",
       "result": "blocked",
-      "evidenceFiles": []
+      "evidenceFiles": [
+        "docs/evidence/visual/native/ios-account-legal-failure-a549b67d-20260924.png"
+      ]
     },
     {
       "platform": "android",
@@ -265,5 +280,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source identity is bound to the package gate after the privacy correction UI change. This hash update records code identity only: all route states and both devices remain blocked, with no new native screenshots or real WeChat login evidence. Earlier c8bf75f1 and f9f72432 evidence retains its original source identity and cannot establish this package as passing. Official-tool compilation, iOS and Android journeys require new observation after candidate freeze."
+  "note": "Current source identity is bound to the package gate after the privacy correction UI change. A user-provided current-package iPhone screenshot now records the account/legal connectivity failure; all route states and both devices remain blocked, with no real WeChat login pass. Earlier c8bf75f1 and f9f72432 evidence retains its original source identity and cannot establish this package as passing. Official-tool compilation and full iOS and Android journeys remain required."
 }
