@@ -63,7 +63,7 @@ Page({
         const privacy = response.documents.find(item=>item.document_type === "privacy")?.version;
         const terms = response.documents.find(item=>item.document_type === "terms")?.version;
         const crossBorder = response.documents.find(item=>item.document_type === "cross_border")?.version;
-        documents = response.ready && privacy && terms ? {privacy,terms,crossBorder,localFixture:false} : null;
+        documents = response.ready && privacy && terms ? {privacy,terms,...(crossBorder?{crossBorder}:{}),localFixture:false} : null;
         if (!documents) legalLoadError = "unpublished";
       } catch { documents = null; legalLoadError = "unreachable"; }
       if (!this.data.pageAlive || attempt !== this.data.legalAttempt) return;
