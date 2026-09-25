@@ -218,7 +218,7 @@ describe("native mini program boundary", () => {
       "management-order-detail": ["back", "back", "load", "reconcile", "submitShipment", "load"],
       aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit"],
       "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "submit", "reconcileBatch", "newBatch"],
-      "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "submit", "closeDetail"],
+      "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],
       "management-finance": ["back", "selectSection", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
       "management-support": ["back", "open", "retry"],
       "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],

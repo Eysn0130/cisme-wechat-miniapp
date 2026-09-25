@@ -497,6 +497,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{requestId:string}}>("/v1/management/privacy-requests/:requestId/response", async request =>
     privacyRights.respond(adminPrincipal(request,config),request.params.requestId,
       request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown;waitingOn?:unknown},privacyActor(request),'capability'));
+  app.post<{Params:{requestId:string}}>("/v1/management/privacy-requests/:requestId/profile-correction", async request =>
+    privacyRights.executeProfileCorrection(adminPrincipal(request,config),request.params.requestId,
+      (request.body??{}) as {expectedVersion?:unknown;expectedProfileVersion?:unknown},privacyActor(request),'capability'));
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/admin/privacy-requests", async request => {
     return privacyRights.queue(adminPrincipal(request, config),privacyActor(request),'role',privacyPageQuery(request.query));
   });

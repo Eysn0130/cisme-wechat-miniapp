@@ -227,6 +227,16 @@ paths:
         required: true
         content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, waitingOn: {type: string, enum: [operator, member]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
       responses: {'200': {description: Audited version-guarded reply; no execution implied}, '401': {description: Session required}, '403': {description: Capability unavailable or revoked}, '409': {description: Request changed or closed}, '422': {description: Invalid input}, '404': {description: Request not found}}
+  /v1/management/privacy-requests/{requestId}/profile-correction:
+    post:
+      operationId: nativeExecuteProfileCorrection
+      description: Requires the current privacy.request.manage capability and a member-authored exact correction target in the request or latest member reply. Applies only nickname or self-reported WeChat handle after request and profile version checks, legal hold check, read-back verification, and revocation of stale data copies.
+      security: [{session: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [expectedVersion, expectedProfileVersion], properties: {expectedVersion: {type: integer, minimum: 1}, expectedProfileVersion: {type: integer, minimum: 0}}}}}
+      responses: {'200': {description: Verified and audited profile correction}, '401': {description: Session required}, '403': {description: Capability unavailable or revoked}, '404': {description: Request not found}, '409': {description: Request or profile changed or legal hold active}, '422': {description: Invalid input}}
   /v1/admin/privacy-requests:
     get:
       operationId: privacyRequestQueue

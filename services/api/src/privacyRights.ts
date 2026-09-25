@@ -275,6 +275,7 @@ export class PrivacyRights {
       await requirePrivacyActor(client,actorMemberId);
       await this.requireQueueOperator(principalId,actorMemberId,mode,client);
       const rows=(await client.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.target_ref,pr.status,pr.waiting_on AS "waitingOn",pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+      (SELECT COALESCE(profile_revision,0) FROM member_profile WHERE member_id=pr.member_id) AS "profileVersion",
       (SELECT jsonb_build_object('body',reply.body,'createdAt',reply.created_at) FROM privacy_request_member_reply reply
         WHERE reply.privacy_request_id=pr.id ORDER BY reply.created_at DESC,reply.id DESC LIMIT 1) AS "latestMemberReply",
       ${page?`to_char(pr.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
@@ -321,6 +322,97 @@ export class PrivacyRights {
       [principalId,id,current.rows[0]!.status,current.rows[0]!.version,input.status,result.rows[0].version]);
       // A reply never claims that deletion/export has actually been executed.
       return result.rows[0];
+    });
+  }
+
+  /** Apply only an exact, member-authored profile correction. An unstructured
+   * request remains in review until the member specifies one supported field. */
+  async executeProfileCorrection(principalId:string,id:string,input:{expectedVersion?:unknown;expectedProfileVersion?:unknown},
+    actorMemberId?:string,mode:'role'|'capability'='role') {
+    if(!uuidPattern.test(id))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
+    if(!Number.isSafeInteger(input?.expectedVersion)||Number(input.expectedVersion)<1||
+      !Number.isSafeInteger(input?.expectedProfileVersion)||Number(input.expectedProfileVersion)<0)
+      throw new DomainError('PRIVACY_CORRECTION_VERSION_REQUIRED','请刷新受理记录与资料版本',422);
+    return transaction(this.pool,async client=>{
+      // Profile edits take the member lock first. Read the request owner before
+      // locking it, then recheck its version after both profile locks.
+      const located=(await client.query<{member_id:string}>(
+        'SELECT member_id FROM privacy_request WHERE id=$1',[id])).rows[0];
+      if(!located)throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
+      const member=(await client.query<{id:string}>(
+        "SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE",[located.member_id])).rows[0];
+      if(!member)throw new DomainError('PRIVACY_CORRECTION_MEMBER_UNAVAILABLE','会员资料暂不可更正',409);
+      const profile=(await client.query<{profile_revision:number;community_visible:boolean}>(
+        'SELECT profile_revision,community_visible FROM member_profile WHERE member_id=$1 FOR UPDATE',
+        [located.member_id])).rows[0];
+      const row=(await client.query<{member_id:string;kind:string;status:string;version:number;message:string;latest_reply:string|null}>(`
+        SELECT p.member_id,p.kind,p.status,p.version,p.message,
+          (SELECT body FROM privacy_request_member_reply WHERE privacy_request_id=p.id
+            ORDER BY created_at DESC,id DESC LIMIT 1) AS latest_reply
+        FROM privacy_request p WHERE p.id=$1 FOR UPDATE`,[id])).rows[0];
+      await requirePrivacyActor(client,actorMemberId);
+      await this.requireQueueOperator(principalId,actorMemberId,mode,client);
+      if(!row||row.member_id!==located.member_id||row.kind!=='correct')
+        throw new DomainError('PRIVACY_CORRECTION_SCOPE_INVALID','该请求不是资料更正',409);
+      if(row.version!==input.expectedVersion||!profile||profile.profile_revision!==input.expectedProfileVersion)
+        throw new DomainError('PRIVACY_REQUEST_CHANGED','受理记录或会员资料已变化，请刷新后重试',409);
+      if(!['received','verifying','reviewing','responded'].includes(row.status))
+        throw new DomainError('PRIVACY_REQUEST_CLOSED','当前请求不能执行资料更正',409);
+      const match=/^(昵称|微信号)：([^\r\n]+)$/.exec((row.latest_reply??row.message).trim());
+      if(!match)throw new DomainError('PRIVACY_CORRECTION_TARGET_REQUIRED','请用户按“昵称：新昵称”或“微信号：新微信号”明确目标',409);
+      const field=match[1]!,value=match[2]!.trim();
+      if(field==='昵称'){
+        if(!value||Array.from(value).length>40||/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(value))
+          throw new DomainError('PRIVACY_CORRECTION_VALUE_INVALID','昵称须为 1–40 字',422);
+      }else if(!/^[A-Za-z][A-Za-z0-9_-]{5,19}$/.test(value))
+        throw new DomainError('PRIVACY_CORRECTION_VALUE_INVALID','微信号格式不正确',422);
+      await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+      await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+      const hold=await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+        WHERE h.status='active' AND h.expires_at>clock_timestamp()
+          AND b.object_type IN ('member','member_profile') AND b.object_id=$1 LIMIT 1`,[located.member_id]);
+      if(hold.rowCount)throw new DomainError('PRIVACY_LEGAL_HOLD_ACTIVE','资料存在保留要求，暂不能更正',423);
+      if(field==='昵称'){
+        await client.query('UPDATE member SET display_name=$2 WHERE id=$1',[located.member_id,value]);
+        await client.query(`UPDATE member_profile SET profile_revision=profile_revision+1,
+          public_status=CASE WHEN community_visible THEN 'pending' ELSE public_status END,
+          public_review_note=CASE WHEN community_visible THEN NULL ELSE public_review_note END,
+          public_reviewed_by=CASE WHEN community_visible THEN NULL ELSE public_reviewed_by END,
+          public_reviewed_at=CASE WHEN community_visible THEN NULL ELSE public_reviewed_at END,
+          updated_at=clock_timestamp() WHERE member_id=$1`,[located.member_id]);
+      }else await client.query(`UPDATE member_profile SET wechat_handle=$2,handle_source='self_reported',
+        profile_revision=profile_revision+1,updated_at=clock_timestamp() WHERE member_id=$1`,[located.member_id,value]);
+      const verified=field==='昵称'
+        ?(await client.query<{value:string}>('SELECT display_name AS value FROM member WHERE id=$1',[located.member_id])).rows[0]?.value
+        :(await client.query<{value:string}>('SELECT wechat_handle AS value FROM member_profile WHERE member_id=$1',[located.member_id])).rows[0]?.value;
+      if(verified!==value)throw new DomainError('PRIVACY_CORRECTION_UNVERIFIED','资料更正未能读回确认',503);
+      // Existing copies contain the old value and must no longer be delivered.
+      await client.query(`UPDATE privacy_export_artifact a SET revoked_at=clock_timestamp()
+        FROM data_export_job j WHERE a.job_id=j.id AND j.member_id=$1 AND a.revoked_at IS NULL`,[located.member_id]);
+      await client.query('UPDATE member SET privacy_erasure_revision=privacy_erasure_revision+1 WHERE id=$1',[located.member_id]);
+      for(const status of ['reviewing','approved','executing','completed']){
+        if(status==='reviewing'&&row.status==='reviewing')continue;
+        if(status==='reviewing'&&row.status==='responded')continue;
+        await client.query(`UPDATE privacy_request SET status=$2,
+          version=version+1,updated_at=clock_timestamp(),
+          completed_at=CASE WHEN $2='completed' THEN clock_timestamp() ELSE completed_at END,
+          resolution_code=CASE WHEN $2='completed' THEN 'PROFILE_CORRECTION_VERIFIED' ELSE resolution_code END,
+          response=CASE WHEN $2='completed' THEN $3 ELSE response END WHERE id=$1`,
+          [id,status,field==='昵称'?'昵称已更正并读回确认。':'微信号已更正并读回确认。']);
+      }
+      const done=(await client.query<{version:number;status:string;response:string}>(
+        'SELECT version,status,response FROM privacy_request WHERE id=$1',[id])).rows[0]!;
+      await client.query(`INSERT INTO privacy_request_operator_reply
+        (privacy_request_id,actor_principal_id,body,waiting_on,request_version)
+        VALUES($1,$2,$3,'operator',$4)`,[id,principalId,done.response,done.version]);
+      await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+        VALUES($1,$2,'execution_succeeded',$3)`,[id,principalId,{field:field==='昵称'?'display_name':'wechat_handle',profileVersion:profile.profile_revision+1}]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
+        before_state,after_state,trace_id) VALUES($1,'privacy.profile.correct','privacy_request',$2,
+        'MEMBER_EXACT_CORRECTION',$3,$4,gen_random_uuid()::text)`,[principalId,id,
+          {requestVersion:row.version,profileVersion:profile.profile_revision},
+          {status:'completed',field:field==='昵称'?'display_name':'wechat_handle',profileVersion:profile.profile_revision+1}]);
+      return {requestId:id,status:'completed',version:done.version,profileVersion:profile.profile_revision+1};
     });
   }
 

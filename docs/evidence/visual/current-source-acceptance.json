@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "2ddd4cadc215b88c96bf0384e510d0d2e79f06ec6cc02c26d4ca072d44cd1495",
+  "packageSourceSha256": "2f8797f1d1d6aaa790fd61cef68d5468f908d0d6a7a0c07003f939b8a2da6170",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -48,5 +48,5 @@
   ],
   "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
   "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Current source identity is bound to the package gate after the scoped consent-withdrawal privacy page change. This hash update records code identity only: all route states and both devices remain blocked, with no new native screenshots or real WeChat login evidence. Earlier c8bf75f1 and f9f72432 evidence retains its original source identity and cannot establish this package as passing. Official-tool compilation, iOS and Android journeys require new observation after candidate freeze."
+  "note": "Current source identity is bound to the package gate after the privacy correction UI change. This hash update records code identity only: all route states and both devices remain blocked, with no new native screenshots or real WeChat login evidence. Earlier c8bf75f1 and f9f72432 evidence retains its original source identity and cannot establish this package as passing. Official-tool compilation, iOS and Android journeys require new observation after candidate freeze."
 }
