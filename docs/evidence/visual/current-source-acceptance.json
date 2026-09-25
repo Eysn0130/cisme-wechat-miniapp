@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "3c21dd881fd449d23809af11d4d617a46b3169a0e0c304d22171eed4984f3e3f",
+  "packageSourceSha256": "c8bf75f1becc6e7b17282f268034ac42065f4d2814cc401f96f3ee887fa15a91",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -48,5 +48,5 @@
   ],
   "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
   "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Current 3c21dd88 source distinguishes an unreachable legal service from unpublished legal documents on Account and clears only the obsolete legal error on retry. The prior f9f72432 preview entered Home on an iPhone but Account could not load the legal documents or proceed to login; the user also reported that iPhone Safari could not open the staging /v1/legal URL. The user screenshot is preserved separately with its original f9f72432 package identity and is failure evidence, not acceptance of this package. Current QR/compile, route states, iOS login and Android device acceptance remain blocked until observed against this package."
+  "note": "Current c8bf75f1 source blocks new authentication while legal documents refresh, rejects consent captured before an intervening refresh, preserves authenticated continuation, and clarifies account consent copy. The optional cross-border version is omitted when absent. This package identity was measured by the package gate in CI 36078393518; synchronizing it does not provide native acceptance. The earlier 3c21dd88 source and the original f9f72432 iPhone failure are not passing evidence for this package. The f9f72432 preview entered Home but Account could not load legal documents or log in; the user also reported iPhone Safari could not open staging /v1/legal. Preserve that screenshot with its original identity. Current official-tool compilation, route states, iOS login and Android device acceptance remain blocked until observed against this package."
 }
