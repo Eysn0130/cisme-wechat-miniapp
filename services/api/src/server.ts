@@ -486,7 +486,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get('/v1/management/attention', async request => managementAttention.summary(request.memberId,request.principalId));
   app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/me/privacy-requests", async request =>
     privacyRights.list(request.memberId,privacyPageQuery(request.query),request.authScope==='privacy_rights'));
-  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown},request.authScope==='privacy_rights'));
+  app.post("/v1/me/privacy-requests", async request => privacyRights.submit(request.memberId, request.body as {kind?:unknown;message?:unknown;scopeCode?:unknown;consentGrantId?:unknown},request.authScope==='privacy_rights'));
   app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/reply", async request =>
     privacyRights.memberReply(request.memberId,request.params.requestId,idempotencyKey(request),
       (request.body??{}) as {message?:unknown;expectedVersion?:unknown},request.authScope==='privacy_rights'));

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "1d9ce9f38063b30f45cf51afad6050f44605fcf622645e6f21850a5785d5446b",
+  "migrationSetSha256": "e6d926777e4ae21df0cef68114764c1f417433f687f30b1253a09c1a02d3cdce",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -4969,7 +4969,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
+      "specialHandling": "Scoped withdrawal target_ref is the verified member-owned consent grant; request text and result remain owner-scoped.",
       "exportFields": [
         "id",
         "kind",
@@ -4979,7 +4979,8 @@
         "created_at",
         "resolution_code",
         "completed_at",
-        "scope_code"
+        "scope_code",
+        "target_ref"
       ],
       "excludedFields": [
         "member_id",

@@ -4,13 +4,16 @@ import { join } from 'node:path';
 import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
+import { enqueue } from './outbox.js';
 
 export type ClosureMarker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
 export type ProfileErasureMarker={version:2;memberId:string;identityDigest:string;requestId:string;createdAt:string;
   scope:'member_optional_profile_v1';displayNameSha256:string};
 export type AddressErasureMarker={version:3;memberId:string;identityDigest:string;requestId:string;createdAt:string;
   scope:'member_delivery_address_v1';addressId:string;addressVersion:number;payloadHmac:string};
-export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker;
+export type ConsentWithdrawalMarker={version:4;memberId:string;identityDigest:string;requestId:string;createdAt:string;
+  scope:'submission_consent_withdrawal_v1';grantId:string;submissionId:string;purpose:'feed_readonly'|'publication'};
+export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker|ConsentWithdrawalMarker;
 export interface SuppressionRemote {
   put(marker:Marker):Promise<void>;
   list():Promise<Marker[]>;
@@ -20,6 +23,7 @@ const digest=/^[0-9a-f]{64}$/;
 const pendingMarker=/^\.[0-9a-f-]{36}\.[0-9a-f-]{36}\.tmp$/i;
 const profileMarker=/^([0-9a-f-]{36})\.profile\.([0-9a-f-]{36})\.json$/i;
 const addressMarker=/^([0-9a-f-]{36})\.address\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
+const consentMarker=/^([0-9a-f-]{36})\.consent\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
@@ -28,7 +32,8 @@ export class AccountClosure {
   private path(memberId:string) {if(!uuid.test(memberId))throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');return join(this.directory!,`${memberId}.json`);}
   private markerFilename(row:Marker){return row.version===1?`${row.memberId}.json`:
     row.version===2?`${row.memberId}.profile.${row.requestId}.json`:
-    `${row.memberId}.address.${row.addressId}.${row.requestId}.json`;}
+    row.version===3?`${row.memberId}.address.${row.addressId}.${row.requestId}.json`:
+    `${row.memberId}.consent.${row.grantId}.${row.requestId}.json`;}
   private markerPath(row:Marker){return join(this.directory!,this.markerFilename(row));}
   static identityDigest(provider:string,appId:string,openid:string) {
     return createHash('sha256').update(JSON.stringify([provider,appId,openid])).digest('hex');
@@ -60,13 +65,22 @@ export class AccountClosure {
       throw new Error('ADDRESS_ERASURE_MARKER_INVALID');
     return row;
   }
+  private validConsent(row:ConsentWithdrawalMarker,memberId:string,grantId:string,requestId:string){
+    if(row.version!==4||row.memberId!==memberId||row.grantId!==grantId||row.requestId!==requestId||
+      !uuid.test(memberId)||!uuid.test(grantId)||!uuid.test(requestId)||!uuid.test(row.submissionId)||
+      row.scope!=='submission_consent_withdrawal_v1'||!['feed_readonly','publication'].includes(row.purpose)||
+      !digest.test(row.identityDigest)||!Number.isFinite(Date.parse(row.createdAt)))
+      throw new Error('CONSENT_WITHDRAWAL_MARKER_INVALID');
+    return row;
+  }
   private async readFilename(filename:string):Promise<Marker>{
     await this.requireDirectory();
-    const match=profileMarker.exec(filename),address=addressMarker.exec(filename);
-    if(!match&&!address&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
+    const match=profileMarker.exec(filename),address=addressMarker.exec(filename),consent=consentMarker.exec(filename);
+    if(!match&&!address&&!consent&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
     const row=JSON.parse(await readFile(join(this.directory!,filename),'utf8')) as Marker;
     return match?this.validProfile(row as ProfileErasureMarker,match[1]!,match[2]!):
       address?this.validAddress(row as AddressErasureMarker,address[1]!,address[2]!,address[3]!):
+      consent?this.validConsent(row as ConsentWithdrawalMarker,consent[1]!,consent[2]!,consent[3]!):
       this.valid(row,filename.slice(0,-5));
   }
   private async marker(memberId:string):Promise<ClosureMarker|null> {
@@ -119,6 +133,15 @@ export class AccountClosure {
     try{await this.remote?.put(row);}catch{throw new DomainError('ADDRESS_ERASURE_PENDING','地址删除结果暂未确认，请稍后查看',503);}
     return row;
   }
+  async recordConsentWithdrawal(input:Omit<ConsentWithdrawalMarker,'version'|'scope'>){
+    if(!this.directory)throw new DomainError('CONSENT_WITHDRAWAL_UNAVAILABLE','授权撤回暂不可用，请稍后重试',503);
+    await this.requireDirectory();
+    const row=this.validConsent({version:4,scope:'submission_consent_withdrawal_v1',...input},
+      input.memberId,input.grantId,input.requestId);
+    await this.writeLocal(row);
+    try{await this.remote?.put(row);}catch{throw new DomainError('CONSENT_WITHDRAWAL_PENDING','撤回结果暂未确认，请稍后查看',503);}
+    return row;
+  }
   private async writeLocal(row:Marker) {
     const filename=this.markerFilename(row);
     let old:Marker|null=null;
@@ -146,7 +169,8 @@ export class AccountClosure {
       for(const row of await this.remote.list()){
         if(row.version===1)this.valid(row,row.memberId);
         else if(row.version===2)this.validProfile(row,row.memberId,row.requestId);
-        else this.validAddress(row,row.memberId,row.addressId,row.requestId);
+        else if(row.version===3)this.validAddress(row,row.memberId,row.addressId,row.requestId);
+        else this.validConsent(row,row.memberId,row.grantId,row.requestId);
         await this.writeLocal(row);
       }
     }
@@ -156,7 +180,7 @@ export class AccountClosure {
       await this.remote?.put(row);
       if(row.version===1)await transaction(pool,client=>applyAccountClosure(client,row));
       else if(row.version===2)await transaction(pool,client=>applyProfileErasure(client,row));
-      else {
+      else if(row.version===3){
         try{await transaction(pool,client=>applyAddressErasure(client,row));}
         catch(error){
           // A marker may have been durably written before its SQL transaction
@@ -165,6 +189,7 @@ export class AccountClosure {
           if(!(error instanceof DomainError&&error.code==='DELIVERY_ADDRESS_CHANGED'))throw error;
         }
       }
+      else await transaction(pool,client=>applyConsentWithdrawal(client,row));
     }
   }
   async replayMember(pool:pg.Pool,memberId:string) {
@@ -189,6 +214,16 @@ export class AccountClosure {
             AND version BETWEEN $4 AND $4+1) AS pending`,
           [marker.addressId,marker.memberId,marker.payloadHmac,marker.addressVersion])).rows[0]?.pending;
         if(pending){await transaction(pool,client=>applyAddressErasure(client,marker));repaired++;}
+        continue;
+      }else if(marker.version===4){
+        const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(
+          SELECT 1 FROM consent_grant g WHERE g.id=$1 AND g.member_id=$2 AND
+            (g.active OR EXISTS(SELECT 1 FROM feed_item f WHERE f.submission_id=$3 AND f.visible)
+              OR NOT EXISTS(SELECT 1 FROM privacy_request p WHERE p.id=$4 AND p.member_id=$2
+                AND p.target_ref=$1 AND p.status IN ('completed','partially_completed')))) AS pending`,
+          [marker.grantId,marker.memberId,marker.submissionId,marker.requestId])).rows[0]?.pending;
+        if(pending){await transaction(pool,client=>applyConsentWithdrawal(client,marker));repaired++;}
+        continue;
       }else if(marker.version===2){
         const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member m
           WHERE m.id=$1 AND m.status='active' AND NOT EXISTS(
@@ -431,4 +466,85 @@ export async function applyAddressErasure(client:DbClient,marker:AddressErasureM
       [`member:${marker.memberId}`,marker.addressId,{requestId:marker.requestId,version:result.rows[0]?.version}]);
   }
   return {addressId:marker.addressId,removed:true,erased:!held,retainedForHold:held};
+}
+
+/** A restored database must not reactivate a consent withdrawn by the member.
+ * Keep the minimum request evidence and preserve any independent history. */
+export async function applyConsentWithdrawal(client:DbClient,marker:ConsentWithdrawalMarker){
+  const member=(await client.query<{status:string}>(
+    'SELECT status FROM member WHERE id=$1 FOR UPDATE',[marker.memberId])).rows[0];
+  if(!member)return {id:marker.requestId,kind:'withdraw',status:'suppressed_without_member'};
+  const identity=(await client.query<{provider:string;app_id:string;openid:string}>(
+    'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR SHARE',
+    [marker.memberId])).rows[0];
+  if(!identity||AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid)!==marker.identityDigest)
+    throw new Error('CONSENT_WITHDRAWAL_IDENTITY_MISMATCH');
+  const grant=(await client.query<{submission_id:string;purpose:string;active:boolean}>(
+    'SELECT submission_id,purpose,active FROM consent_grant WHERE id=$1 AND member_id=$2 FOR UPDATE',
+    [marker.grantId,marker.memberId])).rows[0];
+  if(!grant)return {id:marker.requestId,kind:'withdraw',status:'suppressed_without_grant'};
+  if(grant.submission_id!==marker.submissionId||grant.purpose!==marker.purpose)
+    throw new Error('CONSENT_WITHDRAWAL_TARGET_MISMATCH');
+  const complete=marker.purpose==='feed_readonly';
+  const label=complete?'社区只读展示':'提交内容发布';
+  await client.query(`INSERT INTO privacy_request(id,member_id,kind,message,due_at,target_ref)
+    VALUES($1,$2,'withdraw',$3,now()+interval '30 days',$4) ON CONFLICT(id) DO NOTHING`,
+    [marker.requestId,marker.memberId,`本人撤回${label}授权`,marker.grantId]);
+  const request=(await client.query<{member_id:string;kind:string;target_ref:string;status:string;version:number}>(
+    'SELECT member_id,kind,target_ref,status,version FROM privacy_request WHERE id=$1 FOR UPDATE',
+    [marker.requestId])).rows[0];
+  if(!request||request.member_id!==marker.memberId||request.kind!=='withdraw'||request.target_ref!==marker.grantId)
+    throw new Error('CONSENT_WITHDRAWAL_REQUEST_MISMATCH');
+  const wasActive=grant.active;
+  const now=(await client.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+  if(wasActive)await client.query('UPDATE consent_grant SET active=false WHERE id=$1',[marker.grantId]);
+  await client.query(`INSERT INTO revocation_request(consent_grant_id,requested_by,reason,requested_at)
+    VALUES($1,$2,$3,$4) ON CONFLICT(consent_grant_id) DO NOTHING`,
+    [marker.grantId,marker.memberId,`隐私权利申请 ${marker.requestId}`,now]);
+  const hidden=complete?(await client.query(`UPDATE feed_item SET visible=false
+    WHERE submission_id=$1 AND visible RETURNING id`,[marker.submissionId])).rowCount??0:0;
+  await enqueue(client,{eventType:'consent.revocation.requested.v1',aggregateType:'consent_grant',
+    aggregateId:marker.grantId,aggregateVersion:1,businessKey:`consent:${marker.grantId}:revoked`,
+    payload:{submissionId:marker.submissionId,memberId:marker.memberId,purpose:marker.purpose},occurredAt:now});
+  if(request.status==='received')await client.query(`INSERT INTO privacy_request_event
+    (privacy_request_id,actor_id,event_type,detail) VALUES($1,$2,'received',$3)`,
+    [marker.requestId,`member:${marker.memberId}`,{grantId:marker.grantId,purpose:marker.purpose}]);
+  const next:Record<string,string>={received:'reviewing',reviewing:'approved',approved:'executing'};
+  let status=request.status;
+  while(next[status]){
+    status=next[status]!;
+    await client.query('UPDATE privacy_request SET status=$2,version=version+1,updated_at=now() WHERE id=$1',
+      [marker.requestId,status]);
+  }
+  if(status==='executing'){
+    status=complete?'completed':'partially_completed';
+    await client.query(`UPDATE privacy_request SET status=$2,resolution_code=$3,response=$4,
+      completed_at=now(),version=version+1,updated_at=now() WHERE id=$1`,
+      [marker.requestId,status,complete?'SUBMISSION_FEED_CONSENT_WITHDRAWN':'SUBMISSION_PUBLICATION_CONSENT_WITHDRAWN',
+        complete?'授权已撤回，社区只读展示已停止；历史记录按必要期限保留。':
+          '授权已撤回，后续使用已停止；已发布内容的历史传播仍需人工核对。']);
+    await client.query(`INSERT INTO privacy_request_event(privacy_request_id,actor_id,event_type,detail)
+      VALUES($1,$2,$3,$4)`,[marker.requestId,`member:${marker.memberId}`,
+      complete?'execution_succeeded':'execution_partially_succeeded',
+      {grantId:marker.grantId,purpose:marker.purpose,blocksNewUse:true}]);
+  }
+  if(wasActive||hidden||request.status==='received'){
+    await client.query('UPDATE member SET privacy_erasure_revision=privacy_erasure_revision+1 WHERE id=$1',
+      [marker.memberId]);
+    await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
+      [marker.memberId]);
+    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
+      after_state,trace_id) VALUES($1,'privacy.consent.withdraw','privacy_request',$2,
+      'VERIFIED_MEMBER_WITHDRAWAL',$3,gen_random_uuid()::text)`,[`member:${marker.memberId}`,marker.requestId,
+      {grantId:marker.grantId,purpose:marker.purpose,status,restoredReplay:request.status!=='received'}]);
+  }
+  const readback=(await client.query<{active:boolean;revoked:boolean;feed_visible:boolean}>(`
+    SELECT cg.active,EXISTS(SELECT 1 FROM revocation_request rr WHERE rr.consent_grant_id=cg.id) AS revoked,
+      EXISTS(SELECT 1 FROM feed_item f WHERE f.submission_id=cg.submission_id AND f.visible) AS feed_visible
+    FROM consent_grant cg WHERE cg.id=$1 AND cg.member_id=$2`,[marker.grantId,marker.memberId])).rows[0];
+  if(!readback||readback.active||!readback.revoked||complete&&readback.feed_visible)
+    throw new Error('PRIVACY_WITHDRAWAL_READBACK_FAILED');
+  return {id:marker.requestId,kind:'withdraw',status,version:
+    (await client.query<{version:number}>('SELECT version FROM privacy_request WHERE id=$1',
+      [marker.requestId])).rows[0]!.version};
 }

@@ -539,7 +539,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "1d9ce9f38063b30f45cf51afad6050f44605fcf622645e6f21850a5785d5446b",
+  "migrationSetSha256": "8577d3694d388738ecd2b5e0860ce976aabd3611709bb9611fba0b520c076298",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -686,5 +686,11 @@
     "hold": "A legal hold hides the address from the active book and defers payload erasure until release.",
     "backup": "Immutable address marker in the existing private suppression directory and COS remote replays deletion after old-backup restore.",
     "export": "Member privacy revision prevents an in-flight stale portable copy from being published; existing copies are revoked."
+  },
+  "scopedConsentWithdrawalReview20260924": {
+    "scope": "One owned submission consent grant is selected and revoked in the same transaction as the privacy result; readback verifies inactive grant and revocation record. Feed-only content is hidden; publication history remains a partially completed item for operator review.",
+    "newRecipient": false,
+    "formalWechatDeviceVerified": false,
+    "productionExecuted": false
   }
 }

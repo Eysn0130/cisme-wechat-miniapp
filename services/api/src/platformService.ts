@@ -637,7 +637,7 @@ export class PlatformService {
 
   async getConsentGrants(memberId: string | undefined) {
     const owner = requireMember(memberId);
-    const result = await this.pool.query(`SELECT cg.id, cg.submission_id, cg.purpose, cg.granted_at,
+    const result = await this.pool.query(`SELECT cg.id, cg.submission_id, cg.purpose, cg.active, cg.granted_at,
       rr.requested_at AS revoked_at, rr.reason AS revocation_reason
       FROM consent_grant cg LEFT JOIN revocation_request rr ON rr.consent_grant_id=cg.id
       WHERE cg.member_id=$1 ORDER BY cg.granted_at DESC`, [owner]);

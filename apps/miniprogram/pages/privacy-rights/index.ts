@@ -61,23 +61,24 @@ Page({
  hiddenRecords:[] as any[],hiddenRecordToken:'',hiddenNextCursor:null as string|null,
  actionBusy(){return this.data.busy||this.data.replyBusy||this.data.exportBusy;},
  onLoad(){clearExportFile();clearAbandonedExportFiles();},
- data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false,historicalBalance:null as null|{available:string;pending:string;held:string}},
+ data:{chromeStyle:currentChromeStyle(),authenticated:false,closedRights:false,legalIdentity:null as null|{operator:string;version:string;contact:string},legalAttempt:0,labels,selected:0,deleteScopes,deleteScopeIndex:0,consentGrants:[] as Array<{id:string;label:string}>,consentGrantIndex:0,consentAttempt:0,consentsLoading:false,message:'',records:[] as any[],recordToken:'',nextCursor:null as string|null,loadingMore:false,moreError:'',busy:false,exportBusy:false,exportRequestId:'',loading:false,error:'',notice:'',alive:true,loadAttempt:0,operationAttempt:0,visibleExport:null as null|{requestId:string;displayName:string;wechatHandle:string},replyFor:'',replyDraft:'',replyKey:'',replyBusy:false,supportOpening:false,historicalBalance:null as null|{available:string;pending:string;held:string}},
  onShow(){this.data.alive=true;const token=privacyToken(),changed=token!==this.identityToken;
   if(changed)clearExportFile();
   this.identityToken=token;const closedRights=Boolean(getApp<IAppOption>().globalData.privacyRightsToken && !getApp<IAppOption>().globalData.sessionToken);
   const restore=this.hiddenRecordToken===token&&Boolean(token);
   this.setData({authenticated:Boolean(token),closedRights,labels:closedRights?closedLabels:labels,
     ...(restore?{records:this.hiddenRecords,recordToken:token,nextCursor:this.hiddenNextCursor}:{}),
-    ...(changed?{selected:0,deleteScopeIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
-    busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});void this.loadLegalIdentity();void this.load();if(closedRights&&token)void this.loadHistoricalBalance(token);},
- onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
+    ...(changed?{selected:0,deleteScopeIndex:0,consentGrantIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),
+    busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});void this.loadLegalIdentity();void this.load();if((closedRights?closedKinds:kinds)[this.data.selected]==='withdraw')void this.loadConsents();if(closedRights&&token)void this.loadHistoricalBalance(token);},
+ onHide(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.consentAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
   this.hiddenRecordToken=this.data.recordToken;this.hiddenRecords=this.data.records;this.hiddenNextCursor=this.data.nextCursor;
-  this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});},
- onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
+  this.setData({visibleExport:null,records:[],recordToken:'',nextCursor:null,consentGrants:[],consentGrantIndex:0,consentsLoading:false,loading:false,loadingMore:false,moreError:'',busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false,historicalBalance:null});},
+ onUnload(){this.data.alive=false;this.data.legalAttempt+=1;this.data.loadAttempt+=1;this.data.consentAttempt+=1;this.data.operationAttempt+=1;this.supplementaryDownload?.abort();this.supplementaryDownload=null;
   this.hiddenRecordToken='';this.hiddenRecords=[];this.hiddenNextCursor=null;},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
- choose(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({selected:Number(e.detail.value)});},
+ choose(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;const selected=Number(e.detail.value);this.setData({selected});if((this.data.closedRights?closedKinds:kinds)[selected]==='withdraw')void this.loadConsents();},
  chooseDeleteScope(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({deleteScopeIndex:Number(e.detail.value),error:''});},
+ chooseConsentGrant(e:WechatMiniprogram.PickerChange){if(this.actionBusy())return;this.setData({consentGrantIndex:Number(e.detail.value),error:''});},
  input(e:WechatMiniprogram.TextareaInput){if(this.actionBusy())return;this.setData({message:e.detail.value});},
  login(){resumeAuthentication('/pages/privacy-rights/index');},
  openSupport(){
@@ -111,6 +112,18 @@ Page({
    if(privacy)this.setData({legalIdentity:{operator:privacy.operator_name,version:privacy.version,contact:privacy.contact}});
   }catch{/* Existing rights records and contact actions remain available. */}
  },
+ async loadConsents(){
+  const attempt=++this.data.consentAttempt,token=privacyToken();
+  this.setData({consentGrants:[],consentGrantIndex:0,consentsLoading:Boolean(token&&!this.data.closedRights)});
+  if(!token||this.data.closedRights)return;
+  try{
+   const grants=await request<Array<{id:string;submission_id:string;purpose:string;active:boolean;revoked_at:string|null}>>({path:'/v1/me/consents'});
+   if(!this.data.alive||attempt!==this.data.consentAttempt||token!==privacyToken())return;
+   this.setData({consentGrants:grants.filter(item=>item.active&&!item.revoked_at&&['feed_readonly','publication'].includes(item.purpose))
+    .map(item=>({id:item.id,label:`${item.purpose==='feed_readonly'?'社区只读展示':'提交内容发布'} · ${item.submission_id.slice(-6).toUpperCase()}`}))});
+  }catch{/* Free-text request remains available. */}
+  finally{if(this.data.alive&&attempt===this.data.consentAttempt)this.setData({consentsLoading:false});}
+ },
  async load(){
   if(!this.data.authenticated){this.setData({records:[],recordToken:'',nextCursor:null});return;}
   const attempt=++this.data.loadAttempt;
@@ -131,27 +144,30 @@ Page({
   finally{if(this.data.alive&&attempt===this.data.loadAttempt){if(token!==privacyToken())this.setData({records:[],recordToken:'',nextCursor:null,visibleExport:null,loadingMore:false,error:'身份已变化，请刷新后查看自己的记录。'});else this.setData({loadingMore:false});}}
  },
  async submit(){
-  if(this.actionBusy())return;
+  if(this.actionBusy()||this.data.consentsLoading)return;
   const kind=(this.data.closedRights?closedKinds:kinds)[this.data.selected];
   const optionalProfileDelete=kind==='delete'&&!this.data.closedRights&&this.data.deleteScopeIndex===0;
-  if(kind!=='close_account'&&!optionalProfileDelete&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
+  const scopedWithdrawal=kind==='withdraw'&&!this.data.closedRights&&this.data.consentGrants.length>0;
+  const chosenGrant=scopedWithdrawal?this.data.consentGrants[this.data.consentGrantIndex]:null;
+  if(scopedWithdrawal&&!chosenGrant){this.setData({error:'请选择要撤回的授权。'});return;}
+  if(kind!=='close_account'&&!optionalProfileDelete&&!scopedWithdrawal&&!this.data.message.trim()){this.setData({error:'请填写需要协助的事项。'});return;}
   const token=privacyToken(),attempt=++this.data.operationAttempt;
-  if(kind==='close_account'||optionalProfileDelete){
+  if(kind==='close_account'||optionalProfileDelete||scopedWithdrawal){
    this.setData({busy:true,error:''});
    const confirmed=await new Promise<boolean>(resolve=>wx.showModal({
-    title:optionalProfileDelete?'删除账户资料':'注销账号',
-    content:optionalProfileDelete?'昵称、手机号、头像和地址将清除；交易及售后记录按必要期限保留。账号仍可使用。':'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私请求。',
-    confirmText:optionalProfileDelete?'确认删除':'确认注销',confirmColor:'#6b3975',
+    title:scopedWithdrawal?'撤回授权':optionalProfileDelete?'删除账户资料':'注销账号',
+    content:scopedWithdrawal?`确认撤回「${chosenGrant!.label}」？后续使用将停止，历史传播仍需核对。`:optionalProfileDelete?'昵称、手机号、头像和地址将清除；交易及售后记录按必要期限保留。账号仍可使用。':'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私请求。',
+    confirmText:scopedWithdrawal?'确认撤回':optionalProfileDelete?'确认删除':'确认注销',confirmColor:'#6b3975',
     success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
    if(!confirmed||!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken()){if(this.data.alive&&attempt===this.data.operationAttempt)this.setData({busy:false});return;}
   }
   this.setData({busy:true,error:'',notice:''});
   try{const result=await request<{accountClosed?:boolean;status?:string}>({path:'/v1/me/privacy-requests',method:'POST',
    data:{kind,message:kind==='close_account'?'本人申请注销 CISME 账号':optionalProfileDelete?'删除可清除的账户资料':this.data.message,
-    ...(optionalProfileDelete?{scopeCode:'member_optional_profile_v1'}:{})}});
+    ...(optionalProfileDelete?{scopeCode:'member_optional_profile_v1'}:{}),...(chosenGrant?{consentGrantId:chosenGrant.id}:{})}});
    if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken()){
     if(result.accountClosed){setSessionToken('');this.identityToken='';this.setData({authenticated:false,closedRights:false,records:[],message:'',busy:false,notice:'账号已注销。交易和售后记录按必要期限保留；历史资料仍可核验身份后申请处理。'});return;}
-    this.setData({message:'',notice:result.status==='completed'?'账户资料已处理，可在下方查看结果。':'请求已受理，进度可在下方查看。'});await this.load();}}
+    this.setData({message:'',notice:result.status==='completed'?'授权或账户资料已处理，可在下方查看结果。':result.status==='partially_completed'?'授权已撤回，历史传播仍需核对。':'请求已受理，进度可在下方查看。'});await this.load();if(scopedWithdrawal)void this.loadConsents();}}
   catch(e){if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新受理记录后再试。'});}
   finally{if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({busy:false});}
  },

@@ -155,7 +155,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM commission_credit_entry e JOIN commission_credit_source s ON s.id=e.source_id
         JOIN commission_credit_conversion c ON c.id=s.conversion_id
         WHERE c.member_id=$1 ORDER BY e.occurred_at,e.id`,[memberId])).rows},
-    rights:{requests:(await client.query(`SELECT id,kind,message,scope_code,status,response,
+    rights:{requests:(await client.query(`SELECT id,kind,message,scope_code,target_ref,status,response,
         resolution_code,created_at,completed_at FROM privacy_request WHERE member_id=$1
         ORDER BY created_at,id`,[memberId])).rows,
       consents:(await client.query(`SELECT purpose_code,document_type,document_version,scope,

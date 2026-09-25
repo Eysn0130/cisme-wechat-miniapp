@@ -185,10 +185,10 @@ paths:
     post:
       operationId: submitPrivacyRequest
       security: [{session: []}]
-      description: Registers access, correct, delete, close_account, withdraw or other request. A verified WeChat identity can request a fixed optional-account-profile deletion scope or short-lived owner-scoped data copy without a second administrator. The profile scope removes only live nickname, contact, avatar and address data while preserving transaction evidence and honoring legal holds; an immutable external suppression marker prevents old backups from restoring it. Unscoped free-text deletion remains non-executable until assessed. The existing minimal close_account path closes the identity separately.
+      description: Registers access, correct, delete, close_account, withdraw or other request. A verified WeChat identity can request a fixed optional-account-profile deletion scope or short-lived owner-scoped data copy without a second administrator. The profile scope removes only live nickname, contact, avatar and address data while preserving transaction evidence and honoring legal holds; an immutable external suppression marker prevents old backups from restoring it. A withdraw request with an owned consentGrantId immediately blocks future use of that submission grant and records a restore-safe result; message is required for all other requests. Publication withdrawal remains partially completed while historical propagation is reviewed. Unscoped free-text deletion remains non-executable until assessed. The existing minimal close_account path closes the identity separately.
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1, member_optional_profile_v1]}}}}}
+        content: {application/json: {schema: {type: object, required: [kind], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1, member_optional_profile_v1]}, consentGrantId: {$ref: '#/components/schemas/Uuid'}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
   /v1/me/privacy-requests/{requestId}/reply:
     post:

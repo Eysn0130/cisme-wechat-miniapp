@@ -5,7 +5,7 @@ import { transaction, type DbClient } from './db.js';
 import { requirePrivacyActor } from './privacyAuthority.js';
 import type { AppEnvironment } from '@cisme/config';
 import { AuthorityService } from './authority.js';
-import { AccountClosure, applyAccountClosure, applyProfileErasure } from './accountClosure.js';
+import { AccountClosure, applyAccountClosure, applyProfileErasure, applyConsentWithdrawal, type ConsentWithdrawalMarker } from './accountClosure.js';
 import { randomUUID } from 'node:crypto';
 
 const pageSize=30;
@@ -105,7 +105,7 @@ export class PrivacyRights {
     return transaction(this.pool,async client=>{
       const active=await client.query("SELECT id FROM member WHERE id=$1 AND status=$2 FOR SHARE",[id,closedRights?'deleted':'active']);
       if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可访问数据权利记录',403);
-      const rows=(await client.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.status,pr.waiting_on AS "waitingOn",pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+      const rows=(await client.query(`SELECT pr.id,pr.kind,pr.message,pr.scope_code,pr.target_ref,pr.status,pr.waiting_on AS "waitingOn",pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       (SELECT jsonb_build_object('body',reply.body,'createdAt',reply.created_at) FROM privacy_request_member_reply reply
         WHERE reply.privacy_request_id=pr.id ORDER BY reply.created_at DESC,reply.id DESC LIMIT 1) AS "latestMemberReply",
       ${page?`to_char(pr.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,`:''}
@@ -118,8 +118,16 @@ export class PrivacyRights {
     });
   }
 
-  async submit(memberId: string | undefined, input: {kind?:unknown;message?:unknown;scopeCode?:unknown},closedRights=false) {
+  async submit(memberId: string | undefined, input: {kind?:unknown;message?:unknown;scopeCode?:unknown;consentGrantId?:unknown},closedRights=false) {
     const id=owner(memberId);
+    if(input?.kind==='withdraw'&&input.consentGrantId!==undefined){
+      if(closedRights)throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','注销账号后不能撤回新的授权',409);
+      if(input.scopeCode!==undefined||!uuidPattern.test(String(input.consentGrantId)))
+        throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','请选择本人已有的授权',422);
+      return this.withdrawSubmissionConsent(id,String(input.consentGrantId));
+    }
+    if(input?.consentGrantId!==undefined)
+      throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','该请求不能指定授权',422);
     if(!input || typeof input.kind!=='string' || !kinds.has(input.kind) || typeof input.message!=='string' || !input.message.trim() || Array.from(input.message).length>2000) {
       throw new DomainError('PRIVACY_REQUEST_INVALID','请选择请求类型并填写不超过 2000 字的说明',422);
     }
@@ -169,6 +177,40 @@ export class PrivacyRights {
         }
       }
       return created;
+    });
+  }
+
+  /** An independently persisted marker is published before the SQL effect,
+   * so a restored backup cannot reactivate this exact consent grant. */
+  private async withdrawSubmissionConsent(memberId:string,grantId:string){
+    const suppression=this.accountClosure;
+    if(!suppression)throw new DomainError('CONSENT_WITHDRAWAL_UNAVAILABLE','授权撤回暂不可用，请稍后重试',503);
+    return transaction(this.pool,async client=>{
+      const member=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR UPDATE",[memberId]);
+      if(!member.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可撤回授权',403);
+      const identity=(await client.query<{provider:string;app_id:string;openid:string}>(
+        'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR SHARE',[memberId])).rows[0];
+      if(!identity)throw new DomainError('AUTH_REVOKED','微信身份已变化，请重新登录',401);
+      const grant=(await client.query<{submission_id:string;purpose:string;active:boolean}>(
+        'SELECT submission_id,purpose,active FROM consent_grant WHERE id=$1 AND member_id=$2 FOR UPDATE',
+        [grantId,memberId])).rows[0];
+      if(!grant)throw new DomainError('CONSENT_GRANT_NOT_FOUND','授权不存在或不属于当前账号',404);
+      if(!['feed_readonly','publication'].includes(grant.purpose))
+        throw new DomainError('PRIVACY_SCOPE_UNAVAILABLE','这项授权需要人工核验后办理',409);
+      const previous=(await client.query<{id:string;kind:string;status:string;version:number}>(
+        "SELECT id,kind,status,version FROM privacy_request WHERE member_id=$1 AND target_ref=$2 AND kind='withdraw'",
+        [memberId,grantId])).rows[0];
+      if(previous){
+        if(grant.active)throw new DomainError('CONSENT_WITHDRAWAL_RESTORE_PENDING','授权状态正在恢复，请稍后重试',503);
+        return previous;
+      }
+      if(!grant.active)throw new DomainError('CONSENT_ALREADY_WITHDRAWN','这项授权已撤回，请刷新授权记录',409);
+      const markerInput:Omit<ConsentWithdrawalMarker,'version'|'scope'>={memberId,grantId,
+        identityDigest:AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),
+        requestId:randomUUID(),createdAt:new Date().toISOString(),submissionId:grant.submission_id,
+        purpose:grant.purpose as ConsentWithdrawalMarker['purpose']};
+      const marker=await suppression.recordConsentWithdrawal(markerInput);
+      return applyConsentWithdrawal(client,marker);
     });
   }
 
@@ -232,7 +274,7 @@ export class PrivacyRights {
     return transaction(this.pool,async client=>{
       await requirePrivacyActor(client,actorMemberId);
       await this.requireQueueOperator(principalId,actorMemberId,mode,client);
-      const rows=(await client.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.status,pr.waiting_on AS "waitingOn",pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
+      const rows=(await client.query(`SELECT pr.id,pr.member_id,pr.kind,pr.message,pr.scope_code,pr.target_ref,pr.status,pr.waiting_on AS "waitingOn",pr.response,pr.version,pr.due_at,pr.resolution_code,pr.completed_at,pr.created_at,pr.updated_at,
       (SELECT jsonb_build_object('body',reply.body,'createdAt',reply.created_at) FROM privacy_request_member_reply reply
         WHERE reply.privacy_request_id=pr.id ORDER BY reply.created_at DESC,reply.id DESC LIMIT 1) AS "latestMemberReply",
       ${page?`to_char(pr.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
