@@ -85,8 +85,11 @@ Page({
       this.setData({selected:null,response:"",notice:"资料已更正并读回确认；用户可在受理记录查看结果。"});await this.load();
     }catch(error){
       if(!this.current(epoch,token))return;
-      if([401,403].includes((error as {status?:number})?.status??0))this.invalidate("权限已失效，更正结果未获确认。请重新核验。");
-      else {this.setData({actionError:"更正结果未确认，请刷新受理记录和资料版本后核对；不要直接重复提交。",coreReady:false});}
+      const status=(error as {status?:number})?.status;
+      if(status===401||status===403)this.invalidate("权限已失效，更正结果未获确认。请重新核验。");
+      else if(status===409){this.setData({busy:false});await this.load();if(this.visible&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({actionError:(error as {title?:string}).title||"请求或资料已变化，请刷新后重试。"});}
+      else if(status===422||status===423)this.setData({actionError:(error as {title?:string}).title||"当前资料不能更正，请核对请求。"});
+      else this.setData({actionError:"更正结果未确认，请刷新受理记录和资料版本后核对；不要直接重复提交。",coreReady:false});
     }finally{if(this.visible&&epoch===this.epoch)this.setData({busy:false});}
   },
  retry(){if(!this.data.busy)void this.load();},
