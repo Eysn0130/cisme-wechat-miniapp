@@ -313,7 +313,8 @@ describe("native mini program boundary", () => {
     expect(account).toMatch(/\.account-row \{[^}]*min-height:104rpx;/);
     expect(account).toMatch(/\.account-legal-entry \{[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;[^}]*line-height:20px;/);
     expect(accountMarkup).not.toContain('class="account-caret"');
-    expect(accountMarkup).toContain("阅读并勾选协议后，点击下方登录");
+    expect(accountMarkup).toContain("同意协议后即可登录");
+    expect(accountMarkup).toContain("我已阅读并同意用户协议与隐私保护指引");
     expect(account).toMatch(/\.account-agreement__label \{[^}]*min-height:128rpx;/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-card \{ margin-top:32rpx; \}/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-login \{ margin-top:24rpx; \}[\s\S]*\.account-browse \{ margin-top:12rpx; \}/);
