@@ -4,7 +4,7 @@ import { auditNativeRoutes } from "../../scripts/audit-native-routes";
 describe("native route source audit", () => {
   it("keeps all registered routes, access policies, source paths and evidence gates inspectable", async () => {
     const audit = await auditNativeRoutes();
-    expect(audit.routes).toHaveLength(37);
+    expect(audit.routes).toHaveLength(40);
     expect(audit.evidenceManifestMatchesSource).toBe(true);
     expect(audit.routes.every(row => !row.stateGate.matrixComplete && row.stateGate.result === "blocked")).toBe(true);
     expect(audit.routes.find(row => row.route === "pages/home/index")?.access).toBe("public");

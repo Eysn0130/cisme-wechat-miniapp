@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/fulfillment-lifecycle-20260922",
+  "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+  "sourceTree": "e8148bb768aa00b6932fa8d319fc9e6c3fefc36c",
+  "githubMain": "5740e18544fa37dd473c36934a2a12a07a2d5ec9",
+  "pr": 22,
+  "prState": "OPEN_DRAFT",
+  "sourceCi": 35803110597,
+  "nativePackageSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+  "staging": {
+    "instanceId": "lhins-ei4hz4fi",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "runId": "rc20260922-00c7d2e9",
+    "directory": "/opt/cisme/releases/rc20260922-00c7d2e9-202653d35b74",
+    "database": "cisme_accept_rc20260922_00c7d2e9",
+    "receiptSha256": "ec2a40edaabb2bdba06113727de8977f4d308d36f380ea31d6f2785fcdc6c866"
+  },
+  "production": {
+    "instanceId": "lhins-61ikz4mi",
+    "ip": "124.223.74.198",
+    "domain": "api.cisme.cn",
+    "deployedSourceHead": "UNKNOWN",
+    "changed": false,
+    "credentialsRotated": false
+  },
+  "releaseStates": {
+    "implementationComplete": false,
+    "mainMerged": false,
+    "productionDeployed": false,
+    "productionValidated": false,
+    "commerceEnabled": false,
+    "filingComplete": false,
+    "codeReviewApproved": false,
+    "miniProgramReleased": false
+  },
+  "oldCismeTest": "UNKNOWN / 未恢复",
+  "next": "CONTINUATION-202653d.md technical gaps first; no automatic production/password/network/WeChat actions authorized by this file."
+}

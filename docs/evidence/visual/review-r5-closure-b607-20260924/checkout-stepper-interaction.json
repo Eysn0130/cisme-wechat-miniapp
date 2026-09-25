@@ -1,0 +1,14 @@
+{
+  "sourceSha256": "b6073d63231fd61c14e0b4b4930cbbb3fbeed9265a99aebba633e92823a77e2c",
+  "environment": "WeChat DevTools develop simulator, local synthetic API, 333x719 viewport",
+  "route": "pages/checkout/index",
+  "measurementsPx": {
+    "minusButton": {"left": 14, "top": 404.84375, "width": 44, "height": 44},
+    "minusIcon": {"left": 27, "top": 417.84375, "width": 18, "height": 18},
+    "plusButton": {"left": 105, "top": 404.84375, "width": 44, "height": 44},
+    "plusIcon": {"left": 118, "top": 417.84375, "width": 18, "height": 18}
+  },
+  "interaction": ["initial quantity 1", "tap plus: quantity 2", "tap minus: quantity 1"],
+  "result": "pass_local_synthetic_stepper_only",
+  "limits": "No large-text, physical-device, or full checkout journey inference"
+}

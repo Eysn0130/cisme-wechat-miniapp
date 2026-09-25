@@ -161,9 +161,14 @@ describe("unforgeable R0 vertical slice", () => {
     await pool.query("UPDATE member SET status='blocked' WHERE id=$1", [revoked.memberId]);
     let response = await app.inject({ method: "GET", url: "/v1/me", headers: { authorization: `Bearer ${revoked.sessionToken}` } });
     expect(response.statusCode).toBe(401); expect(response.json().code).toBe("AUTH_REVOKED");
+    const retryLogin=()=>app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'revoked-member',
+      displayName:'再次登录',consents:[{documentType:'privacy',version:'v1'},{documentType:'terms',version:'v1'}]}});
+    response=await retryLogin();expect(response.statusCode).toBe(403);expect(response.json().code).toBe('MEMBER_NOT_ACTIVE');
     await pool.query("UPDATE member SET status='deleted' WHERE id=$1", [revoked.memberId]);
     response = await app.inject({ method: "GET", url: "/v1/me", headers: { authorization: `Bearer ${revoked.sessionToken}` } });
     expect(response.statusCode).toBe(401); expect(response.json().code).toBe("AUTH_REVOKED");
+    response=await retryLogin();expect(response.statusCode).toBe(410);expect(response.json().code).toBe('ACCOUNT_CLOSED');
+    expect((await pool.query("SELECT count(*)::int AS count FROM consent_acceptance WHERE member_id=$1",[revoked.memberId])).rows[0].count).toBe(2);
   });
 
   it("records a real share visit and first-touch identity attribution without self-credit", async () => {

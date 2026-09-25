@@ -1,4 +1,4 @@
-import { invalidateCommerceRecoveryContext, redactCommerceCommandPayloads } from "./commerce-command-store";
+import { commerceContextRevision, invalidateCommerceRecoveryContext, redactCommerceCommandPayloads } from "./commerce-command-store";
 import { measurementClock, metricAction, recordClientMetric } from "./performance-metrics";
 import { clearMemberIdentity } from "./member-identity";
 import { clearMemberAvatarCache } from "./member-avatar";
@@ -10,6 +10,7 @@ const authReturnKey = "cisme.authReturnUrl";
 const submissionReturnKey = "cisme.submissionReturnContext";
 const tabRoutes = new Set(["/pages/home/index", "/pages/records/index", "/pages/community/index", "/pages/profile/index"]);
 const reads = new RequestCoordinator();
+const privateDownloads = new Set<() => void>();
 let authRedirecting = false;
 let suppressedAuthRedirectPath = "";
 
@@ -18,17 +19,27 @@ function normalizedAuthPath(url: string): string {
 }
 
 export function setSessionToken(token: string): void {
+  for (const release of privateDownloads) release();
   invalidateCommerceRecoveryContext();
   if(!token){clearAllUgcBackups();try{redactCommerceCommandPayloads();}catch{/* Keep malformed recovery records fail-closed; never retain the auth session. */}}
   clearMemberAvatarCache();
   clearMemberIdentity();
   reads.invalidate();
   app.globalData.sessionToken = token;
+  app.globalData.privacyRightsToken = "";
   wx.setStorageSync(app.globalData.sessionStorageKey || "cisme.sessionToken", token);
+  wx.removeStorageSync(`${app.globalData.sessionStorageKey || "cisme.sessionToken"}.privacyRightsToken`);
   if (token) {
     authRedirecting = false;
     suppressedAuthRedirectPath = "";
   }
+}
+
+export function setPrivacyRightsToken(token:string):void {
+  setSessionToken("");
+  app.globalData.privacyRightsToken=token;
+  const key=`${app.globalData.sessionStorageKey || "cisme.sessionToken"}.privacyRightsToken`;
+  if(token)wx.setStorageSync(key,token);else wx.removeStorageSync(key);
 }
 
 function currentRouteUrl(): string {
@@ -61,11 +72,17 @@ export function beginAuthentication(returnUrl = currentRouteUrl()): void {
   });
 }
 
+function requestEnvironment(): string {
+  const data = app.globalData;
+  return JSON.stringify([data.apiBaseUrl, data.cloudFunction?.env ?? null, data.cloudFunction?.name ?? null]);
+}
+
 const snapshotOwners = new WeakMap<object, string>();
 export function retainMemberSnapshot(page: object): boolean {
   const token = app.globalData.sessionToken;
-  const retain = Boolean(token && snapshotOwners.get(page) === token);
-  snapshotOwners.set(page, token);
+  const owner = JSON.stringify([token, commerceContextRevision(), requestEnvironment()]);
+  const retain = Boolean(token && snapshotOwners.get(page) === owner);
+  snapshotOwners.set(page, owner);
   return retain;
 }
 
@@ -76,6 +93,19 @@ export function requireMemberAccess(returnUrl = currentRouteUrl()): boolean {
   // member action can call resumeAuthentication() to open Account again.
   beginAuthentication(returnUrl);
   return false;
+}
+
+/** Fresh WeChat re-identification after closure reaches historical orders and
+ * aftersales only. The server independently enforces the narrow route scope. */
+export function historicalCommerceToken():string {
+  return app.globalData.sessionToken||app.globalData.privacyRightsToken||"";
+}
+export function historicalCommerceClosed():boolean {
+  return Boolean(!app.globalData.sessionToken&&app.globalData.privacyRightsToken);
+}
+export function requireHistoricalCommerceAccess(returnUrl=currentRouteUrl()):boolean {
+  if(historicalCommerceToken())return true;
+  beginAuthentication(returnUrl);return false;
 }
 
 export function cancelAuthentication(): void {
@@ -177,11 +207,24 @@ function retryDelayMs(error: unknown, options: RequestOptions): number | null {
     ? 40 + Math.floor(Math.random() * 81) : null;
 }
 const cancelledProblem = () => ({ code: "REQUEST_ABORTED", title: "请求已取消；已发送写入不会因此撤回，请查询结果" });
-const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "本次操作等待已超时；写入结果请查询确认，不要更换幂等键重复提交" });
+const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "暂未确认操作结果，请先查看记录，勿重复提交。" });
 
 function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", authMode = options.authMode ?? "required";
-  const session = app.globalData.sessionToken, token = authMode === "public" ? "" : session;
+  const session = app.globalData.sessionToken, revision = commerceContextRevision(), environment = requestEnvironment();
+  const path=options.path.split("?")[0]||options.path;
+  const rightsPath=/^\/v1\/me\/privacy-requests(?:\/|$)/.test(path)||
+    (method==="GET"&&(
+      path==="/v1/me/orders"||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
+      /^\/v1\/me\/orders\/[0-9a-f-]{36}\/(?:aftersales\/availability|shipment(?:\/tracking)?)$/i.test(path)||
+      path==="/v1/me/aftersales"||/^\/v1\/me\/aftersales\/[0-9a-f-]{36}$/i.test(path)||
+      path==="/v1/me/refund-requests"||path==="/v1/me/commercial-membership"||path==="/v1/me/support/messages"||
+      /^\/v1\/me\/support\/media\/[0-9a-f-]{36}$/i.test(path)||
+      path==="/v1/me/commission/settlement-requests"||path==="/v1/me/commission/credit-conversions"))||
+    (method==="POST"&&(/^\/v1\/me\/orders\/[0-9a-f-]{36}\/aftersales$/i.test(path)||
+      /^\/v1\/me\/aftersales\/[0-9a-f-]{36}\/actions$/i.test(path)||path==="/v1/me/support/messages"));
+  const rightsSession=app.globalData.privacyRightsToken;
+  const token = authMode === "public" ? "" : session || (rightsPath ? rightsSession : "");
   const origin = currentRouteUrl();
   const budgetMs = options.budgetMs ?? 12_000;
   if (!Number.isInteger(budgetMs) || budgetMs < 1 || budgetMs > 60_000)
@@ -192,7 +235,12 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const timer = setTimeout(() => stop(deadlineProblem()), budgetMs);
   const remaining = () => {
     if (stopped) throw stopped;
-    if (app.globalData.sessionToken !== session) throw { code: "REQUEST_SESSION_CHANGED", title: "会员身份已变化，请重新加载" };
+    if (commerceContextRevision() !== revision || app.globalData.sessionToken !== session)
+      throw { code: "REQUEST_SESSION_CHANGED", title: "会员身份已变化，请重新加载" };
+    if (requestEnvironment() !== environment)
+      throw { code: "REQUEST_ENVIRONMENT_CHANGED", title: "连接已变化，请刷新后核对操作结果" };
+    if (token === rightsSession && rightsSession && app.globalData.privacyRightsToken !== rightsSession)
+      throw { code: "REQUEST_SESSION_CHANGED", title: "隐私请求身份已变化，请重新加载" };
     const left = Math.ceil(deadline - measurementClock());
     if (left <= 0) throw deadlineProblem();
     return left;
@@ -212,9 +260,14 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
           try { remaining(); } catch (error) { fail(error); return; }
           if (response.statusCode >= 200 && response.statusCode < 300) { settled = true; if (interrupt === fail) interrupt = null; resolve(response.data as T); return; }
           const problem = response.data as Record<string, unknown>;
+          // AUTH_REVOKED identifies this session. MEMBER_NOT_ACTIVE can refer
+          // to an admin's target member and must not sign the admin out.
+          const accountUnavailable=problem?.code === "AUTH_REVOKED";
           if ((response.statusCode === 401 || problem?.code === "MEMBER_NOT_FOUND") && token && app.globalData.sessionToken === token) {
             setSessionToken("");
-            if (authMode === "required" && currentRouteUrl() === origin) beginAuthentication(origin);
+            if (!accountUnavailable && authMode === "required" && currentRouteUrl() === origin) beginAuthentication(origin);
+          }else if(response.statusCode===401&&token&&app.globalData.privacyRightsToken===token){
+            setPrivacyRightsToken("");
           }
           fail({ ...problem, status: response.statusCode });
         }, fail });
@@ -245,10 +298,11 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
 
 export function requestCancelable<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", tags = options.cacheTags ?? tagsForPath(options.path);
-  const session = app.globalData.sessionToken, origin = currentRouteUrl();
+  const session = app.globalData.sessionToken, rightsSession = app.globalData.privacyRightsToken, origin = currentRouteUrl();
+  const revision = commerceContextRevision(), environment = requestEnvironment();
   let task: { promise: Promise<T>; abort(reason?: unknown): void };
   if (method === "GET") {
-    const key = JSON.stringify([app.globalData.apiBaseUrl, app.globalData.cloudFunction, session, options.path, options.data, options.authMode ?? "required", options.budgetMs ?? 12_000, options.idempotencyKey]);
+    const key = JSON.stringify([environment, revision, session, rightsSession, options.path, options.data, options.authMode ?? "required", options.budgetMs ?? 12_000, options.idempotencyKey]);
     const subscription = reads.acquire(key, () => performRequest<T>(options), readPolicy(options.path, tags));
     task = subscription;
     if (subscription.coalesced) recordClientMetric({ action: metricAction(options.path), stage: "coalesced", durationMs: 0 });
@@ -260,7 +314,8 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
   // Context belongs to each consumer. A departed first reader cannot suppress
   // another page's shared retry. Lifecycle owners can cancel immediately.
   const monitor = method === "GET" ? setInterval(() => {
-    if (app.globalData.sessionToken !== session || currentRouteUrl() !== origin)
+    if (commerceContextRevision() !== revision || requestEnvironment() !== environment ||
+      app.globalData.sessionToken !== session || app.globalData.privacyRightsToken !== rightsSession || currentRouteUrl() !== origin)
       task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消本页读取" });
   }, 100) : null;
   const promise = task.promise.finally(() => { if (monitor) clearInterval(monitor); });
@@ -327,19 +382,29 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
   });
 }
 
-export function downloadPrivateMedia(path: string): { promise: Promise<string>; abort(): void } {
-  const token = app.globalData.sessionToken;
+/** Temporary private files live only until their caller releases them or identity changes. */
+export function downloadPrivateMedia(path: string,allowClosedRights=false): { promise: Promise<string>; abort(): void } {
+  const currentToken=()=>app.globalData.sessionToken||(allowClosedRights?app.globalData.privacyRightsToken:'');
+  const token = currentToken(), revision = commerceContextRevision();
   const origin = app.globalData.apiBaseUrl.replace(/\/$/, "");
-  let task: WechatMiniprogram.DownloadTask | null = null;
+  let task: WechatMiniprogram.DownloadTask | null = null, cancelled = false, file = "";
+  let rejectPending: (reason: unknown) => void = () => {};
+  const remove = (filePath: string) => { if (filePath) { try { wx.getFileSystemManager().unlink({filePath, fail: () => {}}); } catch { /* Temporary file may already be removed by WeChat. */ } } };
+  const abort = () => { cancelled = true; privateDownloads.delete(abort); rejectPending({code:"REQUEST_ABORTED"}); task?.abort(); remove(file); file=""; };
   const promise = new Promise<string>((resolve, reject) => {
+    rejectPending = reject;
     if (!token) { reject({ code: "AUTHENTICATION_REQUIRED" }); return; }
     if (app.globalData.cloudFunction) { reject({ code: "SUPPORT_MEDIA_PREVIEW_TRANSPORT_UNAVAILABLE" }); return; }
+    privateDownloads.add(abort);
     task = wx.downloadFile({ url: `${origin}${path}`, header: { Authorization: `Bearer ${token}` }, timeout: 30_000,
       success: (response) => {
-        if (app.globalData.sessionToken !== token) { reject({ code: "REQUEST_SESSION_CHANGED" }); return; }
-        if (response.statusCode >= 200 && response.statusCode < 300) resolve(response.tempFilePath);
-        else reject({ status: response.statusCode, code: "SUPPORT_MEDIA_PREVIEW_FAILED" });
-      }, fail: reject });
+        if (cancelled || currentToken() !== token || commerceContextRevision() !== revision) {
+          remove(response.tempFilePath); privateDownloads.delete(abort);
+          reject({code:cancelled?"REQUEST_ABORTED":"REQUEST_SESSION_CHANGED"}); return;
+        }
+        if (response.statusCode >= 200 && response.statusCode < 300) { file=response.tempFilePath; resolve(file); }
+        else { remove(response.tempFilePath); privateDownloads.delete(abort); reject({ status: response.statusCode, code: "SUPPORT_MEDIA_PREVIEW_FAILED" }); }
+      }, fail: error => { privateDownloads.delete(abort); reject(error); } });
   });
-  return { promise, abort() { task?.abort(); } };
+  return { promise, abort };
 }

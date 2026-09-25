@@ -52,7 +52,7 @@ beforeAll(async () => {
   await storage.ensureReady();
   app = await createApp({ config, pool, storage });
   [member, other, operator, observer] = await Promise.all(["chat-member", "chat-other", "chat-operator", "chat-observer"].map(identity));
-  for (const capability of ["support.read", "support.reply", "support.assign", "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read"]) {
+  for (const capability of ["support.read", "support.reply", "support.assign", "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read", "privacy.request.manage"]) {
     await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
       VALUES($1,$2,'fixture','Commercial chat integration','test','integration_fixture')`, [operator.memberId, capability]);
   }
@@ -122,6 +122,27 @@ describe.sequential("commercial support conversation facts", () => {
     expect(sent.statusCode).toBe(200);
     expect(sent.json().message).toMatchObject({ contentType: "mixed", orderCard: { orderId: ownedOrder.id, orderNumberTail: ownedOrder.orderNumber.slice(-4), status: "pending_payment", totalCents: 23900, currency: "CNY", productName: "客服订单卡片验证商品" } });
     expect(JSON.stringify(sent.json().message)).not.toContain("测试路");
+    const retention=await app.inject({method:'GET',url:`/v1/management/support/conversations/${conversationId}/retention`,
+      headers:auth(operator.sessionToken)});
+    expect(retention.statusCode).toBe(200);
+    expect(retention.json()).toMatchObject({eligible:false,reason:'transaction_scope_requires_separate_execution',
+      policyCode:'support_transaction_three_years',durationMonths:36});
+    await expect(pool.query(`UPDATE data_retention_policy SET duration_days=1
+      WHERE code='support_transaction_three_years'`)).rejects.toThrow();
+    await pool.query(`UPDATE data_retention_policy SET enforcement_state='enforced',active=true,version=version+1
+      WHERE code='support_transaction_three_years'`);
+    const noPurge=await app.inject({method:'POST',url:`/v1/management/support/conversations/${conversationId}/purge`,
+      headers:{...auth(operator.sessionToken),'idempotency-key':'support-linked-order-no-purge'},
+      payload:{expectedVersion:sent.json().conversation.version}});
+    expect(noPurge.statusCode).toBe(409);
+    expect(noPurge.json().code).toBe('SUPPORT_TRANSACTION_RETENTION_SCOPE');
+    await pool.query(`UPDATE data_retention_policy SET enforcement_state='declared',active=false,version=version+1
+      WHERE code='support_transaction_three_years'`);
+    const changes=(await pool.query(`SELECT before_state,after_state FROM audit_log
+      WHERE action='privacy.retention_policy.change' AND before_state->>'code'='support_transaction_three_years'`)).rows;
+    expect(changes).toHaveLength(2);
+    expect(changes[0].after_state).toMatchObject({months:36,state:'enforced',active:true,version:2});
+    expect(changes[1].after_state).toMatchObject({months:36,state:'declared',active:false,version:3});
   });
 
   it("verifies up to three owned images before one immutable binding and serves them only through authenticated conversation access", async () => {

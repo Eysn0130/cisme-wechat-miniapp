@@ -1,3 +1,4 @@
+import { commerceAuthorization, commerceTransport, type CommerceCapability } from "./formalCommerceAuthorization.js";
 import { createPrivateKey, createPublicKey, X509Certificate } from "node:crypto";
 import { protectedText, recoveryAuthorization, recoveryTransport } from "./formalPaymentAuthorization.js";
 import type pg from "pg";
@@ -54,9 +55,9 @@ export function loadFormalWechatPayTrust(profile:NonNullable<AppConfig["commerce
   return {privatePem,apiV3Key,platformKeys,merchantCertificate};
 }
 
-/** Pinned trust and callbacks are installed without granting live money commands.
- * The optional protected, exact-environment recovery grant authorizes only
- * selected historical reads/callbacks; synthetic injection remains test-only. */
+/** Credentials alone never enable commands. Historical recovery and production
+ * commerce have separate protected, revocable capability grants. Synthetic
+ * transport injection remains test-only and never installs a live grant. */
 export function formalPaymentProtocol(config:AppConfig,pool:pg.Pool,testTransport?:typeof fetch){
   const profile=config.commerce.formalProtocol;
   if(!profile)return undefined;
@@ -70,8 +71,17 @@ export function formalPaymentProtocol(config:AppConfig,pool:pg.Pool,testTranspor
       throw new Error("FAIL_CLOSED:FORMAL_WECHAT_PAY_MERCHANT_CERTIFICATE_REQUIRED");
     return approval;
   };
+  const commerceGrant=commerceAuthorization(config,profile);
+  const authorizeCommerce=(capability:CommerceCapability)=>{
+    const approval=commerceGrant(capability);
+    if(!merchantCertificate||Date.parse(merchantCertificate.validTo)<=Date.now())
+      throw new Error("FAIL_CLOSED:FORMAL_WECHAT_PAY_MERCHANT_CERTIFICATE_REQUIRED");
+    // Opening commands also requires recovery/callbacks so unknown outcomes can reconcile.
+    for(const recovery of ['payment.query','payment.callback','refund.query','refund.callback','bill.read'] as const)authorizeRecovery(recovery);
+    return approval;
+  };
   const channel=new WechatPayV3Client(profile.merchantId,profile.merchantSerial,
-    privatePem,platformKeys,testTransport??(profile.recoveryAuthorizationFile?recoveryTransport(authorizeRecovery):disabledTransport));
+    privatePem,platformKeys,testTransport??(profile.commerceAuthorizationFile?commerceTransport(authorizeCommerce,authorizeRecovery):profile.recoveryAuthorizationFile?recoveryTransport(authorizeRecovery):disabledTransport));
   const inbox=new VerifiedPaymentInbox(pool,{appId:profile.appId,
     merchantId:profile.merchantId,apiV3Key,platformKeys});
   const refundInbox=new VerifiedRefundInbox(pool,{merchantId:profile.merchantId,apiV3Key,platformKeys});
@@ -81,5 +91,5 @@ export function formalPaymentProtocol(config:AppConfig,pool:pg.Pool,testTranspor
     paymentNotifyUrl:profile.paymentNotifyUrl,refundNotifyUrl:profile.refundNotifyUrl,
     ...(profile.transferNotifyUrl?{transferNotifyUrl:profile.transferNotifyUrl}:{}),
     networkAuthorized:Boolean(profile.recoveryAuthorizationFile&&merchantCertificate),isolatedSyntheticTransport:Boolean(testTransport),
-    formalRecovery:!testTransport,authorizeRecovery};
+    formalRecovery:!testTransport,authorizeRecovery,...(profile.commerceAuthorizationFile?{authorizeCommerce}:{})};
 }

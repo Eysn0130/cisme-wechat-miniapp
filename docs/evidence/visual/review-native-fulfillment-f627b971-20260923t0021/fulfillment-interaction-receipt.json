@@ -1,0 +1,17 @@
+{
+  "ownedRun": "c6576b53cf3a911ac7cab5bc",
+  "purpose": "disposable-synthetic",
+  "exportAuditCount": 1,
+  "selectedOrderShipments": 1,
+  "importPlans": 1,
+  "selectedOrderStatus": "paid",
+  "packageSourceSha256": "f627b97144377bfc333509614417342552d3c7b570bee05df944dee85552d815",
+  "scope": "local devtools synthetic owned DB; no real provider/funds",
+  "nativeButtonsUsed": true,
+  "repeatSubmitSameBatchObserved": true,
+  "capabilityRevokedInOwnedFixture": true,
+  "foregroundSensitiveRowsAndDraftClearedObserved": true,
+  "revocationLatencyUpperBoundMeasured": false,
+  "realDeviceAccepted": false,
+  "documentViewer": "openDocument success callback observed in devtools; physical-device viewer/share lifecycle unverified"
+}

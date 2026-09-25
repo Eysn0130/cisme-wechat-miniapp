@@ -1,0 +1,16 @@
+{
+  "sourceHead": "2df301818c550ae6d19649d44f785d02fb58b276",
+  "sourceTree": "4b9aa15850e5728556071b9c92a58c63068b319f",
+  "runId": 35750330009,
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/35750330009",
+  "conclusion": "success",
+  "unit": 1078,
+  "integration": 807,
+  "pythonOffline": 47,
+  "credentialedPreview": "skipped",
+  "candidateDesignQa": "skipped",
+  "mainMerged": false,
+  "productionDeployed": false,
+  "nativeAccepted": false,
+  "deviceAccepted": false
+}

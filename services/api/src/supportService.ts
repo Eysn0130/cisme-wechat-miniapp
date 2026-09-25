@@ -7,6 +7,8 @@ import { transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
 import type { PlatformService } from "./platformService.js";
 import type { ObjectStorage } from "./storage.js";
+import type {AccountClosure} from './accountClosure.js';
+import {recordWholeSuppression} from './supportRetention.js';
 
 type ConversationRow = {
   id: string; member_id: string; status: SupportConversationStatus; priority: "normal" | "high" | "urgent";
@@ -15,8 +17,9 @@ type ConversationRow = {
   resolved_at?: Date | null;
 };
 type OrderCard = { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
-type MessageRow = { id: string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; body: string; attachment_refs: string[];
-  content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null; created_at: Date };
+type MessageRow = { id: string; conversation_id:string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; body: string; attachment_refs: string[];
+  content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null;
+  linked_case_id:string|null;return_instruction_snapshot:Omit<NonNullable<SupportMessageView['returnInstruction']>,'caseId'>|null;created_at: Date };
 type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
 
 function required(value: string | undefined, code: string): string {
@@ -78,7 +81,7 @@ function contentType(body: string, images: readonly string[], orderId: string | 
   return "text";
 }
 function messageColumns(): string {
-  return "id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,created_at";
+  return "id,conversation_id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at";
 }
 function view(row: MessageRow, input: { counterpartyReadSequence: number; previewPrefix: string; media: ReadonlyMap<string, MediaRow> }): SupportMessageView {
   const attachments = (Array.isArray(row.attachment_refs) ? row.attachment_refs : []).flatMap((id) => {
@@ -86,7 +89,9 @@ function view(row: MessageRow, input: { counterpartyReadSequence: number; previe
     return media ? [{ id, mimeType: media.mime_type, sizeBytes: Number(media.size_bytes), previewPath: `${input.previewPrefix}/${id}` }] : [];
   });
   return { id: row.id, sequence: Number(row.sequence), senderType: row.sender_type, body: row.body, contentType: row.content_type,
-    attachments, orderCard: row.order_snapshot ?? null, deliveryState: Number(row.sequence) <= input.counterpartyReadSequence ? "read" : "server_accepted", createdAt: row.created_at.toISOString() };
+    attachments, orderCard: row.order_snapshot ?? null,
+    returnInstruction:row.linked_case_id&&row.return_instruction_snapshot?{caseId:row.linked_case_id,...row.return_instruction_snapshot}:null,
+    deliveryState: Number(row.sequence) <= input.counterpartyReadSequence ? "read" : "server_accepted", createdAt: row.created_at.toISOString() };
 }
 function conversation(row: ConversationRow) {
   return { id: row.id, status: row.status, priority: row.priority,
@@ -104,7 +109,8 @@ export function modelSafeSupportProjection(input: { conversation: ConversationRo
 }
 
 export class SupportService {
-  constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService, private readonly platform: PlatformService, private readonly storage: ObjectStorage) {}
+  constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService, private readonly platform: PlatformService, private readonly storage: ObjectStorage,
+    private readonly suppression?:AccountClosure) {}
 
   private async findForMember(client: DbClient | pg.Pool, memberId: string, lock = false): Promise<ConversationRow | null> {
     const result = await client.query<ConversationRow>(`SELECT * FROM support_conversation WHERE member_id=$1${lock ? " FOR UPDATE" : ""}`, [memberId]);
@@ -121,9 +127,12 @@ export class SupportService {
     const ids = [...new Set(messages.flatMap((row) => Array.isArray(row.attachment_refs) ? row.attachment_refs : []))];
     if (!ids.length) return new Map();
     const messageIds = messages.map((row) => row.id);
+    const conversationIds=[...new Set(messages.map(row=>row.conversation_id))];
     const result = await client.query<MediaRow>(`SELECT id,mime_type,size_bytes FROM media_object
-      WHERE id=ANY($1::uuid[]) AND bound_support_message_id=ANY($2::uuid[])
-        AND upload_state='uploaded' AND support_conversation_id IS NOT NULL`, [ids, messageIds]);
+      WHERE id=ANY($1::uuid[]) AND support_conversation_id=ANY($2::uuid[])
+        AND upload_state='uploaded' AND EXISTS(SELECT 1 FROM support_message message
+          WHERE message.id=ANY($3::uuid[]) AND message.conversation_id=media_object.support_conversation_id
+            AND message.attachment_refs ? media_object.id::text)`, [ids, conversationIds,messageIds]);
     return new Map(result.rows.map((row) => [row.id, row]));
   }
 
@@ -185,25 +194,52 @@ export class SupportService {
   }
 
   private async retentionState(client: DbClient | pg.Pool, row: ConversationRow) {
-    const policy = await client.query<{code:string;duration_days:number|null;enforcement_state:"declared"|"enforced";active:boolean;version:number}>(`SELECT code,duration_days,enforcement_state,active,version
-      FROM data_retention_policy WHERE code='support_conversation_policy_pending'`);
-    if (!policy.rows[0]) throw new DomainError("SUPPORT_RETENTION_POLICY_MISSING", "Support retention policy is not configured", 503);
-    const current = policy.rows[0];
+    // The original conversation can contain both ordinary consultation and
+    // order/aftersale evidence. Never let the ordinary policy purge both.
+    const linked=await client.query<{linked:boolean}>(`SELECT (
+      EXISTS(SELECT 1 FROM support_message WHERE conversation_id=$1
+        AND (linked_order_id IS NOT NULL OR linked_case_id IS NOT NULL))
+      OR EXISTS(SELECT 1 FROM commerce_aftersale_case WHERE support_conversation_id=$1
+        OR support_conversation_id IS NULL AND member_id=$2 AND created_at<=$3::timestamptz)
+    ) AS linked`,[row.id,row.member_id,row.resolved_at]);
     const hold = await client.query<{count:number}>(`SELECT count(*)::int AS count FROM legal_hold_binding binding
       JOIN legal_hold hold ON hold.id=binding.hold_id
       WHERE hold.status='active' AND hold.expires_at>clock_timestamp() AND (
         (binding.object_type='support_conversation' AND binding.object_id=$1)
         OR (binding.object_type='member' AND binding.object_id=$2)
+        OR (binding.object_type='support_message' AND EXISTS(SELECT 1 FROM support_message m
+          WHERE m.conversation_id=$1::uuid AND m.id::text=binding.object_id))
+        OR (binding.object_type='media_object' AND EXISTS(SELECT 1 FROM media_object media
+          WHERE media.support_conversation_id=$1::uuid AND media.id::text=binding.object_id))
       )`, [row.id, row.member_id]);
-    const due = current.duration_days !== null && row.resolved_at
-      ? await client.query<{eligible:boolean;eligible_at:Date}>(`SELECT clock_timestamp() >= $1::timestamptz + make_interval(days=>$2) AS eligible,
-          $1::timestamptz + make_interval(days=>$2) AS eligible_at`, [row.resolved_at, current.duration_days])
+    const openRights=(await client.query<{open:boolean}>(`SELECT EXISTS(SELECT 1 FROM privacy_request
+      WHERE member_id=$1 AND status NOT IN ('completed','partially_completed','rejected','canceled')) AS open`,
+      [row.member_id])).rows[0]?.open;
+    if(linked.rows[0]?.linked){
+      const policy=(await client.query<{code:string;version:number;duration_months:number|null}>(
+        "SELECT code,version,duration_months FROM data_retention_policy WHERE code='support_transaction_three_years'")).rows[0];
+      if(!policy)throw new DomainError('SUPPORT_RETENTION_POLICY_MISSING','交易客服保留规则尚未装配',503);
+      return {eligible:false,reason:'transaction_scope_requires_separate_execution',policyCode:policy.code,
+        policyVersion:policy.version,durationDays:null,durationMonths:policy.duration_months,eligibleAt:null,
+        activeLegalHolds:hold.rows[0]!.count};
+    }
+    const policy = await client.query<{code:string;duration_days:number|null;duration_months:number|null;enforcement_state:"declared"|"enforced";active:boolean;version:number}>(`SELECT code,duration_days,duration_months,enforcement_state,active,version
+      FROM data_retention_policy WHERE code='support_conversation_policy_pending'`);
+    if (!policy.rows[0]) throw new DomainError("SUPPORT_RETENTION_POLICY_MISSING", "Support retention policy is not configured", 503);
+    const current = policy.rows[0];
+    const hasDuration=current.duration_days!==null||current.duration_months!==null;
+    const due = hasDuration && row.resolved_at
+      ? await client.query<{eligible:boolean;eligible_at:Date}>(`SELECT clock_timestamp() >= $1::timestamptz + make_interval(days=>$2,months=>$3) AS eligible,
+          $1::timestamptz + make_interval(days=>$2,months=>$3) AS eligible_at`,
+          [row.resolved_at,current.duration_days??0,current.duration_months??0])
       : null;
-    const policyReady = current.active && current.enforcement_state === "enforced" && current.duration_days !== null;
+    const policyReady = current.active && current.enforcement_state === "enforced" && hasDuration;
     const reason = !policyReady ? "policy_pending" : row.status !== "resolved" || !row.resolved_at ? "not_resolved"
-      : hold.rows[0]!.count > 0 ? "legal_hold" : !due?.rows[0]?.eligible ? "not_due" : "eligible";
+      : hold.rows[0]!.count > 0 ? "legal_hold" : openRights ? 'privacy_request_active'
+      : !due?.rows[0]?.eligible ? "not_due" : "eligible";
     return { eligible: reason === "eligible", reason, policyCode: current.code, policyVersion: current.version,
-      durationDays: current.duration_days, eligibleAt: due?.rows[0]?.eligible_at.toISOString() ?? null, activeLegalHolds: hold.rows[0]!.count };
+      durationDays: current.duration_days,durationMonths:current.duration_months,
+      eligibleAt: due?.rows[0]?.eligible_at.toISOString() ?? null, activeLegalHolds: hold.rows[0]!.count };
   }
 
   async summary(memberId: string | undefined) {
@@ -243,7 +279,7 @@ export class SupportService {
       latestCursor: messages.at(-1)?.sequence ?? Number(row.next_sequence) - 1, olderCursor: hasOlder ? messages[0]!.sequence : null };
   }
 
-  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown }, traceId: string) {
+  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown }, traceId: string, historicalOrder=false) {
     const owner = required(memberId, "AUTH_REQUIRED");
     const principal = required(principalId, "AUTH_REQUIRED");
     const body = textBody(input.body, true); const messageKey = clientMessageId(input.clientMessageId);
@@ -275,15 +311,17 @@ export class SupportService {
       }
       const sequence = Number(row.next_sequence); const messageId = randomUUID();
       const reopened = row.status === "resolved";
-      const nextStatus: SupportConversationStatus = reopened ? "waiting_human" : row.status;
+      const needsHuman = reopened || historicalOrder && row.status === "ai_active";
+      const nextStatus: SupportConversationStatus = needsHuman ? "waiting_human" : row.status;
       const inserted = await client.query<MessageRow>(`INSERT INTO support_message
-        (id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,client_message_id)
-        VALUES($1,$2,$3,'user',$4,$5,$6,$7,$8,$9,$10) RETURNING ${messageColumns()}`,
-      [messageId, row.id, sequence, principal, body, JSON.stringify(images), messageContentType, linkedOrderId, order, messageKey]);
+        (id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,client_message_id,retention_purpose)
+        VALUES($1,$2,$3,'user',$4,$5,$6,$7,$8,$9,$10,$11) RETURNING ${messageColumns()}`,
+      [messageId, row.id, sequence, principal, body, JSON.stringify(images), messageContentType, linkedOrderId, order, messageKey,
+        linkedOrderId?'transaction':'ordinary']);
       if (images.length) await client.query("UPDATE media_object SET bound_support_message_id=$1,support_expires_at='infinity' WHERE id=ANY($2::uuid[])", [messageId, images]);
       const updated = await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,team_unread_count=team_unread_count+1,
         status=$2,current_handler_principal_id=CASE WHEN $3 THEN NULL ELSE current_handler_principal_id END,resolved_at=NULL,version=version+1,updated_at=clock_timestamp()
-        WHERE id=$1 RETURNING *`, [row.id, nextStatus, reopened]);
+        WHERE id=$1 RETURNING *`, [row.id, nextStatus, needsHuman]);
       row = updated.rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='member'", [row.id]);
       await enqueue(client, { eventType: "support.message.created.v1", aggregateType: "support_conversation", aggregateId: row.id,
@@ -453,7 +491,8 @@ export class SupportService {
     const result = await this.pool.query<{object_key:string}>(`SELECT media.object_key FROM media_object media
       JOIN support_conversation conversation ON conversation.id=media.support_conversation_id
       WHERE media.id=$1 AND conversation.member_id=$2 AND media.support_member_id=$2
-        AND media.upload_state='uploaded' AND media.bound_support_message_id IS NOT NULL`, [targetMediaId, owner]);
+        AND media.upload_state='uploaded' AND EXISTS(SELECT 1 FROM support_message message
+          WHERE message.conversation_id=conversation.id AND message.attachment_refs ? media.id::text)`, [targetMediaId, owner]);
     if (!result.rows[0]) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
     return this.storage.read(result.rows[0].object_key);
   }
@@ -462,8 +501,10 @@ export class SupportService {
     await this.operator(memberId, "support.read");
     const conversationId = uuid(id, "SUPPORT_CONVERSATION_INVALID");
     const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
-    const result = await this.pool.query<{object_key:string}>(`SELECT object_key FROM media_object
-      WHERE id=$1 AND support_conversation_id=$2 AND upload_state='uploaded' AND bound_support_message_id IS NOT NULL`, [targetMediaId, conversationId]);
+    const result = await this.pool.query<{object_key:string}>(`SELECT media.object_key FROM media_object media
+      WHERE media.id=$1 AND media.support_conversation_id=$2 AND media.upload_state='uploaded'
+        AND EXISTS(SELECT 1 FROM support_message message WHERE message.conversation_id=$2
+          AND message.attachment_refs ? media.id::text)`, [targetMediaId, conversationId]);
     if (!result.rows[0]) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
     return this.storage.read(result.rows[0].object_key);
   }
@@ -526,8 +567,12 @@ export class SupportService {
       if(duplicate.rows[0]){if(duplicate.rows[0].body!==body)throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different text",409);return {conversation:conversation(row),message:await this.messageView(duplicate.rows[0],row,"operator"),replayed:true};}
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Claim this conversation before replying",409);
       const sequence=Number(row.next_sequence);const messageId=randomUUID();
-      const inserted=(await client.query<MessageRow>(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id)
-        VALUES($1,$2,$3,'admin',$4,$5,$6) RETURNING ${messageColumns()}`,[messageId,id,sequence,principal,body,messageKey])).rows[0]!;
+      const context=(await client.query<{retention_purpose:string}>(`SELECT retention_purpose FROM support_message
+        WHERE conversation_id=$1 AND sender_type='user' ORDER BY sequence DESC LIMIT 1`,[id])).rows[0];
+      const purpose=context?.retention_purpose==='ordinary'?'ordinary':
+        context?.retention_purpose==='transaction'?'transaction':'legacy_unknown';
+      const inserted=(await client.query<MessageRow>(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose)
+        VALUES($1,$2,$3,'admin',$4,$5,$6,$7) RETURNING ${messageColumns()}`,[messageId,id,sequence,principal,body,messageKey,purpose])).rows[0]!;
       row=(await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
         version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),online_expires_at=GREATEST(online_expires_at,clock_timestamp()+interval '10 seconds'),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='operator' AND actor_principal_id=$2", [id, principal]);
@@ -550,6 +595,12 @@ export class SupportService {
     return transaction(this.pool,async client=>{const row=await this.findById(client,id,true);if(row.status==="resolved")return conversation(row);
       if(row.version!==expected)throw new DomainError("VERSION_CONFLICT","Conversation changed; reload before resolving",409);
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Only the assigned operator can resolve",409);
+      const pendingAftersale=(await client.query(`SELECT c.id FROM commerce_aftersale_case c
+        LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
+        WHERE (c.support_conversation_id=$1 OR (c.support_conversation_id IS NULL AND c.member_id=$2)) AND (c.state IN
+          ('requested','need_info','awaiting_instruction','return_received','quality_checked','refund_exception_approved')
+          OR (c.state='refund_pending' AND COALESCE(i.state,'')<>'succeeded')) LIMIT 1`,[id,row.member_id])).rows[0];
+      if(pendingAftersale)throw new DomainError('AFTERSALE_CASE_ACTIVE','本会话有待处理售后，请先处理案件后再结束会话',409);
       const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET status='resolved',current_handler_principal_id=NULL,resolved_at=clock_timestamp(),version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),online_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='operator'", [id]);
       await this.audit(client,principal,"support.conversation.resolve",id,conversation(row),conversation(updated),traceId);
@@ -583,31 +634,54 @@ export class SupportService {
         if(replay.rows[0].request_hash!==hash)throw new DomainError("IDEMPOTENCY_CONFLICT","Idempotency key was used for another purge",409);
         return replay.rows[0].response_body;
       }
+      // Match the worker's policy → conversation → hold lock order. The
+      // policy cannot be disabled between eligibility and deletion.
+      await client.query("SELECT code FROM data_retention_policy WHERE code='support_conversation_policy_pending' FOR SHARE");
       const row=await this.findById(client,id,true);
       if(row.version!==expected)throw new DomainError("VERSION_CONFLICT","Conversation changed; reload before purging",409);
+      // The eligibility read and deletion must not race a newly inserted hold.
+      await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+      await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+      await client.query('LOCK TABLE privacy_request IN SHARE MODE');
       const state=await this.retentionState(client,row);
       if(state.reason==="policy_pending")throw new DomainError("SUPPORT_RETENTION_POLICY_PENDING","Support retention remains POLICY PENDING and cannot delete data",409);
+      if(state.reason==='transaction_scope_requires_separate_execution')throw new DomainError(
+        'SUPPORT_TRANSACTION_RETENTION_SCOPE','关联订单或售后的客服事实必须按交易范围单独处理，不能整段清除',409);
       if(state.reason==="not_resolved")throw new DomainError("SUPPORT_RETENTION_NOT_RESOLVED","Only resolved conversations can become purge eligible",409);
       if(state.reason==="legal_hold")throw new DomainError("SUPPORT_RETENTION_LEGAL_HOLD","An active legal hold blocks this purge",423);
+      if(state.reason==='privacy_request_active')throw new DomainError('SUPPORT_RETENTION_PRIVACY_REQUEST_ACTIVE',
+        'The member has an open privacy request; finish it before purging support history',409);
       if(state.reason!=="eligible")throw new DomainError("SUPPORT_RETENTION_NOT_DUE","The approved retention period has not elapsed",409);
       const messageCount=(await client.query<{count:number}>("SELECT count(*)::int AS count FROM support_message WHERE conversation_id=$1",[id])).rows[0]!.count;
+      if(this.suppression?.suppressionEnabled())await recordWholeSuppression(client,this.suppression,
+        {...row,resolved_at:row.resolved_at!},state.policyCode,true,new Date());
       await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
         SELECT id,object_key,'support_purged',clock_timestamp() FROM media_object
         WHERE support_conversation_id=$1 AND upload_state IN ('authorized','uploaded')
+          AND NOT EXISTS(SELECT 1 FROM support_message external_message
+            WHERE external_message.conversation_id<>$1 AND external_message.attachment_refs ? media_object.id::text)
         ON CONFLICT DO NOTHING`, [id]);
       await client.query("SELECT set_config('cisme.support_purge_conversation_id',$1,true)",[id]);
       await client.query("DELETE FROM support_message WHERE conversation_id=$1",[id]);
-      await client.query("DELETE FROM support_conversation WHERE id=$1",[id]);
+      const removed=Boolean((await client.query(`DELETE FROM support_conversation c WHERE c.id=$1
+        AND NOT EXISTS(SELECT 1 FROM media_object media WHERE media.support_conversation_id=c.id
+          AND media.upload_state IN ('authorized','uploaded')
+          AND NOT EXISTS(SELECT 1 FROM media_cleanup_queue queued WHERE queued.media_id=media.id))`,
+        [id])).rowCount);
+      if(!removed)await client.query(`UPDATE support_conversation SET member_unread_count=0,
+        team_unread_count=0,version=version+1,updated_at=clock_timestamp() WHERE id=$1`,[id]);
       const auditId=(await client.query<{id:string}>(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
         VALUES($1,'support.retention.purge','support_conversation',$2,'SUPPORT_RETENTION_POLICY',
           jsonb_build_object('policyCode',$3::text,'policyVersion',$4::integer,'messageCount',$5::integer,'resolvedAt',$6::timestamptz),
-          jsonb_build_object('purged',true),$7) RETURNING id`,[principal,id,state.policyCode,state.policyVersion,messageCount,row.resolved_at,traceId])).rows[0]!.id;
-      const response={conversationId:id,purged:true,messagesPurged:messageCount,policyCode:state.policyCode,policyVersion:state.policyVersion,auditTombstoneId:auditId};
-      await enqueue(client,{eventType:"support.conversation.purged.v1",aggregateType:"support_conversation",aggregateId:id,aggregateVersion:row.version+1,
+          jsonb_build_object('messagesPurged',true,'conversationRemoved',$7::boolean),$8) RETURNING id`,
+        [principal,id,state.policyCode,state.policyVersion,messageCount,row.resolved_at,removed,traceId])).rows[0]!.id;
+      const response={conversationId:id,purged:true,messagesPurged:messageCount,conversationRemoved:removed,
+        policyCode:state.policyCode,policyVersion:state.policyVersion,auditTombstoneId:auditId};
+      if(removed)await enqueue(client,{eventType:"support.conversation.purged.v1",aggregateType:"support_conversation",aggregateId:id,aggregateVersion:row.version+1,
         businessKey:`support-purge:${id}`,payload:{conversationId:id,policyCode:state.policyCode,policyVersion:state.policyVersion,messageCount},occurredAt:new Date()});
       await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
         VALUES($1,$2,$3,$4,$5,200,$6)`,[principal,operation,idempotencyKey,`support-purge:${id}`,hash,response]);
       return response;
-    });
+    },'READ COMMITTED',1,60_000);
   }
 }

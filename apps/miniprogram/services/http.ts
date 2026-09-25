@@ -1,5 +1,6 @@
 import { measurementClock, metricAction, projectNetworkPhases, recordClientMetric } from "./performance-metrics";
 import type { CloudHttpTarget } from "../release-config";
+import { nativeNetworkFailure } from "./network-failure";
 type JsonResponse = WechatMiniprogram.RequestSuccessCallbackResult<WechatMiniprogram.IAnyObject>;
 interface JsonRequest {
   path: string;
@@ -31,10 +32,7 @@ let initializedCloudEnv = "";
 export function normalizeTransportError(error: unknown): unknown {
   const input = error as { code?: string; errMsg?: string } | null;
   if (input?.code) return error;
-  const message = input?.errMsg ?? "";
-  if (/abort|cancel/i.test(message)) return { code: "REQUEST_ABORTED", title: "请求已取消" };
-  if (/timeout|time out/i.test(message)) return timeoutProblem();
-  return { code: "NETWORK_ERROR", title: "网络连接未完成，请检查连接后重试" };
+  return nativeNetworkFailure(input?.errMsg);
 }
 
 function timeoutProblem() {

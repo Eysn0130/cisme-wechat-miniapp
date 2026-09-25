@@ -1,0 +1,15 @@
+{
+  "sourceSha256": "b6073d63231fd61c14e0b4b4930cbbb3fbeed9265a99aebba633e92823a77e2c",
+  "environment": "WeChat DevTools develop simulator, local synthetic API, 333x719 viewport",
+  "orderId": "059e5cee-2156-474c-8e4d-1078f3f5ed9a",
+  "steps": [
+    "Opened paid synthetic order detail and tapped 售后服务",
+    "Verified native page-container bottom sheet and order identity",
+    "Switched to 先咨询客服 and entered a synthetic unsent draft",
+    "Expanded to pages/support/index; runtime retained the exact order ID and draft",
+    "Navigated back; original order page reopened the sheet with the same order ID and draft"
+  ],
+  "result": "pass_local_synthetic_order_support_draft_resume",
+  "keyframes": ["keyframes/order-aftersale-sheet.png", "keyframes/order-aftersale-resumed.png"],
+  "limits": "No message was sent, no aftersale application or refund was submitted, and a physical keyboard was not raised"
+}

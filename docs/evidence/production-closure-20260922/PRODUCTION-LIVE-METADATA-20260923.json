@@ -1,0 +1,28 @@
+{
+  "observedAtUtc": "2026-09-23T02:01:40.820080Z",
+  "source": "Authenticated Tencent Lighthouse production Login button -> TAT OrcaTerm session; fixed allowlisted metadata HTTP reads on that host",
+  "controlPlaneInstanceId": "lhins-61ikz4mi",
+  "controlPlaneName": "cisme-app-shanghai",
+  "metadataInstanceId": "ins-l9utqwxv",
+  "hostname": "VM-0-10-ubuntu",
+  "privateIpv4": "10.0.0.10",
+  "publicIpv4": "124.223.74.198",
+  "dnsA": [
+    "124.223.74.198"
+  ],
+  "domain": "api.cisme.cn",
+  "currentDirectory": "/opt/cisme/releases/20260909-native-login",
+  "sourceHead": "UNKNOWN",
+  "availableCommands": {
+    "tccli": false,
+    "gh": false,
+    "git": true
+  },
+  "credentialsRead": false,
+  "changed": false,
+  "mappingLimit": "Pinned association observed through this authenticated TAT connection, not a claim that the metadata ID is itself a Lighthouse ID. A rebuilt or replaced instance must be reviewed again.",
+  "officialSources": [
+    "https://cloud.tencent.com/document/api/1207/47573",
+    "https://cloud.tencent.com/document/product/213/4934"
+  ]
+}

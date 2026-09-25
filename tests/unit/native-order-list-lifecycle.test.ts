@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const m=vi.hoisted(()=>({token:"member-a",request:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,requireMemberAccess:()=>Boolean(m.token),retainMemberSnapshot:()=>true,clearAuthenticationRedirectSuppression:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,requireMemberAccess:()=>Boolean(m.token),
+ historicalCommerceToken:()=>m.token,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(m.token),
+ retainMemberSnapshot:()=>true,clearAuthenticationRedirectSuppression:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
 const later=()=>{let resolve!:(x:any)=>void,reject!:(x:any)=>void;const promise=new Promise<any>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
@@ -22,6 +24,6 @@ describe.each(["orders","management-orders"])("owned list reads: %s",name=>{
   it("clears retained sensitive display on forbidden refresh",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();read=later();void page.onShow();await flush();read.reject({status:403,title:"synthetic revoked"});await flush();expect(page.data.items).toEqual([]);expect(page.data.nextCursor).toBeNull();});
   it("blocks navigation immediately after account change even before onShow",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();m.token="member-b";page.open({currentTarget:{dataset:{id:item.id}}});expect(wx.navigateTo).not.toHaveBeenCalled();});
   it("ignores an old page after unload and allows fresh reads after show",async()=>{await load();const old=read;page.onUnload();read=later();void page.onShow();await flush();old.resolve({items:[item],nextCursor:"obsolete"});await flush();expect(page.data.items).toEqual([]);read.resolve({items:[{...item,orderNumber:"FRESH"}],nextCursor:null});await flush();expect(page.data.items[0].orderNumber).toBe("FRESH");});
-  it("keeps the explicit paid display instead of an internal state label",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();expect(page.data.items[0].statusLabel).toBe("已支付，待履约");});
+  it("keeps the explicit paid display instead of an internal state label",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();expect(page.data.items[0].statusLabel).toBe("已付款");});
 });
 it("hidden management authority denial cannot navigate the newly visible page",async()=>{await import("../../apps/miniprogram/pages/management-orders/index");void page.onShow();page.onHide();authority.reject({status:403});await flush();expect(wx.navigateBack).not.toHaveBeenCalled();expect(m.request.mock.calls.filter(([o])=>o.path.startsWith("/v1/management/"))).toHaveLength(0);});

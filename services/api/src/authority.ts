@@ -19,6 +19,18 @@ export async function requireActiveMemberWithClient(client:DbClient,memberId:str
   return owner;
 }
 
+/** A freshly verified privacy-rights identity may finish an existing trade.
+ * The caller must be an explicitly allowlisted historical route; ordinary
+ * member sessions must never use this to bypass account closure. */
+export async function requireHistoricalMemberWithClient(client:DbClient,memberId:string|undefined,
+  closedRights=false):Promise<string> {
+  if(!closedRights)return requireActiveMemberWithClient(client,memberId);
+  const owner=member(memberId);
+  const closed=await client.query("SELECT id FROM member WHERE id=$1 AND status='deleted' FOR SHARE",[owner]);
+  if(!closed.rowCount)throw new DomainError('MEMBER_NOT_CLOSED','历史账号身份已变化，请重新核验',403);
+  return owner;
+}
+
 export class AuthorityService {
   constructor(private readonly pool: pg.Pool, private readonly environment: AppEnvironment) {}
 

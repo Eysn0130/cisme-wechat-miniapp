@@ -276,7 +276,6 @@ image {
   font-size: var(--cisme-text-action);
   font-weight: 400;
   line-height: 20px;
-  transform: translateY(1px);
 }
 
 .primary {

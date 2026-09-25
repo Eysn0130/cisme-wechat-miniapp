@@ -4,8 +4,9 @@ import { resolve } from "node:path";
 import { miniProgramApiOrigins, miniProgramCloudFunctions } from "../apps/miniprogram/release-config";
 import { evaluateDesignQaEvidence } from "./design-qa-lib";
 import { validateInternalTestPackageSafety, validateWeChatRelease, type WeChatReleaseTarget } from "./wechat-release-lib";
+import { probeLegalEndpoint } from "./legal-endpoint-probe";
 
-type Command = "preflight" | "preview" | "upload";
+type Command = "preflight" | "preview" | "upload" | "diagnose";
 
 const root = resolve(import.meta.dirname, "..");
 const projectPath = resolve(root, "apps/miniprogram");
@@ -15,7 +16,15 @@ const devtoolsCli = process.env.WECHAT_DEVTOOLS_CLI ?? "/Applications/wechatwebd
 const command = (process.argv[2] ?? "preflight") as Command;
 const requestedTarget = process.argv[3] as WeChatReleaseTarget | undefined;
 
-if (!["preflight", "preview", "upload"].includes(command)) throw new Error(`UNKNOWN_WECHAT_RELEASE_COMMAND:${command}`);
+if (!["preflight", "preview", "upload", "diagnose"].includes(command)) throw new Error(`UNKNOWN_WECHAT_RELEASE_COMMAND:${command}`);
+
+// Read-only diagnosis is independent of filing/console declarations and CLI
+// installation. It never uploads a package or claims native acceptance.
+if (command === "diagnose") {
+  const probes = await Promise.all([miniProgramApiOrigins.preview, miniProgramApiOrigins.release].map(origin => probeLegalEndpoint(origin)));
+  console.log(JSON.stringify({ command, scope: "public-legal-bootstrap-only", probes }, null, 2));
+  process.exit(probes.every(probe => probe.ok) ? 0 : 1);
+}
 
 const target: WeChatReleaseTarget = command === "preview" ? "preview" : command === "upload" ? "trial" : (requestedTarget ?? "trial");
 if (!["local", "preview", "trial", "release"].includes(target)) throw new Error(`UNKNOWN_WECHAT_RELEASE_TARGET:${target}`);
@@ -71,11 +80,17 @@ if (target === "preview") {
   errors.push(...designQa.releaseErrors);
 }
 
+// The configured public endpoint must actually answer before producing another
+// ordinary QR. This does not replace console, device or environment-identity proof.
+const publicLegalProbe = target !== "local" && !miniProgramCloudFunctions[target]
+  ? await probeLegalEndpoint(apiOrigin) : null;
+if (publicLegalProbe && !publicLegalProbe.ok) errors.push(`PUBLIC_LEGAL_BOOTSTRAP_FAILED:${publicLegalProbe.code}`);
+
 if (errors.length) {
-  console.error(JSON.stringify({ ok: false, command, target, errors }, null, 2));
+  console.error(JSON.stringify({ ok: false, command, target, errors, publicLegalProbe }, null, 2));
   process.exitCode = 1;
 } else if (command === "preflight") {
-  console.log(JSON.stringify({ ok: true, command, target, appid: projectConfig.appid, apiOrigin }, null, 2));
+  console.log(JSON.stringify({ ok: true, command, target, appid: projectConfig.appid, apiOrigin, publicLegalProbe }, null, 2));
 } else {
   const evidenceDir = resolve(root, "docs/evidence/wechat");
   await mkdir(evidenceDir, { recursive: true });

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "observedDate": "2026-09-22",
+  "tool": "WeChat Developer Tools 2.02.2608070 / wechatide 0.3.9",
+  "device": "iPhone 12/13 (Pro) simulator, 62%, not a physical device",
+  "packageSourceSha256": "13039faab73b2a6c15e832b409aea6c93641e1ab379ed1b980af03ea7a52e917",
+  "currentScope": [
+    "manual_review from actual durable retries on owned DB",
+    "operator query through actual native button and API",
+    "synced observation from explicit synthetic query-only provider",
+    "real DB authority revocation redirects away and clears order"
+  ],
+  "syntheticProvider": true,
+  "realWechatShippingCalled": false,
+  "realFunds": false,
+  "physicalIos": false,
+  "physicalAndroid": false,
+  "all37RouteStateMatricesComplete": false,
+  "ownedRuns": [
+    "319d6864b90e898cf242e8a9",
+    "68d3276b483eed0117494900"
+  ],
+  "ownedResourcesRemoved": true,
+  "images": [
+    {
+      "file": "docs/evidence/production-closure-20260922/native/manual-query-resolved-current.png",
+      "sha256": "9b79de17dbea0b529ef97d6e2fb80bc9c46ae75478d15f7ef4b073e2e299f7c4",
+      "packageSourceSha256": "13039faab73b2a6c15e832b409aea6c93641e1ab379ed1b980af03ea7a52e917",
+      "scope": "current native synthetic recovery/revocation"
+    },
+    {
+      "file": "docs/evidence/production-closure-20260922/native/manual-review-current.png",
+      "sha256": "ae80930843ab6cd81155f4e023af96dd3b8df1d41e00ce7b8cda1707334f2c46",
+      "packageSourceSha256": "13039faab73b2a6c15e832b409aea6c93641e1ab379ed1b980af03ea7a52e917",
+      "scope": "current native synthetic recovery/revocation"
+    },
+    {
+      "file": "docs/evidence/production-closure-20260922/native/revoked-redirect-current.png",
+      "sha256": "eaa076dfcf182a64d897e2c8bb382af67a930b2f7e61a97e90742bd8768f98f1",
+      "packageSourceSha256": "13039faab73b2a6c15e832b409aea6c93641e1ab379ed1b980af03ea7a52e917",
+      "scope": "current native synthetic recovery/revocation"
+    },
+    {
+      "file": "docs/evidence/production-closure-20260922/native/synthetic-after-dispatch.png",
+      "sha256": "b7b5ad12a003c3a43488e20f8b6d7a11ca646a4a09793819b3772cbf171457f5",
+      "packageSourceSha256": "cc0d919e7ae21f9d236326b6623838676d3a873fd0937bcb00ae00b1bb10e34d",
+      "scope": "historical intermediate native dispatch; not final-source full acceptance"
+    },
+    {
+      "file": "docs/evidence/production-closure-20260922/native/synthetic-before-dispatch.png",
+      "sha256": "0cb2ba52342816d22c390a5c6ab51b1a9edca92a5f222ba5ea46f86539c2703c",
+      "packageSourceSha256": null,
+      "scope": "historical intermediate native dispatch; not final-source full acceptance"
+    }
+  ]
+}

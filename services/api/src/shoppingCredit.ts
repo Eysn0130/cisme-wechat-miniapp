@@ -20,11 +20,12 @@ function key(value:unknown){if(typeof value!=="string"||!KEY.test(value))
   throw new DomainError("IDEMPOTENCY_KEY_INVALID","转换请求键无效",400);return value;}
 function id(value:string){if(!UUID.test(value))throw new DomainError("CREDIT_CONVERSION_ID_INVALID","转换编号无效",422);return value;}
 
-/** Called in the same transaction as a signed refund reversal, with its source
- * order locked. Historical credit is never deleted or silently reclaimed:
+/** Called in the same transaction as a signed refund reversal or local credit
+ * return, with its source order locked. Historical credit is never deleted or silently reclaimed:
  * at-risk unused lots get immutable negative freeze entries, while an amount
  * no longer available for freezing is an explicit recovery exposure. */
-export async function freezeCreditExposureForRefund(client:DbClient,orderId:string,refundFactId:string){
+export async function freezeCreditExposureForRefund(client:DbClient,orderId:string,refundFactId:string,
+  actorPrincipalId='worker:refund-inbox'){
   const ledger=(await client.query<{kind:string;amount_cents:string}>(`SELECT kind,amount_cents
     FROM commission_ledger_entry WHERE order_id=$1`,[orderId])).rows;
   const sum=(...kinds:string[])=>ledger.filter(row=>kinds.includes(row.kind))
@@ -52,14 +53,14 @@ export async function freezeCreditExposureForRefund(client:DbClient,orderId:stri
     if(!take)continue;
     await client.query(`INSERT INTO commission_credit_entry
       (source_id,event_key,kind,amount_cents,actor_principal_id)
-      VALUES($1,$2,'freeze',$3,'worker:refund-inbox')`,
-      [source.id,`credit-refund-freeze:${refundFactId}:${source.id}`,-take]);
+      VALUES($1,$2,'freeze',$3,$4)`,
+      [source.id,`credit-refund-freeze:${refundFactId}:${source.id}`,-take,actorPrincipalId]);
     remaining-=take;
   }
   if(remaining)await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,
-    reason_code,after_state,trace_id) VALUES('worker:refund-inbox','commission.credit_recovery_exposure',
-    'commerce_order',$1,'CREDIT_EXPOSURE_UNCOVERED',$2,$3)`,
-    [orderId,{uncoveredCents:remaining,targetFrozenCents:target},`credit-refund:${refundFactId}`]);
+    reason_code,after_state,trace_id) VALUES($1,'commission.credit_recovery_exposure',
+    'commerce_order',$2,'CREDIT_EXPOSURE_UNCOVERED',$3,$4)`,
+    [actorPrincipalId,orderId,{uncoveredCents:remaining,targetFrozenCents:target},`credit-refund:${refundFactId}`]);
   return {targetFrozenCents:target,newlyFrozenCents:initiallyRequired-remaining,uncoveredCents:remaining};
 }
 
@@ -220,7 +221,8 @@ export class ShoppingCreditService{
     return transaction(this.pool,async client=>{
     const count=(await client.query<{n:number}>(`SELECT count(*)::int AS n
       FROM commission_credit_conversion WHERE member_id=$1`,[memberId])).rows[0]?.n??0;
-    const rows=(await client.query<Conversion>(`SELECT c.*,
+    const rows=(await client.query<Conversion & {cursor_at:string}>(`SELECT c.*,
+      to_char(c.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
       COALESCE((SELECT sum(e.amount_cents) FROM commission_credit_source s
         JOIN commission_credit_entry e ON e.source_id=s.id WHERE s.conversion_id=c.id),0)::text AS available_cents,
       (SELECT count(*)::int FROM commission_credit_source s
@@ -249,7 +251,7 @@ export class ShoppingCreditService{
     ) SELECT COALESCE(sum(amount_cents),0)::text AS amount_cents,
       COALESCE(sum(amount_cents) FILTER (WHERE can_checkout AND amount_cents>0),0)::text AS checkout_cents
       FROM eligible`,[memberId])).rows[0]!;
-    return {...finishPage(rows.map(row=>({...this.view(row),cancellable:this.environment==="test"&&this.view(row).cancellable,cursorAt:row.created_at.toISOString()})),limit,scope),
+    return {...finishPage(rows.map(row=>({...this.view(row),cancellable:this.environment==="test"&&this.view(row).cancellable,cursorAt:row.cursor_at})),limit,scope),
       totalCount:count,availableCents:Number(available.amount_cents),
       checkoutAvailableCents:this.environment==="test"?Number(available.checkout_cents):0,spendable:this.environment==="test"&&Number(available.checkout_cents)>0,
       redemptionStatus:"ISOLATED_TEST_ONLY" as const};

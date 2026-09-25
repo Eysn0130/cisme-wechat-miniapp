@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "instanceId": "lhins-61ikz4mi",
+  "region": "ap-shanghai",
+  "preparedEnvironmentFile": "/opt/cisme/runtime-r5-prepared.env",
+  "preparedEnvironmentMode": "0640 root:cisme",
+  "suppressionDirectory": "/opt/cisme/privacy-suppression",
+  "suppressionDirectoryMode": "0700 cisme:cisme",
+  "formalExportKey": "generated on the instance; 64 hexadecimal characters; value not recorded in evidence",
+  "activeEnvironmentFile": "/opt/cisme/runtime.env",
+  "activeRuntimeChanged": false,
+  "limits": "Prepared configuration only. APP_ENV remains staging in this copy. COS suppression access, API/Worker deployment, production commerce settings, rollback, and alert delivery have not yet been verified."
+}

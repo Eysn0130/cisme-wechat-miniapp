@@ -8,8 +8,14 @@ const requireMemberAccessMock = vi.hoisted(() => vi.fn(() => true));
 const retainMemberSnapshotMock = vi.hoisted(() => vi.fn(() => true));
 const resumeAuthenticationMock = vi.hoisted(() => vi.fn());
 const uploadAuthorizedMock = vi.hoisted(() => vi.fn());
+const setSessionTokenMock = vi.hoisted(() => vi.fn());
+const setPrivacyRightsTokenMock = vi.hoisted(() => vi.fn());
+const downloadPrivateMediaMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../apps/miniprogram/services/api", () => ({
+  historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken || (globalThis as any).getApp().globalData.privacyRightsToken || "",
+  historicalCommerceClosed: () => Boolean(!(globalThis as any).getApp().globalData.sessionToken && (globalThis as any).getApp().globalData.privacyRightsToken),
+  requireHistoricalCommerceAccess: () => requireMemberAccessMock(),
   allowPublicBrowsing: vi.fn(() => true),
   requireMemberAccess: requireMemberAccessMock,
   retainMemberSnapshot: retainMemberSnapshotMock,
@@ -22,7 +28,9 @@ vi.mock("../../apps/miniprogram/services/api", () => ({
   navigateAfterAuthentication: vi.fn(async () => "target"),
   request: requestMock,
   uploadAuthorized: uploadAuthorizedMock,
-  setSessionToken: vi.fn(),
+  setSessionToken: setSessionTokenMock,
+  setPrivacyRightsToken: setPrivacyRightsTokenMock,
+  downloadPrivateMedia: downloadPrivateMediaMock,
   submissionReturnUrl: () => "/pages/task/index?id=task-1"
 }));
 
@@ -64,6 +72,9 @@ beforeEach(() => {
   retainMemberSnapshotMock.mockReturnValue(true);
   resumeAuthenticationMock.mockReset();
   uploadAuthorizedMock.mockReset();
+  setSessionTokenMock.mockReset();
+  setPrivacyRightsTokenMock.mockReset();
+  downloadPrivateMediaMock.mockReset();
   capturedPage = null;
   wxMock = {
     navigateTo: vi.fn(),
@@ -85,6 +96,7 @@ beforeEach(() => {
     hideShareMenu: vi.fn(),
     showShareMenu: vi.fn(),
     showModal: vi.fn(),
+    login: vi.fn(async()=>({code:'fresh-wechat-code'})),
     requirePrivacyAuthorize: vi.fn(),
     chooseMedia: vi.fn(),
     nextTick: vi.fn((callback: () => void) => callback()),
@@ -97,6 +109,36 @@ beforeEach(() => {
 });
 
 describe("mini-program page behavior", () => {
+  it("lets an iOS preview retry unavailable legal documents before enabling consent", async () => {
+    wxMock.getDeviceInfo!.mockReturnValue({ platform: "ios" });
+    requestMock.mockRejectedValueOnce(new Error("network unavailable"));
+    await vi.importActual("../../apps/miniprogram/pages/account/index");
+    const account = mountedPage(capturedPage!);
+    await account.syncLegalDocuments();
+    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: false, agreementAccepted: false, legalLoadError: "unreachable" });
+    await account.openTerms();
+    expect(account.data.error).toBe("协议服务暂时无法连接，请稍后重试。");
+
+    requestMock.mockResolvedValueOnce({ ready: true, documents: [
+      { document_type: "privacy", version: "privacy-staging" },
+      { document_type: "terms", version: "terms-staging" }
+    ] });
+    await account.syncLegalDocuments();
+    expect(requestMock).toHaveBeenLastCalledWith({ path: "/v1/legal", authMode: "public" });
+    expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: true, agreementAccepted: false, legalLoadError: "", error: "" });
+  });
+
+  it("does not describe unpublished legal documents as a connection failure", async () => {
+    wxMock.getDeviceInfo!.mockReturnValue({ platform: "ios" });
+    requestMock.mockResolvedValueOnce({ ready: false, documents: [] });
+    await vi.importActual("../../apps/miniprogram/pages/account/index");
+    const account = mountedPage(capturedPage!);
+    await account.syncLegalDocuments();
+    expect(account.data).toMatchObject({ legalTextsReady: false, legalLoadError: "unpublished" });
+    account.openPrivacy();
+    expect(account.data.error).toBe("当前隐私指引尚未发布，请稍后重试。");
+  });
+
   it("clears task, review, and settings snapshots before a guest can return from login", async () => {
     retainMemberSnapshotMock.mockReturnValue(false);
     requireMemberAccessMock.mockReturnValue(false);
@@ -729,7 +771,25 @@ describe("mini-program page behavior", () => {
     expect(uploadAuthorizedMock).not.toHaveBeenCalled();
   });
 
-  it("drops support image callbacks after account switch or page hide", async () => {
+  it("keeps closed-account support text bound to its verified historical order", async () => {
+    const orderId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    (globalThis as any).getApp=()=>({globalData:{sessionToken:"",privacyRightsToken:"historical-rights"}});
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const context=mountedPage(capturedPage!,{pageAlive:true,visible:true,closedRights:true,input:"核对原订单退款",selectedImage:null});
+    context.linkedOrderId=orderId;context.lifecycleEpoch=1;context.append=vi.fn();context.startPolling=vi.fn();
+    requestMock.mockResolvedValue({message:{id:"recorded",attachments:[],orderCard:null},
+      conversation:{id:"conversation",status:"waiting_human"}});
+    await context.send();
+    const sent=requestMock.mock.calls.find(([options])=>options.path==="/v1/me/support/messages")?.[0];
+    expect(sent).toMatchObject({method:"POST",data:{body:"核对原订单退款",linkedOrderId:orderId}});
+    expect(sent.data).not.toHaveProperty("mediaIds");
+    expect(requestMock.mock.calls.some(([options])=>["/v1/me/support/presence","/v1/me/support/read"].includes(options.path))).toBe(false);
+    context.openImageSheet();expect(context.data.attachmentSheetOpen).toBe(false);
+    const direct=mountedPage(capturedPage!);direct.onLoad({});direct.onShow();
+    expect(wxMock.redirectTo).toHaveBeenCalledWith({url:"/pages/privacy-rights/index"});
+  });
+
+  it("drops support image callbacks after account switch, including a native page handoff", async () => {
     const app = { globalData: { sessionToken: "support-member-a" } };
     (globalThis as any).getApp = () => app;
     let allow!: () => void;
@@ -757,10 +817,12 @@ describe("mini-program page behavior", () => {
     context.abortTransientWork = vi.fn();
     page.onHide.call(context);
     resolveChosen({ tempFiles: [{ tempFilePath: "/synthetic/private.jpg", size: 100 }] });
+    app.globalData.sessionToken = "support-member-b";
+    page.onShow.call(context);
     await hidden;
     expect(context.data.input).toBe("尚未发送的文字");
     expect(context.data.selectedImage).toBeNull();
-    expect(requestMock).not.toHaveBeenCalled();
+    expect(requestMock.mock.calls.some(([options]) => options.path === "/v1/me/support/media/authorize")).toBe(false);
     expect(uploadAuthorizedMock).not.toHaveBeenCalled();
   });
 
@@ -970,6 +1032,23 @@ describe("mini-program page behavior", () => {
     expect(context.data.loading).toBe(false);
     expect(context.data.identityCommitStarted).toBe(false);
   });
+  it("re-identifies a closed account for its existing rights record without a member session", async () => {
+    requestMock.mockRejectedValueOnce({status:410,code:"ACCOUNT_CLOSED",title:"账号已注销"});
+    await vi.importActual("../../apps/miniprogram/pages/account/index");
+    const page=capturedPage!;
+    const context=mountedPage(page,{agreementAccepted:true,legalTextsReady:true});
+    await page.login.call(context);
+    expect(context.data.error).toContain("账号已注销");
+    expect(context.data.error).not.toContain("服务端可能已完成核验");
+    expect(context.data.accountHelpAvailable).toBe(true);
+    requestMock.mockResolvedValueOnce({scope:'privacy_rights',sessionToken:'rights-only-token'});
+    await page.openAccountHelp.call(context);
+    expect(requestMock).toHaveBeenLastCalledWith({path:'/v1/identity/wechat/privacy-rights',
+      method:'POST',authMode:'public',data:{code:'fresh-wechat-code'}});
+    expect(setPrivacyRightsTokenMock).toHaveBeenCalledWith('rights-only-token');
+    expect(setSessionTokenMock).not.toHaveBeenCalled();
+    expect(context.data.accountHelpBusy).toBe(false);
+  });
   it("drops a late Account avatar result after the page is hidden", async () => {
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: "member-a" } });
     let complete!: (results: unknown[]) => void;
@@ -1165,7 +1244,7 @@ it('discards a late synthetic privacy export after leaving the page or switching
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  const appState={globalData:{sessionToken:'owner-token'}};
  (globalThis as any).getApp=()=>appState;
- const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true,records:[{id:'request-a',execution:{scope:'member_profile_only',downloadAvailable:true}}]});
  let resolveArchive!: (value:unknown)=>void;
  requestMock.mockImplementationOnce(()=>new Promise(resolve=>{resolveArchive=resolve;}));
  const pending=page.viewExport({currentTarget:{dataset:{id:'request-a'}}});
@@ -1178,7 +1257,7 @@ it('discards a late synthetic privacy export after leaving the page or switching
 it('shows only an explicitly opened own profile subset and clears it on hide',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
- const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true,records:[{id:'request-a',execution:{scope:'member_profile_only',downloadAvailable:true}}]});
  requestMock.mockResolvedValueOnce({scope:'member_profile_only',member:{displayName:'Owner'},profile:{wechatHandle:'ownerwx'}});
  await page.viewExport({currentTarget:{dataset:{id:'request-a'}}});
  expect(page.data.visibleExport).toEqual({requestId:'request-a',displayName:'Owner',wechatHandle:'ownerwx'});
@@ -1190,10 +1269,91 @@ it('labels a synthetic scoped erasure as partial and leaves unrelated data uncla
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
  (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
  const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
- requestMock.mockResolvedValueOnce([{id:'request-a',kind:'delete',status:'partially_completed',execution:{type:'erasure',status:'partially_succeeded',scopeCode:'member_profile_handle_v1'}}]);
+ requestMock.mockResolvedValueOnce({items:[{id:'request-a',kind:'delete',status:'partially_completed',execution:{type:'erasure',status:'partially_succeeded',scopeCode:'member_profile_handle_v1'}}],nextCursor:null});
  await page.load();
- expect(page.data.records[0].executionSummary).toContain('仅清除自报微信号，其他资料未删除');
+ expect(page.data.records[0].executionSummary).toContain('已清除自报微信号，其他资料仍保留');
  expect(page.data.records[0].statusLabel).toBe('部分完成');
+});
+
+it('describes a limited privacy copy without exposing test or unknown status codes',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce({items:[
+  {id:'copy',kind:'access',status:'partially_completed',execution:{type:'export',status:'partially_succeeded',scope:'member_profile_only',deliveryState:'available'}},
+  {id:'new',kind:'future_kind',status:'future_status',execution:{type:'export',status:'future_execution'}}
+ ],nextCursor:null});
+ await page.load();
+ expect(page.data.records[0].executionSummary).toContain('会员资料副本可查看');
+ expect(page.data.records[0].executionSummary).not.toContain('合成');
+ expect(page.data.records[1]).toMatchObject({label:'隐私请求',statusLabel:'状态待核对',executionSummary:''});
+});
+
+it('shows a distinct privacy decision once, including the closure retention explanation',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token'}});
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce({items:[
+  {id:'closure',kind:'close_account',status:'completed',response:'账号已注销。历史交易与售后资料按必要期限隔离保留。',replyHistory:[]},
+  {id:'duplicate',kind:'access',status:'responded',response:'请补充范围',replyHistory:[{actor:'operator',body:'请补充范围'}]}
+ ],nextCursor:null});
+ await page.load();
+ expect(page.data.records[0].responseSummary).toContain('历史交易与售后资料');
+ expect(page.data.records[1].responseSummary).toBe('');
+});
+
+it('resumes a privacy draft after interruption without a stuck busy state or a late result',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'owner-token'}};
+ (globalThis as any).getApp=()=>appState;
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true,selected:0});
+ requestMock.mockImplementation(async ({path}:{path:string})=>path==='/v1/legal'?{documents:[]}:{items:[],nextCursor:null});
+ page.onShow();await Promise.resolve();await Promise.resolve();page.setData({message:'导出我的资料'});
+ let resolveWrite!:(value:unknown)=>void;
+ requestMock.mockImplementationOnce(()=>new Promise(resolve=>{resolveWrite=resolve;}));
+ const pending=page.submit();expect(page.data.busy).toBe(true);
+ page.onHide();expect(page.data.busy).toBe(false);expect(page.data.message).toBe('导出我的资料');
+ resolveWrite({id:'old-result'});await pending;
+ expect(page.data.notice).toBe('');
+ requestMock.mockImplementation(async ({path}:{path:string})=>path==='/v1/legal'?{documents:[]}:{items:[],nextCursor:null});
+ page.onShow();expect(page.data.selected).toBe(0);expect(page.data.message).toBe('导出我的资料');
+ appState.globalData.sessionToken='other-token';page.onHide();page.onShow();expect(page.data.message).toBe('');
+});
+
+it('loads later privacy records without duplicating a row and clears them after identity changes',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'owner-token'}};
+ (globalThis as any).getApp=()=>appState;
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce({items:[{id:'request-a',kind:'access',status:'received'}],nextCursor:'cursor-one'});
+ await page.load();
+ requestMock.mockResolvedValueOnce({items:[{id:'request-a',kind:'access',status:'received'},{id:'request-b',kind:'delete',status:'reviewing'}],nextCursor:null});
+ await page.loadMore();
+ expect(requestMock).toHaveBeenLastCalledWith({path:'/v1/me/privacy-requests?page=1&cursor=cursor-one'});
+ expect(page.data.records.map((row:{id:string})=>row.id)).toEqual(['request-a','request-b']);
+ expect(page.data.nextCursor).toBeNull();
+ page.data.nextCursor='cursor-two';
+ let resolvePage!:(value:unknown)=>void;
+ requestMock.mockImplementationOnce(()=>new Promise(resolve=>{resolvePage=resolve;}));
+ const pending=page.loadMore();
+ page.onHide();appState.globalData.sessionToken='other-token';
+ resolvePage({items:[{id:'private-request',kind:'access',status:'received'}],nextCursor:null});
+ await pending;
+ expect(page.data.records).toEqual([]);
+});
+
+it('clears visible privacy records before paging after an account switch',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'owner-token'}};
+ (globalThis as any).getApp=()=>appState;
+ const page=mountedPage(capturedPage!,{authenticated:true,alive:true});
+ requestMock.mockResolvedValueOnce({items:[{id:'private-request',kind:'access',status:'received'}],nextCursor:'cursor-one'});
+ await page.load();
+ appState.globalData.sessionToken='other-token';
+ await page.loadMore();
+ expect(requestMock).toHaveBeenCalledTimes(1);
+ expect(page.data.records).toEqual([]);
+ expect(page.data.nextCursor).toBeNull();
 });
 
 
@@ -1206,4 +1366,95 @@ it('loads privacy operator, version and contact from the shared public legal sou
  expect(page.data.legalIdentity).toEqual({operator:'Approved operator fixture',version:'fixture-v2',contact:'Approved contact fixture'});
  requestMock.mockRejectedValueOnce(new Error('network'));
  await page.loadLegalIdentity();expect(page.data.legalIdentity).toBeNull();
+});
+
+it('offers historical rights after closure without another account-closure action',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'',privacyRightsToken:'closed-rights-token'}};
+ (globalThis as any).getApp=()=>appState;
+ requestMock.mockImplementation(async ({path,method}:{path:string;method?:string})=>
+  path==='/v1/legal'?{documents:[]}:
+  path==='/v1/me/commercial-membership'?{commission:{availableCents:1234,pendingCents:200,paymentHeldCents:0,currency:'CNY'}}:
+  method==='POST'?{id:'historic-rights'}:{items:[],nextCursor:null});
+ const page=mountedPage(capturedPage!,{alive:true});
+ page.onShow();
+ await page.loadHistoricalBalance('closed-rights-token');
+ expect(page.data.closedRights).toBe(true);
+ expect(page.data.historicalBalance).toEqual({available:'12.34',pending:'2.00',held:'0.00'});
+ expect(page.data.labels).not.toContain('注销会员账号');
+ page.setData({selected:3,message:'撤回仍在使用的可选同意'});
+ await page.submit();
+ expect(requestMock).toHaveBeenCalledWith({path:'/v1/me/privacy-requests',method:'POST',
+  data:{kind:'withdraw',message:'撤回仍在使用的可选同意'}});
+});
+
+it('shares only an owner-listed supplementary image and clears its temporary file',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'',privacyRightsToken:'closed-rights-token'}});
+ const abort=vi.fn(),mediaId='ce0d8c19-22c4-47a4-b1a8-4d15efb5df13';
+ downloadPrivateMediaMock.mockReturnValue({promise:Promise.resolve('/tmp/owned-image'),abort});
+ wxMock.shareFileMessage=vi.fn(({success}:{success:()=>void})=>success());
+ const page=mountedPage(capturedPage!,{alive:true,closedRights:true,records:[{
+  id:'request-a',execution:{downloadAvailable:true,unavailableMedia:[{id:mediaId,mimeType:'image/webp',reason:'inline_copy_size_limit'}]}}]});
+ await page.viewSupplementary({currentTarget:{dataset:{requestId:'request-a',mediaId}}});
+ expect(downloadPrivateMediaMock).toHaveBeenCalledWith(`/v1/me/privacy-requests/request-a/media/${mediaId}`,true);
+ expect(wxMock.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({filePath:'/tmp/owned-image',
+  fileName:`CISME-补充图片-${mediaId.slice(-6)}.webp`}));
+ expect(abort).toHaveBeenCalledOnce();
+ expect(page.data.notice).toContain('补充图片');
+});
+
+it('shares an owner-listed supplementary video from the existing privacy request',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ (globalThis as any).getApp=()=>({globalData:{sessionToken:'owner-token',privacyRightsToken:''}});
+ const mediaId='ce0d8c19-22c4-47a4-b1a8-4d15efb5df14';
+ downloadPrivateMediaMock.mockReturnValue({promise:Promise.resolve('/tmp/owned-video'),abort:vi.fn()});
+ wxMock.shareFileMessage=vi.fn(({success}:{success:()=>void})=>success());
+ const page=mountedPage(capturedPage!,{alive:true,records:[{id:'request-video',execution:{downloadAvailable:true,
+  unavailableMedia:[{id:mediaId,mimeType:'video/mp4',reason:'video_requires_separate_copy'}]}}]});
+ await page.viewSupplementary({currentTarget:{dataset:{requestId:'request-video',mediaId}}});
+ expect(wxMock.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({filePath:'/tmp/owned-video',
+  fileName:`CISME-补充视频-${mediaId.slice(-6)}.mp4`}));
+ expect(page.data.notice).toContain('补充视频');
+});
+
+it('confirms self account closure once and rejects an identity switch while the modal is open',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:'owner-token',privacyRightsToken:''}};
+ (globalThis as any).getApp=()=>appState;
+ let decide:(value:{confirm:boolean})=>void=()=>{};
+ wxMock.showModal!.mockImplementation(({success}:{success:(value:{confirm:boolean})=>void})=>{decide=success;});
+ const page=mountedPage(capturedPage!,{alive:true,authenticated:true,selected:3});
+ const first=page.submit();
+ await page.submit();
+ expect(wxMock.showModal).toHaveBeenCalledTimes(1);
+ appState.globalData.sessionToken='different-member-token';
+ decide({confirm:true});await first;
+ expect(requestMock).not.toHaveBeenCalled();
+ expect(page.data.busy).toBe(false);
+ appState.globalData.sessionToken='owner-token';
+ requestMock.mockResolvedValueOnce({accountClosed:true});
+ const second=page.submit();decide({confirm:true});await second;
+ expect(requestMock).toHaveBeenCalledWith({path:'/v1/me/privacy-requests',method:'POST',
+  data:{kind:'close_account',message:'本人申请注销 CISME 账号'}});
+ expect(setSessionTokenMock).toHaveBeenCalledWith('');
+ expect(page.data.authenticated).toBe(false);
+});
+
+it('routes privacy contact to the existing support conversation, including after login',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
+ const appState={globalData:{sessionToken:''}};
+ (globalThis as any).getApp=()=>appState;
+ const page=mountedPage(capturedPage!,{alive:true});
+ page.openSupport();
+ expect(resumeAuthenticationMock).toHaveBeenCalledWith('/pages/support/index');
+ expect(wxMock.navigateTo).not.toHaveBeenCalled();
+ appState.globalData.sessionToken='owner-token';
+ page.openSupport();page.openSupport();
+ expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
+ expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/support/index'}));
+ const failure=wxMock.navigateTo!.mock.calls[0]![0].fail;
+ failure();
+ expect(page.data.error).toContain('重试');
+ expect(page.data.supportOpening).toBe(false);
 });

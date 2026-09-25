@@ -46,10 +46,10 @@ export class MoneyOperationsService{
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actorId,"commerce.money.reconcile");
       const totalCount=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM (${union}) issue`)).rows[0]?.n??0;
-      const rows=(await client.query(`SELECT * FROM (${union}) issue
+      const rows=(await client.query(`SELECT *,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at FROM (${union}) issue
         WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
         ORDER BY created_at DESC,id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
-      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.created_at).toISOString(),
+      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:row.cursor_at,
         kind:row.kind,relatedId:row.related_id,code:row.code??"NEEDS_REVIEW",
         attempts:Number(row.attempts),canRedrive:Boolean(row.can_redrive),
         createdAt:row.created_at})),limit,scope),totalCount};
@@ -78,7 +78,7 @@ export class MoneyOperationsService{
         if(!row)throw new DomainError("PAYMENT_ATTEMPT_NOT_FOUND","原支付意图不存在",404);
         number=row.order_number;
       }else{
-        const query=kind==="refund"?"SELECT id FROM commission_refund_intent WHERE id=$1":
+        const query=kind==="refund"?"SELECT id FROM commission_refund_intent WHERE id=$1 AND execution_kind='wechat'":
           "SELECT id FROM commission_settlement_request WHERE id=$1";
         if(!(await client.query(query,[target])).rowCount)
           throw new DomainError("MONEY_RECHECK_TARGET_NOT_FOUND","原资金意图不存在",404);

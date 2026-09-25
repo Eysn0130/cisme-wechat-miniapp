@@ -21,7 +21,7 @@ beforeAll(async()=>{
   app=await createApp({config,pool:accesses as unknown as pg.Pool,storage:{} as ObjectStorage});await app.ready();
 });
 afterAll(async()=>{await app?.close();});
-it("retains the explicit authentication denominator",()=>{expect(routes).toHaveLength(195);});
+it("retains the explicit authentication denominator",()=>{expect(routes).toHaveLength(225);});
 it.each(routes)("rejects missing and invalid authentication before data access: $method $path",async({method,path})=>{
   const index=routes.findIndex(r=>r.method===method&&r.path===path);
   const url=path.replace(/\{[^}]+\}/g,"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
@@ -29,6 +29,14 @@ it.each(routes)("rejects missing and invalid authentication before data access: 
     const result=await app.inject({method,url,remoteAddress:`192.0.2.${index+1}`,headers:authorization?{authorization}:{},
       ...(["GET","HEAD","OPTIONS"].includes(method)?{}:{payload:{}})});
     expect(result.statusCode,`${method} ${path}: ${result.body}`).toBe(401);
+    expect(result.headers["cache-control"]).toBe("private, no-store");
   }
   expect(accesses.query).not.toHaveBeenCalled();expect(accesses.connect).not.toHaveBeenCalled();
+});
+it("prevents caching cloud-wrapped auth errors and anonymous API responses",async()=>{
+  for(const url of ["/v1/capabilities","/v1/commerce/orders/status","/v1/me/privacy-requests","/v1/not-a-route"]){
+    const result=await app.inject({url,headers:{"x-cisme-transport":"cloud-http-v1"}});
+    expect(result.headers["cache-control"],url).toBe("private, no-store");
+  }
+  expect((await app.inject({url:"/health/live"})).headers["cache-control"]).toBeUndefined();
 });

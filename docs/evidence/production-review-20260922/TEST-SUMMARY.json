@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "reviewedHead": "4ef5c92e36cd24b6b030a86cf0b23e9e8c5c4530",
+  "mainObserved": "5740e18544fa37dd473c36934a2a12a07a2d5ec9",
+  "scope": "offline subset; not a full repository, DB, cloud, native or device acceptance",
+  "originalScriptGitBlob": "9ede653097e6ac3717d326ff0b7aab5447bf5e90",
+  "red": {
+    "methods": 20,
+    "exitCode": 1,
+    "reportedFailuresIncludingSubtests": 31
+  },
+  "green": {
+    "methods": 34,
+    "exitCode": 0,
+    "migrationIntegrityMethods": 20,
+    "productionIdentityMethods": 14
+  },
+  "runtime": {
+    "node": "v22.16.0",
+    "python": "Python 3.13.5"
+  },
+  "files": {
+    "scripts/release-migrate.mjs": "acf834a797db00b0dedc347afc05bc980874081cd4a232638dbeb7aa3b49365f",
+    "infra/tencent/production-target.py": "4fc403288db9486f7ad721617ab3c8edfd5cc0643c15ec52179b042119e36f74",
+    "infra/tencent/test_staging_release_integrity.py": "07055ab99e70cac83ddae9c0ccb8fb1e6c73cb99f1fc526b3ebb7e121bbee180",
+    "infra/tencent/test_staging_production_target.py": "361073243f69813d28fa01c2de08cc4ed7c086ce48a4948955f322847b88e92a"
+  },
+  "logs": {
+    "release-integrity-red.log": "7586811cade09b6f8beca2ca270fa0f8d32e65dc9646a31cc1f15bb66a08cfba",
+    "offline-green.log": "4b6fc5fef02df93453c81f4bd1623964dce13d3ef1605d84a4d2409c0bb08080",
+    "release-integrity-green.log": "0c3617ea3a06386c53c1d4f2e693735ea6bb6a199f272a324f42466802b4da27"
+  },
+  "mainMerged": false,
+  "productionDeployed": false,
+  "releaseReady": false
+}

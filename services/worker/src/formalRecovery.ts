@@ -5,8 +5,7 @@ import { formalPaymentProtocol } from '../../api/src/formalPaymentProtocol.js';
 import { RefundCommandService } from '../../api/src/refundCommand.js';
 import { AuthorityService } from '../../api/src/authority.js';
 
-/** History-only worker: no processDue, prepay, close, refund create or transfer.
- * Missing/expired independent grants skip their own lane, not other lanes. */
+/** Missing/expired independent grants skip their own lane, not other lanes. */
 export async function runFormalRecoveryCycle(lanes:Array<{authorize:()=>unknown;run:()=>Promise<unknown>}>){
   const results=[];
   for(const lane of lanes){
@@ -15,6 +14,16 @@ export async function runFormalRecoveryCycle(lanes:Array<{authorize:()=>unknown;
     catch{results.push({status:'failed'});}
   }
   return results;
+}
+/** A configured command lane still rechecks the live grant before every batch;
+ * the channel separately checks it before every outbound refund submission.
+ * Callback/query recovery continues when new-money authority is absent. */
+export function formalRefundSubmissionLane(protocol:Pick<NonNullable<ReturnType<typeof formalPaymentProtocol>>,'authorizeCommerce'>,
+  refunds:Pick<RefundCommandService,'processDue'>){
+  return {authorize:()=>{
+    if(!protocol.authorizeCommerce)throw new Error('FORMAL_REFUND_SUBMISSION_NOT_AUTHORIZED');
+    protocol.authorizeCommerce('refund.submit');
+  },run:()=>refunds.processDue(20)};
 }
 export function startFormalRecoveryWorker(config:AppConfig,pool:pg.Pool,
   protocol:NonNullable<ReturnType<typeof formalPaymentProtocol>>,onError:(error:unknown)=>void){
@@ -25,7 +34,8 @@ export function startFormalRecoveryWorker(config:AppConfig,pool:pg.Pool,
     const results=await runFormalRecoveryCycle([
       {authorize:()=>protocol.authorizeRecovery('payment.callback'),run:()=>protocol.inbox.processPending(20)},
       {authorize:()=>protocol.authorizeRecovery('refund.callback'),run:()=>protocol.refundInbox.processPending(20)},
-      {authorize:()=>protocol.authorizeRecovery('refund.query'),run:()=>refunds.reconcileAccepted(20)}
+      {authorize:()=>protocol.authorizeRecovery('refund.query'),run:()=>refunds.reconcileAccepted(20)},
+      formalRefundSubmissionLane(protocol,refunds)
     ]);
     if(results.some(r=>r.status==='failed'))onError(new Error('FORMAL_RECOVERY_LANE_FAILED'));
     return false;

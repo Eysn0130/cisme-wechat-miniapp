@@ -13,13 +13,14 @@ export interface SupportHeaderInput {
 }
 
 export type PresentedSupportMessage<TMessage extends SupportSequenceMessage> = TMessage & {
+  displayBody: string;
   groupStart: boolean;
   groupEnd: boolean;
   timeSeparatorLabel: string;
   timeLabel: string;
   senderLabel: string;
   avatarKind: "ai" | "human" | "member" | "system";
-  deliveryLabel: "" | "正在发送" | "已发送" | "已读" | "发送失败";
+  deliveryLabel: "" | "正在发送" | "已发送" | "已读" | "发送失败" | "结果待核对";
 };
 
 export interface SupportThreadState<TMessage extends SupportSequenceMessage> {
@@ -124,6 +125,12 @@ function sameMessageGroup(left: SupportSequenceMessage | undefined, right: Suppo
   return leftTime !== null && rightTime !== null && rightTime >= leftTime && rightTime - leftTime <= 5 * 60_000;
 }
 
+function displayBody(item:SupportSequenceMessage):string {
+  const body=String((item as SupportSequenceMessage&{body?:string}).body??'');
+  return item.senderType==='system'&&/^售后申请已收到 · 编号 [0-9a-f-]{36}。客服将按本案处理。$/i.test(body)
+    ?'售后申请已收到，客服会继续处理。':body;
+}
+
 export function presentSupportMessages<TMessage extends SupportSequenceMessage>(messages: readonly TMessage[], options: {
   ownSenderType: string;
   counterpartyReadSequence?: number;
@@ -148,9 +155,11 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
     const deliveryLabel = item.senderType !== options.ownSenderType ? ""
       : localState === "pending" ? "正在发送"
       : localState === "failed" ? "发送失败"
+      : localState === "unknown" ? "结果待核对"
       : item.sequence <= counterpartyReadSequence ? "已读" : "已发送";
     return {
       ...item,
+      displayBody:displayBody(item),
       groupStart: !sameMessageGroup(previous, item),
       groupEnd: !sameMessageGroup(item, next),
       timeSeparatorLabel: needsSeparator && time !== null ? separatorLabel(time, now, timezoneOffsetMinutes) : "",

@@ -1,0 +1,27 @@
+{
+  "qualification": "Local workstation DNS returned 198.18.0.0/15 benchmark-range addresses for both environments. These are not authoritative cloud instance IPs; local TLS failures are not evidence of a new staging outage. Do not use this probe to replace the authenticated instance ledger or successful staging host HTTPS checks. No resolver/proxy settings changed.",
+  "observations": [
+    {
+      "environment": "production",
+      "domain": "api.cisme.cn",
+      "observedAtUtc": "2026-09-23T00:53:19.440386+00:00",
+      "certificateVerification": true,
+      "dnsA": [
+        "198.18.0.124"
+      ],
+      "httpsHealthStatus": "UNREACHABLE",
+      "errorClass": "URLError"
+    },
+    {
+      "environment": "staging",
+      "domain": "staging-api.cisme.cn",
+      "observedAtUtc": "2026-09-23T00:53:19.440863+00:00",
+      "certificateVerification": true,
+      "dnsA": [
+        "198.18.0.113"
+      ],
+      "httpsHealthStatus": "UNREACHABLE",
+      "errorClass": "URLError"
+    }
+  ]
+}

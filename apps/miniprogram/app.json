@@ -39,6 +39,9 @@
     ,{ "root": "pages/community-activity", "pages": ["index"] }
     ,{ "root": "pages/management-finance", "pages": ["index"] }
     ,{ "root": "pages/commission", "pages": ["index"] }
+    ,{ "root": "pages/management-privacy", "pages": ["index"] }
+    ,{ "root": "pages/aftersale", "pages": ["index"] }
+    ,{ "root": "pages/management-fulfillment", "pages": ["index"] }
   ],
   "window": {
     "navigationStyle": "custom",

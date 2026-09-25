@@ -6,10 +6,15 @@ import { mkdtemp, writeFile, readFile, lstat, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const exec = promisify(execFile);
+const execute = promisify(execFile);
+// Image downloads/control calls must not hang an unattended acceptance run.
+const exec = (file,args,options={}) => execute(file,args,{timeout:120_000,...options});
 const command = process.argv.slice(2);
 if (!command.length) throw new Error('Usage: node scripts/disposable-test.mjs COMMAND [ARG...]');
 if (process.env.CISME_TEST_RUN_ID) throw new Error('NESTED_DISPOSABLE_RUN_REFUSED');
+const postgresImage=process.env.CISME_TEST_POSTGRES_IMAGE??'postgres:18.4-alpine';
+if(!['postgres:18.4-alpine','postgres:16.15-alpine'].includes(postgresImage))
+  throw new Error('DISPOSABLE_POSTGRES_IMAGE_NOT_REVIEWED');
 const runId = randomBytes(12).toString('hex');
 const token = randomBytes(32).toString('hex');
 const role = `runner_${runId}`, database = `cisme_test_${runId}`;
@@ -24,7 +29,7 @@ try {
   const created = await exec('docker', ['run', '--detach', '--name', name,
     '--label', `cisme.synthetic.run=${runId}`, '--label', 'cisme.synthetic.purpose=disposable',
     '--publish', '127.0.0.1::5432', '--env', 'POSTGRES_USER', '--env', 'POSTGRES_DB',
-    '--env', 'POSTGRES_PASSWORD', 'postgres:18.4-alpine'],
+    '--env', 'POSTGRES_PASSWORD', postgresImage],
     { env: { ...process.env, POSTGRES_USER: role, POSTGRES_DB: database, POSTGRES_PASSWORD: password } });
   id = created.stdout.trim();
   const inspect = JSON.parse((await exec('docker', ['inspect', id])).stdout)[0];
@@ -82,7 +87,7 @@ try {
     CISME_TEST_S3_ACCESS_KEY:s3Access,CISME_TEST_S3_SECRET:s3Secret,
     CISME_TEST_RUN_ID: runId, CISME_TEST_RESET_TOKEN: token, CISME_TEST_OWNED_URL: url,
     CISME_TEST_RESET_AUTHORIZED: 'disposable-only' };
-  console.log(JSON.stringify({ event: 'synthetic-target-created', runId, container: id,
+  console.log(JSON.stringify({ event: 'synthetic-target-created', runId, container: id,postgresImage,imageId:inspect.Image,
     host: '127.0.0.1', port: binding[0].HostPort, database, role, purpose: 'disposable-synthetic' }));
   await pool.end(); pool = undefined;
   if (stopped) throw new Error('DISPOSABLE_RUN_CANCELLED');

@@ -4,7 +4,10 @@ import type { FastifyInstance } from "fastify";
 import { loadConfig } from "@cisme/config";
 import { TEST_DATABASE_URL, resetDatabase, testPool } from "@cisme/testkit";
 import { createApp } from "../../services/api/src/server";
-import { expirePendingOrders } from "../../services/api/src/commerceOrders";
+import { CommerceOrderService, expirePendingOrders } from "../../services/api/src/commerceOrders";
+import type { AuthorityService } from "../../services/api/src/authority";
+import type { DeliveryAddressService } from "../../services/api/src/deliveryAddress";
+import type { CommercialMembershipService } from "../../services/api/src/commercialMembership";
 import { createApiGatewayStorage } from "../../services/api/src/storage";
 
 const pool = testPool();
@@ -97,6 +100,32 @@ describe("R4-B isolated pending-payment order flow", () => {
     expect(replay.json()).toMatchObject({ id: first.json().id, totalCents: 24690 });
     const conflict = await quote(buyerA, target, "quote-idem-buyer-a-01", 1);
     expect(conflict.statusCode).toBe(409); expect(conflict.json().code).toBe("IDEMPOTENCY_CONFLICT");
+  });
+
+  it("rejects inherited quotes whose formal payment cannot follow the approved refund allocation",async()=>{
+    const target=(await app.inject({method:"GET",url:"/v1/me/addresses",headers:auth(buyerA.sessionToken)})).json().addresses[0];
+    const formal=new CommerceOrderService(pool,{} as AuthorityService,{} as DeliveryAddressService,
+      {} as CommercialMembershipService,{enabled:true,quoteTtlMinutes:10,pendingOrderTtlMinutes:30,
+        formalPayment:{appId:"synthetic-formal-app",merchantId:"synthetic-formal-merchant",authorize:()=>{},recoveryAvailable:()=>true}});
+    for(const [suffix,discount,shipping,version] of [
+      ["shipping",0,100,"launch-base-price-free-shipping-v1"],
+      ["discount",100,0,"launch-base-price-free-shipping-v1"],
+      ["old-rule",0,0,"r4b-synthetic-base-price-v1"]
+    ] as const){
+      const quoteKey=`formal-quote-${suffix}-01`;
+      const original=(await quote(buyerA,target,quoteKey)).json();
+      await pool.query(`UPDATE commerce_checkout_quote SET pricing_rule_version=$2,member_discount_cents=$3,
+        shipping_cents=$4,total_cents=subtotal_cents-$3+$4 WHERE id=$1`,
+        [original.id,version,discount,shipping]);
+      await expect(formal.quote(buyerA.memberId,buyerA.principalId,quoteKey,
+        {skuId:product.variants[0].id,quantity:1,addressId:target.id,addressVersion:target.version}))
+        .rejects.toMatchObject({code:"COMMERCE_QUOTE_POLICY_CHANGED"});
+      await expect(formal.create(buyerA.memberId,buyerA.principalId,`formal-order-${suffix}-01`,
+        {quoteId:original.id},`formal-order-${suffix}-trace`))
+        .rejects.toMatchObject({code:"COMMERCE_QUOTE_POLICY_CHANGED"});
+      expect((await pool.query("SELECT status FROM commerce_checkout_quote WHERE id=$1",[original.id])).rows[0].status).toBe("active");
+      expect((await pool.query("SELECT id FROM commerce_order WHERE source_quote_id=$1",[original.id])).rowCount).toBe(0);
+    }
   });
 
   it("creates one immutable order, redacts management address, and releases once on cancel", async () => {
@@ -391,4 +420,27 @@ for(const action of ['list','detail'] as const)for(const revocation of ['role','
   }
   await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
  }finally{await blocker.query('ROLLBACK');blocker.release();await pending;}
+});
+
+it('keeps the separately encrypted order snapshot after erasing its source address',async()=>{
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+2 WHERE sku_id=$1',[product.variants[0].id]);
+  product=(await app.inject({method:'GET',url:'/v1/catalog/synthetic-r4b-order'})).json();
+  const source=await address(buyerA,'9888');
+  const quoted=await quote(buyerA,source,'quote-address-erasure-snapshot-01');
+  expect(quoted.statusCode,quoted.body).toBe(200);
+  const created=await createOrder(buyerA,quoted.json().id,'order-address-erasure-snapshot-01');
+  expect(created.statusCode,created.body).toBe(200);
+  const orderId=created.json().id;
+  const before=(await pool.query('SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1',[orderId])).rows[0];
+  const removed=await app.inject({method:'DELETE',url:`/v1/me/addresses/${source.id}`,
+    headers:auth(buyerA.sessionToken),payload:{expectedVersion:source.version}});
+  expect(removed.statusCode,removed.body).toBe(200);
+  expect(removed.json().erased).toBe(true);
+  expect((await pool.query('SELECT encrypted_payload,key_version FROM member_delivery_address WHERE id=$1',[source.id])).rows[0])
+    .toMatchObject({encrypted_payload:'',key_version:'erased'});
+  expect((await pool.query('SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1',[orderId])).rows[0])
+    .toEqual(before);
+  const detail=await app.inject({url:`/v1/me/orders/${orderId}`,headers:auth(buyerA.sessionToken)});
+  expect(detail.statusCode,detail.body).toBe(200);
+  expect(detail.json().address).toMatchObject({recipientName:'合成收货人9888',phone:'13800009888'});
 });

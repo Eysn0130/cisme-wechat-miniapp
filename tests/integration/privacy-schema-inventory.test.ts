@@ -33,24 +33,29 @@ it("exports only migrated schema metadata as a complete policy-review denominato
   const tables=tableRows.map(({name})=>({table:name,columns:columns.filter(c=>c.table_name===name).map(c=>({name:c.column_name,type:c.data_type,nullable:c.is_nullable==="YES"})),
     foreignKeys:references.filter(f=>f.table_name===name).map(f=>({column:f.column_name,table:f.referenced_table,referencedColumn:f.referenced_column})),
     subjectObjectFieldReview:"unreviewed",exportDeletionPolicy:"unreviewed",legalHoldPolicy:"unreviewed"}));
-  expect(tables.map(t=>t.table)).toEqual(expect.arrayContaining(["member","member_profile","commerce_order","commerce_refund_request","commission_settlement_request","support_message","legal_hold","privacy_request"]));
-  expect(tables.every(t=>t.columns.length>0)).toBe(true);
-  const subjectMap=JSON.parse(await readFile('docs/privacy/subject-data-map.json','utf8')) as {
-    tables:Array<{table:string;exportFields:string[];excludedFields:string[];productionErasure:string}>};
-  expect(subjectMap.tables.map(t=>t.table).sort()).toEqual(tables.map(t=>t.table).sort());
-  for(const table of tables){
-    const policy=subjectMap.tables.find(t=>t.table===table.table)!;
-    expect([...policy.exportFields,...policy.excludedFields].sort(),table.table).toEqual(table.columns.map(c=>c.name).sort());
-    expect(policy.productionErasure).toBe('DISABLED');
-  }
-
-  expect(new Set(tables.map(t=>t.table)).size).toBe(tableRows.length);
   const result={schemaVersion:1,kind:"synthetic-migrated-schema-only-NOT-personal-data-export",releaseReady:false,
     privacyPolicyApproved:false,productionInspected:false,memberRowsRead:0,
     scope:"All public BASE TABLE metadata after the current ordered migrations, including metadata/audit/reference tables. Not every table contains personal data; FK presence is not a retention or authorization decision. No row content, defaults, connection URL or credentials are exported.",
     tableCount:tables.length,columnCount:tables.reduce((n,t)=>n+t.columns.length,0),foreignKeyColumnCount:references.length,
     migrationSetSha256:hash.digest("hex"),migrationHashAlgorithm:"ordered UTF8 filename + NUL + raw SQL bytes + NUL",migrations,tables};
-  // A missing artifact destination does not write into a developer's source tree.
+  // Capture only schema metadata before comparison so drift is inspectable.
   if(process.env.RUNNER_TEMP){const output=join(process.env.RUNNER_TEMP,"native-validation");await mkdir(output,{recursive:true});await writeFile(join(output,"privacy-schema-inventory.json"),JSON.stringify(result,null,2)+"\n");}
+  expect(tables.map(t=>t.table)).toEqual(expect.arrayContaining(["member","member_profile","commerce_order","commerce_refund_request","commission_settlement_request","support_message","legal_hold","privacy_request"]));
+  expect(tables.every(t=>t.columns.length>0)).toBe(true);
+  const subjectMap=JSON.parse(await readFile('docs/privacy/subject-data-map.json','utf8')) as {
+    migrationSetSha256:string;tables:Array<{table:string;exportFields:string[];excludedFields:string[];productionErasure:string}>};
+  expect(subjectMap.migrationSetSha256).toBe(result.migrationSetSha256);
+  expect(subjectMap.tables.map(t=>t.table).sort()).toEqual(tables.map(t=>t.table).sort());
+  const optionalProfileErasure=new Set(['member','wechat_identity','member_contact','phone_authorization',
+    'member_profile','member_delivery_address']);
+  for(const table of tables){
+    const policy=subjectMap.tables.find(t=>t.table===table.table)!;
+    expect([...policy.exportFields,...policy.excludedFields].sort(),table.table).toEqual(table.columns.map(c=>c.name).sort());
+    expect(policy.productionErasure).toBe(optionalProfileErasure.has(table.table)?'SELF_OPTIONAL_PROFILE_V1':'DISABLED');
+  }
+  for(const name of ['audit_log','commerce_order','commerce_refund_request','support_message'])
+    expect(subjectMap.tables.find(t=>t.table===name)?.productionErasure).toBe('DISABLED');
+
+  expect(new Set(tables.map(t=>t.table)).size).toBe(tableRows.length);
   console.log(JSON.stringify({schemaMetadataOnly:true,tableCount:result.tableCount,columnCount:result.columnCount,foreignKeyColumnCount:result.foreignKeyColumnCount,privacyPolicyApproved:false}));
 });

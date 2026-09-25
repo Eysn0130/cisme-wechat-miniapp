@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6fa17d9",
+  "packageSourceSha256": "ed0c3ce24e90abd6b03c961a32d73ed08a0502793081cc99989a6927ca646f78",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic catalog, order, aftersale, privacy and management data",
+  "captures": [
+    {"file":"checkout-current-ed0c.png","sha256":"1ff3aab62c060040e27b06714baeccdc125ca5cdfc5b7785c62fe78d79c1afc3","route":"pages/checkout/index"},
+    {"file":"product-current-ed0c.png","sha256":"448934e72b8dfe0e94fb345137de1507092bf45f26c298720ba5bf5913834621","route":"pages/product/index"},
+    {"file":"management-privacy-ed0c.png","sha256":"3c57232fdc87beacaf6ee4c3aef72809e088952c0afce2ef24e79763dc26f7f2","route":"pages/management-privacy/index"},
+    {"file":"aftersale-active-ed0c.png","sha256":"5c470635c06edfd6bdf825bbdb16f4488dabf76dfd406f6c94a6ba0b921114c4","route":"pages/aftersale/index"}
+  ],
+  "observed": "Checkout and product quantity symbols appear centered. The checkout plus button measured 44 by 44 px and its icon sat 13 px inside both axes; tapping plus and minus changed quantity 1 to 2 to 1. Active aftersale shows its status without a duplicate application action. The management privacy list shows concise copy and a 44 px refresh target.",
+  "relatedCurrentEvidence": "order-sheet-layout-ed0c.json",
+  "scopeLimit": "Four local simulator states and one checkout interaction. They do not establish all screen states, physical keyboard, iOS or Android, actual WeChat credentials, or production acceptance."
+}

@@ -98,11 +98,12 @@ export class TradeBillReconciliationService{
       const totalCount=(await client.query<{n:number}>(`SELECT count(*)::int AS n
         FROM commerce_trade_bill_batch WHERE merchant_id=$1`,[this.merchantId])).rows[0]?.n??0;
       const rows=(await client.query(`SELECT id,bill_date::text AS bill_date,bill_type,row_count,matched_count,
-        exception_count,imported_at FROM commerce_trade_bill_batch WHERE merchant_id=$1
+        exception_count,imported_at,to_char(imported_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
+        FROM commerce_trade_bill_batch WHERE merchant_id=$1
         AND ($2::timestamptz IS NULL OR (imported_at,id)<($2::timestamptz,$3::uuid))
         ORDER BY imported_at DESC,id DESC LIMIT $4`,[this.merchantId,cursor?.at??null,cursor?.id??null,
           limit+1])).rows;
-      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:new Date(row.imported_at).toISOString(),
+      return {...finishPage(rows.map(row=>({id:row.id,cursorAt:row.cursor_at,
         billDate:row.bill_date,billType:row.bill_type,rowCount:row.row_count,
         matchedCount:row.matched_count,exceptionCount:row.exception_count,
         createdAt:row.imported_at})),limit,scope),totalCount};

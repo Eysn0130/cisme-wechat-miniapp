@@ -1,0 +1,20 @@
+{
+  "sourceHead": "44e1789c5998fa21b905bf4a0fca02799ffe3e68",
+  "sourceTree": "0f96f539133f1420d7fefa9d099dd817a0db6d81",
+  "runId": "rc20260922-d1afdcea",
+  "archiveSha256": "30d737edd47527a1de88fd339cf5df1be945453d01c5f555c940a1762c49ddda",
+  "archiveBytes": 440803,
+  "scope": "owned staging only; no production or real funds",
+  "receipt": "../STAGING-44e1789-RAW.json",
+  "executedBusinessScript": "/home/ubuntu/staging-business-44e1789-final.mjs",
+  "files": {
+    "CI-44e1789.json": "6452243b97ea5b588a2685bb16a967822f22cf96acab4b2c2e54ab9668d750a1",
+    "LOCAL-BUNDLE-REHEARSAL.json": "82be0fc2222c100feb35297c3b680b283d1072f5fe7879a9cf1c6d4c18b568a4",
+    "run.json": "20abbcb57ca3e88667b4abd817dd8681a04e371fadc32414b949ab98fed56555",
+    "staging-acceptance-44e1789.py": "114052c0185dc0042835ed5c090d0541f624a4e66a0559478fb93e2bf7ff5c7f",
+    "staging-baseline-44e1789.py": "68ef2e054408a9016908ee23903b1c01c8aa2e417813abe257d7512efd0aa028",
+    "staging-business-44e1789.mjs": "91dd6f0de7b632db239ff78d823c34f54fb1cf96eb76c42de6bc772a7906ff35",
+    "staging-candidate-44e1789.py": "16281eeec368460b4f308131bfd43661f0afab535493f4bfa6c4bf3396f8e8a4",
+    "staging-rollback-44e1789.py": "6b9abd1ccfbd31527560eed036574a0a3b4c1a793966236cf338696d5d41ccca"
+  }
+}

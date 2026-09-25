@@ -19,7 +19,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/cisme/tmp
+ReadWritePaths=/opt/cisme/tmp /var/lib/cisme/privacy-suppression
 UMask=0077
 
 [Install]

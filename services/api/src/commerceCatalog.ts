@@ -103,8 +103,8 @@ function mapSku(row: SkuRow, checkoutEnabled = false, discloseReserved = false) 
     active: row.active, sortOrder: row.sort_order, version: row.version,
     createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString() };
 }
-function mapProduct(row: ProductRow, skus: SkuRow[], orderFlowEnabled = false, discloseReserved = false) {
-  const checkoutEnabled = orderFlowEnabled && row.source_kind === "synthetic_test";
+function mapProduct(row: ProductRow, skus: SkuRow[], orderFlowEnabled = false, discloseReserved = false, formal = false) {
+  const checkoutEnabled = orderFlowEnabled && row.source_kind === (formal?"admin":"synthetic_test") && row.qualification_status === "eligible" && row.publication_status === "published";
   const variants = skus.filter((sku) => sku.product_id === row.id).map((sku) => mapSku(sku, checkoutEnabled, discloseReserved));
   const defaultSku = variants.find((sku) => sku.active) ?? null;
   const purchaseEnabled = Boolean(variants.some((sku) => sku.purchaseEnabled));
@@ -118,7 +118,9 @@ function mapProduct(row: ProductRow, skus: SkuRow[], orderFlowEnabled = false, d
 
 export class CommerceCatalogService {
   constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService, private readonly environment: AppEnvironment,
-    private readonly orderFlowEnabled = false) {}
+    private readonly orderFlowEnabled = false, private readonly formalAvailability?:()=>boolean) {}
+
+  private checkoutAvailable(){return this.formalAvailability?this.formalAvailability():this.orderFlowEnabled;}
 
   private async require(client: DbClient, memberId: string | undefined, capability: Capability): Promise<string> {
     return this.authority.requireWithClient(client, memberId, capability);
@@ -162,7 +164,8 @@ export class CommerceCatalogService {
     const skus = products.length ? (await this.pool.query<SkuRow>(`SELECT s.*,p.id price_id,p.currency,p.amount_cents price_cents,p.version price_version,
       i.stock_on_hand,i.reserved_quantity,i.version inventory_version,i.updated_at inventory_updated_at FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id
       JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.product_id=ANY($1::uuid[]) AND s.active=true ORDER BY s.product_id,s.sort_order,s.id`, [products.map((row) => row.id)])).rows : [];
-    return { version: 3, source: "cisme_catalog", checkoutEnabled: this.orderFlowEnabled, items: products.map((row) => mapProduct(row, skus, this.orderFlowEnabled)),
+    const available=this.checkoutAvailable();
+    return { version: 3, source: "cisme_catalog", checkoutEnabled: available, items: products.map((row) => mapProduct(row, skus, available,false,Boolean(this.formalAvailability))),
       nextCursor: hasMore ? encodeCursor(products[products.length - 1]!) : null };
   }
 
@@ -174,7 +177,7 @@ export class CommerceCatalogService {
     const skus = await this.pool.query<SkuRow>(`SELECT s.*,p.id price_id,p.currency,p.amount_cents price_cents,p.version price_version,
       i.stock_on_hand,i.reserved_quantity,i.version inventory_version,i.updated_at inventory_updated_at FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id
       JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.product_id=$1 AND s.active=true ORDER BY s.sort_order,s.id`, [product.rows[0].id]);
-    return mapProduct(product.rows[0], skus.rows, this.orderFlowEnabled);
+    return mapProduct(product.rows[0], skus.rows, this.checkoutAvailable(),false,Boolean(this.formalAvailability));
   }
 
   async managementList(memberId: string | undefined, query: { limit?: unknown; cursor?: unknown }) {

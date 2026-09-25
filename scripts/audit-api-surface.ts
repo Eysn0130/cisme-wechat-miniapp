@@ -9,7 +9,7 @@ const registrations=[...source.matchAll(/\b(?:app|callbackScope)\.(get|post|put|
 const chunks=registrations.map((start,i)=>({start,text:source.slice(start,registrations[i+1]??source.length)}));
 const imports=new Map([...source.matchAll(/import \{ ([A-Za-z0-9_]+)[^\n]* from "\.\/(.*?)\.js"/g)].map(m=>[m[1],`services/api/src/${m[2]}.ts`]));
 const owners=new Map([...source.matchAll(/const (\w+)\s*=\s*new (\w+)/g)].map(m=>[m[1],imports.get(m[2])]));
-for(const [variable,file] of Object.entries({payment:'paymentAttempt',refunds:'refundCommand',settlement:'settlementCommand',moneyOps:'moneyOperations',tradeBills:'tradeBillReconciliation'}))owners.set(variable,`services/api/src/${file}.ts`);
+for(const [variable,file] of Object.entries({payment:'paymentAttempt',refunds:'refundCommand',settlement:'settlementCommand',moneyOps:'moneyOperations',tradeBills:'tradeBillReconciliation',shipment:'orderFulfillment'}))owners.set(variable,`services/api/src/${file}.ts`);
 const operations=[...registeredSourceOperations(source),{method:'GET',path:'/health/live'},{method:'GET',path:'/health/ready'}];
 const files=async(dir:string):Promise<string[]>=>{const output:string[]=[];for(const entry of await readdir(dir,{withFileTypes:true})){const p=`${dir}/${entry.name}`;if(entry.isDirectory())output.push(...await files(p));else if(p.endsWith('.ts'))output.push(p);}return output;};
 const clients=await Promise.all((await files('apps/miniprogram')).map(async path=>({path,source:await readFile(path,'utf8')})));
@@ -21,7 +21,7 @@ const entries=operations.map(operation=>{
   if(!chunk)throw new Error(`UNMAPPED_HANDLER:${operation.method} ${operation.path}`);
   const calls=[...chunk.text.matchAll(/\b(\w+)(?:Required\(\))?\.(\w+)\(/g)].filter(m=>owners.has(m[1]));
   const stem=literal.split('/:')[0]!;
-  const family=/ugc|community/.test(literal)?'UGC':/orders|catalog|commerce|commission|money|payments|refund|fulfillment/.test(literal)?'commerce':/support/.test(literal)?'support':/privacy|export|erasure/.test(literal)?'privacy':/identity|phone|profile|member|bootstrap/.test(literal)?'identity-member':'care-platform';
+  const family=/ugc|community/.test(literal)?'UGC':/orders|catalog|commerce|commission|money|payments|refund|fulfillment|logistics|shipment/.test(literal)?'commerce':/support/.test(literal)?'support':/privacy|export|erasure/.test(literal)?'privacy':/identity|phone|profile|member|bootstrap/.test(literal)?'identity-member':'care-platform';
   return {...operation,family,handler:`services/api/src/server.ts:${source.slice(0,chunk.start).split('\n').length}`,
     handlerSliceSha256:createHash('sha256').update(chunk.text).digest('hex'),
     serviceCalls:[...new Map(calls.map(m=>[`${m[1]}.${m[2]}`,{owner:owners.get(m[1]),method:m[2]}])).values()],

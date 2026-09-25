@@ -179,21 +179,71 @@ paths:
     get:
       operationId: listMyPrivacyRequests
       security: [{session: []}]
-      responses: {'200': {description: Last 100 requests belonging only to the current member}}
+      description: Without page, preserves the legacy array of up to 100 own records. With page=1, returns items (up to 30) and nextCursor; pass the opaque cursor to reach older records. A refreshed first page starts a new traversal.
+      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}]
+      responses: {'200': {description: Own records; paged object when page=1, otherwise legacy array}, '422': {description: Invalid page or cursor}}
     post:
       operationId: submitPrivacyRequest
       security: [{session: []}]
-      description: Registers access, correct, delete, close_account, withdraw or other request; deduplicates identical open requests and limits to 10 per day. Optional scopeCode is test-only for a dev_test identity and the profile-handle deletion class; unscoped requests never authorize automatic erasure. Submission alone does not execute deletion or account closure.
+      description: Registers access, correct, delete, close_account, withdraw or other request. A verified WeChat identity can request a fixed optional-account-profile deletion scope or short-lived owner-scoped data copy without a second administrator. The profile scope removes only live nickname, contact, avatar and address data while preserving transaction evidence and honoring legal holds; an immutable external suppression marker prevents old backups from restoring it. A withdraw request with an owned consentGrantId immediately blocks future use of that submission grant and records a restore-safe result; message is required for all other requests. Publication withdrawal remains partially completed while historical propagation is reviewed. Unscoped free-text deletion remains non-executable until assessed. The existing minimal close_account path closes the identity separately.
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [kind, message], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1]}}}}}
+        content: {application/json: {schema: {type: object, required: [kind], properties: {kind: {type: string, enum: [access, correct, delete, close_account, withdraw, other]}, message: {type: string, minLength: 1, maxLength: 2000}, scopeCode: {type: string, enum: [member_profile_handle_v1, member_optional_profile_v1]}, consentGrantId: {$ref: '#/components/schemas/Uuid'}}}}}
       responses: {'200': {description: Received request id and status}, '422': {description: Invalid input}, '429': {description: Daily limit}}
+  /v1/me/privacy-requests/{requestId}/reply:
+    post:
+      operationId: replyToOwnPrivacyRequest
+      description: An authenticated owner may supplement a request only after an operator explicitly asks for information. The original request and every supplement remain separate immutable facts. Exact idempotent replay returns the original receipt; a fresh reply returns the request to the operator queue.
+      security: [{session: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [message, expectedVersion], properties: {message: {type: string, minLength: 1, maxLength: 2000}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Supplement recorded and returned to operator}, '403': {description: Member inactive}, '404': {description: Request not owned}, '409': {description: Stale version, no supplement requested or idempotency conflict}, '422': {description: Invalid input}}
+  /v1/management/attention:
+    get:
+      operationId: managementAttentionSummary
+      summary: Capability filtered management work counts
+      description: Read-only counts for existing support, after-sale, old-address shipment review, refund and privacy workspaces. Holds current member grants through the database read and returns no personal details. A count is a navigation aid, not a case decision or external notification.
+      security: [{session: []}]
+      responses:
+        '200': {description: Versioned counts for currently granted workspaces}
+        '401': {description: Member session required}
+        '403': {description: No active management capability}
+  /v1/management/privacy-requests:
+    get:
+      operationId: nativePrivacyRequestQueue
+      description: Native management queue. Requires an active signed member session and current environment-bound privacy.request.manage capability; legacy operator roles cannot replace this capability. Locks authority for each page read. Without page, preserves the legacy array of up to 100 records; page=1 returns items (up to 30) and nextCursor. No export payload is returned.
+      security: [{session: []}]
+      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}]
+      responses: {'200': {description: Requests ordered by open status and due date}, '401': {description: Member session required}, '403': {description: Capability unavailable or revoked}, '422': {description: Invalid page or cursor}}
+  /v1/management/privacy-requests/{requestId}/response:
+    post:
+      operationId: nativeRespondPrivacyRequest
+      description: Requires current privacy.request.manage capability from the signed member. Rechecks and locks authority after locking the request, preventing a concurrent revocation from being bypassed. A member-visible reply never claims export or deletion occurred.
+      security: [{session: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, waitingOn: {type: string, enum: [operator, member]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
+      responses: {'200': {description: Audited version-guarded reply; no execution implied}, '401': {description: Session required}, '403': {description: Capability unavailable or revoked}, '409': {description: Request changed or closed}, '422': {description: Invalid input}, '404': {description: Request not found}}
+  /v1/management/privacy-requests/{requestId}/profile-correction:
+    post:
+      operationId: nativeExecuteProfileCorrection
+      description: Requires the current privacy.request.manage capability and a member-authored exact correction target in the request or latest member reply. Applies only nickname or self-reported WeChat handle after request and profile version checks, legal hold check, read-back verification, and revocation of stale data copies.
+      security: [{session: []}]
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [expectedVersion, expectedProfileVersion], properties: {expectedVersion: {type: integer, minimum: 1}, expectedProfileVersion: {type: integer, minimum: 0}}}}}
+      responses: {'200': {description: Verified and audited profile correction}, '401': {description: Session required}, '403': {description: Capability unavailable or revoked}, '404': {description: Request not found}, '409': {description: Request or profile changed or legal hold active}, '422': {description: Invalid input}}
   /v1/admin/privacy-requests:
     get:
       operationId: privacyRequestQueue
-      description: Requires a signed active operator session and support or review_lead role; a client-supplied principal cannot select the actor.
+      description: Requires a signed active operator session and support or review_lead role; a client-supplied principal cannot select the actor. Without page, returns the legacy array of up to 100; page=1 returns items (up to 30) and nextCursor.
       security: [{session: []}]
-      responses: {'200': {description: Requests with pending first}, '403': {description: Missing operator role}}
+      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}]
+      responses: {'200': {description: Requests with pending first}, '403': {description: Missing operator role}, '422': {description: Invalid page or cursor}}
   /v1/admin/privacy-requests/{requestId}/response:
     post:
       operationId: respondPrivacyRequest
@@ -202,7 +252,7 @@ paths:
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody:
         required: true
-        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
+        content: {application/json: {schema: {type: object, required: [status, response, expectedVersion], properties: {status: {type: string, enum: [reviewing, responded]}, waitingOn: {type: string, enum: [operator, member]}, response: {type: string, minLength: 1, maxLength: 4000}, expectedVersion: {type: integer, minimum: 1}}}}}
       responses: {'200': {description: Version-guarded saved response; never proof of execution}, '409': {description: Request changed or closed}, '403': {description: Missing operator role}, '404': {description: Request not found}}
   /v1/admin/privacy-requests/{requestId}/execution-plan:
     post:
@@ -246,18 +296,46 @@ paths:
       responses: {'200': {description: Audited synthetic redrive}, '403': {description: Missing review lead role}, '409': {description: Not exhausted or prerequisites absent}, '503': {description: Synthetic execution disabled}}
   /v1/me/privacy-requests/{requestId}/export:
     get:
-      operationId: downloadOwnSyntheticProfileExport
+      operationId: downloadOwnPrivateDataCopy
       security: [{session: []}]
-      description: Test-only private encrypted-at-rest profile subset. Member session, exact owner, unexpired and unrevoked artifact required; no-store response.
+      description: Owner-scoped encrypted-at-rest data copy. Formal WeChat requests use the documented account-data scope; test-only dev requests retain the synthetic profile subset. An active member or a verified closed-rights session may retrieve an eligible formal copy. No-store response.
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: JSON profile subset}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Synthetic execution disabled or key unavailable}}
+      responses: {'200': {description: Private JSON data copy}, '404': {description: Not owned, not ready, expired or revoked}, '503': {description: Execution key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export/parts/{partNumber}:
+    get:
+      operationId: downloadOwnPrivateDataPart
+      security: [{session: []}]
+      description: Verified owner downloads one ordered NDJSON volume of a formal portable copy. The parent artifact controls expiry and revocation; ciphertext authentication and plaintext digest are checked before delivery. Private no-store response.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {name: partNumber, in: path, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {'200': {description: Private NDJSON volume}, '404': {description: Not owned, absent, expired or revoked}, '503': {description: Volume or execution key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export/manifest-pages/{pageNumber}:
+    get:
+      operationId: downloadOwnPrivateDataPartManifest
+      security: [{session: []}]
+      description: Verified owner downloads one bounded page of ordered volume numbers, sizes and SHA-256 digests. The parent export controls expiry and revocation. Private no-store response.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {name: pageNumber, in: path, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {'200': {description: Private bounded volume manifest page}, '404': {description: Not owned, absent, expired or revoked}, '503': {description: Manifest unavailable}}
+  /v1/me/privacy-requests/{requestId}/media/{mediaId}:
+    get:
+      operationId: downloadOwnSupplementaryExportImage
+      security: [{session: []}]
+      description: Verified owner downloads an image omitted from an active partial formal export solely because it exceeded the inline copy limit. The request and image must belong to the same member, and the export artifact must remain unexpired and unrevoked. The binary response is private and no-store.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}, {name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Owned supplementary image}, '404': {description: Not owned, not eligible, expired or revoked}, '503': {description: Image or execution key unavailable}}
   /v1/me/privacy-requests/{requestId}/export-revoke:
     post:
-      operationId: revokeOwnSyntheticProfileExport
+      operationId: revokeOwnPrivateDataCopy
       security: [{session: []}]
-      description: Test-only owner revocation of a synthetic export artifact; audited and no longer downloadable.
+      description: Owner revocation of a private export artifact; audited and no longer downloadable.
       parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: Revoked}, '404': {description: Not owned or unavailable}, '503': {description: Synthetic execution disabled}}
+      responses: {'200': {description: Revoked}, '404': {description: Not owned or unavailable}, '503': {description: Execution key unavailable}}
+  /v1/me/privacy-requests/{requestId}/export-retry:
+    post:
+      operationId: retryOwnFormalDataCopy
+      security: [{session: []}]
+      description: Verified owner retries the same failed formal export job after attempts are exhausted; no second administrator is required.
+      parameters: [{name: requestId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Existing job queued again}, '404': {description: Not owned}, '409': {description: Job is not ready for retry}}
   /v1/legal:
     get:
       operationId: currentLegalDocuments
@@ -419,6 +497,14 @@ paths:
       security: []
       requestBody: {$ref: '#/components/requestBodies/Identity'}
       responses: {'200': {$ref: '#/components/responses/Identity'}, '502': {$ref: '#/components/responses/Problem'}}
+  /v1/identity/wechat/privacy-rights:
+    post:
+      tags: [Identity]
+      operationId: verifyClosedAccountPrivacyIdentity
+      security: []
+      description: Fresh WeChat code for an existing closed account. Returns a 30-minute restricted token usable only for listing, filing and replying to that account's privacy requests; it never reactivates membership.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [code], properties: {code: {type: string}}}}}}
+      responses: {'200': {description: Restricted privacy-rights session, content: {application/json: {schema: {type: object, required: [scope, sessionToken], properties: {scope: {type: string, enum: [privacy_rights]}, sessionToken: {type: string}}}}}}, '404': {$ref: '#/components/responses/Problem'}, '502': {$ref: '#/components/responses/Problem'}}
   /v1/qualifications/dev:
     post:
       tags: [Care]
@@ -689,16 +775,16 @@ paths:
       tags: [Commerce]
       operationId: commerceOrderStatus
       security: []
-      responses: {'200': {description: Explicit order-flow and payment availability; payment remains unavailable and onboarding is IN_PROGRESS}}
+      responses: {'200': {description: Version 1 isolated capability envelope always has paymentAvailable=false. Version 2 formal_commerce separates revocable formalMoneyOperationsAvailable from formalRecoveryAvailable. Missing production command approval keeps new money closed; history and independent recovery remain readable.}}
   /v1/me/commerce/quotes:
     post:
       tags: [Commerce]
       operationId: createCommerceQuote
       security: [{session: []}]
-      description: Creates an expiring server-authoritative CNY quote for one eligible published synthetic SKU and an owned versioned address. Optional creditCents is test-only, requires a positive cash leg and is checked again at order creation. No inventory or credit is reserved by a quote.
+      description: Creates an expiring server-authoritative CNY quote for one eligible published SKU (admin source for explicitly approved formal commands; synthetic_test otherwise) and an owned versioned address. Optional creditCents is test-only, requires a positive cash leg and is checked again at order creation. No inventory or credit is reserved by a quote.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceQuoteInput'}}}}
-      responses: {'200': {description: Quote or exact replay}, '409': {description: stock, sellability or idempotency conflict}, '422': {$ref: '#/components/responses/Problem'}, '503': {description: isolated order gate closed}}
+      responses: {'200': {description: Quote or exact replay}, '409': {description: stock, sellability or idempotency conflict}, '422': {$ref: '#/components/responses/Problem'}, '503': {description: order-flow or exact-environment commerce approval closed}}
   /v1/me/orders:
     get:
       tags: [Commerce]
@@ -713,7 +799,7 @@ paths:
       description: Revalidates quote, current sellability, price, address version and available stock in one transaction; creates pending_payment and reserves inventory. Isolated split-tender orders also reserve exact credit source lots; gross price, credit leg and channel cash amount remain separate.
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCreateInput'}}}}
-      responses: {'200': {description: Pending-payment order or exact replay}, '409': {description: quote stale or expired, address changed, or inventory unavailable}, '503': {description: isolated order gate closed}}
+      responses: {'200': {description: Pending-payment order or exact replay}, '409': {description: quote stale or expired, address changed, or inventory unavailable}, '503': {description: order-flow or exact-environment commerce approval closed}}
   /v1/me/orders/{orderId}:
     get:
       tags: [Commerce]
@@ -767,10 +853,10 @@ paths:
       tags: [Commerce]
       operationId: requestIsolatedOrderRefund
       security: [{session: []}]
-      description: Test-only owner request against an applied signed payment. amountCents is gross merchandise refund; mixed-credit orders allocate its cash leg to the original WeChat payment and credit leg to the exact spent source lots. Unapproved freight or discount remains blocked.
+      description: Isolated-test owner request against an applied signed payment. Formal commerce rejects this direct route with AFTERSALE_CASE_REQUIRED; formal refunds must originate from a reviewed aftersale case. amountCents is gross merchandise refund; mixed-credit isolated orders allocate its cash leg to the original WeChat payment and credit leg to the exact spent source lots. Unapproved freight or discount remains blocked.
       parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [amountCents, reason], properties: {amountCents: {type: integer, minimum: 1}, reason: {type: string}}}}}}
-      responses: {'200': {description: Stable refund request or exact replay}, '409': {description: not paid, unsupported allocation or overdraw}, '503': {description: isolated channel disabled}}
+      responses: {'200': {description: Stable isolated refund request or exact replay}, '409': {description: formal aftersale case required, not paid, unsupported allocation or overdraw}, '503': {description: isolated channel disabled}}
   /v1/me/refund-requests:
     get: {tags: [Commerce], operationId: myIsolatedRefundRequests, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}, {name: orderId, in: query, schema: {$ref: '#/components/schemas/Uuid'}}], responses: {'200': {description: Provider-independent owner-only local history in one repeatable-read snapshot with totalCount and optional order filter; channel-confirmed state, never a client-declared success}, '401': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}}
   /v1/management/refund-requests/pending:
@@ -1181,6 +1267,23 @@ paths:
       parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupportOperatorMessageInput'}}}}
       responses: {'200': {description: Persisted audited reply or exact retry}, '403': {description: support.reply required}, '409': {description: Claim required or idempotency conflict}}
+  /v1/management/support/conversations/{conversationId}/aftersales:
+    get:
+      tags: [Support, Authority, Commerce]
+      operationId: operatorConversationAftersales
+      security: [{session: []}]
+      description: Requires support.read and commerce.aftersale.review. Returns only cases linked to this member conversation.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      responses: {'200': {description: Bounded linked case list}, '403': {description: Both capabilities required}}
+  /v1/management/support/conversations/{conversationId}/aftersales/{caseId}/actions:
+    post:
+      tags: [Support, Authority, Commerce]
+      operationId: operatorConversationAftersaleAction
+      security: [{session: []}]
+      description: The assigned operator with commerce.aftersale.review records a versioned case action. Sending a return instruction atomically stores an immutable version, structured chat card and outbox event. A reviewed no-return exception records its kind and evidence reference before a separate refund request and approval.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}, {name: caseId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [approve_return, send_return_instruction, approve_refund_without_return]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
+      responses: {'200': {description: Versioned case and instruction}, '403': {description: Assigned operator and aftersale capability required}, '409': {description: Version or idempotency conflict}}
   /v1/management/support/conversations/{conversationId}/claim:
     post:
       tags: [Support, Authority]
@@ -1363,15 +1466,15 @@ paths:
   /v1/management/members:
     get: {operationId: managementMembers, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}, {name: q, in: query, schema: {type: string}}, {name: filter, in: query, schema: {type: string, enum: [all, members, ordinary]}}], description: Requires member.profile.read; commission counts only with commission.read., responses: {'200': {description: Keyset page with loadedCount, matchingTotal, global summary and nextCursor}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/management/members/{memberId}:
-    get: {operationId: managementMemberDetail, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], description: Role-filtered member summary; list data is only served through separately authorized cursor sections., responses: {'200': {description: Member facts and policy projection without capped preview arrays}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {operationId: managementMemberDetail, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], description: Role-filtered member summary; policy projection includes server-supplied rate options, empty when no formal policy is configured. List data is only served through separately authorized cursor sections., responses: {'200': {description: Member facts and policy projection without capped preview arrays}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/management/members/{memberId}/sections/{section}:
     get: {operationId: managementMemberSection, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}, {name: section, in: path, required: true, schema: {type: string, enum: [referrals, own-orders, attributed-orders, posts]}}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Section-specific capability checks keep profile, commission, orders and content separate., responses: {'200': {description: Keyset page with exact total, loadedCount and nextCursor}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/management/members/{memberId}/membership:
-    post: {operationId: setCommercialMembership, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], description: Requires member.manage; engineering_365_day extension starts after current expiry and never shortens it., requestBody: {$ref: '#/components/requestBodies/MembershipChange'}, responses: {'200': {description: Versioned auditable membership decision}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}}
+    post: {operationId: setCommercialMembership, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MemberId'}], description: Requires member.manage; engineering calendar extension is confined to development and test and never shortens an existing term. Formal changes remain closed until a real business policy is configured., requestBody: {$ref: '#/components/requestBodies/MembershipChange'}, responses: {'200': {description: Versioned auditable membership decision}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}}
   /v1/management/commission-rates:
     post: {operationId: proposeCommissionRate, security: [{session: []}], parameters: [{$ref: '#/components/parameters/IdempotencyKey'}], description: Requires commission.rate.manage and a future effective time; override can target global or one member while inherit targets one member and preserves all old rules and order snapshots. Request key is stable with payload fingerprint., requestBody: {$ref: '#/components/requestBodies/CommissionRateProposal'}, responses: {'200': {description: Pending proposal or exact idempotent replay}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/management/commission-rates/current:
-    get: {operationId: currentGlobalCommissionRate, security: [{session: []}], description: Requires commission.read or commission.rate.manage and exposes only the effective global fixture rate, server time and suggested future time., responses: {'200': {description: Current global rate and engineering policy state}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {operationId: currentGlobalCommissionRate, security: [{session: []}], description: Requires commission.read or commission.rate.manage; returns effective global rate, server time, suggested future time and server-supplied rate options. Formal environment returns no options while its business policy is unconfigured., responses: {'200': {description: Current global rate and policy state}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/management/commission-rates/by-request/{requestKey}:
     get: {operationId: commissionProposalByRequest, security: [{session: []}], parameters: [{name: requestKey, in: path, required: true, schema: {type: string}}], description: Requires commission.rate.manage; finds a previously submitted proposal after an uncertain network result., responses: {'200': {description: Matching proposal for the same actor}, '404': {$ref: '#/components/responses/Problem'}}}
   /v1/management/commission-rates/pending:
@@ -1379,6 +1482,257 @@ paths:
   /v1/management/commission-rates/{ruleId}/decision:
     post: {operationId: decideCommissionRate, security: [{session: []}], parameters: [{name: ruleId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], description: Requires different approver with commission.rate.approve; lapsed effective time cannot be retroactively approved., requestBody: {$ref: '#/components/requestBodies/CommissionRateDecision'}, responses: {'200': {description: Audited approval or rejection}, '409': {$ref: '#/components/responses/Problem'}}}
 
+  /v1/me/orders/{orderId}/shipment:
+    get:
+      tags: [Commerce]
+      operationId: myShipment
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Owner-only physical shipment and independent WeChat sync status}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/shipment/tracking:
+    get:
+      operationId: myShipmentTracking
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      description: Owner-only bound waybill query with post-network active-member recheck, no-store response and count-only audit. Requires a separately approved logistics grant; no local receipt, delivery, refund or settlement mutation.
+      responses: {'200': {description: At most 100 timestamped WeChat logistics observations}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/logistics/capabilities:
+    get:
+      operationId: managementLogisticsCapabilities
+      security: [{session: []}]
+      description: Current commerce.fulfillment.manage authority before and after network. Read-only carrier and account status projection; omits customer codes, aliases and remarks. Does not bind accounts or purchase logistics services.
+      responses: {'200': {description: Supported carriers and existing account status observations}, '403': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/confirm-receipt:
+    post:
+      tags: [Commerce]
+      operationId: confirmMyShipmentReceipt
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}
+      responses: {'200': {description: Explicit owner receipt fact; does not fabricate carrier delivery or release funds}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/commerce/orders/{orderId}/shipment:
+    get:
+      tags: [Commerce]
+      operationId: managementShipment
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      responses: {'200': {description: Shipment detail restricted to current commerce.fulfillment.manage authority}, '403': {$ref: '#/components/responses/Problem'}}
+    post:
+      tags: [Commerce]
+      operationId: dispatchShipment
+      security: [{session: []}]
+      description: R0 single parcel for all order lines. Current fulfillment authority, paid bound order, immutable dispatch evidence and independent sync job commit together without network I/O.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShipmentDispatchInput'}}}}
+      responses: {'200': {description: Local shipped fact and durable WeChat pending sync or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/commerce/orders/{orderId}/shipment/reconcile:
+    post:
+      tags: [Commerce]
+      operationId: reconcileShipmentShipping
+      security: [{session: []}]
+      description: Query-only manual recovery. Never uploads or resets attempts; only a bound matching platform parcel can resolve manual_review. Authority is checked again after external I/O, with an audit and idempotent response.
+      parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [evidenceReference]
+              properties:
+                evidenceReference: {type: string, minLength: 8, maxLength: 120, pattern: '^[A-Za-z0-9._:-]+$'}
+      responses: {'200': {description: Audited matched or unresolved query result; never confirms physical receipt or refund}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/shipments:
+    get:
+      security: [{session: []}]
+      operationId: listManagementShipments
+      summary: 按履约状态及精确订单号筛选已支付订单
+      responses:
+        '200': {description: Cursor page; fulfillment permission required}
+  /v1/management/shipments/export:
+    get:
+      security: [{session: []}]
+      operationId: exportFulfillmentWorkbook
+      summary: 授权履约个人信息 Excel 导出，提交审计后返回且不落盘
+      responses:
+        '200':
+          description: At most 500 orders; narrow filters when exceeded
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+  /v1/management/shipments/import:
+    post:
+      security: [{session: []}]
+      operationId: importShipmentRows
+      summary: 从 Excel 粘贴最多25行物流，先校验重复及错单再逐单原子提交
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rows]
+              additionalProperties: false
+              properties:
+                rows: {type: string, maxLength: 16000, description: 'Tab-separated order number, carrier code, carrier name, tracking number, UTC shipped-at. No header.'}
+      responses:
+        '200': {description: Per-row accepted or rejected result; does not assert WeChat synchronization}
+  /v1/management/shipments/batch:
+    post:
+      tags: [Commerce]
+      operationId: dispatchShipmentBatch
+      security: [{session: []}]
+      description: Up to 25 distinct orders; malformed or duplicate rows rejected before any writes. Each valid row is independently atomic, returns accepted/rejected, and has a stable batch-key plus order-id replay key. Partial results are not whole-batch success.
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  minItems: 1
+                  maxItems: 25
+                  items:
+                    allOf:
+                      - {$ref: '#/components/schemas/ShipmentDispatchInput'}
+                      - {type: object, required: [orderId], properties: {orderId: {type: string, format: uuid}}}
+      responses: {'200': {description: Per-row results; retries preserve the same keys}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/aftersales/availability:
+    get:
+      operationId: myAftersaleAvailability
+      summary: Remaining refundable quantities on an owned verified order
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: orderId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Per-line remaining quantities after verified successful refunds}
+        '401': {description: Session required}
+        '404': {description: Owned order not found}
+        '409': {description: Order payment not verified}
+  /v1/me/orders/{orderId}/aftersales:
+    post:
+      operationId: requestAftersale
+      summary: Explicitly submit an aftersale case and link the existing member support conversation; no refund or return instruction is implied
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: orderId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind], properties: {kind: {type: string, enum: [refund_only, return_refund]}, claimBasis: {type: string, enum: [other, no_reason, quality, wrong_item, missing_item, delivery_issue]}, reason: {type: string, maxLength: 500, description: May be empty for no_reason; otherwise at least three characters}, lines: {type: array, description: Selected original order-line IDs and quantities; omitted means all remaining, items: {type: object, required: [lineId, quantity], properties: {lineId: {type: string, format: uuid}, quantity: {type: integer, minimum: 1}}}}}}}}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Money authorization unavailable}
+  /v1/me/aftersales:
+    get:
+      operationId: listMyAftersales
+      summary: Owner scoped after-sale cases
+      security: [{session: []}]
+      parameters:
+        - {in: query, name: orderId, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50}}
+        - {in: query, name: cursor, schema: {type: string, maxLength: 600}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Money authorization unavailable}
+  /v1/me/aftersales/{caseId}:
+    get:
+      operationId: myAftersale
+      summary: Owner scoped case and bounded history
+      description: Includes immutable case-specific return instruction versions so the owner can identify the version actually used for shipment. The shipped version is preserved separately from the current instruction.
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/me/aftersales/{caseId}/actions:
+    post:
+      operationId: actMyAftersale
+      summary: Withdraw, supplement or register return waybill
+      description: report_old_route records that a buyer has already shipped to an earlier valid address before receiving a waybill; it does not invent a tracking number or withdraw the application. For ship_return, instructionVersion identifies the actual issued version followed by the buyer. Older valid versions are accepted, retained as shipment evidence and queued for human route review. Later waybill registration must keep the same version. Legacy clients omitting it use the recorded or current version; new native clients send it explicitly.
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [cancel, provide_info, report_old_route, ship_return]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, carrier: {type: string, maxLength: 80}, tracking: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}, instructionVersion: {type: integer, minimum: 1}}}}}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/management/aftersales:
+    get:
+      operationId: listManagedAftersales
+      summary: Capability scoped after-sale queue
+      security: [{session: []}]
+      parameters:
+        - {in: query, name: orderId, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50}}
+        - {in: query, name: cursor, schema: {type: string, maxLength: 600}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/management/aftersales/{caseId}:
+    get:
+      operationId: managedAftersale
+      summary: Capability scoped case history
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
+  /v1/management/aftersales/{caseId}/actions:
+    post:
+      operationId: actManagedAftersale
+      summary: Separated review, receiving and inspection permissions; linked refund uses existing commerce gate
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
+      responses:
+        '200': {description: Local case facts; channel refund success is a separate verified fact}
+        '401': {description: Session required}
+        '403': {description: Active member and current capability required}
+        '404': {description: Owned case or order not found}
+        '409': {description: State, version or idempotency conflict}
+        '422': {description: Invalid bounded input}
+        '503': {description: Return destination or money authorization unavailable}
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
@@ -1425,6 +1779,17 @@ components:
     Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
     Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
   schemas:
+    ShipmentDispatchInput:
+      type: object
+      required: [carrierCode, carrierName, trackingNumber, shippedAt, evidenceReference, expectedOrderVersion]
+      properties:
+        carrierCode: {type: string, pattern: '^[A-Z0-9_]{2,32}$'}
+        carrierName: {type: string, minLength: 1, maxLength: 80}
+        trackingNumber: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}
+        shippedAt: {type: string, format: date-time}
+        evidenceReference: {type: string, minLength: 8, maxLength: 120}
+        expectedOrderVersion: {type: integer, minimum: 1}
+
     CommerceQuoteInput: {type: object, additionalProperties: false, required: [skuId, quantity, addressId, addressVersion], properties: {skuId: {$ref: '#/components/schemas/Uuid'}, quantity: {type: integer, minimum: 1, maximum: 99}, addressId: {$ref: '#/components/schemas/Uuid'}, addressVersion: {type: integer, minimum: 1}, creditCents: {type: integer, minimum: 0, description: Isolated test only; positive channel cash component required}}}
     CommerceOrderCreateInput: {type: object, additionalProperties: false, required: [quoteId], properties: {quoteId: {$ref: '#/components/schemas/Uuid'}}}
     CommerceOrderCancelInput: {type: object, additionalProperties: false, required: [expectedVersion, reason], properties: {expectedVersion: {type: integer, minimum: 1}, reason: {type: string, minLength: 3, maxLength: 500}}}

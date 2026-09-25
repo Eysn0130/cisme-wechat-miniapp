@@ -2,14 +2,16 @@ import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
+import { launchFulfillmentPolicy } from "./fulfillmentPolicy.js";
 import { enqueue } from "./outbox.js";
-import { AuthorityService, requireActiveMemberWithClient } from "./authority.js";
+import { AuthorityService, requireActiveMemberWithClient, requireHistoricalMemberWithClient } from "./authority.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
 
 type OrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 type QuoteRow = {
+  fulfillment_policy: ReturnType<typeof launchFulfillmentPolicy>|null;
   id: string; member_id: string; product_id: string; sku_id: string; address_id: string; address_version: number;
   quantity: number; currency: "CNY"; unit_price_cents: number; subtotal_cents: string; member_discount_cents: string;
   shipping_cents: string; total_cents: string; pricing_rule_version: string; product_version: number; sku_version: number;
@@ -24,6 +26,7 @@ type CatalogCheckoutRow = {
   stock_on_hand: number; reserved_quantity: number; inventory_version: number;
 };
 type OrderRow = {
+  fulfillment_policy: ReturnType<typeof launchFulfillmentPolicy>|null;
   id: string; order_number: string; member_id: string; source_quote_id: string; status: OrderStatus; currency: "CNY";
   subtotal_cents: string; member_discount_cents: string; shipping_cents: string; total_cents: string;
   credit_tender_cents:string;
@@ -100,10 +103,16 @@ export class CommerceOrderService {
     private readonly commercial: CommercialMembershipService,
     private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
       simulatedPayment?: { appId: string; merchantId: string; transferSceneId?: string };
-      formalTestPayment?: { appId: string; merchantId: string }; isolatedCreditCheckout?:boolean }
+      formalTestPayment?: { appId: string; merchantId: string };
+      formalPayment?: { appId:string; merchantId:string; authorize:()=>void; recoveryAvailable:()=>boolean }; isolatedCreditCheckout?:boolean }
   ) {}
 
   status() {
+    if(this.options.formalPayment){
+      let available=false;try{this.options.formalPayment.authorize();available=this.options.enabled;}catch{/* Remain closed without live approval. */}
+      return {version:2,orderFlowEnabled:available,paymentAvailable:available,paymentOnboarding:available?"READY":"IN_PROGRESS",currency:"CNY" as const,
+        scope:"formal_commerce",formalMoneyOperationsAvailable:available,formalRecoveryAvailable:this.options.formalPayment.recoveryAvailable(),isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false};
+    }
     return { version: 1, orderFlowEnabled: this.options.enabled, paymentAvailable: false, paymentOnboarding: "IN_PROGRESS", currency: "CNY" as const,
       scope: this.options.simulatedPayment?"verified_isolated_test":
         this.options.formalTestPayment?"formal_protocol_synthetic_test":
@@ -114,7 +123,16 @@ export class CommerceOrderService {
   }
 
   private requireEnabled(): void {
+    this.options.formalPayment?.authorize();
     if (!this.options.enabled) throw new DomainError("COMMERCE_ORDER_FLOW_DISABLED", "待支付订单流程尚未在当前环境开放", 503);
+  }
+
+  private requireFormalRefundableQuote(quote:QuoteRow):void {
+    if(!this.options.formalPayment)return;
+    if(quote.pricing_rule_version!=="launch-base-price-free-shipping-v1"||
+      money(quote.member_discount_cents)!==0||money(quote.shipping_cents)!==0||
+      money(quote.credit_tender_cents)!==0||money(quote.subtotal_cents)!==money(quote.total_cents))
+      throw new DomainError("COMMERCE_QUOTE_POLICY_CHANGED","结算规则已更新，请重新获取报价",409);
   }
 
   private async catalogRow(client: DbClient, skuId: string, lockInventory: boolean, requireSellable = true): Promise<CatalogCheckoutRow> {
@@ -127,7 +145,9 @@ export class CommerceOrderService {
       JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.id=$1${suffix}`, [skuId]);
     const row = result.rows[0];
     if (!row) throw new DomainError("CATALOG_SKU_NOT_FOUND", "商品规格不存在", 404);
-    if (requireSellable && row.source_kind !== "synthetic_test") throw new DomainError("COMMERCE_ORDER_SYNTHETIC_ONLY", "当前待支付订单流程仅供隔离合成测试", 409);
+    if(requireSellable&&this.options.formalPayment&&row.source_kind!=="admin")
+      throw new DomainError("COMMERCE_FORMAL_PRODUCT_REQUIRED","正式订单只能使用已审核的正式商品",409);
+    if (requireSellable && !this.options.formalPayment && row.source_kind !== "synthetic_test") throw new DomainError("COMMERCE_ORDER_SYNTHETIC_ONLY", "当前待支付订单流程仅供隔离合成测试", 409);
     if (requireSellable && (row.qualification_status !== "eligible" || row.publication_status !== "published" || !row.sku_active)) {
       throw new DomainError("CATALOG_PRODUCT_NOT_SELLABLE", "商品或规格当前不可售，请返回商品页刷新", 409);
     }
@@ -139,8 +159,8 @@ export class CommerceOrderService {
       subtotalCents: money(row.subtotal_cents), memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents),
       totalCents: money(row.total_cents),creditTenderCents:money(row.credit_tender_cents),
       cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
-      pricingRuleVersion: row.pricing_rule_version, addressId: row.address_id,
-      addressVersion: row.address_version, expiresAt: row.expires_at.toISOString(), serverTime: new Date().toISOString(), paymentAvailable: false,
+      fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, addressId: row.address_id,
+      addressVersion: row.address_version, expiresAt: row.expires_at.toISOString(), serverTime: new Date().toISOString(), paymentAvailable: this.status().paymentAvailable,
       item: { productId: item.product_id, productCode: item.product_code, productName: item.product_name, image: item.product_image,
         skuId: item.sku_id, skuCode: item.sku_code, skuLabel: item.sku_label } };
   }
@@ -161,10 +181,12 @@ export class CommerceOrderService {
       const replay = await client.query<QuoteRow>("SELECT * FROM commerce_checkout_quote WHERE member_id=$1 AND idempotency_key=$2", [owner, idempotencyKey]);
       if (replay.rows[0]) {
         if (replay.rows[0].request_hash !== requestHash) throw new DomainError("IDEMPOTENCY_CONFLICT", "同一请求键不能用于不同结算内容", 409);
+        this.requireFormalRefundableQuote(replay.rows[0]);
         const item = await this.catalogRow(client, replay.rows[0].sku_id, false, false);
         return this.quoteView(replay.rows[0], item);
       }
-      await this.addresses.checkoutSnapshot(client, owner, normalized.addressId, normalized.addressVersion);
+      const delivery=await this.addresses.checkoutSnapshot(client, owner, normalized.addressId, normalized.addressVersion);
+      const fulfillmentPolicy=launchFulfillmentPolicy(delivery.payload);
       const item = await this.catalogRow(client, normalized.skuId, false);
       const available = item.stock_on_hand - item.reserved_quantity;
       if (available < normalized.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
@@ -172,16 +194,16 @@ export class CommerceOrderService {
       if (!Number.isSafeInteger(subtotal) || subtotal > MAX_TOTAL_CENTS) throw new DomainError("COMMERCE_MONEY_OVERFLOW", "订单金额超过支持范围", 422);
       if(creditCents>=subtotal)
         throw new DomainError("CREDIT_CASH_COMPONENT_REQUIRED","隔离测试订单至少保留一分渠道现金支付",422);
-      // Real shipping/member-price policies are not yet approved. This version is
-      // deliberately synthetic-only and therefore applies no invented discount or freight promise.
-      const pricingRuleVersion = "r4b-synthetic-base-price-v1";
+      // Launch freight is owner-approved as zero. Sales/payment remain gated;
+      // no member discount or carrier reachability is inferred from this policy.
+      const pricingRuleVersion = this.options.formalPayment?"launch-base-price-free-shipping-v1":"r4b-synthetic-base-price-v1";
       const expiresAt = new Date(now.getTime() + this.options.quoteTtlMinutes * 60_000);
       const inserted = await client.query<QuoteRow>(`INSERT INTO commerce_checkout_quote(member_id,product_id,sku_id,address_id,address_version,quantity,currency,
         unit_price_cents,subtotal_cents,member_discount_cents,shipping_cents,total_cents,credit_tender_cents,
         pricing_rule_version,product_version,sku_version,price_version,
-        idempotency_key,request_hash,expires_at,created_at) VALUES($1,$2,$3,$4,$5,$6,'CNY',$7,$8,0,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+        idempotency_key,request_hash,expires_at,created_at,fulfillment_policy) VALUES($1,$2,$3,$4,$5,$6,'CNY',$7,$8,0,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
         [owner,item.product_id,item.sku_id,normalized.addressId,normalized.addressVersion,normalized.quantity,item.amount_cents,subtotal,
-          creditCents,pricingRuleVersion,item.product_version,item.sku_version,item.price_version,idempotencyKey,requestHash,expiresAt,now]);
+          creditCents,pricingRuleVersion,item.product_version,item.sku_version,item.price_version,idempotencyKey,requestHash,expiresAt,now,fulfillmentPolicy]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
         VALUES($1,'commerce.quote.create','commerce_checkout_quote',$2,$3,gen_random_uuid()::text)`, [actor, inserted.rows[0]!.id,
         { skuId: item.sku_id, quantity: normalized.quantity, totalCents: subtotal, expiresAt: expiresAt.toISOString() }]);
@@ -201,9 +223,9 @@ export class CommerceOrderService {
     return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
-      pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
+      fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
-      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: this.status().paymentAvailable,
       transactionSourceKind:row.transaction_source_kind,
       lines: lines.rows.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
@@ -217,9 +239,9 @@ export class CommerceOrderService {
     return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
-      pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
+      fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
-      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: false,
+      terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: this.status().paymentAvailable,
       transactionSourceKind:row.transaction_source_kind,
       lines: lines.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
@@ -279,6 +301,7 @@ export class CommerceOrderService {
         if (quote.status === "active") await client.query("UPDATE commerce_checkout_quote SET status='expired' WHERE id=$1", [quote.id]);
         throw new DomainError("QUOTE_EXPIRED", "结算报价已过期，请重新获取", 409);
       }
+      this.requireFormalRefundableQuote(quote);
       const item = await this.catalogRow(client, quote.sku_id, true);
       if (item.product_id !== quote.product_id || item.product_version !== quote.product_version || item.sku_version !== quote.sku_version ||
           item.price_version !== quote.price_version || item.amount_cents !== quote.unit_price_cents) {
@@ -289,23 +312,24 @@ export class CommerceOrderService {
       if (available < quote.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
       const orderId = randomUUID(); const expiresAt = new Date(now.getTime() + this.options.pendingOrderTtlMinutes * 60_000);
       const number = orderNumber(now); const sealed = this.addresses.sealOrderSnapshot(owner,orderId,address.payload);
-      const paymentBinding=this.options.simulatedPayment??this.options.formalTestPayment;
+      this.options.formalPayment?.authorize();
+      const paymentBinding=this.options.simulatedPayment??this.options.formalTestPayment??this.options.formalPayment;
       const transactionSource=paymentBinding?"verified_commerce":"synthetic_nonproduction";
       const creditCents=money(quote.credit_tender_cents),cashPayable=money(quote.total_cents)-creditCents;
       if(creditCents&&(!this.options.isolatedCreditCheckout||!paymentBinding||cashPayable<1))
         throw new DomainError("SHOPPING_CREDIT_LIVE_DISABLED","购物权益支付组成仅供隔离合成测试",503);
       const order = (await client.query<OrderRow>(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,subtotal_cents,
         member_discount_cents,shipping_cents,total_cents,credit_tender_cents,pricing_rule_version,
-        expires_at,created_at,updated_at,transaction_source_kind)
-        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14) RETURNING *`,
+        expires_at,created_at,updated_at,transaction_source_kind,fulfillment_policy)
+        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14,$15) RETURNING *`,
         [orderId,number,owner,quote.id,quote.currency,quote.subtotal_cents,quote.member_discount_cents,
-          quote.shipping_cents,quote.total_cents,creditCents,quote.pricing_rule_version,expiresAt,now,transactionSource])).rows[0]!;
+          quote.shipping_cents,quote.total_cents,creditCents,quote.pricing_rule_version,expiresAt,now,transactionSource,quote.fulfillment_policy])).rows[0]!;
       if(creditCents)await reserveCreditForCheckout(client,owner,orderId,creditCents);
       if(paymentBinding){
         const identity=(await client.query<{openid:string}>(`SELECT openid FROM wechat_identity
           WHERE member_id=$1 AND provider='wechat_miniprogram' AND app_id=$2
           ORDER BY created_at DESC,id DESC LIMIT 1`,[owner,paymentBinding.appId])).rows[0];
-        if(!identity)throw new DomainError("PAYMENT_PAYER_IDENTITY_REQUIRED","当前微信身份不可用于支付测试",409);
+        if(!identity)throw new DomainError("PAYMENT_PAYER_IDENTITY_REQUIRED","当前微信身份不可用于此订单支付",409);
         await client.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,
           app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
           VALUES($1,$2,$3,$4,$5,$6,$7,'CNY',$8,$9,$10,$11)`,
@@ -399,18 +423,18 @@ export class CommerceOrderService {
     },"SERIALIZABLE");
   }
 
-  async listMine(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown}) {
+  async listMine(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown},closedRights=false) {
     const owner=member(memberId),limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor);
     return transaction(this.pool, async client => {
-      await requireActiveMemberWithClient(client,owner);
+      await requireHistoricalMemberWithClient(client,owner,closedRights);
       return this.listPage(client, owner, limit, cursor);
     }, "REPEATABLE READ");
   }
 
-  async detailMine(memberId: string | undefined, orderIdInput: string) {
+  async detailMine(memberId: string | undefined, orderIdInput: string,closedRights=false) {
     const owner=member(memberId),orderId=uuid(orderIdInput,"ORDER_ID_INVALID");
     return transaction(this.pool,async client=>{
-      await requireActiveMemberWithClient(client,owner);
+      await requireHistoricalMemberWithClient(client,owner,closedRights);
       const row=(await client.query<OrderRow>("SELECT * FROM commerce_order WHERE id=$1 AND member_id=$2",[orderId,owner])).rows[0];
       if(!row)throw new DomainError("ORDER_NOT_FOUND","订单不存在",404);
       return this.orderView(client,row);

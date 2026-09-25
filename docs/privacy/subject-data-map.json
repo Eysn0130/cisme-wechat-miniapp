@@ -1,16 +1,17 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "246afc9c7870016c92dddf8a498ba10c8f727c5d9641e42118530b5f3b14296c",
+  "migrationSetSha256": "30d91676fb35f78c01b81b9872a02b84be8a50adb57da2aa2dd058f2ff6ef817",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
-  "productionErasureEnabled": false,
+  "productionErasureEnabled": true,
   "retentionApproved": false,
   "releaseReady": false,
   "rules": {
-    "export": "Only existing synthetic member_profile_only archive fields are allowed. All other columns excluded; no SELECT * exporter.",
+    "export": "A verified WeChat member can receive a bounded, encrypted, short-lived copy of fixed owner-scoped projections and owned media in ordered volumes. Each volume requires the same owner and parent artifact authority. Missing source media is stated explicitly. Internal secrets and other people are excluded; synthetic dev identity remains profile-only.",
     "subject": "FK paths are candidate relationships, not authorization. Actor, beneficiary, reporter and owner must remain distinct; polymorphic notes require typed resolver.",
-    "retention": "No new period chosen. Existing approved policy and active legal hold must be checked per object; defaults never authorize deletion.",
-    "identity": "Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key."
+    "retention": "Transaction and transaction-linked support have a confirmed 36-calendar-month business baseline subject to longer legal duties. Ordinary support has a configurable three-calendar-month policy after resolution; automatic purge remains separately gated until deployed data is previewed. Legal holds block erasure until release; other classes may lack enforcement.",
+    "identity": "Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key.",
+    "erasure": "Verified members may erase optional profile data and delete individual address-book entries. Address payload clearing is immediate without a hold, delayed with a hold, and replayed from independent local/COS suppression markers after old backup restore. Separately sealed order snapshots remain under transaction retention. Other unscoped requests remain non-executable until assessed."
   },
   "tables": [
     {
@@ -113,18 +114,19 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "member_id",
-        "qualification_fact_id",
         "phase",
         "started_on",
         "timezone",
         "protocol_version",
-        "version",
         "created_at",
-        "updated_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "qualification_fact_id",
+        "version",
         "schedule_offset_days"
       ],
       "syntheticErasureFields": [],
@@ -184,8 +186,7 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "cycle_id",
         "milestone",
@@ -194,6 +195,7 @@
         "protocol_version",
         "self_assessment"
       ],
+      "excludedFields": [],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
@@ -218,14 +220,14 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "record_id",
         "step_code",
         "sequence",
         "completed_at",
         "protocol_version"
       ],
+      "excludedFields": [],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
@@ -382,6 +384,370 @@
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
+      "table": "commerce_aftersale_case",
+      "subjectPaths": [
+        [
+          "commerce_aftersale_case.exception_approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "exception_approved_by"
+      ],
+      "specialHandling": "member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, reason and exception_evidence_reference are private. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.",
+      "exportFields": [
+        "id",
+        "order_id",
+        "kind",
+        "state",
+        "reason",
+        "lines",
+        "amount_cents",
+        "return_carrier",
+        "return_tracking",
+        "quality_result",
+        "created_at",
+        "updated_at",
+        "claim_basis"
+      ],
+      "excludedFields": [
+        "member_id",
+        "version",
+        "idempotency_key",
+        "request_hash",
+        "return_destination",
+        "refund_request_id",
+        "support_conversation_id",
+        "exception_kind",
+        "exception_evidence_reference",
+        "exception_approved_by",
+        "exception_approved_at",
+        "shipped_instruction_version",
+        "route_review_outcome",
+        "route_reviewed_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_aftersale_event",
+      "subjectPaths": [
+        [
+          "commerce_aftersale_event.actor_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.exception_approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_event.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "case_id identifies buyer; actor_member_id is the customer or a separately authorized operator. Notes may contain third-party data. Immutable history is not a blanket retention approval.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "case_id",
+        "actor_member_id",
+        "action",
+        "note",
+        "from_state",
+        "to_state",
+        "refund_request_id",
+        "case_version",
+        "idempotency_key",
+        "request_hash",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_aftersale_return_instruction",
+      "subjectPaths": [
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.exception_approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "case_id identifies buyer; issued_by is a separate operator. The recipient, phone, region and address may identify a third party. Each version is immutable and must be projected to the case owner only; do not export all versions as a general member profile or delete while return/dispute duties remain.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "case_id",
+        "version",
+        "recipient_name",
+        "phone",
+        "region",
+        "address",
+        "freight_payer",
+        "instructions",
+        "issued_by",
+        "issued_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
       "table": "commerce_checkout_quote",
       "subjectPaths": [
         [
@@ -421,7 +787,8 @@
         "expires_at",
         "consumed_at",
         "created_at",
-        "credit_tender_cents"
+        "credit_tender_cents",
+        "fulfillment_policy"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -551,29 +918,31 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "order_number",
-        "member_id",
-        "source_quote_id",
         "status",
-        "currency",
         "subtotal_cents",
         "member_discount_cents",
         "shipping_cents",
         "total_cents",
+        "created_at",
+        "updated_at",
+        "credit_tender_cents"
+      ],
+      "excludedFields": [
+        "member_id",
+        "source_quote_id",
+        "currency",
         "pricing_rule_version",
         "version",
         "expires_at",
         "cancelled_at",
         "expired_at",
         "terminal_reason",
-        "created_at",
-        "updated_at",
         "paid_at",
         "transaction_source_kind",
-        "credit_tender_cents"
+        "fulfillment_policy"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -608,10 +977,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. The formal copy includes decrypted owned order-address snapshots.",
+      "exportFields": [
+        "order_id"
+      ],
       "excludedFields": [
-        "order_id",
         "encrypted_payload",
         "payload_hmac",
         "key_version",
@@ -648,25 +1018,26 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "id",
+      "exportFields": [
         "order_id",
         "line_number",
+        "product_name",
+        "sku_label",
+        "quantity",
+        "unit_price_cents",
+        "line_discount_cents",
+        "line_total_cents",
+        "credit_tender_cents"
+      ],
+      "excludedFields": [
+        "id",
         "product_id",
         "sku_id",
         "product_code",
-        "product_name",
         "sku_code",
-        "sku_label",
         "image_path",
-        "quantity",
-        "unit_price_cents",
         "line_subtotal_cents",
-        "line_discount_cents",
-        "line_total_cents",
-        "created_at",
-        "credit_tender_cents"
+        "created_at"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -817,28 +1188,278 @@
         "decided_by_member_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "order_id",
-        "requested_by_member_id",
-        "idempotency_key",
-        "request_hash",
         "amount_cents",
         "reason",
         "state",
+        "decided_at",
+        "created_at"
+      ],
+      "excludedFields": [
+        "requested_by_member_id",
+        "idempotency_key",
+        "request_hash",
         "version",
         "decided_by_member_id",
         "decision_key",
         "decision_hash",
-        "decision_reason",
-        "decided_at",
-        "created_at"
+        "decision_reason"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "commerce_shipment",
+      "subjectPaths": [
+        [
+          "commerce_shipment.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "created_by_member_id"
+      ],
+      "specialHandling": "order_id identifies buyer; created_by_member_id is operator, not the buyer. Receipt fact is independent of carrier state and refund/commission eligibility.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "order_id",
+        "shipping_sync_id",
+        "carrier_name",
+        "logistics_state",
+        "version",
+        "shipped_at",
+        "delivered_at",
+        "receipt_confirmed_at",
+        "created_by_member_id",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_shipment_event",
+      "subjectPaths": [
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_event.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "actor_principal_id"
+      ],
+      "specialHandling": "Resolve buyer through shipment/order; actor_principal_id identifies operator or owner separately. No raw event export; preserve retention and legal holds.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "shipment_id",
+        "event_key",
+        "event_type",
+        "actor_principal_id",
+        "evidence_reference",
+        "occurred_at",
+        "recorded_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_shipment_line",
+      "subjectPaths": [
+        [
+          "commerce_shipment_line.order_line_id -> commerce_order_line.id",
+          "commerce_order_line.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.order_line_id -> commerce_order_line.id",
+          "commerce_order_line.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.order_line_id -> commerce_order_line.id",
+          "commerce_order_line.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "commerce_shipment_line.shipment_id -> commerce_shipment.id",
+          "commerce_shipment.shipping_sync_id -> commerce_shipping_sync.id",
+          "commerce_shipping_sync.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Resolve buyer through shipment/order; product quantities are immutable fulfillment evidence.",
+      "exportFields": [],
+      "excludedFields": [
+        "shipment_id",
+        "order_line_id",
+        "quantity"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
     },
     {
       "table": "commerce_shipping_sync",
@@ -965,16 +1586,17 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "member_id",
+      "exportFields": [
         "state",
         "effective_at",
         "expires_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
         "version",
         "changed_by",
-        "change_reason",
-        "updated_at"
+        "change_reason"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -1559,16 +2181,17 @@
         "actor_principal_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "source_id",
-        "event_key",
         "kind",
         "amount_cents",
         "purchase_order_id",
-        "actor_principal_id",
         "occurred_at"
+      ],
+      "excludedFields": [
+        "source_id",
+        "event_key",
+        "actor_principal_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -1971,18 +2594,19 @@
         "actor_principal_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
+        "kind",
+        "amount_cents",
+        "occurred_at"
+      ],
+      "excludedFields": [
         "order_id",
         "referrer_member_id",
         "event_key",
-        "kind",
-        "amount_cents",
         "reverse_of",
         "source_fact_id",
-        "actor_principal_id",
-        "occurred_at"
+        "actor_principal_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -2509,7 +3133,8 @@
         "reconcile_attempt_count",
         "reconcile_last_error_code",
         "first_dispatch_started_at",
-        "submission_lease_token"
+        "submission_lease_token",
+        "execution_kind"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -3065,20 +3690,21 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "id",
-        "member_id",
+      "exportFields": [
         "purpose_code",
-        "purpose_version",
         "document_type",
         "document_version",
         "scope",
-        "channel",
-        "proof_sha256",
         "status",
         "granted_at",
-        "withdrawn_at",
+        "withdrawn_at"
+      ],
+      "excludedFields": [
+        "id",
+        "member_id",
+        "purpose_version",
+        "channel",
+        "proof_sha256",
         "created_at"
       ],
       "syntheticErasureFields": [],
@@ -3195,7 +3821,9 @@
         "active",
         "version",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "duration_months",
+        "automatic_purge_enabled"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -3455,6 +4083,117 @@
         [
           "media_cleanup_queue.media_id -> media_object.id",
           "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.exception_approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_cleanup_queue.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
           "support_message.linked_order_id -> commerce_order.id",
           "commerce_order.member_id -> member.id",
           "member.id"
@@ -3529,6 +4268,104 @@
         ],
         [
           "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.exception_approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "media_object.bound_support_message_id -> support_message.id",
           "support_message.linked_order_id -> commerce_order.id",
           "commerce_order.member_id -> member.id",
           "member.id"
@@ -3564,10 +4401,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. Owned uploaded image bytes are included when available within the bounded artifact; video and unavailable media are listed for follow-up.",
+      "exportFields": [
+        "id"
+      ],
       "excludedFields": [
-        "id",
         "submission_id",
         "kind",
         "object_key",
@@ -3598,17 +4436,18 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
+      "specialHandling": "The monotonic privacy_erasure_revision fences in-flight portable copies after address-book erasure; it is not personal content for export.",
       "exportFields": [
         "id",
         "display_name",
-        "created_at"
-      ],
-      "excludedFields": [
+        "created_at",
         "status"
       ],
+      "excludedFields": [
+        "privacy_erasure_revision"
+      ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -3621,7 +4460,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. The formal copy derives the owner phone from phone_encrypted and never exposes ciphertext or phone_hmac.",
       "exportFields": [],
       "excludedFields": [
         "member_id",
@@ -3632,7 +4471,7 @@
         "bound_at"
       ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -3645,24 +4484,25 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "specialHandling": "Address-book removal hides the row and clears eligible encrypted payload. A legal hold delays clearing; an independent marker replays erasure after old backup restore or hold release. The order-address snapshot is separately encrypted and retained by transaction rules. Erased payloads export as null.",
+      "exportFields": [
         "id",
-        "member_id",
-        "encrypted_payload",
-        "payload_hmac",
-        "key_version",
         "label",
         "is_default",
-        "version",
-        "client_request_key",
         "created_at",
         "updated_at",
         "deleted_at"
       ],
+      "excludedFields": [
+        "member_id",
+        "encrypted_payload",
+        "payload_hmac",
+        "key_version",
+        "version",
+        "client_request_key"
+      ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -3680,17 +4520,17 @@
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
       "exportFields": [
         "wechat_handle",
-        "updated_at"
+        "updated_at",
+        "avatar_data_url",
+        "completed_at",
+        "public_status"
       ],
       "excludedFields": [
         "member_id",
         "handle_source",
-        "avatar_data_url",
         "avatar_revision",
         "profile_revision",
-        "completed_at",
         "community_visible",
-        "public_status",
         "public_review_note",
         "public_reviewed_by",
         "public_reviewed_at"
@@ -3698,7 +4538,7 @@
       "syntheticErasureFields": [
         "wechat_handle"
       ],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -3842,7 +4682,7 @@
         "consumed_at"
       ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
@@ -4121,6 +4961,33 @@
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
+      "table": "privacy_export_part",
+      "subjectPaths": [
+        [
+          "privacy_export_part.job_id -> data_export_job.id",
+          "data_export_job.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Encrypted ordered member export volumes. The parent artifact controls owner download, expiry and revocation; purge removes every volume. Never export ciphertext or keys as subject records.",
+      "exportFields": [],
+      "excludedFields": [
+        "job_id",
+        "part_number",
+        "ciphertext",
+        "iv",
+        "auth_tag",
+        "plain_bytes",
+        "plain_sha256",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PARENT_ARTIFACT_ONE_HOUR_OR_REVOKE",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
       "table": "privacy_request",
       "subjectPaths": [
         [
@@ -4129,23 +4996,26 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "specialHandling": "Scoped withdrawal target_ref is the verified member-owned consent grant; request text and result remain owner-scoped.",
+      "exportFields": [
         "id",
-        "member_id",
         "kind",
         "message",
         "status",
         "response",
-        "responded_by",
         "created_at",
+        "resolution_code",
+        "completed_at",
+        "scope_code",
+        "target_ref"
+      ],
+      "excludedFields": [
+        "member_id",
+        "responded_by",
         "updated_at",
         "version",
         "due_at",
-        "resolution_code",
-        "completed_at",
-        "scope_code"
+        "waiting_on"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -4176,6 +5046,66 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "privacy_request_member_reply",
+      "subjectPaths": [
+        [
+          "privacy_request_member_reply.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "privacy_request_member_reply.privacy_request_id -> privacy_request.id",
+          "privacy_request.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "privacy_request_id identifies the request owner, and member_id must match it. Reply body is private to that member and authorized privacy operators; it is not a production export or erasure permission. Immutable evidence requires an object-specific retention and backup rule.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "privacy_request_id",
+        "member_id",
+        "body",
+        "idempotency_key",
+        "request_hash",
+        "request_version",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "privacy_request_operator_reply",
+      "subjectPaths": [
+        [
+          "privacy_request_operator_reply.privacy_request_id -> privacy_request.id",
+          "privacy_request.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "actor_principal_id"
+      ],
+      "specialHandling": "privacy_request_id identifies the owner. The response body is private to that member and authorized privacy operators; actor_principal_id identifies a separate operator. Historical snapshots carry only the last response known before this migration. Immutable evidence requires an object-specific retention and backup rule.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "privacy_request_id",
+        "actor_principal_id",
+        "body",
+        "waiting_on",
+        "request_version",
+        "historical_snapshot",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
     },
     {
       "table": "processing_purpose",
@@ -4543,7 +5473,7 @@
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
-      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "retention": "ORDINARY_SUPPORT_FINITE_POLICY_AND_AUTO_GATE; TRANSACTION_LINKED_EXCLUDED",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
@@ -4551,6 +5481,91 @@
       "subjectPaths": [
         [
           "support_message.conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.exception_approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
           "support_conversation.member_id -> member.id",
           "member.id"
         ],
@@ -4576,26 +5591,30 @@
       "actorColumns": [
         "sender_principal_id"
       ],
-      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments/order_snapshot require independent projection and retention.",
-      "exportFields": [],
-      "excludedFields": [
+      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes. New messages carry per-message ordinary/transaction purpose; ambiguous mixed legacy messages remain on the conservative linked clock. Independently durable purge markers suppress restoration.",
+      "exportFields": [
         "id",
-        "conversation_id",
         "sequence",
         "sender_type",
-        "sender_principal_id",
         "body",
-        "attachment_refs",
-        "client_message_id",
-        "delivery_state",
         "created_at",
         "content_type",
         "linked_order_id",
-        "order_snapshot"
+        "linked_case_id"
+      ],
+      "excludedFields": [
+        "conversation_id",
+        "sender_principal_id",
+        "attachment_refs",
+        "client_message_id",
+        "delivery_state",
+        "order_snapshot",
+        "return_instruction_snapshot",
+        "retention_purpose"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
-      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "retention": "ORDINARY_SUPPORT_FINITE_POLICY_AND_AUTO_GATE; TRANSACTION_LINKED_EXCLUDED",
       "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
     },
     {
@@ -4781,20 +5800,21 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
         "post_id",
-        "author_member_id",
         "parent_id",
         "reply_to_id",
         "body",
         "state",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "author_member_id",
         "was_public",
         "operation_id",
         "version",
-        "created_at",
-        "updated_at",
         "deleted_at"
       ],
       "syntheticErasureFields": [],
@@ -5011,10 +6031,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
+      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. Owned uploaded image bytes are included when available within the bounded artifact; video and unavailable media are listed for follow-up.",
+      "exportFields": [
+        "id"
+      ],
       "excludedFields": [
-        "id",
         "owner_member_id",
         "kind",
         "object_key",
@@ -5104,19 +6125,20 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "id",
-        "author_member_id",
         "state",
         "visibility",
+        "published_at",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "author_member_id",
         "current_revision",
         "client_request_key",
         "version",
-        "published_at",
         "deleted_at",
-        "created_at",
-        "updated_at",
         "published_revision"
       ],
       "syntheticErasureFields": [],
@@ -5452,16 +6474,17 @@
         "created_by_member_id"
       ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
+      "exportFields": [
         "post_id",
         "revision",
-        "created_by_member_id",
         "title",
         "body",
         "content_warning",
+        "created_at"
+      ],
+      "excludedFields": [
+        "created_by_member_id",
         "moderation_state",
-        "created_at",
         "ai_usage",
         "rights_confirmed",
         "public_consent_confirmed"
@@ -5785,6 +6808,117 @@
         [
           "upload_chunk.media_id -> media_object.id",
           "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.exception_approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.id -> commerce_aftersale_return_instruction.case_id",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.decided_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.refund_request_id -> commerce_refund_request.id",
+          "commerce_refund_request.requested_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.shipped_instruction_version -> commerce_aftersale_return_instruction.version",
+          "commerce_aftersale_return_instruction.issued_by -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
+          "support_message.linked_case_id -> commerce_aftersale_case.id",
+          "commerce_aftersale_case.support_conversation_id -> support_conversation.id",
+          "support_conversation.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "upload_chunk.media_id -> media_object.id",
+          "media_object.bound_support_message_id -> support_message.id",
           "support_message.linked_order_id -> commerce_order.id",
           "commerce_order.member_id -> member.id",
           "member.id"
@@ -5850,21 +6984,24 @@
       ],
       "actorColumns": [],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "id",
-        "member_id",
+      "exportFields": [
         "openid",
         "unionid",
-        "adapter",
         "created_at",
         "app_id",
         "provider"
       ],
+      "excludedFields": [
+        "id",
+        "member_id",
+        "adapter"
+      ],
       "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     }
-  ]
+  ],
+  "formalSelfServiceErasureScope": "member_optional_profile_v1; optional account/contact/address data only; transactions retained; legal holds delay execution",
+  "transactionRetentionBusinessBaselineConfirmed": true
 }

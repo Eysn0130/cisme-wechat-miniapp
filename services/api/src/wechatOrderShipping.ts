@@ -71,7 +71,7 @@ export function shippingObservation(raw: unknown, binding: ShippingBinding, parc
   const result = { platformOrderState: order.order_state, inComplaint: order.in_complaint };
   if (order.order_state === 5 || order.in_complaint) return { ...result, decision: 'conflict' };
   const shipping = order.shipping === undefined ? undefined : object(order.shipping);
-  if (!shipping) return { ...result, decision: order.order_state === 1 ? 'not_uploaded' : 'conflict' };
+  if (!shipping || Object.keys(shipping).length===0) return { ...result, decision: order.order_state === 1 ? 'not_uploaded' : 'conflict' };
   const parcels = shipping.shipping_list;
   if (order.order_state === 1 && shipping.finish_shipping === false && shipping.finish_shipping_count === 0
     && Array.isArray(parcels) && parcels.length === 0) return { ...result, decision: 'not_uploaded' };
@@ -94,6 +94,10 @@ export class WechatOrderShippingClient {
   constructor(private readonly accessToken: () => Promise<string>,
     private readonly authorize: (capability: ShippingCapability, binding: ShippingBinding) => void = deny,
     private readonly fetcher: typeof fetch = fetch) {}
+
+  authorizeUpload(binding: ShippingBinding): void {
+    validateShippingBinding(binding); this.authorize('shipping.upload', binding);
+  }
 
   private async call(path: 'get_order' | 'upload_shipping_info', payload: unknown,
     binding: ShippingBinding): Promise<JsonObject> {

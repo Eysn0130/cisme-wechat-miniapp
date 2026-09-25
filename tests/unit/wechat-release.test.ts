@@ -9,6 +9,7 @@ import {
   isPrivateLanHttpOrigin,
   isTemporaryRemoteDebugHttpsOrigin,
   remoteDebugApiOrigin,
+  miniProgramApiOrigins,
   legalDocumentVersions,
   shouldUseDevelopmentIdentity
 } from "../../apps/miniprogram/release-config";
@@ -24,6 +25,13 @@ const completeGates = {
 const exec = promisify(execFile);
 
 describe("WeChat release preflight", () => {
+  it("keeps preview and trial on staging while release targets the registered production API", () => {
+    expect(miniProgramApiOrigins.preview).toBe("https://staging-api.cisme.cn");
+    expect(miniProgramApiOrigins.trial).toBe("https://staging-api.cisme.cn");
+    expect(miniProgramApiOrigins.release).toBe("https://api.cisme.cn");
+    expect(miniProgramApiOrigins.devtools).toMatch(/^http:\/\/127\.0\.0\.1:/);
+  });
+
   it("never uses a development identity or local consent fixture against a cloud function", () => {
     for (const platform of ["devtools", "ios", "android"]) {
       expect(shouldUseDevelopmentIdentity("develop", platform, true, true)).toBe(false);

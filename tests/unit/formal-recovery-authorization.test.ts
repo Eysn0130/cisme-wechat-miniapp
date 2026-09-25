@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach,expect,it,vi } from 'vitest';
 import type { AppConfig } from '@cisme/config';
 import { protectedText,recoveryAuthorization,recoveryTransport } from '../../services/api/src/formalPaymentAuthorization';
-import { runFormalRecoveryCycle } from '../../services/worker/src/formalRecovery';
+import { runFormalRecoveryCycle,formalRefundSubmissionLane } from '../../services/worker/src/formalRecovery';
 const roots:string[]=[];
 afterEach(async()=>{vi.unstubAllGlobals();await Promise.all(roots.splice(0).map(root=>rm(root,{recursive:true,force:true})));});
 async function fixture(){
@@ -59,4 +59,15 @@ it('keeps independent callback recovery running when query or another lane is di
     {authorize:()=>true,run:failed},{authorize:()=>true,run:callback}
   ])).toEqual([{status:'not_authorized'},{status:'failed'},{status:'processed'}]);
   expect(denied).not.toHaveBeenCalled();expect(callback).toHaveBeenCalledTimes(1);
+});
+
+it('requires a fresh refund submission grant while preserving independent callback recovery',async()=>{
+ const processDue=vi.fn(async()=>[]),callback=vi.fn(async()=>{});
+ const missing=formalRefundSubmissionLane({}, {processDue});
+ expect(await runFormalRecoveryCycle([missing,{authorize:()=>true,run:callback}])).toEqual([{status:'not_authorized'},{status:'processed'}]);
+ expect(processDue).not.toHaveBeenCalled();
+ const authorizeCommerce=vi.fn(()=> 'synthetic-unit-only'),lane=formalRefundSubmissionLane({authorizeCommerce},{processDue});
+ await runFormalRecoveryCycle([lane]);expect(authorizeCommerce).toHaveBeenCalledWith('refund.submit');expect(processDue).toHaveBeenCalledWith(20);
+ authorizeCommerce.mockImplementation(()=>{throw Error('REVOKED');});
+ await runFormalRecoveryCycle([lane,{authorize:()=>true,run:callback}]);expect(processDue).toHaveBeenCalledTimes(1);expect(callback).toHaveBeenCalledTimes(2);
 });

@@ -6,7 +6,7 @@ beforeEach(() => {
   requests = []; abort = vi.fn();
   Object.assign(globalThis, { getApp: () => state, getCurrentPages: () => [{ route: "pages/home/index" }], wx: {
     request: vi.fn((options: any) => { requests.push(options); return { abort: () => { abort(); options.fail({ errMsg: "request:fail abort" }); } }; }),
-    setStorageSync: vi.fn(), navigateTo: vi.fn()
+    setStorageSync: vi.fn(), removeStorageSync: vi.fn(), navigateTo: vi.fn()
   } });
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "a296da16a0edafe3d1fc988b94539a52a23f2d7e8b1fa85d9702e96b4276161c",
+  "packageSourceSha256": "1b01f9f940f9d10544d3c01d7b60ce4726c336686c5f143579f0cf67852f5c4a",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -41,11 +41,17 @@
     {"route":"pages/community-review/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
     {"route":"pages/community-activity/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
     {"route":"pages/management-finance/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
-    {"route":"pages/commission/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]}
+    {"route":"pages/commission/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
+    {"route":"pages/management-privacy/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
+    {"route":"pages/aftersale/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]},
+    {"route":"pages/management-fulfillment/index","matrixComplete":false,"result":"blocked","evidenceFiles":[]}
   ],
-  "devices": [],
+  "devices": [
+    {"platform":"ios","result":"blocked","evidenceFiles":[]},
+    {"platform":"android","result":"blocked","evidenceFiles":[]}
+  ],
   "findings": [
-    {"id":"CURRENT_NATIVE_RECAPTURE_REQUIRED","severity":"P1","status":"blocked"}
+    {"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}
   ],
-  "note": "Pending acceptance only. Package hash was measured by PR16 workflow 35685225815 for source HEAD aef02f4de1cbd56fa26af7178507185dba047c04. No WeChat DevTools or physical-device captures have been collected for this changed package. Prior release-preparation captures remain attached to 91a37de8a3572417148929564cfa9cfeea696d73094a60938b6b68d8b45ed3a6 or their recorded historical hashes; none are promoted into this evidenceIndex. All 37 route matrices and device acceptance remain blocked. This metadata update does not change any acceptance criterion or release gate."
+  "note": "R8 source identity was computed by the package gate in R0 run 36096077856 for b72e9fda225420435d2da522741200a161dc3a06; the synthetic merge tree equals the branch tree. That run stopped at route-audit because the old evidence manifest still named the old source. This metadata update does not grant native acceptance. The previous complete manifest is retained at docs/evidence/visual/history/source-acceptance-a549b67d-r7.json with the original iPhone failure screenshot and its original source hash. No old device evidence is relabelled as this candidate. All 40 route states and both devices remain blocked. Real endpoint diagnosis, native compile and iOS/Android journeys are still required."
 }

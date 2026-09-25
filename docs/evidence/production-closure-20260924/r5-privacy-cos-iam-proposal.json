@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-not-applied",
+  "bucket": "cisme-privacy-1257392443",
+  "region": "ap-shanghai",
+  "acl": "private",
+  "encryption": "SSE-COS",
+  "versioning": "disabled",
+  "camUser": "cisme-storage-runtime",
+  "policyName": "CismePrivacySuppressionRuntime",
+  "policy": {
+    "version": "2.0",
+    "statement": [
+      {
+        "effect": "allow",
+        "action": ["name/cos:HeadBucket", "name/cos:GetBucketVersioning"],
+        "resource": ["qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/*"]
+      },
+      {
+        "effect": "allow",
+        "action": ["name/cos:GetBucket"],
+        "resource": ["qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/*"],
+        "condition": {"string_equal": {"cos:prefix": "privacy-suppression/v1/wx4eac2d4fb11d299b/"}}
+      },
+      {
+        "effect": "allow",
+        "action": ["name/cos:PutObject", "name/cos:GetObject"],
+        "resource": ["qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/privacy-suppression/v1/wx4eac2d4fb11d299b/*"]
+      }
+    ]
+  },
+  "exclusions": ["public access", "delete object", "delete bucket", "write bucket policy", "change versioning", "read media bucket objects"],
+  "verificationPlan": "Use the existing production service key from the Lighthouse host to check bucket versioning and list only the exact app prefix, then write and read one disposable marker under the same prefix. Remove the disposable marker with the main account after the probe. Never use real member data in this probe.",
+  "sources": [
+    "https://cloud.tencent.com/document/product/436/71306",
+    "https://cloud.tencent.com/document/product/436/31923"
+  ]
+}

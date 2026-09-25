@@ -50,7 +50,8 @@ describe("native mini program boundary", () => {
   it("keeps internal pricing rule identifiers out of the buyer checkout surface", async () => {
     const checkout = await readFile(resolve("apps/miniprogram/pages/checkout/index.wxml"), "utf8");
     expect(checkout).not.toContain("quote.pricingRuleVersion");
-    expect(checkout).toContain("价格会在提交前再次确认");
+    expect(checkout).toContain("费用已过期，请重新确认。");
+    expect(checkout).toContain('bindtap="refreshQuote"');
   });
 
   it("contains no React DOM, browser globals or deferred social routes", async () => {
@@ -119,6 +120,7 @@ describe("native mini program boundary", () => {
 
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
+      "aftersale/index.wxml": 1,
       "community-compose/index.wxml": 2,
       "commission/index.wxml": 2,
       "community-review/index.wxml": 2,
@@ -129,6 +131,8 @@ describe("native mini program boundary", () => {
       "settings/index.wxml": 1,
       "post/index.wxml": 1,
       "privacy-rights/index.wxml": 1,
+      "management-privacy/index.wxml": 1,
+      "management-fulfillment/index.wxml": 1,
       "product/index.wxml": 2,
       "progress/index.wxml": 3,
       "referral/index.wxml": 2,
@@ -194,7 +198,7 @@ describe("native mini program boundary", () => {
   it("locks the per-route button action inventory and verifies every handler exists", async () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
-      account: ["back", "openLegalDocuments", "openCrossBorder", "loginTap", "browseCommunity"],
+      account: ["back", "openLegalDocuments", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
@@ -207,21 +211,24 @@ describe("native mini program boundary", () => {
       legal: ["back", "load", "privacyRights"],
       "management-member": ["back", "back", "load", "selectSection", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
       "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "selectFilter", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
-      management: ["back", "retry", "retryRuntime", "openSupport", "openCatalog", "openOrders", "openMembers", "openFinance"],
+      management: ["back", "retry", "retryRuntime", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "openSupport", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openMembers", "openPrivacy", "openFinance"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
-      "management-order-detail": ["back", "back", "load"],
+      "management-order-detail": ["back", "back", "load", "reconcile", "submitShipment", "load"],
+      aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit"],
+      "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "submit", "reconcileBatch", "newBatch"],
+      "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],
       "management-finance": ["back", "selectSection", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
       "management-support": ["back", "open", "retry"],
-      "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "claim", "suggest", "send", "resolve", "closeContext"],
+      "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       points: ["back", "openShop", "load"],
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
-      "privacy-rights": ["back", "submit", "load", "viewExport", "revokeExport", "login", "@feedback"],
+      "privacy-rights": ["back", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login", "openSupport"],
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
-      checkout: ["back", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "requestQuote", "refreshQuote", "confirmOrder"],
+      checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
-      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
+      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "loadSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "openAftersale", "loadShipment", "confirmReceipt", "loadTracking", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
       profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "load", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
       records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],
@@ -229,7 +236,7 @@ describe("native mini program boundary", () => {
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
       submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
-      support: ["back", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "closeOrderPicker"],
+      support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "requestHuman", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
       task: ["back", "continueSubmission", "load", "back", "goCommunity", "claim", "@disabled", "continueSubmission"]
     };
 
@@ -297,7 +304,8 @@ describe("native mini program boundary", () => {
 
     expect(appStyle).toMatch(/button\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;[^}]*font-weight:\s*400;[^}]*line-height:\s*1\.25;/s);
     expect(appStyle).toMatch(/\.primary,\s*\.secondary\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*min-height:\s*50px;[^}]*font-family:\s*-apple-system[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*line-height:\s*20px;/s);
-    expect(appStyle).toMatch(/\.action-label\s*\{[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*font-weight:\s*400;[^}]*line-height:\s*20px;[^}]*transform:\s*translateY\(1px\);/s);
+    expect(appStyle).toMatch(/\.action-label\s*\{[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*font-weight:\s*400;[^}]*line-height:\s*20px;/s);
+    expect(appStyle).not.toMatch(/\.action-label\s*\{[^}]*transform:/s);
     expect(account).toContain(".account-login { flex:0 0 50px; height:50px; margin-top:36rpx; padding-top:0; padding-bottom:0; font-size:var(--cisme-text-action); line-height:20px; }");
     expect(account).toContain(".account-browse { flex:0 0 50px; height:50px; margin-top:18rpx; padding-top:0; padding-bottom:0; font-size:var(--cisme-text-action); line-height:20px; }");
     expect(account).toContain(".account-checkbox { flex:0 0 auto; width:60rpx; height:60rpx; transform:none; }");
@@ -305,7 +313,8 @@ describe("native mini program boundary", () => {
     expect(account).toMatch(/\.account-row \{[^}]*min-height:104rpx;/);
     expect(account).toMatch(/\.account-legal-entry \{[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;[^}]*line-height:20px;/);
     expect(accountMarkup).not.toContain('class="account-caret"');
-    expect(accountMarkup).toContain("已有账号直接登录，首次登录自动注册");
+    expect(accountMarkup).toContain("同意协议后即可登录");
+    expect(accountMarkup).toContain("我已阅读并同意用户协议与隐私保护指引");
     expect(account).toMatch(/\.account-agreement__label \{[^}]*min-height:128rpx;/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-card \{ margin-top:32rpx; \}/);
     expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-login \{ margin-top:24rpx; \}[\s\S]*\.account-browse \{ margin-top:12rpx; \}/);

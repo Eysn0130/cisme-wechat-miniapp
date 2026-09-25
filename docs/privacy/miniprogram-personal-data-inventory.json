@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-21",
+  "inventoryDate": "2026-09-24",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -27,6 +27,7 @@
     "wx.nextTick",
     "wx.offKeyboardHeightChange",
     "wx.onKeyboardHeightChange",
+    "wx.openDocument",
     "wx.openPrivacyContract",
     "wx.openSetting",
     "wx.pageScrollTo",
@@ -40,6 +41,7 @@
     "wx.requirePrivacyAuthorize",
     "wx.setClipboardData",
     "wx.setStorageSync",
+    "wx.shareFileMessage",
     "wx.showActionSheet",
     "wx.showModal",
     "wx.showShareMenu",
@@ -52,7 +54,6 @@
   "wxmlInterfaces": [
     "input-type:nickname",
     "open-type:chooseAvatar",
-    "open-type:feedback",
     "open-type:getPhoneNumber",
     "open-type:share"
   ],
@@ -243,6 +244,20 @@
       "audit": "客服消息事件不携完整 snapshot；管理订单详情访问遵循独立能力与审计"
     },
     {
+      "surface": "support_message.return_instruction_snapshot",
+      "informationType": "逐单退货收件人、电话、地区、地址、运费承担和必要说明及版本；可能含第三方收件人个人信息",
+      "purpose": "向本案会员发送可复制的结构化退货指引并保留历史版本依据",
+      "activation": "具备售后处理权限的管理员确认后发送；打开面板或同意退货本身不生成地址",
+      "serverStorage": "support_message 不可变卡片快照，与 commerce_aftersale_return_instruction 同一事务；outbox 只传消息标识",
+      "currentGate": "案件服务端授权、版本、幂等及所属会话校验",
+      "authority": "逐单业务记录，由管理员填写，不从部署文件继承",
+      "visibleTo": "本案会员及具备 support.read 的客服；模型投影只取消息正文，不含卡片快照",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION，需与售后争议及客服会话分别核定",
+      "userDeletionOrClosure": "生产正式导出和删除仍待执行器完成；第三方收件人权益需独立核对",
+      "legalHold": "适用订单或售后争议保全时限制删除",
+      "audit": "售后事件、客服消息事件和审计记录分开留痕"
+    },
+    {
       "surface": "support_member_context",
       "informationType": "昵称、会员状态、脱敏手机号、加入时间",
       "purpose": "当前人工客服会话的最小必要上下文",
@@ -345,8 +360,8 @@
       "informationType": "会员资格、稳定推荐码、直接推荐关系和关联订单标识",
       "purpose": "限定一级推荐资格、归属与可审计订单快照",
       "activation": "授权管理员授予商业资格；被推荐人首次主动确认有效关系",
-      "serverStorage": "CISME PostgreSQL 资格、码、关系、规则和审计事实",
-      "currentGate": "服务端 capability 分离；推荐会员只看本人必要聚合，管理员读订单另需 commerce.order.read",
+      "serverStorage": "CISME PostgreSQL 资格、码、关系、版本化费率规则、订单快照和审计事实",
+      "currentGate": "正式费率须由授权管理员提议、独立复核并生效；工程默认费率不使正式推荐开放；推荐会员只看本人必要聚合，管理员读订单另需 commerce.order.read",
       "retention": "POLICY PENDING；现金事实启用前另定争议及法定保存期限"
     },
     {
@@ -414,21 +429,21 @@
     },
     {
       "surface": "privacy_request",
-      "informationType": "本人数据权利请求类型、自由文本、仅合成删除请求的显式资料范围码、审核进度、回复与最小审计事件",
+      "informationType": "本人数据权利请求类型、自由文本、显式删除范围码、审核进度、回复与最小审计事件",
       "purpose": "受理、核验、计划和向本人展示个人信息权利处理进度",
       "activation": "会员主动提交请求；授权运营人员按服务端能力处理",
       "serverStorage": "CISME PostgreSQL privacy_request、privacy_request_event、data_export_job、data_erasure_job；事件和审计不复制请求自由文本",
-      "currentGate": "本人会话仅见本人请求；受理与执行计划分别由服务端角色校验；可选 scope_code 仅适用于合成 dev_test 的资料字段删除请求且不可事后改写；APP_ENV=test 的 dev_test 身份经第二复核和有效测试政策可删除该资料字段，或领取合成会员资料子集；正式执行仍为 plan_only/dry_run_only",
-      "retention": "POLICY PENDING；代码中的 due_at 不是已获法务批准的对外法定时限"
+      "currentGate": "本人会话仅见本人请求；合成资料字段删除维持 dev_test 守卫；已验证的微信身份可执行固定可清除账户资料范围或申请正式数据副本，均逐对象审计。自由文本且未指定范围的删除请求仍需人工核对，不自动擦除交易证据。",
+      "retention": "交易及关联售后客服记录以36个月为业务基线，受更高优先级法定义务及保全约束；隐私请求本身的具体到期处理策略仍按类别配置。"
     },
     {
       "surface": "privacy_export_artifact",
-      "informationType": "合成开发身份的本人数据副本密文、随机 IV、认证标签、到期/撤销时间；不含明文密钥",
-      "purpose": "仅在双人审核的合成执行路径中验证私有、限时的会员资料子集交付，不开放正式用户下载",
-      "activation": "仅 APP_ENV=test 且设置独立测试密钥；dev_test 请求由第二位 review_lead 以固定范围批准，worker 原子生成，会员本人显式查看或撤销",
-      "serverStorage": "CISME PostgreSQL privacy_export_artifact，使用独立测试密钥的 AES-GCM 密文；真实环境执行仍关闭",
-      "currentGate": "schema 的 syntheticOnly/dev_test 守卫与应用/worker 的 test-only 密钥双重限制；成员会话+对象归属+到期/撤销核验；未覆盖完整账号导出或真实环境 apply",
-      "retention": "真实保存期限 POLICY PENDING；合成测试的短期到期不是对外承诺"
+      "informationType": "本人数据副本密文、随机 IV、认证标签、到期/撤销时间；不含明文密钥",
+      "purpose": "向本人交付短期私有数据副本；合成测试资料子集和正式微信身份固定投影分别使用隔离密钥与守卫",
+      "activation": "合成 dev_test 仍按原复核路径；已验证微信身份的正式副本无需默认双管理员，worker 生成后仅本人可下载或撤销",
+      "serverStorage": "CISME PostgreSQL privacy_export_artifact，AES-GCM 密文；正式与测试密钥分别配置，副本默认1小时到期并由保留任务清理",
+      "currentGate": "固定本人范围投影、身份和对象归属检查；图片受容量约束，视频与超限内容在结果中明示需继续获取；不宣称完整全库导出。",
+      "retention": "副本1小时有效；原始交易与关联客服记录的36个月基线不受副本撤销影响。"
     },
     {
       "surface": "wx.getPerformance",
@@ -451,6 +466,57 @@
       "userDeletionOrClosure": "退出身份时尝试清除金额和填写理由，保留最小未知键提示供核对。损坏或存储失败时仍退出登录，不能声称原字节已被抹除；清除小程序数据或换设备不保证恢复",
       "legalHold": "服务端原申请、订单、资金和审计保留规则独立；清除本机提示不撤回申请或删除服务端事实",
       "audit": "回执返回最小状态/id/金额，不返回原理由、支付参数、收款标识或任意response_body；无需新增逐次本机日志"
+    },
+    {
+      "surface": "wx.openDocument",
+      "purpose": "Authorized native fulfillment administrator explicitly previews an audited XLSX containing recipient name, phone and shipping address. No external provider added.",
+      "boundary": "Server capability on export; native identity and capability recheck before opening; temporary file removed on hide, cancellation or identity change. Copies explicitly saved or shared through WeChat remain under operator retention duties; production retention policy pending.",
+      "source": "apps/miniprogram/pages/management-fulfillment/index.ts"
+    },
+    {
+      "surface": "commerce_aftersale_case",
+      "purpose": "售后受理时间、申请依据、所选原订单商品与数量、原支付组成分摊、逐单退货物流与退款事实关联；寄件时使用的指引版本单独留痕，旧版有效地址寄件须人工核对并记录处理结果与时间。逐单收件信息及无需寄回例外的依据编号由授权管理员记录。例外依据可能指向承运商或客服材料，不能作为公开会员资料。",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "boundary": "仅本人及当前授权售后人员可见；不自动退款、不自动回补库存；生产导出/删除仍未完成"
+    },
+    {
+      "surface": "commerce_aftersale_event",
+      "purpose": "售后状态转换、处理说明与操作审计",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "boundary": "操作人和买方是不同数据主体；不可对其他用户导出原始处理说明"
+    },
+    {
+      "surface": "commerce_aftersale_return_instruction",
+      "purpose": "逐单收件信息与运费承担的不可变版本快照；地址更改新增版本，原依据保留",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "boundary": "案件与会话关联；仅本人及当前授权客服可见。生产主体导出和删除需覆盖该表及复制到客服消息的卡片。"
+    },
+    {
+      "surface": "wx.shareFileMessage",
+      "informationType": "本人主动导出的 JSON 数据副本，可能包含手机号、地址与交易信息",
+      "purpose": "由小程序临时文件交给微信原生分享入口，以供本人保存",
+      "activation": "本人点击数据副本操作后，临时文件写入并在分享回调后删除；页面重新打开清理遗留文件",
+      "serverStorage": "副本由本人请求的 CISME 加密服务端工件解密；本机仅保留临时文件，分享后的微信副本由接收人管理",
+      "currentGate": "服务端再次核验本人及副本有效期；客户端身份切换和中断后不继续展示旧结果",
+      "retention": "服务端副本1小时；接收会话中的复制件由本人选择与管理"
+    },
+    {
+      "surface": "privacy_export_part",
+      "informationType": "本人数据副本分卷密文、认证标签、卷号、字节数及摘要",
+      "purpose": "分卷交付大体量本人资料",
+      "activation": "正式微信身份本人申请，worker 生成，仍受父副本的本人、撤销和到期校验",
+      "serverStorage": "CISME PostgreSQL 加密分卷；每卷至多 4 MiB 明文",
+      "currentGate": "仅本人按编号读取，分卷摘要校验；父副本失效后不可访问",
+      "retention": "随父副本撤销或到期清理，默认 1 小时"
+    },
+    {
+      "surface": "support_message.retention_purpose",
+      "informationType": "每条客服消息的普通咨询、交易关联或历史未判明用途分类",
+      "purpose": "在同一会话内分别计算客服内容保留期限",
+      "activation": "服务端在消息落库时写入或保守迁移历史记录",
+      "serverStorage": "CISME PostgreSQL support_message.retention_purpose；独立本机/COS 抑制标记仅保存待抑制的消息及附件 ID",
+      "currentGate": "普通消息仅在有限期限和保留条件满足后清理；历史未判明消息不按普通咨询清理",
+      "retention": "普通咨询三个月、交易关联三十六个月的业务基线，均受保全和正式政策开关约束"
     }
   ],
   "runtimeDataEgress": [
@@ -483,10 +549,16 @@
       "data": "合成完整协议仅进入隔离回环渠道；可选正式恢复仅在保护文件的独立能力授权后发送原商户订单/退款号及账单日期，使用绑定商户签名头，不发送新资金命令。通知来自微信并在本机验签解密。",
       "purpose": "历史支付/退款查单、账单核对与验签回调；每次重新校验环境/AppID/mchid/能力/有效期，HTTPS 域名和 GET 路径白名单、禁重定向，日志只留审批引用、能力、状态、Request-ID、耗时。",
       "state": "controlled_formal_recovery_source_wired_no_live_grant_installed_no_real_channel_calls"
+    },
+    {
+      "recipient": "GitHub api.github.com（部署工具）",
+      "data": "固定仓库名、main引用/commit/tree、CI查询参数及迁移脚本路径；不发送数据库/用户/订单数据或认证秘密",
+      "purpose": "只读核验准确main和最新main push CI，核对迁移入口来源；HTTPS校验、固定仓库、禁止重定向、12秒超时",
+      "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "644ceec561226533224cf4761b72881e41a0168b3c2a624137353f32a53b4d57",
-  "egressSignatureSha256": "5031a306d66bdcd3fd87ab4fcc3b54f719706c09f6199663699ab4d211c74d44",
+  "migrationSetSha256": "9be498a8831abbb53d297a641d9b40d4f0d9131d015fc1ca5db9ffb862695c68",
+  "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -528,5 +600,115 @@
     "liveGrantInstalled": false,
     "realPlatformCalled": false,
     "productionErasureEnabled": false
+  },
+  "localFulfillmentReview20260922": {
+    "purpose": "履约、物流展示及授权仓储导出",
+    "tables": [
+      "commerce_shipment",
+      "commerce_shipment_line",
+      "commerce_shipment_event"
+    ],
+    "fields": "订单关系、操作员、包裹关联、交寄/签收/确认时间、版本；运单仍在既有加密 shipping_sync 中",
+    "export": "履约权限并发锁+提交前复核；xlsx 内存生成，不落服务器磁盘；审计导出人、时间、筛选、数量、摘要，不含明文姓名/手机/地址；no-store",
+    "egress": "新增官方 stable_token 凭据交换，保护文件逐次授权、固定 HTTPS 主机、拒绝重定向、有界解析；管理导出仅既有配置 API。未安装微信出站授权文件。",
+    "retention": "未新增自动删除或期限，保留法律留置；生产完整主体导出/删除仍未完成",
+    "approval": "首发经营规则由用户任务回复批准，不等于整体生产隐私批准",
+    "importReplay": "commerce.shipment.import_plan 在既有 idempotency_operation 中只保存原订单ID/版本及内容摘要；不存导入明文；重试沿用原版本。"
+  },
+  "logisticsReadReview20260922": {
+    "source": "services/api/src/wechatLogistics.ts",
+    "recipient": "微信 api.weixin.qq.com 物流助手",
+    "purpose": "订单本人查询原运单轨迹，履约管理员读取现有物流账号状态与承运商支持列表",
+    "sent": "固定 app 的凭据；轨迹只发送绑定付款者 OpenID、原承运商代码、原运单号；保护授权含 app/merchant/environment，staging 白名单隔离订单",
+    "returned": "轨迹时间/原码/消息仅本人瞬时显示，可能含快递员联系信息；管理能力只显示承运商、原绑定状态码、余额是否可用；不返回客户编码、别名或备注",
+    "storage": "不存原始平台响应或轨迹消息；审计只有操作者、shipment 对象、计数；响应 no-store，页面取消/账号切换丢弃迟到结果",
+    "network": "事务外；授权/token 前后复核；固定官方 HTTPS、拒绝重定向、15 秒预算、64KiB JSON、最多100轨迹节点；无新增第三方依赖或付费服务",
+    "liveGrantInstalled": false,
+    "realPlatformCalled": false,
+    "productionErasureEnabled": false,
+    "requiresFormalPrivacyApproval": true,
+    "operatorContext": "管理端查询和导出绑定请求开始时 API/操作员会话；输入更改立即清空旧投影，迟到结果不得显示或下载；清空输入不复用旧凭据。未改变目的服务器，无新增外发接收方。"
+  },
+  "shippingManualQueryReview": {
+    "date": "2026-09-22",
+    "source": [
+      "db/migrations/202609220003_shipping_manual_query.sql",
+      "services/api/src/shippingSync.ts",
+      "apps/miniprogram/pages/management-order-detail/index.ts"
+    ],
+    "fields": "复用加密包裹、支付主体绑定；新增审计仅记录订单/同步ID、操作员、核对编号、匹配结论和平台状态。不记录原始平台响应、OpenID、完整联系方式或运单副本。",
+    "execution": "仅当前 commerce.fulfillment.manage 可查询；Provider I/O 后重检权限；查询不重传、不重置发送历史，不写入退款或签收事实。",
+    "retention": "沿用原订单与管理审计保留规则，正式批准仍待核验；本次无新增存储表或独立保留周期。",
+    "external": "复用已有微信 get_order 查询能力；无新外部接收方、无 PC Session。"
+  },
+  "formalCommerceCommandReview20260922": {
+    "source": "services/api/src/formalCommerceAuthorization.ts",
+    "recipient": "微信支付 api.mch.weixin.qq.com",
+    "purpose": "经独立正式批准后的 JSAPI 下单、关单和原单退款；历史查单与回调独立授权",
+    "sent": "复用既有普通商户签名协议、AppID/商户号、原订单号、绑定付款者 OpenID、整数分金额、商品摘要及配置回调 URL；退款关联原支付事实，不发送收货地址/手机号",
+    "storage": "日志仅能力、批准引用、状态码、已校验 Request-ID 和耗时；不输出头、正文、连接串或原始异常。沿用订单及资金审计保留政策，正式保留规则待批准。",
+    "network": "逐次读取保护文件；只允许三类固定 HTTPS POST 路径，拒绝重定向、15 秒超时；GET 仍经独立恢复授权。无新第三方依赖。",
+    "liveGrantInstalled": false,
+    "realPlatformCalled": false,
+    "requiresFormalPrivacyApproval": true
+  },
+  "stagingAcceptanceEgressReview20260922": {
+    "source": "infra/tencent/staging-native-business-probe.mjs",
+    "recipient": "同一 staging 主机 127.0.0.1:3100",
+    "scope": "仅明确归属 rc20260922-690f9382 的合成数据库；正式支付关闭；无真实微信登录",
+    "sent": "进程内合成身份会话及合成隐私受理请求；不持久化或输出会话凭据",
+    "storage": "脱敏检查名称、计数和源码锚点；不保存完整 HTTP 响应",
+    "productionTouched": false,
+    "newExternalProcessor": false
+  },
+  "nativePrivacyTriageReview20260922": {
+    "source": [
+      "apps/miniprogram/pages/management-privacy/index.ts",
+      "services/api/src/privacyRights.ts"
+    ],
+    "purpose": "授权隐私请求受理及用户可见回复，不等于完成数据导出或删除",
+    "fields": "用户请求正文、类型、截止日期、状态、回复和执行任务状态；不读取导出内容或其他成员联系方式",
+    "authorization": "当前环境 privacy.request.manage；服务端请求锁后重查撤权；旧操作员角色不能替代此原生接口能力",
+    "storage": "请求事实、版本和既有不可变事件/审计；页面离开清理正文及草稿，不写本地缓存",
+    "externalRecipient": "现有 CISME API，无新增处理方",
+    "productionExecutionComplete": false
+  },
+  "productionDeploymentEgressReview20260923": {
+    "sources": [
+      "infra/tencent/production-release.py",
+      "infra/tencent/production-observation.py",
+      "infra/tencent/production-migration-audit.py"
+    ],
+    "signatureDelta": "9新增签名：4个实际GitHub只读fetch调用，5个离线测试fixture/调用；没有删除既有清单项。",
+    "github": "匿名访问固定GitHub仓库的main/git commit/workflow runs/脚本内容，不附带token、Cookie或业务正文；返回内容有大小上限。",
+    "metadata": "腾讯云本机元数据仅instance-id/local-ipv4/public-ipv4，不读取角色或临时密钥；固定元数据端点并禁止重定向。",
+    "ownHealth": "固定api.cisme.cn/health/ready，部署入口使用--resolve绑定127.0.0.1且保留域名SNI/证书验证；无身份GET、只读状态判断，不输出正文；该证据不代表公网可达。",
+    "database": "只读peer查询固定cisme迁移名称与schema计数；不输出业务行、密码、完整连接串或数据库原始错误。",
+    "privateLocalFiles": "原始配置备份仅根账户受保护目录；备份文件只在服务器本地校验，未上传GitHub。正式执行需要独立恢复/旧消费者证据。",
+    "ugcScan": "任务准入暂停和shutdown排空改动，不改变现有微信内容安全payload、接收方和字段；不新增遥测。",
+    "productionApplyExecuted": false,
+    "formalPolicyApproved": false,
+    "businessRetentionApproved": false
+  },
+  "localCreditRefundReview": {
+    "date": "2026-09-23",
+    "scope": "Reviewed new refund execution_kind and guard migration. The same approved request, order, original source lot, aftersale and audit records remain; no additional personal field or external recipient is created. A zero-cash credit return is a local ledger fact and must never be submitted to WeChat. Retention remains governed by the confirmed transaction category."
+  },
+  "formalSelfServiceReview20260923": {
+    "scope": "Verified WeChat member fixed projection export and optional live profile/contact/address erasure; no new account closure module",
+    "backup": "Immutable profile-erasure marker shares existing private suppression directory and COS remote; replay strips pre-request optional data after restored backup or released hold",
+    "limits": "Formal copy may be partial for unavailable video or oversized media. Raw transaction and financial evidence are retained; ordinary-support automatic purge remains separately gated."
+  },
+  "addressBookErasureReview20260924": {
+    "scope": "Address-book deletion clears eligible encrypted payload while keeping independent order snapshots.",
+    "hold": "A legal hold hides the address from the active book and defers payload erasure until release.",
+    "backup": "Immutable address marker in the existing private suppression directory and COS remote replays deletion after old-backup restore.",
+    "export": "Member privacy revision prevents an in-flight stale portable copy from being published; existing copies are revoked."
+  },
+  "scopedConsentWithdrawalReview20260924": {
+    "scope": "One owned submission consent grant is selected and revoked in the same transaction as the privacy result; readback verifies inactive grant and revocation record. Feed-only content is hidden; publication history remains a partially completed item for operator review.",
+    "newRecipient": false,
+    "formalWechatDeviceVerified": false,
+    "productionExecuted": false
   }
 }

@@ -1,7 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
 const requestMock=vi.hoisted(()=>vi.fn());
-vi.mock("../../apps/miniprogram/services/api",()=>({request:requestMock,resumeAuthentication:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/api",()=>({request:requestMock,resumeAuthentication:vi.fn(),
+ historicalCommerceToken:()=>session,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(session)}));
 vi.mock("../../apps/miniprogram/services/authority",()=>({
   authorityProjection:vi.fn(),hasCapability:vi.fn(()=>true),requireCapability:vi.fn(async()=>({capabilities:["member.profile.read"]}))
 }));
@@ -30,9 +31,9 @@ it("does not change membership or propose a rate after the actor switches while 
   await load("../../apps/miniprogram/pages/management-member/index");
   const detail={member:{id:"member-1",displayName:"合成成员",version:4,expiresAt:null},
     rate:{basisPoints:2500},
-    membershipPolicy:{termDays:365,renewalExpiresAt:"2027-09-13T00:00:00Z",
+    membershipPolicy:{kind:"engineering_calendar_v2",termMonths:12,rateOptions:[2000,2500,3000,3500],renewalExpiresAt:"2027-09-13T00:00:00Z",
       rateProposalSuggestedAt:"2027-09-13T01:00:00Z"}};
-  const page=mounted({detail,attempt:2,alive:true,canManageRate:true});
+  const page=mounted({detail,attempt:2,alive:true,canManageRate:true,canManageMembership:true,rateBasisPoints:[2000,2500,3000,3500]});
   const first=deferred<{confirm:boolean;content:string}>();modal.mockReturnValueOnce(first.promise);
   const membership=page.changeMembership({currentTarget:{dataset:{state:"active"}}});
   session="actor-b";first.resolve({confirm:true,content:"合成资格变更依据"});await membership;
@@ -44,6 +45,59 @@ it("does not change membership or propose a rate after the actor switches while 
   const rate=page.submitRateForm();page.data.attempt+=1;
   second.resolve({confirm:true});await rate;
   expect(requestMock).not.toHaveBeenCalled();
+});
+
+it("does not turn an unconfigured formal commercial policy into a client-side fee or membership action",async()=>{
+  await load("../../apps/miniprogram/pages/management-member/index");
+  const page=mounted({detail:{member:{id:"member-1",version:1},membershipPolicy:{kind:"unconfigured",termMonths:null,
+    rateOptions:[],renewalExpiresAt:null,rateProposalSuggestedAt:"2027-09-13T01:00:00Z"}},
+    canManageRate:true,canManageMembership:true,rateBasisPoints:[]});
+  page.openRateForm();
+  await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
+  expect(page.data.rateFormVisible).toBe(false);
+  expect(page.data.actionError).toContain("资格规则暂不可用");
+  expect(modal).not.toHaveBeenCalled();
+  expect(requestMock).not.toHaveBeenCalled();
+  await load("../../apps/miniprogram/pages/management-members/index");
+  const list=mounted({canManageRate:true,globalRate:{basisPoints:null,rateOptions:[],suggestedEffectiveAt:"2027-09-13T01:00:00Z"},
+    rateBasisPoints:[]});
+  list.openGlobalRateForm();
+  expect(list.data.globalRateFormVisible).toBe(false);
+  expect(list.data.globalRateError).toContain("费率状态暂不可用");
+  expect(requestMock).not.toHaveBeenCalled();
+});
+
+it("lets an authorized operator propose a formal rate outside engineering fixtures",async()=>{
+  await load("../../apps/miniprogram/pages/management-members/index");
+  const page=mounted({canManageRate:true,alive:true,attempt:1,globalRate:{basisPoints:null,policyKind:"unconfigured",
+    suggestedEffectiveAt:"2027-09-13T01:00:00Z",rateOptions:[]},rateBasisPoints:[]});
+  page.lastRevision=(await import("../../apps/miniprogram/services/commerce-command-store")).commerceContextRevision();
+  page.openGlobalRateForm();
+  expect(page.data.globalRateFormVisible).toBe(true);
+  page.editGlobalRate({detail:{value:"17.50"}});
+  page.data.globalRateForm={...page.data.globalRateForm,reason:"经营方费率提议"};
+  modal.mockResolvedValueOnce({confirm:true});
+  requestMock.mockResolvedValue({id:"00000000-0000-4000-8000-000000000001"});
+  await page.submitGlobalRateForm();
+  await Promise.resolve();
+  expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({basisPoints:1750})}));
+});
+
+it("requires an explicit end date for a new formal membership and sends that date without an engineering term",async()=>{
+  await load("../../apps/miniprogram/pages/management-member/index");
+  const detail={member:{id:"member-formal",displayName:"正式成员",membershipState:"none",version:0,expiresAt:null},
+    membershipPolicy:{kind:"operator_explicit",termMonths:null,rateOptions:[]}};
+  const page=mounted({detail,alive:true,attempt:1,canManageMembership:true,expiryMinDate:"2026-09-23"});
+  await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
+  expect(page.data.actionError).toContain("选择资格截止日");
+  expect(modal).not.toHaveBeenCalled();
+  page.chooseExpiryDate({detail:{value:"2027-09-30"}});
+  modal.mockResolvedValueOnce({confirm:true,content:"经营方明确授予资格"});
+  requestMock.mockResolvedValue({});
+  await page.changeMembership({currentTarget:{dataset:{state:"active"}}});
+  const command=requestMock.mock.calls.find(([input])=>input.method==="POST")?.[0];
+  expect(command?.data).toMatchObject({state:"active",expiresAt:"2027-09-30T16:00:00.000Z",expectedVersion:0});
+  expect(command?.data).not.toHaveProperty("term");
 });
 
 it("does not approve a rate when the member list reloads before confirmation",async()=>{

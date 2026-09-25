@@ -11,6 +11,9 @@ const downloadPrivateMediaMock = vi.hoisted(() => vi.fn(() => ({ promise: Promis
 vi.mock("../../apps/miniprogram/services/api", () => ({
   request: requestMock,
   requireMemberAccess: requireMemberAccessMock,
+  requireHistoricalCommerceAccess: requireMemberAccessMock,
+  historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken,
+  historicalCommerceClosed: () => false,
   retainMemberSnapshot: retainMemberSnapshotMock,
   uploadAuthorized: uploadAuthorizedMock,
   downloadPrivateMedia: downloadPrivateMediaMock
@@ -54,6 +57,16 @@ beforeEach(() => {
 });
 
 describe("U0 native page lifecycle regressions", () => {
+  it("uses the verified historical-rights token to read owned support attachments after closure", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const abort = vi.fn();
+    downloadPrivateMediaMock.mockReturnValueOnce({ promise: new Promise(() => {}), abort });
+    const page = mountedPage(capturedPage!, { closedRights: true }, { mediaDownloads: [] });
+    page.downloadMedia([{ id: "message", attachments: [{ id: "image", previewPath: "/v1/me/support/media/owned" }] }]);
+    expect(downloadPrivateMediaMock).toHaveBeenCalledWith("/v1/me/support/media/owned", true);
+    page.abortDownloads();
+    expect(abort).toHaveBeenCalledOnce();
+  });
   it("drops a previous operator's finance cycle and approval keys before rechecking authority", async () => {
     requestMock.mockImplementation(() => new Promise(() => undefined));
     await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
@@ -131,7 +144,7 @@ describe("U0 native page lifecycle regressions", () => {
     requestMock
       .mockResolvedValueOnce(product)
       .mockResolvedValueOnce({ enabled: true, addresses: [{ id: "address-1", version: 2, isDefault: true }] })
-      .mockResolvedValueOnce({ orderFlowEnabled: true });
+      .mockResolvedValueOnce({version:1,orderFlowEnabled:true,paymentAvailable:false,paymentOnboarding:"IN_PROGRESS",currency:"CNY",scope:"synthetic_nonproduction",isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false});
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       productCode: "product-1", requestedSkuId: "sku-1", quantity: 1,
@@ -150,14 +163,14 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       quote: { id: "quote-1", expiresAt: "2026-09-12T01:00:00.000Z", serverTime: "2026-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, createKey: ""
+      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
     }, { requestEpoch: 4, mounted: true, visible: true, countdownTimer: null });
     page.load = vi.fn();
 
     await page.confirmOrder();
 
     expect(page.data.quote).toBeNull();
-    expect(page.data.error).toBe("商品或价格已变化，请重新报价。");
+    expect(page.data.error).toBe("商品或价格有变化，请重新确认。");
     expect(page.load).toHaveBeenCalledTimes(1);
   });
 
@@ -167,7 +180,7 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       quote: { id: "quote-1", expiresAt: "2099-09-12T01:00:00.000Z", serverTime: "2099-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, createKey: ""
+      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
     }, { requestEpoch: 5, mounted: true, visible: true, countdownTimer: null });
 
     const first = page.confirmOrder();

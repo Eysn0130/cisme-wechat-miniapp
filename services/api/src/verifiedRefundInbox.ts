@@ -46,7 +46,8 @@ export class VerifiedRefundInbox{
     const intent=(await this.pool.query(`SELECT i.out_refund_no,i.refund_cents,i.payer_refund_cents,
       o.order_number,o.total_cents,p.amount_cents,p.provider_transaction_id,p.merchant_id
       FROM commission_refund_intent i JOIN commerce_order o ON o.id=i.order_id
-      JOIN commission_payment_inbox p ON p.id=i.payment_inbox_id WHERE i.id=$1`,[intentId])).rows[0];
+      JOIN commission_payment_inbox p ON p.id=i.payment_inbox_id
+      WHERE i.id=$1 AND i.execution_kind='wechat'`,[intentId])).rows[0];
     if(!intent||intent.merchant_id!==this.binding.merchantId)
       throw new DomainError("REFUND_INTENT_UNMATCHED","退款意图与原支付事实未匹配",422);
     const binding={merchantId:this.binding.merchantId,outTradeNo:intent.order_number,
@@ -68,7 +69,7 @@ export class VerifiedRefundInbox{
       p.provider_transaction_id,p.merchant_id,p.state AS payment_state
       FROM commission_refund_intent i JOIN commerce_order o ON o.id=i.order_id
       JOIN commission_payment_inbox p ON p.id=i.payment_inbox_id
-      WHERE i.out_refund_no=$1`,[source.out_refund_no])).rows[0];
+      WHERE i.out_refund_no=$1 AND i.execution_kind='wechat'`,[source.out_refund_no])).rows[0];
     if(!row||row.merchant_id!==this.binding.merchantId||row.payment_state!=="applied")
       throw new DomainError("REFUND_INTENT_UNMATCHED","退款单或原支付事实未匹配",422);
     const fact=assertRefundBinding(source,{merchantId:this.binding.merchantId,

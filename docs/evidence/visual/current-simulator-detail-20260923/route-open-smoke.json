@@ -1,0 +1,208 @@
+{
+  "sourceCommit": "a9071642eefad1e7d9aa743b47a43fda00d6fc36",
+  "packageSourceSha256": "d38938dd4ff2f0d6418c8b870c260eb4c0f0bb20ecec565637e9604d52780f5b",
+  "tool": "WeChat Developer Tools simulator_open_page",
+  "scopeLimit": "No route parameters or interaction assertions; opening a route does not prove its empty, loading, error, permission or business states.",
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "opened": true,
+      "reportedPage": "pages/home/index"
+    },
+    {
+      "route": "pages/records/index",
+      "opened": true,
+      "reportedPage": "pages/records/index"
+    },
+    {
+      "route": "pages/community/index",
+      "opened": true,
+      "reportedPage": "pages/community/index"
+    },
+    {
+      "route": "pages/profile/index",
+      "opened": true,
+      "reportedPage": "pages/profile/index"
+    },
+    {
+      "route": "pages/account/index",
+      "opened": true,
+      "reportedPage": "pages/account/index"
+    },
+    {
+      "route": "pages/task/index",
+      "opened": true,
+      "reportedPage": "pages/task/index"
+    },
+    {
+      "route": "pages/submit/index",
+      "opened": true,
+      "reportedPage": "pages/submit/index"
+    },
+    {
+      "route": "pages/progress/index",
+      "opened": true,
+      "reportedPage": "pages/progress/index"
+    },
+    {
+      "route": "pages/points/index",
+      "opened": true,
+      "reportedPage": "pages/points/index"
+    },
+    {
+      "route": "pages/post/index",
+      "opened": true,
+      "reportedPage": "pages/post/index"
+    },
+    {
+      "route": "pages/shop/index",
+      "opened": true,
+      "reportedPage": "pages/shop/index"
+    },
+    {
+      "route": "pages/product/index",
+      "opened": true,
+      "reportedPage": "pages/product/index"
+    },
+    {
+      "route": "pages/checkout/index",
+      "opened": true,
+      "reportedPage": "pages/checkout/index"
+    },
+    {
+      "route": "pages/orders/index",
+      "opened": true,
+      "reportedPage": "pages/orders/index"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "opened": true,
+      "reportedPage": "pages/order-detail/index"
+    },
+    {
+      "route": "pages/settings/index",
+      "opened": true,
+      "reportedPage": "pages/settings/index"
+    },
+    {
+      "route": "pages/invite/index",
+      "opened": true,
+      "reportedPage": "pages/invite/index"
+    },
+    {
+      "route": "pages/legal/index",
+      "opened": true,
+      "reportedPage": "pages/legal/index"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "opened": true,
+      "reportedPage": "pages/privacy-rights/index"
+    },
+    {
+      "route": "pages/support/index",
+      "opened": true,
+      "reportedPage": "pages/support/index"
+    },
+    {
+      "route": "pages/management/index",
+      "opened": true,
+      "reportedPage": "pages/management/index"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "opened": true,
+      "reportedPage": "pages/management-catalog/index"
+    },
+    {
+      "route": "pages/management-product/index",
+      "opened": true,
+      "reportedPage": "pages/management-product/index"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "opened": true,
+      "reportedPage": "pages/management-orders/index"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "opened": true,
+      "reportedPage": "pages/management-order-detail/index"
+    },
+    {
+      "route": "pages/management-support/index",
+      "opened": true,
+      "reportedPage": "pages/management-support/index"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "opened": true,
+      "reportedPage": "pages/management-support-chat/index"
+    },
+    {
+      "route": "pages/management-members/index",
+      "opened": true,
+      "reportedPage": "pages/management-members/index"
+    },
+    {
+      "route": "pages/management-member/index",
+      "opened": true,
+      "reportedPage": "pages/management-member/index"
+    },
+    {
+      "route": "pages/referral/index",
+      "opened": true,
+      "reportedPage": "pages/referral/index"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "opened": true,
+      "reportedPage": "pages/community-compose/index"
+    },
+    {
+      "route": "pages/community-post/index",
+      "opened": true,
+      "reportedPage": "pages/community-post/index"
+    },
+    {
+      "route": "pages/community-author/index",
+      "opened": true,
+      "reportedPage": "pages/community-author/index"
+    },
+    {
+      "route": "pages/community-review/index",
+      "opened": true,
+      "reportedPage": "pages/community-review/index"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "opened": true,
+      "reportedPage": "pages/community-activity/index"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "opened": true,
+      "reportedPage": "pages/management-finance/index"
+    },
+    {
+      "route": "pages/commission/index",
+      "opened": true,
+      "reportedPage": "pages/commission/index"
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "opened": true,
+      "reportedPage": "pages/management-privacy/index"
+    },
+    {
+      "route": "pages/aftersale/index",
+      "opened": true,
+      "reportedPage": "pages/aftersale/index"
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "opened": true,
+      "reportedPage": "pages/management-fulfillment/index"
+    }
+  ]
+}

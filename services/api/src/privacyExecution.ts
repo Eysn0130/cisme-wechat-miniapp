@@ -346,12 +346,31 @@ export class SyntheticPrivacyExecution {
   }
 
   async purgeArtifacts():Promise<number> {
-    this.key();
-    return transaction(this.pool,async client=>{
-      await client.query(`UPDATE data_export_job j SET status='expired',updated_at=now()
-        FROM privacy_export_artifact a WHERE a.job_id=j.id AND j.status='succeeded' AND a.expires_at<=now()`);
-      const result=await client.query(`DELETE FROM privacy_export_artifact WHERE expires_at<=now() OR revoked_at IS NOT NULL`);
-      return result.rowCount??0;
-    });
+    return purgeExpiredPrivacyArtifacts(this.pool);
   }
+}
+
+/** Ciphertext expiry is independent of the synthetic executor key. A restored
+ * production database must not keep an expired or revoked downloadable copy. */
+export async function purgeExpiredPrivacyArtifacts(pool:pg.Pool,limit=50):Promise<number> {
+  if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('PRIVACY_ARTIFACT_PURGE_LIMIT_INVALID');
+  return transaction(pool,async client=>{
+    const due=(await client.query<{job_id:string;privacy_request_id:string;expires_at:Date;revoked_at:Date|null;status:string;expired:boolean}>(
+      `SELECT a.job_id,j.privacy_request_id,a.expires_at,a.revoked_at,j.status,
+        a.expires_at<=clock_timestamp() AS expired
+       FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id
+       WHERE a.expires_at<=clock_timestamp() OR a.revoked_at IS NOT NULL
+       ORDER BY a.expires_at,a.job_id LIMIT $1 FOR UPDATE OF j,a SKIP LOCKED`,[limit])).rows;
+    for(const row of due){
+      if(row.status==='succeeded'&&row.expired)
+        await client.query("UPDATE data_export_job SET status='expired',updated_at=now() WHERE id=$1",[row.job_id]);
+      await client.query('DELETE FROM privacy_export_part WHERE job_id=$1',[row.job_id]);
+      await client.query('DELETE FROM privacy_export_artifact WHERE job_id=$1',[row.job_id]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES('worker:privacy-retention','privacy.export.artifact_purge','privacy_request',$1,'EXPORT_COPY_EXPIRED_OR_REVOKED',$2,$3,gen_random_uuid()::text)`,
+        [row.privacy_request_id,{jobId:row.job_id,expiresAt:row.expires_at,revoked:Boolean(row.revoked_at)},
+          {ciphertextRemoved:true}]);
+    }
+    return due.length;
+  });
 }

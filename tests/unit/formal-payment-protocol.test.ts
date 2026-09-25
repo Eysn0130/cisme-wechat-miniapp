@@ -109,3 +109,16 @@ it('binds certificate merchant CN, serial, validity and private key before autho
   expect(()=>protocol.authorizeRecovery('payment.callback')).not.toThrow();
   expect(()=>protocol.authorizeRecovery('payment.query')).toThrow('MERCHANT_CERTIFICATE_REQUIRED');
 });
+
+it('permits production command configuration only with both explicit grant paths and still rejects missing grant contents',async()=>{
+  const f=await fixture();
+  const environment={...f.environment,APP_ENV:'production',WECHAT_APP_SECRET:'synthetic-config-only',
+    OBJECT_STORAGE_PROFILE:'production-reviewed',COMMERCE_ORDER_FLOW_ENABLED:'true',
+    COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE:join(f.paths.merchant,'../commands-missing.json'),
+    COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE:join(f.paths.merchant,'../recovery-missing.json')};
+  const config=loadConfig(environment);
+  expect(config.commerce.orderFlowEnabled).toBe(true);
+  expect(()=>formalPaymentProtocol(config,{} as pg.Pool)).toThrow();
+  expect(()=>loadConfig({...environment,COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE:''})).toThrow('FORMAL_APPROVAL_REQUIRED');
+  expect(()=>loadConfig({...environment,APP_ENV:'staging'})).toThrow('FORMAL_COMMERCE_PRODUCTION_ONLY');
+});

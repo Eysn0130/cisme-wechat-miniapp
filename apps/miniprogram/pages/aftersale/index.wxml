@@ -1,0 +1,46 @@
+<view class="aftersale-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{busy?'control--disabled':''}}" bindtap="back" disabled="{{busy}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">{{management?'售后管理':'订单售后'}}</text></view>
+<view class="page page--stack">
+ <view wx:if="{{loading}}" class="state">正在核对售后记录…</view>
+ <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button class="text-button {{busy?'control--disabled':''}}" bindtap="retry" disabled="{{busy}}">重试</button></view>
+ <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
+ <view wx:if="{{coreReady}}" class="case-card"><text class="muted">{{selected&&selected.kind==='return_refund'?'收到本案退货指引后再寄出。':'售后进度会在这里更新。'}}</text><button class="secondary {{busy||loading?'control--disabled':''}}" bindtap="retry" disabled="{{busy||loading}}">刷新售后进度</button></view>
+ <view wx:if="{{coreReady&&attentionLabel}}" class="case-card"><text class="case-title">{{attentionLabel}}</text><button class="secondary {{busy||loading?'control--disabled':''}}" bindtap="clearAttention" disabled="{{busy||loading}}">查看全部售后</button></view>
+ <view wx:if="{{needsReconcile||locked}}" class="state"><text>上次操作需要核对。再次提交使用原请求；离开页面后的填写内容不会保留。</text><button wx:if="{{locked}}" class="secondary {{!coreReady||busy||loading?'control--disabled':''}}" bindtap="submit" disabled="{{!coreReady||busy||loading}}">重试原请求</button><button class="secondary {{!coreReady||busy||loading?'control--disabled':''}}" bindtap="reconcile" disabled="{{!coreReady||busy||loading}}">已核对原记录</button></view>
+ <block wx:if="{{coreReady&&!selected}}">
+  <view wx:if="{{!items.length}}" class="state">当前没有售后记录。</view>
+  <button wx:for="{{items}}" wx:key="id" class="case-row {{busy||locked?'control--disabled':''}}" data-id="{{item.id}}" bindtap="open" disabled="{{busy||locked}}"><text>{{item.label}} · ¥{{item.amountLabel}}</text><text class="muted">{{item.kind==='return_refund'?'退货退款':'仅退款'}} · {{item.reason||'七日无理由退货'}}</text><text class="muted">查看案件与处理记录</text></button>
+  <button wx:if="{{nextCursor}}" class="secondary {{busy||locked?'control--disabled':''}}" bindtap="next" disabled="{{busy||locked}}">下一页</button>
+  <view wx:if="{{!management&&orderId}}" class="case-card"><text class="case-title">{{hasOpenCase?'本次售后处理中':items.length?'申请剩余商品售后':'申请订单售后'}}</text><text class="muted">{{hasOpenCase?'处理完成后，可回订单申请剩余商品售后。':'在订单中选择本次申请的商品和数量。'}}</text>
+   <button wx:if="{{!hasOpenCase}}" class="primary {{busy||locked||needsReconcile?'primary--disabled':''}}" bindtap="chooseOrderItems" disabled="{{busy||locked||needsReconcile}}">返回订单选择商品</button>
+  </view>
+ </block>
+ <block wx:if="{{coreReady&&selected}}">
+  <view class="case-card"><text class="case-title">{{selected.label}}</text><text class="case-copy">售后编号 {{selected.id}}</text><text class="case-copy">{{selected.kind==='return_refund'?'退货退款':'仅退款'}} · ¥{{selected.amountLabel}}</text><text class="case-copy">{{selected.reason||'七日无理由退货'}}</text>
+   <text wx:if="{{selected.state==='awaiting_instruction'}}" class="muted">客服正在核对逐单收件信息。收到指引前请勿寄出；等待不会改变原申请时间。</text>
+   <text wx:for="{{selected.lines}}" wx:key="lineId" class="muted">{{item.productName}} · {{item.skuLabel}} × {{item.quantity}}</text>
+   <block wx:if="{{selected.returnDestination}}"><text class="case-title">本案当前收件信息 · 第 {{selected.returnDestination.version}} 版</text><text class="case-copy" user-select>{{selected.returnDestination.recipientName}} · {{selected.returnDestination.phone}}
+{{selected.returnDestination.region}} {{selected.returnDestination.address}}</text><text class="muted">退货寄件运费：{{selected.returnDestination.freightPayer==='merchant'?'商家承担':selected.returnDestination.freightPayer==='member'?'你承担':'请与客服确认'}}</text><text wx:if="{{selected.returnDestination.instructions}}" class="muted">{{selected.returnDestination.instructions}}</text></block>
+   <text wx:if="{{selected.returnTracking}}" class="case-copy" user-select>退货物流：{{selected.returnCarrier}} · {{selected.returnTracking}}</text>
+   <text wx:if="{{selected.shippedInstructionVersion}}" class="muted">实际寄件依据：第 {{selected.shippedInstructionVersion}} 版退货指引。</text>
+   <text wx:if="{{selected.returnRouteReviewRequired}}" class="muted">按旧版指引寄件，待客服协助。</text>
+   <text wx:if="{{selected.routeReviewOutcome}}" class="muted">旧地址处理：{{selected.routeReviewOutcome==='carrier_contacted'?'已联系承运商':selected.routeReviewOutcome==='rerouted'?'已协调转寄':'已妥善收到'}}。寄件依据已保留。</text>
+   <text wx:if="{{selected.qualityResult}}" class="muted">质检：{{selected.qualityResult==='sellable'?'可售':'不可售'}}。质检本身不等于已退款或已回补库存。</text>
+   <text wx:if="{{selected.exceptionResolution}}" class="muted">已确认无需寄回，请等待退款处理。</text>
+   <text wx:if="{{management&&selected.exceptionResolution}}" class="muted" user-select>例外依据：{{selected.exceptionResolution.evidenceReference}}</text>
+   <text wx:if="{{selected.refund&&!selected.resolved}}" class="muted">退款尚未完成，请查看当前进度。</text>
+   <button class="secondary {{busy||locked?'control--disabled':''}}" bindtap="list" disabled="{{busy||locked}}">返回案件列表</button>
+   <button wx:if="{{selected.supportConversationId}}" class="secondary {{busy?'control--disabled':''}}" bindtap="openChat" disabled="{{busy}}">{{management?'在客服会话中处理':'打开本案客服会话'}}</button>
+  </view>
+  <view wx:if="{{available.length}}" class="case-card"><text class="case-title">{{management?'处理售后':'继续处理'}}</text><textarea aria-label="处理说明" placeholder="填写本次说明或补充材料摘要" maxlength="500" value="{{note}}" data-field="note" bindinput="edit" disabled="{{busy||locked||needsReconcile}}"/>
+   <block wx:if="{{!management&&selected.state==='awaiting_return'}}"><picker aria-label="实际寄件所用退货指引" range="{{shipmentOptions}}" value="{{shipmentIndex}}" bindchange="chooseShipmentInstruction" disabled="{{busy||locked||needsReconcile}}"><view class="choice">实际使用的指引：{{shipmentOptions[shipmentIndex]}} · 点击选择</view></picker><text wx:if="{{shipmentInstruction}}" class="muted" user-select>对应收件信息：{{shipmentInstruction.recipientName}} · {{shipmentInstruction.phone}} · {{shipmentInstruction.region}} {{shipmentInstruction.address}}</text><text wx:if="{{shipmentInstruction && selected.returnDestination && shipmentInstruction.version!==selected.returnDestination.version}}" class="muted">你选择了旧版有效指引。登记运单后会通知客服核对并协助处理。</text><input aria-label="退货快递公司" placeholder="退货快递公司" value="{{carrier}}" maxlength="80" data-field="carrier" bindinput="edit" disabled="{{busy||locked||needsReconcile}}"/><input aria-label="退货运单号" placeholder="实际退货运单号" value="{{tracking}}" maxlength="64" data-field="tracking" bindinput="edit" disabled="{{busy||locked||needsReconcile}}"/></block>
+   <picker wx:if="{{management&&selected.state==='return_received'}}" aria-label="质检结果" range="{{qualityOptions}}" value="{{qualityIndex}}" bindchange="chooseQuality" disabled="{{busy||locked||needsReconcile}}"><view class="choice">质检结果：{{qualityOptions[qualityIndex]}} · 点击选择</view></picker>
+   <picker wx:if="{{management&&selected.canReviewOldRoute}}" aria-label="旧地址处理结果" range="{{routeOutcomeOptions}}" value="{{routeOutcomeIndex}}" bindchange="chooseRouteOutcome" disabled="{{busy||locked||needsReconcile}}"><view class="choice">{{routeOutcomeOptions[routeOutcomeIndex]}}</view></picker>
+   <block wx:if="{{management&&!selected.exceptionResolution&&(selected.state==='requested'||selected.state==='need_info'||selected.state==='awaiting_instruction'||selected.state==='awaiting_return'||selected.state==='return_in_transit')&&(selected.kind==='return_refund'||selected.claimBasis==='delivery_issue'||selected.claimBasis==='missing_item')}}">
+    <picker aria-label="无需寄回例外类型" range="{{exceptionOptions}}" value="{{exceptionIndex}}" bindchange="chooseException" disabled="{{busy||locked||needsReconcile}}"><view class="choice">{{exceptionOptions[exceptionIndex]}} · 点击选择</view></picker>
+    <input aria-label="例外处理依据编号" placeholder="物流或客服记录编号" value="{{exceptionEvidence}}" maxlength="200" data-field="exceptionEvidence" bindinput="edit" disabled="{{busy||locked||needsReconcile}}"/>
+   </block>
+   <button wx:for="{{available}}" wx:key="action" class="secondary {{busy||locked||needsReconcile?'control--disabled':''}}" data-action="{{item.action}}" bindtap="submit" disabled="{{busy||locked||needsReconcile}}" loading="{{busy}}">{{item.label}}</button>
+  </view>
+  <view class="case-card"><text class="case-title">处理记录</text><view wx:for="{{selected.events}}" wx:key="version" class="event"><text class="case-copy">{{item.note}}</text><text class="muted">第 {{item.version}} 次记录 · {{item.createdAt}}</text></view><text wx:if="{{selected.historyTruncated}}" class="muted">显示最近 100 条，更多记录可联系客服。</text></view>
+ </block>
+</view></view>

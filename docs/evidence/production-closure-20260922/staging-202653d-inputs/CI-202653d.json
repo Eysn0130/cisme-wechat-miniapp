@@ -1,0 +1,29 @@
+{
+  "databaseId": 35803110597,
+  "headSha": "202653d35b745c9cad2e47cba248dcf9e4706946",
+  "conclusion": "success",
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/35803110597",
+  "checkout": "41ad88f (PR synthetic merge, not main merge)",
+  "counts": {
+    "unit": 1099,
+    "unitFiles": 100,
+    "integration": 818,
+    "integrationFiles": 48,
+    "python": 52
+  },
+  "jobs": [
+    {
+      "name": "verify",
+      "conclusion": "success"
+    },
+    {
+      "name": "candidate-design-qa",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "wechat-credentialed-preview",
+      "conclusion": "skipped"
+    }
+  ],
+  "qualification": "Exact CI log reviewed. Credentialed preview and candidate design QA skipped; no physical-device pass."
+}

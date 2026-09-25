@@ -19,6 +19,7 @@ export type AdminRole = "reviewer" | "review_lead" | "auditor" | "support" | "fi
 export const CAPABILITIES = [
   "support.read", "support.reply", "support.assign",
   "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.order.read",
+  "commerce.aftersale.review", "commerce.return.receive", "commerce.return.inspect",
   "commerce.fulfillment.manage", "commerce.refund.approve", "commerce.money.reconcile",
   "community.moderate", "member.support_view", "member.profile.read", "member.manage",
   "commission.read", "commission.rate.manage", "commission.rate.approve",
@@ -27,7 +28,7 @@ export const CAPABILITIES = [
 export type Capability = (typeof CAPABILITIES)[number];
 export type SupportConversationStatus = "ai_active" | "waiting_human" | "human_active" | "resolved";
 export type SupportSenderType = "user" | "ai" | "admin" | "system";
-export type SupportMessageContentType = "text" | "image" | "order" | "mixed" | "system";
+export type SupportMessageContentType = "text" | "image" | "order" | "mixed" | "system" | "return_instruction";
 
 export interface AuthorityProjection {
   version: 1;
@@ -76,7 +77,12 @@ export interface CatalogProductView {
 }
 
 export type CommerceOrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
+export interface FulfillmentPolicyView {
+  version:string; shippingPromise:string; dispatchPromise:string; returnsPromise:string;
+  returnFreight:{noReason:string;qualityWrongMissingTransport:string};
+}
 export interface CommerceQuoteView {
+  fulfillmentPolicy?:FulfillmentPolicyView|null;
   id: string;
   status: "active" | "consumed" | "expired";
   currency: "CNY";
@@ -109,6 +115,7 @@ export interface CommerceOrderLineView {
   totalCents: number;
 }
 export interface CommerceOrderView {
+  fulfillmentPolicy?:FulfillmentPolicyView|null;
   id: string;
   orderNumber: string;
   status: CommerceOrderStatus;
@@ -139,6 +146,7 @@ export interface SupportMessageView {
   contentType: SupportMessageContentType;
   attachments: Array<{ id: string; mimeType: "image/jpeg" | "image/png" | "image/webp"; sizeBytes: number; previewPath: string }>;
   orderCard: null | { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
+  returnInstruction: null | { caseId: string; version: number; recipientName: string; phone: string; region: string; address: string; freightPayer: string; instructions: string };
   deliveryState: "server_accepted" | "read";
   createdAt: string;
 }

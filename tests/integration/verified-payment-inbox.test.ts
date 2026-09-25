@@ -637,10 +637,178 @@ it('durably fences shipping dispatch, reconciles uncertain uploads and preserves
   }
   expect(uploaded).toBe(1);
 
+  await expect(service.reconcile(buyer,crashed.id,'manual-query-denied-01',{evidenceReference:'synthetic-case-001'})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  const missing=await service.reconcile(actor,crashed.id,'manual-query-missing-01',{evidenceReference:'synthetic-case-001'});
+  expect(missing).toMatchObject({state:'manual_review',queryOutcome:'not_uploaded',queryOnly:true});
+  const beforeReplay=queries;
+  expect(await service.reconcile(actor,crashed.id,'manual-query-missing-01',{evidenceReference:'synthetic-case-001'})).toEqual(missing);
+  expect(queries).toBe(beforeReplay);
+  await expect(service.reconcile(actor,crashed.id,'manual-query-missing-01',{evidenceReference:'synthetic-case-002'})).rejects.toMatchObject({code:'SHIPPING_RECOVERY_IDEMPOTENCY_CONFLICT'});
+  await expect(pool.query("UPDATE commerce_shipping_sync SET query_attempts=0,state='prepared' WHERE id=$1",[crashJob.id])).rejects.toThrow('SHIPPING_SYNC_HISTORY_IMMUTABLE');
+  await expect(pool.query("UPDATE commerce_shipping_sync SET last_code=NULL WHERE id=$1",[crashJob.id])).rejects.toThrow('SHIPPING_SYNC_HISTORY_IMMUTABLE');
+  seen=true;
+  // Provider calls execute with no authority locks held; revoke during response.
+  const revokedQuery=new ShippingSyncService(pool,new AuthorityService(pool,'test'),options,{
+    ...channel,query:async()=>{
+      await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
+      return {decision:'matched' as const,platformOrderState:2,inComplaint:false};
+    }
+  });
+  await expect(revokedQuery.reconcile(actor,crashed.id,'manual-query-revoked-01',{evidenceReference:'synthetic-case-003'})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  expect((await pool.query('SELECT state FROM commerce_shipping_sync WHERE id=$1',[crashJob.id])).rows[0].state).toBe('manual_review');
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.fulfillment.manage','fixture','Synthetic regrant','test','integration_fixture')`,[actor]);
+  expect(await service.reconcile(actor,crashed.id,'manual-query-matched-01',{evidenceReference:'synthetic-case-004'}))
+    .toMatchObject({state:'synced',queryOutcome:'matched',queryOnly:true});
+  expect(uploaded).toBe(1);
+  expect((await pool.query('SELECT query_attempts,state FROM commerce_shipping_sync WHERE id=$1',[crashJob.id])).rows[0]).toEqual({query_attempts:5,state:'synced'});
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipping.reconcile' AND object_id=$1",[crashJob.id])).rows[0].n).toBe(2);
+
   const next=await seedOrder('SHIP02',null);
   const event=notification(next.number,'42000000000000000000SHIP02','EV-SHIPPING-000002',new Date().toISOString());
   const received=await processor.receive(event.rawBody,event.headers);expect(await processor.processOne(received.inboxId)).toBe('applied');
   const pending=await service.prepare(actor,next.id,'shipping-revoke-role-01',parcel,'carrier-proof-fixture');
-  await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture',revoke_reason='Synthetic revocation' WHERE member_id=$1 AND capability='commerce.fulfillment.manage'",[actor]);
+  await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture',revoke_reason='Synthetic revocation' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
   expect(await service.processOne(pending.id)).toBe('manual_review');expect(uploaded).toBe(1);
+});
+
+it('commits local shipment and WeChat intent together without network I/O; receipt stays independent',async()=>{
+  const {loadConfig}=await import('@cisme/config');
+  const {ShippingSyncService}=await import('../../services/api/src/shippingSync.js');
+  const {OrderFulfillmentService}=await import('../../services/api/src/orderFulfillment.js');
+  const {DeliveryAddressService}=await import('../../services/api/src/deliveryAddress.js');
+  const {TEST_DATABASE_URL}=await import('@cisme/testkit');
+  const actor=(await pool.query("INSERT INTO member(display_name) VALUES('Synthetic warehouse operator') RETURNING id")).rows[0].id;
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.fulfillment.manage','fixture','Synthetic local shipment','test','integration_fixture')`,[actor]);
+  const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'local-shipping-fixture',
+    UPLOAD_TOKEN_SECRET:'local-shipping-upload',CONTACT_ENCRYPTION_KEY:'31'.repeat(32),CONTACT_HASH_KEY:'32'.repeat(32)});
+  const addresses=new DeliveryAddressService(pool,config),authority=new AuthorityService(pool,'test');
+  let networkCalls=0;
+  const sync=new ShippingSyncService(pool,authority,{enabled:true,appId,merchantId,encryptionKey:'41'.repeat(32),hashKey:'42'.repeat(32),keyVersion:'local-shipping-v1'},
+    {query:async()=>{networkCalls++;throw Error('Synthetic offline');},uploadOnce:async()=>{networkCalls++;return {acknowledged:true as const};}});
+  const service=new OrderFulfillmentService(pool,authority,addresses,sync,true);
+  const dbNow=async()=>new Date((await pool.query('SELECT clock_timestamp() AS time')).rows[0].time);
+  const order=await seedOrder('LOCALSHIP01',null,await dbNow());
+  const input={carrierCode:'SF',carrierName:'顺丰速运',trackingNumber:'SF123456789001',shippedAt:new Date().toISOString(),evidenceReference:'synthetic-handover-001',expectedOrderVersion:1};
+  await expect(service.dispatch(actor,order.id,'local-shipment-0001',input)).rejects.toMatchObject({code:'SHIPMENT_PAID_ORDER_REQUIRED'});
+  const paid=notification(order.number,'420000000000000LOCALSHIP01','EV-LOCAL-SHIPPING-01',(await dbNow()).toISOString());
+  const received=await processor.receive(paid.rawBody,paid.headers);expect(await processor.processOne(received.inboxId)).toBe('applied');
+  input.expectedOrderVersion=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[order.id])).rows[0].version;
+  input.shippedAt=(await dbNow()).toISOString();
+  const sealed=addresses.sealOrderSnapshot(buyer,order.id,{recipientName:'合成收件人',phone:'13800000000',province:'上海市',city:'上海市',district:'浦东新区',detail:'测试地址1号',postalCode:'200000',nationalCode:'310115',provinceCode:'310000',cityCode:'310100',districtCode:'310115'});
+  await pool.query(`INSERT INTO commerce_order_address(order_id,encrypted_payload,payload_hmac,key_version,source_address_id,source_address_version)
+    VALUES($1,$2,$3,$4,$5,1)`,[order.id,sealed.encryptedPayload,sealed.payloadHmac,sealed.keyVersion,addressId]);
+  await expect(service.dispatch(buyer,order.id,'local-shipment-0001',input)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  await expect(service.dispatch(actor,order.id,'local-shipment-invalid',{...input,trackingNumber:'=CMD()'})).rejects.toMatchObject({code:'SHIPMENT_INPUT_INVALID'});
+  const {AftersaleService}=await import('../../services/api/src/aftersale.js');
+  const cases=new AftersaleService(pool,authority);
+  const claim=await cases.request(buyer,order.id,'local-shipment-aftersale',{kind:'refund_only',reason:'合成发货竞争售后'});
+  await expect(service.dispatch(actor,order.id,'local-case-held-dispatch',input)).rejects.toMatchObject({code:'SHIPMENT_AFTERSALE_REVIEW_REQUIRED'});
+  await expect(sync.prepare(actor,order.id,'local-case-held-sync',{carrierCode:'SF',trackingNumber:'SF123456789001',description:'合成包裹'},'synthetic-case-hold')).rejects.toMatchObject({code:'SHIPPING_AFTERSALE_REVIEW_REQUIRED'});
+  await cases.act(buyer,claim.id,'local-shipment-case-cancel',{action:'cancel',expectedVersion:1,note:'合成案件撤回后允许重新核验'});
+
+  const held=await seedOrder('LOCALHOLD01',null,await dbNow());
+  const heldPaid=notification(held.number,'420000000000000LOCALHOLD01','EV-LOCAL-HOLD-01',(await dbNow()).toISOString());
+  const heldEvent=await processor.receive(heldPaid.rawBody,heldPaid.headers);expect(await processor.processOne(heldEvent.inboxId)).toBe('applied');
+  const heldVersion=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[held.id])).rows[0].version;
+  const intent=await refundIntent({orderId:held.id,paymentId:heldEvent.inboxId,refundNumber:'LOCAL-HOLD-REFUND-01',refundCents:10000,eligibleCents:0});
+  await expect(service.dispatch(actor,held.id,'local-held-dispatch-01',{...input,expectedOrderVersion:heldVersion})).rejects.toMatchObject({code:'SHIPMENT_REFUND_REVIEW_REQUIRED'});
+  const refundEvent=refundNotification({orderNumber:held.number,transactionId:'420000000000000LOCALHOLD01',refundNumber:'LOCAL-HOLD-REFUND-01',providerRefundId:'500000000000LOCALHOLD01',eventId:'EV-LOCAL-HOLD-REFUND-01',refundCents:10000,status:'SUCCESS',successTime:(await dbNow()).toISOString()});
+  const receivedRefund=await refunds.receive(refundEvent.rawBody,refundEvent.headers);expect(await refunds.processOne(receivedRefund.inboxId)).toBe('applied');
+  expect((await pool.query('SELECT state FROM commission_refund_intent WHERE id=$1',[intent])).rows[0].state).toBe('succeeded');
+  const refundedVersion=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[held.id])).rows[0].version;
+  await expect(service.dispatch(actor,held.id,'local-held-dispatch-02',{...input,expectedOrderVersion:refundedVersion})).rejects.toMatchObject({code:'SHIPMENT_REFUND_REVIEW_REQUIRED'});
+  const [one,two]=await Promise.all([service.dispatch(actor,order.id,'local-shipment-0001',input),service.dispatch(actor,order.id,'local-shipment-0001',input)]);
+  expect(one).toEqual(two);expect(networkCalls).toBe(0);
+  expect((await pool.query('SELECT count(*)::int n FROM commerce_shipment WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
+  expect((await pool.query('SELECT quantity FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rows).toEqual([{quantity:1}]);
+  await expect(service.dispatch(actor,order.id,'local-shipment-0001',{...input,trackingNumber:'SF123456789002'})).rejects.toMatchObject({code:'SHIPMENT_IDEMPOTENCY_CONFLICT'});
+  await expect(service.detailMine(referrer,order.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({trackingNumber:input.trackingNumber,logisticsState:'shipped',wechatSyncState:'prepared',receiptConfirmedAt:null});
+  await expect(cases.request(buyer,order.id,'local-shipped-refund-only',{kind:'refund_only',reason:'合成已发货仅退款申请'}))
+    .rejects.toMatchObject({code:'AFTERSALE_RETURN_REQUIRED',status:409});
+  expect(await cases.request(buyer,order.id,'local-shipped-return',{kind:'return_refund',reason:'合成已发货退货退款申请'}))
+    .toMatchObject({kind:'return_refund',state:'requested'});
+  let trackingCalls=0,blockDuringTracking=false;
+  const tracked=new OrderFulfillmentService(pool,authority,addresses,sync,true,{
+    query:async(binding,carrier,waybill)=>{
+      trackingCalls++;expect(binding).toMatchObject({appId,merchantId,merchantOrderNumber:order.number,payerOpenid:"verified-buyer-openid"});
+      expect(carrier).toBe('SF');expect(waybill).toBe(input.trackingNumber);
+      // A different connection can lock the owner while the provider executes:
+      // no database transaction is held over this external dependency.
+      const check=await pool.connect();try{await check.query('BEGIN');await check.query('SELECT id FROM member WHERE id=$1 FOR UPDATE NOWAIT',[buyer]);await check.query('ROLLBACK');}finally{check.release();}
+      if(blockDuringTracking)await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer]);
+      return {observedAt:new Date().toISOString(),events:[{time:new Date().toISOString(),code:300003,state:'delivered' as const,message:'合成签收轨迹'}]};
+    },capabilities:async()=>{
+      return {observedAt:new Date().toISOString(),accounts:[{carrierCode:'SF',bindingStatusCode:0,quotaAvailable:true}],carriers:[{carrierCode:'SF',name:'顺丰速运',cashOrdersSupported:false}]};
+    }});
+  await expect(tracked.trackingMine(referrer,order.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});expect(trackingCalls).toBe(0);
+  expect(await tracked.trackingMine(buyer,order.id)).toMatchObject({orderId:order.id,shipmentId:one.id,source:'wechat_logistics',events:[{state:'delivered'}]});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({logisticsState:'shipped',deliveredAt:null,receiptConfirmedAt:null});
+  const trackingAudit=(await pool.query("SELECT after_state FROM audit_log WHERE action='commerce.shipment.tracking_read' AND object_id=$1",[one.id])).rows;
+  expect(trackingAudit).toHaveLength(1);expect(trackingAudit[0].after_state).toEqual({source:'wechat_logistics',eventCount:1});
+  blockDuringTracking=true;
+  await expect(tracked.trackingMine(buyer,order.id)).rejects.toMatchObject({code:'MEMBER_NOT_ACTIVE'});
+  await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer]);
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.tracking_read' AND object_id=$1",[one.id])).rows[0].n).toBe(1);
+  await expect(tracked.logisticsCapabilities(buyer)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  expect(await tracked.logisticsCapabilities(actor)).toMatchObject({accounts:[{carrierCode:'SF'}]});
+  const job=(await pool.query('SELECT shipping_sync_id FROM commerce_shipment WHERE id=$1',[one.id])).rows[0].shipping_sync_id;
+  expect(await sync.processOne(job)).toBe('prepared');
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({logisticsState:'shipped',wechatSyncState:'prepared'});
+  await expect(service.dispatchBatch(actor,'batch-invalid-01',[{orderId:order.id,...input},{orderId:order.id,...input}])).rejects.toMatchObject({code:'SHIPMENT_BATCH_DUPLICATE_ORDER'});
+  await expect(service.importRows(actor,'import-invalid-01',`${order.number}\tSF\t顺丰速运\tSF123456789001\t${input.shippedAt}\nWRONGORDER001\tSF\t顺丰速运\tSF123456789002\t${input.shippedAt}`)).rejects.toMatchObject({code:'SHIPMENT_IMPORT_ORDER_NOT_FOUND'});
+  const batch=await service.dispatchBatch(actor,'batch-mixed-001',[{orderId:order.id,...input},{orderId:randomUUID(),...input}]);
+  expect(batch.results.map(r=>r.status)).toEqual(['rejected','rejected']);
+  expect(await service.managementList(actor,{state:'shipped',orderNumber:order.number})).toMatchObject({items:[{id:order.id,logisticsState:'shipped'}]});
+  await expect(service.managementList(buyer,{state:'all'},true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  const exported=await service.managementList(actor,{state:'shipped',orderNumber:order.number},true);
+  expect(exported.workbook?.subarray(0,2).toString()).toBe('PK');
+  const audit=(await pool.query("SELECT principal_id,after_state,created_at FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows;
+  expect(audit).toHaveLength(1);expect(audit[0].after_state.count).toBe(1);expect(JSON.stringify(audit)).not.toContain('13800000000');
+  async function readyParcel(suffix:string){
+    const created=await seedOrder(suffix,null,await dbNow());
+    const paidEvent=notification(created.number,`420000000000${suffix}`,`EV-${suffix}`,(await dbNow()).toISOString());
+    const payment=await processor.receive(paidEvent.rawBody,paidEvent.headers);expect(await processor.processOne(payment.inboxId)).toBe('applied');
+    const snapshot=addresses.sealOrderSnapshot(buyer,created.id,{recipientName:'合成收件人',phone:'13800000000',province:'上海市',city:'上海市',district:'浦东新区',detail:'测试地址2号',postalCode:'200000',nationalCode:'310115',provinceCode:'310000',cityCode:'310100',districtCode:'310115'});
+    await pool.query(`INSERT INTO commerce_order_address(order_id,encrypted_payload,payload_hmac,key_version,source_address_id,source_address_version)
+      VALUES($1,$2,$3,$4,$5,1)`,[created.id,snapshot.encryptedPayload,snapshot.payloadHmac,snapshot.keyVersion,addressId]);
+    return {...created,version:(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[created.id])).rows[0].version};
+  }
+  const bulkA=await readyParcel('LOCALBULKA'),bulkB=await readyParcel('LOCALBULKB');
+  const bulkTime=(await dbNow()).toISOString();
+  const rows=`${bulkA.number}\tSF\t顺丰速运\tSF123456789010\t${bulkTime}\n${bulkB.number}\tSF\t顺丰速运\tSF123456789011\t${bulkTime}`;
+  const bulk=await service.importRows(actor,'import-success-0001',rows);
+  expect(bulk.results.map(r=>r.status)).toEqual(['accepted','accepted']);
+  await pool.query('UPDATE commerce_order SET version=version+1 WHERE id=$1',[bulkA.id]); // Later independent order change.
+  expect(await service.importRows(actor,'import-success-0001',rows)).toEqual(bulk);
+  await expect(service.importRows(actor,'import-success-0001',rows.replace('SF123456789010','SF123456789999'))).rejects.toMatchObject({code:'SHIPMENT_IMPORT_IDEMPOTENCY_CONFLICT'});
+  const importPlan=(await pool.query("SELECT response_body FROM idempotency_operation WHERE operation='commerce.shipment.import_plan' AND idempotency_key='import-success-0001'")).rows[0].response_body;
+  expect(importPlan).toEqual([{orderId:bulkA.id,expectedOrderVersion:bulkA.version},{orderId:bulkB.id,expectedOrderVersion:bulkB.version}]);
+  expect((await pool.query('SELECT count(*)::int n FROM commerce_shipment WHERE order_id=ANY($1::uuid[])',[[bulkA.id,bulkB.id]])).rows[0].n).toBe(2);
+  const partialOrder=await readyParcel('LOCALPARTIAL');
+  const partialEntries=[{orderId:partialOrder.id,...input,shippedAt:(await dbNow()).toISOString(),expectedOrderVersion:partialOrder.version},
+    {orderId:randomUUID(),...input}];
+  const partial=await service.dispatchBatch(actor,'batch-partial-001',partialEntries);
+  expect(partial.results.map(r=>r.status)).toEqual(['accepted','rejected']);
+  expect(await service.dispatchBatch(actor,'batch-partial-001',partialEntries)).toEqual(partial);
+  await expect(pool.query("UPDATE commerce_order SET fulfillment_policy='{}' WHERE id=$1",[order.id])).rejects.toThrow('FULFILLMENT_PROMISE_IMMUTABLE');
+  await expect(pool.query("UPDATE commerce_checkout_quote SET fulfillment_policy='{}' WHERE id=(SELECT source_quote_id FROM commerce_order WHERE id=$1)",[order.id])).rejects.toThrow('FULFILLMENT_PROMISE_IMMUTABLE');
+  const ledgerBefore=(await pool.query('SELECT count(*)::int n FROM commission_ledger_entry')).rows[0].n;
+  await expect(service.confirmReceipt(referrer,order.id,'local-receipt-0001',1)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});
+  const receipt=await service.confirmReceipt(buyer,order.id,'local-receipt-0001',1);
+  expect(await service.confirmReceipt(buyer,order.id,'local-receipt-0001',1)).toEqual(receipt);
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({version:2,logisticsState:'shipped',deliveredAt:null,receiptConfirmedAt:receipt.receiptConfirmedAt});
+  expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[order.id])).rows[0].status).toBe('paid');
+  expect((await pool.query('SELECT count(*)::int n FROM commission_ledger_entry')).rows[0].n).toBe(ledgerBefore);
+  await expect(pool.query('DELETE FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rejects.toThrow();
+  await expect(pool.query('UPDATE commerce_shipment SET receipt_confirmed_at=NULL,version=version+1 WHERE id=$1',[one.id])).rejects.toThrow();
+  const revoke=await pool.connect();await revoke.query('BEGIN');
+  await revoke.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
+  const racing=service.managementList(actor,{state:'all'},true);
+  const denied=expect(racing).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  await revoke.query('COMMIT');revoke.release();await denied;
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n).toBe(1);
+
 });

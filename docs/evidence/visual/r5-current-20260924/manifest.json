@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "57ec76b2278af4cd7de1ff272bd044f7fb5881e223c5b2ebf6d3a2fcead68cc2",
+  "capturedAt": "2026-09-24T09:00:58.623712+00:00",
+  "tool": "wechatide 0.3.9 simulator_open_page/simulator_screenshot",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "scope": "Local DevTools simulator with disposable synthetic identity and loopback acceptance API; screenshots of checkout and privacy scope states only. Picker states were switched through the page method for layout inspection. No physical keyboard or device verification. No real payment.",
+  "screenshots": [
+    "checkout-simulator.png",
+    "privacy-profile-delete-simulator.png",
+    "privacy-other-delete-simulator.png"
+  ]
+}

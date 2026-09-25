@@ -1,0 +1,16 @@
+{
+  "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+  "sourceTree": "e8148bb768aa00b6932fa8d319fc9e6c3fefc36c",
+  "archiveSha256": "0e2f04184ef3d21c147833946f56021d90b4873e69ce8d7ddd44c95b5f05fdbf",
+  "archiveBytes": 435202,
+  "runId": "rc20260922-00c7d2e9",
+  "previousSource": "f4c8df9e5be091b246e9893b1c357bc004d943b0",
+  "previousApiSha256": "96609889d77612e5ebd5bc487a472b27973879b189a9bf715ffac07469f7bdcd",
+  "inputs": {
+    "staging-baseline-202653d.py": "f1920e66870dcd0d6374dfe42b0f70e116020e2c29d07f04512ff48124526dcf",
+    "staging-rollback-202653d.py": "be8ccd11ce5072f9725d75411224ccbfa74d593a0f3c9c659545c611d062103a",
+    "staging-candidate-202653d.py": "92aadd46748586b3ebaba673583af34491c55f7f35a2ff9c786a08f7bd81c8bd",
+    "staging-acceptance-202653d.py": "3a0d73838d61a2b1642d39faee1e4bb51ed4fdace40498210aef1899485be6d6",
+    "staging-business-202653d.mjs": "63c55482098493ec0fdd802423a87ce56a5c13b1445632d5b0e802f6b464159c"
+  }
+}

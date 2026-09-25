@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "runId": "406c40979f4350fbfbfb8582",
+  "candidateHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+  "candidateTree": "e8148bb768aa00b6932fa8d319fc9e6c3fefc36c",
+  "manifestSha256": "22de48bb1dc224f0890c34ca180b93d4f9ed350a519673fd8f0095f9b40fe7d0",
+  "migrationVerify": {
+    "migrations": 75,
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "sourceTree": "e8148bb768aa00b6932fa8d319fc9e6c3fefc36c",
+    "artifacts": 81,
+    "verified": true,
+    "applied": false
+  },
+  "firstApplied": 75,
+  "repeatedApplied": 0,
+  "bundleRuntime": {
+    "health": 200,
+    "unauthenticatedMetrics": 401
+  },
+  "existingTargetTouched": false,
+  "deployed": false,
+  "productionRestore": false,
+  "releaseReady": false
+}

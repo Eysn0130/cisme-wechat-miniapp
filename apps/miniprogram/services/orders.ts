@@ -7,11 +7,32 @@ export interface CheckoutAddress {
   postalCode: string; nationalCode: string; provinceCode?: string; cityCode?: string; districtCode?: string;
   label: "home" | "company" | "other"; isDefault: boolean; version: number; updatedAt: string;
 }
+export interface FulfillmentPolicy {
+  version:string; shippingPromise:string; dispatchPromise:string; returnsPromise:string;
+  returnFreight:{noReason:string;qualityWrongMissingTransport:string};
+}
+export interface OrderShipment {
+  orderId:string; id?:string; version?:number; carrierName?:string; trackingNumber?:string;
+  logisticsState:"not_ready"|"awaiting_dispatch"|"shipped"|"delivered"|"exception";
+  shippedAt?:string; deliveredAt?:string|null; receiptConfirmedAt?:string|null; wechatSyncState?:string;
+}
+export function myShipment(id:string,page:object):Promise<OrderShipment>{
+  return pageRead<OrderShipment>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders"]});
+}
+export interface OrderTracking {orderId:string;shipmentId:string;source:"wechat_logistics";observedAt:string;
+  events:Array<{time:string;code:number;state:string;message:string}>}
+export function myTracking(id:string,page:object):Promise<OrderTracking>{
+  return pageRead<OrderTracking>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment/tracking`});
+}
+export function confirmMyReceipt(id:string,expectedVersion:number,idempotencyKey:string){
+  return request({path:`/v1/me/orders/${encodeURIComponent(id)}/confirm-receipt`,method:"POST",data:{expectedVersion},idempotencyKey,cacheTags:["orders"]});
+}
 export interface CheckoutQuote {
+  fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; status: "active" | "consumed" | "expired"; currency: "CNY"; quantity: number; unitPriceCents: number;
   subtotalCents: number; memberDiscountCents: number; shippingCents: number; totalCents: number;
   creditTenderCents:number;cashPayableCents:number;pricingRuleVersion: string;
-  addressId: string; addressVersion: number; expiresAt: string; serverTime: string; paymentAvailable: false;
+  addressId: string; addressVersion: number; expiresAt: string; serverTime: string; paymentAvailable: boolean;
   item: { productId: string; productCode: string; productName: string; image: string | null; skuId: string; skuCode: string; skuLabel: string };
 }
 export interface OrderLine {
@@ -24,19 +45,21 @@ export interface MemberOrderAddress {
 }
 export interface ManagementOrderAddress { recipientNameMasked: string; phoneMasked: string; province: string; city: string; district: string }
 export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAddress> {
+  fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; orderNumber: string; status: PendingOrderStatus; currency: "CNY"; subtotalCents: number; memberDiscountCents: number;
   shippingCents: number; totalCents: number; creditTenderCents:number;cashPayableCents:number;
   pricingRuleVersion: string; version: number; expiresAt: string;
   cancelledAt: string | null; expiredAt: string | null; terminalReason: string | null; createdAt: string; updatedAt: string;
-  paymentAvailable: false; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
+  paymentAvailable: boolean; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
 }
 export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null };
 export interface CommerceOrderPage {
   items: CommerceOrderSummary[]; nextCursor: string | null;
 }
 export interface CommerceOrderRuntimeStatus {
-  version: 1; orderFlowEnabled: boolean; paymentAvailable: false; paymentOnboarding: "IN_PROGRESS"; currency: "CNY";
-  scope: "synthetic_nonproduction" | "verified_isolated_test" | "formal_protocol_synthetic_test" | "disabled";
+  version: 1|2; orderFlowEnabled: boolean; paymentAvailable: boolean; paymentOnboarding: "IN_PROGRESS"|"READY"; currency: "CNY";
+  scope: "synthetic_nonproduction" | "verified_isolated_test" | "formal_protocol_synthetic_test" | "formal_commerce" | "disabled";
+  formalMoneyOperationsAvailable?:boolean; formalRecoveryAvailable?:boolean;
   isolatedMoneyOperationsAvailable: boolean; isolatedTransferAvailable: boolean; isolatedCreditCheckoutAvailable:boolean;
 }
 export interface IsolatedCreditSummary{availableCents:number;checkoutAvailableCents:number;spendable:boolean;
@@ -80,4 +103,15 @@ export function managementOrders(cursor?: string, page?: object): Promise<Commer
 }
 export function managementOrder(id: string): Promise<CommerceOrder<ManagementOrderAddress>> {
   return request({ path: `/v1/management/commerce/orders/${encodeURIComponent(id)}`, cacheTags: ["orders", "authority"] });
+}
+export function managementShipment(id:string):Promise<OrderShipment>{
+  return request({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders","authority"]});
+}
+export interface ShipmentDispatchInput{carrierCode:string;carrierName:string;trackingNumber:string;shippedAt:string;evidenceReference:string;expectedOrderVersion:number}
+export function dispatchShipment(id:string,input:ShipmentDispatchInput,idempotencyKey:string){
+  return request({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment`,method:"POST",data:input,idempotencyKey,cacheTags:["orders","authority"]});
+}
+
+export function reconcileShipment(id:string,evidenceReference:string,idempotencyKey:string){
+  return request<{state:string;queryOutcome:string;queryOnly:true}>({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment/reconcile`,method:"POST",data:{evidenceReference},idempotencyKey,cacheTags:["orders","authority"]});
 }

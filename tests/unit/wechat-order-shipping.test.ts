@@ -43,6 +43,8 @@ describe('WeChat shipping protocol: PRD §8.2 / WX-PAY-MAKE-01', () => {
     expect(shippingObservation(observed({ in_complaint: true }), binding, parcel).decision).toBe('conflict');
     expect(shippingObservation(observed({ order_state: 1, shipping: undefined }), binding, parcel).decision).toBe('not_uploaded');
     expect(shippingObservation(observed({ order_state: 3, shipping: undefined }), binding, parcel).decision).toBe('conflict');
+    expect(shippingObservation(observed({ order_state: 1, shipping: {} }), binding, parcel).decision).toBe('not_uploaded');
+    expect(shippingObservation(observed({ order_state: 2, shipping: {} }), binding, parcel).decision).toBe('conflict');
     const wrong = observed(); wrong.shipping.shipping_list[0]!.tracking_no = 'OTHER';
     expect(shippingObservation(wrong, binding, parcel).decision).toBe('conflict');
   });
