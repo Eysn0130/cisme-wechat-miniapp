@@ -50,7 +50,10 @@ Page({
   async syncLegalDocuments() {
     const previous = this.documents();
     const attempt = ++this.data.legalAttempt;
-    this.setData({legalLoading:true,legalLoadError:"",...(legalReadErrors.has(this.data.error)?{error:""}:{})});
+    // Keep the accepted versions for comparison, but do not authorize a new
+    // login until the current read finishes. Returning from a legal page may
+    // otherwise leave the old ready/accepted pair actionable during refresh.
+    this.setData({legalLoading:true,legalTextsReady:false,legalLoadError:"",...(legalReadErrors.has(this.data.error)?{error:""}:{})});
     let documents = currentLegalDocuments();
     let legalLoadError: "" | "unreachable" | "unpublished" = "";
     if (!documents) {
@@ -240,6 +243,7 @@ Page({
       }
       return;
     }
+    if (this.data.legalLoading && !this.data.legalTextsReady) return;
     if (!this.data.agreementAccepted) {
       this.setData({ error: "请先阅读并同意服务条款与隐私保护指引" }, scrollToAccountError);
       return;
@@ -253,6 +257,7 @@ Page({
       this.setData({error:"请阅读境外存储告知并单独选择是否同意；不同意仍可浏览公开社区。"},scrollToAccountError);
       return;
     }
+    const legalAttempt = this.data.legalAttempt;
     const attempt = this.data.authAttempt + 1;
     this.setData({ authAttempt: attempt, loading: true, identityCommitStarted: false, error: "", accountHelpAvailable:false });
     try {
@@ -270,6 +275,13 @@ Page({
       } else {
         const login = await wx.login();
         if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
+        // wx.login is asynchronous. A refresh started after the tap must not
+        // submit the previously captured consent versions when it returns.
+        if (this.data.legalAttempt !== legalAttempt || !this.data.agreementAccepted ||
+          (legalDocuments.crossBorder && !this.data.crossBorderAccepted)) {
+          this.setData({error:"协议状态已更新，请确认后重新登录。"},scrollToAccountError);
+          return;
+        }
         this.setData({ identityCommitStarted: true });
         wx.enableAlertBeforeUnload({ message: "身份确认请求已经发送。离开页面不会撤回服务端核验，是否继续离开？" });
         result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, code: login.code } });
