@@ -539,7 +539,7 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "89ad5930ae712cf8f5778ff6a254ac0d623f900013f658a9d057b5f91c1ad404",
+  "migrationSetSha256": "cfc0ed177d773f626706e4b1a3923740ad4060a142234433aa2ba34da3cd8265",
   "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -680,5 +680,11 @@
     "scope": "Verified WeChat member fixed projection export and optional live profile/contact/address erasure; no new account closure module",
     "backup": "Immutable profile-erasure marker shares existing private suppression directory and COS remote; replay strips pre-request optional data after restored backup or released hold",
     "limits": "Formal copy may be partial for unavailable video or oversized media. Raw transaction and financial evidence are retained; ordinary-support automatic purge remains separately gated."
+  },
+  "addressBookErasureReview20260924": {
+    "scope": "Address-book deletion clears eligible encrypted payload while keeping independent order snapshots.",
+    "hold": "A legal hold hides the address from the active book and defers payload erasure until release.",
+    "backup": "Immutable address marker in the existing private suppression directory and COS remote replays deletion after old-backup restore.",
+    "export": "Member privacy revision prevents an in-flight stale portable copy from being published; existing copies are revoked."
   }
 }

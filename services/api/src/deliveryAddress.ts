@@ -3,6 +3,7 @@ import type pg from "pg";
 import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
+import { AccountClosure, applyAddressErasure, type AddressErasureMarker } from "./accountClosure.js";
 
 const labels = ["home", "company", "other"] as const;
 type AddressLabel = (typeof labels)[number];
@@ -95,7 +96,8 @@ function expectedVersion(value: unknown): number {
 }
 
 export class DeliveryAddressService {
-  constructor(private readonly pool: pg.Pool, private readonly config: AppConfig) {}
+  constructor(private readonly pool: pg.Pool, private readonly config: AppConfig,
+    private readonly suppression?:AccountClosure) {}
 
   enabled(): boolean {
     return /^[0-9a-f]{64}$/i.test(this.config.contacts.encryptionKey || "") && /^[0-9a-f]{64}$/i.test(this.config.contacts.hashKey || "");
@@ -314,7 +316,18 @@ export class DeliveryAddressService {
       const row = current.rows[0];
       if (!row) return { removed: true, defaultAddressId: null };
       if (row.version !== version) throw new DomainError("DELIVERY_ADDRESS_CHANGED", "地址已更新，请刷新后重试", 409);
-      await client.query("UPDATE member_delivery_address SET is_default=false,deleted_at=now(),version=version+1,updated_at=now() WHERE id=$1", [addressId]);
+      if(this.config.env==='production'&&!this.suppression)
+        throw new DomainError('ADDRESS_ERASURE_UNAVAILABLE','地址删除暂不可用，请稍后重试',503);
+      const identity=(await client.query<{provider:string;app_id:string;openid:string}>(
+        'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR SHARE',[owner])).rows[0];
+      if(!identity)throw new DomainError('AUTH_REVOKED','微信身份已变化，请重新登录',401);
+      const markerInput:Omit<AddressErasureMarker,'version'|'scope'>={memberId:owner,
+        identityDigest:AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid),
+        requestId:randomUUID(),createdAt:new Date().toISOString(),addressId,
+        addressVersion:row.version,payloadHmac:row.payload_hmac};
+      const marker=this.suppression?await this.suppression.recordAddressErasure(markerInput):
+        {version:3 as const,scope:'member_delivery_address_v1' as const,...markerInput};
+      const erased=await applyAddressErasure(client,marker);
       let defaultAddressId: string | null = null;
       if (row.is_default) {
         const replacement = await client.query<{ id: string }>("SELECT id FROM member_delivery_address WHERE member_id=$1 AND deleted_at IS NULL ORDER BY updated_at DESC,id DESC LIMIT 1 FOR UPDATE", [owner]);
@@ -322,7 +335,7 @@ export class DeliveryAddressService {
         if (defaultAddressId) await client.query("UPDATE member_delivery_address SET is_default=true,version=version+1,updated_at=now() WHERE id=$1", [defaultAddressId]);
       }
       await this.audit(client, owner, "member.delivery_address_deleted", addressId, "USER_ADDRESS_DELETE");
-      return { removed: true, defaultAddressId };
+      return { removed: true, defaultAddressId,erased:erased.erased,retainedForHold:erased.retainedForHold??false };
     }, "SERIALIZABLE");
   }
 }

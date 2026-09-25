@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "bdd0408e920757f9af13b677b40835ed25dec3d860ece065403bc535c30eb6d8",
+  "migrationSetSha256": "cfc0ed177d773f626706e4b1a3923740ad4060a142234433aa2ba34da3cd8265",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -11,7 +11,7 @@
     "subject": "FK paths are candidate relationships, not authorization. Actor, beneficiary, reporter and owner must remain distinct; polymorphic notes require typed resolver.",
     "retention": "Transaction and transaction-linked support have a confirmed 36-calendar-month business baseline subject to longer legal duties. Ordinary support has a configurable three-calendar-month policy after resolution; automatic purge remains separately gated until deployed data is previewed. Legal holds block erasure until release; other classes may lack enforcement.",
     "identity": "Canonical principal uses wechat_identity.provider + colon + wechat_identity.id, or explicit member:member.id. OpenID is not a public subject key.",
-    "erasure": "A verified WeChat member may delete the fixed optional account/contact/address scope without a second administrator. The independent suppression marker prevents restored old data from becoming active. Transaction, finance, support evidence and legal holds are preserved; unscoped requests stay non-executable until assessed."
+    "erasure": "Verified members may erase optional profile data and delete individual address-book entries. Address payload clearing is immediate without a hold, delayed with a hold, and replayed from independent local/COS suppression markers after old backup restore. Separately sealed order snapshots remain under transaction retention. Other unscoped requests remain non-executable until assessed."
   },
   "tables": [
     {
@@ -4436,14 +4436,16 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
+      "specialHandling": "The monotonic privacy_erasure_revision fences in-flight portable copies after address-book erasure; it is not personal content for export.",
       "exportFields": [
         "id",
         "display_name",
         "created_at",
         "status"
       ],
-      "excludedFields": [],
+      "excludedFields": [
+        "privacy_erasure_revision"
+      ],
       "syntheticErasureFields": [],
       "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
@@ -4482,7 +4484,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection. The formal copy includes decrypted owned address values; erased payloads stay null.",
+      "specialHandling": "Address-book removal hides the row and clears eligible encrypted payload. A legal hold delays clearing; an independent marker replays erasure after old backup restore or hold release. The order-address snapshot is separately encrypted and retained by transaction rules. Erased payloads export as null.",
       "exportFields": [
         "id",
         "label",

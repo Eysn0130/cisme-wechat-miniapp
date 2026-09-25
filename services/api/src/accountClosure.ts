@@ -8,7 +8,9 @@ import { transaction, type DbClient } from './db.js';
 export type ClosureMarker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
 export type ProfileErasureMarker={version:2;memberId:string;identityDigest:string;requestId:string;createdAt:string;
   scope:'member_optional_profile_v1';displayNameSha256:string};
-export type Marker=ClosureMarker|ProfileErasureMarker;
+export type AddressErasureMarker={version:3;memberId:string;identityDigest:string;requestId:string;createdAt:string;
+  scope:'member_delivery_address_v1';addressId:string;addressVersion:number;payloadHmac:string};
+export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker;
 export interface SuppressionRemote {
   put(marker:Marker):Promise<void>;
   list():Promise<Marker[]>;
@@ -17,13 +19,16 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const digest=/^[0-9a-f]{64}$/;
 const pendingMarker=/^\.[0-9a-f-]{36}\.[0-9a-f-]{36}\.tmp$/i;
 const profileMarker=/^([0-9a-f-]{36})\.profile\.([0-9a-f-]{36})\.json$/i;
+const addressMarker=/^([0-9a-f-]{36})\.address\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
   constructor(private readonly directory:string|null,private readonly remote?:SuppressionRemote) {}
 
   private path(memberId:string) {if(!uuid.test(memberId))throw new Error('ACCOUNT_CLOSURE_MARKER_INVALID');return join(this.directory!,`${memberId}.json`);}
-  private markerFilename(row:Marker){return row.version===1?`${row.memberId}.json`:`${row.memberId}.profile.${row.requestId}.json`;}
+  private markerFilename(row:Marker){return row.version===1?`${row.memberId}.json`:
+    row.version===2?`${row.memberId}.profile.${row.requestId}.json`:
+    `${row.memberId}.address.${row.addressId}.${row.requestId}.json`;}
   private markerPath(row:Marker){return join(this.directory!,this.markerFilename(row));}
   static identityDigest(provider:string,appId:string,openid:string) {
     return createHash('sha256').update(JSON.stringify([provider,appId,openid])).digest('hex');
@@ -47,12 +52,22 @@ export class AccountClosure {
       throw new Error('PROFILE_ERASURE_MARKER_INVALID');
     return row;
   }
+  private validAddress(row:AddressErasureMarker,memberId:string,addressId:string,requestId:string){
+    if(row.version!==3||row.memberId!==memberId||row.addressId!==addressId||row.requestId!==requestId||
+      !uuid.test(memberId)||!uuid.test(addressId)||!uuid.test(requestId)||row.scope!=='member_delivery_address_v1'||
+      !digest.test(row.identityDigest)||!digest.test(row.payloadHmac)||
+      !Number.isSafeInteger(row.addressVersion)||row.addressVersion<1||!Number.isFinite(Date.parse(row.createdAt)))
+      throw new Error('ADDRESS_ERASURE_MARKER_INVALID');
+    return row;
+  }
   private async readFilename(filename:string):Promise<Marker>{
     await this.requireDirectory();
-    const match=profileMarker.exec(filename);
-    if(!match&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
+    const match=profileMarker.exec(filename),address=addressMarker.exec(filename);
+    if(!match&&!address&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
     const row=JSON.parse(await readFile(join(this.directory!,filename),'utf8')) as Marker;
-    return match?this.validProfile(row as ProfileErasureMarker,match[1]!,match[2]!):this.valid(row,filename.slice(0,-5));
+    return match?this.validProfile(row as ProfileErasureMarker,match[1]!,match[2]!):
+      address?this.validAddress(row as AddressErasureMarker,address[1]!,address[2]!,address[3]!):
+      this.valid(row,filename.slice(0,-5));
   }
   private async marker(memberId:string):Promise<ClosureMarker|null> {
     if(!this.directory)return null;
@@ -96,6 +111,14 @@ export class AccountClosure {
     try{await this.remote?.put(row);}catch{throw new DomainError('PROFILE_ERASURE_PENDING','删除请求处理结果暂未确认，请稍后查看',503);}
     return row;
   }
+  async recordAddressErasure(input:Omit<AddressErasureMarker,'version'|'scope'>){
+    await this.requireDirectory();
+    const row=this.validAddress({version:3,scope:'member_delivery_address_v1',...input},
+      input.memberId,input.addressId,input.requestId);
+    await this.writeLocal(row);
+    try{await this.remote?.put(row);}catch{throw new DomainError('ADDRESS_ERASURE_PENDING','地址删除结果暂未确认，请稍后查看',503);}
+    return row;
+  }
   private async writeLocal(row:Marker) {
     const filename=this.markerFilename(row);
     let old:Marker|null=null;
@@ -122,7 +145,8 @@ export class AccountClosure {
     if(this.remote){
       for(const row of await this.remote.list()){
         if(row.version===1)this.valid(row,row.memberId);
-        else this.validProfile(row,row.memberId,row.requestId);
+        else if(row.version===2)this.validProfile(row,row.memberId,row.requestId);
+        else this.validAddress(row,row.memberId,row.addressId,row.requestId);
         await this.writeLocal(row);
       }
     }
@@ -131,7 +155,8 @@ export class AccountClosure {
       const row=await this.readFilename(filename);
       await this.remote?.put(row);
       if(row.version===1)await transaction(pool,client=>applyAccountClosure(client,row));
-      else await transaction(pool,client=>applyProfileErasure(client,row));
+      else if(row.version===2)await transaction(pool,client=>applyProfileErasure(client,row));
+      else await transaction(pool,client=>applyAddressErasure(client,row));
     }
   }
   async replayMember(pool:pg.Pool,memberId:string) {
@@ -150,7 +175,13 @@ export class AccountClosure {
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
       const marker=await this.readFilename(filename);
-      if(marker.version===2){
+      if(marker.version===3){
+        const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member_delivery_address
+          WHERE id=$1 AND member_id=$2 AND key_version<>'erased' AND payload_hmac=$3
+            AND version BETWEEN $4 AND $4+1) AS pending`,
+          [marker.addressId,marker.memberId,marker.payloadHmac,marker.addressVersion])).rows[0]?.pending;
+        if(pending){await transaction(pool,client=>applyAddressErasure(client,marker));repaired++;}
+      }else if(marker.version===2){
         const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member m
           WHERE m.id=$1 AND m.status='active' AND NOT EXISTS(
             SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
@@ -347,4 +378,49 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
     'VERIFIED_MEMBER_PROFILE_ERASURE',$3,gen_random_uuid()::text)`,[`member:${marker.memberId}`,marker.requestId,
     {scope:marker.scope,changed,restoredReplay:request.status==='completed'}]);
   return {id:marker.requestId,kind:'delete',status:'completed',scopeCode:marker.scope};
+}
+
+/** Address-book deletion never changes the independently sealed order address.
+ * The marker is outside database backups, so replay also removes a restored
+ * pre-deletion address. A hold delays payload erasure but not book visibility. */
+export async function applyAddressErasure(client:DbClient,marker:AddressErasureMarker){
+  const member=(await client.query<{status:string}>('SELECT status FROM member WHERE id=$1 FOR UPDATE',[marker.memberId])).rows[0];
+  if(!member)return {addressId:marker.addressId,removed:true,erased:false,missing:true};
+  const identity=(await client.query<{provider:string;app_id:string;openid:string}>(
+    'SELECT provider,app_id,openid FROM wechat_identity WHERE member_id=$1 FOR SHARE',[marker.memberId])).rows[0];
+  if(!identity||AccountClosure.identityDigest(identity.provider,identity.app_id,identity.openid)!==marker.identityDigest)
+    throw new Error('ADDRESS_ERASURE_IDENTITY_MISMATCH');
+  const row=(await client.query<{version:number;payload_hmac:string;key_version:string;deleted_at:Date|null}>(
+    'SELECT version,payload_hmac,key_version,deleted_at FROM member_delivery_address WHERE id=$1 AND member_id=$2 FOR UPDATE',
+    [marker.addressId,marker.memberId])).rows[0];
+  if(!row)return {addressId:marker.addressId,removed:true,erased:false,missing:true};
+  if(row.key_version==='erased')return {addressId:marker.addressId,removed:true,erased:true};
+  if(row.payload_hmac!==marker.payloadHmac||
+    row.version!==marker.addressVersion&&!(row.version===marker.addressVersion+1&&row.deleted_at))
+    throw new DomainError('DELIVERY_ADDRESS_CHANGED','地址已更新，请刷新后重试',409);
+  await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+  await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+  const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+    WHERE h.status='active' AND h.expires_at>clock_timestamp() AND
+      (b.object_type='member' AND b.object_id=$1 OR
+       b.object_type='member_delivery_address' AND b.object_id=$2) LIMIT 1`,
+    [marker.memberId,marker.addressId])).rowCount);
+  if(held&&row.deleted_at)return {addressId:marker.addressId,removed:true,erased:false,retainedForHold:true};
+  const result=await client.query(`UPDATE member_delivery_address SET
+    encrypted_payload=CASE WHEN $3 THEN encrypted_payload ELSE '' END,
+    payload_hmac=CASE WHEN $3 THEN payload_hmac ELSE encode(digest(id::text,'sha256'),'hex') END,
+    key_version=CASE WHEN $3 THEN key_version ELSE 'erased' END,
+    is_default=false,deleted_at=COALESCE(deleted_at,clock_timestamp()),
+    version=CASE WHEN deleted_at IS NULL THEN version+1 ELSE version END,updated_at=clock_timestamp()
+    WHERE id=$1 AND member_id=$2 RETURNING version`,[marker.addressId,marker.memberId,held]);
+  await client.query('UPDATE member SET privacy_erasure_revision=privacy_erasure_revision+1 WHERE id=$1',
+    [marker.memberId]);
+  await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
+    [marker.memberId]);
+  if(!held){
+    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+      VALUES($1,'privacy.address.erase','member_delivery_address',$2,'VERIFIED_MEMBER_ADDRESS_ERASURE',$3,gen_random_uuid()::text)`,
+      [`member:${marker.memberId}`,marker.addressId,{requestId:marker.requestId,version:result.rows[0]?.version}]);
+  }
+  return {addressId:marker.addressId,removed:true,erased:!held,retainedForHold:held};
 }

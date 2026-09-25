@@ -19,10 +19,12 @@ type Job={id:string;privacy_request_id:string;member_id:string;attempts:number;s
 // erasure revision. The final read is protected by the same member row lock
 // that every supported profile erasure and account-closure writer takes.
 async function erasureRevision(client:DbClient,memberId:string):Promise<string>{
-  return (await client.query<{revision:string}>(`SELECT COALESCE(
-    jsonb_agg(jsonb_build_array(id,version,status,resolution_code) ORDER BY id)::text,'[]') AS revision
-    FROM privacy_request WHERE member_id=$1 AND
-      (scope_code='member_optional_profile_v1' OR kind='close_account')`,[memberId])).rows[0]!.revision;
+  return (await client.query<{revision:string}>(`SELECT jsonb_build_object(
+    'requests',(SELECT COALESCE(jsonb_agg(jsonb_build_array(id,version,status,resolution_code) ORDER BY id),'[]'::jsonb)
+      FROM privacy_request WHERE member_id=m.id AND
+        (scope_code='member_optional_profile_v1' OR kind='close_account')),
+    'addressErasureRevision',m.privacy_erasure_revision)::text AS revision
+    FROM member m WHERE m.id=$1`,[memberId])).rows[0]!.revision;
 }
 
 /** Existing privacy jobs and artifact table, with a verified WeChat subject.

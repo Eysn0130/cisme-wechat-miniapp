@@ -161,7 +161,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const access = new CommunityAccess(pool, config, authority);
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
-  const deliveryAddresses = new DeliveryAddressService(pool, config);
+  const deliveryAddresses = new DeliveryAddressService(pool, config,
+    config.privacy.suppressionDirectory?accountClosure:undefined);
   // Formal commands require separate revocable per-capability approvals.
   const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
     ?config.commerce.formalProtocol:undefined;

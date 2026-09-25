@@ -35,8 +35,13 @@ it('stores only immutable identity digests and replays every paginated remote ma
     requestId:'22222222-2222-4222-8222-222222222222',createdAt:'2026-09-23T01:00:00.000Z',
     scope:'member_optional_profile_v1',displayNameSha256:'e'.repeat(64)};
   await remote.put(profile);
+  const address:Marker={version:3,memberId:rows[0]!.memberId,identityDigest:rows[0]!.identityDigest,
+    requestId:'33333333-3333-4333-8333-333333333333',createdAt:'2026-09-23T02:00:00.000Z',
+    scope:'member_delivery_address_v1',addressId:'44444444-4444-4444-8444-444444444444',
+    addressVersion:1,payloadHmac:'a'.repeat(64)};
+  await remote.put(address);
   await remote.put(rows[0]!);
-  expect(await remote.list()).toEqual([rows[0],profile,rows[1]]);
+  expect(await remote.list()).toEqual([address,rows[0],profile,rows[1]]);
   expect(JSON.stringify([...objects.values()].map(value=>value.toString()))).not.toContain('openid');
   await expect(remote.put({...rows[0]!,identityDigest:'f'.repeat(64)})).rejects.toThrow('ObjectAlreadyExists');
   versioned=true;

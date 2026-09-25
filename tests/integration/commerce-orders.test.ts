@@ -421,3 +421,26 @@ for(const action of ['list','detail'] as const)for(const revocation of ['role','
   await blocker.query('COMMIT');expect((await pending).statusCode).toBe(403);
  }finally{await blocker.query('ROLLBACK');blocker.release();await pending;}
 });
+
+it('keeps the separately encrypted order snapshot after erasing its source address',async()=>{
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+2 WHERE sku_id=$1',[product.variants[0].id]);
+  product=(await app.inject({method:'GET',url:'/v1/catalog/synthetic-r4b-order'})).json();
+  const source=await address(buyerA,'9888');
+  const quoted=await quote(buyerA,source,'quote-address-erasure-snapshot-01');
+  expect(quoted.statusCode,quoted.body).toBe(200);
+  const created=await createOrder(buyerA,quoted.json().id,'order-address-erasure-snapshot-01');
+  expect(created.statusCode,created.body).toBe(200);
+  const orderId=created.json().id;
+  const before=(await pool.query('SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1',[orderId])).rows[0];
+  const removed=await app.inject({method:'DELETE',url:`/v1/me/addresses/${source.id}`,
+    headers:auth(buyerA.sessionToken),payload:{expectedVersion:source.version}});
+  expect(removed.statusCode,removed.body).toBe(200);
+  expect(removed.json().erased).toBe(true);
+  expect((await pool.query('SELECT encrypted_payload,key_version FROM member_delivery_address WHERE id=$1',[source.id])).rows[0])
+    .toMatchObject({encrypted_payload:'',key_version:'erased'});
+  expect((await pool.query('SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1',[orderId])).rows[0])
+    .toEqual(before);
+  const detail=await app.inject({url:`/v1/me/orders/${orderId}`,headers:auth(buyerA.sessionToken)});
+  expect(detail.statusCode,detail.body).toBe(200);
+  expect(detail.json().address).toMatchObject({recipientName:'合成收货人9888',phone:'13800009888'});
+});

@@ -6,7 +6,7 @@ import { bindCosOperationBudget } from './storage.js';
 
 const prefix='privacy-suppression/v1/';
 const uuid='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-const name=new RegExp(`^${uuid}(?:\\.profile\\.${uuid})?\\.json$`,'i');
+const name=new RegExp(`^${uuid}(?:\\.profile\\.${uuid}|\\.address\\.${uuid}\\.${uuid})?\\.json$`,'i');
 
 /** Uses a standard private COS bucket; Lighthouse COS does not support the
  * bucket-level versioning/list checks required for restore-safe replay. */
@@ -29,7 +29,9 @@ export function createCosSuppressionRemote(config:AppConfig,client?:COS):Suppres
     return active;
   };
   const location={Bucket:bucket,Region:config.objectStorage.region};
-  const filename=(row:Marker)=>row.version===1?`${row.memberId}.json`:`${row.memberId}.profile.${row.requestId}.json`;
+  const filename=(row:Marker)=>row.version===1?`${row.memberId}.json`:
+    row.version===2?`${row.memberId}.profile.${row.requestId}.json`:
+    `${row.memberId}.address.${row.addressId}.${row.requestId}.json`;
   const key=(name:string)=>`${prefix}${config.wechat.appId}/${name}`;
   const requireNoVersioning=async(active:COS)=>{
     const versioning=await active.getBucketVersioning(location);

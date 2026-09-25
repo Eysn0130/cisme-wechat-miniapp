@@ -440,3 +440,30 @@ it('preserves the same nickname when it was explicitly supplied again after dele
   await transaction(pool,c=>applyProfileErasure(c,marker));
   expect((await pool.query('SELECT display_name FROM member WHERE id=$1',[owner.memberId])).rows[0].display_name).toBe(originalName);
 });
+
+it('does not publish an in-flight copy after its address-book snapshot was erased',async()=>{
+  const owner=await login('address-race-owner');
+  const addresses=new DeliveryAddressService(pool,config);
+  const saved=await addresses.create(owner.memberId,`address-race-${randomUUID()}`,{
+    recipientName:'合成收件人',phone:'13800001234',province:'上海市',city:'上海市',district:'浦东新区',
+    detail:'隔离测试路 8 号',label:'home',isDefault:true});
+  const created=await app.inject({method:'POST',url:'/v1/me/privacy-requests',
+    headers:{authorization:`Bearer ${owner.sessionToken}`},payload:{kind:'access',message:'获取本人资料'}});
+  expect(created.statusCode,created.body).toBe(200);
+  const requestId=created.json().id as string;
+  const executor=new FormalPrivacyExecution(pool,config,storage);
+  expect(await executor.runExportOnce(async()=>{
+    const removed=await addresses.remove(owner.memberId,saved.id,{expectedVersion:saved.version});
+    expect(removed.erased).toBe(true);
+  })).toBe(true);
+  expect((await pool.query(`SELECT 1 FROM privacy_export_artifact a JOIN data_export_job j ON j.id=a.job_id
+    WHERE j.privacy_request_id=$1`,[requestId])).rowCount).toBe(0);
+  expect((await pool.query('SELECT last_error_code FROM data_export_job WHERE privacy_request_id=$1',[requestId])).rows[0].last_error_code)
+    .toBe('PRIVACY_EXECUTION_AUTHORITY_CHANGED');
+  await pool.query("UPDATE data_export_job SET next_attempt_at=now() WHERE privacy_request_id=$1",[requestId]);
+  expect(await executor.runExportOnce()).toBe(true);
+  const delivered=await app.inject({url:`/v1/me/privacy-requests/${requestId}/export`,
+    headers:{authorization:`Bearer ${owner.sessionToken}`}});
+  expect(delivered.statusCode,delivered.body).toBe(200);
+  expect(delivered.json().sections.account.addresses.find((row:{id:string})=>row.id===saved.id).address).toBeNull();
+});
