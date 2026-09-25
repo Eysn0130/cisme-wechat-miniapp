@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "c8bf75f1becc6e7b17282f268034ac42065f4d2814cc401f96f3ee887fa15a91",
+  "packageSourceSha256": "bf0c281e1888b9e7877f8d40a95b348aaa43f59b1ab23304d9682b9572d70038",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -48,5 +48,5 @@
   ],
   "devices": [{"platform":"ios","result":"blocked","evidenceFiles":[]},{"platform":"android","result":"blocked","evidenceFiles":[]}],
   "findings": [{"id":"CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED","severity":"P1","status":"blocked"}],
-  "note": "Current c8bf75f1 source blocks new authentication while legal documents refresh, rejects consent captured before an intervening refresh, preserves authenticated continuation, and clarifies account consent copy. The optional cross-border version is omitted when absent. This package identity was measured by the package gate in CI 36078393518; synchronizing it does not provide native acceptance. The earlier 3c21dd88 source and the original f9f72432 iPhone failure are not passing evidence for this package. The f9f72432 preview entered Home but Account could not load legal documents or log in; the user also reported iPhone Safari could not open staging /v1/legal. Preserve that screenshot with its original identity. Current official-tool compilation, route states, iOS login and Android device acceptance remain blocked until observed against this package."
+  "note": "Current source identity is bound to the package gate after the scoped consent-withdrawal privacy page change. This hash update records code identity only: all route states and both devices remain blocked, with no new native screenshots or real WeChat login evidence. Earlier c8bf75f1 and f9f72432 evidence retains its original source identity and cannot establish this package as passing. Official-tool compilation, iOS and Android journeys require new observation after candidate freeze."
 }
