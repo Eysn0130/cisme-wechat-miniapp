@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "cfc0ed177d773f626706e4b1a3923740ad4060a142234433aa2ba34da3cd8265",
+  "migrationSetSha256": "1d9ce9f38063b30f45cf51afad6050f44605fcf622645e6f21850a5785d5446b",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
