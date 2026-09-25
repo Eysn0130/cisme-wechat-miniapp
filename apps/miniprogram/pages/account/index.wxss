@@ -12,7 +12,7 @@
 }
 
 .account-row { min-height:152rpx; padding:24rpx 0; box-sizing:border-box; }
-.account-agreement__label { min-height:0; }
+.account-agreement__label { min-height:44px; }
 .account-safety { align-items:center; }
 .account-safety__icon { width:18px; height:18px; margin-top:0; }
 
@@ -21,3 +21,6 @@
 .account-notice { width:100%; margin-top:18rpx; color:#796a80; font-size:26rpx; line-height:1.6; text-align:left; }
 .account-help { width:100%; min-height:44px; margin-top:12rpx; }
 .account-legal-retry { width:100%; min-height:44px; margin-top:12rpx; }
+
+/* A disabled consent control must not dim the explanation or recovery action. */
+.account-legal-status--error { color:#6f3654; }

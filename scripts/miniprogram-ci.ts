@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { miniProgramApiOrigins, miniProgramCloudFunctions } from "../apps/miniprogram/release-config";
 import { evaluateDesignQaEvidence } from "./design-qa-lib";
 import { validateWeChatCiPreview } from "./wechat-release-lib";
+import { probeLegalEndpoint } from "./legal-endpoint-probe";
 
 const root = resolve(import.meta.dirname, "..");
 const appid = process.env.WECHAT_APP_ID;
@@ -39,6 +40,14 @@ preflightErrors.push(...designQa.structuralErrors);
 if (preflightErrors.length) {
   console.error(JSON.stringify({ ok: false, command: "internal-test-package-preflight", errors: [...new Set(preflightErrors)] }, null, 2));
   process.exit(1);
+}
+
+if (!miniProgramCloudFunctions.preview) {
+  const publicLegalProbe = await probeLegalEndpoint(miniProgramApiOrigins.preview);
+  if (!publicLegalProbe.ok) {
+    console.error(JSON.stringify({ ok: false, command: "internal-test-package-preflight", publicLegalProbe }, null, 2));
+    process.exit(1);
+  }
 }
 
 const toolRoot = resolve(root, "tools/wechat-ci/node_modules/miniprogram-ci");

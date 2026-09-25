@@ -5,6 +5,7 @@ import { legalDocumentVersions, shouldUseDevelopmentIdentity } from "../../relea
 import type { LegalDocumentVersions } from "../../release-config";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 import { attributePendingShare } from "../../services/share";
+import { legalRequestFailure, parseLegalBootstrap, type LegalLoadError } from "../../services/legal-bootstrap";
 
 function scrollToAccountError() {
   wx.pageScrollTo({ selector: "#account-error-summary", duration: motionDuration(200) });
@@ -13,7 +14,9 @@ function scrollToAccountError() {
 const legalReadErrors = new Set([
   "协议服务暂时无法连接，请稍后重试。",
   "当前用户协议尚未发布，请稍后重试。",
-  "当前隐私指引尚未发布，请稍后重试。"
+  "当前隐私指引尚未发布，请稍后重试。",
+  "协议加载异常，请稍后重试。",
+  "协议暂时无法加载，请稍后重试。"
 ]);
 
 function currentLegalDocuments(): LegalDocumentVersions | null {
@@ -23,7 +26,7 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
-  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as "" | "unreachable" | "unpublished", chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
     const attempt=++this.data.authAttempt;
@@ -53,19 +56,24 @@ Page({
     // Keep the accepted versions for comparison, but do not authorize a new
     // login until the current read finishes. Returning from a legal page may
     // otherwise leave the old ready/accepted pair actionable during refresh.
-    this.setData({legalLoading:true,legalTextsReady:false,legalLoadError:"",...(legalReadErrors.has(this.data.error)?{error:""}:{})});
+    this.setData({legalLoading:true,legalTextsReady:false,legalLoadError:"",legalFailureCode:"",...(legalReadErrors.has(this.data.error)?{error:""}:{})});
     let documents = currentLegalDocuments();
-    let legalLoadError: "" | "unreachable" | "unpublished" = "";
+    let legalLoadError: LegalLoadError = "";
+    let legalFailureCode = "";
     if (!documents) {
       try {
-        const response = await request<{ready:boolean;documents:Array<{document_type:string;version:string}>}>({path:"/v1/legal",authMode:"public"});
+        const response = await request<unknown>({path:"/v1/legal",authMode:"public"});
         if (!this.data.pageAlive || attempt !== this.data.legalAttempt) return;
-        const privacy = response.documents.find(item=>item.document_type === "privacy")?.version;
-        const terms = response.documents.find(item=>item.document_type === "terms")?.version;
-        const crossBorder = response.documents.find(item=>item.document_type === "cross_border")?.version;
-        documents = response.ready && privacy && terms ? {privacy,terms,...(crossBorder?{crossBorder}:{}),localFixture:false} : null;
-        if (!documents) legalLoadError = "unpublished";
-      } catch { documents = null; legalLoadError = "unreachable"; }
+        const result = parseLegalBootstrap(response);
+        documents = result.documents;
+        legalLoadError = result.error;
+        legalFailureCode = result.diagnostic;
+      } catch (error) {
+        documents = null;
+        const failure = legalRequestFailure(error);
+        legalLoadError = failure.error;
+        legalFailureCode = failure.diagnostic;
+      }
       if (!this.data.pageAlive || attempt !== this.data.legalAttempt) return;
       this.setData({ serverLegalDocuments: documents });
     }
@@ -73,6 +81,7 @@ Page({
       legalTextsReady: Boolean(documents),
       legalLoading: false,
       legalLoadError,
+      legalFailureCode,
       crossBorderRequired: Boolean(documents?.crossBorder),
       crossBorderAccepted: documents && previous?.crossBorder === documents.crossBorder ? this.data.crossBorderAccepted : false,
       localLegalFixture: documents?.localFixture === true,
@@ -125,7 +134,7 @@ Page({
   async openTerms() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: this.data.legalLoadError === "unreachable" ? "协议服务暂时无法连接，请稍后重试。" : "当前用户协议尚未发布，请稍后重试。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议加载异常，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "当前用户协议尚未发布，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {
@@ -144,7 +153,7 @@ Page({
   openPrivacy() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: this.data.legalLoadError === "unreachable" ? "协议服务暂时无法连接，请稍后重试。" : "当前隐私指引尚未发布，请稍后重试。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议加载异常，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "当前隐私指引尚未发布，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {
