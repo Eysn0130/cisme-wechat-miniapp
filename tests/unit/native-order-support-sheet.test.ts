@@ -106,6 +106,36 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   p.data.sheetAttempt={key:'original-request',payload:{kind:'return_refund'}};p.data.sheetSendAttempt={key:'original-message',body:'hello'};
   p.closeSupportSheet();expect(p.data.supportSheetOpen).toBe(false);expect(p.data.sheetAttempt.key).toBe('original-request');expect(p.data.sheetSendAttempt.key).toBe('original-message');
  });
+ it('unlocks a clearly rejected shipped refund draft for edit and a new request',async()=>{
+  const p=await page(),pending=deferred();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[])));
+  await p.loadSupportSheet();p.data.sheetKindIndex=0;p.data.sheetBasisIndex=2;p.data.sheetReason='商品破损';
+  m.write.mockImplementationOnce(()=>pending.promise).mockResolvedValueOnce(record);
+  const first=p.submitSheetAftersale();
+  await p.submitSheetAftersale();expect(m.write).toHaveBeenCalledTimes(1);
+  pending.resolve(Promise.reject({status:409,code:'AFTERSALE_RETURN_REQUIRED'}));await first;
+  expect(p.data.sheetAttempt).toBeNull();expect(p.data.sheetReason).toBe('商品破损');
+  expect(p.data.sheetError).toContain('退货退款');
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(p.data.sheetError).toContain('退货退款');
+  p.closeSupportSheet();p.data.supportSheetOpen=true;await p.loadSupportSheet();
+  p.chooseSheetKind({detail:{value:'1'}});p.editSheetReason({detail:{value:'商品外包装破损'}});
+  expect(p.data.sheetKindIndex).toBe(1);expect(p.data.sheetReason).toBe('商品外包装破损');
+  await p.submitSheetAftersale();expect(m.write).toHaveBeenCalledTimes(2);
+  expect(m.write.mock.calls[0]![0].idempotencyKey).not.toBe(m.write.mock.calls[1]![0].idempotencyKey);
+  expect(m.write.mock.calls[1]![0].data.kind).toBe('return_refund');
+ });
+ it('keeps the original request key and payload when the write outcome is unknown',async()=>{
+  const p=await page();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[])));
+  await p.loadSupportSheet();p.data.sheetBasisIndex=2;p.data.sheetReason='商品破损';
+  m.write.mockRejectedValueOnce({status:503,code:'TRANSACTION_OUTCOME_UNKNOWN'}).mockResolvedValueOnce(record);
+  await p.submitSheetAftersale();const original=m.write.mock.calls[0]![0];
+  expect(p.data.sheetAttempt.key).toBe(original.idempotencyKey);
+  p.chooseSheetKind({detail:{value:'1'}});p.editSheetReason({detail:{value:'不同内容'}});
+  expect(p.data.sheetKindIndex).toBe(1);expect(p.data.sheetReason).toBe('商品破损');
+  await p.submitSheetAftersale();
+  expect(m.write.mock.calls[1]![0].idempotencyKey).toBe(original.idempotencyKey);
+  expect(m.write.mock.calls[1]![0].data).toEqual(original.data);
+ });
  it('clears inherited busy flags and private drafts on account change',async()=>{
   const p=await page();p.data.sheetSubmitting=true;p.data.sheetSending=true;p.data.sheetReason='private';m.token='member-b';p.syncSession();
   expect(p.data.sheetSubmitting).toBe(false);expect(p.data.sheetSending).toBe(false);expect(p.data.sheetReason).toBe('');expect(p.data.sheetCase).toBeNull();
@@ -151,6 +181,27 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   await first;
   expect(p.data.receiptQueryError).toContain('重试');
   expect(p.data.shipment.wechatReceipt.status).toBe('shipped');
+ });
+ it('releases a pending receipt query on order reload and ignores its late answer',async()=>{
+  const p=await page(),old=deferred(),shipmentId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  p.data.order={...p.data.order,version:1,status:'paid',transactionSourceKind:'verified_commerce'};
+  p.data.shipment={id:shipmentId,wechatReceipt:{status:'shipped',label:'微信显示已发货'}};
+  p.loadRuntime=vi.fn();p.loadShipment=vi.fn();p.loadRefunds=vi.fn();p.loadRecovery=vi.fn();
+  p.refreshRecordedCommands=vi.fn();p.applyRuntime=vi.fn();p.normalize=(row:any)=>row;
+  m.read.mockResolvedValue(p.data.order);
+  m.write.mockImplementationOnce(()=>old.promise).mockResolvedValueOnce({orderId,shipmentId,
+    status:'confirmed',label:'微信已记录确认收货',canOpenComponent:false});
+  const first=p.queryWechatReceipt(false);
+  expect(p.data.receiptQueryLoading).toBe(true);
+  await p.load();
+  expect(p.data.receiptQueryLoading).toBe(false);
+  expect(p.data.coreReady).toBe(true);
+  old.resolve({orderId,shipmentId,status:'refunded',label:'微信显示已退款'});
+  await first;
+  expect(p.data.shipment.wechatReceipt.status).toBe('shipped');
+  await p.queryWechatReceipt(false);
+  expect(m.write).toHaveBeenCalledTimes(2);
+  expect(p.data.actionStatus).toBe('微信已记录确认收货');
  });
  it('never opens the real WeChat component for a synthetic order',async()=>{
   const p=await page(),shipmentId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';

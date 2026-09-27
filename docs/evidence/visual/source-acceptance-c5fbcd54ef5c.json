@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "3c895fb74af445001cc5b731dc1199eba90cfe8f0536a1f3d8faa789a2a3901d",
+  "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
   "finalResult": "blocked",
   "evidenceIndex": {
     "docs/evidence/native-login-deep-plum-20260927/reference-selected.png": {
@@ -15,41 +15,101 @@
       "state": "selected-third-design",
       "viewport": "user-approved concept"
     },
-    "docs/evidence/post-main-m2-native/order-aftersale-rejected.png": {
-      "sha256": "43389e01dc2af9841a7b615408badd547e89b965d8d1a7bb6361fb8c1a076713",
-      "bytes": 69006,
+    "docs/evidence/r10-receipt-local/account-guest.png": {
+      "sha256": "78cda36efc57d1744718455d2dfc4bd534217220bb34bbb132ba6d3766d598fa",
+      "bytes": 161320,
       "mimeType": "image/png",
       "widthPx": 361,
       "heightPx": 804,
       "kind": "route_native",
-      "packageSourceSha256": "3c895fb74af445001cc5b731dc1199eba90cfe8f0536a1f3d8faa789a2a3901d",
-      "route": "pages/order-detail/index",
-      "state": "aftersale-preinsert-rejected",
-      "viewport": "WeChat DevTools simulator 361x804"
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
+      "route": "pages/account/index",
+      "state": "guest-login-current",
+      "viewport": "361x804@simulator"
     },
-    "docs/evidence/post-main-m2-native/order-aftersale-editable.png": {
-      "sha256": "0f7de006217d8f162f4a7c4fa6144d61790f3151617317006a85c767cd838ea3",
-      "bytes": 63831,
+    "docs/evidence/r10-receipt-local/order-before-query.png": {
+      "sha256": "67caa166019b2ac10bac81b4746d6c25d526a9c782d0769b6446fb3bf44ccca6",
+      "bytes": 94994,
       "mimeType": "image/png",
       "widthPx": 361,
       "heightPx": 804,
       "kind": "route_native",
-      "packageSourceSha256": "3c895fb74af445001cc5b731dc1199eba90cfe8f0536a1f3d8faa789a2a3901d",
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
       "route": "pages/order-detail/index",
-      "state": "aftersale-draft-editable",
-      "viewport": "WeChat DevTools simulator 361x804"
+      "state": "platform-unverified",
+      "viewport": "361x804@simulator"
     },
-    "docs/evidence/post-main-m2-native/order-receipt-synthetic-boundary.png": {
-      "sha256": "428d6aedaa2bb770f90f28216ff17a743dcc2db2464da00a84b30d0e5044fcb9",
-      "bytes": 104577,
+    "docs/evidence/r10-receipt-local/order-platform-shipped.png": {
+      "sha256": "ffba0e726acd373e29fb83b90b078698b658b93be7f3c452000911eeb32ab265",
+      "bytes": 104797,
       "mimeType": "image/png",
       "widthPx": 361,
       "heightPx": 804,
       "kind": "route_native",
-      "packageSourceSha256": "3c895fb74af445001cc5b731dc1199eba90cfe8f0536a1f3d8faa789a2a3901d",
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
+      "route": "pages/order-detail/index",
+      "state": "platform-shipped",
+      "viewport": "361x804@simulator"
+    },
+    "docs/evidence/r10-receipt-local/order-synthetic-boundary.png": {
+      "sha256": "f299bfcc425a4e32379d2d871891b598d01876a22e0d48e4701b6cf4a8084669",
+      "bytes": 104922,
+      "mimeType": "image/png",
+      "widthPx": 361,
+      "heightPx": 804,
+      "kind": "route_native",
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
       "route": "pages/order-detail/index",
       "state": "synthetic-component-boundary",
-      "viewport": "WeChat DevTools simulator 361x804"
+      "viewport": "361x804@simulator"
+    },
+    "docs/evidence/r10-receipt-local/order-support-sheet.png": {
+      "sha256": "23dc2d5c07a3e3b5fb3ac74c6af941de6d4971acf9826a91e08eacbfdbc045d7",
+      "bytes": 63104,
+      "mimeType": "image/png",
+      "widthPx": 361,
+      "heightPx": 804,
+      "kind": "route_native",
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
+      "route": "pages/order-detail/index",
+      "state": "aftersale-bottom-sheet",
+      "viewport": "361x804@simulator"
+    },
+    "docs/evidence/r10-receipt-local/order-list.png": {
+      "sha256": "08a1619eec6d14e3e2a9312c761339b94c620a8a83b80285baf726b6146fce84",
+      "bytes": 62667,
+      "mimeType": "image/png",
+      "widthPx": 361,
+      "heightPx": 804,
+      "kind": "route_native",
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
+      "route": "pages/orders/index",
+      "state": "platform-shipped-list",
+      "viewport": "361x804@simulator"
+    },
+    "docs/evidence/r10-receipt-local/management-order-list.png": {
+      "sha256": "97b276c5e73e1babe617c5d9e62630ec65879a19e01816ba47660c02380b44dd",
+      "bytes": 67997,
+      "mimeType": "image/png",
+      "widthPx": 361,
+      "heightPx": 804,
+      "kind": "route_native",
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
+      "route": "pages/management-orders/index",
+      "state": "platform-shipped-admin-list",
+      "viewport": "361x804@simulator"
+    },
+    "docs/evidence/r10-receipt-local/management-order-detail.png": {
+      "sha256": "fe9546f2d7600327dc69768e52cad7efaedefcbdcac5cbc1687d65913013ac07",
+      "bytes": 62371,
+      "mimeType": "image/png",
+      "widthPx": 361,
+      "heightPx": 804,
+      "kind": "route_native",
+      "packageSourceSha256": "c5fbcd54ef5c209be56fe573fb5dc79a6844c1d6abf6267a5b903c1a588a4c76",
+      "route": "pages/management-order-detail/index",
+      "state": "platform-shipped-admin-detail",
+      "viewport": "361x804@simulator"
     }
   },
   "devtools": null,
@@ -83,7 +143,8 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/native-login-deep-plum-20260927/reference-selected.png"
+        "docs/evidence/native-login-deep-plum-20260927/reference-selected.png",
+        "docs/evidence/r10-receipt-local/account-guest.png"
       ]
     },
     {
@@ -138,16 +199,19 @@
       "route": "pages/orders/index",
       "matrixComplete": false,
       "result": "blocked",
-      "evidenceFiles": []
+      "evidenceFiles": [
+        "docs/evidence/r10-receipt-local/order-list.png"
+      ]
     },
     {
       "route": "pages/order-detail/index",
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": [
-        "docs/evidence/post-main-m2-native/order-aftersale-rejected.png",
-        "docs/evidence/post-main-m2-native/order-aftersale-editable.png",
-        "docs/evidence/post-main-m2-native/order-receipt-synthetic-boundary.png"
+        "docs/evidence/r10-receipt-local/order-before-query.png",
+        "docs/evidence/r10-receipt-local/order-platform-shipped.png",
+        "docs/evidence/r10-receipt-local/order-synthetic-boundary.png",
+        "docs/evidence/r10-receipt-local/order-support-sheet.png"
       ]
     },
     {
@@ -202,13 +266,17 @@
       "route": "pages/management-orders/index",
       "matrixComplete": false,
       "result": "blocked",
-      "evidenceFiles": []
+      "evidenceFiles": [
+        "docs/evidence/r10-receipt-local/management-order-list.png"
+      ]
     },
     {
       "route": "pages/management-order-detail/index",
       "matrixComplete": false,
       "result": "blocked",
-      "evidenceFiles": []
+      "evidenceFiles": [
+        "docs/evidence/r10-receipt-local/management-order-detail.png"
+      ]
     },
     {
       "route": "pages/management-support/index",
@@ -320,5 +388,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source 3c895fb7: targeted WeChat DevTools simulator evidence covers synthetic receipt boundary and aftersale preinsert rejection/editability. Full route/device matrices, real WeChat component, and platform release gate remain blocked. Previous screenshots retain their original package source in source-acceptance-c5fbcd54ef5c.json."
+  "note": "Current source c5fbcd54: R10 native DevTools 361x804 simulator screenshots cover guest login regression, synthetic order platform query and component safety boundary, original aftersales sheet, member list, and administrator list/detail. The prior a906df8d manifest is archived byte-for-byte as source-acceptance-a906df8d7687.json. All 40 route state matrices, physical iOS/Android, real WeChat confirmation component and formal trading remain blocked or unverified. These screenshots do not establish release readiness."
 }

@@ -7,6 +7,7 @@ import { validateShippingBinding, type ReceiptObservation, type ShippingBinding,
 
 type Source = {orderId:string;owner:string;orderVersion:number;shipmentId:string;shipmentVersion:number;
   paymentInboxId:string;binding:ShippingBinding};
+type SourceResult={status:'ready'|'waiting';source:Source}|{status:'invalid'};
 type Claim = {source:Source;queryId:string;leaseToken:string};
 const nextHours=(state:number)=>state===2?12:24;
 const retryMinutes=(failures:number)=>Math.min(1440,5*2**Math.min(failures-1,8));
@@ -18,28 +19,30 @@ export class WechatReceiptWatch {
   constructor(private readonly pool:pg.Pool,private readonly appId:string,private readonly merchantId:string,
     private readonly channel:Pick<WechatOrderShippingClient,'queryOrder'>){}
 
-  private async source(client:DbClient,orderId:string):Promise<Source|null>{
+  private async source(client:DbClient,orderId:string):Promise<SourceResult>{
     const order=(await client.query(`SELECT o.member_id,o.order_number,o.status,o.version AS order_version,
-      o.transaction_source_kind,s.id AS shipment_id,s.version AS shipment_version
+      o.transaction_source_kind,s.id AS shipment_id,s.version AS shipment_version,y.state AS sync_state
       FROM commerce_order o JOIN commerce_shipment s ON s.order_id=o.id
-      JOIN commerce_shipping_sync y ON y.id=s.shipping_sync_id AND y.state='synced'
+      JOIN commerce_shipping_sync y ON y.id=s.shipping_sync_id AND y.order_id=o.id
       WHERE o.id=$1`,[orderId])).rows[0];
-    if(!order||order.status!=='paid'||order.transaction_source_kind!=='verified_commerce')return null;
+    if(!order||order.status!=='paid'||order.transaction_source_kind!=='verified_commerce')return {status:'invalid'};
     const payments=(await client.query(`SELECT p.member_id,p.app_id,p.merchant_id,p.payer_openid,p.out_trade_no,p.amount_cents,
       i.id AS payment_inbox_id,i.provider_transaction_id,i.payer_total_cents
       FROM commerce_payment_attempt p JOIN commission_payment_inbox i
         ON i.order_id=p.order_id AND i.app_id=p.app_id AND i.merchant_id=p.merchant_id
       WHERE p.order_id=$1 AND p.state='paid' AND i.state='applied' AND i.composition_status='full_cash'`,[orderId])).rows;
-    if(payments.length!==1)return null;
+    if(payments.length!==1)return {status:'invalid'};
     const paid=payments[0];
     if(paid.member_id!==order.member_id||paid.app_id!==this.appId||paid.merchant_id!==this.merchantId
-      ||paid.out_trade_no!==order.order_number||Number(paid.amount_cents)!==Number(paid.payer_total_cents))return null;
+      ||paid.out_trade_no!==order.order_number||Number(paid.amount_cents)!==Number(paid.payer_total_cents))return {status:'invalid'};
     const binding:ShippingBinding={merchantId:paid.merchant_id,merchantOrderNumber:paid.out_trade_no,
       transactionId:paid.provider_transaction_id,payerOpenid:paid.payer_openid,
       payerTotalCents:Number(paid.payer_total_cents)};
-    try{validateShippingBinding(binding);}catch{return null;}
-    return {orderId,owner:order.member_id,orderVersion:order.order_version,shipmentId:order.shipment_id,
+    try{validateShippingBinding(binding);}catch{return {status:'invalid'};}
+    if(!['prepared','dispatching','verifying','synced'].includes(order.sync_state))return {status:'invalid'};
+    const source={orderId,owner:order.member_id,orderVersion:order.order_version,shipmentId:order.shipment_id,
       shipmentVersion:order.shipment_version,paymentInboxId:paid.payment_inbox_id,binding};
+    return {status:order.sync_state==='synced'?'ready':'waiting',source};
   }
 
   private async seed():Promise<number>{
@@ -67,11 +70,18 @@ export class WechatReceiptWatch {
           AND (w.watch_lease_until IS NULL OR w.watch_lease_until<clock_timestamp())
         ORDER BY w.watch_next_attempt_at,w.order_id LIMIT 1 FOR UPDATE OF w SKIP LOCKED`)).rows[0];
       if(!row)return null;
-      const source=await this.source(client,row.order_id);
+      const result=await this.source(client,row.order_id);
+      const source=result.status==='invalid'?null:result.source;
       if(!source||source.shipmentId!==row.shipment_id||source.paymentInboxId!==row.payment_inbox_id){
         await client.query(`UPDATE commerce_wechat_receipt_observation SET watch_state='manual_review',
           watch_next_attempt_at=NULL,watch_last_error_code='PAYMENT_OR_SHIPMENT_BINDING_CHANGED'
           WHERE order_id=$1`,[row.order_id]);
+        continue;
+      }
+      if(result.status==='waiting'){
+        await client.query(`UPDATE commerce_wechat_receipt_observation SET
+          watch_next_attempt_at=clock_timestamp()+interval '5 minutes',watch_last_error_code='SHIPPING_SYNC_PENDING',
+          watch_lease_token=NULL,watch_lease_until=NULL WHERE order_id=$1`,[row.order_id]);
         continue;
       }
       const queryId=randomUUID(),leaseToken=randomUUID();
@@ -88,7 +98,8 @@ export class WechatReceiptWatch {
   private async finish(claim:Claim,observed:ReceiptObservation):Promise<boolean>{
     return transaction(this.pool,async client=>{
       const {source,queryId,leaseToken}=claim;
-      const current=await this.source(client,source.orderId);
+      const result=await this.source(client,source.orderId);
+      const current=result.status==='ready'?result.source:null;
       const valid=current&&current.owner===source.owner&&current.orderVersion===source.orderVersion
         && current.shipmentVersion===source.shipmentVersion&&current.shipmentId===source.shipmentId
         && current.paymentInboxId===source.paymentInboxId
