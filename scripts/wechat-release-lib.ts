@@ -16,6 +16,8 @@ export interface WeChatReleaseInput {
     serverDomainsConfigured: boolean;
     demoScopeApproved: boolean;
     experienceMembersConfigured: boolean;
+    developerUploadConfirmed?: boolean;
+    realWeChatIdentityVerified?: boolean;
     miniProgramFilingCompleted?: boolean;
   };
 }
@@ -87,6 +89,12 @@ export function validateWeChatRelease(input: WeChatReleaseInput): string[] {
   }
   if (input.target === "trial" && !input.manualGates.experienceMembersConfigured) {
     errors.push("EXPERIENCE_MEMBERS_PROOF_REQUIRED");
+  }
+  if (input.target === "trial" && !input.manualGates.developerUploadConfirmed) {
+    errors.push("DEVELOPER_UPLOAD_PROOF_REQUIRED");
+  }
+  if (input.target === "trial" && !input.manualGates.realWeChatIdentityVerified) {
+    errors.push("REAL_WECHAT_IDENTITY_PROOF_REQUIRED");
   }
   return errors;
 }
