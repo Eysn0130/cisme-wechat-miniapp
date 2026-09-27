@@ -1,0 +1,27 @@
+{
+  "statement": [
+    {
+      "action": [
+        "name/cos:HeadBucket"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/*"
+      ]
+    },
+    {
+      "action": [
+        "name/cos:PutObject",
+        "name/cos:GetObject",
+        "name/cos:HeadObject",
+        "name/cos:DeleteObject"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/submissions/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/cisme-probes/*"
+      ]
+    }
+  ],
+  "version": "2.0"
+}

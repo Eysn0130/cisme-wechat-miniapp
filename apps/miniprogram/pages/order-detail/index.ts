@@ -6,11 +6,16 @@ import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner, runtimeView, validateRuntime } from "../../services/commerce-runtime";
 import { historicalCommerceClosed, historicalCommerceToken, request, requireHistoricalCommerceAccess } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
-import { clientOperationKey, myOrder, myShipment, myTracking, confirmMyReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
+import { nativeCatalogImage } from "../../services/catalog";
+import { clientOperationKey, myOrder, myShipment, myTracking, confirmMyReceipt, queryMyWechatReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
+import { beginWechatReceiptReturn, clearWechatReceiptReturn, takeWechatReceiptReturn } from "../../services/wechat-receipt-return";
 import { currentChromeStyle } from "../../services/layout";
 import { createSupportThreadState,mergeAcknowledgement,mergeSyncPage,presentSupportMessages,supportPollDelay,type SupportThreadState } from "../../services/support-thread-state";
 import { stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付"};
+const receiptLabels:Record<string,string>={unverified:"微信记录：待核对",awaiting_shipping:"微信记录：待发货",shipped:"微信记录：已发货",
+  confirmed:"微信记录：已确认收货",completed:"微信记录：交易完成",refunded:"微信记录：已退款",
+  settlement_pending:"微信记录：资金待结算",unknown:"微信记录：需人工核对"};
 type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundState:string|null;reason:string;createdAt:string;
   cashRefundCents:number|null;creditReturnCents:number|null;amountLabel?:string;stateLabel?:string;
   cashLabel?:string;creditLabel?:string};
@@ -30,10 +35,11 @@ function supportSheetHeight(){
 }
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
+  wechatReturn:null as 'success'|'fail'|'cancel'|null,shipmentAttempt:0,receiptQueryAttempt:0,
   launchAftersale:false,
-  sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,
+  sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,sheetValidationError:false,
   data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
-    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
+    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
     supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[] as SheetAvailable[],sheetConsulting:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
@@ -46,6 +52,7 @@ Page({
     this.setData({id,invalidId:!orderIdPattern.test(id),sheetHeight:supportSheetHeight()});},
   onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
     if(!requireHistoricalCommerceAccess())return;
+    this.wechatReturn=takeWechatReceiptReturn(this.data.id,historicalCommerceToken());
     if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){
       const attempt=takeSupportSendAttempt(historicalCommerceToken(),this.data.id);
       if(attempt)this.setData({sheetInput:attempt.body,sheetSendAttempt:{key:attempt.id,body:attempt.body},sheetError:'原消息结果尚未核实；重试将使用同一消息编号。'});
@@ -56,9 +63,9 @@ Page({
     }
     void this.load();},
   syncSession(){const token=historicalCommerceToken(),changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
-    if(changed){this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
+    if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
-    if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
+    if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
     },
   confirmationPending:false,
   trackingAttempt:0,
@@ -68,11 +75,11 @@ Page({
     try{return await wx.showModal(options);}catch{return {confirm:false};}finally{this.confirmationPending=false;}
   },
   onUnload(){this.onHide();this.data.pageAlive=false;this.data.epoch+=1;},
-  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
+  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,image:nativeCatalogImage(line.image),unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
-  onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;
-    this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
+  onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;
+    this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,receiptQueryLoading:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
 
@@ -124,22 +131,26 @@ Page({
       this.setData({order:this.normalize(order),coreReady:true,loading:false});
       if(!this.data.closedRights){this.applyRuntime();void this.loadRecovery();this.refreshRecordedCommands();}
       void this.loadShipment();void this.loadRefunds(epoch,token);
+      if(this.wechatReturn){const returned=this.wechatReturn;this.wechatReturn=null;void this.queryWechatReceipt(false,returned);}
       if(this.launchAftersale){this.launchAftersale=false;this.openAftersale();}
       else if(this.data.supportSheetOpen)void this.loadSupportSheet();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({order:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.order,coreReady:false,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}
   },
   async loadShipment(){
     if(!this.canAct()||this.data.busy)return;
+    const attempt=++this.shipmentAttempt;
     this.trackingAttempt+=1;this.setData({tracking:null,trackingLoading:false,trackingError:""});
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
     this.setData({shipmentLoading:true,shipmentError:""});
     try{const row=await myShipment(this.data.id,this);
-      if(!this.readCurrent(epoch,token,readEpoch))return;
+      if(!this.readCurrent(epoch,token,readEpoch)||attempt!==this.shipmentAttempt)return;
       const labels:Record<string,string>={not_ready:"待支付后安排发货",awaiting_dispatch:"待发货",shipped:"已发货",delivered:"快递已签收",exception:"物流异常，请联系客服"};
       if(row.orderId!==this.data.id||!labels[row.logisticsState]||row.id&&(!Number.isSafeInteger(row.version)||row.version!<1))throw new Error("Invalid shipment");
-      this.setData({shipment:{...row,stateLabel:row.receiptConfirmedAt?"你已确认收货":labels[row.logisticsState]!},shipmentLoading:false,
+      this.setData({shipment:{...row,stateLabel:labels[row.logisticsState]!,wechatReceipt:row.wechatReceipt?
+        {...row.wechatReceipt,displayLabel:receiptLabels[row.wechatReceipt.status]??"微信记录：需人工核对",observedLabel:row.wechatReceipt.observedAt?
+          new Date(row.wechatReceipt.observedAt).toLocaleString('zh-CN',{hour12:false}):''}:null},shipmentLoading:false,
         ...(row.receiptConfirmedAt?{receiptKey:"",receiptVersion:0}:{})});
-    }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({shipment:null,shipmentLoading:false,shipmentError:errorTitle(error,"物流记录暂时无法读取，请重试或联系客服。")});}
+    }catch(error){if(this.readCurrent(epoch,token,readEpoch)&&attempt===this.shipmentAttempt)this.setData({shipment:null,shipmentLoading:false,shipmentError:errorTitle(error,"物流记录暂时无法读取，请重试或联系客服。")});}
   },
   async loadTracking(){
     if(!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id)return;
@@ -166,6 +177,43 @@ Page({
       if(this.current(epoch,token))this.setData({receiptKey:"",receiptVersion:0,actionStatus:"已记录你的收货确认。"});
     }catch(error){if(this.current(epoch,token))this.setData({actionError:errorTitle(error,"收货确认结果尚未核实，请刷新物流记录后重试；将沿用原请求。")});}
     finally{this.finishAction(epoch,token,true);}
+  },
+  async confirmWechatReceipt(){void this.queryWechatReceipt(this.data.shipment?.wechatReceipt?.canOpenComponent===true);},
+  async refreshWechatReceipt(){void this.queryWechatReceipt(false);},
+  async queryWechatReceipt(open:boolean,returned?:'success'|'fail'|'cancel',retries=2){
+    if(this.data.closedRights||!this.canAct()||this.data.busy||this.data.receiptQueryLoading||this.data.order?.status!=='paid'
+      ||this.data.order.transactionSourceKind!=='verified_commerce')return;
+    const epoch=this.data.epoch,token=historicalCommerceToken(),id=this.data.id,attempt=++this.receiptQueryAttempt;
+    const current=()=>this.current(epoch,token)&&this.data.visible&&this.data.order?.id===id&&attempt===this.receiptQueryAttempt;
+    this.setData({receiptQueryLoading:true,receiptQueryError:'',actionError:'',actionStatus:''});
+    try{
+      const result=await queryMyWechatReceipt(id);
+      if(!current())return;
+      if(result.orderId!==id||this.data.shipment?.id&&result.shipmentId!==this.data.shipment.id)throw Error('Invalid receipt binding');
+      this.setData({receiptQueryLoading:false,actionStatus:returned==='cancel'?'已取消微信确认，原订单仍可查看。'
+        :returned==='fail'?'微信确认未完成；原订单仍可查看。'
+        :result.status==='confirmed'||result.status==='completed'?result.label
+        :returned==='success'?'正在更新收货状态，请稍后刷新微信记录。'
+        :result.canOpenComponent?'微信记录已更新，可在收到全部商品后确认收货。':result.label});
+      void this.loadShipment();
+      if(returned==='success'&&retries>0&&result.status!=='confirmed'&&result.status!=='completed'
+        &&result.status!=='refunded'){
+        const delay=retries===2?2000:5000;
+        setTimeout(()=>{if(current()&&!this.data.receiptQueryLoading)void this.queryWechatReceipt(false,'success',retries-1);},delay);
+      }
+      if(!open)return;
+      if(!result.canOpenComponent||!result.component?.transactionId){this.setData({actionError:'当前订单暂不能打开微信确认收货；可稍后刷新状态或联系客服。'});return;}
+      if(this.data.runtimeMode==='test'){this.setData({actionStatus:'本地测试仅核对组件入口，不会打开真实微信确认收货。'});return;}
+      const api=wx as typeof wx & {openBusinessView?:(options:{businessType:'weappOrderConfirm';extraData:{transaction_id:string};
+        success?:()=>void;fail?:()=>void})=>void};
+      if(!wx.canIUse('openBusinessView')||typeof api.openBusinessView!=='function'){
+        this.setData({actionError:'当前微信版本暂不支持确认收货组件，请升级微信后再试。'});return;
+      }
+      beginWechatReceiptReturn(id,token,result.component.transactionId);
+      try{api.openBusinessView({businessType:'weappOrderConfirm',extraData:{transaction_id:result.component.transactionId},
+        fail:()=>{clearWechatReceiptReturn();if(current())this.setData({actionError:'微信确认收货组件暂无法打开，请稍后重试或联系客服。'});}});}
+      catch{clearWechatReceiptReturn();if(current())this.setData({actionError:'微信确认收货组件暂无法打开，请稍后重试或联系客服。'});}
+    }catch{if(current())this.setData({receiptQueryLoading:false,actionStatus:'',receiptQueryError:'暂时无法查询微信记录。上次有效记录仍保留，请重试或联系售后服务。'});}
   },
   applyRuntime(){const ready=this.canAct()&&this.data.runtimeState==="ready"&&this.data.order?.transactionSourceKind==="verified_commerce",actions=runtimeActions(this.data.runtimeStatus);
     this.setData({isolatedPayment:ready&&actions.money,paymentRecovery:ready&&(actions.money||actions.recovery)});
@@ -226,7 +274,7 @@ Page({
     try{const result=await request<{state:string;simulation:boolean;requestPayment?:WechatMiniprogram.RequestPaymentOption}>({
       path:`/v1/me/orders/${id}/payment-intent`,method:"POST",data:{}});
       if(!current())return;
-      if(result.state==="verified_pending")this.setData({actionStatus:"渠道支付事实已收到，等待服务端入账。"});
+      if(result.state==="verified_pending")this.setData({actionStatus:"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。"});
       else if(result.simulation)this.setData({actionStatus:"隔离预支付意图已建立。此环境不会拉起真实微信付款或扣款。"});
       else if(result.requestPayment&&!this.data.visible){this.setData({actionStatus:"支付意图已返回，请回到订单核对原单后再主动付款。"});return;}
       else if(result.requestPayment){try{await wx.requestPayment(result.requestPayment);}
@@ -242,7 +290,7 @@ Page({
     this.setData({busy:true,actionError:""});
     try{const result=await request<{state:string}>({path:`/v1/me/orders/${id}/payment-intent`});
       if(!current())return;
-      this.setData({actionStatus:result.state==="verified_pending"?"渠道事实已收到，待服务端入账。":
+      this.setData({actionStatus:result.state==="verified_pending"?"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。":
         result.state==="paid"?"支付已由服务端核验。":result.state==="notpay"?"渠道仍未确认付款。":"原单状态待确认，请稍后重查。"});
       if(result.state==="paid"){this.setData({busy:false});void this.load();}
     }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}
@@ -308,7 +356,9 @@ Page({
         this.sheetCursor=state.syncCursor;this.setData({sheetMessages:presentSupportMessages(state.messages,{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}).slice(-30),sheetConversation:page.conversation});
       }
       this.sheetFailures=messages.status==='rejected'||cases.status==='rejected'||availability.status==='rejected'?Math.min(this.sheetFailures+1,5):0;
-      this.setData({sheetError:cases.status==='rejected'?'售后进度暂未更新，请重试。':availability.status==='rejected'||!this.data.sheetLinesReady?'商品可申请数量暂未更新，请重试。':messages.status==='rejected'?'消息暂未更新，请重试。':''});
+      const remoteError=cases.status==='rejected'?'售后进度暂未更新，请重试。':availability.status==='rejected'||!this.data.sheetLinesReady?'商品可申请数量暂未更新，请重试。':messages.status==='rejected'?'消息暂未更新，请重试。':'';
+      if(remoteError){this.sheetValidationError=false;this.setData({sheetError:remoteError});}
+      else if(!this.sheetValidationError)this.setData({sheetError:''});
     }finally{
       this.sheetPollInFlight=false;
       if(this.sheetReadCurrent(epoch,token,generation))this.scheduleSheetPoll();
@@ -316,7 +366,7 @@ Page({
   },
   async loadSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct())return;
     const epoch=this.data.epoch,token=historicalCommerceToken(),generation=++this.sheetReadEpoch;
-    this.stopSheetPoll();this.setData({sheetLoading:true,sheetCasesReady:false,sheetLinesReady:false,sheetError:''});
+    this.stopSheetPoll();this.sheetValidationError=false;this.setData({sheetLoading:true,sheetCasesReady:false,sheetLinesReady:false,sheetError:''});
     const [cases,messages,availability]=await Promise.allSettled([
       pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`}),
       pageRead<{messages:SheetMessage[];latestCursor:number;conversation:{id:string;teamReadSequence?:number}|null}>(this,{path:'/v1/me/support/messages?limit=30',cacheTags:['support']}),
@@ -332,8 +382,8 @@ Page({
     this.scheduleSheetPoll();
   },
   openAftersale(){if(!this.canAct()||this.data.busy||!this.data.order||this.data.navigating)return;
-    this.setData({supportSheetOpen:true,sheetError:''});void this.loadSupportSheet();},
-  closeSupportSheet(){this.stopSheetPoll();this.sheetReadEpoch+=1;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetKeyboardHeight:0});},
+    this.sheetValidationError=false;this.setData({supportSheetOpen:true,sheetError:''});void this.loadSupportSheet();},
+  closeSupportSheet(){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetKeyboardHeight:0});},
   onSupportSheetLeave(){if(this.data.supportSheetOpen)this.closeSupportSheet();},
   copySheetReturnInstruction(){
     if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||!this.data.sheetCasesReady)return;
@@ -360,29 +410,29 @@ Page({
   openFullAftersale(){if(!this.canAct()||this.data.navigating)return;this.stopSheetPoll();this.setData({navigating:true});
     const caseId=this.data.sheetCase?.id;wx.navigateTo({url:caseId?`/pages/aftersale/index?caseId=${caseId}`:`/pages/aftersale/index?orderId=${this.data.id}`,fail:()=>{this.setData({navigating:false});this.scheduleSheetPoll();}});},
   chooseSheetKind(event:WechatMiniprogram.PickerChange){if(this.data.sheetSubmitting||this.data.sheetAttempt)return;
-    const value=Number(event.detail.value);this.setData({sheetKindIndex:this.data.sheetBasisIndex===1?1:value});},
+    const value=Number(event.detail.value);this.sheetValidationError=false;this.setData({sheetKindIndex:this.data.sheetBasisIndex===1?1:value,sheetError:''});},
   chooseSheetBasis(event:WechatMiniprogram.PickerChange){if(this.data.sheetSubmitting||this.data.sheetAttempt)return;
-    const value=Number(event.detail.value);this.setData({sheetBasisIndex:value,sheetKindIndex:value===1?1:this.data.sheetKindIndex});},
+    const value=Number(event.detail.value);this.sheetValidationError=false;this.setData({sheetBasisIndex:value,sheetKindIndex:value===1?1:this.data.sheetKindIndex,sheetError:''});},
   chooseSheetQuantity(event:WechatMiniprogram.TouchEvent){if(this.data.sheetSubmitting||this.data.sheetAttempt||!this.data.sheetLinesReady)return;
     const id=String(event.currentTarget.dataset.id??''),delta=Number(event.currentTarget.dataset.delta);
     if(![-1,1].includes(delta)||!this.data.sheetAvailable.some(line=>line.lineId===id))return;
-    this.setData({sheetAvailable:this.data.sheetAvailable.map(line=>line.lineId===id?
+    this.sheetValidationError=false;this.setData({sheetAvailable:this.data.sheetAvailable.map(line=>line.lineId===id?
       {...line,selectedQuantity:Math.max(0,Math.min(line.remainingQuantity,line.selectedQuantity+delta))}:line),sheetError:''});},
-  editSheetReason(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSubmitting&&!this.data.sheetAttempt)this.setData({sheetReason:event.detail.value});},
+  editSheetReason(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSubmitting&&!this.data.sheetAttempt){this.sheetValidationError=false;this.setData({sheetReason:event.detail.value,sheetError:''});}},
   editSheetInput(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSending&&!this.data.sheetSendAttempt)this.setData({sheetInput:event.detail.value});},
   onSheetKeyboardHeightChange(event:WechatMiniprogram.TextareaKeyboardHeightChange){const height=Number(event.detail.height);this.setData({sheetKeyboardHeight:this.data.supportSheetOpen&&Number.isFinite(height)?Math.max(0,height):0});},
   async submitSheetAftersale(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSubmitting||!this.data.sheetCasesReady||!this.data.sheetLinesReady||!this.data.sheetHasRemaining||this.data.sheetCase)return;
     const bases=['','no_reason','quality','wrong_item','missing_item','delivery_issue','other'];
     if(!this.data.sheetAttempt){
-      if(!this.data.sheetBasisIndex){this.setData({sheetError:'请选择售后问题类型。'});return;}
-      if(this.data.sheetBasisIndex!==1&&Array.from(this.data.sheetReason.trim()).length<3){this.setData({sheetError:'请简要说明问题；无理由退货可留空。'});return;}
+      if(!this.data.sheetBasisIndex){this.sheetValidationError=true;this.setData({sheetError:'请选择售后问题类型。'});return;}
+      if(this.data.sheetBasisIndex!==1&&Array.from(this.data.sheetReason.trim()).length<3){this.sheetValidationError=true;this.setData({sheetError:'请简要说明问题；无理由退货可留空。'});return;}
       const lines=this.data.sheetAvailable.filter(line=>line.selectedQuantity>0).map(line=>({lineId:line.lineId,quantity:line.selectedQuantity}));
-      if(!lines.length){this.setData({sheetError:'请选择本次申请的商品数量。'});return;}
+      if(!lines.length){this.sheetValidationError=true;this.setData({sheetError:'请选择本次申请的商品数量。'});return;}
       const payload={kind:this.data.sheetKindIndex===1?'return_refund':'refund_only',claimBasis:bases[this.data.sheetBasisIndex],reason:this.data.sheetReason.trim(),lines};
       this.setData({sheetAttempt:{key:clientOperationKey('aftersale'),payload}});
     }
     const attempt=this.data.sheetAttempt!,epoch=this.data.epoch,token=historicalCommerceToken();
-    this.setData({sheetSubmitting:true,sheetError:''});
+    this.sheetValidationError=false;this.setData({sheetSubmitting:true,sheetError:''});
     try{const row=await request<SheetCase>({path:`/v1/me/orders/${this.data.id}/aftersales`,method:'POST',idempotencyKey:attempt.key,data:attempt.payload,cacheTags:['support']});
       if(!this.sheetCurrent(epoch,token))return;
       this.setData({sheetCase:row,sheetAttempt:null,sheetReason:'',sheetError:''});await this.loadSupportSheet();

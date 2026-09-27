@@ -7,6 +7,7 @@ import { enqueue } from "./outbox.js";
 import { AuthorityService, requireActiveMemberWithClient, requireHistoricalMemberWithClient } from "./authority.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
+import { receiptView } from './wechatReceipt.js';
 import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
 
 type OrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
@@ -235,7 +236,7 @@ export class CommerceOrderService {
       address: addressView };
   }
 
-  private orderSummaryView(row: OrderRow, lines: OrderLineRow[]) {
+  private orderSummaryView(row: OrderRow, lines: OrderLineRow[],receipt?:{platform_order_state:number;in_complaint:boolean;observed_at:Date}) {
     return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
@@ -243,6 +244,7 @@ export class CommerceOrderService {
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
       terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: this.status().paymentAvailable,
       transactionSourceKind:row.transaction_source_kind,
+      wechatReceipt:receipt?receiptView(receipt.platform_order_state,receipt.in_complaint,receipt.observed_at):null,
       lines: lines.map(line => ({ id: line.id, lineNumber: line.line_number, productCode: line.product_code, productName: line.product_name,
         skuCode: line.sku_code, skuLabel: line.sku_label, image: line.image_path, quantity: line.quantity,
         unitPriceCents: line.unit_price_cents, subtotalCents: money(line.line_subtotal_cents), discountCents: money(line.line_discount_cents),
@@ -272,7 +274,11 @@ export class CommerceOrderService {
       existing.push(line);
       byOrder.set(orderId, existing);
     }
-    return { items: rows.map(row => this.orderSummaryView(row, byOrder.get(row.id) ?? [])), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null };
+    const observed=ids.length?await client.query<{order_id:string;platform_order_state:number;in_complaint:boolean;observed_at:Date}>(
+      `SELECT order_id,platform_order_state,in_complaint,observed_at
+        FROM commerce_wechat_receipt_observation WHERE order_id=ANY($1::uuid[]) AND observed_at IS NOT NULL`,[ids]):{rows:[]};
+    const byReceipt=new Map(observed.rows.map(item=>[item.order_id,item]));
+    return { items: rows.map(row => this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id))), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null };
   }
 
   async create(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {

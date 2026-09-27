@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { access, readFile, readdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
-const source = resolve(process.cwd(), "../cisme-home-prototype/public/assets/cisme");
+const source = resolve(process.cwd(), "cisme-home-prototype/public/assets/cisme");
 const destination = resolve(process.cwd(), "apps/miniprogram/assets/cisme");
 const expected: Record<string, string> = {
   "cisme-home-background-v1.webp": "5e3b909bf511e86f4053d320093f9876a5a3e3ae0adedc3fb07cd5d03701482f",
@@ -31,23 +31,7 @@ const expectedAvatars: Record<string, string> = {
 };
 
 const nativeImages = [
-  "cisme-home-background-v1.jpg",
-  "community-card-care-flatlay-v2.jpg",
-  "community-card-care-journal-v2.jpg",
-  "community-card-glossy-hair-v1.jpg",
-  "community-card-mirror-roots-v2.jpg",
-  "community-card-purple-bottle-v1.jpg",
-  "community-card-scalp-massage-v2.jpg",
-  "community-hero-scalp-ritual-v1.jpg"
-];
-
-const nativeAvatars = [
-  "avatar-jiajing-v1.jpg",
-  "avatar-jingyu-v1.jpg",
-  "avatar-luna-v1.jpg",
-  "avatar-muguang-v1.jpg",
-  "avatar-yurou-v1.jpg",
-  "avatar-zhihe-v1.jpg"
+  "cisme-home-background-v1.jpg"
 ];
 
 async function verifyFrozenSet(sourceDirectory: string, hashes: Record<string, string>) {
@@ -70,5 +54,4 @@ async function verifyNativeJpegs(directory: string, names: string[]) {
 await verifyFrozenSet(source, expected);
 await verifyFrozenSet(resolve(source, "avatars"), expectedAvatars);
 await verifyNativeJpegs(destination, nativeImages);
-await verifyNativeJpegs(resolve(destination, "avatars"), nativeAvatars);
-console.log(`verified ${Object.keys(expected).length + Object.keys(expectedAvatars).length} frozen source assets and ${nativeImages.length + nativeAvatars.length} native JPEG outputs`);
+console.log(`verified ${Object.keys(expected).length + Object.keys(expectedAvatars).length} frozen source assets and ${nativeImages.length} native JPEG output`);

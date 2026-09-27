@@ -18,7 +18,7 @@ export async function assertFinalSchemaContract(db:Database){
     "commission_refund_intent","commission_refund_inbox","ugc_post","ugc_post_revision","ugc_media_asset",
     "ugc_post_media","ugc_safety_scan","ugc_safety_callback_inbox","ugc_comment_safety_scan",
     "ugc_go_live_approval","ugc_post_review_action","ugc_block_relation","ugc_author_follow","ugc_report","ugc_post_appeal",
-    "privacy_export_artifact"
+    "privacy_export_artifact","commerce_wechat_receipt_observation","commerce_wechat_receipt_watch_control"
   ];
   const tables=(await db.query<{name:string}>(`SELECT c.relname AS name FROM pg_class c
     JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'`)).rows;
@@ -79,6 +79,8 @@ export async function assertFinalSchemaContract(db:Database){
   constraint("privacy_export_artifact","privacy_export_artifact_iv_check","12");
   constraint("privacy_export_artifact","privacy_export_artifact_auth_tag_check","16");
   constraint("privacy_export_artifact","privacy_export_artifact_check","expires_at > created_at");
+  constraint("commerce_wechat_receipt_observation","commerce_wechat_receipt_watch_schedule","watch_next_attempt_at");
+  constraint("commerce_wechat_receipt_observation","commerce_wechat_receipt_watch_lease","watch_lease_token");
 
   const indexes=(await db.query<{name:string;definition:string}>(`SELECT indexname AS name,indexdef AS definition
     FROM pg_indexes WHERE schemaname='public'`)).rows;
@@ -165,5 +167,5 @@ export async function assertFinalSchemaContract(db:Database){
     "data_erasure_job.data_erasure_job_synthetic_guard",
     "privacy_request.privacy_request_synthetic_scope_guard"
   ])if(!triggerNames.has(trigger))throw new Error(`FINAL_SCHEMA_TRIGGER_MISSING:${trigger}`);
-  return {tables:requiredTables.length,constraints:47,indexes:36,triggers:36};
+  return {tables:requiredTables.length,constraints:49,indexes:36,triggers:36};
 }

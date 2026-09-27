@@ -1,5 +1,10 @@
 /** Fixed owner projections shared with the bounded v2 portable export. Keep these
  * query fields aligned with privacyPortableData.ts until v1 is retired. */
+export const wechatReceiptPortableQuery=`SELECT w.order_id,w.shipment_id,w.platform_order_state,
+        w.in_complaint,w.observed_at FROM commerce_wechat_receipt_observation w
+        JOIN commerce_order o ON o.id=w.order_id WHERE o.member_id=$1 AND w.observed_at IS NOT NULL
+        ORDER BY w.order_id`;
+
 export const portableQuerySpecs = [
   {section:'account',collection:'identity',single:false,sql:`SELECT provider,app_id,openid,unionid,created_at FROM wechat_identity
         WHERE member_id=$1`},
@@ -68,6 +73,7 @@ export const portableQuerySpecs = [
         FROM commerce_shipment_event e JOIN commerce_shipment s ON s.id=e.shipment_id
         JOIN commerce_order o ON o.id=s.order_id WHERE o.member_id=$1
         ORDER BY e.occurred_at,e.id`},
+  {section:'commerce',collection:'wechatReceiptObservations',single:false,sql:wechatReceiptPortableQuery},
   {section:'commerce',collection:'aftersaleEvents',single:false,sql:`SELECT e.case_id,e.action,e.note,e.from_state,e.to_state,
         e.created_at FROM commerce_aftersale_event e
         JOIN commerce_aftersale_case c ON c.id=e.case_id WHERE c.member_id=$1

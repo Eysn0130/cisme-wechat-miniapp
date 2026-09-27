@@ -17,6 +17,8 @@ const miniProgramRoot = resolve(repositoryRoot, "apps/miniprogram");
 const outputRoot = resolve(repositoryRoot, `docs/evidence/visual/review-${reviewId}`);
 const screenshotRoot = join(outputRoot, "screenshots/raw");
 const generatedAt = new Date().toISOString();
+const wechatideVersion = process.env.CISME_WECHATIDE_VERSION || "pending-capture";
+if (wechatideVersion !== "pending-capture" && !/^\d+\.\d+\.\d+$/.test(wechatideVersion)) throw new Error("Invalid WeChat IDE version for evidence provenance");
 
 type AcceptanceFixture = {
   schemaVersion: number;
@@ -108,7 +110,7 @@ function groupFor(route: string): string {
 function defaultStateFor(route: string): string {
   if (acceptanceFixture) {
     if (route === "pages/account/index") return "authenticated local identity continuation state";
-    if (fixtureRouteByPath.has(route)) return "route-specific synthetic success state";
+    if (fixtureRouteByPath.has(route)) return "route-specific synthetic entry state";
     if (route.includes("management")) return "capability-authorized synthetic management state";
     if (["pages/home/index", "pages/profile/index", "pages/records/index", "pages/settings/index", "pages/invite/index", "pages/points/index", "pages/orders/index", "pages/support/index"].includes(route)) return "authenticated synthetic member state";
     return "healthy public synthetic/default state";
@@ -186,7 +188,7 @@ for (const route of routes) {
     screenshotPresent ? screenshotRelative : "",
     sourceRevision,
     screenshotPresent ? "WeChat DevTools simulator" : "capture pending",
-    `AppID ${project.appid}; base library ${project.libVersion}; wechatide 0.3.9`,
+    `AppID ${project.appid}; base library ${project.libVersion}; wechatide ${wechatideVersion}`,
     screenshot?.capturedAt ?? "",
     screenshotPresent ? "CAPTURED_NOT_VISUALLY_ACCEPTED" : "BLOCKED_CAPTURE",
     screenshotPresent
@@ -201,18 +203,18 @@ const compileEvidenceName = `devtools-${evidencePrefix}-compile-open.json`;
 const consoleEvidenceName = `devtools-${evidencePrefix}-console-filter.json`;
 const networkEvidenceName = `devtools-${evidencePrefix}-network-filter.json`;
 const compileEvidence = {
-  schemaVersion: 1, sourceSha256: inspection.actual.sourceSha256, tool: "wechatide 0.3.9 project-action.simulator_open_page",
+  schemaVersion: 1, sourceSha256: inspection.actual.sourceSha256, tool: `wechatide ${wechatideVersion} simulator_open_page`,
   project: miniProgramRoot, appId: project.appid, baseLibraryVersion: project.libVersion, routeCount: routes.length,
   routes: routes.map((route) => ({ route, query: queryFor(route), scene: 1001, result: "pending_capture" })),
   qualification: "The capture runner replaces pending_capture with the actual route-open result. This file is not interaction or device acceptance."
 };
 const consoleEvidence = {
-  schemaVersion: 1, sourceSha256: inspection.actual.sourceSha256, tool: "wechatide 0.3.9 runtime.get_simulator_console",
+  schemaVersion: 1, sourceSha256: inspection.actual.sourceSha256, tool: `wechatide ${wechatideVersion} get_simulator_console`,
   filter: "grep -Ein error|uncaught|exception|fail", matches: null, result: "pending_capture",
   qualification: "The capture runner records the bounded post-route-open match count. It does not prove the complete historical console buffer is empty."
 };
 const networkEvidence = {
-  schemaVersion: 1, sourceSha256: inspection.actual.sourceSha256, tool: "wechatide 0.3.9 runtime.get_simulator_network",
+  schemaVersion: 1, sourceSha256: inspection.actual.sourceSha256, tool: `wechatide ${wechatideVersion} get_simulator_network`,
   filter: "grep -Ein fail|error|ECONN|ERR_|status...(0|4xx|5xx)", matches: null, result: "pending_capture",
   qualification: "The capture runner records the bounded post-route-open match count. It is not a structured HAR or staging proof."
 };
@@ -403,7 +405,18 @@ const acceptance = JSON.parse(await readFile(acceptancePath, "utf8")) as {
     states?: Array<{state:string;result:string;reason?:string;evidenceFiles:string[]}> }>;
 };
 if (acceptance.packageSourceSha256 !== inspection.actual.sourceSha256) throw new Error("Current-source acceptance manifest hash mismatch");
-const evidenceIndex: Record<string, unknown> = {};
+// Replace prior generated default frames, but keep separately captured states
+// from this exact package. The guest, pre-consent and error frames are not
+// interchangeable with an authenticated healthy-route screenshot.
+const supplementalNative = Object.entries(acceptance.evidenceIndex ?? {}).filter(([path, raw]) => {
+  const descriptor = raw as Record<string, unknown>;
+  return descriptor.kind === "route_native"
+    && descriptor.packageSourceSha256 === inspection.actual.sourceSha256
+    && typeof descriptor.route === "string"
+    && descriptor.state !== "default-entry"
+    && !path.includes("/screenshots/raw/");
+});
+const evidenceIndex: Record<string, unknown> = Object.fromEntries(supplementalNative);
 for (const screenshot of screenshotIndex) {
   const repositoryPath = relative(repositoryRoot, join(outputRoot, screenshot.path));
   evidenceIndex[repositoryPath] = { sha256: screenshot.sha256, bytes: screenshot.bytes, mimeType: "image/png", widthPx: screenshot.widthPx,
@@ -411,11 +424,11 @@ for (const screenshot of screenshotIndex) {
     viewport: `${screenshot.widthPx}x${screenshot.heightPx}`, platform: undefined };
   const coverage = acceptance.routeCoverage.find((entry) => entry.route === screenshot.route);
   if (coverage) {
-    coverage.evidenceFiles = [repositoryPath];
+    coverage.evidenceFiles = [...supplementalNative.filter(([, raw]) => (raw as Record<string, unknown>).route === screenshot.route).map(([path]) => path), repositoryPath];
     coverage.matrixComplete = false;
     coverage.result = "blocked";
-    // The fresh baseline index replaces earlier evidence. A default frame must
-    // be referenced by the default state, never promoted to every interaction.
+    // A default frame must be referenced by the default state, never promoted
+    // to every interaction. Supplemental states stay in the route index only.
     for (const state of coverage.states ?? []) {
       state.evidenceFiles = state.state === "default" ? [repositoryPath] : [];
       state.result = "blocked";

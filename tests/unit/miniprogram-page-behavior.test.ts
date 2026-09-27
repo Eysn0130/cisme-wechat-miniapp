@@ -117,7 +117,7 @@ describe("mini-program page behavior", () => {
     await account.syncLegalDocuments();
     expect(account.data).toMatchObject({ legalLoading: false, legalTextsReady: false, agreementAccepted: false, legalLoadError: "unreachable" });
     await account.openTerms();
-    expect(account.data.error).toBe("协议服务暂时无法连接，请稍后重试。");
+    expect(account.data.error).toBe("协议暂时无法加载，请稍后重试。");
 
     requestMock.mockResolvedValueOnce({ ready: true, documents: [
       { document_type: "privacy", version: "privacy-staging" },
@@ -274,6 +274,37 @@ describe("mini-program page behavior", () => {
     expect(page.data.loading).toBe(false);
   });
 
+  it("does not create a public story draft from a deep link while publication is closed", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "community-member-a" } });
+    requestMock.mockImplementation(async ({ path, method }) => {
+      if (path === "/v1/ugc/status") return { publicEnabled: false };
+      if (path === "/v1/me/ugc/posts" && method !== "POST") return { items: [], matchingTotal: 0, nextCursor: null };
+      throw new Error(`Unexpected synthetic request: ${path}`);
+    });
+    await vi.importActual("../../apps/miniprogram/pages/community-compose/index");
+    const page = mountedPage(capturedPage!);
+    page.onLoad({ new: "1" }); page.onShow();
+    await vi.waitFor(() => expect(page.data.loading).toBe(false));
+    expect(page.data).toMatchObject({ publicGateEnabled: false, listMode: true, drafts: [] });
+    expect(page.data.notice).toBe("");
+    expect(requestMock).not.toHaveBeenCalledWith(expect.objectContaining({ path: "/v1/me/ugc/posts", method: "POST" }));
+  });
+
+  it("keeps a failed UGC status query distinct from a confirmed closed gate", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "community-member-a" } });
+    requestMock.mockImplementation(async ({ path, method }) => {
+      if (path === "/v1/ugc/status") throw new Error("status unavailable");
+      if (path === "/v1/me/ugc/posts" && method !== "POST") return { items: [], matchingTotal: 0, nextCursor: null };
+      throw new Error(`Unexpected synthetic request: ${path}`);
+    });
+    await vi.importActual("../../apps/miniprogram/pages/community-compose/index");
+    const page = mountedPage(capturedPage!);
+    page.onLoad({ new: "1" }); page.onShow();
+    await vi.waitFor(() => expect(page.data.loading).toBe(false));
+    expect(page.data).toMatchObject({ publicGateEnabled: false, publicGateLoaded: true, publicGateUnknown: true, listMode: true });
+    expect(requestMock).not.toHaveBeenCalledWith(expect.objectContaining({ path: "/v1/me/ugc/posts", method: "POST" }));
+  });
+
   it("reads the clipboard only from the explicit address action and keeps parsing local", async () => {
     Object.assign(globalThis, { getApp: () => ({ globalData: { sessionToken: "member-session" } }) });
     wxMock.getClipboardData!.mockImplementation((options) => options.success({ data: "林女士 13800000001 广东省深圳市南山区 护理路8号" }));
@@ -415,7 +446,7 @@ describe("mini-program page behavior", () => {
     const item = { id: "real-submission", title: "Submitted story", excerpt: "Submitted text", cover_object_key: "private/object.jpg" };
     requestMock.mockImplementation(async ({ path }: { path: string }) => {
       if (path === "/v1/capabilities") return { ugcGoLiveGate: true, communityPreviewEnabled: false };
-      if (path === "/v1/ugc/status") return { publicEnabled: false };
+      if (path === "/v1/ugc/status") return { publicEnabled: true };
       if (path.startsWith("/v1/ugc/posts")) return { items: [], nextCursor: null };
       if (path.startsWith("/v1/feed/page")) return { items: [item], authors: {} };
       if (path.startsWith("/v1/feed/")) return item;
@@ -428,12 +459,42 @@ describe("mini-program page behavior", () => {
     community.renderFeed();
     const card = community.data.feedColumns.flat().find((item: any) => item.id === "real-submission");
     expect(card).toMatchObject({ title: "Submitted story", image: "", avatar: "/assets/icons/user-circle-plum.svg" });
-    expect(community.data.hero.image).toContain("community-hero-scalp-ritual");
+    expect(community.data.hero).toBeNull();
 
     await vi.importActual("../../apps/miniprogram/pages/post/index");
     const post = mountedPage(capturedPage!, { id: "real-submission" });
     await post.load();
     expect(post.data.item).toMatchObject({ title: "Submitted story", image: "", avatar: "/assets/icons/user-circle-plum.svg" });
+  });
+
+  it.each(["develop", "trial", "release", "unknown"] as const)("limits bundled brand stories in %s", async (version) => {
+    wxMock.getAccountInfoSync!.mockReturnValue({ miniProgram: { envVersion: version } });
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "", apiBaseUrl: "https://synthetic.invalid" } });
+    requestMock.mockImplementation(async ({ path }: { path: string }) => {
+      if (path === "/v1/capabilities") return { communityPreviewEnabled: false };
+      if (path === "/v1/ugc/status") return { publicEnabled: false };
+      if (path === "/v1/feed/page?limit=30") return { items: [], authors: {} };
+      if (path.startsWith("/v1/ugc/posts")) return { items: [], nextCursor: null };
+      return [];
+    });
+    await vi.importActual("../../apps/miniprogram/pages/community/index");
+    const community = mountedPage(capturedPage!);
+    expect(community.data.feedColumns.flat()).toHaveLength(0);
+    await community.load();
+    expect(community.data.feedColumns.flat()).toHaveLength(0);
+    expect(community.data.displayFeedCount).toBe(0);
+  });
+
+  it.each(["release", "unknown"] as const)("blocks bundled brand deep links in %s before requesting a feed item", async (version) => {
+    wxMock.getAccountInfoSync!.mockReturnValue({ miniProgram: { envVersion: version } });
+    await vi.importActual("../../apps/miniprogram/pages/post/index");
+    const post = mountedPage(capturedPage!, { id: "brand-scalp-ritual" });
+    await post.load();
+    expect(post.data).toMatchObject({ item: null, loading: false, errorKind: "missing", previewRuntime: false });
+    expect(post.data.error).toContain("尚未完成展示授权");
+    expect(requestMock).not.toHaveBeenCalled();
+    expect(wxMock.showShareMenu).not.toHaveBeenCalled();
+    expect(post.onShareAppMessage().path).toBe("/pages/community/index");
   });
 
   it("does not read or mutate follows when the runtime social preview is closed", async () => {
@@ -1286,7 +1347,7 @@ it('describes a limited privacy copy without exposing test or unknown status cod
  await page.load();
  expect(page.data.records[0].executionSummary).toContain('会员资料副本可查看');
  expect(page.data.records[0].executionSummary).not.toContain('合成');
- expect(page.data.records[1]).toMatchObject({label:'隐私请求',statusLabel:'状态待核对',executionSummary:''});
+  expect(page.data.records[1]).toMatchObject({label:'隐私申请',statusLabel:'状态待核对',executionSummary:''});
 });
 
 it('shows a distinct privacy decision once, including the closure retention explanation',async()=>{
@@ -1356,17 +1417,6 @@ it('clears visible privacy records before paging after an account switch',async(
  expect(page.data.nextCursor).toBeNull();
 });
 
-
-it('loads privacy operator, version and contact from the shared public legal source',async()=>{
- await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
- const page=mountedPage(capturedPage!,{alive:true});
- requestMock.mockResolvedValueOnce({documents:[{document_type:'privacy',operator_name:'Approved operator fixture',version:'fixture-v2',contact:'Approved contact fixture'}]});
- await page.loadLegalIdentity();
- expect(requestMock).toHaveBeenCalledWith({path:'/v1/legal',authMode:'public'});
- expect(page.data.legalIdentity).toEqual({operator:'Approved operator fixture',version:'fixture-v2',contact:'Approved contact fixture'});
- requestMock.mockRejectedValueOnce(new Error('network'));
- await page.loadLegalIdentity();expect(page.data.legalIdentity).toBeNull();
-});
 
 it('offers historical rights after closure without another account-closure action',async()=>{
  await vi.importActual('../../apps/miniprogram/pages/privacy-rights/index');
@@ -1457,4 +1507,17 @@ it('routes privacy contact to the existing support conversation, including after
  failure();
  expect(page.data.error).toContain('重试');
  expect(page.data.supportOpening).toBe(false);
+});
+
+it('distinguishes an unavailable product from a failed catalog request',async()=>{
+ await vi.importActual('../../apps/miniprogram/pages/product/index');
+ const page=mountedPage(capturedPage!,{id:'synthetic-missing-product-r4b'});
+ requestMock.mockRejectedValueOnce({status:404,code:'CATALOG_PRODUCT_NOT_FOUND'});
+ await page.load();
+ expect(page.data.errorKind).toBe('missing');
+ expect(page.data.errorTitle).toBe('这件商品暂不可用');
+ requestMock.mockRejectedValueOnce({code:'NETWORK_ERROR'});
+ await page.load();
+ expect(page.data.errorKind).toBe('load');
+ expect(page.data.errorTitle).toBe('商品资料暂时未同步');
 });

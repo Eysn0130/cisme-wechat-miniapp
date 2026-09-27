@@ -83,6 +83,46 @@ describe("U0 native page lifecycle regressions", () => {
     expect(page.data).toMatchObject({ authority: null, sections: [], cycle: null,
       cycleDecisionKeys: {}, items: [], totalCount: 0, busy: false, loadingMore: false, loading: true });
   });
+  it("shows the formal finance boundary without offering a futile retry, but permits retry after a failed read", async () => {
+    const unavailableRuntime = {
+      version: 2, scope: "formal_commerce", currency: "CNY", orderFlowEnabled: false,
+      paymentAvailable: false, paymentOnboarding: "IN_PROGRESS",
+      formalMoneyOperationsAvailable: false, formalRecoveryAvailable: false,
+      isolatedMoneyOperationsAvailable: false, isolatedTransferAvailable: false,
+      isolatedCreditCheckoutAvailable: false
+    };
+    requestMock.mockImplementation(({ path }: { path: string }) => Promise.resolve(path === "/v1/me/authority"
+      ? { version: 1, capabilities: [], managementAvailable: false } : unavailableRuntime));
+    await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
+    const page = mountedPage(capturedPage!);
+
+    await page.establish();
+    expect(page.data).toMatchObject({ formalMode: true, loading: false,
+      error: "当前环境没有开放资金核对。", errorRetryable: false });
+
+    requestMock.mockRejectedValueOnce(new Error("offline"));
+    await page.establish();
+    expect(page.data).toMatchObject({ loading: false, errorRetryable: true,
+      error: "资金权限暂时无法核验。" });
+  });
+  it("blocks retained cycle controls while the next operator's authority is being checked", async () => {
+    requestMock.mockImplementation(() => new Promise(() => undefined));
+    await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
+    const page = mountedPage(capturedPage!, {
+      section: "cycles", sections: [{ id: "cycles", label: "周期候选" }],
+      cycleMonth: "2026-08", latestCycleMonth: "2026-08"
+    });
+    session = "operator-b";
+
+    page.onShow();
+    await page.prepareCycle();
+    await page.loadCycle();
+
+    expect(page.data.sections).toEqual([]);
+    expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();
+    expect(requestMock.mock.calls.map(([options]) => options.path)).not.toContain(
+      "/v1/management/commission/settlement-cycles/prepare");
+  });
   it("discards a stale finance cycle on section return and locks month edits during a submission", async () => {
     await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
     const page = mountedPage(capturedPage!, {
@@ -625,6 +665,7 @@ describe("U0 native page lifecycle regressions", () => {
     await page.save();
 
     expect(requestMock).toHaveBeenCalledTimes(2);
+    expect(requestMock.mock.calls[0]?.[0]?.data).not.toHaveProperty("imagePath");
     expect(page.data.product.version).toBe(2);
     expect(page.data.name).toBe("本地未保存名称");
     expect(page.data).toMatchObject({ dirty: true, conflict: true, canSaveDraft: false, saving: false });

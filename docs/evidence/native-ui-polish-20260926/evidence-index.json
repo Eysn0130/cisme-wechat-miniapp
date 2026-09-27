@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 1,
+  "scope": "Mac WeChat DevTools primary simulator raw targeted frames; no real device",
+  "finalMiniProgramSourceSha256": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990",
+  "screenshots": [
+    {
+      "file": "screenshots/aftersale-panel-430-open.png",
+      "sha256": "592ccd7eeba6d0d7f71519a804a16abff39c650f17a3dec759cd6529c8170078",
+      "bytes": 78982,
+      "pngPixels": [
+        430,
+        932
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/aftersale-validation-after-390.png",
+      "sha256": "fbecaeee32ee5854d016c9c37d74e81c5d230f7c37d1c6288966d0266c4640dc",
+      "bytes": 54998,
+      "pngPixels": [
+        293,
+        633
+      ],
+      "simulatorLogicalViewport": [
+        390,
+        844
+      ],
+      "devtoolsDisplayScale": 0.75,
+      "sourceBinding": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990"
+    },
+    {
+      "file": "screenshots/aftersale-validation-after-430.png",
+      "sha256": "e3074ef9d60d248aca9f530a0aba378077cfc0f7d7b26eacd50e47f4b446f038",
+      "bytes": 62140,
+      "pngPixels": [
+        323,
+        699
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 0.75,
+      "sourceBinding": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990"
+    },
+    {
+      "file": "screenshots/aftersale-validation-before-430.png",
+      "sha256": "85c5066e4e7bc54a5c56e6180bd25ad630beadbe93e109ea60859b45f4b950d7",
+      "bytes": 79002,
+      "pngPixels": [
+        430,
+        932
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/care-d14-final-small.png",
+      "sha256": "c03fc639526d2e8b4277aaa5da77fdef4095c6ffc2886ba2b71dbcc1d8b91ed8",
+      "bytes": 120933,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990"
+    },
+    {
+      "file": "screenshots/checkout-430-quantity1.png",
+      "sha256": "9ab17d24340508680a869630f67357fc7d549adcdc460b88cf9a86ba75b436a3",
+      "bytes": 62976,
+      "pngPixels": [
+        430,
+        932
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/checkout-430-quantity2.png",
+      "sha256": "5b0f4842fe01bd2915dd911f2fd310b7e5baf8ffe33968a66d09687f0e5f8924",
+      "bytes": 62519,
+      "pngPixels": [
+        430,
+        932
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/checkout-430-quantity3-quote.png",
+      "sha256": "94dd21614fd6af0194833ae43f9df0fce76f7f8c271ace1c6aa7f851059a7c2d",
+      "bytes": 98667,
+      "pngPixels": [
+        430,
+        932
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/checkout-small-before.png",
+      "sha256": "164776b545ca185a984002fc37f3c8fd8eb7c5f8dbf360bfccd0993cddc498a7",
+      "bytes": 55537,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/management-image-after-edit-small.png",
+      "sha256": "4ba9c16916d3cdb6e0b96efb9c380dbb5aa9f194255d53398f95d104ab4e6825",
+      "bytes": 49895,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/management-image-after-top-small.png",
+      "sha256": "f8a847104e808407cefaed408a8d202da0d29349a0f8b30fcdb4c3b32ceb86dd",
+      "bytes": 59269,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/management-image-before-edit-small.png",
+      "sha256": "d6b2953ce1ef35bdb5283f3f0e6f55d181bb7aabee45e5480d1878f652616d3a",
+      "bytes": 58071,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/management-image-final-small.png",
+      "sha256": "06a41b3bf4bd26feb22ed2e93bd7838a20fbb3d812df63fe3b1eb85da3d83cf7",
+      "bytes": 47560,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990"
+    },
+    {
+      "file": "screenshots/privacy-supplement-final-small.png",
+      "sha256": "f01b4bb3baa0780406cd57a219bc4c2309180397967f3c78ca6e8cc36f5fc50c",
+      "bytes": 76151,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990"
+    },
+    {
+      "file": "screenshots/product-after-edit-small.png",
+      "sha256": "387ec9b438f22b8116378d6c5e75c03e845aebcc5fbd2608e7f907361df3a15d",
+      "bytes": 72402,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/product-after-small.png",
+      "sha256": "476fbd1bc9ae7782c43ad5790b996562adc637f16e0fdf4212fd2930938f2254",
+      "bytes": 70184,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/product-before.png",
+      "sha256": "eb731330b5a239771f089d577c4ec3f171d7c07584179b2c3eab8e2f7a291904",
+      "bytes": 79687,
+      "pngPixels": [
+        390,
+        844
+      ],
+      "simulatorLogicalViewport": [
+        390,
+        844
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/shop-after-390.png",
+      "sha256": "db3c2ae6fc3e27a2aaae85b62b5dfebc04a221706d455142d0cac5e06477f1c2",
+      "bytes": 95781,
+      "pngPixels": [
+        390,
+        844
+      ],
+      "simulatorLogicalViewport": [
+        390,
+        844
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/shop-after-430.png",
+      "sha256": "69dde49a4f561ac4e4dbc55c492f311fa6196b4a451338e9da1e45b42e2b1fb3",
+      "bytes": 108054,
+      "pngPixels": [
+        430,
+        932
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/shop-final-small.png",
+      "sha256": "498ea7a67d82ec78fde25a7405d887dd910a7171f35d52c6156cacee5d8bba86",
+      "bytes": 83267,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990"
+    },
+    {
+      "file": "screenshots/shop-image-after-layout-small.png",
+      "sha256": "15069dd50b23aa609223c8950ac7b37788bde6f0fdf5976a5a67328c4b2fc3da",
+      "bytes": 85131,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/shop-image-after-small.png",
+      "sha256": "8885a0a893b52bd2c5b2e738a6378f25cfc454fa4c30ea40a5f260dba3b64e14",
+      "bytes": 90850,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/support-before.png",
+      "sha256": "fea602593722ca9ccc2ccc36c668bf610245ac830ab0eb016eb04cb49c00b431",
+      "bytes": 47686,
+      "pngPixels": [
+        390,
+        844
+      ],
+      "simulatorLogicalViewport": [
+        390,
+        844
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/support-draft-handoff-430.png",
+      "sha256": "8b44422bdee7ead435c8a46b7bbab77d6bec05091a4bdce22ef1eaefa4913587",
+      "bytes": 51546,
+      "pngPixels": [
+        323,
+        699
+      ],
+      "simulatorLogicalViewport": [
+        430,
+        932
+      ],
+      "devtoolsDisplayScale": 0.75,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/support-order-picker-small-before.png",
+      "sha256": "013c3d817dc162e6385b934882d30893e47bf80e832b94b34ea600301c2da0ee",
+      "bytes": 67784,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    },
+    {
+      "file": "screenshots/support-sheet-small-after.png",
+      "sha256": "fdf52147db2fa0ba89a3e99b206aef26b4195389dcc229d84f343487d940baf2",
+      "bytes": 46507,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "e96dc0f6c375e952b153266b483d008a7d7807a9a20844286ca3987cbc99e990"
+    },
+    {
+      "file": "screenshots/support-sheet-small-before.png",
+      "sha256": "d21e00d1c1368ec099f3599d97df73dce7474cfe53def50621f122356ccd18ca",
+      "bytes": 46927,
+      "pngPixels": [
+        361,
+        804
+      ],
+      "simulatorLogicalViewport": [
+        361,
+        804
+      ],
+      "devtoolsDisplayScale": 1,
+      "sourceBinding": "intermediate-dirty-worktree; exact source hash not captured"
+    }
+  ]
+}

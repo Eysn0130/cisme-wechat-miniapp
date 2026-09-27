@@ -11,3 +11,8 @@
 .shop-gate__icon { width:36rpx; height:36rpx; margin:0; }
 .product-card__price { font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif; font-variant-numeric:lining-nums tabular-nums; }
 .shop-hero__line { display:block; }
+.product-grid--single { grid-template-columns:minmax(0,1fr); }
+.product-grid--single .product-card { display:flex; align-items:stretch; }
+.product-grid--single .product-card__image { flex:none; width:34%; height:200rpx; }
+.product-grid--single .product-card__body { flex:1; min-width:0; padding:17rpx 19rpx; }
+.product-grid--single .product-card__price { margin-top:8rpx; }

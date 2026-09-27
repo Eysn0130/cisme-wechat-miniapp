@@ -1,0 +1,15 @@
+{
+  "setup-rehearsal-v3.py": "89c87fc6efda9fef795cb156f3e9f1e4b011bb9ceac9ef085b24bc9419b6603e",
+  "generate-runtime-harness.py": "8996de484de5b141b5dbed047b1e114662ca38ab5f9cf2cd4e0b3abfae0c4905",
+  "fixture.ts": "c519fd1bc146ad8c8ec5507c32a084f8f8f2498008a81758dbce9a9f00b3a504",
+  "runtime-harness.ts": "dbf001dfd466f323c5fbb59bb62bb59a75c0f3682c4ed71123b5f4c527efa072",
+  "run-runtime.py": "2351aee51d16ec500edfc1cf8743d68256709689fcb5398fbcd4bfdc457f0b5b",
+  "run-standalone.py": "c032821327ba9d205822f634846cfaf8765336648ce4f60445b113698742101e",
+  "storage-runtime.ts": "fff90364be354c27964c9d0c89fcf716269ed307009bd841df4bb550aa697b13",
+  "legacy-recovery.ts": "f537d851186a2550f115ee05c93fc87a65b8d948b9bcd72ba994ecd87c32ee82",
+  "privacy-probe-v2.mjs": "b4dfabcf67d1cc60b2b6180fc650b72565bc5a03a35409ba2bb731786eff1d6e",
+  "prepare-config.py": "7c388781ed37b2e572c9accc72c6f5800f2c77f0822745b8112872b00c96bfde",
+  "final-run.py": "c95bff50581e65db8b59c8316017cd3f5f699ba02eeeb8b13423a5e0c3aa2260",
+  "partial-resume.mjs": "5684ec73ae066ad858af8bc972c8e1ba78d1d910c68c21e961f3a272daa1090c",
+  "finalize.py": "54be3772496400c1e46523dfe5faa55ab90f15725317533b2935b98c0b008d00"
+}

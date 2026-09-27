@@ -2,9 +2,10 @@ import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { downloadPrivateMedia, historicalCommerceClosed, historicalCommerceToken, requireHistoricalCommerceAccess, requireMemberAccess, request, retainMemberSnapshot, uploadAuthorized } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
+import { nativeCatalogImage } from "../../services/catalog";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
-import { stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
+import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
   mergeAcknowledgement,
@@ -105,8 +106,9 @@ Page({
     }
     if(closedRights&&!this.linkedOrderId){this.data.visible=false;wx.redirectTo({url:'/pages/privacy-rights/index'});return;}
     if (!(closedRights?requireHistoricalCommerceAccess(`/pages/support/index?orderId=${this.linkedOrderId}`):requireMemberAccess("/pages/support/index"))) { this.data.visible = false; return; }
-    if(this.linkedOrderId&&!this.data.sendAttempt){
-      const pending=takeSupportSendAttempt(sessionToken(),this.linkedOrderId);
+    const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
+    if(!this.data.sendAttempt){
+      const pending=takeSupportSendAttempt(sessionToken(),draftScope);
       if(pending){
         const sendAttempt:SendAttempt={id:pending.id,body:pending.body,mediaIds:[],linkedOrderId:pending.linkedOrderId,
           signature:this.sendSignature(pending.body,[],pending.linkedOrderId)};
@@ -114,8 +116,8 @@ Page({
           composerSendEnabled:true,error:'发送结果尚未确认，重试不会重复发送。'});
       }
     }
-    if(this.linkedOrderId&&!this.data.input&&!this.data.sendAttempt){
-      const draft=takeSupportDraft(sessionToken(),this.linkedOrderId);
+    if(!this.data.input&&!this.data.sendAttempt){
+      const draft=takeSupportDraft(sessionToken(),draftScope);
       if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.input?this.data.selectedImage:this.data.selectedImage,this.data.selectedOrder)});
     }
     if (preserve && this.data.conversation && !this.data.loading) {
@@ -149,10 +151,11 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [] });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
-  onUnload() { if(this.linkedOrderId&&!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===this.linkedOrderId&&
-      !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),this.linkedOrderId,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId});
-    else if(this.linkedOrderId&&!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
-      stageSupportDraft(sessionToken(),this.linkedOrderId,this.data.input);
+  onUnload() { const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
+    if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
+      !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null});
+    else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
+      stageSupportDraft(sessionToken(),draftScope,this.data.input);
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); this.choosingImage = false; this.nativePickerReturn?.(); this.nativePickerReturn = null; },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??'');
@@ -179,7 +182,7 @@ Page({
     try{const order=await myOrder(id,this);if(!current()||order.id!==id||this.data.selectedOrder)return;
       const selected:OrderChoice={id,orderNumberTail:order.orderNumber.slice(-4),status:order.status,
         statusLabel:orderStatusLabels[order.status]??"状态待更新",totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
-        currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:order.lines[0]?.image??null,
+        currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:nativeCatalogImage(order.lines[0]?.image),
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
     }catch{if(current())this.setData({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
@@ -525,7 +528,7 @@ Page({
       if (!current()) return;
       const choices = page.items.map((order: CommerceOrderSummary): OrderChoice => ({ id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
         statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
-        productName: order.lines[0]?.productName ?? "订单商品", productImage: order.lines[0]?.image ?? null,
+        productName: order.lines[0]?.productName ?? "订单商品", productImage: nativeCatalogImage(order.lines[0]?.image),
         itemSummary: order.lines.map((line) => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；") }));
       this.setData({ orderChoices: choices, orderPickerNextCursor: page.nextCursor ?? null, orderPickerLoading: false });
     } catch { if (current()) this.setData({ orderPickerLoading: false, orderPickerError: "订单暂时无法加载，请重试。" }); }
@@ -543,7 +546,7 @@ Page({
       const choices = page.items.filter(order => !seen.has(order.id)).map((order: CommerceOrderSummary): OrderChoice => ({
         id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
         statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents,
-        currency: order.currency, productName: order.lines[0]?.productName ?? "订单商品", productImage: order.lines[0]?.image ?? null,
+        currency: order.currency, productName: order.lines[0]?.productName ?? "订单商品", productImage: nativeCatalogImage(order.lines[0]?.image),
         itemSummary: order.lines.map(line => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")
       }));
       this.setData({ orderChoices: [...this.data.orderChoices, ...choices], orderPickerNextCursor: page.nextCursor ?? null });

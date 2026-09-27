@@ -800,6 +800,133 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   const receipt=await service.confirmReceipt(buyer,order.id,'local-receipt-0001',1);
   expect(await service.confirmReceipt(buyer,order.id,'local-receipt-0001',1)).toEqual(receipt);
   expect(await service.detailMine(buyer,order.id)).toMatchObject({version:2,logisticsState:'shipped',deliveredAt:null,receiptConfirmedAt:receipt.receiptConfirmedAt});
+  const shippingCallsBefore=networkCalls;
+  const {WechatReceiptService}=await import('../../services/api/src/wechatReceipt.js');
+  let platformState=1,receiptQueries=0;
+  const receiptReader=new WechatReceiptService(pool,appId,merchantId,{queryOrder:async binding=>{
+    receiptQueries++;expect(binding).toMatchObject({merchantId,merchantOrderNumber:order.number,
+      transactionId:'420000000000000LOCALSHIP01',payerOpenid:'verified-buyer-openid',payerTotalCents:10000});
+    return {platformOrderState:platformState,inComplaint:false};
+  }});
+  await expect(receiptReader.queryMine(referrer,order.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});
+  expect(receiptQueries).toBe(0);
+  for(const [state,label,canOpen] of [[1,'awaiting_shipping',false],[2,'shipped',true],
+    [3,'confirmed',false],[4,'completed',false],[5,'refunded',false],[6,'settlement_pending',false],
+    [77,'unknown',false]] as const){
+    platformState=state;
+    expect(await receiptReader.queryMine(buyer,order.id)).toMatchObject({status:label,canOpenComponent:canOpen});
+    expect(await service.detailMine(buyer,order.id)).toMatchObject({receiptConfirmedAt:receipt.receiptConfirmedAt,
+      wechatReceipt:{status:label,canOpenComponent:canOpen}});
+  }
+  expect(receiptQueries).toBe(7);
+  const {portableQuerySpecs}=await import('../../services/api/src/privacyPortableQueries.js');
+  const receiptSpec=portableQuerySpecs.find(spec=>spec.collection==='wechatReceiptObservations');
+  expect(receiptSpec).toBeDefined();
+  const ownerParts=await pool.query(receiptSpec!.sql,[buyer]);
+  const otherParts=await pool.query(receiptSpec!.sql,[referrer]);
+  expect(ownerParts.rows).toEqual([expect.objectContaining({order_id:order.id,platform_order_state:77})]);
+  expect(otherParts.rows).toEqual([]);
+  let entered!:()=>void,release!:()=>void;
+  const waiting=new Promise<void>(resolve=>{entered=resolve;});
+  const delayed=new Promise<{platformOrderState:number;inComplaint:boolean}>(resolve=>{release=()=>resolve({platformOrderState:2,inComplaint:false});});
+  const oldQuery=new WechatReceiptService(pool,appId,merchantId,{queryOrder:async()=>{entered();return delayed;}}).queryMine(buyer,order.id);
+  await waiting;
+  platformState=3;
+  expect(await receiptReader.queryMine(buyer,order.id)).toMatchObject({status:'confirmed'});
+  release();
+  await expect(oldQuery).rejects.toMatchObject({code:'WECHAT_RECEIPT_NEWER_QUERY_EXISTS'});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({wechatReceipt:{status:'confirmed'}});
+  const revokedReader=new WechatReceiptService(pool,appId,merchantId,{queryOrder:async()=>{
+    await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer]);
+    return {platformOrderState:4,inComplaint:false};
+  }});
+  await expect(revokedReader.queryMine(buyer,order.id)).rejects.toMatchObject({code:'MEMBER_NOT_ACTIVE'});
+  await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer]);
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({wechatReceipt:{status:'confirmed'}});
+  const changedOrderReader=new WechatReceiptService(pool,appId,merchantId,{queryOrder:async()=>{
+    await pool.query('UPDATE commerce_order SET version=version+1 WHERE id=$1',[order.id]);
+    return {platformOrderState:4,inComplaint:false};
+  }});
+  await expect(changedOrderReader.queryMine(buyer,order.id)).rejects.toMatchObject({code:'WECHAT_RECEIPT_BINDING_CHANGED'});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({wechatReceipt:{status:'confirmed'}});
+  // A shipped, verified order must keep moving when the buyer never opens the
+  // mini program again. Only the synthetic shipping journal state is advanced.
+  await pool.query('DELETE FROM commerce_wechat_receipt_observation WHERE order_id=$1',[order.id]);
+  await pool.query("UPDATE commerce_shipping_sync SET state='synced' WHERE id=$1",[job]);
+  const {WechatReceiptWatch}=await import('../../services/api/src/wechatReceiptWatch.js');
+  const {CommerceOrderService}=await import('../../services/api/src/commerceOrders.js');
+  const lists=new CommerceOrderService(pool,authority,addresses,null as never,
+    {enabled:false,quoteTtlMinutes:15,pendingOrderTtlMinutes:15});
+  let unattendedState=2,unattendedCalls=0;
+  const readOnly={queryOrder:async(binding: {transactionId:string})=>{
+    unattendedCalls++;expect(binding.transactionId).toBe('420000000000000LOCALSHIP01');
+    const other=await pool.connect();try{await other.query('BEGIN');
+      await other.query('SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE NOWAIT',[order.id]);
+      await other.query('ROLLBACK');}finally{other.release();}
+    return {platformOrderState:unattendedState,inComplaint:false};
+  }};
+  const watch=new WechatReceiptWatch(pool,appId,merchantId,readOnly);
+  expect(await watch.runCycle()).toMatchObject({processed:1,status:'processed'});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({wechatReceipt:{status:'shipped'}});
+  expect((await lists.listMine(buyer,{limit:20})).items.find(item=>item.id===order.id)?.wechatReceipt).toMatchObject({status:'shipped'});
+  await pool.query("UPDATE commerce_wechat_receipt_observation SET watch_next_attempt_at=clock_timestamp()-interval '1 second' WHERE order_id=$1",[order.id]);
+  unattendedState=6;
+  expect(await new WechatReceiptWatch(pool,appId,merchantId,readOnly).runCycle()).toMatchObject({processed:1});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({wechatReceipt:{status:'settlement_pending'}});
+  await pool.query("UPDATE commerce_wechat_receipt_observation SET watch_next_attempt_at=clock_timestamp()-interval '1 second' WHERE order_id=$1",[order.id]);
+  unattendedState=3;
+  expect(await watch.runCycle()).toMatchObject({processed:1});
+  expect((await lists.listMine(buyer,{limit:20})).items.find(item=>item.id===order.id)?.wechatReceipt).toMatchObject({status:'confirmed'});
+  expect(await service.managementList(actor,{state:'shipped',orderNumber:order.number})).toMatchObject({items:[{id:order.id,wechatReceipt:{status:'confirmed'}}]});
+  // A failed provider/account query cools the lane across process restarts.
+  await pool.query("UPDATE commerce_wechat_receipt_observation SET watch_next_attempt_at=clock_timestamp()-interval '1 second' WHERE order_id=$1",[order.id]);
+  expect(await new WechatReceiptWatch(pool,appId,merchantId,{queryOrder:async()=>{throw Error('synthetic 48001');}}).runCycle())
+    .toMatchObject({processed:0,status:'cooldown'});
+  const callsAfterFailure=unattendedCalls;
+  expect(await new WechatReceiptWatch(pool,appId,merchantId,readOnly).runCycle()).toMatchObject({status:'cooldown'});
+  expect(unattendedCalls).toBe(callsAfterFailure);
+  await pool.query("UPDATE commerce_wechat_receipt_watch_control SET cooldown_until=clock_timestamp()-interval '1 second'");
+  await pool.query("UPDATE commerce_wechat_receipt_observation SET watch_next_attempt_at=clock_timestamp()-interval '1 second' WHERE order_id=$1",[order.id]);
+  let watchEntered!:()=>void,releaseWatch!:()=>void;
+  const watchWaiting=new Promise<void>(resolve=>{watchEntered=resolve;});
+  const blockedWatch=new Promise<{platformOrderState:number;inComplaint:boolean}>(resolve=>{releaseWatch=()=>resolve({platformOrderState:2,inComplaint:false});});
+  const slowWatch=new WechatReceiptWatch(pool,appId,merchantId,{queryOrder:async()=>{watchEntered();return blockedWatch;}}).runCycle();
+  await watchWaiting;
+  expect(await new WechatReceiptWatch(pool,appId,merchantId,readOnly).runCycle()).toMatchObject({processed:0});
+  // Manual read takes the query fence; the late worker response cannot undo it.
+  platformState=4;
+  expect(await receiptReader.queryMine(buyer,order.id)).toMatchObject({status:'completed'});
+  releaseWatch();
+  expect(await slowWatch).toMatchObject({processed:0});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({wechatReceipt:{status:'completed'}});
+  expect((await pool.query('SELECT watch_state FROM commerce_wechat_receipt_observation WHERE order_id=$1',[order.id])).rows[0].watch_state).toBe('complete');
+  expect(await watch.runCycle()).toMatchObject({processed:0});
+  // One order's mismatched provider response must not cool every other order.
+  await pool.query("UPDATE commerce_shipping_sync SET state='synced' WHERE order_id=ANY($1::uuid[])",[[bulkA.id,bulkB.id]]);
+  for(const [candidate,minutes] of [[bulkA,10],[bulkB,5]] as const){
+    await pool.query(`INSERT INTO commerce_wechat_receipt_observation
+      (order_id,shipment_id,payment_inbox_id,watch_next_attempt_at)
+      SELECT o.id,s.id,i.id,clock_timestamp()-($2::integer * interval '1 minute')
+      FROM commerce_order o JOIN commerce_shipment s ON s.order_id=o.id
+      JOIN commission_payment_inbox i ON i.order_id=o.id AND i.state='applied'
+      WHERE o.id=$1`,[candidate.id,minutes]);
+  }
+  const mixedWatch=new WechatReceiptWatch(pool,appId,merchantId,{queryOrder:async binding=>{
+    if(binding.merchantOrderNumber===bulkA.number)
+      throw Object.assign(Error('synthetic order response mismatch'),{code:'WECHAT_RECEIPT_ORDER_BINDING_MISMATCH'});
+    return {platformOrderState:3,inComplaint:false};
+  }});
+  expect(await mixedWatch.runCycle()).toMatchObject({processed:1,status:'processed'});
+  expect(await service.detailMine(buyer,bulkB.id)).toMatchObject({wechatReceipt:{status:'confirmed'}});
+  expect((await pool.query('SELECT watch_failures,watch_state FROM commerce_wechat_receipt_observation WHERE order_id=$1',
+    [bulkA.id])).rows[0]).toMatchObject({watch_failures:1,watch_state:'active'});
+  for(let attempt=0;attempt<2;attempt++){
+    await pool.query("UPDATE commerce_wechat_receipt_observation SET watch_next_attempt_at=clock_timestamp()-interval '1 second' WHERE order_id=$1",[bulkA.id]);
+    expect(await mixedWatch.runCycle()).toMatchObject({processed:0,status:'processed'});
+  }
+  expect((await pool.query('SELECT watch_state FROM commerce_wechat_receipt_observation WHERE order_id=$1',[bulkA.id])).rows[0])
+    .toMatchObject({watch_state:'manual_review'});
+  expect(networkCalls).toBe(shippingCallsBefore); // Receipt never reaches the shipping executor.
   expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[order.id])).rows[0].status).toBe('paid');
   expect((await pool.query('SELECT count(*)::int n FROM commission_ledger_entry')).rows[0].n).toBe(ledgerBefore);
   await expect(pool.query('DELETE FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rejects.toThrow();

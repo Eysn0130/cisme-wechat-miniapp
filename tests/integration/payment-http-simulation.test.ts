@@ -1535,6 +1535,20 @@ it("assembles pinned formal trust through isolated payment, callback, refund and
       expect((await recoveryApp.inject({method:"POST",url:"/v1/payments/wechat/callback",
         headers:{...paid.headers,"Content-Type":"application/json"},payload:paid.raw})).statusCode).toBeGreaterThanOrEqual(500);
     }finally{await recoveryApp.close();}
+    // Reconstruct the real API after revocation/expiry. A missing recovery
+    // grant must not prevent independent legal, session/profile and privacy
+    // routes from serving; callbacks still fail before accepting a fact.
+    for(const state of ['revoked','expired'] as const){
+      if(state==='expired')await writeFile(grantPath,JSON.stringify({schemaVersion:1,mode:'ordinary-merchant-recovery-only',environment:'staging',
+        appId,merchantId,approvalReference:'synthetic-expired-only',expiresAt:'2000-01-01T00:00:00Z',capabilities:['payment.callback']}),{mode:0o600});
+      const restarted=await createApp({config:recoveryConfig,pool,storage:createApiGatewayStorage(config)});
+      try{
+        for(const url of ['/health/live','/v1/legal','/v1/me/profile','/v1/me/privacy-requests'])
+          expect((await restarted.inject({url,headers:auth(buyer.sessionToken)})).statusCode,`${state}:${url}`).toBe(200);
+        expect((await restarted.inject({method:'POST',url:'/v1/payments/wechat/callback',
+          headers:{...paid.headers,'Content-Type':'application/json'},payload:paid.raw})).statusCode).toBeGreaterThanOrEqual(500);
+      }finally{await restarted.close();}
+    }
     await runMoneyWorkerCycle(protocol.inbox,protocol.refundInbox);
     expect((await pool.query(`SELECT status FROM commerce_order WHERE id=$1`,[order.id])).rows[0].status).toBe("paid");
     const request=await formalApp.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,

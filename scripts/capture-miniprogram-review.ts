@@ -14,6 +14,7 @@ if (!reviewId || !/^[a-z0-9][a-z0-9+._-]{11,119}$/i.test(reviewId) || !fixtureSo
 
 const root = process.cwd();
 const project = resolve(root, "apps/miniprogram");
+const wechatideClient = process.env.CISME_WECHATIDE_CLIENT || "Codex";
 const reviewRoot = resolve(root, `docs/evidence/visual/review-${reviewId}`);
 const fixturePath = resolve(root, fixtureSource);
 const fixture = JSON.parse(await readFile(fixturePath, "utf8")) as {
@@ -53,9 +54,15 @@ function parseToolOutput(raw: string): any {
   return parsed;
 }
 
-function wechatide(client: "project-action" | "runtime", tool: string, args: string[]): any {
-  const raw = execFileSync("wechatide", ["-c", client, tool, "--project", project, ...args], { cwd: root, encoding: "utf8", timeout: 45_000 });
+function wechatide(_category: "project-action" | "runtime", tool: string, args: string[]): any {
+  const raw = execFileSync("wechatide", ["-c", wechatideClient, tool, "--project", project, ...args], { cwd: root, encoding: "utf8", timeout: 45_000 });
   return parseToolOutput(raw);
+}
+
+const wechatideStatus = parseToolOutput(execFileSync("wechatide", ["-c", wechatideClient, "check_wechatide_status"], { cwd: root, encoding: "utf8", timeout: 45_000 }));
+const wechatideVersion = wechatideStatus.result?.skillVersion;
+if (typeof wechatideVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(wechatideVersion)) {
+  throw new Error("WeChat IDE skill version unavailable for evidence provenance");
 }
 
 function pageData(path: string): unknown {
@@ -74,11 +81,21 @@ const runtime = wechatide("project-action", "automation_evaluate", [
 if (runtime.apiBaseUrl !== fixture.origin || runtime.hasSession !== true || runtime.storedSession !== true || runtime.platform !== "devtools" || runtime.envVersion !== "develop" || runtime.devUserMatches !== true) {
   throw new Error(`DevTools authenticated acceptance preflight failed: ${JSON.stringify(runtime)}`);
 }
+// A disposable database reset invalidates a token left in the IDE from the
+// previous fixture. Check the current session against this server before any
+// protected route is counted as healthy; never export the token itself.
+const liveSession = wechatide("project-action", "automation_evaluate", ["--fn-source",
+  `function(){return new Promise(function(resolve){var a=getApp();wx.request({url:${JSON.stringify(fixture.origin)}+"/v1/me",header:{Authorization:"Bearer "+a.globalData.sessionToken},success:function(response){resolve({status:response.statusCode,member:Boolean(response.data&&response.data.id)})},fail:function(){resolve({status:0,member:false})}})})}`
+]).result.result.result as { status?: number; member?: boolean };
+if (liveSession.status !== 200 || liveSession.member !== true) {
+  throw new Error(`DevTools session is not valid in the current disposable acceptance database: HTTP ${liveSession.status ?? 0}`);
+}
+runtime.liveSessionHttpStatus = liveSession.status;
 
 const opened: Array<{ route: string; query: string; result: string }> = [];
 const routeHealth: Array<{ route: string; query: string; currentPage: string; loading: boolean | "not_exposed"; error: string; screenshot: string; result: string }> = [];
 if (!finalizeOnly) {
-  execFileSync(resolve(root, "node_modules/.bin/tsx"), ["scripts/generate-visual-review-pack.ts", reviewId, "--fixture", fixtureSource], { cwd: root, stdio: "inherit" });
+  execFileSync(resolve(root, "node_modules/.bin/tsx"), ["scripts/generate-visual-review-pack.ts", reviewId, "--fixture", fixtureSource], { cwd: root, stdio: "inherit", env: { ...process.env, CISME_WECHATIDE_VERSION: wechatideVersion } });
   for (const route of routes) {
     const query = queryFor(route);
     const openArguments = ["--page", route, ...(query ? ["--query", query] : [])];
@@ -104,15 +121,24 @@ if (!finalizeOnly) {
       && wechatide("project-action", "automation_evaluate", ["--fn-source",
         "function(){var p=getCurrentPages();return p[p.length-1].data.authority===null;}"]
       ).result.result.result === true;
-    if (current.path !== route || loading === true || (error.trim() && !guardedFinance)) {
+    const retiredEditorial = route === "pages/post/index"
+      && query === "id=brand-scalp-ritual"
+      && error === "该内容尚未完成展示授权，请返回社区查看其他内容。"
+      && pageData("errorKind") === "missing"
+      // getData serializes a null page field as {}. Check the actual runtime
+      // value, as for the guarded finance page's null authority.
+      && wechatide("project-action", "automation_evaluate", ["--fn-source",
+        "function(){var pages=getCurrentPages();return pages[pages.length-1].data.item===null;}"]
+      ).result.result.result === true;
+    if (current.path !== route || loading === true || (error.trim() && !guardedFinance && !retiredEditorial)) {
       throw new Error(`Route health failed for ${route}: ${JSON.stringify({ current: current.path, loading, error })}`);
     }
     opened.push({ route, query, result: "success" });
-    const result = guardedFinance ? "PASS_EXPECTED_MONEY_DISABLED" : "PASS_LOCAL_SYNTHETIC";
+    const result = guardedFinance ? "PASS_EXPECTED_MONEY_DISABLED" : retiredEditorial ? "PASS_EXPECTED_EDITORIAL_RETIRED" : "PASS_LOCAL_SYNTHETIC";
     routeHealth.push({ route, query, currentPage: current.path, loading, error, screenshot: relative(reviewRoot, screenshot), result });
     console.log(JSON.stringify({ event: "MINIPROGRAM_ROUTE_HEALTH", route, query, result }));
   }
-  execFileSync(resolve(root, "node_modules/.bin/tsx"), ["scripts/generate-visual-review-pack.ts", reviewId, "--fixture", fixtureSource], { cwd: root, stdio: "inherit" });
+  execFileSync(resolve(root, "node_modules/.bin/tsx"), ["scripts/generate-visual-review-pack.ts", reviewId, "--fixture", fixtureSource], { cwd: root, stdio: "inherit", env: { ...process.env, CISME_WECHATIDE_VERSION: wechatideVersion } });
 } else {
   const saved = JSON.parse(await readFile(resolve(reviewRoot, "route-runtime-health.json"), "utf8")) as { routes: typeof routeHealth };
   if (saved.routes.length !== routes.length) throw new Error("Finalize-only route health evidence is incomplete");
@@ -138,7 +164,7 @@ await Promise.all([
   writeFile(compilePath, JSON.stringify({
     schemaVersion: 1,
     sourceSha256: inspection.actual.sourceSha256,
-    tool: "wechatide 0.3.9 project-action.simulator_open_page",
+    tool: `wechatide ${wechatideVersion} simulator_open_page`,
     project,
     routeCount: routes.length,
     routes: opened,
@@ -149,7 +175,7 @@ await Promise.all([
   writeFile(consolePath, JSON.stringify({
     schemaVersion: 1,
     sourceSha256: inspection.actual.sourceSha256,
-    tool: "wechatide 0.3.9 runtime.get_simulator_console",
+    tool: `wechatide ${wechatideVersion} get_simulator_console`,
     filter: consoleFilter,
     matches: consoleMatches,
     verifiedAt,
@@ -159,7 +185,7 @@ await Promise.all([
   writeFile(networkPath, JSON.stringify({
     schemaVersion: 1,
     sourceSha256: inspection.actual.sourceSha256,
-    tool: "wechatide 0.3.9 runtime.get_simulator_network",
+    tool: `wechatide ${wechatideVersion} get_simulator_network`,
     filter: networkFilter,
     matches: networkMatches,
     verifiedAt,
@@ -186,7 +212,7 @@ await writeFile(routesCsvPath, routesCsv);
 const sourceManifestPath = resolve(reviewRoot, "source-manifest.json");
 const sourceManifest = JSON.parse(await readFile(sourceManifestPath, "utf8"));
 sourceManifest.capture.runtimeHealthyRoutes = routeHealth.filter(row => row.result === "PASS_LOCAL_SYNTHETIC").length;
-sourceManifest.capture.runtimeGuardedRoutes = routeHealth.filter(row => row.result === "PASS_EXPECTED_MONEY_DISABLED").length;
+sourceManifest.capture.runtimeGuardedRoutes = routeHealth.filter(row => row.result.startsWith("PASS_EXPECTED_")).length;
 sourceManifest.capture.runtimeHealthEvidence = basename(routeHealthPath);
 sourceManifest.capture.result = "AUTHENTICATED_HEALTHY_NATIVE_BASELINE_CAPTURED_VISUAL_ACCEPTANCE_BLOCKED";
 await writeFile(sourceManifestPath, JSON.stringify(sourceManifest, null, 2) + "\n");
@@ -194,7 +220,11 @@ await writeFile(sourceManifestPath, JSON.stringify(sourceManifest, null, 2) + "\
 const acceptancePath = resolve(root, "docs/evidence/visual/current-source-acceptance.json");
 const acceptance = JSON.parse(await readFile(acceptancePath, "utf8"));
 for (const evidence of Object.values(acceptance.evidenceIndex ?? {}) as Array<Record<string, unknown>>) {
-  if (evidence.kind === "route_native") evidence.state = routeHealth.find(row => row.route === evidence.route)?.result === "PASS_EXPECTED_MONEY_DISABLED" ? "money-disabled" : "authenticated-route-success";
+  if (evidence.kind === "route_native") {
+    const result=routeHealth.find(row => row.route === evidence.route)?.result;
+    evidence.state = result === "PASS_EXPECTED_MONEY_DISABLED" ? "money-disabled"
+      : result === "PASS_EXPECTED_EDITORIAL_RETIRED" ? "editorial-retired" : "authenticated-route-success";
+  }
 }
 const routeHealthRelative = relative(root, routeHealthPath);
 for (const [path, kind] of [

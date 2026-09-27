@@ -17,6 +17,7 @@ import { createCosSuppressionRemote } from "../../api/src/accountClosureRemote.j
 import { rename, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { startStandaloneUgcSafety } from './ugcSafety.js';
 export { processOutboxBatch, processMediaCleanup, sweepExpired, WORKER_MAX_ATTEMPTS } from "./jobs.js";
 export { expirePendingOrders } from "../../api/src/commerceOrders.js";
 
@@ -29,9 +30,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const accountClosure=new AccountClosure(config.privacy.suppressionDirectory,
     config.env==='production'?createCosSuppressionRemote(config):undefined);
   await accountClosure.replay(pool);
+  const safetyWorker=startStandaloneUgcSafety(config,pool,storage,
+    error=>console.error('CISME_UGC_SAFETY_TICK_FAILED',safeFailureFields(error)));
   const shipping=fulfillmentRuntime(config,pool);
   const shippingWorker=shipping?startWorkerLoop(async()=>{await shipping.runCycle();return false;},
     error=>console.error('CISME_SHIPPING_WORKER_FAILED',safeFailureFields(error)),5000):null;
+  const receiptWorker=shipping?startWorkerLoop(async()=>{await shipping.runReceiptCycle();return false;},
+    error=>console.error('CISME_RECEIPT_WATCH_FAILED',safeFailureFields(error)),60_000):null;
   let lastHeartbeat=0;
   const heartbeatPath=join(tmpdir(),'cisme-worker-heartbeat.json');
   const recordWorkerCycle=async()=>{
@@ -64,7 +69,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const recoveryWorker=formalProtocol
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>console.error("CISME_FORMAL_RECOVERY_FAILED",safeFailureFields(error))):null;
   const stop = async () => {
-    await Promise.all([shippingWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),worker.stop()]);
+    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker.stop()]);
     await pool.end();
   };
   process.once("SIGTERM", () => void stop());

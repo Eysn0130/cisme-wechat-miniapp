@@ -127,7 +127,7 @@ describe("native mini program boundary", () => {
       "checkout/index.wxml": 3,
       "management-catalog/index.wxml": 1,
       "management-product/index.wxml": 1,
-      "order-detail/index.wxml": 1,
+      "order-detail/index.wxml": 2,
       "settings/index.wxml": 1,
       "post/index.wxml": 1,
       "privacy-rights/index.wxml": 1,
@@ -166,7 +166,7 @@ describe("native mini program boundary", () => {
     const tabLogic = await readFile(resolve("apps/miniprogram/custom-tab-bar/index.ts"), "utf8");
     const tabButtons = buttonStartTags(tabView);
     expect(tabButtons).toHaveLength(2);
-    const publishButton = tabButtons.find((tag) => attributeValue(tag, "wx:if") === "{{communityFabMounted}}")!;
+    const publishButton = tabButtons.find((tag) => attributeValue(tag, "wx:if") === "{{communityFabMounted && communityPublisherAvailable}}")!;
     const navigationButton = tabButtons.find((tag) => attributeValue(tag, "wx:for") === "{{items}}")!;
     expect(attributeValue(publishButton, "bindtap")).toBe("activateCommunityFab");
     expect(attributeValue(publishButton, "disabled")).toBe("{{switching || externalBusy || chromeHidden}}");
@@ -198,7 +198,7 @@ describe("native mini program boundary", () => {
   it("locks the per-route button action inventory and verifies every handler exists", async () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
-      account: ["back", "openLegalDocuments", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "loginTap", "browseCommunity"],
+      account: ["back", "openTerms", "openPrivacy", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "@contact", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
@@ -224,12 +224,12 @@ describe("native mini program boundary", () => {
       "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       points: ["back", "openShop", "load"],
       post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
-      "privacy-rights": ["back", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login", "openSupport"],
+      "privacy-rights": ["back", "openSupport", "@contact", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login"],
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
       checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
-      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "loadSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "openAftersale", "loadShipment", "confirmReceipt", "loadTracking", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
-      profile: ["openAccount", "openSettings", "openRecords", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "load", "retryTasks"],
+      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
+      profile: ["openAccount", "openSettings", "openRecords", "load", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openTasks", "openSettings", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
       records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],
       referral: ["back", "preview", "confirm"],
@@ -247,6 +247,7 @@ describe("native mini program boundary", () => {
         const handler = attributeValue(tag, "bindtap") ?? attributeValue(tag, "catchtap") ?? attributeValue(tag, "bindgetphonenumber") ?? attributeValue(tag,"bindchooseavatar") ?? (attributeValue(tag,"form-type") === "submit" ? source.match(/<form[^>]*bindsubmit="([^"]+)"/)?.[1] : undefined);
         if (handler) return handler;
         if (attributeValue(tag, "open-type") === "share") return "@share";
+        if (attributeValue(tag, "open-type") === "contact") return "@contact";
         if (attributeValue(tag, "open-type") === "feedback") return "@feedback";
         if (attributeValue(tag, "disabled") !== undefined) return "@disabled";
         return "@missing";
@@ -292,6 +293,7 @@ describe("native mini program boundary", () => {
     const appStyle = await readFile(resolve("apps/miniprogram/app.wxss"), "utf8");
     const account = await readFile(resolve("apps/miniprogram/pages/account/index.wxss"), "utf8");
     const accountMarkup = await readFile(resolve("apps/miniprogram/pages/account/index.wxml"), "utf8");
+    const actionStyles = await readFile(resolve("apps/miniprogram/styles/action-hierarchy.wxss"), "utf8");
     const records = await readFile(resolve("apps/miniprogram/pages/records/index.wxss"), "utf8");
     const task = await readFile(resolve("apps/miniprogram/pages/task/index.wxss"), "utf8");
     const submit = await readFile(resolve("apps/miniprogram/pages/submit/index.wxss"), "utf8");
@@ -306,18 +308,22 @@ describe("native mini program boundary", () => {
     expect(appStyle).toMatch(/\.primary,\s*\.secondary\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*min-height:\s*50px;[^}]*font-family:\s*-apple-system[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*line-height:\s*20px;/s);
     expect(appStyle).toMatch(/\.action-label\s*\{[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*font-weight:\s*400;[^}]*line-height:\s*20px;/s);
     expect(appStyle).not.toMatch(/\.action-label\s*\{[^}]*transform:/s);
-    expect(account).toContain(".account-login { flex:0 0 50px; height:50px; margin-top:36rpx; padding-top:0; padding-bottom:0; font-size:var(--cisme-text-action); line-height:20px; }");
-    expect(account).toContain(".account-browse { flex:0 0 50px; height:50px; margin-top:18rpx; padding-top:0; padding-bottom:0; font-size:var(--cisme-text-action); line-height:20px; }");
-    expect(account).toContain(".account-checkbox { flex:0 0 auto; width:60rpx; height:60rpx; transform:none; }");
-    expect(account).toContain(".account-checkbox .wx-checkbox-input { width:38rpx; height:38rpx; margin:10rpx; border-radius:12rpx; }");
-    expect(account).toMatch(/\.account-row \{[^}]*min-height:104rpx;/);
-    expect(account).toMatch(/\.account-legal-entry \{[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;[^}]*line-height:20px;/);
+    expect(account).toContain('@import "../../styles/action-hierarchy.wxss"');
+    expect(actionStyles).toMatch(/\.action-main,\.action-secondary\{[^}]*min-height:50px;/);
+    expect(actionStyles).toMatch(/\.action-text\{[^}]*min-height:44px;[^}]*border:0;/);
+    expect(actionStyles).toMatch(/\.action-main\.primary--disabled\{[^}]*background:#e9e1ec!important;[^}]*opacity:1!important/);
+    expect(account).toMatch(/\.account-login\{[^}]*min-height:50px;/);
+    expect(account).toMatch(/\.account-browse\{[^}]*min-height:44px;/);
+    expect(account).toMatch(/\.account-checkbox \.wx-checkbox-input\{[^}]*width:40rpx;height:40rpx;/);
+    expect(account).toMatch(/\.account-legal-entry\{[^}]*min-height:44px;[^}]*white-space:nowrap;/);
     expect(accountMarkup).not.toContain('class="account-caret"');
-    expect(accountMarkup).toContain("同意协议后即可登录");
-    expect(accountMarkup).toContain("我已阅读并同意用户协议与隐私保护指引");
-    expect(account).toMatch(/\.account-agreement__label \{[^}]*min-height:128rpx;/);
-    expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-card \{ margin-top:32rpx; \}/);
-    expect(account).toMatch(/@media \(max-height:820px\)[\s\S]*\.account-login \{ margin-top:24rpx; \}[\s\S]*\.account-browse \{ margin-top:12rpx; \}/);
+    expect(accountMarkup).not.toContain("同意协议后即可登录");
+    expect(accountMarkup).toContain("我已阅读并同意以下条款");
+    expect(accountMarkup).toContain('bindtap="openTerms"');
+    expect(accountMarkup).toContain('bindtap="openPrivacy"');
+    expect(account).toMatch(/\.account-agreement__label\{[^}]*min-height:44px[;}]/);
+    expect(account).toMatch(/\.account-hero\{[^}]*height:100vw;/);
+    expect(account).toMatch(/@media \(max-height:700px\)[\s\S]*\.account-phone-note\{margin-top:20rpx\}/);
     expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxml"), "utf8")).toContain("<text class=\"care-cta__label\">{{working ? '正在保存…' : mutationState === 'unknown' ? '重试原保存' : view.action}}</text>");
     expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxss"), "utf8")).toMatch(/\.care-cta\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s);
     expect(records).toContain(".cycle-button--single { grid-column:1/-1; width:100%; }");

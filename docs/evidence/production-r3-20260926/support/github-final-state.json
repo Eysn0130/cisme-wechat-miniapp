@@ -1,0 +1,19 @@
+{
+  "observedAtUtc": "2026-09-26T11:53:46.073Z",
+  "readOnly": true,
+  "pr": {
+    "number": 22,
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "head": "5ab4a00d4e71d8a9a2de14e31b64fca0bbe92e88",
+    "branch": "codex/fulfillment-lifecycle-20260922"
+  },
+  "main": {
+    "head": "5740e18544fa37dd473c36934a2a12a07a2d5ec9",
+    "tree": "e6673a628f4aa905006fdf9763460d021da49730",
+    "protected": false
+  },
+  "writeRecoveryGranted": false,
+  "newCandidateRemoteCI": false
+}

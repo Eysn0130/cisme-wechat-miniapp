@@ -2,6 +2,7 @@ import { clearPreviousAvatarFiles } from "./services/member-avatar";
 import { pruneUgcBackups } from "./services/ugc-local-backup";
 import { miniProgramApiOrigins, miniProgramCloudFunctions, remoteDebugApiOrigin, type RemoteDebugQuery } from "./release-config";
 import { chromeStyle, readChromeMetrics } from "./services/layout";
+import { acceptWechatReceiptReferrer } from "./services/wechat-receipt-return";
 
 function runtimeApiConfig(query: RemoteDebugQuery): { origin: string; remoteDebugMode: boolean; cloudFunction?: import("./release-config").CloudHttpTarget } {
   const { miniProgram } = wx.getAccountInfoSync();
@@ -44,7 +45,8 @@ App({
     this.globalData.chromeMetrics = metrics;
     this.globalData.chromeStyle = chromeStyle(metrics);
   },
-  onShow(){
+  onShow(options){
     pruneUgcBackups();
+    acceptWechatReceiptReferrer(options?.referrerInfo);
   }
 });

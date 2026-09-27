@@ -650,9 +650,9 @@ export class PlatformService {
       transactionProfile: this.config.selectedTransactionProfile,
       checkoutEnabled: false,
       items: [
-        { id: "care-serum-30", name: "头皮护理精华 30ml", subtitle: "轻盈日常护理", price: 26900, image: "/assets/cisme/community-card-purple-bottle-v1.webp" },
-        { id: "care-set-r0", name: "28 天护理组合", subtitle: "精华与护理手册", price: 48900, image: "/assets/cisme/community-card-care-flatlay-v2.webp" },
-        { id: "travel-serum-10", name: "随行护理精华 10ml", subtitle: "便携装", price: 9900, image: "/assets/cisme/community-card-care-journal-v2.webp" }
+        { id: "care-serum-30", name: "头皮护理精华 30ml", subtitle: "轻盈日常护理", price: 26900, image: "/assets/icons/spray-bottle-plum.svg" },
+        { id: "care-set-r0", name: "28 天护理组合", subtitle: "精华与护理手册", price: 48900, image: "/assets/icons/spray-bottle-plum.svg" },
+        { id: "travel-serum-10", name: "随行护理精华 10ml", subtitle: "便携装", price: 9900, image: "/assets/icons/spray-bottle-plum.svg" }
       ]
     };
   }

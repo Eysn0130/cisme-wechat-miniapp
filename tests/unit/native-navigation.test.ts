@@ -69,12 +69,18 @@ describe("native tab lens", () => {
     route = "pages/community/index";
     currentPage.openPublisher = vi.fn();
     const target = instance(); definition.lifetimes.attached.call(target); definition.pageLifetimes.show.call(target);
+    expect(target.data.communityFabMounted).toBe(false);
+    target.activateCommunityFab();
+    expect(currentPage.openPublisher).not.toHaveBeenCalled();
+    target.setCommunityPublisherAvailable(true);
     expect(target.data).toMatchObject({ active: 2, communityFabMounted: true, communityFabVisible: true });
     target.activateCommunityFab();
     expect(currentPage.openPublisher).toHaveBeenCalledTimes(1);
     target.setPresentation("community-scroll", true);
     target.activateCommunityFab();
     expect(currentPage.openPublisher).toHaveBeenCalledTimes(1);
+    target.setCommunityPublisherAvailable(false);
+    expect(target.data.communityFabMounted).toBe(false);
   });
 
 });

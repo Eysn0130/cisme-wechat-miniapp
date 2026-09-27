@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-09-26T05:26:45.296Z",
+  "candidateMiniProgramSourceSha256": "ed0d7d60b8e201a2d0f99213a107a5f7e5dd0631193ed4c31601624ce512ead7",
+  "evidenceRunId": "6a903e0c2dc0ac976949f5c2",
+  "deviceSessions": {
+    "ios": 0,
+    "android": 0
+  },
+  "entries": [
+    {
+      "path": "isolated-business-readback.txt",
+      "sha256": "6a3f95592b180b3c8b024385836f6186996c2e409ac4e3943ec3de87569227ae",
+      "bytes": 888,
+      "mimeType": "text/plain",
+      "scope": "isolated disposable database readback"
+    },
+    {
+      "path": "screenshots/care-d14-detail.png",
+      "sha256": "5d1b33c2e42075b2931aa11c4700061c32633ed593a9d428ac4b960f99d78954",
+      "bytes": 117645,
+      "mimeType": "image/png",
+      "scope": "WeChat DevTools simulator; local synthetic API"
+    },
+    {
+      "path": "screenshots/checkout-quantity2-quote.png",
+      "sha256": "042e53a3557106ea436690dbd3429cf4caa4a6680fadb64a97cdcd3a95341acb",
+      "bytes": 76833,
+      "mimeType": "image/png",
+      "scope": "WeChat DevTools simulator; local synthetic API"
+    },
+    {
+      "path": "screenshots/order-detail-quantity3.png",
+      "sha256": "0ceb1d81d4846fa00feddb060d0531610836c466764bfc798a58707b0d1b51ce",
+      "bytes": 111531,
+      "mimeType": "image/png",
+      "scope": "WeChat DevTools simulator; local synthetic API"
+    },
+    {
+      "path": "screenshots/privacy-reply-supplement.png",
+      "sha256": "87478d8274d98a39020122c1b88d5add4f3d334f4dd7d08616d328414bf5bdb8",
+      "bytes": 82077,
+      "mimeType": "image/png",
+      "scope": "WeChat DevTools simulator; local synthetic API"
+    },
+    {
+      "path": "screenshots/support-draft-restored.jpg",
+      "sha256": "0d6b7a6625d08ae16f3e860bddfe2c47f99efa7f7a58dfce64b87834934ef793",
+      "bytes": 36159,
+      "mimeType": "image/jpeg",
+      "scope": "WeChat DevTools simulator; local synthetic API"
+    },
+    {
+      "path": "screenshots/support-member-reply.png",
+      "sha256": "bed0eba1ccb02535743a969e34de5228ac85dcb2deac4877b4a426b3ac1bb985",
+      "bytes": 80381,
+      "mimeType": "image/png",
+      "scope": "WeChat DevTools simulator; local synthetic API"
+    },
+    {
+      "path": "runtime-observations.txt",
+      "sha256": "dc944bbb449028a0b7be408cedb68be8ef096242d648ddcb95004f41c76b9a0c",
+      "bytes": 1215,
+      "mimeType": "text/plain",
+      "scope": "sanitized local environment and cleanup observations"
+    }
+  ]
+}

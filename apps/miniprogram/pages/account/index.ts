@@ -3,7 +3,7 @@ import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../
 import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce } from "../../services/api";
 import { legalDocumentVersions, shouldUseDevelopmentIdentity } from "../../release-config";
 import type { LegalDocumentVersions } from "../../release-config";
-import { currentChromeStyle, motionDuration } from "../../services/layout";
+import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../services/layout";
 import { attributePendingShare } from "../../services/share";
 import { legalRequestFailure, parseLegalBootstrap, type LegalLoadError } from "../../services/legal-bootstrap";
 
@@ -26,7 +26,7 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
-  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, phoneCapabilityKnown:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
     const attempt=++this.data.authAttempt;
@@ -100,8 +100,8 @@ Page({
       }
     }
   },
-  onShow() { this.data.pageVisible = true; if (this.data.leaving) return; if(getApp<IAppOption>().globalData.sessionToken)this.setData({pendingDestination:this.data.pendingDestination || "/pages/profile/index"}); void this.syncLegalDocuments(); void this.loadCapabilities(); },
-  onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1; if (this.data.avatarBusy) this.setData({avatarBusy:false}); },
+  onShow() { this.data.pageVisible = true; if (this.data.leaving) return; const reducedMotion=shouldReduceMotion(); this.setData({reducedMotion,heroMotionActive:!reducedMotion}); if(getApp<IAppOption>().globalData.sessionToken)this.setData({pendingDestination:this.data.pendingDestination || "/pages/profile/index"}); void this.syncLegalDocuments(); void this.loadCapabilities(); },
+  onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1; this.setData({heroMotionActive:false,...(this.data.avatarBusy?{avatarBusy:false}:{})}); },
   async loadMemberIdentity() {
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (!token) return;
@@ -113,7 +113,7 @@ Page({
       return {...me,avatarUrl};
     } catch { /* Destination pages refresh independently; profile sync never blocks login. */ }
   },
-  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
+  onResize() { const reducedMotion=shouldReduceMotion(); this.setData({ chromeStyle: currentChromeStyle(),reducedMotion,heroMotionActive:this.data.pageVisible&&!reducedMotion }); },
   onUnload() {
     this.data.pageAlive = false;
     this.data.pageVisible = false;
@@ -169,24 +169,12 @@ Page({
     }
     wx.navigateTo({ url: "/pages/legal/index?type=privacy", fail: () => this.setData({error:"隐私指引暂时无法打开，请重试。"},scrollToAccountError) });
   },
-  async openLegalDocuments() {
-    if (this.data.loading || this.data.leaving) return;
-    try {
-      const choice = await wx.showActionSheet({ itemList: ["查看用户协议", "查看隐私保护指引"] });
-      if (!this.data.pageAlive) return;
-      if (choice.tapIndex === 0) await this.openTerms();
-      else if (choice.tapIndex === 1) this.openPrivacy();
-    } catch (error) {
-      if (/cancel/i.test((error as { errMsg?: string }).errMsg ?? "")) return;
-      if (this.data.pageAlive) this.setData({ error: "协议阅读入口暂时无法打开，请重试。" }, scrollToAccountError);
-    }
-  },
   async loadCapabilities() {
     const attempt=++this.data.capabilityAttempt;
     try {
       const result=await request<{phoneBindingEnabled:boolean}>({path:"/v1/identity/capabilities",authMode:"public"});
-      if(this.data.pageAlive && attempt===this.data.capabilityAttempt && !this.data.loading)this.setData({phoneBindingEnabled:result.phoneBindingEnabled === true});
-    } catch { if(this.data.pageAlive && attempt===this.data.capabilityAttempt)this.setData({phoneBindingEnabled:false}); }
+      if(this.data.pageAlive && attempt===this.data.capabilityAttempt && !this.data.loading)this.setData({phoneBindingEnabled:result.phoneBindingEnabled === true,phoneCapabilityKnown:true});
+    } catch { if(this.data.pageAlive && attempt===this.data.capabilityAttempt)this.setData({phoneBindingEnabled:false,phoneCapabilityKnown:false}); }
   },
   loginTap() {
     // Native open-type owns the gesture when enabled. Do not race wx.login

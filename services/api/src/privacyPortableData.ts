@@ -5,6 +5,7 @@ import type { DbClient } from './db.js';
 import { DeliveryAddressService } from './deliveryAddress.js';
 import type { ObjectStorage } from './storage.js';
 import { assertOperationActive } from './operationBudget.js';
+import { wechatReceiptPortableQuery } from './privacyPortableQueries.js';
 
 const maxCopyBytes=64*1024*1024;
 type MediaRow={id:string;object_key:string;mime_type:string;size_bytes:string|null;kind:string};
@@ -104,6 +105,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM commerce_shipment_event e JOIN commerce_shipment s ON s.id=e.shipment_id
         JOIN commerce_order o ON o.id=s.order_id WHERE o.member_id=$1
         ORDER BY e.occurred_at,e.id`,[memberId])).rows,
+      wechatReceiptObservations:(await client.query(wechatReceiptPortableQuery,[memberId])).rows,
       aftersaleEvents:(await client.query(`SELECT e.case_id,e.action,e.note,e.from_state,e.to_state,
         e.created_at FROM commerce_aftersale_event e
         JOIN commerce_aftersale_case c ON c.id=e.case_id WHERE c.member_id=$1

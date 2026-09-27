@@ -8,6 +8,8 @@ import datetime
 import json
 import os
 from pathlib import Path
+import shlex
+import stat
 import subprocess
 import sys
 import time
@@ -24,6 +26,45 @@ UNITS = {'api': 'cisme-api.service', 'worker': 'cisme-worker.service',
 REPEAT_SECONDS = 1800
 RETRY_SECONDS = 300
 HEARTBEAT_MAX_AGE_SECONDS = 120
+RUNTIME_ENV = Path('/opt/cisme/runtime.env')
+AUTHORIZATION_WARNING_SECONDS = 14 * 86400
+
+
+def authorization_expiry_checks(now, environment_path=RUNTIME_ENV):
+    """Warn through the existing observer before grants expire; never renew,
+    enable capabilities, stop a service or change readiness in this probe.
+    Only expiry status leaves the process, not paths, IDs, grant bytes or keys.
+    """
+    fields={'COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE':'commerceGrantBeyond14Days',
+            'COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE':'recoveryGrantBeyond14Days',
+            'COMMERCE_FULFILLMENT_AUTHORIZATION_FILE':'shippingGrantBeyond14Days'}
+    def read(path,mask):
+        fd=os.open(path,os.O_RDONLY|os.O_NONBLOCK|getattr(os,'O_NOFOLLOW',0))
+        try:
+            info=os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_mode&mask or info.st_size>65536:raise ValueError('PROTECTED_INPUT_REQUIRED')
+            data=os.read(fd,65537)
+            if len(data)>65536:raise ValueError('INPUT_TOO_LARGE')
+            return data.decode('utf-8')
+        finally:os.close(fd)
+    try:
+        paths={}
+        for line in read(environment_path,0o027).splitlines():
+            key,separator,value=line.partition('=')
+            if not separator or key not in fields:continue
+            tokens=shlex.split(value)
+            if len(tokens)!=1 or key in paths:raise ValueError('ENV_INVALID')
+            paths[key]=tokens[0]
+    except (OSError,ValueError):return {'authorizationExpiryObservation':False}
+    checks={}
+    for key,path in paths.items():
+        try:
+            expires=json.loads(read(path,0o077))['expiresAt']
+            if not isinstance(expires,str):raise ValueError('GRANT_EXPIRY_INVALID')
+            at=datetime.datetime.fromisoformat(expires.replace('Z','+00:00'))
+            checks[fields[key]]=at.tzinfo is not None and at.timestamp()-now>AUTHORIZATION_WARNING_SECONDS
+        except (OSError,ValueError,KeyError,TypeError):checks[fields[key]]=False
+    return checks
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -63,6 +104,7 @@ def observe(now=None):
         checks['workerCycleRecent'] = 0 <= now - completed_at <= HEARTBEAT_MAX_AGE_SECONDS
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
         checks['workerCycleRecent'] = False
+    checks.update(authorization_expiry_checks(now))
     return checks
 
 

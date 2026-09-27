@@ -26,6 +26,9 @@ export interface AppConfig {
   objectStorage: {
     profile: string | null;
     driver: "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
+    cosBucketProduct: "standard" | "lighthouse";
+    readinessObjectKey: string | null;
+    readinessObjectSha256: string | null;
     endpoint: string | null;
     region: string;
     bucket: string;
@@ -61,7 +64,7 @@ export interface AppConfig {
     adminWriteMax: number; moneyWriteMax: number; ugcWriteMax: number;
   } };
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
-  media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
+  media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null; ugcScanWorkerMode: 'embedded' | 'standalone' };
   commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
     fulfillment?: { appId: string; merchantId: string; authorizationFile?: string };
     simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
@@ -159,6 +162,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
   const storageDriver = (env.OBJECT_STORAGE_DRIVER ?? "s3") as "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
   if (!['s3', 'api_gateway', 's3_gateway', 'cos_gateway'].includes(storageDriver)) throw new Error("CONFIG_INVALID:OBJECT_STORAGE_DRIVER");
+  const cosBucketProduct = env.COS_BUCKET_PRODUCT ?? "standard";
+  if (cosBucketProduct !== "standard" && cosBucketProduct !== "lighthouse") throw new Error("CONFIG_INVALID:COS_BUCKET_PRODUCT");
+  if (storageDriver === "cos_gateway" && (appEnv === "staging" || appEnv === "production")) {
+    const sharedLighthouseName = /^lhcos-[a-z0-9]{5}-\d{10}$/.test(env.S3_BUCKET ?? "");
+    if (sharedLighthouseName !== (cosBucketProduct === "lighthouse")) throw new Error("FAIL_CLOSED:COS_BUCKET_PRODUCT_MISMATCH");
+    if (cosBucketProduct === "lighthouse" &&
+        (!env.COS_READINESS_OBJECT_KEY || !/^[a-f0-9]{64}$/i.test(env.COS_READINESS_OBJECT_SHA256 ?? ""))) {
+      throw new Error("FAIL_CLOSED:COS_READINESS_OBJECT_REQUIRED");
+    }
+  }
   if (storageDriver === "cos_gateway" && (appEnv === "staging" || appEnv === "production") &&
       (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY || !env.S3_BUCKET || !env.S3_REGION)) {
     throw new Error("FAIL_CLOSED:COS_STORAGE_CREDENTIALS_REQUIRED");
@@ -170,6 +183,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error("FAIL_CLOSED:PRODUCTION_STORAGE_PROFILE_REQUIRED");
   }
   const ugcGoLiveGate = bool(env.UGC_GO_LIVE_GATE);
+  const ugcScanWorkerMode = env.UGC_SCAN_WORKER_MODE ?? 'embedded';
+  if (!['embedded','standalone'].includes(ugcScanWorkerMode)) throw new Error('CONFIG_INVALID:UGC_SCAN_WORKER_MODE');
+  if (ugcScanWorkerMode === 'standalone' && env.RUN_BACKGROUND_WORKER === 'true')
+    throw new Error('FAIL_CLOSED:UGC_DUPLICATE_WORKER_TOPOLOGY');
   const plaintextCallbackTestOnly=bool(env.WECHAT_MESSAGE_PLAINTEXT_TEST_ONLY);
   if(plaintextCallbackTestOnly&&appEnv!=="test")
     throw new Error("FAIL_CLOSED:UGC_PLAINTEXT_CALLBACK_TEST_ONLY");
@@ -181,7 +198,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (ugcGoLiveGate && (appEnv === "production" || appEnv === "staging") &&
       (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET || !env.WECHAT_MESSAGE_TOKEN || !env.WECHAT_MESSAGE_AES_KEY ||
         !env.UGC_SCAN_BASE_URL || !/^https:\/\/[^/?#]+$/.test(env.UGC_SCAN_BASE_URL) ||
-        env.RUN_BACKGROUND_WORKER!=="true")) {
+        (env.RUN_BACKGROUND_WORKER!=="true" && ugcScanWorkerMode!=='standalone'))) {
     throw new Error("FAIL_CLOSED:UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED");
   }
   const pointsRuleIds = (env.POINTS_RULE_IDS ?? "").split(",").map((value) => value.trim()).filter(Boolean);
@@ -312,6 +329,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     objectStorage: {
       profile: env.OBJECT_STORAGE_PROFILE ?? null,
       driver: storageDriver,
+      cosBucketProduct,
+      readinessObjectKey: env.COS_READINESS_OBJECT_KEY ?? null,
+      readinessObjectSha256: env.COS_READINESS_OBJECT_SHA256 ?? null,
       endpoint: env.S3_ENDPOINT ?? null,
       region: env.S3_REGION ?? "us-east-1",
       bucket: env.S3_BUCKET ?? "cisme-dev",
@@ -347,7 +367,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         ugcWriteMax: integer("API_RATE_UGC_WRITE_MAX", env.API_RATE_UGC_WRITE_MAX, 60, 1, 100_000)
       } },
     observability: { logLevel },
-    media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null },
+    media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null,
+      ugcScanWorkerMode: ugcScanWorkerMode as 'embedded' | 'standalone' },
     commerce: {
       orderFlowEnabled,
       ...(fulfillment?{fulfillment}:{}),

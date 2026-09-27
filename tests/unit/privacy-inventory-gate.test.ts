@@ -37,6 +37,9 @@ describe('personal-data inventory gate',()=>{
     for(const path of await files(join(root,'apps/miniprogram'),['.ts'])) {
       const source=await readFile(path,'utf8');
       for(const match of source.matchAll(/\bwx\.([A-Za-z][A-Za-z0-9_]*)/g))apiSet.add(`wx.${match[1]}`);
+      // openBusinessView is an optional SDK member and is called through the
+      // explicitly typed wx alias after a runtime capability check.
+      if(/\bapi\.openBusinessView\b/.test(source)&&/\bconst api=wx as\b/.test(source))apiSet.add('wx.openBusinessView');
     }
     expect([...apiSet].sort()).toEqual([...manifest.wechatApis].sort());
 

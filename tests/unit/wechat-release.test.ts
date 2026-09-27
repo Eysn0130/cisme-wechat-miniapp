@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { isPublicHttpsOrigin, isRealWeChatAppId, validateInternalTestPackageSafety, validateWeChatCiPreview, validateWeChatRelease } from "../../scripts/wechat-release-lib";
+import { isPublicHttpsOrigin, isRealWeChatAppId, validateInternalTestPackageSafety, validateWeChatCiPreview, validateWeChatRelease, validateWeChatSourceUpload } from "../../scripts/wechat-release-lib";
+import { bundledUnapprovedEditorialFiles } from "../../scripts/editorial-release-gate";
 import {
   isPrivateLanHttpOrigin,
   isTemporaryRemoteDebugHttpsOrigin,
@@ -25,6 +26,15 @@ const completeGates = {
 const exec = promisify(execFile);
 
 describe("WeChat release preflight", () => {
+  it("permits source-only developer upload before trial acceptance while rejecting wrong AppID or unsafe origins",()=>{
+    const input={projectAppId:"wx4eac2d4fb11d299b",expectedAppId:"wx4eac2d4fb11d299b",
+      privacyCheckEnabled:true,devtoolsCliAvailable:true,trialApiOrigin:"https://staging-api.cisme.cn",
+      releaseApiOrigin:"https://api.cisme.cn"};
+    expect(validateWeChatSourceUpload(input)).toEqual([]);
+    expect(validateWeChatSourceUpload({...input,expectedAppId:"wx0000000000000000"})).toContain("WECHAT_APP_ID_MISMATCH");
+    expect(validateWeChatSourceUpload({...input,trialApiOrigin:"http://127.0.0.1:18080"})).toContain("TRIAL_HTTPS_API_ORIGIN_REQUIRED");
+    expect(validateWeChatSourceUpload({...input,releaseApiOrigin:"https://api.cisme.cn/other"})).toContain("RELEASE_HTTPS_API_ORIGIN_REQUIRED");
+  });
   it("keeps preview and trial on staging while release targets the registered production API", () => {
     expect(miniProgramApiOrigins.preview).toBe("https://staging-api.cisme.cn");
     expect(miniProgramApiOrigins.trial).toBe("https://staging-api.cisme.cn");
@@ -204,7 +214,7 @@ describe("WeChat release preflight", () => {
     const input = {
       target: "release" as const, projectAppId: "wx0123456789abcdef", expectedAppId: "wx0123456789abcdef",
       apiOrigin: "", cloudTarget: { env: "cloud1-test", name: "cismeApi" },
-      privacyCheckEnabled: true, devtoolsCliAvailable: true,
+      privacyCheckEnabled: true, devtoolsCliAvailable: true, editorialPreviewContentExcluded: true,
       manualGates: { ...completeGates, experienceMembersConfigured: false }
     };
     expect(validateWeChatRelease(input)).toEqual(["CLOUD_HTTP_TRANSPORT_PROOF_REQUIRED"]);
@@ -234,7 +244,7 @@ describe("WeChat release preflight", () => {
     const input = {
       target: "release" as const, projectAppId: "wx0123456789abcdef", expectedAppId: "wx0123456789abcdef",
       apiOrigin: "", cloudTarget: { env: "cloud1-test", name: "cismeApi" }, cloudTransportVerified: true,
-      privacyCheckEnabled: true, devtoolsCliAvailable: true,
+      privacyCheckEnabled: true, devtoolsCliAvailable: true, editorialPreviewContentExcluded: true,
       manualGates: { ...completeGates, serverDomainsConfigured: false, miniProgramFilingCompleted: false }
     };
     expect(validateWeChatRelease(input)).toEqual(["MINIPROGRAM_FILING_REQUIRED"]);
@@ -242,6 +252,20 @@ describe("WeChat release preflight", () => {
     const { cloudTarget, ...directInput } = input;
     expect(validateWeChatRelease({ ...directInput, apiOrigin: "https://api.cisme.example" }))
       .toEqual(expect.arrayContaining(["SERVER_DOMAIN_ALLOWLIST_PROOF_REQUIRED", "MINIPROGRAM_FILING_REQUIRED"]));
+  });
+
+  it("excludes retired editorial text and portraits from the formal package", async () => {
+    const files = await bundledUnapprovedEditorialFiles(resolve("apps/miniprogram"));
+    expect(files).toEqual([]);
+    const input = {
+      target: "release" as const, projectAppId: "wx0123456789abcdef", expectedAppId: "wx0123456789abcdef",
+      apiOrigin: "https://api.cisme.example", privacyCheckEnabled: true, devtoolsCliAvailable: true,
+      manualGates: completeGates
+    };
+    expect(validateWeChatRelease(input)).toEqual(["UNAPPROVED_EDITORIAL_PREVIEW_BUNDLED"]);
+    expect(validateWeChatRelease({ ...input, editorialPreviewContentExcluded: files.length === 0 }))
+      .not.toContain("UNAPPROVED_EDITORIAL_PREVIEW_BUNDLED");
+    expect(validateWeChatRelease({ ...input, target: "trial" })).toEqual([]);
   });
 
   it("fails a direct isolated CI invocation before loading the upload tool when release gates are absent", async () => {

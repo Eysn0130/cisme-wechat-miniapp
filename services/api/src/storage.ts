@@ -414,6 +414,10 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
   const authorization = createApiGatewayStorage(config);
   const requireNoVersioning=async()=>{
     assertOperationActive();
+    // Lighthouse COS exposes object APIs, but not the bucket versioning API.
+    // Its product type is pinned by deployment configuration and verified by
+    // an object-level canary instead of widening the application's IAM role.
+    if(config.objectStorage.cosBucketProduct==="lighthouse")return;
     const versioning=await getClient().getBucketVersioning(location);
     assertOperationActive();
     // Tencent COS documents that x-cos-forbid-overwrite is ineffective when
@@ -456,7 +460,23 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
         expiresAt: new Date(input.now.getTime() + 600_000).toISOString()
       };
     },
-    async ensureReady() { await getClient().headBucket(location); await requireNoVersioning(); },
+    async ensureReady() {
+      if(config.objectStorage.cosBucketProduct==="lighthouse"){
+        const key=config.objectStorage.readinessObjectKey;
+        const expected=config.objectStorage.readinessObjectSha256;
+        if(!key||!/^[a-f0-9]{64}$/i.test(expected??""))throw new Error("COS_READINESS_OBJECT_REQUIRED");
+        const head=await getClient().headObject({...location,Key:key});
+        const length=Number(head.headers?.["content-length"]);
+        if(!Number.isInteger(length)||length<1||length>1024)throw new Error("COS_READINESS_OBJECT_SIZE_INVALID");
+        const object=await getClient().getObject({...location,Key:key});
+        const bytes=object.Body;
+        if(!bytes||bytes.length!==length||createHash("sha256").update(bytes).digest("hex")!==expected?.toLowerCase())
+          throw new Error("COS_READINESS_OBJECT_MISMATCH");
+        return;
+      }
+      await getClient().headBucket(location);
+      await requireNoVersioning();
+    },
     async writeGatewayObject(input) {
       await requireNoVersioning();
       const claims = validateGatewayUpload(input, config.objectStorage.uploadTokenSecret);

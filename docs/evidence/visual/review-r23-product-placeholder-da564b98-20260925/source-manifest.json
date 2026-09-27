@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "r23-product-placeholder-da564b98-20260925",
+  "generatedAt": "2026-09-26T02:07:39.866Z",
+  "repository": {
+    "root": "/Users/mini/CISME",
+    "branch": "codex/fulfillment-lifecycle-20260922",
+    "head": "422d54c43195d6799f92f46a01d63ff29d85dbef",
+    "dirty": true,
+    "porcelainEntryCount": 53
+  },
+  "sourceRevision": "local-worktree:422d54c43195+da564b980a24",
+  "miniProgram": {
+    "appId": "wx4eac2d4fb11d299b",
+    "baseLibraryVersion": "3.15.2",
+    "sourceSha256": "da564b980a240ba1eebcef1606a4281bd45b4ba2c6e45c4c9d8a59594ec30715",
+    "files": 265,
+    "routes": 40,
+    "totalBytes": 1500519,
+    "mainPackageBytes": 514098,
+    "globalStyleBytes": 8050
+  },
+  "capture": {
+    "expectedRawScreenshots": 40,
+    "capturedRawScreenshots": 0,
+    "interactionRecordings": 0,
+    "iosDeviceSessions": 0,
+    "androidDeviceSessions": 0,
+    "result": "BLOCKED"
+  },
+  "acceptanceFixture": {
+    "file": "acceptance-fixture.json",
+    "environmentHealth": "environment-health.json",
+    "scope": "local_devtools_synthetic_nonproduction"
+  },
+  "screenshotIndex": [],
+  "exclusions": [
+    "production data",
+    "real payment",
+    "formal Mini Program upload",
+    "generated or web-emulated screenshots"
+  ]
+}

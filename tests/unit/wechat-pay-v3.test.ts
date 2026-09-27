@@ -1,4 +1,4 @@
-import { createCipheriv,generateKeyPairSync,randomBytes,sign } from "node:crypto";
+import { createCipheriv,generateKeyPairSync,randomBytes,sign,verify } from "node:crypto";
 import { expect,it } from "vitest";
 import { assertPaymentBinding,assertPaymentQueryBinding,verifyPaymentNotification,WechatPayV3Client } from "../../services/api/src/wechatPayV3";
 
@@ -53,6 +53,12 @@ it("queries an unknown result using the original merchant order number and verif
     seenUrl=String(url);
     expect(init?.method).toBe("GET");
     expect((init?.headers as Record<string,string>).Authorization).toContain('mchid="1234567890"');
+    const headers=new Headers(init?.headers),auth=headers.get('Authorization')!;
+    expect(headers.get('Wechatpay-Serial')).toBe('PUB_KEY_ID_3000000001');
+    expect(auth).toContain('serial_no="MERCHANT_SERIAL"');
+    const fields=Object.fromEntries([...auth.matchAll(/(\w+)="([^"]+)"/g)].map(match=>[match[1],match[2]]));
+    const path=new URL(seenUrl);
+    expect(verify('RSA-SHA256',Buffer.from(`GET\n${path.pathname}${path.search}\n${fields.timestamp}\n${fields.nonce_str}\n\n`),merchant.publicKey,Buffer.from(fields.signature!,'base64'))).toBe(true);
     const raw=JSON.stringify(transaction),timestamp=Math.floor(Date.now()/1000).toString(),nonce="query-nonce";
     const signature=sign("RSA-SHA256",Buffer.from(`${timestamp}\n${nonce}\n${raw}\n`),platform.privateKey).toString("base64");
     return new Response(raw,{status:200,headers:{"Wechatpay-Serial":"PUB_KEY_ID_3000000001","Wechatpay-Timestamp":timestamp,
@@ -100,10 +106,41 @@ it.each(["missing","bad","unknown-key","expired","valid"])("checks %s signatures
   const headers=responseHeaders("",mode==="expired"?-600:0);
   if(mode==="bad")headers["Wechatpay-Signature"]="WECHATPAY/SIGNTEST/bad";
   if(mode==="unknown-key")headers["Wechatpay-Serial"]="UNKNOWN";
-  const fetcher=(async()=>new Response(null,{status:204,headers:mode==="missing"?{}:headers})) as typeof fetch;
+  const fetcher=(async(_url,init)=>{
+    expect(new Headers(init?.headers).get('Wechatpay-Serial')).toBe('PUB_KEY_ID_3000000001');
+    return new Response(null,{status:204,headers:mode==="missing"?{}:headers});
+  }) as typeof fetch;
   const client=new WechatPayV3Client(binding.merchantId,"MERCHANT_SERIAL",merchantPrivate,keys,fetcher);
   if(mode==="valid")await expect(client.closeByMerchantOrderNumber(binding.outTradeNo)).resolves.toBeUndefined();
   else await expect(client.closeByMerchantOrderNumber(binding.outTradeNo)).rejects.toThrow();
+});
+
+it('requires a deterministic public-key selection and uses the response ID independently',async()=>{
+  const active='PUB_KEY_ID_3000000002',overlap=new Map([...keys,[active,platformPublic]]);
+  const fetcher=(async(_url,init)=>{
+    expect(new Headers(init?.headers).get('Wechatpay-Serial')).toBe(active);
+    // A still-trusted overlap signer may sign this response; do not blindly
+    // verify against the requested key or dynamically trust an unknown ID.
+    const raw=JSON.stringify(transaction);
+    return new Response(raw,{headers:responseHeaders(raw)});
+  }) as typeof fetch;
+  expect(()=>new WechatPayV3Client(binding.merchantId,'MERCHANT_SERIAL',merchantPrivate,overlap,fetcher)).toThrow('ACTIVE_PUBLIC_KEY_REQUIRED');
+  for(const id of ['', 'MERCHANT_SERIAL','PUB_KEY_ID_UNKNOWN01'])
+    expect(()=>new WechatPayV3Client(binding.merchantId,'MERCHANT_SERIAL',merchantPrivate,overlap,fetcher,undefined,id)).toThrow('ACTIVE_PUBLIC_KEY_INVALID');
+  expect(()=>new WechatPayV3Client(binding.merchantId,'MERCHANT_SERIAL',merchantPrivate,new Map(),fetcher)).toThrow('TRUST_ID_REQUIRED');
+  const client=new WechatPayV3Client(binding.merchantId,'MERCHANT_SERIAL',merchantPrivate,overlap,fetcher,undefined,active);
+  expect(await client.queryByMerchantOrderNumber(binding.outTradeNo)).toEqual(transaction);
+});
+
+it('does not substitute merchant serial for Wechatpay-Serial in the existing certificate trust mode',async()=>{
+  const certificateId='AABBCCDD00112233';
+  const fetcher=(async(_url,init)=>{
+    expect(new Headers(init?.headers).has('Wechatpay-Serial')).toBe(false);
+    const raw=JSON.stringify(transaction);
+    return new Response(raw,{headers:{...responseHeaders(raw),'Wechatpay-Serial':certificateId}});
+  }) as typeof fetch;
+  const client=new WechatPayV3Client(binding.merchantId,'MERCHANT_SERIAL',merchantPrivate,new Map([[certificateId,platformPublic]]),fetcher);
+  expect(await client.queryByMerchantOrderNumber(binding.outTradeNo)).toEqual(transaction);
 });
 it.each(["",undefined])("accepts optional empty callback AAD %s with a valid signature and GCM tag",aad=>{
   // undefined bypasses the helper default using an explicit omitted sentinel.

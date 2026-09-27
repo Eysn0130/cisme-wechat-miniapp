@@ -46,7 +46,7 @@ Page({
   data:{formalMode:false,moneyEnabled:false,chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,
     sections:[] as Array<{id:Section;label:string}>,section:"refund" as Section,
     items:[] as Row[],totalCount:0,nextCursor:null as string|null,loading:true,loadingMore:false,
-    busy:false,error:"",moreError:"",actionError:"",actionStatus:"",
+    busy:false,error:"",errorRetryable:false,moreError:"",actionError:"",actionStatus:"",
     cycleMonth:lastCycleMonth(),latestCycleMonth:lastCycleMonth(),cycle:null as Cycle|null,
     cycleDecisionKeys:{} as Record<string,string>,
     billDate:yesterdayShanghai(),latestBillDate:yesterdayShanghai(),alive:true,epoch:0,navigating:false},
@@ -58,20 +58,23 @@ Page({
   async establish(){
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({authority:null,sections:[],items:[],totalCount:0,nextCursor:null,
-      cycle:null,cycleDecisionKeys:{},busy:false,loadingMore:false,loading:true,error:"",actionError:"",actionStatus:""});
+      cycle:null,cycleDecisionKeys:{},busy:false,loadingMore:false,loading:true,error:"",
+      errorRetryable:false,actionError:"",actionStatus:""});
     const current=()=>this.data.alive&&this.data.epoch===epoch&&
       token===getApp<IAppOption>().globalData.sessionToken;
     try{
       const [authority,runtime]=await Promise.all([authorityProjection(),orderRuntimeStatus()]);
       const status=validateRuntime(runtime),actions=runtimeActions(status),formalMode=status.scope==="formal_commerce";
       if(!current())return;
+      this.setData({formalMode,moneyEnabled:actions.money});
       if(!actions.money&&!actions.recovery){this.setData({loading:false,error:"当前环境没有开放资金核对。"});return;}
       const available=sections.filter(([id,,capability])=>hasCapability(authority,capability)&&(!formalMode||id!=="fulfillment")&&
         (!["settlement","cycles"].includes(id)||status.isolatedTransferAvailable)).map(([id,label])=>({id,label}));
       if(!available.length){this.setData({loading:false,error:"当前账号没有资金核对权限。"});return;}
       const section=available.some(item=>item.id===this.data.section)?this.data.section:available[0]!.id;
-      this.setData({authority,sections:available,section,formalMode,moneyEnabled:actions.money});void this.load();
-    }catch(error){if(current())this.setData({loading:false,error:(error as {title?:string}).title||"资金权限暂时无法核验。"});}
+      this.setData({authority,sections:available,section});void this.load();
+    }catch(error){if(current())this.setData({loading:false,errorRetryable:true,
+      error:(error as {title?:string}).title||"资金权限暂时无法核验。"});}
   },
   selectSection(event:WechatMiniprogram.TouchEvent){
     const section=String(event.currentTarget.dataset.section) as Section;
@@ -83,14 +86,14 @@ Page({
   async load(){
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,section=this.data.section;
     this.setData({items:[],totalCount:0,nextCursor:null,loading:section!=="cycles",loadingMore:false,
-      error:"",moreError:""});
+      error:"",errorRetryable:false,moreError:""});
     if(section==="cycles")return;
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section===section&&
       token===getApp<IAppOption>().globalData.sessionToken;
     try{const result=await request<PageResult>({path:`${paths[section]}?limit=20`});
       if(current())this.setData({items:result.items.map(format),totalCount:result.totalCount,
         nextCursor:result.nextCursor,loading:false});
-    }catch(error){if(current())this.setData({items:[],loading:false,
+    }catch(error){if(current())this.setData({items:[],loading:false,errorRetryable:true,
       error:(error as {title?:string}).title||"待办暂时无法加载，请重试。"});}
   },
   async loadMore(){
@@ -144,7 +147,8 @@ Page({
   async loadCycle(){
     const month=this.data.cycleMonth,periodEnd=cyclePeriodEnd(month),epoch=this.data.epoch,
       token=getApp<IAppOption>().globalData.sessionToken;
-    if(this.data.section!=="cycles"||!periodEnd||month>this.data.latestCycleMonth){
+    if(this.data.section!=="cycles"||!this.data.sections.some(item=>item.id==="cycles"))return;
+    if(!periodEnd||month>this.data.latestCycleMonth){
       this.setData({actionError:"请选择已结束的上海自然月。"});return;}
     this.setData({busy:true,actionError:""});
     try{const cycle=await request<Cycle>({path:"/v1/management/commission/settlement-cycles/prepare",
@@ -158,7 +162,8 @@ Page({
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   async prepareCycle(){
-    if(this.data.busy||this.data.section!=="cycles")return;
+    if(this.data.busy||this.data.section!=="cycles"||
+      !this.data.sections.some(item=>item.id==="cycles"))return;
     const periodEnd=cyclePeriodEnd(this.data.cycleMonth);
     if(!periodEnd||this.data.cycleMonth>this.data.latestCycleMonth){
       this.setData({actionError:"请选择已结束的上海自然月。"});return;}
@@ -169,7 +174,8 @@ Page({
   async approveCycleMember(event:WechatMiniprogram.TouchEvent){
     const cycle=this.data.cycle,memberId=String(event.currentTarget.dataset.member??""),
       row=cycle?.members.find(item=>item.memberId===memberId);
-    if(this.data.busy||this.data.section!=="cycles"||!cycle||!row||row.requestId)return;
+    if(this.data.busy||this.data.section!=="cycles"||
+      !this.data.sections.some(item=>item.id==="cycles")||!cycle||!row||row.requestId)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     const answer=await wx.showModal({title:"独立复核本期候选？",
       content:`收款人 ${memberId} · 税前 ¥${row.grossLabel} · ${row.orderCount} 笔。仅本机隔离模拟渠道，零扣缴为合成测试口径，绝非真实免税或付款授权。准备人与复核人不能相同。`,

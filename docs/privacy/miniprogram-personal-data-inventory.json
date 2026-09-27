@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-24",
+  "inventoryDate": "2026-09-27",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -27,6 +27,7 @@
     "wx.nextTick",
     "wx.offKeyboardHeightChange",
     "wx.onKeyboardHeightChange",
+    "wx.openBusinessView",
     "wx.openDocument",
     "wx.openPrivacyContract",
     "wx.openSetting",
@@ -54,6 +55,7 @@
   "wxmlInterfaces": [
     "input-type:nickname",
     "open-type:chooseAvatar",
+    "open-type:contact",
     "open-type:getPhoneNumber",
     "open-type:share"
   ],
@@ -61,6 +63,22 @@
     "chooseAddress"
   ],
   "privacyBoundaries": [
+    {
+      "surface": "wx.openBusinessView",
+      "informationType": "当前已核验订单的微信支付交易号",
+      "purpose": "用户主动打开微信确认收货组件；组件回传仅触发同一订单的服务端只读复核",
+      "activation": "用户在原订单详情明确点击打开微信确认收货后",
+      "serverStorage": "已核验交易绑定留在服务端；仅保存订单关联的微信状态、争议标志和查询时间，不以客户端回传作为收货事实",
+      "currentGate": "已支付全现金订单、订单归属、发货记录与微信只读查询；正式平台组件及账号资格仍待实测"
+    },
+    {
+      "surface": "open-type:contact",
+      "informationType": "用户主动发送给微信客服的消息及微信平台会话身份",
+      "purpose": "登录失败时提供无需会员会话的求助入口；私人资料查询与隐私申请仍须认证",
+      "activation": "用户点击原生客服按钮并在微信客服中主动发送消息后",
+      "serverStorage": "本按钮不自动向 CISME API 发送会员资料；微信客服会话由平台及已配置的客服能力处理",
+      "currentGate": "原生入口已接入；正式微信客服配置、接待与回执待平台验证"
+    },
     {
       "surface": "wx.login",
       "informationType": "微信登录标识",
@@ -557,8 +575,8 @@
       "state": "operator_deployment_tool_only_no_production_apply_executed"
     }
   ],
-  "migrationSetSha256": "9be498a8831abbb53d297a641d9b40d4f0d9131d015fc1ca5db9ffb862695c68",
-  "egressSignatureSha256": "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510",
+  "migrationSetSha256": "d9b0394b6c9d07c92cbc96e31feec0388d18a7b08978694ba778a02e4e5f6523",
+  "egressSignatureSha256": "4a6d8f0fb03f2117341d31274c72c3309136aeab1a3a410d5551faedb9e60317",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -710,5 +728,25 @@
     "newRecipient": false,
     "formalWechatDeviceVerified": false,
     "productionExecuted": false
+  },
+  "editorialRetirementReview20260925": {
+    "scope": "Retires unapproved packaged editorial portraits and images; changes catalog_product.image_path to a neutral licensed icon. Existing order snapshot amounts and image-path facts stay in storage; the native client renders retired paths as the neutral icon.",
+    "newPersonalField": false,
+    "newExternalRecipient": false,
+    "formalDeviceVerified": false,
+    "productionExecuted": false
+  },
+  "paymentPublicKeyAndShippingReadinessReview20260926": {
+    "sources": [
+      "services/api/src/wechatPayV3.ts",
+      "services/api/src/wechatOrderShipping.ts",
+      "infra/tencent/production-health-monitor.py"
+    ],
+    "payment": "Only the pinned WeChat Pay public key ID is added to outgoing Wechatpay-Serial. Merchant Authorization serial and existing transaction payload remain separate. Unknown response signers remain rejected.",
+    "shippingReadiness": "Explicit, bounded account-status queries to api.weixin.qq.com/wxa/sec/order/is_trade_managed and is_trade_management_confirmation_completed. Body contains only the authorized AppID; token stays within transport. No order enumeration, parcels, addresses, messages, payment/refund/transfer writes or new recipient.",
+    "diagnostics": "Only HTTP status, integer provider error code and verified booleans leave the account-status diagnostic. Raw errmsg, token URLs and request headers are discarded. Unknown does not mean false.",
+    "monitor": "Existing independent observer reads the configured grants locally and emits only per-capability expiry warning names fourteen days before expiry. No grant data or credentials are sent; it neither renews grants nor changes API readiness.",
+    "productionCodeDeployed": false,
+    "newPersonalFields": false
   }
 }

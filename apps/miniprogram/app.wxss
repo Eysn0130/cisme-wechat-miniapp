@@ -95,8 +95,7 @@ image {
   height: var(--cisme-topbar-height, calc(env(safe-area-inset-top) + 44px));
   padding: var(--cisme-status-bar, env(safe-area-inset-top)) var(--cisme-nav-side, 112rpx) 0;
   border-bottom: 1rpx solid rgba(83, 59, 94, .08);
-  background: rgba(248, 244, 249, .92);
-  -webkit-backdrop-filter: blur(22rpx);
+  background: #f8f4f9;
 }
 
 .topbar__back {

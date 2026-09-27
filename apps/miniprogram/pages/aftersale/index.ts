@@ -140,7 +140,7 @@ Page({
     action==='resolve_old_route'?`处理结果：${this.data.routeOutcomeOptions[this.data.routeOutcomeIndex]}。\n`:
     action==='approve_refund_without_return'?`例外：${this.data.exceptionOptions[this.data.exceptionIndex]}。\n依据：${this.data.exceptionEvidence.trim()}。\n此操作不等于已退款。\n`:'';
    const yes=await new Promise<boolean>(resolve=>wx.showModal({title:actions[action]!,
-    content:extra+'提交后由服务端记录申请时间和案件编号；退货指引、收件、质检及退款分别留痕。',
+    content:extra+'提交后可在案件中查看操作时间和编号；退货指引、收件、质检及退款会分别记录。',
     confirmText:'确认提交',success:r=>resolve(r.confirm),fail:()=>resolve(false)}));
    if(!this.current(epoch,token)){if(this.visible&&epoch===this.epoch)this.deny('身份已变化，请重新核验。');return;}this.setData({busy:false});if(!yes)return;
    this.pending={key:clientOperationKey('aftersale'),path:`${this.base()}/${row.id}/actions`,data};

@@ -5,7 +5,7 @@ vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, 
 vi.mock("../../apps/miniprogram/release-config", () => ({ legalDocumentVersions: () => null, shouldUseDevelopmentIdentity: () => false }));
 vi.mock("../../apps/miniprogram/services/member-identity", () => ({ publishMemberIdentity: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/member-avatar", () => ({ defaultMemberAvatar: "local-avatar", localMemberAvatar: vi.fn(), prepareAvatarUpload: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", motionDuration: () => 0 }));
+vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", motionDuration: () => 0, shouldReduceMotion: () => false }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ attributePendingShare: vi.fn() }));
 let definition: any;
 const legal = () => ({ ready: true, documents: [{ document_type: "privacy", version: "v1" }, { document_type: "terms", version: "v1" }] });
@@ -43,10 +43,11 @@ describe("account consumes validated legal bootstrap without weakening consent",
   });
   it("keeps failure text readable while the consent checkbox stays disabled", () => {
     const markup = readFileSync("apps/miniprogram/pages/account/index.wxml", "utf8");
-    expect(markup).toContain("account-row account-agreement {{loading || leaving ?");
+    expect(markup).toContain('class="account-agreement__selector" bindchange="toggleAgreement"');
+    expect(markup).toContain('class="account-agreement__label"');
     expect(markup).toContain('disabled="{{loading || leaving || !legalTextsReady}}"');
     expect(markup).toContain("account-legal-status--error");
     expect(markup).not.toContain('class="account-row__icon">1</view>');
-    expect(markup).toContain("手机号可稍后绑定，不影响登录。");
+    expect(markup).toContain("手机号可稍后绑定。");
   });
 });

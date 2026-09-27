@@ -26,10 +26,10 @@
       </view>
       <view wx:if="{{!socialLoading && !socialError && !threads.length}}" class="comment-empty">还没有评论，聊聊你的护理感受吧</view>
       <text wx:if="{{social.truncated}}" class="comment-empty">当前展示前 500 条交流</text>
-      <text class="community-preview-note">互动测试预览 · 新评论审核后才会公开</text>
+      <text wx:if="{{previewRuntime}}" class="community-preview-note">互动测试预览 · 新评论审核后才会公开</text>
     </view>
   </view>
-  <view wx:if="{{!item && error}}" class="glass error-scene post-unavailable" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">STORY UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary post-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载护理故事</text></button><button class="post-error-action {{leaving ? 'control--disabled' : ''}} {{errorKind === 'missing' ? 'primary' : 'secondary'}}" bindtap="back" disabled="{{leaving}}"><text class="action-label">安全返回品牌精选</text></button></view></view>
+  <view wx:if="{{!item && error}}" class="glass error-scene post-unavailable" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/></view><text class="error-scene__eyebrow">STORY UNAVAILABLE</text><strong class="error-scene__title">{{errorTitle}}</strong><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button wx:if="{{errorKind === 'load'}}" class="primary post-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载护理故事</text></button><button class="post-error-action {{leaving ? 'control--disabled' : ''}} {{errorKind === 'missing' ? 'primary' : 'secondary'}}" bindtap="back" disabled="{{leaving}}"><text class="action-label">返回社区</text></button></view></view>
 </view>
 <view wx:if="{{item}}" class="post-bottom-wrap" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px;padding-bottom:6px;' : ''}}">
   <button wx:if="{{socialError}}" class="post-social-error {{socialBusy || socialLoading ? 'control--disabled' : ''}}" bindtap="loadSocial" disabled="{{socialBusy || socialLoading}}">{{socialError}}</button>

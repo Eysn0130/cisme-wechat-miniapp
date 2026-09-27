@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const source = resolve(process.cwd(), "node_modules/@phosphor-icons/core/assets/thin");
@@ -46,7 +46,7 @@ const assets: Record<string, Array<keyof typeof colors>> = {
   wallet: ["plum"]
 };
 
-await rm(destination, { recursive: true, force: true });
+// Keep project icons that are not generated from Phosphor: native pages still use them.
 await mkdir(destination, { recursive: true });
 let count = 0;
 for (const [icon, variants] of Object.entries(assets)) {

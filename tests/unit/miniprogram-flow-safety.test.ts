@@ -108,11 +108,14 @@ describe("mini program submission flow safety", () => {
     expect(account).toContain("legalDocuments.privacy");
     expect(account).toContain("legalDocuments.terms");
     expect(account).toContain("不是正式用户协议");
-    expect(accountView).toContain('bindtap="openLegalDocuments"');
-    expect(accountView).toContain("选择查看用户协议或隐私保护指引");
+    expect(accountView).toContain('bindtap="openTerms"');
+    expect(accountView).toContain('bindtap="openPrivacy"');
+    expect(accountView).toMatch(/<\/checkbox-group>\s*<view class="account-legal-links">/);
     expect(accountView).toContain('disabled="{{loading || leaving || !legalTextsReady}}"');
     expect(accountView).toContain("暂时无法登录");
-    expect(accountView).toContain("协议服务暂时无法连接，请重试");
+    expect(accountView).toContain("协议暂时无法加载，请重试");
+    expect(accountView).toContain("协议加载异常，请稍后重试");
+    expect(accountView).toContain("重新加载协议");
     expect(accountView).toContain("当前协议尚未发布，请稍后重试");
   });
 
@@ -325,7 +328,8 @@ describe("mini program submission flow safety", () => {
     expect(shopView).toContain("全部商品");
     expect(shopView).toContain("catalog && catalog.items.length && !purchaseAvailable");
     expect(shopView).toContain("商品可浏览，暂不能下单。");
-    expect(editorial).toContain("内容授权尚待确认");
+    expect(editorial).toContain("export const editorialStories: EditorialStory[] = []");
+    expect(editorial).not.toContain("内容授权尚待确认");
   });
 
   it("rejects stale profile and post responses and revalidates UGC on foreground", async () => {
@@ -337,7 +341,7 @@ describe("mini program submission flow safety", () => {
     expect(profile).toContain("loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true");
     expect(profile).toContain("this.data.loadAttempt === attempt");
     expect(profile).toContain("this.data.tasksAttempt !== attempt");
-    expect(profile).toContain("member:null, points:null, care:null, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null");
+    expect(profile).toContain("member:null, points:null, care:null, coreUnavailable:false, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null");
     expect(post).toContain("onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
     expect(post).not.toContain("allowPublicBrowsing");
     expect(post).toContain("this.data.loadAttempt !== attempt");

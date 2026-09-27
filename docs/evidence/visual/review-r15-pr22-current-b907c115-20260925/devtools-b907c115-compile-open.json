@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "b907c1159c7a1dd064f971f95d4a0dd098d95e8aa141041b1d30bab8021f588d",
+  "tool": "wechatide 0.3.11 simulator_open_page",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "appId": "wx4eac2d4fb11d299b",
+  "baseLibraryVersion": "3.15.2",
+  "routeCount": 40,
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/records/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/community/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/profile/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/account/index",
+      "query": "intent=login",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/task/index",
+      "query": "id=3aeea46e-b010-46f4-b76d-c1d7fe853bb4",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/submit/index",
+      "query": "id=6a4b98ed-789c-4d78-931b-500ea34016bd",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/progress/index",
+      "query": "id=6a4b98ed-789c-4d78-931b-500ea34016bd",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/points/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/post/index",
+      "query": "id=brand-scalp-ritual",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/shop/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/product/index",
+      "query": "id=synthetic-acceptance-serum",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/checkout/index",
+      "query": "product=synthetic-acceptance-serum&sku=53cd3ce5-fe11-4051-afa4-f0444d9223ab&quantity=1",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/orders/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "query": "id=2c73d792-a365-4a59-b31b-7cea75670458",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/settings/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/invite/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/legal/index",
+      "query": "type=privacy",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/support/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-product/index",
+      "query": "id=25c637b0-329c-4e76-a296-287d1fbcb147",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "query": "id=0b570346-51f0-40fa-a2a4-43f7bb46cafc",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-support/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "query": "id=e8dcc251-84a4-4960-9ce2-802dd913a3b1",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-members/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-member/index",
+      "query": "id=a1aa1718-7ae9-4cc1-b43e-29037d37158d",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/referral/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/community-post/index",
+      "query": "id=526b77ef-8fe8-4ca1-a577-dc40aea53ed7",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/community-author/index",
+      "query": "id=a6e3ee6b-2999-4f85-8fbf-2b48cc1dba69",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/community-review/index",
+      "query": "id=169eba03-4c92-46c5-a961-4c7e5eda5c2d",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/commission/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/aftersale/index",
+      "query": "orderId=0b570346-51f0-40fa-a2a4-43f7bb46cafc",
+      "scene": 1001,
+      "result": "pending_capture"
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "query": "",
+      "scene": 1001,
+      "result": "pending_capture"
+    }
+  ],
+  "qualification": "The capture runner replaces pending_capture with the actual route-open result. This file is not interaction or device acceptance."
+}

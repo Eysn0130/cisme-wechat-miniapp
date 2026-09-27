@@ -61,6 +61,27 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   m.read.mockImplementation((_p:any,input:any)=>input.path.includes('/aftersales?')?Promise.reject(new Error('offline')):Promise.resolve(reply(input)));
   await p.loadSupportSheet();await p.submitSheetAftersale();expect(m.write).not.toHaveBeenCalled();expect(p.data.sheetCasesReady).toBe(false);
  });
+ it('keeps a local validation error through polling, then reads back exactly one submitted case',async()=>{
+  let created=false;
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,created?[record]:[])));
+  m.write.mockImplementation(async()=>{created=true;return record;});
+  const p=await page();await p.loadSupportSheet();
+  await p.submitSheetAftersale();
+  expect(p.data.sheetError).toBe('请选择售后问题类型。');
+  expect(m.write).not.toHaveBeenCalled();
+  await p.pollSupportSheet();
+  expect(p.data.sheetError).toBe('请选择售后问题类型。');
+  p.chooseSheetBasis({detail:{value:'1'}});
+  expect(p.data.sheetError).toBe('');
+  await p.submitSheetAftersale();
+  expect(m.write).toHaveBeenCalledTimes(1);
+  expect(p.data.sheetCase.id).toBe(record.id);
+  expect(p.data.sheetError).toBe('');
+  await p.pollSupportSheet();
+  expect(p.data.sheetCase.id).toBe(record.id);
+  await p.submitSheetAftersale();
+  expect(m.write).toHaveBeenCalledTimes(1);
+ });
  it('still accepts an application when only chat is offline',async()=>{
   const p=await page();m.read.mockImplementation((_p:any,input:any)=>input.path.includes('/aftersales/availability')?Promise.resolve(availability):
     input.path.includes('/aftersales?')?Promise.resolve({items:[]}):Promise.reject(new Error('offline')));
@@ -111,6 +132,62 @@ describe('order support sheet owns reads and reflects current cases',()=>{
  });
  it('ignores keyboard events after the popup is closed',async()=>{
   const p=await page();p.closeSupportSheet();p.onSheetKeyboardHeightChange({detail:{height:300}});expect(p.data.sheetKeyboardHeight).toBe(0);
+ });
+ it('keeps the last receipt observation and permits retry after an interrupted query fails',async()=>{
+  const p=await page(),old=deferred();
+  const shipmentId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  p.data.order={...p.data.order,status:'paid',transactionSourceKind:'verified_commerce'};
+  p.data.shipment={id:shipmentId,wechatReceipt:{status:'shipped',observedAt:'2026-09-27T01:00:00Z',label:'微信显示已发货'}};
+  p.loadShipment=vi.fn();
+  m.write.mockImplementationOnce(()=>old.promise).mockRejectedValueOnce(new Error('offline'));
+  const first=p.queryWechatReceipt(false);
+  expect(p.data.receiptQueryLoading).toBe(true);
+  p.onHide();p.data.visible=true;
+  await p.queryWechatReceipt(false);
+  expect(p.data.receiptQueryLoading).toBe(false);
+  expect(p.data.receiptQueryError).toContain('重试');
+  expect(p.data.shipment.wechatReceipt.observedAt).toBe('2026-09-27T01:00:00Z');
+  old.resolve({orderId,shipmentId,status:'confirmed',label:'微信已记录确认收货'});
+  await first;
+  expect(p.data.receiptQueryError).toContain('重试');
+  expect(p.data.shipment.wechatReceipt.status).toBe('shipped');
+ });
+ it('never opens the real WeChat component for a synthetic order',async()=>{
+  const p=await page(),shipmentId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  p.data.order={...p.data.order,status:'paid',transactionSourceKind:'verified_commerce'};
+  p.data.shipment={id:shipmentId};
+  p.data.runtimeMode='test';p.loadShipment=vi.fn();
+  m.write.mockResolvedValue({orderId,shipmentId,status:'shipped',label:'微信显示已发货',
+    canOpenComponent:true,component:{transactionId:'synthetic-transaction'}});
+  (globalThis as any).wx.openBusinessView=vi.fn();
+  await p.queryWechatReceipt(true);
+  expect(m.write).toHaveBeenCalledTimes(1);
+  expect((globalThis as any).wx.openBusinessView).not.toHaveBeenCalled();
+  expect(p.data.actionStatus).toContain('不会打开真实微信');
+ });
+ it('checks a successful component return again without reopening it, and stops after confirmation',async()=>{
+  const p=await page(),shipmentId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  p.data.order={...p.data.order,status:'paid',transactionSourceKind:'verified_commerce'};
+  p.data.shipment={id:shipmentId};p.loadShipment=vi.fn();
+  m.write.mockResolvedValueOnce({orderId,shipmentId,status:'shipped',label:'微信显示已发货',canOpenComponent:true})
+    .mockResolvedValueOnce({orderId,shipmentId,status:'confirmed',label:'微信已记录确认收货',canOpenComponent:false});
+  (globalThis as any).wx.openBusinessView=vi.fn();
+  await p.queryWechatReceipt(false,'success');
+  expect(p.data.actionStatus).toContain('正在更新收货状态');
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(m.write).toHaveBeenCalledTimes(2);
+  expect(p.data.actionStatus).toBe('微信已记录确认收货');
+  expect((globalThis as any).wx.openBusinessView).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(10000);expect(m.write).toHaveBeenCalledTimes(2);
+ });
+ it('abandons delayed receipt reads after leaving the order',async()=>{
+  const p=await page(),shipmentId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  p.data.order={...p.data.order,status:'paid',transactionSourceKind:'verified_commerce'};
+  p.data.shipment={id:shipmentId};p.loadShipment=vi.fn();
+  m.write.mockResolvedValue({orderId,shipmentId,status:'shipped',label:'微信显示已发货',canOpenComponent:true});
+  await p.queryWechatReceipt(false,'success');p.onHide();
+  await vi.advanceTimersByTimeAsync(10000);
+  expect(m.write).toHaveBeenCalledTimes(1);
  });
  it('uses native enter/leave, keyboard-aware height, one composer, and current-case addresses in WXML',()=>{
   const wxml=readFileSync('apps/miniprogram/pages/order-detail/index.wxml','utf8');

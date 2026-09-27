@@ -21,6 +21,30 @@ m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 HEAD='a'*40;TREE='b'*40
 
 
+class ServiceSandboxContract(unittest.TestCase):
+    def test_api_and_worker_keep_private_inputs_read_only_while_worker_can_write_privacy_suppression(self):
+        root=Path(__file__).parent
+        for name in ('cisme-api.service','cisme-worker.service'):
+            lines=(root/name).read_text().splitlines()
+            writable=[path for line in lines if line.startswith('ReadWritePaths=')
+                      for path in line.partition('=')[2].split()]
+            self.assertIn('ProtectSystem=strict',lines)
+            self.assertIn('/var/lib/cisme/privacy-suppression',writable)
+            self.assertNotIn('/etc/cisme-wechat-pay',writable)
+            self.assertFalse(any(path.startswith('/etc/cisme-wechat-pay/') for path in writable))
+
+    def test_installed_unit_cannot_write_private_inputs_or_release(self):
+        def inspect(values):
+            with patch.object(m,'command',side_effect=[entry.encode() for entry in values]):
+                return m.require_private_service_sandbox('cisme-worker.service',
+                    ['/etc/cisme-wechat-pay/approval.json','/opt/cisme/runtime.env','/opt/cisme/releases/main'])
+        self.assertIn(Path('/opt/cisme/tmp'),inspect(['cisme','strict','/opt/cisme/tmp /var/lib/cisme/privacy-suppression']))
+        for values in [('root','strict','/opt/cisme/tmp'),('cisme','full','/opt/cisme/tmp'),
+                       ('cisme','strict','/etc/cisme-wechat-pay /opt/cisme/tmp'),
+                       ('cisme','strict','/opt/cisme /var/lib/cisme/privacy-suppression')]:
+            with self.subTest(values=values),self.assertRaises(m.observe.target.Refused):inspect(values)
+
+
 class MainProvenance(unittest.TestCase):
     def run_data(self,**changes):
         return dict(id=10,head_sha=HEAD,head_branch='main',event='push',status='completed',conclusion='success',
@@ -131,10 +155,12 @@ class Preflight(unittest.TestCase):
         self.trusted_script=self.script;self.calls=[];self.suppression_mode=stat.S_IFDIR|0o700
         self.worker_writable=True
 
-    def execute(self,services_stopped=False):
+    def execute(self,services_stopped=False,resume_plan=None):
         def fetch(path):return {'type':'file','encoding':'base64','path':'scripts/release-migrate.mjs','content':base64.b64encode(self.trusted_script).decode()}
         def command(*args,**kwargs):
             if args[0][0]=='systemctl':
+                if '--property=User' in args[0]:return b'cisme'
+                if '--property=ProtectSystem' in args[0]:return b'strict'
                 if 'cisme-worker.service' in args[0] and not self.worker_writable:return b'/opt/cisme/tmp'
                 return b'/opt/cisme/tmp /var/lib/cisme/privacy-suppression'
             self.calls.append('verify');return json.dumps({'verified':True,'sourceHead':HEAD,'sourceTree':TREE}).encode()
@@ -155,7 +181,7 @@ class Preflight(unittest.TestCase):
             stack.enter_context(patch.object(m.journal,'inspect',side_effect=lambda:self.calls.append('journal') or {'journal':['20260101_first.sql']}))
             stack.enter_context(patch.object(m,'local_https_ready',side_effect=lambda:self.calls.append('local-https')))
             stack.enter_context(patch.object(m,'require_services_stopped',side_effect=lambda:self.calls.append('units-stopped')))
-            result=m.preflight(str(self.new),str(self.candidate),fetch,services_stopped=services_stopped)
+            result=m.preflight(str(self.new),str(self.candidate),fetch,services_stopped=services_stopped,resume_plan=resume_plan)
             guard.assert_called_once_with(str(self.candidate),self.manifest,HEAD,TREE)
             return result
 
@@ -166,6 +192,26 @@ class Preflight(unittest.TestCase):
     def test_post_stop_recheck_keeps_provenance_target_and_history_checks(self):
         self.execute(services_stopped=True)
         self.assertEqual(self.calls,['verify','live-target-guard','journal','units-stopped'])
+
+    def test_resume_after_activation_verifies_same_inputs_without_requiring_offline_https(self):
+        original=self.execute();self.calls.clear()
+        self.current.unlink();self.current.symlink_to(self.new)
+        self.live.write_bytes(self.candidate.read_bytes());self.live_config=dict(self.candidate_config)
+        result=self.execute(services_stopped=True,resume_plan=original)
+        self.assertEqual(result['previous'],original['previous'])
+        self.assertNotIn('local-https',self.calls);self.assertIn('units-stopped',self.calls)
+        self.candidate.write_text('SYNTHETIC=changed')
+        with self.assertRaisesRegex(m.observe.target.Refused,'RESUME_CANDIDATE_OR_PREVIOUS_DRIFT'):
+            self.execute(services_stopped=True,resume_plan=original)
+
+    def test_resume_does_not_accept_unrelated_live_configuration_or_rewound_history(self):
+        original=self.execute();self.live.write_text('SYNTHETIC=other-operator')
+        with self.assertRaisesRegex(m.observe.target.Refused,'RESUME_LIVE_STATE_DRIFT'):
+            self.execute(services_stopped=True,resume_plan=original)
+        self.live.write_text('SYNTHETIC=old')
+        original['migrationPlan']['applied']+=1
+        with self.assertRaisesRegex(m.observe.target.Refused,'RESUME_MIGRATION_HISTORY_DRIFT'):
+            self.execute(services_stopped=True,resume_plan=original)
 
     def test_branch_candidate_refused_before_any_candidate_execution(self):
         self.manifest['sourceHead']='c'*40;(self.new/'release-manifest.json').write_text(json.dumps(self.manifest))
@@ -181,6 +227,13 @@ class Preflight(unittest.TestCase):
         self.candidate_config['APP_SESSION_SECRET']='synthetic-changed'
         with self.assertRaisesRegex(m.observe.target.Refused,'IMPLICIT_SECRET_CHANGE_REFUSED'):self.execute()
         self.assertNotIn('journal',self.calls)
+
+    def test_cos_readiness_object_path_is_not_treated_as_a_secret_rotation(self):
+        self.candidate_config['COS_READINESS_OBJECT_KEY']='submissions/fixture/probe/readiness.txt'
+        self.candidate_config['COS_READINESS_OBJECT_SHA256']='b'*64
+        self.execute()
+        self.candidate_config['S3_SECRET_ACCESS_KEY']='new-secret'
+        with self.assertRaisesRegex(m.observe.target.Refused,'IMPLICIT_SECRET_CHANGE_REFUSED'):self.execute()
 
     def test_formal_export_key_can_be_initialized_once_but_not_rotated(self):
         self.execute()
@@ -216,9 +269,11 @@ class Preflight(unittest.TestCase):
 
 class Qualifications(unittest.TestCase):
     def setUp(self):
-        self.plan={'main':{'sha':HEAD,'tree':TREE},'manifestSha256':'c'*64,'previous':{'directory':'/fake/old'},'migrationPlan':{'pending':['20260101_next.sql']}}
+        self.plan={'main':{'sha':HEAD,'tree':TREE},'manifestSha256':'c'*64,'previous':{'directory':'/fake/old'},'migrationPlan':{'pending':['20260101_next.sql']},
+                   'candidateEnvironmentSha256':'e'*64,'liveEnvironmentSha256':'f'*64}
         self.q={'schemaVersion':1,'kind':'reviewed-production-upgrade','instanceId':'lhins-61ikz4mi','database':'cisme',
                 'candidateHead':HEAD,'candidateTree':TREE,'manifestSha256':'c'*64,'previous':self.plan['previous'],
+                'candidateEnvironmentSha256':'e'*64,'liveEnvironmentSha256':'f'*64,
                 'approvedPendingMigrations':self.plan['migrationPlan']['pending'],'reviewReference':'synthetic-fixture-only',
                 'backup':{'path':'/var/backups/cisme-predeploy/synthetic.aesgcm','sha256':'d'*64}}
         self.values={}
@@ -240,6 +295,40 @@ class Qualifications(unittest.TestCase):
             return m.qualifications('/synthetic/qualification',self.plan)
 
     def test_all_reviewed_bindings_are_required(self):self.assertEqual(self.check()['database'],'cisme')
+
+    def test_private_file_content_and_permissions_are_part_of_qualification(self):
+        self.plan['privateInputs']=[{'key':'COMMERCE_FORMAL_API_V3_KEY_FILE','sha256':'e'*64,'uid':999,'mode':384}]
+        with self.assertRaisesRegex(m.observe.target.Refused,'UPGRADE_BINDING'):self.check()
+        self.q['privateInputs']=self.plan['privateInputs'].copy();self.check()
+        for change in ({'sha256':'f'*64},{'uid':998},{'mode':420}):
+            self.q['privateInputs']=[{**self.plan['privateInputs'][0],**change}]
+            with self.subTest(change=change),self.assertRaisesRegex(m.observe.target.Refused,'UPGRADE_BINDING'):self.check()
+
+    def test_qualification_binds_both_candidate_and_current_environment(self):
+        for key in ('candidateEnvironmentSha256','liveEnvironmentSha256'):
+            original=self.q.pop(key)
+            with self.subTest(key=key),self.assertRaisesRegex(m.observe.target.Refused,'UPGRADE_BINDING'):
+                self.check()
+            self.q[key]=original
+
+    def test_forward_recovery_requires_proven_resume_and_fence(self):
+        self.q['recoveryMode']='forward-only'
+        self.values['rollback'].update(kind='bounded-forward-recovery',newWritesPreserved=True,
+            partialMigrationResumeVerified=True,maintenanceFenceVerified=True,noAutomaticOldBinaryRestart=True)
+        self.assertEqual(self.check()['recoveryMode'],'forward-only')
+        for key in ['newWritesPreserved','partialMigrationResumeVerified','maintenanceFenceVerified','noAutomaticOldBinaryRestart']:
+            self.values['rollback'][key]=False
+            with self.subTest(key=key),self.assertRaisesRegex(m.observe.target.Refused,'FORWARD_RECOVERY_REQUIRED'):self.check()
+            self.values['rollback'][key]=True
+
+    def test_unavailable_sql_requires_explicit_reviewed_schema_alternative(self):
+        review=self.values['migrationReview'];review.update(historicalSqlIntegrityVerified=False,historicalSqlUnavailable=True,
+            liveRestoredSchemaMatch=True,baselineSchemaSha256='a'*64,pendingSqlContentReviewed=True,unknownHistoricalSqlRiskAccepted=True)
+        self.check()
+        for key in ['historicalSqlUnavailable','liveRestoredSchemaMatch','pendingSqlContentReviewed','unknownHistoricalSqlRiskAccepted']:
+            review[key]=False
+            with self.subTest(key=key),self.assertRaisesRegex(m.observe.target.Refused,'HISTORICAL_SQL_REVIEW_REQUIRED'):self.check()
+            review[key]=True
 
     def test_staging_target_and_test_database_refused(self):
         for key,value in [('instanceId','lhins-ei4hz4fi'),('database','cisme_test')]:
@@ -274,6 +363,92 @@ class Qualifications(unittest.TestCase):
         with self.assertRaises(m.observe.target.Refused):self.check()
 
 
+class ForwardResumeState(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(prefix='cisme-resume-fixture-');self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name).resolve();self.state=self.root/'production-upgrades'/('main-'+HEAD[:12]+'-1')
+        self.state.mkdir(parents=True,mode=0o700)
+        self.candidate=self.root/'candidate.env';self.candidate.write_bytes(b'SYNTHETIC=new')
+        self.release=self.root/'releases'/'candidate-main'
+        self.plan={'main':{'sha':HEAD,'tree':TREE},'manifestSha256':'c'*64,
+                   'candidateDirectory':str(self.release),'candidateEnvironmentSha256':m.sha(b'SYNTHETIC=new'),
+                   'liveEnvironmentSha256':m.sha(b'SYNTHETIC=old')}
+        self.q={'recoveryMode':'forward-only','candidateHead':HEAD,'manifestSha256':'c'*64,
+                'candidateEnvironmentSha256':self.plan['candidateEnvironmentSha256']}
+        self.failed={'servicesStopped':True,'databaseRestored':False,'oldApplicationRestarted':False}
+        (self.state/'previous.env').write_bytes(b'SYNTHETIC=old')
+        self.foreign=None;self.stopped=True;self.identity=True
+        self.refresh()
+
+    def refresh(self):
+        for name,value in [('preflight.json',self.plan),('qualification.json',self.q),('forward-recovery-required.json',self.failed)]:
+            (self.state/name).write_text(json.dumps(value))
+
+    def context(self):
+        stack=ExitStack();self.addCleanup(stack.close)
+        original=Path.lstat
+        def metadata(path,*args,**kwargs):
+            info=original(path,*args,**kwargs)
+            return SimpleNamespace(st_mode=info.st_mode,st_uid=1000 if path==self.foreign else 0)
+        def stopped():m.require(self.stopped,'PRODUCTION_UNITS_NOT_STOPPED')
+        def identity():m.require(self.identity,'WRONG_TARGET');return {}
+        for name,value in [('ROOT',self.root),('protected',lambda p,*a:Path(p).read_bytes()),
+                           ('receipt',lambda p:json.loads(Path(p).read_bytes())),('require_services_stopped',stopped)]:
+            stack.enter_context(patch.object(m,name,value))
+        stack.enter_context(patch.object(Path,'lstat',metadata))
+        stack.enter_context(patch.object(m.observe,'identity',identity))
+        return stack
+
+    def check(self):
+        with self.context():return m.resume_record(self.state,self.release,self.candidate)
+
+    def test_record_requires_actual_failed_forward_installation_and_unchanged_inputs(self):
+        self.assertEqual(self.check(),self.plan)
+        for field,value in [('servicesStopped',False),('databaseRestored',True),('oldApplicationRestarted',True)]:
+            saved=self.failed[field];self.failed[field]=value;self.refresh()
+            with self.subTest(field=field),self.assertRaisesRegex(m.observe.target.Refused,'BINDING_REQUIRED'):self.check()
+            self.failed[field]=saved;self.refresh()
+        self.candidate.write_bytes(b'SYNTHETIC=unreviewed')
+        with self.assertRaisesRegex(m.observe.target.Refused,'BINDING_REQUIRED'):self.check()
+
+    def test_changed_private_files_refuse_resume_even_when_env_is_identical(self):
+        self.plan['privateInputs']=[{'sha256':'e'*64}];self.refresh()
+        with patch.object(m,'private_inputs',return_value=[{'sha256':'f'*64}]):
+            with self.assertRaisesRegex(m.observe.target.Refused,'BINDING_REQUIRED'):self.check()
+
+    def test_completed_state_wrong_host_and_running_services_cannot_resume(self):
+        (self.state/'deployed.json').write_text('{}')
+        with self.assertRaisesRegex(m.observe.target.Refused,'FAILED_FORWARD_UPGRADE_REQUIRED'):self.check()
+        (self.state/'deployed.json').unlink()
+        self.stopped=False
+        with self.assertRaisesRegex(m.observe.target.Refused,'PRODUCTION_UNITS_NOT_STOPPED'):self.check()
+        self.identity=False
+        with self.assertRaisesRegex(m.observe.target.Refused,'WRONG_TARGET'):self.check()
+
+    def test_unprotected_state_or_changed_previous_environment_cannot_resume(self):
+        self.foreign=self.state
+        with self.assertRaisesRegex(m.observe.target.Refused,'PROTECTED_UPGRADE_STATE_REQUIRED'):self.check()
+        self.foreign=None;(self.state/'previous.env').write_text('SYNTHETIC=changed')
+        with self.assertRaisesRegex(m.observe.target.Refused,'BINDING_REQUIRED'):self.check()
+
+    def test_apply_resume_rechecks_fresh_qualification_before_creating_next_state(self):
+        with self.context(),patch.object(m.os,'geteuid',return_value=0),patch.object(m.os,'fstat',return_value=SimpleNamespace(st_mode=stat.S_IFREG|0o600,st_uid=0)),patch.object(m,'preflight',return_value=self.plan) as preflight,patch.object(m,'qualifications',side_effect=m.observe.target.Refused('STALE_REVIEW')) as review,patch.object(m,'cutover') as cutover:
+            with self.assertRaisesRegex(m.observe.target.Refused,'STALE_REVIEW'):
+                m.apply(self.release,self.candidate,'/synthetic/qualification','synthetic-only',self.state)
+            preflight.assert_called_once_with(self.release,self.candidate,services_stopped=True,resume_plan=self.plan)
+            review.assert_called_once_with('/synthetic/qualification',self.plan)
+            cutover.assert_not_called()
+            self.assertEqual(len(list(self.state.parent.iterdir())),1)
+
+    def test_cli_resume_is_explicit_and_requires_requalification(self):
+        common=['entry','resume','--release',str(self.release),'--candidate-env',str(self.candidate)]
+        for extra,code in [([], 'FAILED_UPGRADE_STATE_REQUIRED'),(['--resume-state',str(self.state)],'REVIEWED_QUALIFICATION_FILE_REQUIRED')]:
+            output=io.StringIO()
+            with patch('sys.argv',common+extra),patch.object(m,'apply') as apply,redirect_stdout(output):
+                self.assertEqual(m.main(),1);apply.assert_not_called()
+            self.assertIn(code,output.getvalue())
+
+
 class Cutover(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='cisme-synthetic-cutover-');self.addCleanup(self.temp.cleanup)
@@ -288,14 +463,14 @@ class Cutover(unittest.TestCase):
           'migrationPlan':{'pending':['20260101_next.sql']},'liveEnvironmentSha256':m.sha(self.old_bytes),'candidateEnvironmentSha256':m.sha(self.new_bytes)}
         self.q={'backup':{'sha256':'d'*64},'reviewReference':'synthetic-only'};self.commands=[];self.switches=[];self.business=['before-cutover']
 
-    def execute(self,fail_health=False,fail_migration=False,clients=0,changed_env=False,stopped_api=False):
+    def execute(self,fail_health=False,fail_migration=False,clients=0,changed_env=False,stopped_api=False,resume_plan=None):
         def command(args,**kwargs):
             self.commands.append(args)
             if args[-1]=='up':
-                self.business.append('new-write-after-backup')
+                if 'new-write-after-backup' not in self.business:self.business.append('new-write-after-backup')
                 self.assertEqual(kwargs['env']['DATABASE_URL'],'synthetic-original')
                 if fail_migration:raise m.observe.target.Refused('SYNTHETIC_PARTIAL_MIGRATION_FAILED')
-                return b'{"applied":"20260101_next.sql"}\n'
+                return b''.join((json.dumps({'applied':name})+'\n').encode() for name in self.plan['migrationPlan']['pending'])
             return b''
         def recheck(*args,**kwargs):
             if stopped_api and not kwargs.get('services_stopped',False):
@@ -307,9 +482,9 @@ class Cutover(unittest.TestCase):
                 if changed_env:self.live.write_bytes(b'SYNTHETIC_OTHER_OPERATOR_CHANGE')
                 raise m.observe.target.Refused('SYNTHETIC_ACTIVATION_FAILED')
         with ExitStack() as stack:
-            for name,value in [('LIVE',self.live),('protected',lambda p,*a:Path(p).read_bytes()),('preflight',recheck),('command',command),('switch',switch),('healthy',health),('receipt',lambda *a:{})]:stack.enter_context(patch.object(m,name,value))
+            for name,value in [('LIVE',self.live),('protected',lambda p,*a:Path(p).read_bytes()),('preflight',recheck),('command',command),('switch',switch),('healthy',health),('receipt',lambda *a:{}),('require_services_stopped',lambda:None)]:stack.enter_context(patch.object(m,name,value))
             stack.enter_context(patch.object(m.journal,'query',return_value=clients));guard=stack.enter_context(patch.object(m.observe,'guard_for_upgrade',return_value={}))
-            result=m.cutover(self.plan,str(self.new),str(self.candidate),self.q,'synthetic-only',self.state)
+            result=m.cutover(self.plan,str(self.new),str(self.candidate),self.q,'synthetic-only',self.state,resume_plan=resume_plan)
             self.assertEqual(guard.call_count,1);return result
 
     def test_cutover_uses_same_database_and_closed_maintenance_mode(self):
@@ -333,6 +508,29 @@ class Cutover(unittest.TestCase):
         with self.assertRaisesRegex(m.observe.target.Refused,'APPLICATION_RESTORED'):self.execute(fail_migration=True)
         self.assertEqual(self.switches,[self.old]);self.assertIn('new-write-after-backup',self.business)
 
+    def test_forward_only_failure_leaves_services_stopped_and_new_facts_preserved(self):
+        self.q['recoveryMode']='forward-only'
+        with self.assertRaisesRegex(m.observe.target.Refused,'FORWARD_RECOVERY_REQUIRED'):self.execute(fail_migration=True)
+        self.assertEqual(self.switches,[]);self.assertIn('new-write-after-backup',self.business)
+        self.assertFalse(any(c[:2]==['systemctl','start'] for c in self.commands))
+        self.assertFalse(json.loads((self.state/'forward-recovery-required.json').read_text())['databaseRestored'])
+
+    def test_forward_failure_then_requalified_resume_restarts_services_and_preserves_business(self):
+        self.q['recoveryMode']='forward-only'
+        with self.assertRaisesRegex(m.observe.target.Refused,'FORWARD_RECOVERY_REQUIRED'):
+            self.execute(fail_health=True)
+        self.assertEqual(self.current,self.new)
+        original=dict(self.plan)
+        # Operational failure repaired; live migrations already completed. A
+        # separate newly qualified plan binds the actual current env/history.
+        self.plan={**self.plan,'liveEnvironmentSha256':m.sha(self.live.read_bytes()),
+                   'migrationPlan':{'pending':[]}}
+        self.state=self.root/'resumed-state';self.state.mkdir()
+        result=self.execute(stopped_api=True,resume_plan=original)
+        self.assertTrue(result['deployed']);self.assertEqual(self.current,self.new)
+        self.assertEqual(self.business,['before-cutover','new-write-after-backup'])
+        self.assertTrue(any(c[:2]==['systemctl','start'] for c in self.commands))
+
     def test_undrained_client_prevents_any_migration(self):
         with self.assertRaisesRegex(m.observe.target.Refused,'APPLICATION_RESTORED'):self.execute(clients=1)
         self.assertFalse(any(c[-1]=='up' for c in self.commands));self.assertEqual(self.business,['before-cutover'])
@@ -345,6 +543,44 @@ class Cutover(unittest.TestCase):
         self.candidate.write_text('SYNTHETIC_CHANGED=1\n')
         with self.assertRaisesRegex(m.observe.target.Refused,'PREPARED_ENVIRONMENT_CHANGED'):self.execute()
         self.assertEqual(self.commands,[]);self.assertEqual(self.switches,[])
+
+
+class PrivateInputs(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(prefix='cisme-private-binding-fixture-');self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name).resolve();self.root.chmod(0o700)
+        self.key=self.root/'synthetic-key';self.key.write_text('SYNTHETIC_PRIVATE_INPUT');self.key.chmod(0o600)
+        self.manifest=self.root/'trust.json'
+        self.manifest.write_text(json.dumps({'schemaVersion':1,'keys':[{'id':'PUB_KEY_ID_SYNTHETIC','publicKeyFile':str(self.key)}]}));self.manifest.chmod(0o600)
+        self.config={'COMMERCE_FORMAL_API_V3_KEY_FILE':str(self.key),'COMMERCE_FORMAL_PLATFORM_TRUST_FILE':str(self.manifest)}
+
+    def check(self):
+        original=Path.lstat
+        def metadata(path,*args,**kwargs):
+            info=original(path,*args,**kwargs)
+            # Only root ownership of the host's temporary path is simulated.
+            # Real file descriptors, bytes, mode checks and symlinks are used.
+            return SimpleNamespace(st_mode=info.st_mode,st_uid=0,st_gid=info.st_gid)
+        with patch.object(Path,'lstat',metadata),patch.object(m.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=m.os.geteuid())):
+            return m.private_inputs(self.config)
+
+    def test_content_change_at_same_path_changes_binding_including_referenced_anchors(self):
+        before=self.check();self.assertEqual(len(before),3)
+        self.key.write_text('DIFFERENT_SYNTHETIC_PRIVATE_INPUT')
+        after=self.check();self.assertNotEqual(before,after)
+        self.assertNotEqual(before[-1]['sha256'],after[-1]['sha256'])
+        self.assertNotIn('sha256',json.dumps(m.public_result({'privateInputs':after})))
+        self.assertNotIn(str(self.key),json.dumps(m.public_result({'privateInputs':after})))
+
+    def test_permissions_symlinks_missing_files_and_mutable_parents_are_refused(self):
+        self.key.chmod(0o644)
+        with self.assertRaisesRegex(m.observe.target.Refused,'FILE_UNSAFE'):self.check()
+        self.key.chmod(0o600);self.root.chmod(0o777)
+        with self.assertRaisesRegex(m.observe.target.Refused,'PARENT_UNSAFE'):self.check()
+        self.root.chmod(0o700);self.key.unlink();self.key.symlink_to(self.manifest)
+        with self.assertRaises(OSError):self.check()
+        self.key.unlink()
+        with self.assertRaises(OSError):self.check()
 
 
 if __name__=='__main__':unittest.main()

@@ -23,7 +23,8 @@ export function commerceAuthorization(config:AppConfig,profile:Profile,now=()=>D
       ||new Set(grant.capabilities).size!==grant.capabilities.length)denied();
     return grant;
   };
-  if(profile.commerceAuthorizationFile)read();
+  // Expired/revoked authority disables commands, not unrelated API/worker
+  // startup. Every dispatch below still reads and validates the current grant.
   return (capability:CommerceCapability)=>{
     const grant=read();if(!(grant.capabilities as string[]).includes(capability))denied();
     return String(grant.approvalReference);

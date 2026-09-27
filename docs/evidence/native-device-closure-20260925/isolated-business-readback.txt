@@ -1,0 +1,18 @@
+PRODUCT_TEXT_IMAGE_VERSION
+synthetic-acceptance-serum|合成验收护理精华文字更新|/assets/cisme/synthetic-owned.jpg|5
+CHECKOUT_QUOTE_QUANTITY3
+3|26900|80700|0|80700|consumed
+CREATED_ORDER_NO_PAYMENT
+CM20260926EA8C121E9DA1|pending_payment|80700
+AFTERSALE_REQUEST
+62571d|CM20260922897A1E65C4BA|return_refund|no_reason|requested|53800|t
+CONTROLLED_SUPPORT_MESSAGES
+user|隔离验收：请确认这笔售后申请已收到。|persisted
+admin|已收到隔离测试售后申请，我们会按页面显示的进度处理。|persisted
+PRIVACY_REQUEST_AND_MEMBER_REPLY
+81b5c7|reviewing|operator|3|已收到申请。请补充需要查询的护理记录日期范围，以便继续处理。
+81b5c7|请查询 2026 年 9 月的测试账号护理记录。
+CARE_D14_STEPS_AND_FEELING
+D14|comfortable|care-local-acceptance-v1|00,01,02,03
+CHECKOUT_QUOTE_QUANTITY2_AFTER_2_1_2
+2|53800|53800|active

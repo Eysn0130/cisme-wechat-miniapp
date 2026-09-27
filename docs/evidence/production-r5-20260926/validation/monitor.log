@@ -1,0 +1,14 @@
+s.........
+----------------------------------------------------------------------
+Ran 10 tests in 0.004s
+
+OK (skipped=1)
+{"healthy": false, "failedChecks": ["apiReadyAndDatabaseQuery", "database", "workerCycleRecent"], "externalChannelConfigured": true, "externalNotificationDelivered": false, "notificationDue": null, "incidentOpen": false}
+{"healthy": false, "failedChecks": ["apiReadyAndDatabaseQuery", "database", "workerCycleRecent"], "externalChannelConfigured": true, "externalNotificationDelivered": true, "notificationDue": "failure", "incidentOpen": true}
+{"healthy": false, "failedChecks": ["apiReadyAndDatabaseQuery", "database", "workerCycleRecent"], "externalChannelConfigured": true, "externalNotificationDelivered": false, "notificationDue": null, "incidentOpen": true}
+{"healthy": true, "failedChecks": [], "externalChannelConfigured": true, "externalNotificationDelivered": true, "notificationDue": "recovery", "incidentOpen": false}
+{"healthy": false, "failedChecks": ["api", "apiReadyAndDatabaseQuery"], "externalChannelConfigured": false, "externalNotificationDelivered": false, "notificationDue": null, "incidentOpen": false}
+{"healthy": false, "failedChecks": ["api", "apiReadyAndDatabaseQuery"], "externalChannelConfigured": false, "externalNotificationDelivered": false, "notificationDue": "failure", "incidentOpen": true}
+{"healthy": false, "failedChecks": ["api", "apiReadyAndDatabaseQuery"], "externalChannelConfigured": true, "externalNotificationDelivered": false, "notificationDue": "failure", "incidentOpen": true}
+{"healthy": false, "failedChecks": ["api", "apiReadyAndDatabaseQuery"], "externalChannelConfigured": true, "externalNotificationDelivered": false, "notificationDue": null, "incidentOpen": true}
+{"healthy": false, "failedChecks": ["api", "apiReadyAndDatabaseQuery"], "externalChannelConfigured": true, "externalNotificationDelivered": true, "notificationDue": "failure", "incidentOpen": true}

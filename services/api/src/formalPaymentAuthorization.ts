@@ -36,7 +36,8 @@ export function recoveryAuthorization(config:AppConfig,profile:Profile,now=()=>D
       throw new Error('FAIL_CLOSED:FORMAL_RECOVERY_GRANT_BINDING');
     return grant;
   };
-  if(path)read(); // Invalid configured grants fail startup; absence stays inert.
+  // Grant validity is capability-scoped, including after a process restart.
+  // Missing or invalid grants never authorize a callback or outbound request.
   return (capability:RecoveryCapability)=>{
     const grant=read();
     if(!(grant.capabilities as string[]).includes(capability))

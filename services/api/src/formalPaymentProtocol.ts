@@ -6,9 +6,9 @@ import type { AppConfig } from "@cisme/config";
 import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
 import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
 import { TransferCallbackInbox } from "./transferCallbackInbox.js";
-import { WechatPayV3Client } from "./wechatPayV3.js";
+import { WechatPayV3Client, selectWechatPayPublicKey } from "./wechatPayV3.js";
 
-type TrustManifest={schemaVersion:1;keys:Array<{id:string;publicKeyFile:string}>};
+type TrustManifest={schemaVersion:1;activePublicKeyId?:string;keys:Array<{id:string;publicKeyFile:string}>};
 const disabledTransport:typeof fetch=async()=>{throw new Error("FAIL_CLOSED:FORMAL_WECHAT_PAY_OUTBOUND_NOT_AUTHORIZED");};
 
 /** Validate a pinned, operator-supplied set of trust anchors at startup.
@@ -31,7 +31,7 @@ export function loadFormalWechatPayTrust(profile:NonNullable<AppConfig["commerce
       Date.parse(merchantCertificate.validFrom)>Date.now()||Date.parse(merchantCertificate.validTo)<=Date.now())
       throw new Error("FAIL_CLOSED:FORMAL_WECHAT_PAY_MERCHANT_CERTIFICATE_BINDING");
   }
-  const apiV3Key=protectedText(profile.apiV3KeyFile).trimEnd();
+  const apiV3Key=protectedText(profile.apiV3KeyFile);
   if(Buffer.byteLength(apiV3Key)!==32)throw new Error("FAIL_CLOSED:FORMAL_WECHAT_PAY_API_V3_KEY_INVALID");
   let manifest:TrustManifest;
   try{manifest=JSON.parse(protectedText(profile.platformTrustManifestFile)) as TrustManifest;}
@@ -52,7 +52,8 @@ export function loadFormalWechatPayTrust(profile:NonNullable<AppConfig["commerce
       throw new Error("FAIL_CLOSED:FORMAL_WECHAT_PAY_TRUST_RSA_INVALID");
     platformKeys.set(key.id,publicPem);
   }
-  return {privatePem,apiV3Key,platformKeys,merchantCertificate};
+  const activePublicKeyId=selectWechatPayPublicKey(platformKeys,manifest.activePublicKeyId);
+  return {privatePem,apiV3Key,platformKeys,merchantCertificate,activePublicKeyId};
 }
 
 /** Credentials alone never enable commands. Historical recovery and production
@@ -63,7 +64,7 @@ export function formalPaymentProtocol(config:AppConfig,pool:pg.Pool,testTranspor
   if(!profile)return undefined;
   if(testTransport&&config.env!=="test")
     throw new Error("FAIL_CLOSED:FORMAL_WECHAT_PAY_TEST_TRANSPORT_ONLY");
-  const {privatePem,apiV3Key,platformKeys,merchantCertificate}=loadFormalWechatPayTrust(profile);
+  const {privatePem,apiV3Key,platformKeys,merchantCertificate,activePublicKeyId}=loadFormalWechatPayTrust(profile);
   const grant=recoveryAuthorization(config,profile);
   const authorizeRecovery=(capability:Parameters<typeof grant>[0])=>{
     const approval=grant(capability);
@@ -81,7 +82,7 @@ export function formalPaymentProtocol(config:AppConfig,pool:pg.Pool,testTranspor
     return approval;
   };
   const channel=new WechatPayV3Client(profile.merchantId,profile.merchantSerial,
-    privatePem,platformKeys,testTransport??(profile.commerceAuthorizationFile?commerceTransport(authorizeCommerce,authorizeRecovery):profile.recoveryAuthorizationFile?recoveryTransport(authorizeRecovery):disabledTransport));
+    privatePem,platformKeys,testTransport??(profile.commerceAuthorizationFile?commerceTransport(authorizeCommerce,authorizeRecovery):profile.recoveryAuthorizationFile?recoveryTransport(authorizeRecovery):disabledTransport),undefined,activePublicKeyId);
   const inbox=new VerifiedPaymentInbox(pool,{appId:profile.appId,
     merchantId:profile.merchantId,apiV3Key,platformKeys});
   const refundInbox=new VerifiedRefundInbox(pool,{merchantId:profile.merchantId,apiV3Key,platformKeys});

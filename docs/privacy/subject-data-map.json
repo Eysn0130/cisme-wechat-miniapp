@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "30d91676fb35f78c01b81b9872a02b84be8a50adb57da2aa2dd058f2ff6ef817",
+  "migrationSetSha256": "996b879292eb0b85b26bc355959a97e55681504df8c9d4aa874481faa93efdb8",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -1575,6 +1575,57 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_wechat_receipt_observation",
+      "subjectPaths": [
+        [
+          "commerce_wechat_receipt_observation.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Platform get_order observation is bound to an existing order, shipment and verified payment inbox. Query time is not user confirmation time; local receipt, refunds, aftersales and settlement remain independent. Watch leases, retries and error codes are operational metadata; keep this projection under transaction retention and legal holds, without raw provider responses.",
+      "exportFields": [],
+      "excludedFields": [
+        "order_id",
+        "shipment_id",
+        "payment_inbox_id",
+        "query_id",
+        "query_started_at",
+        "source",
+        "platform_order_state",
+        "in_complaint",
+        "observed_at",
+        "version",
+        "watch_state",
+        "watch_next_attempt_at",
+        "watch_lease_token",
+        "watch_lease_until",
+        "watch_failures",
+        "watch_last_error_code"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "commerce_wechat_receipt_watch_control",
+      "subjectPaths": [],
+      "actorColumns": [],
+      "specialHandling": "Global read-only provider cooldown contains no order or member identifiers. Preserve operational retention and do not treat its timestamp as a receipt fact.",
+      "exportFields": [],
+      "excludedFields": [
+        "singleton",
+        "cooldown_until",
+        "last_error_code"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
       "table": "commercial_membership",
@@ -7003,5 +7054,6 @@
     }
   ],
   "formalSelfServiceErasureScope": "member_optional_profile_v1; optional account/contact/address data only; transactions retained; legal holds delay execution",
-  "transactionRetentionBusinessBaselineConfirmed": true
+  "transactionRetentionBusinessBaselineConfirmed": true,
+  "editorialRetirementReview20260925": "Only catalog_product.image_path and its allowlist constraint change; no subject relationship, export field, retention class or production erasure scope changes. Historical order line snapshots remain immutable and the client replaces their retired image paths at display time."
 }

@@ -37,9 +37,73 @@ UNITS=('cisme-api.service','cisme-worker.service')
 REPO='Eysn0130/cisme-wechat-miniapp'
 CLOSED={'APP_ENV':'production','ALLOW_DEV_ADAPTERS':'false','COMMERCE_ORDER_FLOW_ENABLED':'false',
         'CISME_MIGRATION_READ_ONLY':'true','RUN_BACKGROUND_WORKER':'false'}
+PRIVATE_FILE_KEYS=('COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE','COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE',
+                   'COMMERCE_FORMAL_API_V3_KEY_FILE','COMMERCE_FORMAL_PLATFORM_TRUST_FILE',
+                   'COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE','COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE',
+                   'COMMERCE_FULFILLMENT_AUTHORIZATION_FILE')
 
 
 def sha(data):return hashlib.sha256(data).hexdigest()
+
+
+def private_file(path,service_uid):
+    """Exact runtime inputs; this descriptor belongs only in private receipts.
+
+    No links or writable parents. protectedText() in the app accepts only root
+    or its own UID and mode 0600; use the same boundary here, then bind metadata
+    and bytes so changing a grant/key at the same path invalidates qualification.
+    """
+    path=Path(path)
+    require(path.is_absolute() and '..' not in path.parts,'PRIVATE_INPUT_PATH_REQUIRED')
+    parents=[]
+    for parent in reversed(path.parents):
+        info=parent.lstat()
+        require(stat.S_ISDIR(info.st_mode) and not parent.is_symlink() and info.st_uid==0
+                and info.st_mode&0o022==0,'PRIVATE_INPUT_PARENT_UNSAFE')
+        parents.append({'path':str(parent),'uid':info.st_uid,'gid':info.st_gid,'mode':stat.S_IMODE(info.st_mode)})
+    fd=os.open(path,os.O_RDONLY|os.O_NONBLOCK|getattr(os,'O_NOFOLLOW',0))
+    try:
+        info=os.fstat(fd)
+        require(stat.S_ISREG(info.st_mode) and info.st_uid in (0,service_uid)
+                and info.st_mode&0o077==0 and 0<info.st_size<=65536,'PRIVATE_INPUT_FILE_UNSAFE')
+        data=os.read(fd,65537)
+        after=os.fstat(fd)
+        require(len(data)==info.st_size and (info.st_size,info.st_mtime_ns,info.st_ctime_ns)==
+                (after.st_size,after.st_mtime_ns,after.st_ctime_ns),'PRIVATE_INPUT_CHANGED_DURING_READ')
+        return data,{'path':str(path),'sha256':sha(data),'uid':info.st_uid,'gid':info.st_gid,
+                     'mode':stat.S_IMODE(info.st_mode),'parents':parents}
+    finally:os.close(fd)
+
+
+def private_inputs(config):
+    configured=[key for key in PRIVATE_FILE_KEYS if config.get(key)]
+    if not configured:return []
+    uid=pwd.getpwnam('cisme').pw_uid
+    result=[]
+    for key in configured:
+        data,descriptor=private_file(config[key],uid)
+        result.append({'key':key,**descriptor})
+        if key=='COMMERCE_FORMAL_PLATFORM_TRUST_FILE':
+            manifest=json.loads(data,object_pairs_hook=observe.target.unique_keys)
+            anchors=manifest.get('keys')
+            require(manifest.get('schemaVersion')==1 and isinstance(anchors,list) and 1<=len(anchors)<=8,
+                    'PRIVATE_INPUT_TRUST_MANIFEST_INVALID')
+            ids=set()
+            for anchor in anchors:
+                require(isinstance(anchor,dict) and isinstance(anchor.get('id'),str) and anchor['id'] not in ids
+                        and isinstance(anchor.get('publicKeyFile'),str),'PRIVATE_INPUT_TRUST_MANIFEST_INVALID')
+                ids.add(anchor['id'])
+                _,descriptor=private_file(anchor['publicKeyFile'],uid)
+                result.append({'key':'wechat-pay-trust:'+anchor['id'],**descriptor})
+    return sorted(result,key=lambda item:item['key'])
+
+
+def public_result(result):
+    # Never expose private key/grant fingerprints in console logs or public
+    # evidence. --private-output and the installation state retain full binding.
+    return {key:value for key,value in result.items() if key not in
+            ('privateInputs','candidateEnvironmentSha256','liveEnvironmentSha256')} | {
+        'privateInputs':{'boundFileCount':len(result.get('privateInputs',[]))}}
 
 
 def protected(path,limit=1024*1024):
@@ -98,6 +162,27 @@ def require_services_stopped():
         require(state=='inactive' and pid=='0','PRODUCTION_UNITS_NOT_STOPPED')
 
 
+def require_private_service_sandbox(unit,private_paths):
+    """Read the installed unit, not merely the repository template.
+
+    The cisme UID may own 0600 credentials for protectedText(). A strict
+    read-only service mount must therefore prevent that UID changing inputs.
+    """
+    def property(name):
+        return command(['systemctl','show',unit,'--property='+name,'--value']).decode().strip()
+    require(property('User')=='cisme' and property('ProtectSystem')=='strict',
+            'PRIVATE_INPUT_SERVICE_SANDBOX_REQUIRED')
+    writable=[]
+    for value in property('ReadWritePaths').split():
+        root=Path(value.lstrip('-+'))
+        require(root.is_absolute(),'PRIVATE_INPUT_SERVICE_WRITE_PATH_INVALID')
+        writable.append(root.resolve())
+    for target in (Path(value).resolve() for value in private_paths):
+        require(not any(target==root or target.is_relative_to(root) for root in writable),
+                'PRIVATE_INPUT_SERVICE_WRITE_ACCESS_REFUSED')
+    return writable
+
+
 def github(path):
     # Fixed repository, HTTPS verification, no credentials or arbitrary URL input.
     require(path.startswith(('git/ref/heads/main','git/commits/','actions/workflows/ci.yml/runs?',
@@ -148,7 +233,7 @@ def release_directory(path):
     return path
 
 
-def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
+def preflight(directory,candidate_env,fetch=github,*,services_stopped=False,resume_plan=None):
     identity=observe.identity() # Wrong instance must fail before other work.
     directory=release_directory(directory)
     manifest=receipt(directory/'release-manifest.json');main=reviewed_main(fetch)
@@ -169,6 +254,9 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
             and verified.get('sourceTree')==main['tree'],'FULL_CANDIDATE_VERIFICATION_REQUIRED')
     target=observe.guard_for_upgrade(candidate_env,manifest,main['sha'],main['tree'])
     candidate=observe.protected_environment(candidate_env)
+    bound_private=private_inputs(candidate)
+    for item in bound_private:
+        command(['/usr/sbin/runuser','-u','cisme','--','/usr/bin/test','-r',item['path']])
     require(all(candidate.get(k)==v for k,v in CLOSED.items()),'CLOSED_COMMERCE_MAINTENANCE_CONFIG_REQUIRED')
     suppression=Path(candidate.get('PRIVACY_SUPPRESSION_DIR',''))
     require(str(suppression)=='/var/lib/cisme/privacy-suppression','PRIVACY_SUPPRESSION_TARGET_REQUIRED')
@@ -176,10 +264,11 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
     except OSError:raise observe.target.Refused('PRIVACY_SUPPRESSION_DIRECTORY_MISSING')
     require(stat.S_ISDIR(suppression_info.st_mode) and suppression_info.st_uid==pwd.getpwnam('cisme').pw_uid
             and suppression_info.st_mode&0o077==0,'PRIVACY_SUPPRESSION_DIRECTORY_UNSAFE')
-    writable=command(['systemctl','show','cisme-api.service','--property=ReadWritePaths','--value']).decode().split()
-    require(str(suppression) in writable,'PRIVACY_SUPPRESSION_SERVICE_ACCESS_REQUIRED')
-    worker_writable=command(['systemctl','show','cisme-worker.service','--property=ReadWritePaths','--value']).decode().split()
-    require(str(suppression) in worker_writable,'PRIVACY_SUPPRESSION_WORKER_ACCESS_REQUIRED')
+    immutable=[item['path'] for item in bound_private]+[str(LIVE),str(CURRENT),str(directory)]
+    writable=require_private_service_sandbox('cisme-api.service',immutable)
+    require(suppression.resolve() in writable,'PRIVACY_SUPPRESSION_SERVICE_ACCESS_REQUIRED')
+    worker_writable=require_private_service_sandbox('cisme-worker.service',immutable)
+    require(suppression.resolve() in worker_writable,'PRIVACY_SUPPRESSION_WORKER_ACCESS_REQUIRED')
     require(candidate.get('PRIVACY_SUPPRESSION_BUCKET')=='cisme-privacy-1257392443',
             'PRIVACY_SUPPRESSION_STANDARD_COS_REQUIRED')
     require(not any(k.startswith(('LD_','DYLD_','PG','PYTHON')) or (k.startswith('NODE_') and k!='NODE_ENV')
@@ -189,6 +278,14 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
     require(all(candidate.get(k)==live.get(k) for k in ('PORT','API_LISTEN_HOST')),'IMPLICIT_API_BINDING_CHANGE_REFUSED')
     # An ordinary release must not change session, contact, webhook or upload keys.
     for key in set(live)|set(candidate):
+        # An object key is a private bucket path, not an authentication key.
+        # Its content digest is verified by the COS readiness adapter.
+        if key=='COS_READINESS_OBJECT_KEY':
+            continue
+        if key in PRIVATE_FILE_KEYS:
+            # Only these explicit file inputs may be introduced. The exact
+            # bytes/identity/permissions require separate qualification below.
+            continue
         if re.search(r'SECRET|PASSWORD|TOKEN|(?:^|_)KEY(?:_|$)',key):
             if key=='PRIVACY_FORMAL_EXPORT_KEY' and not live.get(key):
                 require(bool(re.fullmatch(r'[0-9a-fA-F]{64}',candidate.get(key,''))),
@@ -196,10 +293,30 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
                 continue
             require(candidate.get(key)==live.get(key),'IMPLICIT_SECRET_CHANGE_REFUSED')
     history=journal.inspect();plan=journal.compare(history['journal'],manifest['migrations'])
-    old=CURRENT.resolve(strict=True)
+    active=CURRENT.resolve(strict=True)
+    old=Path(resume_plan['previous']['directory']) if resume_plan else active
     require(CURRENT.is_symlink() and old.parent==ROOT/'releases' and old!=directory,'EXISTING_PRODUCTION_RELEASE_REQUIRED')
     prior={'directory':str(old),'indexSha256':sha((old/'index.js').read_bytes()),
            'workerSha256':sha((old/'worker.js').read_bytes()),'packageLockSha256':sha((old/'package-lock.json').read_bytes())}
+    if resume_plan:
+        require(services_stopped,'RESUME_REQUIRES_STOPPED_SERVICES')
+        release_directory(old)
+        require(main['sha']==resume_plan['main']['sha'] and main['tree']==resume_plan['main']['tree']
+                and sha(protected(directory/'release-manifest.json'))==resume_plan['manifestSha256']
+                and sha(protected(candidate_env))==resume_plan['candidateEnvironmentSha256']
+                and bound_private==resume_plan.get('privateInputs',[])
+                and prior==resume_plan['previous'],'RESUME_CANDIDATE_OR_PREVIOUS_DRIFT')
+        # switch() replaces env before current; a failure between those two
+        # atomic replacements is recoverable, but unrelated edits are not.
+        live_digest=sha(protected(LIVE))
+        require(active in (old,directory) and live_digest in
+                (resume_plan['liveEnvironmentSha256'],resume_plan['candidateEnvironmentSha256'])
+                and (active!=directory or live_digest==resume_plan['candidateEnvironmentSha256']),
+                'RESUME_LIVE_STATE_DRIFT')
+        original=resume_plan['migrationPlan']
+        completed=plan['applied']-original['applied']
+        require(0<=completed<=len(original['pending']) and plan['pending']==original['pending'][completed:],
+                'RESUME_MIGRATION_HISTORY_DRIFT')
     if services_stopped:
         # This recheck runs after the deliberate stop, before any migration.
         # A 200 would require the old API to keep serving while supposedly drained.
@@ -210,20 +327,27 @@ def preflight(directory,candidate_env,fetch=github,*,services_stopped=False):
     return {'schemaVersion':1,'observedAtUtc':datetime.now(timezone.utc).isoformat(),'identity':identity,
             'target':target,'main':main,'candidateDirectory':str(directory),'manifestSha256':sha(protected(directory/'release-manifest.json')),
             'candidateEnvironmentSha256':sha(protected(candidate_env)),'liveEnvironmentSha256':sha(protected(LIVE)),
+            'privateInputs':bound_private,
             'previous':prior,'migrationPlan':plan,'readOnly':True,'deployed':False,'productionValidated':False,
             'commerceEnabled':False,'permissionGranted':False}
 
 
 def qualifications(path,plan):
     q=receipt(path)
+    recovery_mode=q.get('recoveryMode','same-data-application')
+    require(recovery_mode in ('same-data-application','forward-only'),'RECOVERY_MODE_INVALID')
     require(q.get('schemaVersion')==1 and q.get('kind')=='reviewed-production-upgrade'
             and q.get('instanceId')=='lhins-61ikz4mi' and q.get('database')=='cisme'
             and q.get('candidateHead')==plan['main']['sha'] and q.get('candidateTree')==plan['main']['tree']
             and q.get('manifestSha256')==plan['manifestSha256'] and q.get('previous')==plan['previous']
+            and q.get('candidateEnvironmentSha256')==plan['candidateEnvironmentSha256']
+            and q.get('liveEnvironmentSha256')==plan['liveEnvironmentSha256']
+            and q.get('privateInputs',[])==plan.get('privateInputs',[])
             and q.get('approvedPendingMigrations')==plan['migrationPlan']['pending'],'REVIEWED_UPGRADE_BINDING_REQUIRED')
     # Each reference must point to a protected receipt actually reviewed by the
     # operator. No success/approval defaults, placeholders or arbitrary hooks.
-    for key,kind in [('restore','production-protected-restore'),('rollback','same-data-application-rollback'),
+    recovery_kind='bounded-forward-recovery' if recovery_mode=='forward-only' else 'same-data-application-rollback'
+    for key,kind in [('restore','production-protected-restore'),('rollback',recovery_kind),
                      ('writers','production-writer-inventory-and-drain'),('migrationReview','production-history-and-sql-review')]:
         ref=q.get(key,{})
         require(isinstance(ref,dict) and re.fullmatch(r'[a-f0-9]{64}',ref.get('sha256','')),'UPGRADE_EVIDENCE_REQUIRED')
@@ -239,14 +363,27 @@ def qualifications(path,plan):
                     and value.get('encryptionKeyRecoveryVerified') is True
                     and value.get('privacySuppressionRestoreVerified') is True,'COMPLETE_PRODUCTION_RESTORE_REQUIRED')
         if key=='rollback':
-            require(value.get('sameDatabase') is True and value.get('newWritesPreserved') is True
-                    and value.get('coversPartialForwardMigration') is True,'DATA_PRESERVING_ROLLBACK_REQUIRED')
+            if recovery_mode=='forward-only':
+                require(value.get('newWritesPreserved') is True and value.get('partialMigrationResumeVerified') is True
+                        and value.get('maintenanceFenceVerified') is True
+                        and value.get('noAutomaticOldBinaryRestart') is True,'FORWARD_RECOVERY_REQUIRED')
+            else:
+                require(value.get('sameDatabase') is True and value.get('newWritesPreserved') is True
+                        and value.get('coversPartialForwardMigration') is True,'DATA_PRESERVING_ROLLBACK_REQUIRED')
         if key=='writers':
             require(value.get('externalConsumersDisabled') is True and value.get('unresolvedConsumers')==[],
                     'EXTERNAL_WRITERS_NOT_DRAINED')
         if key=='migrationReview':
-            require(value.get('approvedPendingMigrations')==plan['migrationPlan']['pending']
-                    and value.get('historicalSqlIntegrityVerified') is True,'HISTORICAL_SQL_REVIEW_REQUIRED')
+            require(value.get('approvedPendingMigrations')==plan['migrationPlan']['pending'],'HISTORICAL_SQL_REVIEW_REQUIRED')
+            if value.get('historicalSqlIntegrityVerified') is not True:
+                # A legacy installation may lack original SQL bytes. Require an
+                # explicit review of the observed schema and that limitation;
+                # matching migration names alone is never sufficient evidence.
+                require(value.get('historicalSqlUnavailable') is True
+                        and value.get('liveRestoredSchemaMatch') is True
+                        and re.fullmatch(r'[a-f0-9]{64}',value.get('baselineSchemaSha256',''))
+                        and value.get('pendingSqlContentReviewed') is True
+                        and value.get('unknownHistoricalSqlRiskAccepted') is True,'HISTORICAL_SQL_REVIEW_REQUIRED')
         observed=datetime.fromisoformat(value['observedAtUtc'].replace('Z','+00:00'))
         age=(datetime.now(timezone.utc)-observed).total_seconds()
         require(0<=age<=(900 if key=='writers' else 86400),'FRESH_PRODUCTION_QUALIFICATION_REQUIRED')
@@ -289,7 +426,39 @@ def healthy(directory):
             time.sleep(1)
 
 
-def apply(directory,candidate_env,qualification,approval):
+def resume_record(path,directory,candidate_env):
+    """Read an actual failed installation, never a caller-supplied success flag.
+
+    Only the same immutable candidate/config can resume here. A code or config
+    repair requires its own reviewed release; this is operational failure repair.
+    """
+    observe.identity()
+    path=Path(path)
+    require(path.is_absolute() and path.parent==ROOT/'production-upgrades'
+            and re.fullmatch(r'main-[a-f0-9]{12}-[0-9]+',path.name),'FAILED_UPGRADE_STATE_REQUIRED')
+    for parent in (ROOT,ROOT/'production-upgrades',path):
+        info=parent.lstat()
+        require(stat.S_ISDIR(info.st_mode) and not parent.is_symlink() and info.st_uid==0
+                and info.st_mode&0o022==0,'PROTECTED_UPGRADE_STATE_REQUIRED')
+    require(not (path/'deployed.json').exists() and not (path/'application-rollback.json').exists(),
+            'FAILED_FORWARD_UPGRADE_REQUIRED')
+    failed=receipt(path/'forward-recovery-required.json')
+    plan=receipt(path/'preflight.json');prior=receipt(path/'qualification.json')
+    require(failed.get('servicesStopped') is True and failed.get('databaseRestored') is False
+            and failed.get('oldApplicationRestarted') is False and prior.get('recoveryMode')=='forward-only'
+            and prior.get('candidateHead')==plan['main']['sha']
+            and prior.get('manifestSha256')==plan['manifestSha256']
+            and prior.get('candidateEnvironmentSha256')==plan['candidateEnvironmentSha256']
+            and plan['candidateDirectory']==str(Path(directory))
+            and sha(protected(candidate_env))==plan['candidateEnvironmentSha256']
+            and private_inputs(observe.audit.environment(protected(candidate_env).decode('utf-8')))==plan.get('privateInputs',[])
+            and sha(protected(path/'previous.env'))==plan['liveEnvironmentSha256'],
+            'FAILED_FORWARD_UPGRADE_BINDING_REQUIRED')
+    require_services_stopped()
+    return plan
+
+
+def apply(directory,candidate_env,qualification,approval,resume_state=None):
     require(os.geteuid()==0,'PRODUCTION_ROOT_REQUIRED')
     require(re.fullmatch(r'[-A-Za-z0-9_:.]{8,120}',approval or ''),'EXPLICIT_UPGRADE_APPROVAL_REFERENCE_REQUIRED')
     observe.identity() # No lock/state/config write on staging or a wrong host.
@@ -302,36 +471,43 @@ def apply(directory,candidate_env,qualification,approval):
         info=os.fstat(fd)
         require(stat.S_ISREG(info.st_mode) and info.st_uid==0 and info.st_mode&0o077==0,'PROTECTED_UPGRADE_LOCK_REQUIRED')
         fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        plan=preflight(directory,candidate_env);q=qualifications(qualification,plan)
+        original=resume_record(resume_state,directory,candidate_env) if resume_state else None
+        plan=preflight(directory,candidate_env,services_stopped=bool(original),resume_plan=original)
+        q=qualifications(qualification,plan)
+        if original:require(q.get('recoveryMode')=='forward-only','FORWARD_RESUME_MODE_REQUIRED')
         state=ROOT/'production-upgrades'/('main-'+plan['main']['sha'][:12]+'-'+str(time.time_ns()))
         parent=state.parent;parent.mkdir(mode=0o700,exist_ok=True);info=parent.lstat()
         require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and info.st_mode&0o077==0,'PROTECTED_UPGRADE_STATE_REQUIRED')
         state.mkdir(mode=0o700)
-        return cutover(plan,directory,candidate_env,q,approval,state)
+        return cutover(plan,directory,candidate_env,q,approval,state,resume_plan=original)
     finally:os.close(fd)
 
 
-def cutover(plan,directory,candidate_env,q,approval,state):
+def cutover(plan,directory,candidate_env,q,approval,state,*,resume_plan=None):
     """Internal engine; only apply() supplies validated, fresh qualifications."""
     old_env=protected(LIVE);new_env=protected(candidate_env);old=Path(plan['previous']['directory'])
     require(sha(old_env)==plan['liveEnvironmentSha256'] and sha(new_env)==plan['candidateEnvironmentSha256'],
             'PREPARED_ENVIRONMENT_CHANGED')
     config=observe.audit.environment(new_env.decode('utf-8'))
+    require(private_inputs(config)==plan.get('privateInputs',[]),'PREPARED_PRIVATE_INPUT_CHANGED')
     store(state/'previous.env',old_env)
     store(state/'preflight.json',(json.dumps(plan,indent=2)+'\n').encode())
+    store(state/'qualification.json',(json.dumps(q,indent=2)+'\n').encode())
     require(sha(protected(LIVE))==plan['liveEnvironmentSha256'],'LIVE_ENVIRONMENT_CHANGED')
-    command(['systemctl','stop',*UNITS],timeout=90)
     migrated=False;activated=False
     try:
+        command(['systemctl','stop',*UNITS],timeout=90)
+        require_services_stopped()
         other=journal.query("SELECT count(*) FROM pg_stat_activity WHERE datname='cisme' AND backend_type='client backend' AND pid<>pg_backend_pid()")
         require(other==0,'UNDRAINED_PRODUCTION_DATABASE_CLIENTS')
         # Repeat independently sourced main/CI and live target check directly
         # before migration. If main moved, return to preflight/review.
-        fresh=preflight(directory,candidate_env,services_stopped=True)
+        fresh=preflight(directory,candidate_env,services_stopped=True,resume_plan=resume_plan)
         require(fresh['main']==plan['main'] and fresh['previous']==plan['previous']
                 and fresh['migrationPlan']==plan['migrationPlan']
                 and fresh['candidateEnvironmentSha256']==plan['candidateEnvironmentSha256']
                 and fresh['liveEnvironmentSha256']==plan['liveEnvironmentSha256'],'PRODUCTION_PREFLIGHT_DRIFT')
+        require(fresh.get('privateInputs',[])==plan.get('privateInputs',[]),'PRODUCTION_PRIVATE_INPUT_DRIFT')
         output=command(['/usr/sbin/runuser','-u','cisme','--',NODE,str(Path(directory)/'migrate.mjs'),'up'],
             env={'PATH':'/usr/bin:/bin',**config,'CISME_MIGRATION_APPROVAL_REF':approval,
                  'CISME_PREDEPLOY_BACKUP_REF':'backup:'+q['backup']['sha256']},cwd=directory,timeout=1800)
@@ -340,9 +516,21 @@ def cutover(plan,directory,candidate_env,q,approval,state):
         observe.guard_for_upgrade(candidate_env,receipt(Path(directory)/'release-manifest.json'),plan['main']['sha'],plan['main']['tree'])
         require(sha(protected(LIVE))==plan['liveEnvironmentSha256'] and sha(protected(candidate_env))==plan['candidateEnvironmentSha256'],
                 'CUTOVER_ENVIRONMENT_CHANGED')
+        require(private_inputs(config)==plan.get('privateInputs',[]),'CUTOVER_PRIVATE_INPUT_CHANGED')
         switch(Path(directory),new_env,state.name);activated=True
         command(['systemctl','start',*UNITS],timeout=60);healthy(Path(directory))
+        require(private_inputs(config)==plan.get('privateInputs',[]),'ACTIVATED_PRIVATE_INPUT_CHANGED')
     except Exception:
+        if q.get('recoveryMode')=='forward-only':
+            # Never restart an unproven old binary or restore over new facts.
+            # Preserve the exact point of failure for reviewed forward repair.
+            command(['systemctl','stop',*UNITS],timeout=90)
+            require_services_stopped()
+            store(state/'forward-recovery-required.json',json.dumps({
+                'servicesStopped':True,'databaseRestored':False,'oldApplicationRestarted':False,
+                'candidateMigrationCompleted':migrated,'candidateActivated':activated,
+                'newWritesPreserved':True,'nextAction':'review failure, repair forward, requalify and resume'}).encode())
+            raise observe.target.Refused('UPGRADE_FAILED_FORWARD_RECOVERY_REQUIRED') from None
         # Qualification must cover every candidate schema, including partial
         # forward migration. Never roll data back to a pre-cutover snapshot.
         command(['systemctl','stop',*UNITS],timeout=90)
@@ -363,15 +551,28 @@ def cutover(plan,directory,candidate_env,q,approval,state):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=['preflight','apply']);parser.add_argument('--release',required=True)
+    parser.add_argument('action',choices=['preflight','apply','resume']);parser.add_argument('--release',required=True)
     parser.add_argument('--candidate-env',required=True);parser.add_argument('--qualification');parser.add_argument('--approval-ref')
+    parser.add_argument('--resume-state',help='Protected failed forward-only installation directory')
+    parser.add_argument('--private-output',help='New root-private receipt path; never publish its private-input hashes')
     args=parser.parse_args()
     try:
-        if args.action=='apply':
+        require(args.action!='resume' or args.resume_state,'FAILED_UPGRADE_STATE_REQUIRED')
+        require(args.action!='apply' or not args.resume_state,'USE_EXPLICIT_RESUME_ACTION')
+        if args.action in ('apply','resume'):
             require(args.qualification,'REVIEWED_QUALIFICATION_FILE_REQUIRED')
-            result=apply(args.release,args.candidate_env,args.qualification,args.approval_ref)
-        else:result=preflight(args.release,args.candidate_env)
-        print(json.dumps(result,sort_keys=True));return 0
+            result=apply(args.release,args.candidate_env,args.qualification,args.approval_ref,args.resume_state)
+        else:
+            original=resume_record(args.resume_state,args.release,args.candidate_env) if args.resume_state else None
+            result=preflight(args.release,args.candidate_env,services_stopped=bool(original),resume_plan=original)
+        if args.private_output:
+            output=Path(args.private_output)
+            require(os.geteuid()==0 and output.is_absolute(),'ROOT_PRIVATE_OUTPUT_REQUIRED')
+            parent=output.parent.lstat()
+            require(stat.S_ISDIR(parent.st_mode) and not output.parent.is_symlink() and parent.st_uid==0
+                    and parent.st_mode&0o077==0,'PRIVATE_OUTPUT_DIRECTORY_REQUIRED')
+            store(output,(json.dumps(result,sort_keys=True)+'\n').encode())
+        print(json.dumps(public_result(result),sort_keys=True));return 0
     except observe.target.Refused as error:print(json.dumps({'ok':False,'code':str(error)}))
     except Exception:print('{"ok":false,"code":"PRODUCTION_UPGRADE_FAILED_REVIEW_REQUIRED"}')
     return 1

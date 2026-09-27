@@ -15,6 +15,13 @@ export interface OrderShipment {
   orderId:string; id?:string; version?:number; carrierName?:string; trackingNumber?:string;
   logisticsState:"not_ready"|"awaiting_dispatch"|"shipped"|"delivered"|"exception";
   shippedAt?:string; deliveredAt?:string|null; receiptConfirmedAt?:string|null; wechatSyncState?:string;
+  wechatReceipt?: (WechatReceiptState&{observedLabel?:string;displayLabel?:string})|null;
+}
+export interface WechatReceiptState {source:'wechat_get_order';status:'unverified'|'awaiting_shipping'|'shipped'|'confirmed'|'completed'|'refunded'|'settlement_pending'|'unknown';
+  label:string;inComplaint:boolean|null;observedAt:string|null;canOpenComponent:boolean}
+export interface WechatReceiptQuery extends WechatReceiptState {orderId:string;shipmentId:string;component?:{transactionId:string}}
+export function queryMyWechatReceipt(id:string):Promise<WechatReceiptQuery>{
+  return request<WechatReceiptQuery>({path:`/v1/me/orders/${encodeURIComponent(id)}/wechat-receipt/query`,method:'POST',data:{},cacheTags:['orders']});
 }
 export function myShipment(id:string,page:object):Promise<OrderShipment>{
   return pageRead<OrderShipment>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders"]});
@@ -52,7 +59,7 @@ export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAd
   cancelledAt: string | null; expiredAt: string | null; terminalReason: string | null; createdAt: string; updatedAt: string;
   paymentAvailable: boolean; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
 }
-export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null };
+export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null; wechatReceipt?:WechatReceiptState|null };
 export interface CommerceOrderPage {
   items: CommerceOrderSummary[]; nextCursor: string | null;
 }

@@ -1,10 +1,11 @@
 import { access, mkdir, readFile } from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { miniProgramApiOrigins, miniProgramCloudFunctions } from "../apps/miniprogram/release-config";
 import { evaluateDesignQaEvidence } from "./design-qa-lib";
-import { validateInternalTestPackageSafety, validateWeChatRelease, type WeChatReleaseTarget } from "./wechat-release-lib";
+import { validateInternalTestPackageSafety, validateWeChatRelease, validateWeChatSourceUpload, type WeChatReleaseTarget } from "./wechat-release-lib";
 import { probeLegalEndpoint } from "./legal-endpoint-probe";
+import { bundledUnapprovedEditorialFiles } from "./editorial-release-gate";
 
 type Command = "preflight" | "preview" | "upload" | "diagnose";
 
@@ -37,6 +38,15 @@ function flag(name: string): boolean {
   return process.env[name] === "true";
 }
 
+function uploadMainErrors():string[]{
+  try{
+    const git=(...args:string[])=>execFileSync("git",args,{cwd:root,encoding:"utf8",timeout:12000,stdio:["ignore","pipe","ignore"]}).trim();
+    if(git("status","--porcelain"))return ["UPLOAD_SOURCE_WORKTREE_NOT_CLEAN"];
+    const current=git("rev-parse","HEAD"),remote=git("ls-remote","origin","refs/heads/main").split(/\s+/)[0];
+    return current===remote?[]:["UPLOAD_SOURCE_NOT_CURRENT_REMOTE_MAIN"];
+  }catch{return ["UPLOAD_MAIN_PROVENANCE_UNAVAILABLE"];}
+}
+
 function run(executable: string, args: string[]): Promise<void> {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(executable, args, { cwd: root, stdio: "inherit" });
@@ -48,7 +58,8 @@ function run(executable: string, args: string[]): Promise<void> {
 const projectConfig = JSON.parse(await readFile(projectConfigPath, "utf8")) as { appid?: string };
 const appConfig = JSON.parse(await readFile(appConfigPath, "utf8")) as { __usePrivacyCheck__?: boolean };
 const apiOrigin = miniProgramApiOrigins[target === "local" ? "devtools" : target];
-const errors = validateWeChatRelease({
+const editorialBundledFiles = target === "release" ? await bundledUnapprovedEditorialFiles(projectPath) : [];
+const releaseInput = {
   target,
   projectAppId: projectConfig.appid ?? "",
   ...(process.env.WECHAT_APP_ID ? { expectedAppId: process.env.WECHAT_APP_ID } : {}),
@@ -57,6 +68,7 @@ const errors = validateWeChatRelease({
   cloudTransportVerified: flag("WECHAT_CLOUD_HTTP_TRANSPORT_VERIFIED"),
   privacyCheckEnabled: appConfig.__usePrivacyCheck__ === true,
   devtoolsCliAvailable: await exists(devtoolsCli),
+  editorialPreviewContentExcluded: editorialBundledFiles.length === 0,
   manualGates: {
     privacyGuideConfigured: flag("WECHAT_PRIVACY_GUIDE_CONFIGURED"),
     legalTextsApproved: flag("WECHAT_LEGAL_TEXTS_APPROVED"),
@@ -65,7 +77,13 @@ const errors = validateWeChatRelease({
     experienceMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED"),
     miniProgramFilingCompleted: flag("WECHAT_MINIPROGRAM_FILING_COMPLETED")
   }
-});
+};
+const errors = command === "upload"
+  ? validateWeChatSourceUpload({projectAppId:projectConfig.appid??"",
+      ...(process.env.WECHAT_APP_ID?{expectedAppId:process.env.WECHAT_APP_ID}:{}),
+      privacyCheckEnabled:appConfig.__usePrivacyCheck__===true,devtoolsCliAvailable:await exists(devtoolsCli),
+      trialApiOrigin:miniProgramApiOrigins.trial,releaseApiOrigin:miniProgramApiOrigins.release})
+  : validateWeChatRelease(releaseInput);
 if (target === "preview") {
   errors.push(...validateInternalTestPackageSafety({
     testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
@@ -75,6 +93,9 @@ if (target === "preview") {
   }));
   const designQa = await evaluateDesignQaEvidence(root);
   errors.push(...designQa.structuralErrors);
+} else if (command === "upload") {
+  const designQa = await evaluateDesignQaEvidence(root);
+  errors.push(...designQa.structuralErrors,...uploadMainErrors());
 } else if (target === "trial" || target === "release") {
   const designQa = await evaluateDesignQaEvidence(root);
   errors.push(...designQa.releaseErrors);
@@ -82,12 +103,12 @@ if (target === "preview") {
 
 // The configured public endpoint must actually answer before producing another
 // ordinary QR. This does not replace console, device or environment-identity proof.
-const publicLegalProbe = target !== "local" && !miniProgramCloudFunctions[target]
+const publicLegalProbe = command !== "upload" && target !== "local" && !miniProgramCloudFunctions[target]
   ? await probeLegalEndpoint(apiOrigin) : null;
 if (publicLegalProbe && !publicLegalProbe.ok) errors.push(`PUBLIC_LEGAL_BOOTSTRAP_FAILED:${publicLegalProbe.code}`);
 
 if (errors.length) {
-  console.error(JSON.stringify({ ok: false, command, target, errors, publicLegalProbe }, null, 2));
+  console.error(JSON.stringify({ ok: false, command, target, errors, editorialBundledFiles, publicLegalProbe }, null, 2));
   process.exitCode = 1;
 } else if (command === "preflight") {
   console.log(JSON.stringify({ ok: true, command, target, appid: projectConfig.appid, apiOrigin, publicLegalProbe }, null, 2));
@@ -107,6 +128,6 @@ if (errors.length) {
     if (!version || !desc) throw new Error("WECHAT_VERSION_AND_RELEASE_DESC_REQUIRED");
     const infoOutput = process.env.WECHAT_INFO_OUTPUT ?? resolve(evidenceDir, `upload-${version}.json`);
     await run(devtoolsCli, ["upload", "--project", projectPath, "--version", version, "--desc", desc, "--info-output", infoOutput, "--lang", "zh"]);
-    console.log(JSON.stringify({ ok: true, command, target, version, desc, infoOutput }, null, 2));
+    console.log(JSON.stringify({ ok: true, command, target, platformState:"developer_version_only", version, desc, infoOutput }, null, 2));
   }
 }

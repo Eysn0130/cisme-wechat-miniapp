@@ -8,6 +8,8 @@ import { dependencySignal } from './operationBudget.js';
 import { AuthorityService } from './authority.js';
 import { DeliveryAddressService } from './deliveryAddress.js';
 import { OrderFulfillmentService } from './orderFulfillment.js';
+import { WechatReceiptService } from './wechatReceipt.js';
+import { WechatReceiptWatch } from './wechatReceiptWatch.js';
 import { ShippingSyncService } from './shippingSync.js';
 import { WechatOrderShippingClient, type ShippingBinding, type ShippingCapability } from './wechatOrderShipping.js';
 import { WechatLogisticsClient, type LogisticsCapability } from './wechatLogistics.js';
@@ -31,7 +33,8 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
         || !grant.orderNumbers.length||grant.orderNumbers.length>100||grant.orderNumbers.some(x=>typeof x!=='string'||!/^[A-Za-z0-9_*-]{1,32}$/.test(x)))))denied();
     return grant;
   };
-  if(profile?.authorizationFile)read();
+  // Keep local fulfillment and independent workers available when the remote
+  // shipping grant expires. Each remote operation still validates it below.
   return (capability:ShippingCapability|LogisticsCapability,binding?:ShippingBinding&{appId?:string})=>{
     const grant=read();
     if(!(grant.capabilities as string[]).includes(capability)||capability==='logistics.tracking.read'&&binding?.appId!==profile!.appId||binding&&binding.merchantId!==profile!.merchantId
@@ -43,7 +46,7 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
 /** Configuration enables only local records; the protected, revocable grant
  * separately controls network I/O. There is no fallback public/provider URL. */
 export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
-  testChannel?:Pick<WechatOrderShippingClient,'query'|'uploadOnce'>){
+  testChannel?:Pick<WechatOrderShippingClient,'query'|'uploadOnce'> & Partial<Pick<WechatOrderShippingClient,'queryOrder'>>){
   const profile=config.commerce.fulfillment;if(!profile)return undefined;
   if(testChannel&&config.env!=='test')throw new Error('FAIL_CLOSED:SHIPPING_TEST_TRANSPORT_ONLY');
   const authorize=shippingAuthorization(config);
@@ -63,12 +66,17 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
   };
   const authority=new AuthorityService(pool,config.env);
   const derive=(secret:string,label:string)=>createHmac('sha256',Buffer.from(secret,'hex')).update(label).digest('hex');
+  const liveChannel=new WechatOrderShippingClient(token,authorize);
   const sync=new ShippingSyncService(pool,authority,{enabled:true,appId:profile.appId,merchantId:profile.merchantId,
     encryptionKey:derive(config.contacts.encryptionKey!,'cisme-shipping-encryption-v1'),
     hashKey:derive(config.contacts.hashKey!,'cisme-shipping-request-v1'),keyVersion:config.contacts.keyVersion},
-    testChannel??new WechatOrderShippingClient(token,authorize));
+    testChannel??liveChannel);
   const service=new OrderFulfillmentService(pool,authority,new DeliveryAddressService(pool,config),sync,true,
     new WechatLogisticsClient(token,authorize));
+  const receipt=testChannel&&!testChannel.queryOrder?undefined:new WechatReceiptService(pool,profile.appId,profile.merchantId,
+    testChannel?.queryOrder?{queryOrder:binding=>testChannel.queryOrder!(binding)}:liveChannel);
+  const receiptWatch=testChannel&&!testChannel.queryOrder?undefined:new WechatReceiptWatch(pool,profile.appId,profile.merchantId,
+    testChannel?.queryOrder?{queryOrder:binding=>testChannel.queryOrder!(binding)}:liveChannel);
   const runCycle=async()=>{
     if(!testChannel){try{authorize('shipping.query');}catch{return {processed:0,status:'not_authorized'};}}
     const rows=(await pool.query(`SELECT id FROM commerce_shipping_sync WHERE state IN ('prepared','dispatching','verifying')
@@ -77,5 +85,10 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
     for(const row of rows)await sync.processOne(row.id);
     return {processed:rows.length,status:'processed'};
   };
-  return {service,sync,runCycle};
+  const runReceiptCycle=async()=>{
+    if(!receiptWatch)return {processed:0,status:'not_configured'};
+    if(!testChannel){try{authorize('shipping.query');}catch{return {processed:0,status:'not_authorized'};}}
+    return receiptWatch.runCycle();
+  };
+  return {service,receipt,sync,runCycle,runReceiptCycle};
 }

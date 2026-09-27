@@ -3,7 +3,7 @@ const mocks=vi.hoisted(()=>({request:vi.fn(),navigate:vi.fn(async()=> 'target'),
 vi.mock('../../apps/miniprogram/services/api',()=>({request:mocks.request,navigateAfterAuthentication:mocks.navigate,setSessionToken:(token:string)=>{mocks.token=token;},consumeAuthReturnUrl:()=>'/pages/profile/index',cancelAuthentication:vi.fn(),clearAuthenticationRedirectSuppression:vi.fn(),suppressAuthenticationRedirectOnce:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'neutral',localMemberAvatar:mocks.local,prepareAvatarUpload:mocks.prepare}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({publishMemberIdentity:mocks.publish}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',motionDuration:()=>0}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',motionDuration:()=>0,shouldReduceMotion:()=>false}));
 vi.mock('../../apps/miniprogram/services/share',()=>({attributePendingShare:vi.fn()}));
 vi.mock('../../apps/miniprogram/release-config',()=>({legalDocumentVersions:()=>({privacy:'v3',terms:'v3',localFixture:false}),shouldUseDevelopmentIdentity:()=>false}));
 let page:any, wxMock:any;

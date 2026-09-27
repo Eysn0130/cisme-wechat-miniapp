@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { shippingObservation, shippingSyncAction, unifiedShippingPayload, WechatOrderShippingClient,
+import { receiptObservation, shippingObservation, shippingSyncAction, unifiedShippingPayload, WechatOrderShippingClient,
   type ShippingBinding, type UnifiedParcel } from '../../services/api/src/wechatOrderShipping.js';
 
 const binding: ShippingBinding = { merchantId: '1900000001', merchantOrderNumber: 'CM20260922TEST',
@@ -47,6 +47,29 @@ describe('WeChat shipping protocol: PRD §8.2 / WX-PAY-MAKE-01', () => {
     expect(shippingObservation(observed({ order_state: 2, shipping: {} }), binding, parcel).decision).toBe('conflict');
     const wrong = observed(); wrong.shipping.shipping_list[0]!.tracking_no = 'OTHER';
     expect(shippingObservation(wrong, binding, parcel).decision).toBe('conflict');
+  });
+
+  it('reads receipt states 1–6 and future enums without interpreting 5/6 as receipt', async () => {
+    for (const state of [1,2,3,4,5,6,99]) {
+      expect(receiptObservation(observed({order_state:state,shipping:undefined}),binding))
+        .toEqual({platformOrderState:state,inComplaint:false});
+    }
+    for(const field of ['transaction_id','merchant_id','merchant_trade_no','openid','paid_amount'])
+      expect(()=>receiptObservation(observed({[field]:'wrong'}),binding)).toThrow();
+    for(const invalid of [null,'3',3.2,0])
+      expect(()=>receiptObservation(observed({order_state:invalid}),binding)).toThrow();
+    expect(()=>receiptObservation(observed({in_complaint:'false'}),binding)).toThrow();
+    const transport=vi.fn(async()=>new Response(JSON.stringify({errcode:0,order:observed({order_state:3})})));
+    const upload=vi.spyOn(WechatOrderShippingClient.prototype,'uploadOnce');
+    let queryGrantChecks=0;
+    const client=new WechatOrderShippingClient(async()=> 'synthetic-token',capability=>{
+      expect(capability).toBe('shipping.query');
+      queryGrantChecks++;
+    },transport);
+    expect(await client.queryOrder(binding)).toEqual({platformOrderState:3,inComplaint:false});
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(queryGrantChecks).toBe(3);
+    expect(upload).not.toHaveBeenCalled();upload.mockRestore();
   });
 
   it('defaults to no outbound permission before acquiring credentials', async () => {

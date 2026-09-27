@@ -26,7 +26,7 @@ vi.mock("../../apps/miniprogram/services/member-avatar", () => ({
   localMemberAvatar: async () => "local-avatar",
   prepareAvatarUpload: vi.fn()
 }));
-vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", motionDuration: () => 0 }));
+vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", motionDuration: () => 0, shouldReduceMotion: () => false }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ attributePendingShare: vi.fn() }));
 
 type PageDefinition = Record<string, any> & { data: Record<string, any> };

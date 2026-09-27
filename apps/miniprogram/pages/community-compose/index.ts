@@ -29,6 +29,7 @@ Page({
   lastSessionToken: "",
   shown:false,
   mediaVisible:false,
+  openingNew:false,
   mediaEpoch:0,
   mediaAbort:null as (() => void)|null,
   backupTimer: null as ReturnType<typeof setTimeout>|null,
@@ -37,12 +38,12 @@ Page({
     files: [] as MediaItem[],sorting:false,drafts: [] as Array<{ id: string; title: string; status: string; state:string;version:number;imageCount: number }>,
     listMode: false, busy: false,operation:"idle", uploadBusy: false, loading: true, error: "", notice: "", dirty: false, epoch: 0, createKey: operationKey(),
     reviewNote:"",reviewedLabel:"",hiddenReason:"",hiddenPublished:null as {title:string;body:string}|null,
-    appeal:null as Draft["appeal"],publicGateEnabled:false,
+    appeal:null as Draft["appeal"],publicGateEnabled:false,publicGateLoaded:false,publicGateUnknown:false,
     listTotal:0,listCursor:null as string|null,listLoadingMore:false,listMoreError:"",
     requestedDraftId: "", requestedNew: false },
   onLoad(query: Record<string, string | undefined>) {
     this.lastSessionToken=getApp<IAppOption>().globalData.sessionToken;
-    void this.refreshPublicGate();
+    if(query.new!=="1")void this.refreshPublicGate();
     this.setData({ listMode: !query.id && query.new !== "1", requestedDraftId: query.id || "", requestedNew: query.new === "1" });
     if (!getApp<IAppOption>().globalData.sessionToken) {
       this.setData({ loading: false, error: "登录后可写自己的护理故事。" });
@@ -51,7 +52,7 @@ Page({
       return;
     }
     if (query.id) void this.loadDraft(query.id);
-    else if (query.new === "1") void this.createDraft();
+    else if (query.new === "1") void this.openNewIfAvailable();
     else void this.loadList();
   },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
@@ -59,7 +60,8 @@ Page({
     this.mediaVisible=true;
     const revision=commerceContextRevision();
     const token=getApp<IAppOption>().globalData.sessionToken;
-    void this.refreshPublicGate();
+    if(!this.data.requestedNew)void this.refreshPublicGate();
+    else if(token&&!this.openingNew)void this.openNewIfAvailable();
     if(token===this.lastSessionToken&&revision===this.readRevision){
       if(this.resumeReads){this.resumeReads=false;if(this.data.listMode)void this.loadList();else if((this.data.postId||this.data.requestedDraftId)&&!this.data.dirty)void this.loadDraft(this.data.postId||this.data.requestedDraftId);}
       if(this.shown&&this.data.state==="hidden"&&this.data.postId)void this.loadDraft(this.data.postId);
@@ -76,18 +78,36 @@ Page({
       title:"",body:"",notice:"",error:"",busy:false,uploadBusy:false,dirty:false,loading:true});
     if(!token){this.setData({loading:false,error:"登录后可写自己的护理故事。"});return;}
     if(wasGuest&&this.data.requestedDraftId)void this.loadDraft(this.data.requestedDraftId);
-    else if(wasGuest&&this.data.requestedNew)void this.createDraft();
+    else if(wasGuest&&this.data.requestedNew&&!this.openingNew)void this.openNewIfAvailable();
     else if(priorPostId)void this.loadDraft(priorPostId);
     else void this.loadList();
   },
   async refreshPublicGate(){
     const attempt=++this.gateRead,revision=commerceContextRevision();
+    this.setData({publicGateEnabled:false,publicGateLoaded:false,publicGateUnknown:false});
     try{const status=await pageRead<{publicEnabled:boolean}>(this,{path:"/v1/ugc/status",authMode:"public"});
-      if(this.mediaVisible&&attempt===this.gateRead&&revision===commerceContextRevision())this.setData({publicGateEnabled:status.publicEnabled===true});}
-    catch{if(this.mediaVisible&&attempt===this.gateRead&&revision===commerceContextRevision())this.setData({publicGateEnabled:false});}
+      if(this.mediaVisible&&attempt===this.gateRead&&revision===commerceContextRevision())this.setData({publicGateEnabled:status.publicEnabled===true,publicGateLoaded:true,publicGateUnknown:false});}
+    catch{if(this.mediaVisible&&attempt===this.gateRead&&revision===commerceContextRevision())this.setData({publicGateEnabled:false,publicGateLoaded:true,publicGateUnknown:true});}
+  },
+  async openNewIfAvailable(){
+    if(this.openingNew)return;
+    this.openingNew=true;
+    const token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision(),attempt=++this.gateRead;
+    let enabled=false,unknown=false;
+    try{const status=await pageRead<{publicEnabled:boolean}>(this,{path:"/v1/ugc/status",authMode:"public"});
+      enabled=status.publicEnabled===true;
+    }catch{unknown=true;}
+    if(attempt===this.gateRead)this.openingNew=false;
+    if(!this.mediaVisible||attempt!==this.gateRead||token!==getApp<IAppOption>().globalData.sessionToken||revision!==commerceContextRevision())return;
+    this.setData({publicGateEnabled:enabled,publicGateLoaded:true,publicGateUnknown:unknown,requestedNew:false});
+    if(enabled){void this.createDraft();return;}
+    // The list introduction already explains the closed public-submission state.
+    this.setData({listMode:true,loading:false,notice:""});
+    void this.loadList();
   },
   onHide(){
     this.resumeReads=this.data.loading||this.data.listLoadingMore;cancelPageReads(this);
+    this.gateRead+=1;this.openingNew=false;
     this.mediaVisible=false;
     this.mediaEpoch+=1;
     this.mediaAbort?.();
@@ -137,7 +157,7 @@ Page({
       this.setData({listLoadingMore:false,listMoreError:message(error,"更多内容暂未加载，请重试。")});}
   },
   async createDraft() {
-    if (this.data.busy) return;
+    if (this.data.busy || !this.data.publicGateEnabled) return;
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ busy: true,operation:"creating", loading: true, error: "", listMode: false });
     try {
@@ -231,7 +251,7 @@ Page({
     finally{if(current())this.setData({busy:false});}
   },
   retryLoad(){if(this.data.requestedDraftId)void this.loadDraft(this.data.requestedDraftId);
-    else if(this.data.requestedNew)void this.createDraft();else void this.loadList();},
+    else if(this.data.requestedNew)void this.openNewIfAvailable();else void this.loadList();},
   editTitle(event: WechatMiniprogram.Input) { this.setData({ title: event.detail.value, dirty: true, notice: "" });this.queueLocalBackup(); },
   editBody(event: WechatMiniprogram.Input) { this.setData({ body: event.detail.value, dirty: true, notice: "" });this.queueLocalBackup(); },
   changeAi(event: WechatMiniprogram.PickerChange) {

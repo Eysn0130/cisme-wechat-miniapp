@@ -1,0 +1,33 @@
+
+> cisme-wechat-miniapp@0.1.0 test
+> vitest run tests/unit --exclude 'dist/**'
+
+
+ RUN  v4.1.11 /Users/mini/CISME
+
+ ❯ tests/unit/privacy-inventory-gate.test.ts (4 tests | 1 failed) 301ms
+     × requires an inventory review whenever a known runtime egress call site changes 113ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/privacy-inventory-gate.test.ts > personal-data inventory gate > requires an inventory review whenever a known runtime egress call site changes
+AssertionError: expected '4a6d8f0fb03f2117341d31274c72c3309136a…' to be 'c0e9ab96098795e752d1a9cd1ba455f4a8d9b…' // Object.is equality
+
+Expected: "c0e9ab96098795e752d1a9cd1ba455f4a8d9b3dd946d0e74ac1f4d8cf27e8510"
+Received: "4a6d8f0fb03f2117341d31274c72c3309136aeab1a3a410d5551faedb9e60317"
+
+ ❯ tests/unit/privacy-inventory-gate.test.ts:79:32
+     77|     const hash=createHash('sha256');
+     78|     for(const signature of signatures.sort())hash.update(`${signature}…
+     79|     expect(hash.digest('hex')).toBe(manifest.egressSignatureSha256);
+       |                                ^
+     80|   });
+     81|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 126 passed (127)
+      Tests  1 failed | 1453 passed | 1 skipped (1455)
+   Start at  08:49:36
+   Duration  5.28s (transform 5.52s, setup 6.14s, import 8.30s, tests 16.77s, environment 878ms)

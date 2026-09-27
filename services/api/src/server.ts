@@ -83,7 +83,7 @@ interface AppDependencies {
   legacyDirectSettlementFixture?: boolean;
   loggerInstance?: FastifyBaseLogger;
   phoneFetcher?: typeof fetch;
-  shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'>;
+  shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'> & Partial<Pick<WechatOrderShippingClient,'queryOrder'>>;
   wechatIdentityFetcher?: typeof fetch;
   suppressionRemote?: SuppressionRemote;
 }
@@ -214,6 +214,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const shipmentRequired=()=>{
     if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','发货与物流功能尚未在当前环境开放',503);
     return localFulfillment.service;
+  };
+  const receiptRequired=()=>{
+    if(!localFulfillment?.receipt)throw new DomainError('WECHAT_RECEIPT_NOT_AVAILABLE','微信收货状态暂无法核对，请稍后重试或联系客服',503);
+    return localFulfillment.receipt;
   };
   if(config.commerce.simulatedPayment?.transferSceneId&&
     (!dependencies.paymentProtocol?.transferNotifyUrl||!dependencies.paymentProtocol.transferInbox))
@@ -763,6 +767,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.post<{Params:{orderId:string};Body:{expectedVersion:number}}>("/v1/me/orders/:orderId/confirm-receipt",async request=>
     shipmentRequired().confirmReceipt(request.memberId,request.params.orderId,idempotencyKey(request),request.body?.expectedVersion));
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/wechat-receipt/query",async request=>
+    receiptRequired().queryMine(request.memberId,request.params.orderId));
   app.get<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment",async request=>
     shipmentRequired().detailManagement(request.memberId,request.params.orderId));
   app.post<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment",async request=>
@@ -1007,6 +1013,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const shipping=process.env.RUN_BACKGROUND_WORKER==="true"?fulfillmentRuntime(config,pool):undefined;
   const shippingWorker=shipping?startWorkerLoop(async()=>{await shipping.runCycle();return false;},
     error=>app.log.error({event:"shipping_worker_tick_failed",...safeFailureFields(error)}),5000):null;
+  const receiptWorker=shipping?startWorkerLoop(async()=>{await shipping.runReceiptCycle();return false;},
+    error=>app.log.error({event:"receipt_watch_tick_failed",...safeFailureFields(error)}),60_000):null;
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
       privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null,accountClosure:new AccountClosure(
@@ -1035,7 +1043,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>app.log.error({event:"formal_recovery_tick_failed",...safeFailureFields(error)})):null;
   app.addHook("onClose", async () => {
     // Close admission on every lane before awaiting any slow provider call.
-    await Promise.all([shippingWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker?.stop()]);
+    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker?.stop()]);
     await pool.end();
   });
   const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });

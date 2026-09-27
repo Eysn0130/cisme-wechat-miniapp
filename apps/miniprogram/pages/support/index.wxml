@@ -93,7 +93,7 @@
   </view>
 
   <view wx:if="{{attachmentSheetOpen}}" class="support-sheet-mask" catchtap="closeAttachmentSheet" catchtouchmove="stopPropagation">
-    <view class="support-sheet" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">{{attachmentSheetMode === 'image' ? '添加图片' : '关联附件'}}</strong><text class="support-sheet__note">{{attachmentSheetMode === 'image' ? '选择图片后可先预览，再决定是否发送。' : '选择要咨询的订单。'}}</text><view class="support-sheet__options {{attachmentSheetMode === 'attachment' ? 'support-sheet__options--single' : ''}}">
+    <view class="support-sheet" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">{{attachmentSheetMode === 'image' ? '添加图片' : '关联订单'}}</strong><text class="support-sheet__note">{{attachmentSheetMode === 'image' ? '选择图片后可先预览，再决定是否发送。' : '选择要咨询的订单。'}}</text><view class="support-sheet__options {{attachmentSheetMode === 'attachment' ? 'support-sheet__options--single' : ''}}">
       <block wx:if="{{attachmentSheetMode === 'image'}}"><button data-source="album" bindtap="chooseImage"><image src="/assets/icons/composer-image-plum.svg"/><text>从相册选择</text></button><button data-source="camera" bindtap="chooseImage"><image src="/assets/icons/camera-plum.svg"/><text>拍照</text></button></block>
       <button wx:else bindtap="openOrderPicker"><image src="/assets/icons/package-plum.svg"/><text>选择订单</text></button>
     </view><button class="support-sheet__cancel" bindtap="closeAttachmentSheet">取消</button></view>

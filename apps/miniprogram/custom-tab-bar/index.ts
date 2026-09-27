@@ -26,6 +26,7 @@ Component({
     externalBusy: false,
     chromeHidden: false,
     hiddenSources: [] as string[],
+    communityPublisherAvailable: false,
     communityFabMounted: false,
     communityFabVisible: false,
     reducedMotion: shouldReduceMotion(),
@@ -77,8 +78,14 @@ Component({
       if (chromeHidden === this.data.chromeHidden && hiddenSources.length === current.length) return;
       this.setData({ hiddenSources, chromeHidden });
     },
+    setCommunityPublisherAvailable(available: boolean) {
+      if (this.data.communityPublisherAvailable === available) return;
+      this.setData({ communityPublisherAvailable: available });
+      if (available) this.enterCommunityFab();
+      else this.leaveCommunityFab();
+    },
     enterCommunityFab() {
-      if (this.data.active !== 2) return;
+      if (this.data.active !== 2 || !this.data.communityPublisherAvailable) return;
       if (this.data.communityFabMounted && this.data.communityFabVisible) return;
       const reducedMotion = shouldReduceMotion();
       this.setData({ communityFabMounted: true, communityFabVisible: reducedMotion, reducedMotion }, () => {
@@ -93,7 +100,7 @@ Component({
       this.setData({ communityFabMounted: false, communityFabVisible: false });
     },
     activateCommunityFab() {
-      if (this.data.active !== 2 || !this.data.communityFabVisible || this.data.chromeHidden || this.data.switching || this.data.externalBusy) return;
+      if (this.data.active !== 2 || !this.data.communityPublisherAvailable || !this.data.communityFabVisible || this.data.chromeHidden || this.data.switching || this.data.externalBusy) return;
       const pages = getCurrentPages();
       const current = pages[pages.length - 1] as WechatMiniprogram.Page.Instance<Record<string, unknown>, Record<string, unknown>> & { openPublisher?: () => void } | undefined;
       current?.openPublisher?.();

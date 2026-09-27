@@ -1,0 +1,60 @@
+
+> cisme-wechat-miniapp@0.1.0 miniprogram:package-gate
+> tsx scripts/check-miniprogram-package.ts
+
+{
+  "ok": true,
+  "internalBudgets": {
+    "mainPackageBytes": 1800000,
+    "subpackageBytes": 400000,
+    "globalWxssBytes": 8192,
+    "singleAssetBytes": 200000
+  },
+  "actual": {
+    "files": 266,
+    "routes": 40,
+    "totalBytes": 1514713,
+    "mainPackageBytes": 525612,
+    "subpackageBytes": {
+      "pages/account": 35958,
+      "pages/task": 17437,
+      "pages/submit": 44514,
+      "pages/progress": 23227,
+      "pages/points": 12348,
+      "pages/post": 32122,
+      "pages/shop": 9146,
+      "pages/product": 16315,
+      "pages/checkout": 25434,
+      "pages/orders": 8715,
+      "pages/order-detail": 72621,
+      "pages/settings": 70547,
+      "pages/invite": 15191,
+      "pages/legal": 2630,
+      "pages/privacy-rights": 53198,
+      "pages/support": 75639,
+      "pages/management": 18387,
+      "pages/management-catalog": 7033,
+      "pages/management-product": 21785,
+      "pages/management-orders": 8679,
+      "pages/management-order-detail": 17380,
+      "pages/management-support": 10727,
+      "pages/management-support-chat": 65300,
+      "pages/management-members": 33775,
+      "pages/management-member": 34572,
+      "pages/referral": 6710,
+      "pages/community-compose": 43435,
+      "pages/community-post": 26259,
+      "pages/community-author": 10683,
+      "pages/community-review": 16828,
+      "pages/community-activity": 19894,
+      "pages/management-finance": 29914,
+      "pages/commission": 36670,
+      "pages/management-privacy": 17765,
+      "pages/aftersale": 33431,
+      "pages/management-fulfillment": 14832
+    },
+    "globalStyleBytes": 8050,
+    "sourceSha256": "e97db4690df66ae2c86b2e9539a5d631afbc501a27489fc32dc21c32ec436a4a"
+  },
+  "errors": []
+}

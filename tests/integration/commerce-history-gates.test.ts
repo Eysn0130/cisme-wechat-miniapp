@@ -44,7 +44,7 @@ beforeAll(async()=>{
     expect(response.statusCode,response.body).toBe(200);return response.json();
   }
   const product=await post("/v1/management/catalog/products",{code:"synthetic-history",name:"合成历史查询商品",subtitle:"仅用于所有权测试",
-    description:"无真实销售含义",imagePath:"/assets/cisme/community-card-purple-bottle-v1.jpg",sourceKind:"synthetic_test",
+    description:"无真实销售含义",imagePath:"/assets/icons/spray-bottle-plum.svg",sourceKind:"synthetic_test",
     sku:{code:"SYNTH_HISTORY",label:"合成规格",priceCents:10000}},"history-product-create");
   const qualified=await post(`/v1/management/catalog/products/${product.productId}/qualification`,{expectedVersion:product.version,
     status:"eligible",reason:"Synthetic history fixture",evidenceRef:"fixture://history/qualification"},"history-product-qualify");

@@ -21,7 +21,7 @@ it('does not mistake recovery, staging, broad permissions or a path for live com
   {capabilities:['payment.prepare','payment.prepare']},{capabilities:['transfer.submit']}]){
   await writeFile(f.path,JSON.stringify({...f.grant,...change}));expect(()=>authorize('payment.prepare')).toThrow();
  }
- await writeFile(f.path,JSON.stringify(f.grant));expect(()=>commerceAuthorization({...f.config,env:'staging'},f.profile)).toThrow();
+ await writeFile(f.path,JSON.stringify(f.grant));expect(()=>commerceAuthorization({...f.config,env:'staging'},f.profile)('payment.prepare')).toThrow();
  await chmod(f.path,0o644);expect(()=>authorize('payment.prepare')).toThrow();
  await unlink(f.path);expect(()=>authorize('payment.prepare')).toThrow();
  const {commerceAuthorizationFile,...absent}=f.profile;expect(()=>commerceAuthorization(f.config,absent)('payment.prepare')).toThrow();

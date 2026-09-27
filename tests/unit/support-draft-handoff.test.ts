@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from '../../apps/miniprogram/services/support-draft-handoff';
+import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from '../../apps/miniprogram/services/support-draft-handoff';
 
 afterEach(()=>{vi.useRealTimers();stageSupportDraft('','','');stageSupportSendAttempt('','',null);});
 
@@ -7,6 +7,16 @@ it('hands an unsent support draft to the same account and order once',()=>{
   stageSupportDraft('session-a','order-a','请帮我核对运单');
   expect(takeSupportDraft('session-a','order-a')).toBe('请帮我核对运单');
   expect(takeSupportDraft('session-a','order-a')).toBeNull();
+});
+
+it('retains an ordinary support draft and uncertain send only for the same account and scope',()=>{
+  stageSupportDraft('session-a',GENERAL_SUPPORT_SCOPE,'未发送的客服正文');
+  expect(takeSupportDraft('session-a',GENERAL_SUPPORT_SCOPE)).toBe('未发送的客服正文');
+  const attempt={id:'support-general-1',body:'发送结果未确认',linkedOrderId:null};
+  stageSupportSendAttempt('session-a',GENERAL_SUPPORT_SCOPE,attempt);
+  expect(takeSupportSendAttempt('session-b',GENERAL_SUPPORT_SCOPE)).toBeNull();
+  stageSupportSendAttempt('session-a',GENERAL_SUPPORT_SCOPE,attempt);
+  expect(takeSupportSendAttempt('session-a',GENERAL_SUPPORT_SCOPE)).toEqual(attempt);
 });
 
 it('keeps the exact uncertain support message ID for a same-account order handoff',()=>{

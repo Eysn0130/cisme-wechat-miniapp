@@ -50,7 +50,7 @@ beforeAll(async () => {
       VALUES($1,$2,'fixture','R4-B order integration','test','integration_fixture')`, [operator.memberId, capability]);
   }
   const payload = { code: "synthetic-r4b-order", name: "合成订单验证商品", subtitle: "仅用于隔离订单域验证", description: "无真实销售或支付含义。",
-    imagePath: "/assets/cisme/community-card-purple-bottle-v1.jpg", sourceKind: "synthetic_test", sku: { code: "SYNTH_R4B_ORDER", label: "合成规格", priceCents: 12345 } };
+    imagePath: "/assets/icons/spray-bottle-plum.svg", sourceKind: "synthetic_test", sku: { code: "SYNTH_R4B_ORDER", label: "合成规格", priceCents: 12345 } };
   const created = (await app.inject({ method: "POST", url: "/v1/management/catalog/products", headers: { ...auth(operator.sessionToken), "idempotency-key": "r4b-product-create-01" }, payload })).json();
   const qualified = (await app.inject({ method: "POST", url: `/v1/management/catalog/products/${created.productId}/qualification`, headers: { ...auth(operator.sessionToken), "idempotency-key": "r4b-product-qualify-01" },
     payload: { expectedVersion: created.version, status: "eligible", reason: "Synthetic order integration", evidenceRef: "fixture://r4b-order/eligible-v1" } })).json();

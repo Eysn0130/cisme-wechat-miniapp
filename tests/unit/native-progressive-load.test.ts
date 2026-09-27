@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), authority: vi.fn(), avatar: vi.fn(), publish: vi.fn(), identity: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false, clearAuthenticationRedirectSuppression: vi.fn() }));
@@ -96,6 +97,21 @@ describe("PERF-01/03: native Home progressive, session-bound facts", () => {
 });
 
 describe("PERF-02/09: native Profile consistent core, independent auxiliary states", () => {
+  it("keeps ordinary service routes reachable when the profile snapshot fails", async () => {
+    mocks.request.mockImplementation(async ({ path }) => {
+      if (path === "/v1/bootstrap/profile") throw new Error("synthetic profile outage");
+      if (path === "/v1/me/tasks") return [{ id: "task-a" }];
+      if (path === "/v1/me/commercial-membership") return commercial.promise;
+      if (path === "/v1/me/support/summary") return support.promise;
+      throw new Error(`Unexpected synthetic request: ${path}`);
+    });
+    await loadPage("profile"); await page.load(); await flush();
+    expect(page.data).toMatchObject({ member: null, points: null, care: null, coreUnavailable: true, tasks: [{ id: "task-a" }] });
+    const view = readFileSync("apps/miniprogram/pages/profile/index.wxml", "utf8");
+    expect(view).toContain('<block wx:if="{{member || coreUnavailable}}">');
+    page.openOrders();
+    expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/orders/index" }));
+  });
   it.each([
     ["planned", "护理周期待开始", "待用户确认开始", "下一节点 D1"],
     ["active", "护理周期进行中", "护理进行中", "下一节点 D1"],

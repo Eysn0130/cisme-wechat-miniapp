@@ -29,7 +29,7 @@ const identity = async (name: string) => (await app.inject({ method: "POST", url
 
 async function createSyntheticOrders() {
   const productPayload = { code: "synthetic-chat-order", name: "客服订单卡片验证商品", subtitle: "仅用于隔离验证", description: "无真实销售或支付含义。",
-    imagePath: "/assets/cisme/community-card-purple-bottle-v1.jpg", sourceKind: "synthetic_test", sku: { code: "SYNTH_CHAT_ORDER", label: "合成规格", priceCents: 23900 } };
+    imagePath: "/assets/icons/spray-bottle-plum.svg", sourceKind: "synthetic_test", sku: { code: "SYNTH_CHAT_ORDER", label: "合成规格", priceCents: 23900 } };
   const created = (await app.inject({ method: "POST", url: "/v1/management/catalog/products", headers: { ...auth(operator.sessionToken), "idempotency-key": "chat-product-create-01" }, payload: productPayload })).json();
   const qualified = (await app.inject({ method: "POST", url: `/v1/management/catalog/products/${created.productId}/qualification`, headers: { ...auth(operator.sessionToken), "idempotency-key": "chat-product-qualify-01" }, payload: { expectedVersion: created.version, status: "eligible", reason: "Synthetic support card", evidenceRef: "fixture://support/order-card" } })).json();
   const published = (await app.inject({ method: "POST", url: `/v1/management/catalog/products/${created.productId}/publication`, headers: { ...auth(operator.sessionToken), "idempotency-key": "chat-product-publish-01" }, payload: { expectedVersion: qualified.version, action: "publish", reason: "Synthetic support card" } })).json();

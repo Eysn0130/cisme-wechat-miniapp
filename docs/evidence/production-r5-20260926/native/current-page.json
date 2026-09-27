@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "tool": "automation_runtime_info",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "currentPage": {
+      "pageId": 252,
+      "path": "pages/account/index",
+      "query": {
+        "intent": "login"
+      }
+    }
+  }
+}

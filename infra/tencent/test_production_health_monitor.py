@@ -13,6 +13,22 @@ spec.loader.exec_module(health)
 
 
 class ProductionMonitorTests(unittest.TestCase):
+    def test_grant_renewal_warning_precedes_expiry_and_never_changes_the_grant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);grant=root/'grant.json';env=root/'runtime.env'
+            grant.write_text(json.dumps({'expiresAt':'2026-12-25T15:59:59Z'}));grant.chmod(0o600)
+            env.write_text('COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE='+str(grant)+'\n');env.chmod(0o600)
+            expires=health.datetime.datetime.fromisoformat('2026-12-25T15:59:59+00:00').timestamp()
+            before=grant.read_bytes()
+            self.assertEqual(health.authorization_expiry_checks(expires-15*86400,env),{'commerceGrantBeyond14Days':True})
+            self.assertEqual(health.authorization_expiry_checks(expires-14*86400,env),{'commerceGrantBeyond14Days':False})
+            self.assertEqual(health.authorization_expiry_checks(expires+1,env),{'commerceGrantBeyond14Days':False})
+            self.assertEqual(grant.read_bytes(),before)
+            for invalid in [None,42,[],{}]:
+                grant.write_text(json.dumps({'expiresAt':invalid}))
+                self.assertEqual(health.authorization_expiry_checks(expires-15*86400,env),{'commerceGrantBeyond14Days':False})
+            grant.unlink();self.assertEqual(health.authorization_expiry_checks(expires-15*86400,env),{'commerceGrantBeyond14Days':False})
+
     def test_active_worker_with_stale_cycle_is_unhealthy(self):
         with tempfile.TemporaryDirectory() as directory:
             heartbeat = Path(directory) / 'worker.json'

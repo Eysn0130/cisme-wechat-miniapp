@@ -31,7 +31,7 @@ it('checks exact environment, merchant, app, mode, scope, approval and expiry; n
 it('rejects world-readable approval files and symlinks; a config path is not a grant',async()=>{
   const f=await fixture();await chmod(f.path,0o644);expect(()=>protectedText(f.path)).toThrow('PROTECTED_FILE_PERMISSIONS');
   await chmod(f.path,0o600);await symlink(f.path,f.path+'.link');expect(()=>protectedText(f.path+'.link')).toThrow();
-  expect(()=>recoveryAuthorization({...f.config,env:'test'},f.profile)).toThrow('FORMAL_RECOVERY_GRANT_BINDING');
+  expect(()=>recoveryAuthorization({...f.config,env:'test'},f.profile)('payment.query')).toThrow('FORMAL_RECOVERY_GRANT_BINDING');
   const {recoveryAuthorizationFile,...inert}=f.profile;expect(()=>recoveryAuthorization(f.config,inert)('payment.query')).toThrow();
 });
 it('denies every write, unknown host, port and path before network and forces no redirect',async()=>{

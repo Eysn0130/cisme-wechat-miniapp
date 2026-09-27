@@ -86,6 +86,7 @@ const config = loadConfig({
 const pool = createPool(databaseUrl, config.database);
 const storage = createApiGatewayStorage(config);
 let app: Awaited<ReturnType<typeof createApp>> | null = null;
+let syntheticReceiptOrderNumber = '';
 
 type InjectResponse = { statusCode: number; json(): unknown };
 
@@ -101,12 +102,14 @@ async function seedFixtures() {
   await resetDatabase(pool);
   await seedTestCampaign(pool);
   await storage.ensureReady();
-  app = await createApp({ config, pool, storage, ...(syntheticFulfillment?{shippingTestChannel:{query:async()=>({decision:"matched" as const,platformOrderState:2,inComplaint:false}),uploadOnce:async()=>{throw Error("SYNTHETIC_QUERY_ONLY");}}}:{}) });
+  app = await createApp({ config, pool, storage, ...(syntheticFulfillment?{shippingTestChannel:{query:async()=>({decision:"matched" as const,platformOrderState:2,inComplaint:false}),
+    queryOrder:async binding=>{if(binding.merchantOrderNumber!==syntheticReceiptOrderNumber)throw Error('SYNTHETIC_RECEIPT_BINDING_REQUIRED');
+      return {platformOrderState:2,inComplaint:false};},uploadOnce:async()=>{throw Error("SYNTHETIC_QUERY_ONLY");}}}:{}) });
 
   await pool.query(`INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active)
     VALUES
-      ('privacy','local-acceptance-v1','本地验收隐私说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','local@example.invalid',true),
-      ('terms','local-acceptance-v1','本地验收服务说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','local@example.invalid',true)`);
+      ('privacy','local-acceptance-v1','本地验收隐私说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','小程序客服申请',true),
+      ('terms','local-acceptance-v1','本地验收服务说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','小程序客服申请',true)`);
 
   const identity = body<any>(await app.inject({
     method: "POST",
@@ -139,7 +142,7 @@ async function seedFixtures() {
   }
 
   body(await app.inject({method:"POST",url:"/v1/me/privacy-requests",headers:auth,
-    payload:{kind:"access",message:"合成验收请求：查询本轮护理记录与账号资料。仅测试受理流程，不涉及真实个人信息。"}}),"PRIVACY_REQUEST");
+    payload:{kind:"access",message:"我想查阅自己的护理记录和账号资料。"}}),"PRIVACY_REQUEST");
 
   // This process is test-only, loopback-bound, and resetDatabase verifies the
   // disposable runner's ownership marker before any fixture is created.
@@ -203,7 +206,7 @@ async function seedFixtures() {
       name: "合成验收护理精华",
       subtitle: "仅用于本地健康态与订单链路验收",
       description: "本商品、价格、库存和订单均为隔离测试数据，不代表真实销售承诺。",
-      imagePath: "/assets/cisme/community-card-purple-bottle-v1.jpg",
+      imagePath: "/assets/cisme/synthetic-owned-acceptance.jpg",
       sourceKind: "synthetic_test",
       sku: { code: "SYNTH_ACCEPTANCE_30", label: "合成 30ml", priceCents: 26900 }
     }
@@ -247,6 +250,14 @@ async function seedFixtures() {
   }), "ORDER_PENDING");
 
   const paidFixture = syntheticFulfillment ? await nativeFulfillmentFixture(pool,config,pendingOrder.id) : null;
+  if(paidFixture){
+    syntheticReceiptOrderNumber=paidFixture.number;
+    const version=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[paidFixture.id])).rows[0].version;
+    const serverTime=(await pool.query('SELECT clock_timestamp() time')).rows[0].time.toISOString();
+    body(await app.inject({method:'POST',url:`/v1/management/commerce/orders/${paidFixture.id}/shipment`,
+      headers:{...auth,'idempotency-key':'native-receipt-dispatch-0001'},payload:{carrierCode:'SF',carrierName:'合成承运商',
+        trackingNumber:'SYNTHETICRECEIPT01',shippedAt:serverTime,evidenceReference:'synthetic-receipt-proof',expectedOrderVersion:version}}),'RECEIPT_SHIPMENT');
+  }
   let recoveryFixture:null|{id:string;number:string;paymentEvidence:string}=null;
   if(syntheticFulfillment){
     recoveryFixture=await nativeFulfillmentFixture(pool,config,pendingOrder.id);
@@ -391,6 +402,7 @@ async function seedFixtures() {
       submit: { path: "pages/submit/index", query: `id=${claim.submissionId}` },
       progress: { path: "pages/progress/index", query: `id=${claim.submissionId}` },
       orderDetail: { path: "pages/order-detail/index", query: `id=${pendingOrder.id}` },
+      ...(paidFixture?{orderDetailPaid:{path:'pages/order-detail/index',query:`id=${paidFixture.id}`}}:{}),
       managementProduct: { path: "pages/management-product/index", query: `id=${createdProduct.productId}` },
       managementOrderDetail: { path: "pages/management-order-detail/index", query: `id=${pendingOrder.id}` },
       managementSupportChat: { path: "pages/management-support-chat/index", query: `id=${supportMessage.conversation.id}` },

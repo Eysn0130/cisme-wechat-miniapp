@@ -8,6 +8,7 @@ import { DeliveryAddressService } from './deliveryAddress.js';
 import { ShippingSyncService } from './shippingSync.js';
 import type { WechatLogisticsClient, LogisticsBinding } from './wechatLogistics.js';
 import { validateShippingBinding } from './wechatOrderShipping.js';
+import { receiptView } from './wechatReceipt.js';
 
 type Dispatch = { carrierCode: string; carrierName: string; trackingNumber: string;
   shippedAt: string; evidenceReference: string; expectedOrderVersion: number };
@@ -43,10 +44,13 @@ export class OrderFulfillmentService {
   private async projection(client:DbClient,row:Shipment){
     const parcel=await this.sync.parcelWithClient(client,row.shipping_sync_id);
     const sync=(await client.query('SELECT state FROM commerce_shipping_sync WHERE id=$1',[row.shipping_sync_id])).rows[0];
+    const platform=(await client.query(`SELECT platform_order_state,in_complaint,observed_at
+      FROM commerce_wechat_receipt_observation WHERE order_id=$1`,[row.order_id])).rows[0];
     return {id:row.id,orderId:row.order_id,carrierCode:parcel.carrierCode,carrierName:row.carrier_name,
       trackingNumber:parcel.trackingNumber,logisticsState:row.logistics_state,version:row.version,
       shippedAt:row.shipped_at.toISOString(),deliveredAt:row.delivered_at?.toISOString()??null,
-      receiptConfirmedAt:row.receipt_confirmed_at?.toISOString()??null,wechatSyncState:sync.state};
+      receiptConfirmedAt:row.receipt_confirmed_at?.toISOString()??null,wechatSyncState:sync.state,
+      wechatReceipt:platform?.observed_at?receiptView(platform.platform_order_state,platform.in_complaint,platform.observed_at):null};
   }
   async reconcileShipping(actor:string|undefined,orderId:string,requestKey:string,raw:Record<string,unknown>){
     this.gate(); return this.sync.reconcile(actor,orderId,requestKey,raw);
@@ -179,9 +183,11 @@ export class OrderFulfillmentService {
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
       const rows=(await client.query(`SELECT o.id,o.order_number,o.member_id,o.version,o.paid_at,
         s.id AS shipment_id,s.logistics_state,s.carrier_name,s.receipt_confirmed_at,
+        w.platform_order_state,w.in_complaint,w.observed_at,
         a.encrypted_payload,a.payload_hmac,a.key_version,
         (SELECT string_agg(l.product_name || ' × ' || l.quantity,'；' ORDER BY l.line_number) FROM commerce_order_line l WHERE l.order_id=o.id) AS items
         FROM commerce_order o LEFT JOIN commerce_shipment s ON s.order_id=o.id
+        LEFT JOIN commerce_wechat_receipt_observation w ON w.order_id=o.id
         LEFT JOIN commerce_order_address a ON a.order_id=o.id
         WHERE o.status='paid' AND o.transaction_source_kind='verified_commerce'
         AND ($1='all' OR ($1='awaiting_dispatch' AND s.id IS NULL) OR s.logistics_state=$1)
@@ -191,7 +197,8 @@ export class OrderFulfillmentService {
       if(exportPersonal&&hasMore)fail('SHIPMENT_EXPORT_TOO_LARGE',422);
       const items=selected.map(r=>({id:r.id,orderNumber:r.order_number,version:r.version,paidAt:r.paid_at.toISOString(),
         items:r.items,logisticsState:r.logistics_state??'awaiting_dispatch',carrierName:r.carrier_name,
-        receiptConfirmedAt:r.receipt_confirmed_at?.toISOString()??null}));
+        receiptConfirmedAt:r.receipt_confirmed_at?.toISOString()??null,
+        wechatReceipt:r.observed_at?receiptView(r.platform_order_state,r.in_complaint,r.observed_at):null}));
       if(!exportPersonal)return {items,nextCursor:hasMore?selected.at(-1)!.id:null};
       const cells=[['订单号','订单ID','订单版本','支付时间','商品','物流状态','收件人','手机号','省','市','区县','详细地址']];
       for(const r of selected){

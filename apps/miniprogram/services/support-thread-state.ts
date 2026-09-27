@@ -1,3 +1,5 @@
+import { nativeCatalogImage } from "./catalog";
+
 export interface SupportSequenceMessage {
   id: string;
   sequence: number;
@@ -157,8 +159,10 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
       : localState === "failed" ? "发送失败"
       : localState === "unknown" ? "结果待核对"
       : item.sequence <= counterpartyReadSequence ? "已读" : "已发送";
+    const orderCard = (item as TMessage & {orderCard?:{productImage?:string|null}|null}).orderCard;
     return {
       ...item,
+      ...(orderCard ? {orderCard:{...orderCard,productImage:nativeCatalogImage(orderCard.productImage)}} : {}),
       displayBody:displayBody(item),
       groupStart: !sameMessageGroup(previous, item),
       groupEnd: !sameMessageGroup(item, next),

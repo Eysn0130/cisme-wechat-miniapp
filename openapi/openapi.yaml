@@ -1488,7 +1488,7 @@ paths:
       operationId: myShipment
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/OrderId'}]
-      responses: {'200': {description: Owner-only physical shipment and independent WeChat sync status}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+      responses: {'200': {description: Owner-only physical shipment, local receipt and separately observed WeChat receipt state}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/me/orders/{orderId}/shipment/tracking:
     get:
       operationId: myShipmentTracking
@@ -1509,7 +1509,15 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}
-      responses: {'200': {description: Explicit owner receipt fact; does not fabricate carrier delivery or release funds}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+      responses: {'200': {description: Explicit local owner receipt fact; does not prove WeChat confirmation, carrier delivery or release funds}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/wechat-receipt/query:
+    post:
+      tags: [Commerce]
+      operationId: queryMyWechatReceipt
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      description: Owner-only read-only WeChat get_order query using the verified payment binding and revocable shipping.query grant. Persists an independent, versioned platform observation after rechecking membership and binding. Never uploads shipping, confirms local receipt, changes refunds or releases funds. A component transaction ID is returned only for an eligible shipped order; opening the component is not proof of receipt.
+      responses: {'200': {description: Bound platform state and optional component transaction ID}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/management/commerce/orders/{orderId}/shipment:
     get:
       tags: [Commerce]

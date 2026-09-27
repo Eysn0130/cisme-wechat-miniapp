@@ -1,4 +1,5 @@
 import {validateRuntime} from "../../services/commerce-runtime";
+import {nativeCatalogImage} from "../../services/catalog";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { catalogDetail, centsToYuan, type CatalogProduct, type CatalogSku } from "../../services/commerce";
 import {
@@ -93,7 +94,8 @@ Page({
     const ownerToken = currentSessionToken();
     this.setData({ loading: true, syncError: "" });
     try {
-      const [product, addressBook, runtimeResponse] = await Promise.all([catalogDetail(this.data.productCode), memberAddresses(), orderRuntimeStatus()]);
+      const [rawProduct, addressBook, runtimeResponse] = await Promise.all([catalogDetail(this.data.productCode), memberAddresses(), orderRuntimeStatus()]);
+      const product={...rawProduct,image:nativeCatalogImage(rawProduct.image)};
       const runtime=validateRuntime(runtimeResponse);
       const credit=runtime.isolatedCreditCheckoutAvailable?await isolatedCreditSummary().catch(()=>null):null;
       if (!requestStillOwned(this.ownership(), epoch, ownerToken) || attempt !== this.loadAttempt) return;

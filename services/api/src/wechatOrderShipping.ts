@@ -17,6 +17,9 @@ export type ShippingObservation = {
   platformOrderState: number;
   inComplaint: boolean;
 };
+/** A get_order result is a platform observation, never a local delivery or
+ * settlement fact. Unknown future state values remain unknown. */
+export type ReceiptObservation = { platformOrderState: number; inComplaint: boolean };
 type JsonObject = Record<string, unknown>;
 function object(value: unknown): JsonObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('WECHAT_SHIPPING_RESPONSE_INVALID', 502);
@@ -86,8 +89,49 @@ export function shippingObservation(raw: unknown, binding: ShippingBinding, parc
   return { ...result, decision: 'matched' };
 }
 
+export function receiptObservation(raw: unknown, binding: ShippingBinding): ReceiptObservation {
+  validateShippingBinding(binding);
+  const order = object(raw);
+  if (order.transaction_id !== binding.transactionId || order.merchant_id !== binding.merchantId
+    || order.merchant_trade_no !== binding.merchantOrderNumber || order.openid !== binding.payerOpenid
+    || order.paid_amount !== binding.payerTotalCents
+    || (order.sub_merchant_id !== undefined && order.sub_merchant_id !== '')
+    || typeof order.order_state !== 'number' || !Number.isSafeInteger(order.order_state)
+    || order.order_state < 1 || order.order_state > 2147483647
+    || typeof order.in_complaint !== 'boolean') fail('WECHAT_RECEIPT_ORDER_BINDING_MISMATCH', 502);
+  return {platformOrderState: order.order_state, inComplaint: order.in_complaint};
+}
+
 export type ShippingCapability = 'shipping.query' | 'shipping.upload';
 const deny = () => fail('WECHAT_SHIPPING_OUTBOUND_NOT_AUTHORIZED', 503);
+
+/** Explicit account-status diagnostic only. These two fixed POSTs read platform
+ * enrollment; they never upload a parcel, confirm receipt or enumerate orders. */
+export async function queryShippingAccountReadiness(appId:string,accessToken:()=>Promise<string>,
+  authorize:()=>void=deny,fetcher:typeof fetch=fetch){
+  if(!/^wx[A-Za-z0-9]{16}$/.test(appId))fail('WECHAT_SHIPPING_APP_ID_INVALID');
+  authorize();
+  let token:string;
+  try{token=await accessToken();}catch{fail('WECHAT_SHIPPING_TOKEN_UNAVAILABLE',503);}
+  if(!text(token,4096))fail('WECHAT_SHIPPING_TOKEN_UNAVAILABLE',503);
+  const results:Record<string,boolean|null>={};
+  const checks:Array<{operation:string;httpStatus:number|null;errcode:number|null;verified:boolean}>=[];
+  for(const [path,field] of [['is_trade_managed','is_trade_managed'],['is_trade_management_confirmation_completed','completed']] as const){
+    authorize();
+    const check={operation:path,httpStatus:null as number|null,errcode:null as number|null,verified:false};
+    results[field]=null;
+    try{
+      const response=await fetcher(`https://api.weixin.qq.com/wxa/sec/order/${path}?access_token=${encodeURIComponent(token)}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appid:appId}),redirect:'error',signal:dependencySignal(15000)});
+      check.httpStatus=response.status;
+      const body=await boundedWechatJson<JsonObject>(response);
+      check.errcode=typeof body.errcode==='number'&&Number.isSafeInteger(body.errcode)?body.errcode:null;
+      if(response.ok&&body.errcode===0&&typeof body[field]==='boolean'){results[field]=body[field];check.verified=true;}
+    }catch{/* Preserve UNKNOWN separately from a verified false; never return raw errors/token URLs. */}
+    checks.push(check);
+  }
+  return {managed:results.is_trade_managed!,settlementConfirmed:results.completed!,checks};
+}
 /** Outbound access is denied unless explicitly supplied by the composition
  * root. No live credentials/configuration are installed by this module. */
 export class WechatOrderShippingClient {
@@ -112,6 +156,7 @@ export class WechatOrderShippingClient {
       const response = await this.fetcher(`https://api.weixin.qq.com/wxa/sec/order/${path}?access_token=${encodeURIComponent(token)}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
           redirect: 'error', signal: dependencySignal(15000) });
+      if (!response.ok) fail('WECHAT_SHIPPING_PROVIDER_HTTP_ERROR', 502);
       const body = await boundedWechatJson<JsonObject>(response);
       // Error 10060023 (unchanged) is not proof that OUR parcel was recorded.
       if (body.errcode !== 0) fail('WECHAT_SHIPPING_PROVIDER_REJECTED', 502);
@@ -128,6 +173,16 @@ export class WechatOrderShippingClient {
     const body = await this.call('get_order', { transaction_id: binding.transactionId,
       merchant_id: binding.merchantId, merchant_trade_no: binding.merchantOrderNumber }, binding);
     return shippingObservation(body.order, binding, parcel);
+  }
+
+  /** Isolated, query-only receipt verification. It never calls uploadOnce. */
+  async queryOrder(binding: ShippingBinding): Promise<ReceiptObservation> {
+    validateShippingBinding(binding);
+    const body = await this.call('get_order', { transaction_id: binding.transactionId,
+      merchant_id: binding.merchantId, merchant_trade_no: binding.merchantOrderNumber }, binding);
+    const observation=receiptObservation(body.order, binding);
+    this.authorize('shipping.query', binding);
+    return observation;
   }
 
   /** One upload attempt only. The caller durably records dispatch BEFORE

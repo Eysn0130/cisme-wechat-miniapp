@@ -1,24 +1,56 @@
-<view class="chrome-root" style="{{chromeStyle}}">
-<view class="topbar account-topbar"><button class="topbar__back {{leavePromptOpen || leaving || avatarBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leavePromptOpen || leaving || avatarBusy}}" aria-label="{{leaving ? '正在返回来源页面' : loading ? '停止等待并返回' : '返回'}}"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="account-topbar__copy"><text class="topbar__title">会员账号</text><small class="account-topbar__subtitle">登录 / 注册</small></view></view>
-<view class="page page--stack account-page">
-  <view class="account-icon"><image class="account-icon__image" src="{{avatarUrl}}" mode="aspectFit"/></view>
-  <text class="account-eyebrow">CISME MEMBER</text>
-  <view class="account-title"><text class="account-title__line">留住每次护理</text></view>
-  <view class="account-subtitle">{{loginStage === 'avatar' ? '登录成功。选择微信头像后自动保存，也可稍后设置。' : phoneBindingEnabled ? '首次登录自动注册，微信弹窗确认所选手机号。' : '首次登录自动注册，也可先浏览公开社区。'}}</view>
-
-  <view wx:if="{{loginStage === 'login'}}" class="glass account-card">
-    <view class="account-row account-agreement {{loading || leaving ? 'control--disabled' : ''}}"><checkbox-group class="account-agreement__selector" bindchange="toggleAgreement"><label class="account-agreement__label"><checkbox class="account-checkbox" value="accepted" checked="{{agreementAccepted}}" disabled="{{loading || leaving || !legalTextsReady}}" color="#56306f" /><view class="account-row__copy"><strong class="account-row__title">我已阅读并同意用户协议与隐私保护指引</strong><small class="account-row__meta {{legalLoadError ? 'account-legal-status--error' : ''}}" aria-live="polite">{{identityCommitStarted ? '身份请求已提交，本次同意在结果返回前不可更改' : localLegalFixture ? '仅供本地测试，正式协议尚未发布' : legalTextsReady ? '公开展示与营销授权另行选择' : legalLoading ? '正在读取当前协议…' : legalLoadError === 'invalid' ? '协议加载异常，请稍后重试' : legalLoadError === 'unreachable' ? '协议暂时无法加载，请重试' : '当前协议尚未发布，请稍后重试'}}</small></view></label></checkbox-group><button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openLegalDocuments" disabled="{{loading || leaving}}" aria-label="选择查看用户协议或隐私保护指引">查看协议</button></view>
-    <view wx:if="{{crossBorderRequired}}" class="account-row account-agreement"><checkbox-group class="account-agreement__selector" bindchange="toggleCrossBorder"><label class="account-agreement__label"><checkbox class="account-checkbox" value="accepted" checked="{{crossBorderAccepted}}" disabled="{{loading || leaving || !legalTextsReady}}" color="#56306f"/><view class="account-row__copy"><strong class="account-row__title">同意个人信息境外存储</strong><small class="account-row__meta">单独选择；不同意可继续浏览公开社区</small></view></label></checkbox-group><button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openCrossBorder" disabled="{{loading || leaving}}">查看告知</button></view>
-
+<view class="chrome-root account-root" style="{{chromeStyle}}">
+  <view class="topbar account-topbar">
+    <button class="topbar__back account-topbar__back {{leavePromptOpen || leaving || avatarBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leavePromptOpen || leaving || avatarBusy}}" aria-label="{{leaving ? '正在返回来源页面' : loading ? '停止等待并返回' : '返回'}}"><image class="topbar__back-icon" src="/assets/icons/arrow-left-white.svg" mode="aspectFit"/></button>
   </view>
+  <view class="page account-page">
+    <view class="account-hero {{heroMotionActive ? 'account-hero--animated' : ''}} {{reducedMotion ? 'account-hero--reduced' : ''}}">
+      <image class="account-hero__art" src="/assets/cisme/cisme-login-hero-plum-r10.jpg" mode="aspectFill" aria-hidden="true"/>
+      <view class="account-hero__halo" aria-hidden="true"/>
+      <view class="account-hero__copy">
+        <text class="account-hero__brand">CISME</text>
+        <view class="account-hero__rule" aria-hidden="true"/>
+        <text class="account-hero__title">留住每次护理</text>
+        <view class="account-hero__description" wx:if="{{loginStage === 'login'}}">
+          <text>登录后查看护理记录与订单。</text>
+          <text>首次登录将自动创建账号。</text>
+        </view>
+        <view class="account-hero__description" wx:else>
+          <text>登录成功。可选择微信头像，</text>
+          <text>也可稍后设置。</text>
+        </view>
+      </view>
+    </view>
 
-  <view class="account-safety"><image class="account-safety__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>手机号可稍后绑定，不影响登录。</text></view>
-  <button wx:if="{{!legalLoading && !legalTextsReady}}" class="text-button account-legal-retry" disabled="{{loading || leaving}}" bindtap="syncLegalDocuments">重新加载协议</button>
-  <view wx:if="{{notice}}" class="account-notice" aria-live="polite">{{notice}}</view>
-  <canvas type="2d" id="member-avatar-canvas" class="account-avatar-canvas" aria-hidden="true"/>
-  <view wx:if="{{error}}" id="account-error-summary" class="state state--error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text></view>
-  <button wx:if="{{accountHelpAvailable}}" class="text-button account-help {{accountHelpBusy ? 'text-button--disabled' : ''}}" bindtap="openAccountHelp" loading="{{accountHelpBusy}}" disabled="{{accountHelpBusy}}">继续处理历史隐私请求</button>
-  <button class="primary account-login {{loading || leaving || avatarBusy || (!pendingDestination && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted))) ? 'primary--disabled' : ''}}" loading="{{loading || avatarBusy}}" disabled="{{loading || leaving || avatarBusy || (!pendingDestination && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted)))}}" open-type="{{loginStage === 'avatar' ? 'chooseAvatar' : phoneBindingEnabled && !pendingDestination ? 'getPhoneNumber' : ''}}" bindtap="loginTap" bindgetphonenumber="loginWithPhone" bindchooseavatar="chooseLoginAvatar"><text class="action-label">{{loginStage === 'avatar' ? '使用微信头像并继续' : pendingDestination ? '继续使用' : legalTextsReady ? '登录' : legalLoading ? '正在读取协议…' : '暂时无法登录'}}</text></button>
-  <button class="secondary account-browse {{leavePromptOpen || leaving || avatarBusy ? 'secondary--disabled' : ''}}" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving || avatarBusy}}"><text class="action-label">{{loginStage === 'avatar' ? '稍后设置，继续使用' : identityCommitStarted ? '身份请求已发送，仍然离开' : loading ? '停止等待，浏览公开社区' : '暂不登录，浏览公开社区'}}</text></button>
-</view>
+    <view class="account-content">
+      <view wx:if="{{loginStage === 'avatar'}}" class="account-avatar"><image class="account-avatar__image" src="{{avatarUrl}}" mode="aspectFit" aria-label="当前头像"/></view>
+      <view wx:if="{{loginStage === 'login'}}" class="account-consent">
+        <checkbox-group class="account-agreement__selector" bindchange="toggleAgreement">
+          <label class="account-agreement__label">
+            <checkbox class="account-checkbox" value="accepted" checked="{{agreementAccepted}}" disabled="{{loading || leaving || !legalTextsReady}}" color="#56306f"/>
+            <text class="account-row__title">我已阅读并同意以下条款</text>
+          </label>
+        </checkbox-group>
+        <view class="account-legal-links">
+          <button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openTerms" disabled="{{loading || leaving}}" aria-label="查看用户协议">《用户协议》</button>
+          <button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openPrivacy" disabled="{{loading || leaving}}" aria-label="查看隐私保护指引">《隐私保护指引》</button>
+        </view>
+        <text class="account-row__meta {{legalLoadError ? 'account-legal-status--error' : ''}}" aria-live="polite">{{identityCommitStarted ? '身份请求已提交，本次同意在结果返回前不可更改' : localLegalFixture ? '本地测试协议，仅用于开发验证' : legalTextsReady ? '公开展示与营销授权另行选择' : legalLoading ? '正在读取当前协议…' : legalLoadError === 'invalid' ? '协议加载异常，请稍后重试' : legalLoadError === 'unreachable' ? '协议暂时无法加载，请重试' : '当前协议尚未发布，请稍后重试'}}</text>
+        <view wx:if="{{crossBorderRequired}}" class="account-cross-border">
+          <checkbox-group class="account-agreement__selector" bindchange="toggleCrossBorder"><label class="account-agreement__label"><checkbox class="account-checkbox" value="accepted" checked="{{crossBorderAccepted}}" disabled="{{loading || leaving || !legalTextsReady}}" color="#56306f"/><text class="account-row__title">同意个人信息境外存储</text></label></checkbox-group>
+          <button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openCrossBorder" disabled="{{loading || leaving}}">查看境外存储告知</button>
+          <text class="account-row__meta">单独选择；不同意仍可浏览公开社区。</text>
+        </view>
+      </view>
+
+      <text wx:if="{{loginStage === 'login'}}" class="account-phone-note">{{phoneCapabilityKnown && phoneBindingEnabled ? '登录时可在微信弹窗选择手机号；拒绝后仍可登录。' : '手机号可稍后绑定。'}}</text>
+      <button wx:if="{{!legalLoading && !legalTextsReady}}" class="text-button account-legal-retry {{loading || leaving ? 'text-button--disabled' : ''}}" disabled="{{loading || leaving}}" bindtap="syncLegalDocuments">重新加载协议</button>
+      <view wx:if="{{notice}}" class="account-notice" aria-live="polite">{{notice}}</view>
+      <canvas type="2d" id="member-avatar-canvas" class="account-avatar-canvas" aria-hidden="true"/>
+      <view wx:if="{{error}}" id="account-error-summary" class="state state--error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text></view>
+      <button wx:if="{{accountHelpAvailable}}" class="text-button account-help {{accountHelpBusy ? 'text-button--disabled' : ''}}" bindtap="openAccountHelp" loading="{{accountHelpBusy}}" disabled="{{accountHelpBusy}}">继续处理历史隐私请求</button>
+      <button wx:if="{{error && loginStage === 'login'}}" class="text-button account-help" open-type="contact">无法登录？联系微信客服</button>
+      <button class="primary action-main account-login {{loading || leaving || avatarBusy || (!pendingDestination && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted))) ? 'primary--disabled' : ''}}" hover-class="action-pressed" loading="{{loading || avatarBusy}}" disabled="{{loading || leaving || avatarBusy || (!pendingDestination && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted)))}}" open-type="{{loginStage === 'avatar' ? 'chooseAvatar' : phoneBindingEnabled && !pendingDestination ? 'getPhoneNumber' : ''}}" bindtap="loginTap" bindgetphonenumber="loginWithPhone" bindchooseavatar="chooseLoginAvatar"><text class="action-label">{{loginStage === 'avatar' ? '使用微信头像并继续' : pendingDestination ? '继续使用' : loading ? '正在登录…' : legalTextsReady ? localLegalFixture ? '本地测试登录' : phoneBindingEnabled ? '微信登录并选择手机号' : '微信登录' : legalLoading ? '正在读取协议…' : '暂时无法登录'}}</text></button>
+      <button class="text-button action-text account-browse {{leavePromptOpen || leaving || avatarBusy ? 'text-button--disabled' : ''}}" hover-class="action-pressed" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving || avatarBusy}}"><text class="action-label">{{loginStage === 'avatar' ? '稍后设置，继续使用' : identityCommitStarted ? '身份请求已发送，仍然离开' : loading ? '停止等待，浏览公开社区' : '暂不登录，浏览公开社区'}}</text></button>
+    </view>
+  </view>
 </view>

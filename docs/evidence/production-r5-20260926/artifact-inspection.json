@@ -1,0 +1,13 @@
+{
+  "sourceHead": "26cd1e439768837f47050073fc632e51cd55252e",
+  "sourceTree": "4220c9e25ce3e2db4459048cae42decf7a8c54f9",
+  "archive": "dist/tencent-release-26cd1e439768.tar.gz",
+  "sha256": "444fbdbac07b23270db831f9310a57c7eb05a91a4591f394abf49c4da20564dd",
+  "filesInspected": 6712,
+  "migrations": 95,
+  "privateMaterialPathsAndBytesAbsent": true,
+  "hostPlatform": "darwin",
+  "mainArtifact": false,
+  "deployed": false,
+  "finalRuntimeSourceEquivalent": "git diff 26cd1e4..f62719e -- services packages db scripts/package-tencent-release.mjs package.json package-lock.json is empty"
+}

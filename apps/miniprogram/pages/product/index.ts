@@ -26,7 +26,7 @@ Page({
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
       const displayPrice = raw ? formatCnyCents(raw.price) : null;
       if (raw && displayPrice === null) throw new Error("CATALOG_PRICE_INVALID");
-      const item = raw ? { ...raw, image: nativeCatalogImage(raw.image ?? "/assets/cisme/community-card-purple-bottle-v1.jpg"), displayPrice,
+      const item = raw ? { ...raw, image: nativeCatalogImage(raw.image), displayPrice,
         contractCopy:raw.purchaseEnabled?"购买前会重新确认价格与库存":raw.sourceKind==="synthetic_test"?"测试商品 · 暂不可购买":"企业自营目录 · 暂不可购买",
         purchaseCopy:raw.purchaseEnabled?(raw.sourceKind==="synthetic_test"?"隔离测试商品，不发生真实扣款。":"确认价格、收货地址与配送承诺后，可创建订单并使用微信支付。"):"当前只提供商品资料浏览，购买入口尚未开放。" } : null;
       const selectedSku=item?.variants.find((sku:any)=>sku.active&&sku.inStock)??item?.variants.find((sku:any)=>sku.active)??null;
@@ -37,7 +37,14 @@ Page({
         if (this.data.pageAlive && this.data.loadAttempt === attempt && this.data.item) this.setData({ shareId });
       }
     } catch (error) {
-      if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ item: null, catalog: null, shareId: "", loading: false, errorKind: "load", errorTitle: "商品资料暂时未同步", error: "请检查网络后重试。页面不会把目录加载失败误显示成商品已下架。" });
+      if (this.data.pageAlive && this.data.loadAttempt === attempt) {
+        const problem = error as { status?: number; code?: string };
+        const missing = problem.status === 404 && problem.code === "CATALOG_PRODUCT_NOT_FOUND";
+        this.setData({ item: null, catalog: null, shareId: "", loading: false,
+          errorKind: missing ? "missing" : "load",
+          errorTitle: missing ? "这件商品暂不可用" : "商品资料暂时未同步",
+          error: missing ? "商品不存在、已下架，或当前目录不再展示它。请返回商品目录重新选择。" : "请检查网络后重试。页面不会把目录加载失败误显示成商品已下架。" });
+      }
     }
   },
   galleryChange(event: WechatMiniprogram.CustomEvent<{ current: number }>) { this.setData({ galleryIndex: event.detail.current }); },

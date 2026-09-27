@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "9f5459900edafdf0b1ea76cc79ef3db50c233fa80552b7e481965f7e4bbf5d12",
+  "tool": "wechatide 0.3.11 get_simulator_network",
+  "filter": "grep -Ein fail|error|ECONN|ERR_|status...(0|4xx|5xx)",
+  "matches": null,
+  "result": "pending_capture",
+  "qualification": "The capture runner records the bounded post-route-open match count. It is not a structured HAR or staging proof."
+}
