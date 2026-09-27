@@ -473,10 +473,11 @@ export class SettlementCommandService{
     const limit=pageLimit(query.limit),scope=pageScope(["settlement-pending"]),cursor=readPageCursor(query.cursor,scope);
     const totalCount=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM commission_settlement_request
       WHERE state='requested'`)).rows[0]?.n??0;
-    const rows=(await this.pool.query<Row>(`SELECT * FROM commission_settlement_request WHERE state='requested'
+    const rows=(await this.pool.query<Row & {cursor_at:string}>(`SELECT *,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
+      FROM commission_settlement_request WHERE state='requested'
       AND ($1::timestamptz IS NULL OR (created_at,id)>($1::timestamptz,$2::uuid))
       ORDER BY created_at,id LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
-    return {...finishPage(rows.map(row=>({...this.view(row),cursorAt:new Date(row.created_at).toISOString(),
+    return {...finishPage(rows.map(row=>({...this.view(row),cursorAt:row.cursor_at,
       createdAt:row.created_at})),limit,scope),totalCount};
   }
 

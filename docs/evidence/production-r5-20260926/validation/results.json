@@ -1,0 +1,191 @@
+{
+  "head": "f62719e6fc896f18d18a84d3b1c25d06b0d38363",
+  "tree": "e7450768b67fdd3f4afeb9990b00deb9d66a6817",
+  "postgresImage": "postgres:16.15-alpine",
+  "nodeVersion": "v24.14.0",
+  "checks": [
+    {
+      "check": "unit",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:19.818164+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:25.578719+00:00",
+      "log": "unit.log"
+    },
+    {
+      "check": "integration",
+      "command": [
+        "npm",
+        "run",
+        "test:integration"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:25.578777+00:00",
+      "finishedAtUtc": "2026-09-26T16:06:20.808717+00:00",
+      "log": "integration.log"
+    },
+    {
+      "check": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:19.818342+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:21.740909+00:00",
+      "log": "build.log"
+    },
+    {
+      "check": "contracts",
+      "command": [
+        "npm",
+        "run",
+        "lint:contracts"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:21.740985+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:22.076583+00:00",
+      "log": "contracts.log"
+    },
+    {
+      "check": "package",
+      "command": [
+        "npm",
+        "run",
+        "miniprogram:package-gate"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:22.076643+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:22.454649+00:00",
+      "log": "package.log"
+    },
+    {
+      "check": "routes",
+      "command": [
+        "npm",
+        "run",
+        "miniprogram:route-audit"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:22.454769+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:22.948447+00:00",
+      "log": "routes.log"
+    },
+    {
+      "check": "design-status",
+      "command": [
+        "npm",
+        "run",
+        "design:qa:status"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:22.948536+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:23.337304+00:00",
+      "log": "design-status.log"
+    },
+    {
+      "check": "audit-production",
+      "command": [
+        "npm",
+        "audit",
+        "--omit=dev",
+        "--audit-level=high"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:19.818416+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:21.530787+00:00",
+      "log": "audit-production.log"
+    },
+    {
+      "check": "audit-all",
+      "command": [
+        "npm",
+        "audit",
+        "--audit-level=high"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:21.530945+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:24.459126+00:00",
+      "log": "audit-all.log"
+    },
+    {
+      "check": "secrets",
+      "command": [
+        "tmp/release-preparation/gitleaks/gitleaks",
+        "git",
+        ".",
+        "--no-banner",
+        "--no-color",
+        "--redact=100"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:24.459187+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:26.997752+00:00",
+      "log": "secrets.log"
+    },
+    {
+      "check": "deployment",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "infra/tencent",
+        "-p",
+        "test_staging_*.py"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:26.997872+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:28.407665+00:00",
+      "log": "deployment.log"
+    },
+    {
+      "check": "monitor",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "infra/tencent",
+        "-p",
+        "test_production_*.py"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:28.407739+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:28.482805+00:00",
+      "log": "monitor.log"
+    },
+    {
+      "check": "linux-resume",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--user",
+        "0",
+        "--mount",
+        "type=bind,src=/Users/mini/CISME/infra/tencent,dst=/checks,readonly",
+        "--entrypoint",
+        "/usr/bin/python3",
+        "openclaw-sandbox:bookworm-slim",
+        "-B",
+        "/checks/test_production_forward_resume_linux.py"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T16:04:28.482856+00:00",
+      "finishedAtUtc": "2026-09-26T16:04:29.890629+00:00",
+      "log": "linux-resume.log"
+    }
+  ],
+  "allPassed": true,
+  "remoteCI": false
+}

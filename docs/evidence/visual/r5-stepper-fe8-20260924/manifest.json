@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "fe8af33ada76875f2e474ba6cbffbbab7a5841be309a853783c2a81baea953ff",
+  "tool": "wechatide 0.3.9 simulator_open_page/automation_element_action/simulator_screenshot",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "scope": "Local WeChat DevTools simulator at 333x719 with disposable synthetic paid order and loopback acceptance API. Opened the paid order's support sheet, observed quantity 2 with the plus button disabled, tapped minus, and observed quantity 1 with both controls enabled. The 44x44 controls and 18x18 icons were visually centered. No physical-device or actual keyboard verification and no real payment.",
+  "screenshots": [
+    "sheet-quantity-2.png",
+    "sheet-quantity-1.png"
+  ]
+}

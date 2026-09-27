@@ -14,6 +14,19 @@ await pool.query(`CREATE TABLE IF NOT EXISTS schema_migration (
 const directory = resolve(process.cwd(), "db/migrations");
 const files = (await readdir(directory)).filter((name) => name.endsWith(".sql")).sort();
 
+// Historical files own an outer BEGIN/COMMIT. The runner must instead own that
+// transaction so DDL and schema_migration journal changes commit atomically.
+// Strip only the complete, anchored legacy wrapper; leave function bodies alone.
+function transactionBody(sql: string): string {
+  const text = sql.trim();
+  if (/^BEGIN\s*;/i.test(text)) {
+    const wrapped = /^BEGIN\s*;([\s\S]*)\bCOMMIT\s*;$/i.exec(text);
+    if (!wrapped) throw new Error("MIGRATION_TRANSACTION_WRAPPER_INVALID");
+    return wrapped[1]!;
+  }
+  return sql;
+}
+
 if (direction === "up") {
   for (const file of files) {
     const already = await pool.query("SELECT 1 FROM schema_migration WHERE version=$1", [file]);
@@ -23,7 +36,7 @@ if (direction === "up") {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      await client.query(up ?? source);
+      await client.query(transactionBody(up ?? source));
       await client.query("INSERT INTO schema_migration(version) VALUES ($1)", [file]);
       await client.query("COMMIT");
       console.log(`applied ${file}`);
@@ -44,7 +57,7 @@ if (direction === "up") {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query(down);
+    await client.query(transactionBody(down));
     await client.query("DELETE FROM schema_migration WHERE version=$1", [version]);
     await client.query("COMMIT");
     console.log(`rolled back ${version}`);

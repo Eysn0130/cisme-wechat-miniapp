@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "isolated-synthetic-portable-export-memory-sample",
+  "test": "tests/integration/privacy-portable-parts.test.ts",
+  "disposableRunId": "8bc4afa3c47963acfc3b9cff",
+  "mediaBytes": 68157440,
+  "maxObjectReadRangeBytes": 262144,
+  "rssBeforeExportBytes": 150601728,
+  "peakObservedRssBytes": 237142016,
+  "observedRssIncreaseBytes": 86540288,
+  "samplingIntervalMs": 10,
+  "result": "passed",
+  "scope": "One isolated PostgreSQL and local object-storage sample; process RSS includes test runner, encryption, PostgreSQL client and garbage-collection behavior. It does not establish a production peak or a universal upper bound."
+}

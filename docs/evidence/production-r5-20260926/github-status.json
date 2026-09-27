@@ -1,0 +1,14 @@
+{
+  "observedAtUtc": "2026-09-26 16:08:38 UTC",
+  "source": "GitHub connector get_pr_info",
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/22",
+  "head": "codex/fulfillment-lifecycle-20260922",
+  "headSha": "5ab4a00d4e71d8a9a2de14e31b64fca0bbe92e88",
+  "base": "main",
+  "mainSha": "5740e18544fa37dd473c36934a2a12a07a2d5ec9",
+  "draft": true,
+  "merged": false,
+  "mergeable": true,
+  "writeRecoveryGranted": false,
+  "newCandidateRemoteCI": false
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "d9fa4144844aabbdb30abc142c2e8042671f8e7388ce492f23fbdbd0aa790ab6",
+  "checkedAt": "2026-09-25T17:45:33Z",
+  "environment": "WeChat DevTools 390x844, develop, isolated synthetic account and local API",
+  "startingRoute": "pages/privacy-rights/index",
+  "action": "Enter an unsent request draft, tap the visible customer-service action, then return with the support page back button",
+  "contactDestination": "pages/support/index",
+  "returnedRoute": "pages/privacy-rights/index",
+  "draftRetained": true,
+  "requestSubmitted": false,
+  "customerServiceMessageSent": false,
+  "errorAfterReturn": false,
+  "scope": "Native navigation and local draft state only; no formal customer-service delivery or physical-device claim"
+}

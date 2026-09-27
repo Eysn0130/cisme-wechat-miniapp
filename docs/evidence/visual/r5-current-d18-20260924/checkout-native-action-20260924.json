@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "packageSha256": "d18b48e7ebc05d9636a24cc3980920af8c421cee9038744611090991b19c5f65",
+  "tool": "WeChat Developer Tools 2.02.2608070 simulator, iPhone 12/13 Pro preset",
+  "route": "pages/checkout/index",
+  "fixture": "synthetic checkout with one SKU, inventory 14 and selected synthetic address",
+  "actions": [
+    {"action": "tap 增加数量", "before": 1, "after": 2, "decrementEnabledAfter": true},
+    {"action": "tap 减少数量", "before": 2, "after": 1, "decrementDisabledAfter": true}
+  ],
+  "visualEvidence": "checkout.png in the same directory shows the 333x719 simulator with centered minus and plus symbols at quantity 1.",
+  "scopeLimit": "Simulator AX interaction and one screenshot. This is not a physical iOS or Android test, large-text test, system keyboard test, payment test or complete checkout journey."
+}

@@ -1,0 +1,215 @@
+{
+  "head": "640185b68f00ee2d01ec1fc235cc98be5f885adb",
+  "tree": "9c12ec87e6916576719bf2e645165a335920cfab",
+  "postgresImage": "postgres:16.15-alpine",
+  "nodeVersion": "v24.14.0",
+  "checks": [
+    {
+      "check": "unit",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:14.736760+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:21.272633+00:00",
+      "log": "unit.log"
+    },
+    {
+      "check": "integration",
+      "command": [
+        "npm",
+        "run",
+        "test:integration"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:21.272699+00:00",
+      "finishedAtUtc": "2026-09-26T13:04:30.024994+00:00",
+      "log": "integration.log"
+    },
+    {
+      "check": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:14.737128+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:17.178975+00:00",
+      "log": "build.log"
+    },
+    {
+      "check": "contracts",
+      "command": [
+        "npm",
+        "run",
+        "lint:contracts"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:17.179152+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:17.519923+00:00",
+      "log": "contracts.log"
+    },
+    {
+      "check": "package",
+      "command": [
+        "npm",
+        "run",
+        "miniprogram:package-gate"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:17.520029+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:17.953189+00:00",
+      "log": "package.log"
+    },
+    {
+      "check": "routes",
+      "command": [
+        "npm",
+        "run",
+        "miniprogram:route-audit"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:17.953274+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:18.395153+00:00",
+      "log": "routes.log"
+    },
+    {
+      "check": "design-status",
+      "command": [
+        "npm",
+        "run",
+        "design:qa:status"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:18.395267+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:18.829762+00:00",
+      "log": "design-status.log"
+    },
+    {
+      "check": "audit-production",
+      "command": [
+        "npm",
+        "audit",
+        "--omit=dev",
+        "--audit-level=high"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:14.737227+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:18.706247+00:00",
+      "log": "audit-production.log"
+    },
+    {
+      "check": "audit-all",
+      "command": [
+        "npm",
+        "audit",
+        "--audit-level=high"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:18.706359+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:20.415728+00:00",
+      "log": "audit-all.log"
+    },
+    {
+      "check": "secrets",
+      "command": [
+        "tmp/release-preparation/gitleaks/gitleaks",
+        "git",
+        ".",
+        "--no-banner",
+        "--no-color",
+        "--redact=100"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:20.415827+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:23.003808+00:00",
+      "log": "secrets.log"
+    },
+    {
+      "check": "deployment",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "infra/tencent",
+        "-p",
+        "test_staging_*.py"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:23.003906+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:24.517031+00:00",
+      "log": "deployment.log"
+    },
+    {
+      "check": "monitor",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "infra/tencent",
+        "-p",
+        "test_production_*.py"
+      ],
+      "exitCode": 0,
+      "startedAtUtc": "2026-09-26T13:02:24.517091+00:00",
+      "finishedAtUtc": "2026-09-26T13:02:24.594530+00:00",
+      "log": "monitor.log"
+    }
+  ],
+  "allPassed": true,
+  "remoteCI": false,
+  "designReleaseReady": false,
+  "linuxForwardResume": {
+    "passed": true,
+    "head": "640185b68f00ee2d01ec1fc235cc98be5f885adb",
+    "tree": "9c12ec87e6916576719bf2e645165a335920cfab",
+    "image": "openclaw-sandbox:bookworm-slim",
+    "imageId": "sha256:bd9906dc607aae8c226033df5da5d2cce3d149a89b82071e5191464391c3b814",
+    "network": "none",
+    "rootOnlyDisposable": true,
+    "realApiAndWorkerProcesses": true,
+    "cloudGithubDatabaseAndApprovalBoundaries": "synthetic",
+    "productionDeployed": false,
+    "log": "linux-forward-resume.log"
+  },
+  "secretScanCorrection": {
+    "initialHead": "880d3c31c893a3994bd3e473b301670c15c43950",
+    "initialExitCode": 1,
+    "findings": "two reviewed R3 fixture identifiers",
+    "finalScannerVersion": "8.30.1",
+    "exactPathAndLiteralAllowlist": true,
+    "negativeFixtureNewSecretsDetected": 2
+  },
+  "inheritedEvidence": {
+    "businessRuntimeUnchangedSince": "82656217d83d9ebeb6febf646597a395625c74d6",
+    "comparedPaths": [
+      "apps",
+      "services",
+      "packages",
+      "db",
+      "scripts",
+      "package.json",
+      "package-lock.json"
+    ],
+    "nativeSourceSha256": "e97db4690df66ae2c86b2e9539a5d631afbc501a27489fc32dc21c32ec436a4a",
+    "physicalDevices": "NOT_RUN",
+    "r3EvidenceUnmodified": true,
+    "fullRemoteCI": "NOT_RUN",
+    "freshMainArtifact": "NOT_BUILT",
+    "priorRestoreAndMigrationRehearsals": "INHERITED_WITH_ORIGINAL_SCOPE"
+  },
+  "sourceFiles": {
+    ".gitleaks.toml": "63576a813c2de772dbd116b5914e8ffd502ca9d5fa67890081048ea669067859",
+    "infra/tencent/production-release.py": "02206c7da6b6f0b840e0b43c9aa5dd524e827c44595481555d80b7e3216180c3",
+    "infra/tencent/test_staging_production_release.py": "53f523426925980016d02022849234619d2f18122c1215892da19d559ec7bbb2",
+    "infra/tencent/test_production_forward_resume_linux.py": "d183d46dfab930a84037f2b9b626ecb620426c3070c0193128500c1843de49df",
+    "tests/unit/formal-payment-protocol.test.ts": "4d98fb8e9306d93f16a661a41116b34bcb9302ce525254dd2a8cc14df46c231e",
+    "tests/unit/standalone-ugc-worker.test.ts": "6cbafc8fb3bd75e03b52bd2c449cf5fcff21f40ec4f13550fe32418564a9874a"
+  }
+}

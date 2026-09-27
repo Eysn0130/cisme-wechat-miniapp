@@ -20,7 +20,7 @@ export const miniProgramApiOrigins: Record<MiniProgramRuntime, string> = {
   devtools: "http://127.0.0.1:18080",
   preview: "https://staging-api.cisme.cn",
   trial: "https://staging-api.cisme.cn",
-  release: ""
+  release: "https://api.cisme.cn"
 };
 
 export type RemoteDebugQuery = Record<string, string | undefined>;

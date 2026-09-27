@@ -1,6 +1,7 @@
 import { requireCapability } from "../../services/authority";
 import { centsToYuan, managementCatalog, type CatalogProduct } from "../../services/commerce";
 import { currentChromeStyle } from "../../services/layout";
+import { nativeCatalogImage } from "../../services/catalog";
 
 const qualificationLabels: Record<string,string> = { pending:"待核验", eligible:"资质已确认", blocked:"已阻止" };
 const publicationLabels: Record<string,string> = { draft:"草稿", published:"已上架", unpublished:"已下架" };
@@ -18,7 +19,7 @@ Page({
   onUnload(){this.data.pageAlive=false;this.data.epoch+=1;},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&
     token===getApp<IAppOption>().globalData.sessionToken;},
-  normalize(items:CatalogProduct[]){return items.map((item)=>({...item,priceYuan:item.price===null?"未定价":`¥${centsToYuan(item.price)}`,qualificationLabel:qualificationLabels[item.qualificationStatus]??item.qualificationStatus,publicationLabel:publicationLabels[item.publicationStatus]??item.publicationStatus}));},
+  normalize(items:CatalogProduct[]){return items.map((item)=>({...item,image:nativeCatalogImage(item.image),priceYuan:item.price===null?"未定价":`¥${centsToYuan(item.price)}`,qualificationLabel:qualificationLabels[item.qualificationStatus]??item.qualificationStatus,publicationLabel:publicationLabels[item.publicationStatus]??item.publicationStatus}));},
   async load(){const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({loading:true,error:"",items:[],nextCursor:null});
     try{const page=await managementCatalog();if(this.current(epoch,token))

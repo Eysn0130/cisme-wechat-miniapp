@@ -189,14 +189,30 @@ export function verifyPaymentNotification(input:{rawBody:Uint8Array;headers:Head
   return {eventId:decoded.eventId,serial:decoded.serial,...assertPaymentBinding(decoded.transaction,input.binding)};
 }
 
+/** Choose the response-signing public key without changing merchant identity. */
+export function selectWechatPayPublicKey(platformKeys:ReadonlyMap<string,string>,activePublicKeyId?:string){
+  if(platformKeys.size===0)throw new Error('FAIL_CLOSED:FORMAL_WECHAT_PAY_TRUST_ID_REQUIRED');
+  const publicIds=[...platformKeys.keys()].filter(id=>id.startsWith('PUB_KEY_ID_'));
+  if(activePublicKeyId!==undefined){
+    if(!/^PUB_KEY_ID_[A-Za-z0-9_]{8,100}$/.test(activePublicKeyId)||!platformKeys.has(activePublicKeyId))
+      throw new Error('FAIL_CLOSED:FORMAL_WECHAT_PAY_ACTIVE_PUBLIC_KEY_INVALID');
+    return activePublicKeyId;
+  }
+  if(publicIds.length>1)throw new Error('FAIL_CLOSED:FORMAL_WECHAT_PAY_ACTIVE_PUBLIC_KEY_REQUIRED');
+  // Existing certificate-only trust lists retain their protocol. Never select
+  // an arbitrary map entry or confuse the merchant certificate with this ID.
+  return publicIds[0];
+}
 /** Protocol adapter only. Callers must persist verified facts before 204 and keep the MAKE gate closed until approved. */
 export class WechatPayV3Client{
+  private readonly activePublicKeyId:string|undefined;
   constructor(private readonly merchantId:string,private readonly merchantSerial:string,private readonly privateKeyPem:string,
     private readonly platformKeys:ReadonlyMap<string,string>,private readonly fetcher:typeof fetch=fetch,
-    private readonly baseUrl="https://api.mch.weixin.qq.com"){
+    private readonly baseUrl="https://api.mch.weixin.qq.com",activePublicKeyId?:string){
     if(baseUrl!=="https://api.mch.weixin.qq.com" &&
       !/^http:\/\/(127\.0\.0\.1|\[::1\]):[0-9]{2,5}$/.test(baseUrl))
       throw new DomainError("WECHAT_PAY_ENDPOINT_INVALID","仅允许微信支付正式域名或隔离测试回环地址",500);
+    this.activePublicKeyId=selectWechatPayPublicKey(platformKeys,activePublicKeyId);
   }
   private authorization(method:string,pathWithQuery:string,body:string){
     const timestamp=Math.floor(Date.now()/1000).toString(),nonce=randomBytes(16).toString("hex");
@@ -207,6 +223,7 @@ export class WechatPayV3Client{
   private async request(method:"GET"|"POST",path:string,body=""){
     const response=await this.fetcher(`${this.baseUrl}${path}`,{method,headers:{
       Authorization:this.authorization(method,path,body),Accept:"application/json",
+      ...(this.activePublicKeyId?{'Wechatpay-Serial':this.activePublicKeyId}:{}),
       ...(body?{"Content-Type":"application/json"}:{}),"User-Agent":"CISME/1.0"},
       ...(body?{body}:{}),redirect:"error",signal:AbortSignal.timeout(10000)});
     const raw=await boundedResponseBody(response,1_000_000);
@@ -353,6 +370,7 @@ export class WechatPayV3Client{
     const signedPath=url.pathname+url.search;
     const response=await this.fetcher(url,{method:"GET",headers:{
       Authorization:this.authorization("GET",signedPath,""),Accept:"application/octet-stream",
+      ...(this.activePublicKeyId?{'Wechatpay-Serial':this.activePublicKeyId}:{}),
       "User-Agent":"CISME/1.0"},redirect:"error",signal:AbortSignal.timeout(15000)});
     if(!response.ok||Number(response.headers.get("content-length")??0)>10_000_000)
       throw new DomainError("WECHAT_BILL_DOWNLOAD_UNAVAILABLE","交易账单暂时无法下载或超出大小上限",503);

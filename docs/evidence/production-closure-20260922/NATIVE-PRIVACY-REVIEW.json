@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "routes": ["GET /v1/management/privacy-requests", "POST /v1/management/privacy-requests/{requestId}/response"],
+  "routeDenominatorIncludingHealth": 241,
+  "versionedRouteDenominator": 239,
+  "status": "REVIEWED_SLICE_NOT_FULL_RELEASE_ACCEPTANCE",
+  "axes": {
+    "prdBusinessId": "PRD R4 P20/A11, §6.6 and §11; native management triage and truthful reply, not completed export/erasure.",
+    "identity": "Common signed-session authentication, active bound member; body cannot choose actor; conflicting x-principal-id denied before queue access.",
+    "roleCapability": "Current environment-bound privacy.request.manage, rechecked and share-locked inside the transaction. Legacy support/review_lead role alone cannot authorize these native routes.",
+    "objectRow": "Queue is intentionally an authorized operator's cross-member view; direct consumer reads remain owner-scoped. Reply targets existing UUID, current version and mutable request state.",
+    "fieldProjection": "Explicit request fields, user-submitted message, status, reply, deadline and bounded execution metadata. No export payload, archive token, session credential or provider response. No local persistent PII copy.",
+    "actionState": "Reply only reviewing/responded; completed/rejected/canceled immutable. Approved/executing cannot be overwritten. Invalid transition reproduced as HTTP500 before repair; now explicit409. Failed can return to reviewing only.",
+    "environment": "Authority grant environment must match AppConfig; test identities and destructive tests only in newly owned disposable DB/S3. No real production grant or data operation executed.",
+    "inputBoundary": "UUID, nonempty trimmed <=4000-codepoint reply, integer positive expectedVersion, bounded status enum; server body and request budgets inherited. Extra fields do not select identity or execution.",
+    "idempotencyVersion": "One version increment and one audit; same old-version repeat returns409. Native duplicate tap inhibited; uncertain response requires fresh read, no automatic POST replay.",
+    "concurrency": "Request FOR UPDATE then current active member/capability share locks; deterministic lock-wait test revokes grant before request lock releases and gets403/no write. Poll and late UI responses bound to page epoch, token and session revision.",
+    "databaseExternalEffects": "One transaction updates response/version and inserts request event/audit without reply body in audit. No provider I/O, job execution, deletion, account closure or money action.",
+    "limitsTimeoutPagination": "Queue hard-bounded to100 ordered rows; UI states this limit. Full older-history pagination remains a technical gap. Shared route/actor rate limits, request/statement/lock budgets apply; foreground polling stops on hide/failure and is skipped during reply.",
+    "positiveNegativeEvidence": "6 new real Fastify+PostgreSQL cases plus13 existing privacy-rights cases passed (19 total targeted);6 native Page behavior cases passed. Full exact-commit CI and native/device outcomes must be attached separately, not inferred from these tests."
+  },
+  "fullInterfaceReviewComplete": false,
+  "productionPrivacyExecutionComplete": false,
+  "productionGrantChanged": false
+}

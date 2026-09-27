@@ -1,0 +1,467 @@
+{
+  "runtime-result.json": {
+    "sourceHead": "d3b9a3c85718a0378db8144e19584487c469a18a",
+    "sourceTree": "494b890c9fba470a211fb51fbb804f935efc50c9",
+    "mainArtifact": false,
+    "productionTouched": false,
+    "externalAdapters": "synthetic identity, local storage, synthetic signed payment; no provider/funds",
+    "checks": [
+      {
+        "name": "runtimeRole",
+        "value": {
+          "current_user": "r3_runtime",
+          "rolsuper": false,
+          "rolcreatedb": false,
+          "rolcreaterole": false,
+          "rolinherit": true
+        }
+      },
+      {
+        "name": "privilegedOperationsDenied",
+        "value": true
+      },
+      {
+        "name": "restoredBeforeWrites",
+        "value": {
+          "migrations": 95,
+          "members": 2,
+          "pending": 2
+        }
+      },
+      {
+        "name": "twoOriginalOutboxEvents",
+        "value": {
+          "eventHash": "3f28abaa4a5e1e2b763fa06ca1d81cc2adad127046913504d5e56142ff9791b1",
+          "oldClaimed": 0,
+          "newClaimed": 2,
+          "replayClaimed": 0,
+          "results": [
+            {
+              "event_type": "identity.accepted.v1",
+              "attempts": 1,
+              "processing_outcome": "audit_only",
+              "processed": true
+            },
+            {
+              "event_type": "identity.accepted.v1",
+              "attempts": 1,
+              "processing_outcome": "audit_only",
+              "processed": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "linuxNativeSharp",
+        "value": {
+          "platform": "linux",
+          "arch": "x64",
+          "bytes": 96
+        }
+      },
+      {
+        "name": "httpHealth",
+        "value": {
+          "status": "ready"
+        }
+      },
+      {
+        "name": "unauthenticatedPrivacyDenied",
+        "value": true
+      },
+      {
+        "name": "pendingOrder",
+        "value": {
+          "status": "pending_payment",
+          "source": "synthetic_nonproduction",
+          "retrySameId": true
+        }
+      },
+      {
+        "name": "aftersale",
+        "value": {
+          "state": "requested",
+          "syntheticPayment": "synthetic signed/encrypted notification applied through real inbox; no real provider or money",
+          "retrySameId": true
+        }
+      },
+      {
+        "name": "privacySupplement",
+        "value": {
+          "status": "reviewing",
+          "waitingOn": "operator",
+          "retrySameResult": true
+        }
+      },
+      {
+        "name": "support",
+        "value": {
+          "duplicateMessageSameId": true,
+          "replyAccepted": "server_accepted"
+        }
+      },
+      {
+        "name": "carePersisted",
+        "value": [
+          {
+            "milestone": "D1",
+            "self_assessment": "comfortable",
+            "steps": [
+              "00",
+              "01",
+              "02",
+              "03"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "syntheticIds",
+        "value": {
+          "member": "0fcb7c07-956d-499a-b389-ee0c1cb7b30e",
+          "order": "12407342-82a4-4429-b512-0f9750f70e68",
+          "paid": "0e343b19-e2e2-4f39-848e-7ead40be24ad",
+          "aftersale": "b2f738fc-c172-42b1-a51b-fb143ecbcec6",
+          "privacy": "466d04f0-1b8a-4354-96a9-3e560be4a7c2",
+          "cycle": "a125ce55-9075-4206-a2fd-e31e0ab20aa1"
+        }
+      }
+    ]
+  },
+  "standalone-result.json": {
+    "mainArtifact": false,
+    "productionTouched": false,
+    "externalNetwork": "systemd IPAddressDeny=any; IPAddressAllow=localhost",
+    "checks": [
+      {
+        "mainApiReady": {
+          "status": "ready"
+        }
+      },
+      {
+        "independentWorkerHeartbeat": {
+          "completedAtUtc": "2026-09-26T11:12:26.988Z"
+        }
+      },
+      {
+        "service": "cisme-r3-index-1100",
+        "state": "MainPID=1624138\nIPAddressAllow=127.0.0.0/8 ::1/128\nIPAddressDeny=0.0.0.0/0 ::/0\nUser=cisme\nActiveState=active"
+      },
+      {
+        "service": "cisme-r3-worker-1100",
+        "state": "MainPID=1624145\nIPAddressAllow=127.0.0.0/8 ::1/128\nIPAddressDeny=0.0.0.0/0 ::/0\nUser=cisme\nActiveState=active"
+      },
+      {
+        "maintenanceBlocksWrites": {
+          "status": 503,
+          "code": "SERVICE_MIGRATING"
+        }
+      },
+      {
+        "afterRestartOrderRetry": {
+          "status": 200,
+          "sameOrderId": true,
+          "oldBackupUsed": false
+        }
+      }
+    ],
+    "ok": true
+  },
+  "storage-runtime-result.json": {
+    "productionConfigInstalled": false,
+    "mainArtifact": false,
+    "tests": [
+      {
+        "name": "productionConfigParsed",
+        "result": {
+          "env": "production",
+          "allowDevAdapters": false,
+          "driver": "cos_gateway",
+          "product": "lighthouse"
+        }
+      },
+      {
+        "name": "lighthouseActualAdapterReadiness",
+        "result": {
+          "ok": true,
+          "marker": "submissions/00000000-0000-4000-8000-000000000026/probe/r3-20260926-1035z-original.txt"
+        }
+      },
+      {
+        "name": "privacyVersioning",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "versioning": {},
+          "count": null,
+          "truncated": null
+        }
+      },
+      {
+        "name": "privacyScopedList",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "versioning": null,
+          "count": 0,
+          "truncated": "false"
+        }
+      },
+      {
+        "name": "privacyActualAdapterList",
+        "result": {
+          "ok": true,
+          "count": 0
+        }
+      },
+      {
+        "name": "productionCandidateHTTP",
+        "result": {
+          "status": 200,
+          "body": {
+            "status": "ready"
+          }
+        }
+      },
+      {
+        "name": "productionWriteGuard",
+        "result": {
+          "status": 503,
+          "code": "SERVICE_MIGRATING"
+        }
+      },
+      {
+        "name": "existingSecretsPresent",
+        "result": {
+          "APP_SESSION_SECRET": true,
+          "UPLOAD_TOKEN_SECRET": true,
+          "CONTACT_ENCRYPTION_KEY": true,
+          "CONTACT_HASH_KEY": true,
+          "PRIVACY_FORMAL_EXPORT_KEY": false,
+          "WECHAT_APP_SECRET": true,
+          "S3_ACCESS_KEY_ID": true,
+          "S3_SECRET_ACCESS_KEY": true
+        }
+      }
+    ]
+  },
+  "privacy-probe-result.json": {
+    "identity": "existing cisme-storage-runtime",
+    "scope": "two own objects only; not whole-bucket backup",
+    "productionBusinessObjectsChanged": false,
+    "tests": [
+      {
+        "name": "putHeadGet",
+        "value": {
+          "key": "cisme-probes/r3-20260926/r3-20260926-1135z-original.txt",
+          "status": 200,
+          "bytes": 51,
+          "sha256": "dacaec8ca8a4045b037550cecccf5c659ac6267b42d2fe974fb87ea0ed976219"
+        }
+      },
+      {
+        "name": "backupRestore",
+        "value": {
+          "backup": "/opt/cisme/rehearsals/r3-20260926-1100/r3-20260926-1135z.bin",
+          "restored": "cisme-probes/r3-20260926/r3-20260926-1135z-restored.txt",
+          "sha256": "dacaec8ca8a4045b037550cecccf5c659ac6267b42d2fe974fb87ea0ed976219",
+          "sameHostBackup": true
+        }
+      },
+      {
+        "name": "rootListDenied",
+        "value": {
+          "code": "AccessDenied",
+          "status": 403
+        }
+      },
+      {
+        "name": "otherAppPrefixDenied",
+        "value": {
+          "code": "AccessDenied",
+          "status": 403
+        }
+      },
+      {
+        "name": "outsidePrefixHeadDenied",
+        "value": {
+          "code": "403",
+          "status": 403
+        }
+      },
+      {
+        "name": "writeWithoutOverwriteGuardDenied",
+        "value": {
+          "code": "AccessDenied",
+          "status": 403
+        }
+      },
+      {
+        "name": "originalOverwritePrevented",
+        "value": {
+          "code": "FileAlreadyExists",
+          "status": 409
+        }
+      },
+      {
+        "name": "originalPreserved",
+        "value": true
+      }
+    ],
+    "ok": true
+  },
+  "legacy-recovery-result.json": {
+    "productionTouched": false,
+    "mainArtifact": false,
+    "checks": [
+      {
+        "name": "legacyDataReadback",
+        "value": {
+          "ids": {
+            "member": "c4ce5683-0994-471f-b368-9df43f8b05e9",
+            "qualification": "89f70b4d-365d-4350-a975-5f6613fae479",
+            "cycle": "5b677f7d-277a-473c-98e1-18d8fa72dbd3",
+            "record": "3838b8db-da17-44e9-aec9-92077759f190",
+            "privacy": "638cc7f9-34ca-4587-bc95-c9fa7343c34d"
+          },
+          "care": {
+            "id": "5b677f7d-277a-473c-98e1-18d8fa72dbd3",
+            "phase": "active",
+            "startedOn": "2026-09-08",
+            "timezone": "Asia/Shanghai",
+            "protocolVersion": "r3-legacy",
+            "completed": [
+              "D1"
+            ],
+            "due": "D7",
+            "next": "D7",
+            "version": 1,
+            "scheduleOffsetDays": 0,
+            "pausePolicy": {
+              "enabled": false,
+              "maxDays": 0,
+              "version": null
+            },
+            "records": [
+              {
+                "milestone": "D1",
+                "completedAt": "2026-09-08T01:00:00.000Z",
+                "protocolVersion": "r3-legacy",
+                "selfAssessment": null,
+                "stepCodes": []
+              }
+            ],
+            "history": [],
+            "nextCursor": null
+          },
+          "privacy": [
+            {
+              "id": "638cc7f9-34ca-4587-bc95-c9fa7343c34d",
+              "kind": "access",
+              "message": "R3 旧版资料查阅",
+              "scope_code": null,
+              "target_ref": null,
+              "status": "responded",
+              "waitingOn": "operator",
+              "response": "旧版答复保留",
+              "version": 1,
+              "due_at": "2026-10-26T11:35:27.639Z",
+              "resolution_code": null,
+              "completed_at": null,
+              "created_at": "2026-09-26T11:35:27.639Z",
+              "updated_at": "2026-09-26T11:35:27.639Z",
+              "latestMemberReply": null,
+              "replyHistory": [
+                {
+                  "body": "旧版答复保留",
+                  "actor": "operator",
+                  "version": 1,
+                  "createdAt": "2026-09-26T19:35:27.639522+08:00"
+                }
+              ],
+              "execution": null
+            }
+          ],
+          "migrations": 95,
+          "missingStepsInvented": false
+        }
+      },
+      {
+        "name": "beforeNewWritesProtectionPoint",
+        "value": {
+          "tables": 46,
+          "digest": "eb16eb1c698554812ed8b482d1f60d05ce91e8fcc063be1be625ec2fb383bf86",
+          "matchedAllRows": true,
+          "source": "preserved R2 real backup copy, all 23-migration public tables",
+          "newWritesAllowed": false
+        }
+      },
+      {
+        "name": "afterNewWritesProtectionPoint",
+        "value": {
+          "tables": 135,
+          "digest": "83cc7263eb016a3fb2708f1a06880c0c3e726da24b097e39286a1cfd2c8626d9",
+          "dumpSha256": "a6ff566915b93b248a9b397678ad11a71dcbac14a91bb6544f6fc9b11b99b094",
+          "allRowsPreserved": true,
+          "oldBackupAppliedToNewFacts": false
+        }
+      },
+      {
+        "name": "originalCopyUnchanged",
+        "value": true
+      }
+    ],
+    "ok": true
+  },
+  "prepared-config-result.json": {
+    "liveConfigChanged": false,
+    "preparedConfig": "/opt/cisme/prepared/r3-20260926/runtime.production.closed.env",
+    "ownerUid": 0,
+    "mode": "0o600",
+    "formalExportKeyInitializedInPrivateCandidateOnly": true,
+    "existingSecretsPreserved": true,
+    "nonSecretChanges": {
+      "APP_ENV": "production",
+      "ALLOW_DEV_ADAPTERS": "false",
+      "COMMERCE_ORDER_FLOW_ENABLED": "false",
+      "COMMERCE_FULFILLMENT_ENABLED": "false",
+      "CISME_MIGRATION_READ_ONLY": "true",
+      "RUN_BACKGROUND_WORKER": "false",
+      "COS_BUCKET_PRODUCT": "lighthouse",
+      "COS_READINESS_OBJECT_KEY": "submissions/00000000-0000-4000-8000-000000000026/probe/r3-20260926-1035z-original.txt",
+      "COS_READINESS_OBJECT_SHA256": "25f62e1c96e45bb05478d2ee960b21b28dbd8fb834d7ddb1bb3580f6bbd86f07",
+      "PRIVACY_SUPPRESSION_BUCKET": "cisme-privacy-1257392443",
+      "PRIVACY_SUPPRESSION_DIR": "/var/lib/cisme/privacy-suppression",
+      "UGC_SCAN_WORKER_MODE": "standalone"
+    },
+    "suppressionDirectory": {
+      "exists": true,
+      "uid": 999,
+      "gid": 988,
+      "mode": "0o700",
+      "symlink": false
+    },
+    "serviceState": {
+      "cisme-api.service": "User=cisme\nReadWritePaths=/opt/cisme/tmp /var/lib/cisme/privacy-suppression\nProtectSystem=strict\nActiveState=active",
+      "cisme-worker.service": "User=cisme\nReadWritePaths=/opt/cisme/tmp /var/lib/cisme/privacy-suppression\nProtectSystem=strict\nActiveState=active"
+    },
+    "pendingInstallation": [
+      "fresh DB/object protection point",
+      "main-bound release and current switch"
+    ],
+    "openingDependenciesPresent": {
+      "WECHAT_MESSAGE_TOKEN": false,
+      "WECHAT_MESSAGE_AES_KEY": false,
+      "UGC_SCAN_BASE_URL": false,
+      "UGC_LEGAL_APPROVAL_ID": false,
+      "COMMERCE_FORMAL_AUTHORIZATION_FILE": false,
+      "COMMERCE_RECOVERY_AUTHORIZATION_FILE": false,
+      "COMMERCE_FULFILLMENT_AUTHORIZATION_FILE": false
+    }
+  },
+  "dns01": {
+    "exit": 0,
+    "log": "Saving debug log to /var/log/letsencrypt/letsencrypt.log\n\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\nProcessing /etc/letsencrypt/renewal/api.cisme.cn.conf\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\nSimulating renewal of an existing certificate for api.cisme.cn\n\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\nCongratulations, all simulated renewals succeeded: \n  /etc/letsencrypt/live/api.cisme.cn/fullchain.pem (success)\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n",
+    "remainingHookStates": 0
+  }
+}

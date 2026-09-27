@@ -52,7 +52,7 @@
           <view class="session-complete"><view class="session-complete__ring"><image class="session-complete__icon" src="/assets/icons/check-plum.svg" mode="aspectFit"/></view><text>四步护理已完成</text></view>
           <text class="session-step__eyebrow">AFTER CARE</text>
           <strong class="session-step__title">护理后感觉如何？</strong>
-          <text class="session-step__instruction">选择最接近此刻的真实感受，这会随本次护理事实一起保存。</text>
+          <text class="session-step__instruction">记录这次护理后的感受。</text>
           <view class="assessment-list">
             <button wx:for="{{assessments}}" wx:key="value" class="assessment-option {{sessionAssessment === item.value ? 'is-selected' : ''}} {{working || mutationState === 'unknown' ? 'control--disabled' : ''}}" data-value="{{item.value}}" disabled="{{working || mutationState === 'unknown'}}" bindtap="selectAssessment"><view><strong class="assessment-option__title">{{item.label}}</strong><small class="assessment-option__note">{{item.note}}</small></view><view class="assessment-option__check"><image wx:if="{{sessionAssessment === item.value}}" class="assessment-option__check-icon" src="/assets/icons/check-white.svg" mode="aspectFit"/></view></button>
           </view>

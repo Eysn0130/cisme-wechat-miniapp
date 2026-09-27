@@ -1,10 +1,9 @@
 import {readFile} from 'node:fs/promises';
 import {createPool,transaction} from '../services/api/src/db.js';
+import {validateLegalPublication} from './legal-publication.js';
 const [file,operator]=process.argv.slice(2);
 if(!file || !operator || !process.env.DATABASE_URL)throw new Error('Usage: DATABASE_URL=… tsx scripts/publish-legal-documents.ts APPROVED_JSON OPERATOR');
-const input=JSON.parse(await readFile(file,'utf8')) as Array<{type:string;version:string;title:string;body:string;operatorName:string;contact:string}>;
-if(!Array.isArray(input) || ![2,3].includes(input.length) || new Set(input.map(doc=>doc.type)).size!==input.length || input.some(doc=>!['terms','privacy','cross_border'].includes(doc.type)) || !['terms','privacy'].every(type=>input.some(doc=>doc.type===type)))throw new Error('Both terms and privacy are required');
-for(const doc of input)if(!doc.version?.trim() || !doc.title?.trim() || doc.body?.trim().length<100 || !doc.operatorName?.trim() || !doc.contact?.trim() || /TBD|待填写|example\.invalid|测试占位/.test(JSON.stringify(doc)))throw new Error('Incomplete publication data');
+const input=validateLegalPublication(JSON.parse(await readFile(file,'utf8')));
 const pool=createPool(process.env.DATABASE_URL);
 try{await transaction(pool,async client=>{
  await client.query('LOCK TABLE legal_document IN EXCLUSIVE MODE');

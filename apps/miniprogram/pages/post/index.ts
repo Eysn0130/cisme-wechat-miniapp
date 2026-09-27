@@ -1,18 +1,18 @@
 import { defaultMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
 import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
-import { editorialStory } from "../../services/editorial";
+import { editorialPreviewAllowed, editorialStory, isBundledEditorialId } from "../../services/editorial";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 import { prepareShareLink, registerIncomingShare } from "../../services/share";
 
 import { commentThreads, emptyCommunity, prepareCommentAuthors, type CommunityView } from "../../services/community";
 
 Page({
-  data: { following: false, followBusy: false, followError: "", authorId: "", socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], mediaIndex: 0, galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], mediaIndex: 0, galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
     this.setData({ id, pageAlive: true });
-    void registerIncomingShare(query.share_id, "post", id);
+    if (!isBundledEditorialId(id) || editorialPreviewAllowed()) void registerIncomingShare(query.share_id, "post", id);
     wx.hideShareMenu();
   },
   onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); },
@@ -24,6 +24,11 @@ Page({
     this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followError: "", item: null, media: [], mediaIndex: 0, shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
     try {
       const editorial = editorialStory(this.data.id);
+      if (!editorial && isBundledEditorialId(this.data.id)) {
+        if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
+        this.setData({ loading: false, errorKind: "missing", errorTitle: "这篇护理故事暂不可见", error: "该内容尚未完成展示授权，请返回社区查看其他内容。" });
+        return;
+      }
       if (editorial) {
         if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
         this.setData({ authorId: "brand:cisme", item: editorial, media: editorial.media ?? [editorial.image], mediaIndex: 0, loading: false, errorKind: "none", errorTitle: "", error: "" });
@@ -186,5 +191,7 @@ Page({
       } });
     } });
   },
-  onShareAppMessage() { return { title: this.data.item?.title ?? "CISME 护理故事", path: `/pages/post/index?id=${encodeURIComponent(this.data.id)}${this.data.shareId ? `&share_id=${this.data.shareId}` : ""}` }; }
+  onShareAppMessage() { return this.data.item
+    ? { title: this.data.item.title, path: `/pages/post/index?id=${encodeURIComponent(this.data.id)}${this.data.shareId ? `&share_id=${this.data.shareId}` : ""}` }
+    : { title: "CISME 社区", path: "/pages/community/index" }; }
 });

@@ -3,6 +3,14 @@ export type TransactionProfile = "MAKE" | "BUY" | null;
 export const implementedTransactionProfiles: ReadonlySet<Exclude<TransactionProfile, null>> = new Set();
 export const CANONICAL_WECHAT_MINIPROGRAM_APP_ID = "wx4eac2d4fb11d299b";
 
+/** A migration fence is strict: a typo must never silently enable writes. */
+export function migrationReadOnly(env: NodeJS.ProcessEnv = process.env): boolean {
+  const value=env.CISME_MIGRATION_READ_ONLY;
+  if(value===undefined||value==='false')return false;
+  if(value==='true')return true;
+  throw new Error('CONFIG_INVALID:CISME_MIGRATION_READ_ONLY');
+}
+
 export interface AppConfig {
   env: AppEnvironment;
   port: number;
@@ -10,13 +18,17 @@ export interface AppConfig {
   allowDevAdapters: boolean;
   devClock: string | null;
   sessionSecret: string;
-  privacy: { syntheticExportKey: string | null };
+  privacy: { syntheticExportKey: string | null; formalExportKey: string | null; suppressionDirectory: string | null;
+    suppressionBucket: string | null };
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
   wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean;
     messageToken: string | null; messageAesKey: string | null; plaintextCallbackTestOnly: boolean };
   objectStorage: {
     profile: string | null;
     driver: "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
+    cosBucketProduct: "standard" | "lighthouse";
+    readinessObjectKey: string | null;
+    readinessObjectSha256: string | null;
     endpoint: string | null;
     region: string;
     bucket: string;
@@ -52,13 +64,14 @@ export interface AppConfig {
     adminWriteMax: number; moneyWriteMax: number; ugcWriteMax: number;
   } };
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
-  media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null };
+  media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null; ugcScanWorkerMode: 'embedded' | 'standalone' };
   commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
+    fulfillment?: { appId: string; merchantId: string; authorizationFile?: string };
     simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
       transferSceneId?: string };
     formalProtocol?: { appId: string; merchantId: string; merchantSerial: string;
       merchantPrivateKeyFile: string; merchantCertificateFile?: string; apiV3KeyFile: string; platformTrustManifestFile: string;
-      paymentNotifyUrl: string; refundNotifyUrl: string; recoveryAuthorizationFile?: string;
+      paymentNotifyUrl: string; refundNotifyUrl: string; recoveryAuthorizationFile?: string; commerceAuthorizationFile?: string;
       transferNotifyUrl?: string; transferSceneId?: string } };
 }
 
@@ -95,6 +108,7 @@ export function assertPointsRedemptionReady(env: NodeJS.ProcessEnv, selectedTran
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  migrationReadOnly(env);
   const appEnv = (env.APP_ENV ?? "development") as AppEnvironment;
   if (!["development", "test", "staging", "production"].includes(appEnv)) throw new Error("CONFIG_INVALID:APP_ENV");
   const allowDevAdapters = bool(env.ALLOW_DEV_ADAPTERS, appEnv !== "production" && appEnv !== "staging");
@@ -102,6 +116,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const syntheticExportKey=env.PRIVACY_SYNTHETIC_EXPORT_KEY?.trim() || null;
   if(syntheticExportKey && (appEnv!=="test" || !/^[0-9a-fA-F]{64}$/.test(syntheticExportKey)))
     throw new Error("FAIL_CLOSED:PRIVACY_SYNTHETIC_EXPORT_KEY_TEST_ONLY");
+  const formalExportKey=env.PRIVACY_FORMAL_EXPORT_KEY?.trim() || null;
+  if(formalExportKey && !/^[0-9a-fA-F]{64}$/.test(formalExportKey))
+    throw new Error('CONFIG_INVALID:PRIVACY_FORMAL_EXPORT_KEY');
+  const suppressionDirectory=env.PRIVACY_SUPPRESSION_DIR?.trim() || null;
+  if(suppressionDirectory && (!suppressionDirectory.startsWith('/') || suppressionDirectory.includes('\0')))
+    throw new Error('CONFIG_INVALID:PRIVACY_SUPPRESSION_DIR');
+  const suppressionBucket=env.PRIVACY_SUPPRESSION_BUCKET?.trim() || null;
+  if(suppressionBucket && !/^[a-z0-9][a-z0-9-]{2,58}-[0-9]{9,12}$/.test(suppressionBucket))
+    throw new Error('CONFIG_INVALID:PRIVACY_SUPPRESSION_BUCKET');
 
   const transactionRaw = env.SELECTED_TRANSACTION_PROFILE?.trim() || null;
   const pointsRulesEnabled = bool(env.POINTS_RULES_ENABLED);
@@ -139,6 +162,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
   const storageDriver = (env.OBJECT_STORAGE_DRIVER ?? "s3") as "s3" | "api_gateway" | "s3_gateway" | "cos_gateway";
   if (!['s3', 'api_gateway', 's3_gateway', 'cos_gateway'].includes(storageDriver)) throw new Error("CONFIG_INVALID:OBJECT_STORAGE_DRIVER");
+  const cosBucketProduct = env.COS_BUCKET_PRODUCT ?? "standard";
+  if (cosBucketProduct !== "standard" && cosBucketProduct !== "lighthouse") throw new Error("CONFIG_INVALID:COS_BUCKET_PRODUCT");
+  if (storageDriver === "cos_gateway" && (appEnv === "staging" || appEnv === "production")) {
+    const sharedLighthouseName = /^lhcos-[a-z0-9]{5}-\d{10}$/.test(env.S3_BUCKET ?? "");
+    if (sharedLighthouseName !== (cosBucketProduct === "lighthouse")) throw new Error("FAIL_CLOSED:COS_BUCKET_PRODUCT_MISMATCH");
+    if (cosBucketProduct === "lighthouse" &&
+        (!env.COS_READINESS_OBJECT_KEY || !/^[a-f0-9]{64}$/i.test(env.COS_READINESS_OBJECT_SHA256 ?? ""))) {
+      throw new Error("FAIL_CLOSED:COS_READINESS_OBJECT_REQUIRED");
+    }
+  }
   if (storageDriver === "cos_gateway" && (appEnv === "staging" || appEnv === "production") &&
       (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY || !env.S3_BUCKET || !env.S3_REGION)) {
     throw new Error("FAIL_CLOSED:COS_STORAGE_CREDENTIALS_REQUIRED");
@@ -150,6 +183,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error("FAIL_CLOSED:PRODUCTION_STORAGE_PROFILE_REQUIRED");
   }
   const ugcGoLiveGate = bool(env.UGC_GO_LIVE_GATE);
+  const ugcScanWorkerMode = env.UGC_SCAN_WORKER_MODE ?? 'embedded';
+  if (!['embedded','standalone'].includes(ugcScanWorkerMode)) throw new Error('CONFIG_INVALID:UGC_SCAN_WORKER_MODE');
+  if (ugcScanWorkerMode === 'standalone' && env.RUN_BACKGROUND_WORKER === 'true')
+    throw new Error('FAIL_CLOSED:UGC_DUPLICATE_WORKER_TOPOLOGY');
   const plaintextCallbackTestOnly=bool(env.WECHAT_MESSAGE_PLAINTEXT_TEST_ONLY);
   if(plaintextCallbackTestOnly&&appEnv!=="test")
     throw new Error("FAIL_CLOSED:UGC_PLAINTEXT_CALLBACK_TEST_ONLY");
@@ -161,7 +198,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (ugcGoLiveGate && (appEnv === "production" || appEnv === "staging") &&
       (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET || !env.WECHAT_MESSAGE_TOKEN || !env.WECHAT_MESSAGE_AES_KEY ||
         !env.UGC_SCAN_BASE_URL || !/^https:\/\/[^/?#]+$/.test(env.UGC_SCAN_BASE_URL) ||
-        env.RUN_BACKGROUND_WORKER!=="true")) {
+        (env.RUN_BACKGROUND_WORKER!=="true" && ugcScanWorkerMode!=='standalone'))) {
     throw new Error("FAIL_CLOSED:UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED");
   }
   const pointsRuleIds = (env.POINTS_RULE_IDS ?? "").split(",").map((value) => value.trim()).filter(Boolean);
@@ -209,7 +246,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (directUploadEnabled && storageDriver !== "cos_gateway") throw new Error("FAIL_CLOSED:COS_DIRECT_UPLOAD_REQUIRES_COS_GATEWAY");
   if (directUploadEnabled && (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY)) throw new Error("FAIL_CLOSED:COS_DIRECT_UPLOAD_CREDENTIALS_REQUIRED");
   const orderFlowEnabled = bool(env.COMMERCE_ORDER_FLOW_ENABLED);
-  if (orderFlowEnabled && appEnv === "production") throw new Error("FAIL_CLOSED:COMMERCE_ORDER_FLOW_NONPRODUCTION_ONLY");
+  if (orderFlowEnabled && appEnv === "production" &&
+    (!bool(env.COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED)||!env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE||!env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE))
+    throw new Error("FAIL_CLOSED:COMMERCE_ORDER_FLOW_FORMAL_APPROVAL_REQUIRED");
   const simulatedPaymentEnabled=bool(env.COMMERCE_SIMULATED_PAYMENT_ENABLED);
   if(simulatedPaymentEnabled && (appEnv!=="test"||!orderFlowEnabled))
     throw new Error("FAIL_CLOSED:COMMERCE_SIMULATED_PAYMENT_TEST_ONLY");
@@ -229,8 +268,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   // This configuration prepares trust and transport binding; it never grants
   // permission for orders, refunds or transfers. Independent live-capability
   // approvals are deliberately not defined by a single catch-all switch.
+  if(env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE&&(!formalProtocolEnabled||appEnv!=="production"))
+    throw new Error("FAIL_CLOSED:FORMAL_COMMERCE_PRODUCTION_ONLY");
   const formalProtocol=formalProtocolEnabled?{
     appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),
+    ...(env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE?{commerceAuthorizationFile:env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE}:{}),
     ...(env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE?{recoveryAuthorizationFile:env.COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE}:{}),
     merchantId:required("COMMERCE_FORMAL_MERCHANT_ID",env.COMMERCE_FORMAL_MERCHANT_ID),
     merchantSerial:required("COMMERCE_FORMAL_MERCHANT_SERIAL",env.COMMERCE_FORMAL_MERCHANT_SERIAL),
@@ -260,6 +302,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         throw new Error(`FAIL_CLOSED:COMMERCE_FORMAL_${kind.toUpperCase()}_NOTIFY_URL_INVALID`);
   }
 
+  const fulfillmentEnabled=bool(env.COMMERCE_FULFILLMENT_ENABLED);
+  const fulfillment=fulfillmentEnabled?{
+    appId:required('WECHAT_APP_ID',env.WECHAT_APP_ID),
+    merchantId:required('COMMERCE_FULFILLMENT_MERCHANT_ID',env.COMMERCE_FULFILLMENT_MERCHANT_ID),
+    ...(env.COMMERCE_FULFILLMENT_AUTHORIZATION_FILE?{authorizationFile:env.COMMERCE_FULFILLMENT_AUTHORIZATION_FILE}:{})
+  }:undefined;
+  if(fulfillment&&(!/^wx[a-zA-Z0-9]{16}$/.test(fulfillment.appId)||!/^\d{8,15}$/.test(fulfillment.merchantId)
+    || !/^[a-f0-9]{64}$/i.test(env.CONTACT_ENCRYPTION_KEY??'')||!/^[a-f0-9]{64}$/i.test(env.CONTACT_HASH_KEY??'')
+    || (formalProtocol&&(formalProtocol.appId!==fulfillment.appId||formalProtocol.merchantId!==fulfillment.merchantId))
+    || (fulfillment.authorizationFile&&(!fulfillment.authorizationFile.startsWith('/')||fulfillment.authorizationFile.includes('\0')))))
+    throw new Error('FAIL_CLOSED:FULFILLMENT_BINDING_OR_VAULT_INVALID');
+
   return {
     env: appEnv,
     port: Number(env.PORT ?? 3100),
@@ -267,7 +321,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowDevAdapters,
     devClock: env.DEV_CLOCK ?? null,
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
-    privacy: { syntheticExportKey },
+    privacy: { syntheticExportKey, formalExportKey, suppressionDirectory, suppressionBucket },
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
     wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null,
       phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null,
@@ -275,6 +329,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     objectStorage: {
       profile: env.OBJECT_STORAGE_PROFILE ?? null,
       driver: storageDriver,
+      cosBucketProduct,
+      readinessObjectKey: env.COS_READINESS_OBJECT_KEY ?? null,
+      readinessObjectSha256: env.COS_READINESS_OBJECT_SHA256 ?? null,
       endpoint: env.S3_ENDPOINT ?? null,
       region: env.S3_REGION ?? "us-east-1",
       bucket: env.S3_BUCKET ?? "cisme-dev",
@@ -310,9 +367,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         ugcWriteMax: integer("API_RATE_UGC_WRITE_MAX", env.API_RATE_UGC_WRITE_MAX, 60, 1, 100_000)
       } },
     observability: { logLevel },
-    media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null },
+    media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null,
+      ugcScanWorkerMode: ugcScanWorkerMode as 'embedded' | 'standalone' },
     commerce: {
       orderFlowEnabled,
+      ...(fulfillment?{fulfillment}:{}),
       quoteTtlMinutes: integer("COMMERCE_QUOTE_TTL_MINUTES", env.COMMERCE_QUOTE_TTL_MINUTES, 10, 1, 60),
       pendingOrderTtlMinutes: integer("COMMERCE_PENDING_ORDER_TTL_MINUTES", env.COMMERCE_PENDING_ORDER_TTL_MINUTES, 30, 5, 120),
       ...(simulatedPaymentEnabled?{simulatedPayment:{appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),

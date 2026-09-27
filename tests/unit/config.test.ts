@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertPointsRedemptionReady, loadConfig } from "@cisme/config";
+import { assertPointsRedemptionReady, loadConfig, migrationReadOnly } from "@cisme/config";
 
 const base = {
   DATABASE_URL: "postgres://local/test",
@@ -9,6 +9,26 @@ const base = {
 };
 
 describe("production configuration fails closed", () => {
+  it('supports supervised standalone UGC scanning without enabling the API worker',()=>{
+    const formal={...base,APP_ENV:'production',WECHAT_APP_ID:'wx4eac2d4fb11d299b',WECHAT_APP_SECRET:'synthetic',
+      OBJECT_STORAGE_PROFILE:'synthetic',UGC_GO_LIVE_GATE:'true',UGC_LEGAL_APPROVAL_ID:'synthetic',
+      UGC_PROVENANCE_READY:'true',UGC_CONTENT_SAFETY_READY:'true',UGC_MODERATION_READY:'true',
+      WECHAT_MESSAGE_TOKEN:'synthetic',WECHAT_MESSAGE_AES_KEY:'a'.repeat(43),UGC_SCAN_BASE_URL:'https://synthetic.invalid',
+      RUN_BACKGROUND_WORKER:'false',UGC_SCAN_WORKER_MODE:'standalone'};
+    expect(loadConfig(formal).media.ugcScanWorkerMode).toBe('standalone');
+    expect(()=>loadConfig({...formal,UGC_SCAN_WORKER_MODE:'embedded'})).toThrow('UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED');
+    expect(()=>loadConfig({...formal,WECHAT_MESSAGE_TOKEN:undefined})).toThrow('UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED');
+    expect(()=>loadConfig({...formal,RUN_BACKGROUND_WORKER:'true'})).toThrow('UGC_DUPLICATE_WORKER_TOPOLOGY');
+    expect(()=>loadConfig({...formal,UGC_SCAN_WORKER_MODE:'unknown'})).toThrow('CONFIG_INVALID:UGC_SCAN_WORKER_MODE');
+  });
+  it('parses the shared migration fence strictly without exposing its input',()=>{
+    expect(migrationReadOnly({})).toBe(false);
+    expect(migrationReadOnly({CISME_MIGRATION_READ_ONLY:'false'})).toBe(false);
+    expect(migrationReadOnly({CISME_MIGRATION_READ_ONLY:'true'})).toBe(true);
+    for(const value of ['','1','TRUE',' true ','SYNTHETIC_PRIVATE_CONFIG']){
+      expect(()=>loadConfig({...base,CISME_MIGRATION_READ_ONLY:value})).toThrow(/^CONFIG_INVALID:CISME_MIGRATION_READ_ONLY$/);
+    }
+  });
   it('accepts a separate synthetic export key only in isolated test configuration',()=>{
     const key='7'.repeat(64);
     expect(loadConfig({...base,APP_ENV:'test',PRIVACY_SYNTHETIC_EXPORT_KEY:key}).privacy.syntheticExportKey).toBe(key);
@@ -86,9 +106,20 @@ describe("production configuration fails closed", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "production", WECHAT_APP_ID: "wx4eac2d4fb11d299b", WECHAT_APP_SECRET: "secret" })).toThrow("PRODUCTION_STORAGE_PROFILE_REQUIRED");
   });
 
+  it("requires the confirmed Lighthouse product and object marker in production", () => {
+    const cos = {...base,APP_ENV:"production",WECHAT_APP_ID:"wx4eac2d4fb11d299b",
+      WECHAT_APP_SECRET:"secret",OBJECT_STORAGE_PROFILE:"production-reviewed",OBJECT_STORAGE_DRIVER:"cos_gateway",
+      S3_ACCESS_KEY_ID:"fixture-id",S3_SECRET_ACCESS_KEY:"fixture-secret",S3_BUCKET:"lhcos-81ddf-1257392443",
+      S3_REGION:"ap-shanghai"};
+    expect(() => loadConfig(cos)).toThrow("COS_BUCKET_PRODUCT_MISMATCH");
+    expect(() => loadConfig({...cos,COS_BUCKET_PRODUCT:"lighthouse"})).toThrow("COS_READINESS_OBJECT_REQUIRED");
+    expect(loadConfig({...cos,COS_BUCKET_PRODUCT:"lighthouse",COS_READINESS_OBJECT_KEY:"submissions/fixture/probe/readiness.txt",
+      COS_READINESS_OBJECT_SHA256:"a".repeat(64)}).objectStorage.cosBucketProduct).toBe("lighthouse");
+  });
+
   it("keeps the pending-payment order slice isolated from production", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "production", WECHAT_APP_ID:"wx4eac2d4fb11d299b", WECHAT_APP_SECRET:"secret", OBJECT_STORAGE_PROFILE:"production-reviewed", COMMERCE_ORDER_FLOW_ENABLED: "true" }))
-      .toThrow("COMMERCE_ORDER_FLOW_NONPRODUCTION_ONLY");
+      .toThrow("COMMERCE_ORDER_FLOW_FORMAL_APPROVAL_REQUIRED");
     const isolated = loadConfig({ ...base, APP_ENV: "test", COMMERCE_ORDER_FLOW_ENABLED: "true" });
     expect(isolated.commerce).toEqual({ orderFlowEnabled: true, quoteTtlMinutes: 10, pendingOrderTtlMinutes: 30 });
   });
@@ -119,5 +150,12 @@ describe("production configuration fails closed", () => {
   it("fails closed when direct COS upload lacks its constrained signing configuration", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "development", COS_DIRECT_UPLOAD_ENABLED: "true" })).toThrow("COS_DIRECT_UPLOAD_REQUIRES_COS_GATEWAY");
     expect(() => loadConfig({ ...base, APP_ENV: "development", OBJECT_STORAGE_DRIVER: "cos_gateway", COS_DIRECT_UPLOAD_ENABLED: "true" })).toThrow("COS_DIRECT_UPLOAD_CREDENTIALS_REQUIRED");
+  });
+
+  it("validates a separately configured privacy suppression bucket", () => {
+    const configured=loadConfig({...base,APP_ENV:"test",PRIVACY_SUPPRESSION_BUCKET:"cisme-privacy-1257392443"});
+    expect(configured.privacy.suppressionBucket).toBe("cisme-privacy-1257392443");
+    expect(() => loadConfig({...base,APP_ENV:"test",PRIVACY_SUPPRESSION_BUCKET:"invalid/path"}))
+      .toThrow("CONFIG_INVALID:PRIVACY_SUPPRESSION_BUCKET");
   });
 });

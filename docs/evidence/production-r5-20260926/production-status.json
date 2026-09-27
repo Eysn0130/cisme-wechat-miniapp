@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-09-26T16:03:45.479883+00:00",
+  "identity": {
+    "schemaVersion": 1,
+    "instanceId": "lhins-61ikz4mi",
+    "metadataInstanceId": "ins-l9utqwxv",
+    "privateIpv4": "10.0.0.10",
+    "publicIpv4": "124.223.74.198",
+    "domain": "api.cisme.cn",
+    "dnsA": "124.223.74.198",
+    "observedAtUtc": "2026-09-26T16:03:45.354605Z",
+    "mappingEvidence": "PRODUCTION-LIVE-METADATA-20260923.json"
+  },
+  "current": "/opt/cisme/releases/20260909-native-login",
+  "liveAppEnv": "staging",
+  "units": {
+    "cisme-api": [
+      "MainPID=100151",
+      "ExecStart={ path=/opt/node-v24.14.0-linux-x64/bin/node ; argv[]=/opt/node-v24.14.0-linux-x64/bin/node index.js ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }",
+      "User=cisme",
+      "Group=cisme",
+      "ActiveState=active"
+    ],
+    "cisme-worker": [
+      "MainPID=100155",
+      "ExecStart={ path=/opt/node-v24.14.0-linux-x64/bin/node ; argv[]=/opt/node-v24.14.0-linux-x64/bin/node worker.js ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }",
+      "User=cisme",
+      "Group=cisme",
+      "ActiveState=active"
+    ]
+  },
+  "database": {
+    "migrations": 23,
+    "pendingIdentityEvents": 2
+  },
+  "runtimeFileSha256": {
+    "index.js": "6f1ff9ed525b924d3b398381e898ce822beabd2598bc8a8960b053893a2b357e",
+    "worker.js": "c36440392213d0b485cb452eb99df049d2035eae6e99e31b5d1b85fedb835a46"
+  },
+  "privatePathCorrection": {
+    "privateMaterialRoot": "/etc/cisme-wechat-pay",
+    "candidateEnvironment": "/opt/cisme/prepared/r5-20260926/runtime.production.closed.authorized.v2.env",
+    "existingMaterialBytesUnchanged": true,
+    "trustManifestPathUpdated": true,
+    "encryptedProtectionVerified": true,
+    "sameBackupKey": true,
+    "checks": {
+      "api": {
+        "ok": true,
+        "uid": 999,
+        "environment": "production",
+        "merchantIdentityBound": true,
+        "merchantCertificateExpiresAt": "Sep 25 13:34:50 2031 GMT",
+        "publicKeyMode": true,
+        "localSignatureVerified": true,
+        "formalProtocolLoaded": true,
+        "fulfillmentLoaded": true,
+        "commerceEnabled": false,
+        "capabilities": {
+          "order.create": true,
+          "payment.prepare": true,
+          "payment.close": true,
+          "refund.request": true,
+          "refund.approve": true,
+          "refund.submit": true,
+          "payment.query": true,
+          "refund.query": true,
+          "bill.read": true,
+          "payment.callback": true,
+          "refund.callback": true,
+          "shipping.query": true,
+          "shipping.upload": true
+        },
+        "networkRequests": 0,
+        "databaseRequests": 0,
+        "productionDeployed": false
+      },
+      "worker": {
+        "ok": true,
+        "uid": 999,
+        "environment": "production",
+        "merchantIdentityBound": true,
+        "merchantCertificateExpiresAt": "Sep 25 13:34:50 2031 GMT",
+        "publicKeyMode": true,
+        "localSignatureVerified": true,
+        "formalProtocolLoaded": true,
+        "fulfillmentLoaded": true,
+        "commerceEnabled": false,
+        "capabilities": {
+          "order.create": true,
+          "payment.prepare": true,
+          "payment.close": true,
+          "refund.request": true,
+          "refund.approve": true,
+          "refund.submit": true,
+          "payment.query": true,
+          "refund.query": true,
+          "bill.read": true,
+          "payment.callback": true,
+          "refund.callback": true,
+          "shipping.query": true,
+          "shipping.upload": true
+        },
+        "networkRequests": 0,
+        "databaseRequests": 0,
+        "productionDeployed": false
+      }
+    },
+    "productionDeployed": false,
+    "liveEnvironmentChanged": false
+  },
+  "prepared": {
+    "preparedGrantExpiresAt": "2026-12-25T15:59:59Z",
+    "privateInputCount": 9,
+    "encryptedProtectionVerified": true,
+    "productionDeployed": false,
+    "liveEnvironmentChanged": false,
+    "existingKeysRotated": false,
+    "checks": {
+      "api": {
+        "exitCode": 0,
+        "ok": true,
+        "uid": 999,
+        "environment": "production",
+        "merchantIdentityBound": true,
+        "merchantCertificateExpiresAt": "Sep 25 13:34:50 2031 GMT",
+        "publicKeyMode": true,
+        "localSignatureVerified": true,
+        "formalProtocolLoaded": true,
+        "fulfillmentLoaded": true,
+        "commerceEnabled": false,
+        "capabilities": {
+          "order.create": true,
+          "payment.prepare": true,
+          "payment.close": true,
+          "refund.request": true,
+          "refund.approve": true,
+          "refund.submit": true,
+          "payment.query": true,
+          "refund.query": true,
+          "bill.read": true,
+          "payment.callback": true,
+          "refund.callback": true,
+          "shipping.query": true,
+          "shipping.upload": true
+        },
+        "networkRequests": 0,
+        "databaseRequests": 0,
+        "productionDeployed": false
+      },
+      "worker": {
+        "exitCode": 0,
+        "ok": true,
+        "uid": 999,
+        "environment": "production",
+        "merchantIdentityBound": true,
+        "merchantCertificateExpiresAt": "Sep 25 13:34:50 2031 GMT",
+        "publicKeyMode": true,
+        "localSignatureVerified": true,
+        "formalProtocolLoaded": true,
+        "fulfillmentLoaded": true,
+        "commerceEnabled": false,
+        "capabilities": {
+          "order.create": true,
+          "payment.prepare": true,
+          "payment.close": true,
+          "refund.request": true,
+          "refund.approve": true,
+          "refund.submit": true,
+          "payment.query": true,
+          "refund.query": true,
+          "bill.read": true,
+          "payment.callback": true,
+          "refund.callback": true,
+          "shipping.query": true,
+          "shipping.upload": true
+        },
+        "networkRequests": 0,
+        "databaseRequests": 0,
+        "productionDeployed": false
+      },
+      "shipping-readiness": {
+        "exitCode": 1,
+        "ok": false,
+        "code": "SHIPPING_READINESS_NOT_VERIFIED",
+        "observedAt": "2026-09-26T15:46:01.929Z",
+        "observations": [
+          {
+            "operation": "stable_token",
+            "httpStatus": 200,
+            "errcode": 0,
+            "tokenReceived": true
+          },
+          {
+            "operation": "is_trade_managed",
+            "httpStatus": 200
+          }
+        ],
+        "orderQueries": 0,
+        "shippingWrites": 0,
+        "fundsWrites": 0
+      }
+    }
+  },
+  "paymentReadOnly": {
+    "ok": true,
+    "code": "WECHAT_PAY_ORDER_NOT_FOUND",
+    "signedNotFoundVerified": true,
+    "observedAt": "2026-09-26T15:57:43.107Z",
+    "observed": [
+      {
+        "httpStatus": 404,
+        "requestPublicKeyId": "PUB_KEY_ID_0111178110872026092600191735000402",
+        "responseSigner": "PUB_KEY_ID_0111178110872026092600191735000402",
+        "responseSignaturePresent": true
+      }
+    ],
+    "requests": 1,
+    "syntheticOrderNumberOnly": true,
+    "orderCreated": false,
+    "fundsWrites": 0,
+    "realCallbackTested": false
+  },
+  "privateRuntimeInputCount": 8,
+  "privateInputsReadableAsCisme": true,
+  "preparedPreservesR3ExistingValues": {
+    "DATABASE_URL": true,
+    "S3_ACCESS_KEY_ID": true,
+    "S3_SECRET_ACCESS_KEY": true,
+    "S3_BUCKET": true,
+    "S3_ENDPOINT": true,
+    "S3_REGION": true,
+    "CONTACT_ENCRYPTION_KEY": true,
+    "CONTACT_HASH_KEY": true,
+    "CONTACT_KEY_VERSION": true,
+    "PRIVACY_FORMAL_EXPORT_KEY": true
+  },
+  "deployed": false,
+  "mainArtifactInstalled": false,
+  "mainVersion": null,
+  "firewallChanged": false,
+  "syntheticOrderCreated": false,
+  "fundsWrites": 0
+}

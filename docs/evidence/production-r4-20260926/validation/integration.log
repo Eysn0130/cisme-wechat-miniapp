@@ -1,0 +1,17 @@
+
+> cisme-wechat-miniapp@0.1.0 test:integration
+> node scripts/disposable-test.mjs vitest run tests/integration --exclude 'dist/**' --pool=forks --maxWorkers=1
+
+{"event":"synthetic-object-target-created","runId":"f8fef92a1b7753fd7ac17893","container":"f4c76c6de79ed96673f22806cc86f04a49a72b4f34bf738613aaa19b37e0979c","endpoint":"http://127.0.0.1:33932"}
+{"event":"synthetic-target-created","runId":"f8fef92a1b7753fd7ac17893","container":"a797116c6835dde70afed7f3fd4c0ee3e25824869828a4c75c3226cbdf0322a1","postgresImage":"postgres:16.15-alpine","imageId":"sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea","host":"127.0.0.1","port":"33931","database":"cisme_test_f8fef92a1b7753fd7ac17893","role":"runner_f8fef92a1b7753fd7ac17893","purpose":"disposable-synthetic"}
+
+ RUN  v4.1.11 /Users/mini/CISME
+
+
+ Test Files  58 passed (58)
+      Tests  919 passed (919)
+   Start at  06:02:26
+   Duration  122.89s (transform 809ms, setup 1.45s, import 7.69s, tests 110.11s, environment 2ms)
+
+{"event":"synthetic-object-target-removed","runId":"f8fef92a1b7753fd7ac17893","container":"f4c76c6de79ed96673f22806cc86f04a49a72b4f34bf738613aaa19b37e0979c"}
+{"event":"synthetic-target-removed","runId":"f8fef92a1b7753fd7ac17893","container":"a797116c6835dde70afed7f3fd4c0ee3e25824869828a4c75c3226cbdf0322a1"}

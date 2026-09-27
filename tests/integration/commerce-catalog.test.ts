@@ -18,7 +18,7 @@ describe("R4-A first-party catalog",()=>{
   it("keeps legacy previews private and completes capability-separated create-to-browse lifecycle",async()=>{
     const initial=await app.inject({method:"GET",url:"/v1/catalog"});expect(initial.statusCode).toBe(200);expect(initial.json()).toMatchObject({version:3,checkoutEnabled:false,items:[]});
     expect((await app.inject({method:"GET",url:"/v1/management/catalog/products",headers:auth(limited.sessionToken)})).statusCode).toBe(403);
-    const payload={code:"synthetic-care-serum",name:"合成测试护理精华",subtitle:"仅用于 R4-A 隔离验证",description:"不代表真实商品资质或销售承诺。",imagePath:"/assets/cisme/community-card-purple-bottle-v1.jpg",sourceKind:"synthetic_test",sku:{code:"SYNTH_CARE_30",label:"30ml",priceCents:26900}};
+    const payload={code:"synthetic-care-serum",name:"合成测试护理精华",subtitle:"仅用于 R4-A 隔离验证",description:"不代表真实商品资质或销售承诺。",imagePath:"/assets/icons/spray-bottle-plum.svg",sourceKind:"synthetic_test",sku:{code:"SYNTH_CARE_30",label:"30ml",priceCents:26900}};
     expect((await app.inject({method:"POST",url:"/v1/management/catalog/products",headers:{...auth(limited.sessionToken),"idempotency-key":"limited-create-01"},payload})).statusCode).toBe(403);
     const headers={...auth(operator.sessionToken),"idempotency-key":"catalog-create-integration-01"};
     const created=await app.inject({method:"POST",url:"/v1/management/catalog/products",headers,payload});expect(created.statusCode).toBe(200);
@@ -45,6 +45,50 @@ describe("R4-A first-party catalog",()=>{
     expect((await app.inject({method:"GET",url:`/v1/catalog/${product.code}`})).statusCode).toBe(404);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_inventory_adjustment WHERE sku_id=$1",[sku.id])).rows[0].count).toBe(2);
     expect((await pool.query("SELECT count(*)::int count FROM outbox_event WHERE aggregate_id IN ($1,$2)",[product.productId,sku.id])).rows[0].count).toBeGreaterThanOrEqual(5);
+  });
+
+  it("preserves an existing administrator image when editing only product text",async()=>{
+    const created=(await app.inject({method:"POST",url:"/v1/management/catalog/products",
+      headers:{...auth(operator.sessionToken),"idempotency-key":"catalog-preserve-image-create-01"},
+      payload:{code:"synthetic-preserved-image",name:"合成原图商品",imagePath:"/assets/icons/spray-bottle-plum.svg",
+        sku:{code:"PRESERVED_IMAGE_SKU",label:"测试规格",priceCents:100}}})).json();
+    const approved="/assets/cisme/admin-approved-product.jpg";
+    await pool.query("UPDATE catalog_product SET image_path=$2,version=version+1 WHERE id=$1",[created.productId,approved]);
+    const current=(await app.inject({method:"GET",url:`/v1/management/catalog/products/${created.productId}`,
+      headers:auth(operator.sessionToken)})).json();
+    const sku=current.variants[0];
+    const updated=await app.inject({method:"PUT",url:`/v1/management/catalog/products/${created.productId}`,
+      headers:{...auth(operator.sessionToken),"idempotency-key":"catalog-preserve-image-update-01"},
+      payload:{name:"已更新商品文字",subtitle:current.subtitle,description:current.description,
+        expectedVersion:current.version,sku:{id:sku.id,expectedVersion:sku.version,
+          expectedPriceVersion:sku.priceVersion,code:sku.code,label:sku.label,priceCents:sku.priceCents}}});
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json()).toMatchObject({name:"已更新商品文字",image:approved});
+    expect((await pool.query("SELECT image_path FROM catalog_product WHERE id=$1",[created.productId])).rows[0].image_path).toBe(approved);
+  });
+
+  it("accepts the packaged synthetic image only on the disposable catalog path",async()=>{
+    const image="/assets/cisme/synthetic-owned-acceptance.jpg";
+    const base={name:"合成图像原图",sourceKind:"synthetic_test",sku:{code:"SYNTH_IMAGE_SKU",label:"测试规格",priceCents:100}};
+    const rejected=await app.inject({method:"POST",url:"/v1/management/catalog/products",
+      headers:{...auth(operator.sessionToken),"idempotency-key":"catalog-reject-unknown-image-01"},
+      payload:{...base,code:"synthetic-unapproved-image",imagePath:"/assets/catalog/unknown.jpg"}});
+    expect(rejected.statusCode).toBe(422);
+    expect(rejected.json()).toMatchObject({code:"CATALOG_IMAGE_NOT_APPROVED"});
+    const created=await app.inject({method:"POST",url:"/v1/management/catalog/products",
+      headers:{...auth(operator.sessionToken),"idempotency-key":"catalog-accept-synthetic-image-01"},
+      payload:{...base,code:"synthetic-owned-image",imagePath:image}});
+    expect(created.statusCode).toBe(200);
+    expect(created.json()).toMatchObject({image});
+    const product=created.json(),sku=product.variants[0];
+    const updated=await app.inject({method:"PUT",url:`/v1/management/catalog/products/${product.productId}`,
+      headers:{...auth(operator.sessionToken),"idempotency-key":"catalog-keep-synthetic-image-01"},
+      payload:{name:"合成图像文字已改",expectedVersion:product.version,
+        sku:{id:sku.id,expectedVersion:sku.version,expectedPriceVersion:sku.priceVersion,
+          code:sku.code,label:sku.label,priceCents:sku.priceCents}}});
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json()).toMatchObject({name:"合成图像文字已改",image});
+    expect((await pool.query("SELECT image_path FROM catalog_product WHERE id=$1",[product.productId])).rows[0].image_path).toBe(image);
   });
 
   it("enforces environment, expiry and revocation for catalog authority",async()=>{

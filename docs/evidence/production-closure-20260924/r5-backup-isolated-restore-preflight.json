@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-09-24",
+  "target": {"cloud": "Tencent Cloud Lighthouse", "instanceId": "lhins-61ikz4mi", "region": "ap-shanghai"},
+  "scope": "Existing production database backup restored into a separate database on the same instance; production database was not migrated or modified",
+  "sourceDatabase": "cisme",
+  "backup": {
+    "path": "/var/backups/cisme/cisme-r5-preflight-fe2f5a7-20260924.dump",
+    "format": "PostgreSQL custom",
+    "sha256": "a56ea1c39634dd222541a661e5fae24d2f5310e8ff1eabc41fbc1676e5b3c835",
+    "archiveListLines": 262
+  },
+  "isolatedDatabase": "cisme_r5_preflight_fe2f5a7_20260924",
+  "restore": {"pgRestoreExit": 0, "sourcePublicTables": 46, "restoredPublicTables": 46,
+    "countOrder": ["member", "care_cycle", "submission", "points_entry"],
+    "sourceCounts": [2, 0, 0, 0], "restoredCounts": [2, 0, 0, 0]},
+  "currentProductionObservations": {
+    "appEnv": "staging",
+    "commerceOrderTablePresent": false,
+    "backupTimerActive": true,
+    "releaseUpgraded": false
+  },
+  "limits": "This is a prelaunch restore of the old 46-table schema. It does not validate R5 migrations, object storage, suppression-ledger replay, the new API/Worker, rollback, or external alert delivery. Repeat a fresh backup and isolated restore immediately before the final production migration."
+}

@@ -396,7 +396,7 @@ Page({
         this.resetCareSession();
       } else this.setData({ error: rejected
         ? "请求未被接受。请核对服务器记录与当前周期后再操作，不会覆盖既有护理事实。"
-        : refreshed ? "保存结果待确认。已同步服务器周期；可查看记录，或核对原操作。不要更换幂等键再次保存。"
+        : refreshed ? "保存是否成功尚未确认。已同步最新周期，请先核对护理记录，暂勿再次提交。"
           : "保存结果与最新周期均待确认。请恢复网络后核对原操作；不会显示虚假的成功记录。" });
       return null;
     } finally {

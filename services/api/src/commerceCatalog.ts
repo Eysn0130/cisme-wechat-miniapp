@@ -25,12 +25,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const PRODUCT_CODE = /^[a-z0-9][a-z0-9-]{2,63}$/;
 const SKU_CODE = /^[A-Z0-9][A-Z0-9_-]{2,63}$/;
 const CATALOG_IMAGES = new Set([
-  "/assets/cisme/community-card-purple-bottle-v1.jpg",
-  "/assets/cisme/community-card-care-flatlay-v2.jpg",
-  "/assets/cisme/community-card-care-journal-v2.jpg",
-  "/assets/cisme/community-card-glossy-hair-v1.jpg",
-  "/assets/cisme/community-card-mirror-roots-v2.jpg",
-  "/assets/cisme/community-card-scalp-massage-v2.jpg"
+  "/assets/icons/spray-bottle-plum.svg"
+]);
+// The generated picture is packaged solely to verify native image rendering
+// with disposable test products. Production catalog writes remain on the
+// separately approved list above.
+const TEST_CATALOG_IMAGES = new Set([
+  "/assets/cisme/synthetic-owned-acceptance.jpg"
 ]);
 
 function requiredText(value: unknown, code: string, maximum: number, minimum = 1): string {
@@ -71,9 +72,10 @@ function skuCode(value: unknown): string {
   if (!SKU_CODE.test(code)) throw new DomainError("SKU_CODE_INVALID", "SKU code must use uppercase letters, digits, underscore and hyphen", 422);
   return code;
 }
-function imagePath(value: unknown): string | null {
+function imagePath(value: unknown, environment: AppEnvironment): string | null {
   if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string" || !CATALOG_IMAGES.has(value)) throw new DomainError("CATALOG_IMAGE_NOT_APPROVED", "Choose an approved packaged catalog image", 422);
+  if (typeof value !== "string" || !(CATALOG_IMAGES.has(value) || (environment === "test" && TEST_CATALOG_IMAGES.has(value))))
+    throw new DomainError("CATALOG_IMAGE_NOT_APPROVED", "Choose an approved packaged catalog image", 422);
   return value;
 }
 function idempotencyKey(value: string): string {
@@ -103,8 +105,8 @@ function mapSku(row: SkuRow, checkoutEnabled = false, discloseReserved = false) 
     active: row.active, sortOrder: row.sort_order, version: row.version,
     createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString() };
 }
-function mapProduct(row: ProductRow, skus: SkuRow[], orderFlowEnabled = false, discloseReserved = false) {
-  const checkoutEnabled = orderFlowEnabled && row.source_kind === "synthetic_test";
+function mapProduct(row: ProductRow, skus: SkuRow[], orderFlowEnabled = false, discloseReserved = false, formal = false) {
+  const checkoutEnabled = orderFlowEnabled && row.source_kind === (formal?"admin":"synthetic_test") && row.qualification_status === "eligible" && row.publication_status === "published";
   const variants = skus.filter((sku) => sku.product_id === row.id).map((sku) => mapSku(sku, checkoutEnabled, discloseReserved));
   const defaultSku = variants.find((sku) => sku.active) ?? null;
   const purchaseEnabled = Boolean(variants.some((sku) => sku.purchaseEnabled));
@@ -118,7 +120,9 @@ function mapProduct(row: ProductRow, skus: SkuRow[], orderFlowEnabled = false, d
 
 export class CommerceCatalogService {
   constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService, private readonly environment: AppEnvironment,
-    private readonly orderFlowEnabled = false) {}
+    private readonly orderFlowEnabled = false, private readonly formalAvailability?:()=>boolean) {}
+
+  private checkoutAvailable(){return this.formalAvailability?this.formalAvailability():this.orderFlowEnabled;}
 
   private async require(client: DbClient, memberId: string | undefined, capability: Capability): Promise<string> {
     return this.authority.requireWithClient(client, memberId, capability);
@@ -162,7 +166,8 @@ export class CommerceCatalogService {
     const skus = products.length ? (await this.pool.query<SkuRow>(`SELECT s.*,p.id price_id,p.currency,p.amount_cents price_cents,p.version price_version,
       i.stock_on_hand,i.reserved_quantity,i.version inventory_version,i.updated_at inventory_updated_at FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id
       JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.product_id=ANY($1::uuid[]) AND s.active=true ORDER BY s.product_id,s.sort_order,s.id`, [products.map((row) => row.id)])).rows : [];
-    return { version: 3, source: "cisme_catalog", checkoutEnabled: this.orderFlowEnabled, items: products.map((row) => mapProduct(row, skus, this.orderFlowEnabled)),
+    const available=this.checkoutAvailable();
+    return { version: 3, source: "cisme_catalog", checkoutEnabled: available, items: products.map((row) => mapProduct(row, skus, available,false,Boolean(this.formalAvailability))),
       nextCursor: hasMore ? encodeCursor(products[products.length - 1]!) : null };
   }
 
@@ -174,7 +179,7 @@ export class CommerceCatalogService {
     const skus = await this.pool.query<SkuRow>(`SELECT s.*,p.id price_id,p.currency,p.amount_cents price_cents,p.version price_version,
       i.stock_on_hand,i.reserved_quantity,i.version inventory_version,i.updated_at inventory_updated_at FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id
       JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.product_id=$1 AND s.active=true ORDER BY s.sort_order,s.id`, [product.rows[0].id]);
-    return mapProduct(product.rows[0], skus.rows, this.orderFlowEnabled);
+    return mapProduct(product.rows[0], skus.rows, this.checkoutAvailable(),false,Boolean(this.formalAvailability));
   }
 
   async managementList(memberId: string | undefined, query: { limit?: unknown; cursor?: unknown }) {
@@ -200,7 +205,7 @@ export class CommerceCatalogService {
     const principalId = requiredText(principalIdInput, "AUTH_REQUIRED", 300); const key = idempotencyKey(keyInput);
     const normalized = { code: productCode(input.code), name: requiredText(input.name, "PRODUCT_NAME_INVALID", 120),
       subtitle: optionalText(input.subtitle, "PRODUCT_SUBTITLE_INVALID", 240), description: optionalText(input.description, "PRODUCT_DESCRIPTION_INVALID", 4000),
-      imagePath: imagePath(input.imagePath), sourceKind: input.sourceKind === "synthetic_test" ? "synthetic_test" as const : "admin" as const,
+      imagePath: imagePath(input.imagePath, this.environment), sourceKind: input.sourceKind === "synthetic_test" ? "synthetic_test" as const : "admin" as const,
       sku: { code: skuCode((input.sku as Record<string, unknown> | undefined)?.code), label: requiredText((input.sku as Record<string, unknown> | undefined)?.label, "SKU_LABEL_INVALID", 120),
         priceCents: integer((input.sku as Record<string, unknown> | undefined)?.priceCents, "PRICE_CENTS_INVALID", 1, 100000000) } };
     const hash = requestHash(normalized); const productId = randomUUID(); const skuId = randomUUID();
@@ -228,7 +233,8 @@ export class CommerceCatalogService {
     const principalId = requiredText(principalIdInput, "AUTH_REQUIRED", 300); const id = uuid(idInput, "PRODUCT_ID_INVALID"); const key = idempotencyKey(keyInput);
     const skuInput = input.sku as Record<string, unknown> | undefined;
     const normalized = { expectedVersion: positiveVersion(input.expectedVersion), name: requiredText(input.name, "PRODUCT_NAME_INVALID", 120),
-      subtitle: optionalText(input.subtitle, "PRODUCT_SUBTITLE_INVALID", 240), description: optionalText(input.description, "PRODUCT_DESCRIPTION_INVALID", 4000), imagePath: imagePath(input.imagePath),
+      subtitle: optionalText(input.subtitle, "PRODUCT_SUBTITLE_INVALID", 240), description: optionalText(input.description, "PRODUCT_DESCRIPTION_INVALID", 4000),
+      imagePath: input.imagePath === undefined ? undefined : imagePath(input.imagePath, this.environment),
       sku: { id: uuid(skuInput?.id, "SKU_ID_INVALID"), expectedVersion: positiveVersion(skuInput?.expectedVersion), expectedPriceVersion: positiveVersion(skuInput?.expectedPriceVersion), code: skuCode(skuInput?.code),
         label: requiredText(skuInput?.label, "SKU_LABEL_INVALID", 120), priceCents: integer(skuInput?.priceCents, "PRICE_CENTS_INVALID", 1, 100000000), active: skuInput?.active !== false } };
     const hash = requestHash(normalized); const businessKey = `${id}:v${normalized.expectedVersion}`;
@@ -246,7 +252,9 @@ export class CommerceCatalogService {
       if (skuBefore.price_version !== normalized.sku.expectedPriceVersion) throw new DomainError("CATALOG_VERSION_CONFLICT", "Price changed; reload before saving", 409);
       if (before.publication_status === "published" && !normalized.sku.active) throw new DomainError("CATALOG_ACTIVE_SKU_REQUIRED", "Published product needs an active SKU", 409);
       const product = (await client.query<ProductRow>(`UPDATE catalog_product SET name=$2,subtitle=$3,description=$4,image_path=$5,
-        version=version+1,updated_by=$6,updated_at=now() WHERE id=$1 RETURNING *`, [id, normalized.name, normalized.subtitle, normalized.description, normalized.imagePath, principalId])).rows[0]!;
+        version=version+1,updated_by=$6,updated_at=now() WHERE id=$1 RETURNING *`,
+        [id, normalized.name, normalized.subtitle, normalized.description,
+          normalized.imagePath === undefined ? before.image_path : normalized.imagePath, principalId])).rows[0]!;
       await client.query(`UPDATE catalog_sku SET code=$2,label=$3,active=$4,version=version+1,
         updated_by=$5,updated_at=now() WHERE id=$1`, [normalized.sku.id, normalized.sku.code, normalized.sku.label, normalized.sku.active, principalId]);
       await client.query(`UPDATE catalog_price SET amount_cents=$2,version=version+1,updated_by=$3,updated_at=now() WHERE sku_id=$1`, [normalized.sku.id, normalized.sku.priceCents, principalId]);

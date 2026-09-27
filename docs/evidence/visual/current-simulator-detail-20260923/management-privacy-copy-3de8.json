@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "0e132e0",
+  "packageSourceSha256": "3de87bb51001816beee7cd8fe47833f1068289cf3298762b702c0fb268b44a7e",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic privacy request and management identity",
+  "capture": {
+    "file": "management-privacy-3de8.png",
+    "sha256": "f1e5782c436b1b47b5c8d0ebb2e3827b14cb32b8047f7d36527227ae77f9d6f7",
+    "route": "pages/management-privacy/index"
+  },
+  "observed": "The request list renders with a shorter heading and one line of guidance; the refresh target measured 68 by 44 px. A unit case checks readable execution status mapping, but this fixture has no execution job to display.",
+  "scopeLimit": "One simulator list state only. It does not cover request detail states, authorization changes, device behavior or production data."
+}

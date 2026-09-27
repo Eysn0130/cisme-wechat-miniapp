@@ -20,9 +20,9 @@ describe("role-aware native support UX",()=>{
   for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
   expect(state).toContain("Only a response from the synchronization endpoint may advance");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("retainMemberSnapshot(this)");
- expect(state).toContain("CISME AI 助手");expect(userView).toContain("人工");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
+ expect(state).toContain("CISME AI 助手");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("需要真人帮助");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
   expect(operatorLogic).toContain("wx.showModal");expect(operatorLogic).toContain("member.support_view");
-  expect(userLogic).toContain("sendAttempt?.signature === signature");expect(operatorLogic).toMatch(/sendAttempt\?\.body\s*===\s*body/);
+  expect(userLogic).toContain("const sendAttempt = previous ??");expect(userLogic).toContain("linkedOrderId = previous ? previous.linkedOrderId");expect(operatorLogic).toMatch(/sendAttempt\?\.body\s*===\s*body/);
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("sendAttempt.id");
  });
  it("uses owned secure image and order references without adding WebSocket or AI framework dependencies",async()=>{

@@ -7,6 +7,7 @@ import { transaction } from "./db.js";
 import type { ObjectStorage } from "./storage.js";
 import { pendingReviewRevisionSql } from "./ugcVisibility.js";
 import { decryptWechatMessage, type MessageQuery } from "./wechatMessageCrypto.js";
+import { startWorkerLoop } from '../../worker/src/loop.js';
 
 type WechatResult={errcode?:number;errmsg?:string;trace_id?:string;result?:{suggest?:string;label?:number};detail?:unknown};
 type ScanCallback=WechatResult&{Event?:string;appid?:string;version?:number};
@@ -386,9 +387,5 @@ export class UgcSafetyService{
 }
 
 export function startUgcSafetyLoop(service:UgcSafetyService,baseUrl:string,onError:(error:unknown)=>void){
-  let running=false;
-  const tick=async()=>{if(running)return;running=true;try{await service.scanPendingBatch(baseUrl);}catch(error){onError(error);}finally{running=false;}};
-  const timer=setInterval(()=>void tick(),30_000);
-  void tick();
-  return {stop:()=>clearInterval(timer)};
+  return startWorkerLoop(async()=>{await service.scanPendingBatch(baseUrl);return false;},onError,30_000);
 }

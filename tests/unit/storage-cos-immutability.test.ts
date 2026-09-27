@@ -1,4 +1,5 @@
-import { expect,it } from "vitest";
+import { createHash } from "node:crypto";
+import { expect,it,vi } from "vitest";
 import type COS from "cos-nodejs-sdk-v5";
 import { loadConfig } from "@cisme/config";
 import { createCosGatewayStorage } from "../../services/api/src/storage";
@@ -42,4 +43,40 @@ it("refuses versioned buckets and pins UGC uploads to byte-identical retry only"
     Buffer.concat([derived,Buffer.from([1])]))).rejects.toThrow("ObjectAlreadyExists");
   versioned=true;
   await expect(storage.ensureReady()).rejects.toMatchObject({code:"UGC_BUCKET_VERSIONING_UNSAFE"});
+});
+
+it("uses object-only readiness and upload checks for a confirmed Lighthouse bucket",async()=>{
+  const marker=Buffer.from("CISME object readiness\n");
+  const markerKey="submissions/fixture/probe/readiness.txt";
+  const markerSha=createHash("sha256").update(marker).digest("hex");
+  const config=loadConfig({APP_ENV:"test",DATABASE_URL:"postgres://unused/cisme_test",
+    APP_SESSION_SECRET:"cos-light-session",ADMIN_API_TOKEN:"cos-light-admin",
+    UPLOAD_TOKEN_SECRET:"cos-light-upload",OBJECT_STORAGE_DRIVER:"cos_gateway",
+    COS_BUCKET_PRODUCT:"lighthouse",COS_READINESS_OBJECT_KEY:markerKey,
+    COS_READINESS_OBJECT_SHA256:markerSha,S3_BUCKET:"lhcos-81ddf-1257392443",S3_REGION:"ap-shanghai"});
+  const headBucket=vi.fn(async()=>{throw new Error("BUCKET_API_UNSUPPORTED")});
+  const getBucketVersioning=vi.fn(async()=>{throw new Error("BUCKET_API_UNSUPPORTED")});
+  const putObject=vi.fn(async()=>({}));
+  const client={headBucket,getBucketVersioning,
+    headObject:vi.fn(async()=>({headers:{"content-length":String(marker.length)}})),
+    getObject:vi.fn(async()=>({Body:marker})),putObject} as unknown as COS;
+  const storage=createCosGatewayStorage(config,client);
+  await storage.ensureReady();
+  const now=new Date("2026-09-26T00:00:00Z");
+  const mediaId="00000000-0000-4000-8000-000000000001";
+  const objectKey="submissions/fixture/original/image.png";
+  const auth=await storage.authorize({mediaId,objectKey,mimeType:"image/png",maxBytes:100,
+    baseUrl:"https://api.example.test",now});
+  const bytes=Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
+  await storage.writeGatewayObject!({token:auth.fields.token!,mediaId,objectKey,bytes,mimeType:"image/png",now});
+  expect(putObject).toHaveBeenCalledWith(expect.objectContaining({Key:objectKey,Headers:{"x-cos-forbid-overwrite":"true"}}));
+  expect(headBucket).not.toHaveBeenCalled();
+  expect(getBucketVersioning).not.toHaveBeenCalled();
+  const wrong=loadConfig({...configToEnv(),COS_READINESS_OBJECT_SHA256:"0".repeat(64)});
+  await expect(createCosGatewayStorage(wrong,client).ensureReady()).rejects.toThrow("COS_READINESS_OBJECT_MISMATCH");
+
+  function configToEnv(){return {APP_ENV:"test",DATABASE_URL:"postgres://unused/cisme_test",
+    APP_SESSION_SECRET:"cos-light-session",ADMIN_API_TOKEN:"cos-light-admin",UPLOAD_TOKEN_SECRET:"cos-light-upload",
+    OBJECT_STORAGE_DRIVER:"cos_gateway",COS_BUCKET_PRODUCT:"lighthouse",COS_READINESS_OBJECT_KEY:markerKey,
+    S3_BUCKET:"lhcos-81ddf-1257392443",S3_REGION:"ap-shanghai"};}
 });

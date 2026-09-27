@@ -1,0 +1,76 @@
+{
+  "statement": [
+    {
+      "action": [
+        "name/cos:HeadBucket"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/*"
+      ]
+    },
+    {
+      "action": [
+        "name/cos:PutObject",
+        "name/cos:GetObject",
+        "name/cos:HeadObject",
+        "name/cos:DeleteObject"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/submissions/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/cisme-probes/*"
+      ]
+    },
+    {
+      "action": [
+        "name/cos:GetBucketVersioning"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/*"
+      ]
+    },
+    {
+      "action": [
+        "name/cos:GetBucket"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/*"
+      ],
+      "condition": {
+        "string_equal": {
+          "cos:prefix": "privacy-suppression%2Fv1%2Fwx4eac2d4fb11d299b%2F"
+        }
+      }
+    },
+    {
+      "action": [
+        "name/cos:GetObject",
+        "name/cos:HeadObject"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/privacy-suppression/v1/wx4eac2d4fb11d299b/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/cisme-probes/r3-20260926/*"
+      ]
+    },
+    {
+      "action": [
+        "name/cos:PutObject"
+      ],
+      "effect": "allow",
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/privacy-suppression/v1/wx4eac2d4fb11d299b/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:cisme-privacy-1257392443/cisme-probes/r3-20260926/*"
+      ],
+      "condition": {
+        "string_equal": {
+          "cos:x-cos-forbid-overwrite": "true"
+        }
+      }
+    }
+  ],
+  "version": "2.0"
+}

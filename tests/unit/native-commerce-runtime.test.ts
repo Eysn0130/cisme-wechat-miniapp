@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token) }));
+vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token),
+  historicalCommerceToken: () => mocks.token, historicalCommerceClosed: () => false, requireHistoricalCommerceAccess: () => Boolean(mocks.token) }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "" }));
 const deferred = <T = any>() => {
   let resolve!: (value: T) => void, reject!: (error: unknown) => void;
@@ -20,7 +21,7 @@ const order = { id, version: 2, orderNumber: "SYNTHETIC-ONLY-1", status: "paid",
 const runtime = { version: 1, orderFlowEnabled: true, paymentAvailable: false, paymentOnboarding: "IN_PROGRESS", currency: "CNY",
   scope: "verified_isolated_test", isolatedMoneyOperationsAvailable: true, isolatedTransferAvailable: true, isolatedCreditCheckoutAvailable: true };
 type Name = "management" | "commission" | "order-detail";
-let page: any, core: ReturnType<typeof deferred>, auxiliary: ReturnType<typeof deferred>, aborts: Map<string, ReturnType<typeof vi.fn>>;
+let page: any, core: ReturnType<typeof deferred>, auxiliary: ReturnType<typeof deferred>, attention: ReturnType<typeof deferred>, aborts: Map<string, ReturnType<typeof vi.fn>>;
 async function loadPage(name: Name) {
   if (name === "management") await import("../../apps/miniprogram/pages/management/index");
   else if (name === "commission") await import("../../apps/miniprogram/pages/commission/index");
@@ -36,12 +37,13 @@ const closed = (name: Name) => {
   else expect(page.data.isolatedPayment).toBe(false);
 };
 beforeEach(() => {
-  vi.resetModules(); vi.clearAllMocks(); mocks.token = "member-a"; storage.clear(); core = deferred(); auxiliary = deferred(); aborts = new Map();
+  vi.resetModules(); vi.clearAllMocks(); mocks.token = "member-a"; storage.clear(); core = deferred(); auxiliary = deferred(); attention = deferred(); aborts = new Map();
   mocks.request.mockImplementation((options: any) => {
     const abort = vi.fn(); aborts.set(options.path, abort); options.registerAbort?.(abort);
     if (options.path === "/v1/me/profile") return Promise.resolve({ id });
     if (options.path.startsWith("/v1/me/commerce/command-receipts/")) return Promise.resolve({ version: 1, memberId: id, kind: options.path.split("/").pop().split("?")[0], status: "not_observed", record: null });
     if (options.path === "/v1/commerce/orders/status") return auxiliary.promise;
+    if (options.path === "/v1/management/attention") return attention.promise;
     if (["/v1/me/authority", "/v1/me/commercial-membership", `/v1/me/orders/${id}`].includes(options.path)) return core.promise;
     if (options.path.includes("refund-requests")) return Promise.resolve({ items: [], totalCount: 0, nextCursor: null });
     if (options.path.includes("settlement-requests")) return Promise.resolve({ items: [], totalCount: 0, nextCursor: null });
@@ -52,13 +54,43 @@ beforeEach(() => {
   (globalThis as any).wx = { getStorageSync: (key: string) => storage.get(key), setStorageSync: (key: string, value: unknown) => storage.set(key, structuredClone(value)), removeStorageSync: (key: string) => storage.delete(key), navigateTo: vi.fn(), navigateBack: vi.fn(), switchTab: vi.fn(), showToast: vi.fn(), showModal: vi.fn().mockResolvedValue({ confirm: true }) };
   (globalThis as any).Page = (definition: any) => { page = { ...definition, data: structuredClone(definition.data), setData(patch: any, callback?: () => void) { Object.assign(this.data, patch); callback?.(); } }; };
 });
+it('keeps management attention separate from core access and drops old-account results',async()=>{
+  await loadPage('management');void page.load();core.resolve(authority);await flush();
+  expect(page.data.coreReady).toBe(true);expect(page.data.attention).toBeNull();
+  mocks.token='member-b';attention.resolve({version:1,counts:{support:{count:7}}});await flush();
+  expect(page.data.attention).toBeNull();
+  attention=deferred();core=deferred();void page.load();core.resolve(authority);await flush();
+  attention.resolve({version:1,counts:{support:{count:2},newAftersales:{count:1}}});await flush();
+  expect(page.data.attention).toMatchObject({support:{count:2},newAftersales:{count:1}});
+  expect(page.data.attentionHasItems).toBe(true);
+  page.onHide();expect(page.data.attention).toBeNull();expect(page.data.attentionHasItems).toBe(false);
+});
+it('shows a refund reminder only while the existing finance action is available',async()=>{
+  await loadPage('management');void page.load();core.resolve(authority);await flush();
+  attention.resolve({version:1,counts:{pendingRefunds:{count:1}}});await flush();
+  expect(page.data.attentionHasItems).toBe(false);
+  auxiliary.resolve(runtime);await flush();
+  expect(page.data.canFinance).toBe(true);
+  expect(page.data.attentionHasItems).toBe(true);
+  expect(readFileSync('apps/miniprogram/pages/management/index.wxml','utf8')).toContain('wx:if="{{canFinance && attention.pendingRefunds');
+  page.setData({runtimeState:'error',runtimeStatus:null});page.applyRuntime();
+  expect(page.data.attentionHasItems).toBe(false);
+});
+it('keeps finance status out of the support-only management view',async()=>{
+  await loadPage('management');void page.load();
+  core.resolve({...authority,capabilities:['support.read']});auxiliary.resolve(runtime);await flush();
+  expect(page.data.coreReady).toBe(true);
+  expect(page.data.hasFinanceCapability).toBe(false);
+  expect(page.data.canFinance).toBe(false);
+  expect(readFileSync('apps/miniprogram/pages/management/index.wxml','utf8')).toContain('wx:if="{{hasFinanceCapability}}" class="state"');
+});
 describe.each<Name>(["management", "commission", "order-detail"])("PERF-11/12: %s", name => {
   it("renders core facts and their actual display fields while runtime never settles", async () => {
     await loadPage(name); void page.load(); core.resolve(coreValue(name)); await flush();
     expect(page.data.loading).toBe(false); expect(facts(name)).toMatchObject(coreValue(name));
     expect(page.data.runtimeState).toBe("loading"); closed(name);
     if (name === "commission") expect(page.data.availableLabel).toBe("12.00");
-    if (name === "order-detail") expect(page.data.order).toMatchObject({ totalYuan: "12.00", statusLabel: "已支付，待履约" });
+    if (name === "order-detail") expect(page.data.order).toMatchObject({ totalYuan: "12.00", statusLabel: "已支付" });
     if (name === "management") expect(page.data.canSupport).toBe(true);
   });
   it("keeps core usable on runtime failure and retries only the auxiliary request", async () => {
@@ -141,6 +173,18 @@ it("retains a newer order display without authorizing an older business version"
   await loadPage("order-detail"); void page.load(); core.resolve(order); auxiliary.resolve(runtime); await flush();
   core = deferred(); void page.load(); core.resolve({ ...order, version: 1, totalCents: 1 }); await flush();
   expect(page.data.order).toMatchObject({ version: 2, totalYuan: "12.00" }); expect(page.data.coreReady).toBe(false); closed("order-detail");
+});
+it("keeps formal refunds on the aftersale route even when money commands are available", async () => {
+  await loadPage("order-detail"); void page.load(); core.resolve(order);
+  auxiliary.resolve({version:2,orderFlowEnabled:true,paymentAvailable:true,paymentOnboarding:"READY",currency:"CNY",
+    scope:"formal_commerce",formalMoneyOperationsAvailable:true,formalRecoveryAvailable:true,
+    isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false});
+  await flush();
+  expect(page.data.runtimeMode).toBe("formal");
+  page.showRefundForm(); expect(page.data.refundFormVisible).toBe(false);
+  page.setData({refundFormVisible:true,refundAmount:"2.00",refundReason:"合成正式退款原因"});
+  await page.submitRefund();
+  expect(mocks.request.mock.calls.some(([options])=>options.method==="POST")).toBe(false);
 });
 it("revoked management authority closes financial and ordinary navigation despite a successful runtime", async () => {
   await loadPage("management"); void page.load(); core.resolve(authority); auxiliary.resolve(runtime); await flush();
@@ -253,4 +297,85 @@ it("order-detail does not present a failed refund-history read as zero requests"
   await loadPage("order-detail");void page.load();core.resolve(order);await flush();
   history.reject({status:503,title:"合成历史读取失败"});await flush();
   expect(page.data.refundCountLabel).toBe("记录数量暂未核实");expect(page.data.refundError).toBeTruthy();
+});
+
+describe('native shipment and explicit receipt boundaries',()=>{
+  async function ready(){await loadPage('order-detail');void page.load();core.resolve(order);await flush();}
+  it.each(['hide','session','shipment'])('rejects a late provider trajectory after %s changes',async kind=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    const tracking=deferred(),base=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/tracking')?tracking.promise:base(o));
+    const pending=page.loadTracking();
+    if(kind==='hide')page.onHide();else if(kind==='session')mocks.token='member-b';else page.setData({shipment:null});
+    tracking.resolve({orderId:id,shipmentId:id,source:'wechat_logistics',observedAt:new Date().toISOString(),events:[]});await pending;
+    expect(page.data.tracking).toBeNull();
+  });
+  it('shows no invented events for an empty response and permits retry after failure',async()=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    const base=mocks.request.getMockImplementation()!;let fail=true;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/tracking')?fail?Promise.reject(Error('offline')):Promise.resolve({orderId:id,shipmentId:id,source:'wechat_logistics',observedAt:new Date().toISOString(),events:[]}):base(o));
+    await page.loadTracking();expect(page.data.trackingError).toContain('暂时无法');expect(page.data.trackingLoading).toBe(false);
+    fail=false;await page.loadTracking();expect(page.data.tracking.events).toEqual([]);expect(page.data.trackingError).toBe('');
+    expect(page.data.shipment.logisticsState).toBe('shipped');expect(page.data.shipment.receiptConfirmedAt).toBeUndefined();
+  });
+  it.each(['hide','session'])('does not reveal late tracking after %s',async kind=>{
+    const shipping=deferred();const base=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/shipment')?shipping.promise:base(o));
+    await ready();if(kind==='hide')page.onHide();else mocks.token='member-b';
+    shipping.resolve({id,orderId:id,version:1,logisticsState:'shipped',trackingNumber:'SYNTHETIC123'});await flush();
+    expect(page.data.shipment).toBeNull();
+  });
+  it('blocks receipt after session changes during confirmation',async()=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    const modal=deferred();(globalThis as any).wx.showModal=vi.fn(()=>modal.promise);
+    const action=page.confirmReceipt();mocks.token='member-b';modal.resolve({confirm:true});await action;
+    expect(mocks.request.mock.calls.some(([o])=>o.path.endsWith('/confirm-receipt'))).toBe(false);
+  });
+  it('uses the same key and version after an unknown receipt response without enabling money',async()=>{
+    await ready();page.setData({shipment:{id,orderId:id,version:1,logisticsState:'shipped'},shipmentLoading:false});
+    (globalThis as any).wx.showModal=vi.fn(async()=>({confirm:true}));
+    const base=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation((o:any)=>o.path.endsWith('/confirm-receipt')?Promise.reject(Error('timeout')):base(o));
+    page.finishAction=()=>page.setData({busy:false});
+    await page.confirmReceipt();await page.confirmReceipt();
+    const calls=mocks.request.mock.calls.filter(([o])=>o.path.endsWith('/confirm-receipt')).map(([o])=>o);
+    expect(calls).toHaveLength(2);expect(calls[0].idempotencyKey).toBe(calls[1].idempotencyKey);expect(calls[1].data).toEqual({expectedVersion:1});expect(page.data.isolatedPayment).toBe(false);
+  });
+});
+
+const formalRuntime={version:2,scope:'formal_commerce',currency:'CNY',orderFlowEnabled:true,paymentAvailable:true,paymentOnboarding:'READY',formalMoneyOperationsAvailable:true,formalRecoveryAvailable:true,isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false};
+describe('formal owner payment recovery with money commands suspended',()=>{
+  async function ready(){
+    await loadPage('order-detail');void page.load();core.resolve({...order,status:'pending_payment'});
+    auxiliary.resolve({...formalRuntime,orderFlowEnabled:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',formalMoneyOperationsAvailable:false});await flush();
+    const original=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation(o=>o.path.endsWith('/payment-intent')?Promise.resolve({state:'notpay'}):original(o));
+  }
+  it('queries the original payment without enabling prepare, cancel or refund',async()=>{
+    await ready();await page.recheckPayment();await page.preparePayment();await page.cancel();page.showRefundForm();
+    const calls=mocks.request.mock.calls.map(([o])=>o);
+    expect(calls.filter(o=>o.path.endsWith('/payment-intent'))).toEqual([expect.objectContaining({path:`/v1/me/orders/${id}/payment-intent`})]);
+    expect(calls.some(o=>o.method==='POST')).toBe(false);expect(page.data.isolatedPayment).toBe(false);expect(page.data.refundFormVisible).toBe(false);
+    expect(page.data.actionStatus).toBe('渠道仍未确认付款。');
+  });
+  it.each(['hide','session','refresh','runtime-error'])('closes the query after %s',async boundary=>{
+    await ready();
+    if(boundary==='hide')page.onHide();else if(boundary==='session'){mocks.token='member-b';page.syncSession();}
+    else if(boundary==='refresh'){core=deferred();auxiliary=deferred();void page.load();await flush();}
+    else{auxiliary=deferred();page.retryRuntime();auxiliary.reject(Error('offline'));await flush();}
+    await page.recheckPayment();expect(mocks.request.mock.calls.some(([o])=>o.path.endsWith('/payment-intent'))).toBe(false);
+  });
+});
+it('opens only explicit v2 formal actions without automatically invoking WeChat payment',async()=>{
+ await loadPage('order-detail');void page.load();core.resolve({...order,status:'pending_payment'});auxiliary.resolve(formalRuntime);await flush();
+ (wx as any).requestPayment=vi.fn();expect(page.data).toMatchObject({runtimeMode:'formal',isolatedPayment:true});expect(wx.requestPayment).not.toHaveBeenCalled();
+ const {validateRuntime,runtimeActions}=await import('../../apps/miniprogram/services/commerce-runtime');
+ expect(runtimeActions(validateRuntime(formalRuntime))).toEqual({money:true,recovery:true,transfer:false,credit:false});
+ for(const bad of [{...formalRuntime,version:1},{...formalRuntime,isolatedMoneyOperationsAvailable:true},{...formalRuntime,formalMoneyOperationsAvailable:false},{...formalRuntime,formalRecoveryAvailable:undefined}])expect(()=>validateRuntime(bad)).toThrow();
+});
+it('retains formal historical management reads when new money commands are suspended',async()=>{
+ await loadPage('management');void page.load();core.resolve(authority);auxiliary.resolve({...formalRuntime,orderFlowEnabled:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',formalMoneyOperationsAvailable:false});await flush();
+ expect(page.data.canFinance).toBe(true);expect(page.data.canSupport).toBe(true);
+ const {runtimeActions,validateRuntime}=await import('../../apps/miniprogram/services/commerce-runtime');
+ expect(runtimeActions(validateRuntime({...formalRuntime,orderFlowEnabled:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',formalMoneyOperationsAvailable:false}))).toMatchObject({money:false,recovery:true,transfer:false,credit:false});
 });

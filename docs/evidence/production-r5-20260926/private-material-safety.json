@@ -1,0 +1,41 @@
+{
+  "observedAtUtc": "2026-09-26T16:12:57.575027+00:00",
+  "files": [
+    {
+      "relativePath": "api-v3-key.txt",
+      "regularNonSymlink": true,
+      "mode0600": true,
+      "gitIgnored": true,
+      "tracked": false
+    },
+    {
+      "relativePath": "merchant-api-cert/apiclient_cert.pem",
+      "regularNonSymlink": true,
+      "mode0600": true,
+      "gitIgnored": true,
+      "tracked": false
+    },
+    {
+      "relativePath": "merchant-api-cert/apiclient_key.pem",
+      "regularNonSymlink": true,
+      "mode0600": true,
+      "gitIgnored": true,
+      "tracked": false
+    },
+    {
+      "relativePath": "wechatpay-public-key/pub_key.pem",
+      "regularNonSymlink": true,
+      "mode0600": true,
+      "gitIgnored": true,
+      "tracked": false
+    },
+    {
+      "relativePath": "wechatpay-public-key/public-key-id.txt",
+      "regularNonSymlink": true,
+      "mode0600": true,
+      "gitIgnored": true,
+      "tracked": false
+    }
+  ],
+  "secretContentsOrFingerprintsIncluded": false
+}

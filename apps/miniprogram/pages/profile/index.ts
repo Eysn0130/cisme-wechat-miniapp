@@ -23,10 +23,10 @@ const snapshotOwners = new WeakMap<object, string>();
 type AuxiliaryState = "unknown" | "loading" | "ready" | "error";
 
 Page({
-  data: { memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, authority:null as AuthorityProjection|null, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
+  data: { memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { if (!requireMemberAccess()) { this.setData({member:null,points:null,care:null,authority:null,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
+  onShow() { if (!requireMemberAccess()) { this.setData({member:null,points:null,care:null,coreUnavailable:false,authority:null,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
   onHide() { cancelPageReads(this); this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   isCurrentLoad(attempt: number, token: string): boolean {
@@ -62,7 +62,7 @@ Page({
   },
   retryAuxiliary() {
     const token = getApp<IAppOption>().globalData.sessionToken;
-    if (token && this.data.member && !this.data.loading) this.loadAuxiliary(this.data.loadAttempt, token);
+    if (token && (this.data.member || this.data.coreUnavailable) && !this.data.loading) this.loadAuxiliary(this.data.loadAttempt, token);
   },
   async loadAvatar(member: any, attempt: number, token: string, businessVersion: number) {
     try {
@@ -86,8 +86,8 @@ Page({
     snapshotOwners.set(this, token);
     if (!sameSession) this.setData({ snapshotVersion:0 });
     this.setData(preserveSnapshot && sameSession
-      ? { loadAttempt:attempt, loading:true, error:"" }
-      : { loadAttempt:attempt, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null, tasks:[], tasksError:"", loading:true, error:"" });
+      ? { loadAttempt:attempt, coreUnavailable:false, loading:true, error:"" }
+      : { loadAttempt:attempt, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null, tasks:[], tasksError:"", loading:true, error:"" });
     void this.loadTasks(attempt);
     this.loadAuxiliary(attempt, token);
     try {
@@ -103,7 +103,7 @@ Page({
       const normalizedCare = care ?? { phase: "waiting", completed: [], due: null, next: null };
       const careView = profileCareView(normalizedCare);
       // One authoritative core snapshot; local file work is never on this path.
-      const core = { member:visibleMember, memberAvatar:defaultMemberAvatar, avatarState:"loading" as AuxiliaryState, points, care:normalizedCare, snapshotVersion:snapshot.businessVersion, progressPercent:Math.min(100, normalizedCare.completed.length * 25), pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, loading:false };
+      const core = { member:visibleMember, memberAvatar:defaultMemberAvatar, avatarState:"loading" as AuxiliaryState, points, care:normalizedCare, coreUnavailable:false, snapshotVersion:snapshot.businessVersion, progressPercent:Math.min(100, normalizedCare.completed.length * 25), pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, loading:false };
       recordClientMetric({ action: "profile", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
       this.setData(core, () => {
@@ -115,8 +115,7 @@ Page({
       void this.loadAvatar(member, attempt, token, snapshot.businessVersion);
     } catch {
       if (this.isCurrentLoad(attempt, token)) {
-        this.data.tasksAttempt += 1;
-        this.setData({ memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, tasks:[], tasksLoading:false, tasksError:"", avatarState:"unknown", loading:false, error:"会员资料暂时无法同步，请重试。页面不会把旧积分或护理状态当作最新结果。" });
+        this.setData({ memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:true, avatarState:"unknown", loading:false, error:"会员资料暂未加载，请重试。你仍可进入订单、客服和设置。" });
       }
     } finally { if (this.isCurrentLoad(attempt, token)) this.setData({ loading:false }); }
   },

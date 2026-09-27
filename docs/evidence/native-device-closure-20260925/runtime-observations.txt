@@ -1,0 +1,6 @@
+Scope: current-source local synthetic simulator run 6a903e0c2dc0ac976949f5c2.
+2026-09-26 UTC: curl -I --max-time 8 https://staging-api.cisme.cn/health resolved staging-api.cisme.cn to 198.18.0.113 and returned LibreSSL SSL_ERROR_SYSCALL before an HTTP response.
+2026-09-26 UTC: curl -I --max-time 8 https://api.cisme.cn/health resolved api.cisme.cn to 198.18.0.124 and returned LibreSSL SSL_ERROR_SYSCALL before an HTTP response.
+The 198.18.0.0/15 addresses reflect this Mac's network path; these probes do not establish global origin health.
+During simulator teardown the local synthetic API logged GET /v1/me/orders/:orderId/shipment/tracking, HTTP 503, code SHIPPING_OUTBOUND_NOT_AUTHORIZED, requestId ef661844-1737-4eb4-93a8-c3a86ebc531c. The server's fulfillmentRuntime.ts explicitly gates the outbound WeChat shipment sync with this code. This event occurred outside the 40-route capture filter window and is not silently counted as zero errors or as normal-mode shipment success.
+The disposable-test wrapper reported synthetic-object-target-removed and synthetic-target-removed for exactly this runId. A later docker ps -a filter by run label returned no containers and port 127.0.0.1:18080 had no listener.

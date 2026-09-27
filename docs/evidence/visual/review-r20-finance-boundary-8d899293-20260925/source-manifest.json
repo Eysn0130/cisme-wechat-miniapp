@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "r20-finance-boundary-8d899293-20260925",
+  "generatedAt": "2026-09-26T01:12:45.019Z",
+  "repository": {
+    "root": "/Users/mini/CISME",
+    "branch": "codex/fulfillment-lifecycle-20260922",
+    "head": "9bbabae794822f0d68ef513bb35adabdb71bb58b",
+    "dirty": true,
+    "porcelainEntryCount": 5
+  },
+  "sourceRevision": "local-worktree:9bbabae79482+8d89929319e1",
+  "miniProgram": {
+    "appId": "wx4eac2d4fb11d299b",
+    "baseLibraryVersion": "3.15.2",
+    "sourceSha256": "8d89929319e11becde4513f2bcd9e9c687b4bb1dfa38c44393b5a20b728e8558",
+    "files": 278,
+    "routes": 40,
+    "totalBytes": 2461531,
+    "mainPackageBytes": 1476825,
+    "globalStyleBytes": 8050
+  },
+  "capture": {
+    "expectedRawScreenshots": 40,
+    "capturedRawScreenshots": 0,
+    "interactionRecordings": 0,
+    "iosDeviceSessions": 0,
+    "androidDeviceSessions": 0,
+    "result": "BLOCKED"
+  },
+  "acceptanceFixture": {
+    "file": "acceptance-fixture.json",
+    "environmentHealth": "environment-health.json",
+    "scope": "local_devtools_synthetic_nonproduction"
+  },
+  "screenshotIndex": [],
+  "exclusions": [
+    "production data",
+    "real payment",
+    "formal Mini Program upload",
+    "generated or web-emulated screenshots"
+  ]
+}

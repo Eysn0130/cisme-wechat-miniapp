@@ -1,0 +1,20 @@
+[Unit]
+Description=CISME independent production health observer
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/cisme/production-cutover.complete
+
+[Service]
+Type=oneshot
+User=cisme
+Group=cisme
+EnvironmentFile=-/etc/cisme/monitor.env
+ExecStart=/usr/bin/python3 /opt/cisme/operations/production-health-monitor.py
+StateDirectory=cisme-monitor
+TimeoutStartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictSUIDSGID=true
+UMask=0077

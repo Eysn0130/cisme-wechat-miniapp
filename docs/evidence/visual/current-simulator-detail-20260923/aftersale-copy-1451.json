@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "5bcea65",
+  "packageSourceSha256": "145100cc24ceb71910aba9e2ae9cade01a8b7103e96f1a1855933616ef9e8b89",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic order with one active return-and-refund case",
+  "captures": [
+    {
+      "file": "aftersale-list-1451.png",
+      "sha256": "75b65131db65da4387266bf07c852470516390d30c24e40830d0e89aeeea9862",
+      "state": "case list"
+    },
+    {
+      "file": "aftersale-return-1451.png",
+      "sha256": "3c6b9e82da1d00fa7f0e1e989dd344b761a50e7254fc7547fb5369c28b783fe4",
+      "state": "selected return-and-refund case"
+    }
+  ],
+  "observed": "The list shows a neutral progress hint and no duplicate application action. Opening the return-and-refund case shows the instruction to wait for this case's return route before shipping.",
+  "scopeLimit": "The local fixture contains a return-and-refund case; the refund-only copy branch was checked in source, not in a native screenshot. No device, keyboard, full state matrix, or production acceptance is claimed."
+}

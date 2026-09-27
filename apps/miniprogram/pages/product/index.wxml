@@ -2,13 +2,16 @@
 <view class="topbar product-topbar"><button class="{{leaving ? 'control--disabled' : ''}} topbar__back" disabled="{{leaving}}" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">商品详情</text></view>
 <view class="page page--stack product-page">
   <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载商品资料…</view>
-  <view wx:if="{{item}}" class="product-gallery">
-    <swiper class="product-cover" current="{{galleryIndex}}" autoplay="{{false}}" duration="220" circular="{{gallery.length>1}}" bindchange="galleryChange">
-      <swiper-item wx:for="{{gallery}}" wx:for-item="imageSrc" wx:key="*this"><image class="product-cover" src="{{imageSrc}}" mode="aspectFill" aria-label="{{item.name}} 图片 {{index + 1}}" /></swiper-item>
-    </swiper>
-    <button wx:if="{{gallery.length>1}}" class="gallery-arrow gallery-arrow--left" bindtap="galleryPrevious" aria-label="上一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
-    <button wx:if="{{gallery.length>1}}" class="gallery-arrow gallery-arrow--right" bindtap="galleryNext" aria-label="下一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
-    <text wx:if="{{gallery.length>1}}" class="gallery-count">{{galleryIndex + 1}} / {{gallery.length}}</text>
+  <view wx:if="{{item}}" class="product-gallery {{item.image === '/assets/icons/spray-bottle-plum.svg' ? 'product-gallery--placeholder' : ''}}">
+    <view wx:if="{{item.image === '/assets/icons/spray-bottle-plum.svg'}}" class="product-placeholder" aria-label="商品图片待更新"><view class="product-placeholder__mark"><image class="product-placeholder__icon" src="/assets/icons/spray-bottle-plum.svg" mode="aspectFit"/></view><text class="product-placeholder__label">商品图片待更新</text></view>
+    <block wx:else>
+      <swiper class="product-cover" current="{{galleryIndex}}" autoplay="{{false}}" duration="220" circular="{{gallery.length>1}}" bindchange="galleryChange">
+        <swiper-item wx:for="{{gallery}}" wx:for-item="imageSrc" wx:key="*this"><image class="product-cover" src="{{imageSrc}}" mode="aspectFill" aria-label="{{item.name}} 图片 {{index + 1}}" /></swiper-item>
+      </swiper>
+      <button wx:if="{{gallery.length>1}}" class="gallery-arrow gallery-arrow--left" bindtap="galleryPrevious" aria-label="上一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
+      <button wx:if="{{gallery.length>1}}" class="gallery-arrow gallery-arrow--right" bindtap="galleryNext" aria-label="下一张商品图片"><image class="gallery-arrow__icon" src="/assets/icons/caret-right-white.svg" /></button>
+      <text wx:if="{{gallery.length>1}}" class="gallery-count">{{galleryIndex + 1}} / {{gallery.length}}</text>
+    </block>
   </view>
   <view wx:if="{{item}}" class="product-content">
     <text class="product-eyebrow">CISME DAILY RITUAL</text>
@@ -17,7 +20,7 @@
     <view class="product-price"><text class="product-price__currency">¥</text><text>{{item.displayPrice}}</text></view>
     <view class="product-contract">{{item.contractCopy}}</view>
     <view class="product-skus"><button wx:for="{{item.variants}}" wx:key="id" data-id="{{item.id}}" bindtap="selectSku" disabled="{{navigating||!item.active}}" class="product-sku {{selectedSku.id===item.id?'product-sku--active':''}} {{!item.inStock?'product-sku--empty':''}} {{navigating||!item.active?'control--disabled':''}}"><strong>{{item.label}}</strong><small>¥{{item.priceCents/100}} · {{item.inStock?'可选':'缺货'}}</small></button></view>
-    <view class="product-quantity"><text>数量</text><button class="{{navigating||quantity<=1?'control--disabled':''}}" bindtap="decrease" disabled="{{navigating||quantity<=1}}" aria-label="减少数量">−</button><strong>{{quantity}}</strong><button class="{{navigating||quantity>=selectedSku.availableQuantity||quantity>=99?'control--disabled':''}}" bindtap="increase" disabled="{{navigating||quantity>=selectedSku.availableQuantity||quantity>=99}}" aria-label="增加数量">＋</button></view>
+    <view class="product-quantity"><text>数量</text><button class="{{navigating||quantity<=1?'control--disabled':''}}" bindtap="decrease" disabled="{{navigating||quantity<=1}}" aria-label="减少数量"><image class="product-quantity__icon" src="/assets/icons/stepper-minus-plum.svg" mode="aspectFit"/></button><strong>{{quantity}}</strong><button class="{{navigating||quantity>=selectedSku.availableQuantity||quantity>=99?'control--disabled':''}}" bindtap="increase" disabled="{{navigating||quantity>=selectedSku.availableQuantity||quantity>=99}}" aria-label="增加数量"><image class="product-quantity__icon" src="/assets/icons/stepper-plus-plum.svg" mode="aspectFit"/></button></view>
     <view class="glass product-facts">
       <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>成分与用法请参阅产品说明</text></view>
       <view class="product-fact"><image class="product-fact__icon" src="/assets/icons/package-plum.svg" mode="aspectFit"/><text>配送与售后信息将在购买时展示</text></view>

@@ -1,0 +1,917 @@
+{
+  "schemaVersion": 2,
+  "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+  "finalResult": "blocked",
+  "evidenceIndex": {
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__home__index.png": {
+      "sha256": "9d949feba48b369816dfd8a943086aa0a18be73cf597716cf3a6b178f005ee74",
+      "bytes": 311106,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/home/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__records__index.png": {
+      "sha256": "65b16595f5087da3a0a5a519df135769dbaeddb8db9778d7210837a46520d2c2",
+      "bytes": 151340,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/records/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community__index.png": {
+      "sha256": "6822667eb99989f397300bdb70163528f5d59d343ccae2b65bcd87c7711b0d66",
+      "bytes": 213468,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/community/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__profile__index.png": {
+      "sha256": "e2cfd21182962c384b2a2344c4004f3482fb028bc25bc1aa8979f230d4a3706c",
+      "bytes": 121482,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/profile/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__account__index.png": {
+      "sha256": "05aaa41f43ca931637e14d4399cb19c614c8c5ea4dd6c6d19a6076c32eb0e769",
+      "bytes": 85902,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/account/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__task__index.png": {
+      "sha256": "eddd2ed88e1f6aa07345402343c6a0b5476e625febfc0f69e7ad479feb005120",
+      "bytes": 137493,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/task/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__submit__index.png": {
+      "sha256": "772206b6654e1cb99cf3ed71f4bb36b533fb0b3f7e295072225a4471f11d63ca",
+      "bytes": 112447,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/submit/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__progress__index.png": {
+      "sha256": "f972e3333bb436b26f9fc8d2795dfe5e683eff88ca6472cced67b44cfb4d6059",
+      "bytes": 73917,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/progress/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__points__index.png": {
+      "sha256": "056da81dd5e5f08ef6f284483d7167fdda33970db561fbb043dd3986d62ae779",
+      "bytes": 120491,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/points/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__post__index.png": {
+      "sha256": "37ccc09d630a924b85fa2c471259611620ec8b7386914e81a268bb070f3f7c90",
+      "bytes": 142674,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/post/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__shop__index.png": {
+      "sha256": "fbe5e195fe955f5a3147cbe0d1ce85bbc99fc1c8c56fd3211406d567e9145c4d",
+      "bytes": 186899,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/shop/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__product__index.png": {
+      "sha256": "8bab31c50d14b2a37a6bf38c2b301be558e166f2d39197eab8a26240df0fe7dd",
+      "bytes": 226914,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/product/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__checkout__index.png": {
+      "sha256": "b97688c9cf878b8969785917ca86640eec35abcfac61a9812fb97bb624aae30c",
+      "bytes": 68051,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/checkout/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__orders__index.png": {
+      "sha256": "298dcfe99649d9c3691754e7cad1d1973a5587a8a0cba0e17cd7ff736548d8b1",
+      "bytes": 63708,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/orders/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__order-detail__index.png": {
+      "sha256": "620f639b9683302351096f3b0cf3d2508ff1eb088bf37a59716041f76a1ad558",
+      "bytes": 118069,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/order-detail/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__settings__index.png": {
+      "sha256": "eaedee56dc8a0415fd7eeaa702000f8adc470873603d837564c4fa33a9b5b36c",
+      "bytes": 73989,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/settings/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__invite__index.png": {
+      "sha256": "f2e307b245a4f32183c53bf0a1f89ee757cb2a77ec608cb8e0ce7a36eaf5aa3c",
+      "bytes": 120203,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/invite/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__legal__index.png": {
+      "sha256": "67ad99c4bb926fa4357d7cdd7251f1e4ca6051c5f2e54dafcf4b614aa7a2f700",
+      "bytes": 40905,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/legal/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__privacy-rights__index.png": {
+      "sha256": "f8d00c1f8cafd30e172eafa20515f289eb33c75023114d9ca958ded14f64fdac",
+      "bytes": 75160,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/privacy-rights/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__support__index.png": {
+      "sha256": "35ca109c2ea62c83f8b844c9ac12485482ad03779c5c4dd0f97135ec11e38f7d",
+      "bytes": 47651,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/support/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management__index.png": {
+      "sha256": "75d2eca22feb547f06be71461c95ae586d8e25ac1b6cfaa448c6f798c98b06b4",
+      "bytes": 82349,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-catalog__index.png": {
+      "sha256": "d4f57f3ff49a0351bf834daf11b74ba0d3d2791a9a28630fae854e7cb46a1c99",
+      "bytes": 113285,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-catalog/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-product__index.png": {
+      "sha256": "daa4c2dd9438ebed3213c4acd655048c59abd15561f2edadaec0b0543621fcf7",
+      "bytes": 67284,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-product/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-orders__index.png": {
+      "sha256": "0080a16d706788f34fa53c79092d883eb61599dd2dd03cd146e9bd28c5b9be5d",
+      "bytes": 70015,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-orders/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-order-detail__index.png": {
+      "sha256": "a9ca99cef797cfe69f60d38005aa957d57980a163c625843c40b758c1e76af36",
+      "bytes": 68728,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-order-detail/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-support__index.png": {
+      "sha256": "4e96be1a021d3d5e5bd59b1199901fe6e15f55a3cad6e1b077b3cbecf88df18c",
+      "bytes": 30584,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-support/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-support-chat__index.png": {
+      "sha256": "ded768195d0fb4e3863f79072b9d827b3d011c0de17ba2c5cb3c13e92d951ff3",
+      "bytes": 59142,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-support-chat/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-members__index.png": {
+      "sha256": "7accc959aad292712c04f2b1299c80d959b636d9ac4a61155008f410fa64683a",
+      "bytes": 65033,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-members/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-member__index.png": {
+      "sha256": "d2d8f3cb21286531daae7ce4c447e7d6f3aa2e6c9eba56cae6d3dc15e1189db7",
+      "bytes": 67436,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-member/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__referral__index.png": {
+      "sha256": "8b0f52058279cd4909101ba970f29e88c1f8d4c7912d8fbd2028c2bd976bb331",
+      "bytes": 60609,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/referral/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-compose__index.png": {
+      "sha256": "a3bb41b466a361025fd334a8659c731dddef4582b583d140f12ca35aa309b1cd",
+      "bytes": 37286,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/community-compose/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-post__index.png": {
+      "sha256": "59569143f584f9dfa8c7cac0671ad2a7bed887d3ab70709ddf3b80bff517a961",
+      "bytes": 56251,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/community-post/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-author__index.png": {
+      "sha256": "ff78721e144bdda1d14025e548b0c82a36b64a1bec75dc3ea9712521d145ddc6",
+      "bytes": 35720,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/community-author/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-review__index.png": {
+      "sha256": "09127753aecbf18f22cc7326ed81b5e3062d074ddc642b46fac19c797212c659",
+      "bytes": 57980,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/community-review/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-activity__index.png": {
+      "sha256": "33e8d5bd2a767350b2db1269e3e419cb9ee6d6d30c87e795b34a1f983a86cd63",
+      "bytes": 18197,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/community-activity/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-finance__index.png": {
+      "sha256": "8b563ae879f2e95dfd9f624bd294006c3d0ec39d6d0a595d32ebfbeeecf81846",
+      "bytes": 31766,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-finance/index",
+      "state": "money-disabled",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__commission__index.png": {
+      "sha256": "56c529a21db37de68ec6b71c8a88f5db42197f3f21e22fb2daf3513450586cfd",
+      "bytes": 99467,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/commission/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-privacy__index.png": {
+      "sha256": "183f71fbbf410854147a2bebbd8599dbbc50a22a9309abfc8f85b42aeb3b21a4",
+      "bytes": 32785,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-privacy/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__aftersale__index.png": {
+      "sha256": "51d023e45c198414b7543fb17bd87684dade52c768bfd6ab517a653930593de0",
+      "bytes": 33350,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/aftersale/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-fulfillment__index.png": {
+      "sha256": "054ef938bbebbbfd135377174c01e4df3d1a38bd2a6fff416cb7ce2d02710272",
+      "bytes": 78757,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/management-fulfillment/index",
+      "state": "authenticated-route-success",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/devtools-6c0f38e6-compile-open.json": {
+      "sha256": "e9e710eba9c02ffc24140b6dadcef6c969bef3b611d2dbf05cf7f1910aa22410",
+      "bytes": 5146,
+      "mimeType": "application/json",
+      "kind": "devtools_compile",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/devtools-6c0f38e6-console-filter.json": {
+      "sha256": "4946e834465ef27f91a5523a1d075692101c841cb92a50b60ebfee25672cb074",
+      "bytes": 457,
+      "mimeType": "application/json",
+      "kind": "devtools_console",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/devtools-6c0f38e6-network-filter.json": {
+      "sha256": "2b2373e34d36f5537960b7e452010f94dc5970f3e6645ef610e0c58f8e5ea495",
+      "bytes": 472,
+      "mimeType": "application/json",
+      "kind": "devtools_network",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/route-runtime-health-6c0f38e6.json": {
+      "sha256": "7218230d7ac42e764e034746e8278249e47a8faf8cec55ab38baa69300c5b864",
+      "bytes": 12479,
+      "mimeType": "application/json",
+      "kind": "devtools_route_runtime_health",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/supplemental/checkout-quote-qty3-top.png": {
+      "sha256": "70623157071d3e1192985a2815791562aa0eef54459dd3417aaa2ad37e13991b",
+      "bytes": 84927,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/checkout/index",
+      "state": "quote-top",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/supplemental/checkout-quote-qty3-bottom.png": {
+      "sha256": "b804b5ccefecd0604926a2a3438a71be6c98212764ea9f9ded94ec57ec468189",
+      "bytes": 98829,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/checkout/index",
+      "state": "quote-bottom",
+      "viewport": "390x844"
+    },
+    "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/supplemental/privacy-rights-records-bottom.png": {
+      "sha256": "addffc8b2475baedb3e782301090a1bbecf641e2e473f15d2f90bf38ab5c44a6",
+      "bytes": 70785,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+      "route": "pages/privacy-rights/index",
+      "state": "records-scrolled",
+      "viewport": "390x844"
+    }
+  },
+  "devtools": {
+    "packageSourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+    "compileErrors": 0,
+    "consoleErrors": 0,
+    "networkFailures": 0,
+    "healthyRuntimeRoutes": 39,
+    "guardedRuntimeRoutes": 1,
+    "environment": "local_devtools_synthetic_nonproduction",
+    "compileEvidenceFiles": [
+      "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/devtools-6c0f38e6-compile-open.json"
+    ],
+    "consoleEvidenceFiles": [
+      "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/devtools-6c0f38e6-console-filter.json"
+    ],
+    "networkEvidenceFiles": [
+      "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/devtools-6c0f38e6-network-filter.json"
+    ],
+    "routeRuntimeHealthFiles": [
+      "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/route-runtime-health-6c0f38e6.json"
+    ]
+  },
+  "routeCoverage": [
+    {
+      "route": "pages/home/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__home__index.png"
+      ]
+    },
+    {
+      "route": "pages/records/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__records__index.png"
+      ]
+    },
+    {
+      "route": "pages/community/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community__index.png"
+      ]
+    },
+    {
+      "route": "pages/profile/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__profile__index.png"
+      ]
+    },
+    {
+      "route": "pages/account/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__account__index.png"
+      ]
+    },
+    {
+      "route": "pages/task/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__task__index.png"
+      ]
+    },
+    {
+      "route": "pages/submit/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__submit__index.png"
+      ]
+    },
+    {
+      "route": "pages/progress/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__progress__index.png"
+      ]
+    },
+    {
+      "route": "pages/points/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__points__index.png"
+      ]
+    },
+    {
+      "route": "pages/post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__post__index.png"
+      ]
+    },
+    {
+      "route": "pages/shop/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__shop__index.png"
+      ]
+    },
+    {
+      "route": "pages/product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__product__index.png"
+      ]
+    },
+    {
+      "route": "pages/checkout/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__checkout__index.png",
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/supplemental/checkout-quote-qty3-top.png",
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/supplemental/checkout-quote-qty3-bottom.png"
+      ]
+    },
+    {
+      "route": "pages/orders/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__orders__index.png"
+      ]
+    },
+    {
+      "route": "pages/order-detail/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__order-detail__index.png"
+      ]
+    },
+    {
+      "route": "pages/settings/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__settings__index.png"
+      ]
+    },
+    {
+      "route": "pages/invite/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__invite__index.png"
+      ]
+    },
+    {
+      "route": "pages/legal/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__legal__index.png"
+      ]
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__privacy-rights__index.png",
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/supplemental/privacy-rights-records-bottom.png"
+      ]
+    },
+    {
+      "route": "pages/support/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__support__index.png"
+      ]
+    },
+    {
+      "route": "pages/management/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-catalog__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-product__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-orders/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-orders__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-order-detail__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-support/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-support__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-support-chat__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-members/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-members__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-member/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-member__index.png"
+      ]
+    },
+    {
+      "route": "pages/referral/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__referral__index.png"
+      ]
+    },
+    {
+      "route": "pages/community-compose/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-compose__index.png"
+      ]
+    },
+    {
+      "route": "pages/community-post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-post__index.png"
+      ]
+    },
+    {
+      "route": "pages/community-author/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-author__index.png"
+      ]
+    },
+    {
+      "route": "pages/community-review/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-review__index.png"
+      ]
+    },
+    {
+      "route": "pages/community-activity/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__community-activity__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-finance/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-finance__index.png"
+      ]
+    },
+    {
+      "route": "pages/commission/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__commission__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-privacy__index.png"
+      ]
+    },
+    {
+      "route": "pages/aftersale/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__aftersale__index.png"
+      ]
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": [
+        "docs/evidence/visual/review-r17-pr22-current-6c0f38e6-20260925/screenshots/raw/pages__management-fulfillment__index.png"
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "platform": "ios",
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "platform": "android",
+      "result": "blocked",
+      "evidenceFiles": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "CURRENT_NATIVE_INTERACTION_AND_DEVICES_REQUIRED",
+      "severity": "P1",
+      "status": "blocked"
+    }
+  ],
+  "note": "Current package source SHA 52b96f06ebcd5c0407f9b234bf62c1e66dafc2d961a56d80b8a3470e1e5ed3d9. The current package has bounded local WeChat DevTools 0.3.11 order-flow and product error/recovery evidence, documented with original 390x844 PNGs and hashes in /Users/mini/Downloads/CISME-PR22-R4B-Native-Order-52b96f-20260925.md; it is not a complete route-state or physical-device acceptance. The r13 390cfba7 source pack and earlier care/Worker screenshots retain their original provenance under their existing paths and are historical evidence only. No prior screenshot, compile/console/network capture, or route-health readback is rebound to this source hash. Current full route interaction/visual state matrices, care flow, iOS/Android hardware, public staging login and formal preview remain blocked."
+}

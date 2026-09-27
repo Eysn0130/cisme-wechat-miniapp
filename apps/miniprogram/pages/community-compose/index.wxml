@@ -6,15 +6,16 @@
     <view wx:if="{{notice}}" class="state composer-notice" aria-live="polite">{{notice}}</view>
     <button wx:if="{{error && !loading && !postId}}" class="secondary composer-retry" bindtap="retryLoad">重试加载</button>
     <block wx:if="{{listMode && !loading}}">
-      <text class="composer-intro">草稿只有你能看到，提交后才进入公开审核。</text>
-      <button class="primary composer-new {{busy ? 'primary--disabled' : ''}}" bindtap="startNew" disabled="{{busy}}" loading="{{busy}}">写一篇新故事</button>
+      <text class="composer-intro">{{publicGateEnabled ? '草稿只有你能看到，提交后才进入公开审核。' : publicGateUnknown ? '投稿状态暂无法核验，已有内容和草稿仍可查看。' : publicGateLoaded ? '公开投稿暂未开放，已有内容和草稿仍可查看。' : '正在核验投稿状态，已有内容和草稿仍可查看。'}}</text>
+      <button wx:if="{{publicGateEnabled}}" class="primary composer-new {{busy ? 'primary--disabled' : ''}}" bindtap="startNew" disabled="{{busy}}" loading="{{busy}}">写一篇新故事</button>
       <view class="composer-list-title">我的内容 · {{listTotal}} 篇（已加载 {{drafts.length}}）</view>
-      <view wx:if="{{!drafts.length}}" class="state">还没有保存的内容。写下第一篇护理故事吧。</view>
+      <view wx:if="{{!drafts.length}}" class="state">{{publicGateEnabled ? '还没有保存的内容。写下第一篇护理故事吧。' : '当前没有已保存的内容。'}}</view>
       <view wx:for="{{drafts}}" wx:key="id" class="composer-list-row"><button class="composer-list-row__open" data-id="{{item.id}}" bindtap="openDraft"><view class="composer-list-row__copy"><text class="composer-list-row__title">{{item.title}}</text><text class="composer-list-row__meta">{{item.imageCount}} 张图片</text></view><text class="composer-list-row__status">{{item.status}}</text></button><button wx:if="{{item.state==='draft' || item.state==='rejected'}}" class="composer-list-row__delete" data-id="{{item.id}}" bindtap="deleteListDraft" aria-label="删除{{item.title}}">删除</button></view>
       <button wx:if="{{listCursor}}" class="secondary {{listLoadingMore ? 'secondary--disabled' : ''}}" bindtap="loadMoreList" disabled="{{listLoadingMore}}" loading="{{listLoadingMore}}">加载更多内容</button>
       <text wx:if="{{listMoreError}}" class="state state--error">{{listMoreError}}</text>
     </block>
     <block wx:if="{{!listMode && !loading && postId}}">
+      <view wx:if="{{publicGateLoaded && !publicGateEnabled}}" class="composer-status">{{publicGateUnknown ? '投稿状态暂无法核验。可查看已有内容与草稿，暂不能提交审核。' : '公开投稿暂未开放。可以查看已有内容与草稿，暂不能提交审核。'}}</view>
       <text class="composer-intro">记录真实护理体验；可以只写文字或只放图片。</text>
       <view wx:if="{{publicVersionActive}}" class="composer-status">已有版本公开。修改中的版本仅自己可见，审核发布后才会替换公开内容。</view>
       <view wx:elif="{{state === 'pending_review'}}" class="composer-status">正在审核中。若需修改，请等待审核结果。</view>
@@ -42,7 +43,7 @@
           <view class="composer-switch-row"><text>我同意审核通过后公开展示</text><switch checked="{{publicConsentConfirmed}}" disabled="{{busy || uploadBusy}}" color="#6b417b" bindchange="changeConsent" aria-label="确认公开展示"/></view>
           <text class="composer-hint">涉及他人肖像、隐私或品牌素材时，请先取得必要许可。不要上传联系方式或订单截图。</text>
         </view>
-        <view class="composer-actions"><button class="secondary {{busy || uploadBusy ? 'secondary--disabled' : ''}}" bindtap="saveDraft" disabled="{{busy || uploadBusy}}" loading="{{operation==='saving'}}">保存草稿</button><button class="primary {{busy || uploadBusy || !publicGateEnabled ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || uploadBusy || !publicGateEnabled}}" loading="{{operation==='submitting'}}">{{publicGateEnabled?'提交审核':'投稿暂未开放'}}</button></view>
+        <view class="composer-actions"><button class="secondary {{busy || uploadBusy ? 'secondary--disabled' : ''}}" bindtap="saveDraft" disabled="{{busy || uploadBusy}}" loading="{{operation==='saving'}}">保存草稿</button><button class="primary {{busy || uploadBusy || !publicGateEnabled ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || uploadBusy || !publicGateEnabled}}" loading="{{operation==='submitting'}}">{{publicGateEnabled ? '提交审核' : publicGateUnknown ? '投稿状态待核验' : '投稿暂未开放'}}</button></view>
       </block>
     </block>
   </view>

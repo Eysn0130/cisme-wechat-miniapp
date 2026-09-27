@@ -1,9 +1,15 @@
 import { mkdir, readFile, writeFile, readdir, copyFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { resolve, basename } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { build } from 'tsup';
+
+// Runtime dependencies include sharp's native binary. A macOS or ARM64
+// npm install cannot be copied into the x86_64 Ubuntu production release.
+if(process.platform!=='linux'||process.arch!=='x64'
+  ||!process.report?.getReport().header.glibcVersionRuntime)
+  throw new Error('PRODUCTION_RELEASE_REQUIRES_LINUX_X64_GLIBC_BUILDER');
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
@@ -38,6 +44,9 @@ for (const [key, value] of Object.entries(lock.packages)) {
 }
 await writeFile(resolve(output, 'package-lock.json'), JSON.stringify(lock, null, 2) + '\n');
 execFileSync('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: output, stdio: 'inherit' });
+execFileSync(process.execPath, ['-e',
+  "const sharp=require('sharp');if(!sharp.versions?.vips)throw Error('SHARP_LINUX_RUNTIME_UNAVAILABLE')"],
+  {cwd:output,stdio:'inherit'});
 await mkdir(resolve(output,'db/migrations'),{recursive:true});
 const migrationFiles=(await readdir(resolve(root,'db/migrations'))).filter(name=>name.endsWith('.sql')).sort();
 for(const file of migrationFiles)await copyFile(resolve(root,'db/migrations',file),resolve(output,'db/migrations',file));
@@ -49,6 +58,16 @@ for (const file of ['index.js', 'worker.js', 'worker-once.js', 'package.json', '
 await writeFile(resolve(output, 'release-manifest.json'), JSON.stringify({
   schemaVersion:1,sourceHead,sourceTree,sourceLockSha256:createHash('sha256').update(await readFile(resolve(root,'package-lock.json'))).digest('hex'),
   generatedAt: new Date().toISOString(), runtime: source.engines.node, node:process.version, migrations:migrationFiles, hashes,
+  buildPlatform:{os:process.platform,arch:process.arch,libc:'glibc'},
   configurationIncluded: false, deployed: false,releaseReady:false
 }, null, 2) + '\n');
-console.log(JSON.stringify({output,sourceHead,sourceTree,migrations:migrationFiles.length,deployed:false,releaseReady:false}));
+// macOS tar otherwise emits AppleDouble ._*.sql entries that the Linux
+// migration manifest correctly refuses as unexpected migration files.
+const archive = output + '.tar.gz';
+execFileSync('tar',['-czf',archive,'-C',resolve(root,'dist'),basename(output)],{
+  env:{...process.env,COPYFILE_DISABLE:'1'},stdio:'inherit'
+});
+const archiveEntries=execFileSync('tar',['-tzf',archive],{encoding:'utf8'}).trim().split('\n');
+if(archiveEntries.some(name=>name.split('/').some(part=>part.startsWith('._'))))throw new Error('ARCHIVE_METADATA_FILES_REFUSED');
+console.log(JSON.stringify({output,archive,archiveSha256:createHash('sha256').update(await readFile(archive)).digest('hex'),
+  sourceHead,sourceTree,migrations:migrationFiles.length,deployed:false,releaseReady:false}));

@@ -13,6 +13,7 @@ const publicOperations = new Set([
   "GET /v1/legal",
   "POST /v1/identity/dev",
   "POST /v1/identity/wechat",
+  "POST /v1/identity/wechat/privacy-rights",
   "POST /v1/uploads/{mediaId}",
   "POST /v1/uploads/{mediaId}/chunks",
   "POST /v1/uploads/{mediaId}/assemble",

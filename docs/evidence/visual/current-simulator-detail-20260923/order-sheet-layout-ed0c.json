@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6fa17d9",
+  "packageSourceSha256": "ed0c3ce24e90abd6b03c961a32d73ed08a0502793081cc99989a6927ca646f78",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic paid order with remaining aftersale quantity",
+  "captures": [
+    {
+      "file": "order-sheet-initial-ed0c.png",
+      "sha256": "ec23d9f899535a170e6f4dc98d4459bf5086738e1c73b673a9fc635d53de613a",
+      "state": "aftersale sheet opens with item controls visible and dark backdrop"
+    },
+    {
+      "file": "order-sheet-height-event-ed0c.png",
+      "sha256": "2b85ba34277ff978606a977ae2a6ef9e7da2ac049e6641b31eed09a99ce06b85",
+      "state": "synthetic keyboardheightchange height 260, without rendering a physical keyboard"
+    }
+  ],
+  "observed": "The initial sheet shows product quantity selection without scrolling. After the synthetic height event, the header and form stay visible, the backdrop remains dark, and the form sits above the simulated keyboard boundary. A local draft entered after that event remained in page data when the height returned to zero. No request was submitted.",
+  "supersedes": "The earlier 2760 height-event screenshot missed a pale-backdrop regression caused by assigning sheet styles to overlay-style. This source restores separate overlay-style and custom-style attributes and resizes the inner sheet.",
+  "checks": "15 focused order support sheet tests, TypeScript, package gate and static route audit passed. The current WXML was compiled and opened in WeChat Developer Tools.",
+  "scopeLimit": "A simulator with an injected height event cannot prove a real keyboard, iOS or Android behavior, full journey, or production acceptance."
+}

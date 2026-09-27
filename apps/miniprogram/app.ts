@@ -2,6 +2,7 @@ import { clearPreviousAvatarFiles } from "./services/member-avatar";
 import { pruneUgcBackups } from "./services/ugc-local-backup";
 import { miniProgramApiOrigins, miniProgramCloudFunctions, remoteDebugApiOrigin, type RemoteDebugQuery } from "./release-config";
 import { chromeStyle, readChromeMetrics } from "./services/layout";
+import { acceptWechatReceiptReferrer } from "./services/wechat-receipt-return";
 
 function runtimeApiConfig(query: RemoteDebugQuery): { origin: string; remoteDebugMode: boolean; cloudFunction?: import("./release-config").CloudHttpTarget } {
   const { miniProgram } = wx.getAccountInfoSync();
@@ -19,6 +20,7 @@ const initialChrome = readChromeMetrics();
 App({
   globalData: {
     sessionToken: "",
+    privacyRightsToken: "",
     sessionStorageKey: "cisme.sessionToken",
     apiBaseUrl: "",
     cloudFunction: null as import("./release-config").CloudHttpTarget | null,
@@ -36,12 +38,15 @@ App({
       ? `cisme.sessionToken.cloud.${runtime.cloudFunction.env}.${runtime.cloudFunction.name}`
       : `cisme.sessionToken.origin.${runtime.origin}`;
     this.globalData.sessionToken = wx.getStorageSync<string>(this.globalData.sessionStorageKey) || "";
+    this.globalData.privacyRightsToken = this.globalData.sessionToken ? "" :
+      wx.getStorageSync<string>(`${this.globalData.sessionStorageKey}.privacyRightsToken`) || "";
     this.globalData.remoteDebugMode = runtime.remoteDebugMode;
     const metrics = readChromeMetrics();
     this.globalData.chromeMetrics = metrics;
     this.globalData.chromeStyle = chromeStyle(metrics);
   },
-  onShow(){
+  onShow(options){
     pruneUgcBackups();
+    acceptWechatReceiptReferrer(options?.referrerInfo);
   }
 });

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "target": {
+    "cloud": "Tencent Cloud Lighthouse",
+    "instanceId": "lhins-61ikz4mi",
+    "region": "ap-shanghai",
+    "database": "cisme_r5_preflight_fe2f5a7_20260924",
+    "purpose": "isolated restore migration preflight"
+  },
+  "backup": {
+    "path": "/var/backups/cisme/cisme-r5-preflight-fe2f5a7-20260924.dump",
+    "sha256": "a56ea1c39634dd222541a661e5fae24d2f5310e8ff1eabc41fbc1676e5b3c835"
+  },
+  "candidate": {
+    "sourceHead": "f3584aa144eebd1f970dffc36d5e5f568f8c01c7",
+    "sourceTree": "0b474498394224c535ee3d0ccb41baf7d3e6d4d2",
+    "manifestVerifiedOnInstance": true,
+    "manifestMigrations": 90,
+    "newMigrationsApplied": 67,
+    "runnerExit": 0
+  },
+  "after": {
+    "isolatedMigrations": 90,
+    "isolatedPublicTables": 134,
+    "isolatedCounts": {"member": 2, "care_cycle": 0, "submission": 0, "points_entry": 0},
+    "ordinarySupportPolicy": {"version": 2, "durationMonths": 3, "active": true, "enforcementState": "enforced", "automaticPurgeEnabled": false},
+    "unchangedProduction": {"migrations": 23, "publicTables": 46, "members": 2}
+  },
+  "log": {
+    "path": "r5-isolated-migration-f3584aa.log",
+    "sha256": "b2ca71dc38bbf124824f3313fd818db32b55fa6ecd3b9e3018c58c94bf50d183"
+  },
+  "limits": "This preflight applies schema only to a restored database. It does not validate API/Worker configuration, COS, repayment, rollback, external alert receipt, or production migration. A fresh production backup and isolate restore are still required immediately before upgrading the live database."
+}

@@ -36,4 +36,17 @@ describe("session token verification", () => {
     expectAuthError(() => verifySessionToken(signedPayload({ principalId: "wechat:1", memberId: "member-1", adapter: "wechat", provider: "wechat_miniprogram", appId: "wx-other", expiresAt: Date.now() + 60_000 }), secret, audience), "AUTH_AUDIENCE_INVALID");
     expectAuthError(() => verifySessionToken(`${signedPayload({ principalId: "dev:1", memberId: "member-1", adapter: "dev", provider: "dev_test", appId: "dev", expiresAt: Date.now() + 60_000 })}.extra`, secret, audience), "AUTH_INVALID");
   });
+
+  it("bounds a closed-account rights token to WeChat and thirty minutes",()=>{
+    const audience={wechatAppId:'wx4eac2d4fb11d299b',allowDevAdapters:true};
+    const rights=issueSessionToken({principalId:'wechat_miniprogram:identity-1',memberId:'member-1',
+      adapter:'wechat',provider:'wechat_miniprogram',appId:audience.wechatAppId,scope:'privacy_rights'},secret,1_000);
+    expect(verifySessionToken(rights,secret,audience,2_000)).toMatchObject({scope:'privacy_rights',memberId:'member-1'});
+    expectAuthError(()=>verifySessionToken(rights,secret,audience,1_000+30*60*1_000),'AUTH_EXPIRED');
+    expectAuthError(()=>verifySessionToken(signedPayload({principalId:'dev:1',memberId:'member-1',adapter:'dev',
+      provider:'dev_test',appId:'dev',scope:'privacy_rights',expiresAt:Date.now()+30_000}),secret,audience),'AUTH_INVALID');
+    expectAuthError(()=>verifySessionToken(signedPayload({principalId:'wechat_miniprogram:1',memberId:'member-1',
+      adapter:'wechat',provider:'wechat_miniprogram',appId:audience.wechatAppId,scope:'privacy_rights',
+      expiresAt:Date.now()+12*60*60*1_000}),secret,audience),'AUTH_INVALID');
+  });
 });

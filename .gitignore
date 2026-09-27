@@ -49,3 +49,4 @@ infra/supabase-prod-ca.crt
 cisme-home-prototype/
 deliverables/
 output/
+.secrets/

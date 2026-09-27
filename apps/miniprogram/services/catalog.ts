@@ -1,10 +1,13 @@
-// The native package optimizes these frozen Web assets as JPEG files.
-// Keep remote URLs and all other server-provided paths unchanged.
-export function nativeCatalogImage(image: string): string {
-  const aliases: Record<string, string> = {
-    "/assets/cisme/community-card-purple-bottle-v1.webp": "/assets/cisme/community-card-purple-bottle-v1.jpg",
-    "/assets/cisme/community-card-care-journal-v2.webp": "/assets/cisme/community-card-care-journal-v2.jpg",
-    "/assets/cisme/community-card-care-flatlay-v2.webp": "/assets/cisme/community-card-care-flatlay-v2.jpg"
-  };
-  return aliases[image] ?? image;
+export const catalogPlaceholderImage = "/assets/icons/spray-bottle-plum.svg";
+export const syntheticOwnedCatalogImage = "/assets/cisme/synthetic-owned-acceptance.jpg";
+
+// Historic catalog and order snapshots may still name unapproved prototype
+// images. Never show or fetch those paths after their removal from the package.
+export function nativeCatalogImage(image: string | null | undefined): string {
+  if (!image || (image.startsWith("/assets/cisme/") && image !== syntheticOwnedCatalogImage)) return catalogPlaceholderImage;
+  return image;
+}
+
+export function hiddenHistoricalCatalogImage(image: string | null | undefined): boolean {
+  return Boolean(image?.startsWith("/assets/cisme/") && image !== syntheticOwnedCatalogImage);
 }

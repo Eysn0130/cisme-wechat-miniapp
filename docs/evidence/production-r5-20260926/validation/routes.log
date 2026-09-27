@@ -1,0 +1,1527 @@
+
+> cisme-wechat-miniapp@0.1.0 miniprogram:route-audit
+> tsx scripts/audit-native-routes.ts
+
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "e97db4690df66ae2c86b2e9539a5d631afbc501a27489fc32dc21c32ec436a4a",
+  "evidenceManifestMatchesSource": true,
+  "scope": "Static source tokens and current design-QA gate only; API paths omit imported wrapper internals and do not prove executed requests, permissions, visual states, or device behavior.",
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/bootstrap/home",
+        "/v1/care-cycles/${care.id}/activate",
+        "/v1/care-cycles/${care.id}/milestones/${care.due}/complete",
+        "/v1/me/support/summary"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "careCommandConfirmed",
+        "careDaypart",
+        "careGreeting",
+        "careHomeSchedule",
+        "currentChromeStyle",
+        "measurementClock",
+        "memberIdentity",
+        "pageRead",
+        "recordClientMetric",
+        "registerIncomingShare",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "shouldReduceMotion"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/records/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/care-cycles/${care.id}/${action}",
+        "/v1/me/care"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "clearAuthenticationRedirectSuppression",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "motionDuration",
+        "pageRead",
+        "requireMemberAccess",
+        "resumeAuthentication",
+        "retainMemberSnapshot",
+        "shouldReduceMotion"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/community/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/capabilities",
+        "/v1/feed/page?limit=30",
+        "/v1/management/ugc/appeals/${id}/decision",
+        "/v1/management/ugc/appeals?limit=30",
+        "/v1/management/ugc/reports/${id}/decision",
+        "/v1/management/ugc/reports?limit=30",
+        "/v1/management/ugc/review-queue",
+        "/v1/me/community-access",
+        "/v1/me/following/page?limit=30",
+        "/v1/me/follows",
+        "/v1/me/tasks",
+        "/v1/team/member-profiles",
+        "/v1/team/member-profiles/${item.member_id}/review",
+        "/v1/team/publications",
+        "/v1/team/reviews",
+        "/v1/team/submissions/${item.id}/publish",
+        "/v1/team/submissions/${item.id}/review",
+        "/v1/ugc/media/${item.coverId}?variant=thumbnail",
+        "/v1/ugc/posts?following=1",
+        "/v1/ugc/posts?limit=30",
+        "/v1/ugc/posts?limit=30${formalQuery}",
+        "/v1/ugc/status"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "consumerTaskEntries",
+        "currentChromeStyle",
+        "editorialStoriesForRuntime",
+        "feedColumnPatch",
+        "localMemberAvatar",
+        "measurementClock",
+        "memberIdentity",
+        "prepareFeedPage",
+        "projectFeedCards",
+        "recordClientMetric",
+        "resumeAuthentication"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/profile/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/bootstrap/profile",
+        "/v1/me/commercial-membership",
+        "/v1/me/support/summary",
+        "/v1/me/tasks"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "clearAuthenticationRedirectSuppression",
+        "consumerTaskEntries",
+        "currentChromeStyle",
+        "localMemberAvatar",
+        "measurementClock",
+        "memberIdentity",
+        "pageRead",
+        "publishMemberIdentity",
+        "recordClientMetric",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/account/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/identity/capabilities",
+        "/v1/identity/dev",
+        "/v1/identity/wechat",
+        "/v1/identity/wechat/privacy-rights",
+        "/v1/legal",
+        "/v1/me",
+        "/v1/me/phone",
+        "/v1/me/profile"
+      ],
+      "serviceCallsites": [
+        "attributePendingShare",
+        "cancelAuthentication",
+        "consumeAuthReturnUrl",
+        "currentChromeStyle",
+        "legalRequestFailure",
+        "localMemberAvatar",
+        "motionDuration",
+        "navigateAfterAuthentication",
+        "parseLegalBootstrap",
+        "prepareAvatarUpload",
+        "publishMemberIdentity",
+        "setPrivacyRightsToken",
+        "setSessionToken",
+        "suppressAuthenticationRedirectOnce"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/task/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/tasks/${this.data.taskId}",
+        "/v1/tasks/${this.data.taskId}/claim"
+      ],
+      "serviceCallsites": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "rememberSubmissionReturn",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/submit/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/submissions/${this.data.submissionId}",
+        "/v1/submissions/${this.data.submissionId}/draft",
+        "/v1/submissions/${this.data.submissionId}/media/${authorization.mediaId}/complete",
+        "/v1/submissions/${this.data.submissionId}/media/authorize",
+        "/v1/submissions/${this.data.submissionId}/submit"
+      ],
+      "serviceCallsites": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "motionDuration",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "submissionReturnUrl",
+        "uploadAuthorized"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/progress/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/submissions/${this.data.submissionId}",
+        "/v1/submissions/${this.data.submissionId}/appeal"
+      ],
+      "serviceCallsites": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "motionDuration",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "submissionReturnUrl"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/points/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/points"
+      ],
+      "serviceCallsites": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/post/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/capabilities",
+        "/v1/community/${encodeURIComponent",
+        "/v1/feed/${encodeURIComponent",
+        "/v1/me/follows",
+        "/v1/me/follows/${encodeURIComponent"
+      ],
+      "serviceCallsites": [
+        "clearAuthenticationRedirectSuppression",
+        "commentThreads",
+        "currentChromeStyle",
+        "editorialPreviewAllowed",
+        "editorialStory",
+        "isBundledEditorialId",
+        "motionDuration",
+        "prepareCommentAuthors",
+        "prepareFeedAuthors",
+        "prepareShareLink",
+        "registerIncomingShare"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/shop/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "catalogList",
+        "currentChromeStyle",
+        "formatCnyCents",
+        "nativeCatalogImage"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/product/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "catalogDetail",
+        "currentChromeStyle",
+        "formatCnyCents",
+        "nativeCatalogImage",
+        "prepareShareLink",
+        "registerIncomingShare",
+        "requireMemberAccess"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/checkout/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "catalogDetail",
+        "centsToYuan",
+        "clearCheckoutPrivateState",
+        "clientOperationKey",
+        "createCheckoutQuote",
+        "createPendingOrder",
+        "createQuoteClock",
+        "currentChromeStyle",
+        "invalidateCheckoutQuote",
+        "isolatedCreditSummary",
+        "memberAddresses",
+        "nativeCatalogImage",
+        "orderRuntimeStatus",
+        "quoteClockView",
+        "requestStillOwned",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "validateRuntime"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/orders/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "centsToYuan",
+        "clearAuthenticationRedirectSuppression",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "historicalCommerceClosed",
+        "historicalCommerceToken",
+        "myOrders",
+        "requireHistoricalCommerceAccess",
+        "retainMemberSnapshot"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/order-detail/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/aftersales?orderId=${this.data.id}",
+        "/v1/me/orders/${id}/payment-intent",
+        "/v1/me/orders/${this.data.id}/aftersales",
+        "/v1/me/orders/${this.data.id}/aftersales/availability",
+        "/v1/me/refund-requests?orderId=${this.data.id}",
+        "/v1/me/support/messages",
+        "/v1/me/support/messages?after=${cursor}",
+        "/v1/me/support/messages?limit=30"
+      ],
+      "serviceCallsites": [
+        "CommerceOrder",
+        "acknowledgeCommerceCommand",
+        "cancelPageReads",
+        "cancelRuntimeRead",
+        "centsToYuan",
+        "clientOperationKey",
+        "commerceContextRevision",
+        "confirmMyReceipt",
+        "currentChromeStyle",
+        "executeCommerceCommand",
+        "historicalCommerceClosed",
+        "historicalCommerceToken",
+        "initialRuntimeView",
+        "loadRecordedCommands",
+        "mergeAcknowledgement",
+        "mergeSyncPage",
+        "myOrder",
+        "myShipment",
+        "myTracking",
+        "nativeCatalogImage",
+        "orderRuntimeStatus",
+        "pageRead",
+        "presentSupportMessages",
+        "readCommerceRecovery",
+        "requireHistoricalCommerceAccess",
+        "retryCommerceCommand",
+        "runtimeActions",
+        "runtimeReadOwner",
+        "runtimeView",
+        "stageSupportDraft",
+        "stageSupportSendAttempt",
+        "supportPollDelay",
+        "takeSupportDraft",
+        "takeSupportSendAttempt",
+        "validateRuntime"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/settings/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/bootstrap/settings",
+        "/v1/consents/${id}/revoke",
+        "/v1/me/addresses",
+        "/v1/me/addresses/${draft.id}",
+        "/v1/me/addresses/${item.id}",
+        "/v1/me/addresses/${item.id}/default",
+        "/v1/me/consents",
+        "/v1/me/phone",
+        "/v1/me/profile"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "emptyAddressDraft",
+        "hasCapability",
+        "localMemberAvatar",
+        "makeStoredAddressDraft",
+        "memberIdentity",
+        "mergeAddressDraft",
+        "motionDuration",
+        "parseQuickAddress",
+        "prepareAvatarUpload",
+        "publishMemberIdentity",
+        "recoverStoredAddressDraft",
+        "requireMemberAccess",
+        "resumeAuthentication",
+        "retainMemberSnapshot",
+        "setSessionToken",
+        "touchAddressField",
+        "validateAddressDraft"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/invite/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me",
+        "/v1/me/commercial-membership",
+        "/v1/me/commercial-membership/code",
+        "/v1/me/shares?targetType=invite",
+        "/v1/shares"
+      ],
+      "serviceCallsites": [
+        "clearAuthenticationRedirectSuppression",
+        "currentChromeStyle",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/legal/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onLoad",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/legal"
+      ],
+      "serviceCallsites": [
+        "currentChromeStyle"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/commercial-membership",
+        "/v1/me/consents",
+        "/v1/me/privacy-requests",
+        "/v1/me/privacy-requests/${encodeURIComponent",
+        "/v1/me/privacy-requests/${requestId}/export",
+        "/v1/me/privacy-requests/${requestId}/export-retry",
+        "/v1/me/privacy-requests/${requestId}/export-revoke",
+        "/v1/me/privacy-requests?page=1"
+      ],
+      "serviceCallsites": [
+        "clientOperationKey",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "downloadPrivateMedia",
+        "resumeAuthentication",
+        "setSessionToken"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/support/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/support/handoff",
+        "/v1/me/support/media/${mediaId}",
+        "/v1/me/support/media/${mediaId}/complete",
+        "/v1/me/support/media/${replacedMediaId}",
+        "/v1/me/support/media/${selected.mediaId}",
+        "/v1/me/support/media/authorize",
+        "/v1/me/support/messages",
+        "/v1/me/support/messages?after=${after}",
+        "/v1/me/support/messages?before=${this.data.olderCursor}",
+        "/v1/me/support/presence",
+        "/v1/me/support/read"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "centsToYuan",
+        "commerceContextRevision",
+        "createSupportThreadState",
+        "currentChromeStyle",
+        "downloadPrivateMedia",
+        "historicalCommerceClosed",
+        "historicalCommerceToken",
+        "mergeAcknowledgement",
+        "mergeHistoryPage",
+        "mergeSyncPage",
+        "myOrder",
+        "myOrders",
+        "nativeCatalogImage",
+        "pageRead",
+        "presentSupportMessages",
+        "readableSequence",
+        "requireHistoricalCommerceAccess",
+        "requireMemberAccess",
+        "retainMemberSnapshot",
+        "stageSupportDraft",
+        "stageSupportSendAttempt",
+        "supportHeaderPresentation",
+        "supportMessageSetDataPatch",
+        "supportPollDelay",
+        "takeSupportDraft",
+        "takeSupportSendAttempt",
+        "uploadAuthorized",
+        "withReadCursor"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/attention"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "cancelRuntimeRead",
+        "currentChromeStyle",
+        "hasCapability",
+        "initialRuntimeView",
+        "orderRuntimeStatus",
+        "runtimeActions",
+        "runtimeReadOwner",
+        "runtimeView",
+        "validateRuntime"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "centsToYuan",
+        "currentChromeStyle",
+        "managementCatalog",
+        "nativeCatalogImage",
+        "requireCapability"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-product/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "adjustInventory",
+        "authorityProjection",
+        "createProduct",
+        "createProductDraftState",
+        "currentChromeStyle",
+        "hasCapability",
+        "hiddenHistoricalCatalogImage",
+        "keepLocalDraftAgainstLatest",
+        "loadRemoteDraft",
+        "managementProduct",
+        "nativeCatalogImage",
+        "parseYuanToCents",
+        "publishProduct",
+        "qualifyProduct",
+        "reconcileProductDraft",
+        "retainMemberSnapshot",
+        "updateProduct"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-orders/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "centsToYuan",
+        "clearAuthenticationRedirectSuppression",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "managementOrders",
+        "requireMemberAccess",
+        "retainMemberSnapshot"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [],
+      "serviceCallsites": [
+        "CommerceOrder",
+        "centsToYuan",
+        "clientOperationKey",
+        "currentChromeStyle",
+        "dispatchShipment",
+        "managementOrder",
+        "managementShipment",
+        "reconcileShipment",
+        "requireCapability",
+        "shanghaiShipmentInstant"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-support/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/support/conversations?limit=30"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "hasCapability",
+        "pageRead"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/support/ai/status",
+        "/v1/management/support/conversations/${this.data.id}/aftersales",
+        "/v1/management/support/conversations/${this.data.id}/aftersales/${row.id}/actions",
+        "/v1/management/support/conversations/${this.data.id}/claim",
+        "/v1/management/support/conversations/${this.data.id}/member-context",
+        "/v1/management/support/conversations/${this.data.id}/messages",
+        "/v1/management/support/conversations/${this.data.id}/messages?after=${after}",
+        "/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}",
+        "/v1/management/support/conversations/${this.data.id}/presence",
+        "/v1/management/support/conversations/${this.data.id}/read",
+        "/v1/management/support/conversations/${this.data.id}/resolve",
+        "/v1/management/support/conversations/${this.data.id}/suggested-reply"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "centsToYuan",
+        "clientOperationKey",
+        "commerceContextRevision",
+        "createSupportThreadState",
+        "currentChromeStyle",
+        "downloadPrivateMedia",
+        "hasCapability",
+        "mergeAcknowledgement",
+        "mergeHistoryPage",
+        "mergeSyncPage",
+        "pageRead",
+        "presentSupportMessages",
+        "readableSequence",
+        "requireCapability",
+        "retainMemberSnapshot",
+        "supportMessageSetDataPatch",
+        "supportPollDelay",
+        "withReadCursor"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": true,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-members/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/commission-rates",
+        "/v1/management/commission-rates/${id}/decision",
+        "/v1/management/commission-rates/by-request/${command.key}",
+        "/v1/management/commission-rates/current",
+        "/v1/management/commission-rates/pending?limit=30",
+        "/v1/management/members${query}"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "hasCapability",
+        "pageRead"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-member/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/commission-rates",
+        "/v1/management/commission-rates/by-request/${command.key}",
+        "/v1/management/members/${id}/membership",
+        "/v1/management/members/${id}/sections/${section}?limit=30${cursor?",
+        "/v1/management/members/${this.data.id}"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "currentChromeStyle",
+        "hasCapability",
+        "requireCapability"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/referral/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/referral/confirm",
+        "/v1/me/referral/preview?code=${encodeURIComponent"
+      ],
+      "serviceCallsites": [
+        "currentChromeStyle",
+        "resumeAuthentication"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": false,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/community-compose/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/ugc/posts",
+        "/v1/me/ugc/posts/${draft.id}/submit",
+        "/v1/me/ugc/posts/${id}",
+        "/v1/me/ugc/posts/${postId}/appeals",
+        "/v1/me/ugc/posts/${postId}/draft",
+        "/v1/me/ugc/posts/${postId}/media/${id}/complete",
+        "/v1/me/ugc/posts/${postId}/media/${id}/preview-url",
+        "/v1/me/ugc/posts/${postId}/media/authorize",
+        "/v1/me/ugc/posts?limit=30",
+        "/v1/ugc/status"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "clearUgcBackup",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "pageRead",
+        "readUgcBackup",
+        "resumeAuthentication",
+        "uploadAuthorized",
+        "writeUgcBackup"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/community-post/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/ugc/activity/comments?postId=${postId}",
+        "/v1/me/ugc/blocks/${post.authorId}",
+        "/v1/me/ugc/follows/${post.authorId}",
+        "/v1/me/ugc/posts/${postId}",
+        "/v1/ugc/media/${item.id}",
+        "/v1/ugc/posts/${post.id}/comments?limit=30",
+        "/v1/ugc/posts/${this.data.postId}",
+        "/v1/ugc/posts/${this.data.postId}/comments",
+        "/v1/ugc/posts/${this.data.postId}/reaction",
+        "/v1/ugc/reports/post/${postId}"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "pageRead",
+        "resumeAuthentication"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/community-author/index",
+      "access": "public",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/ugc/follows/${author.id}",
+        "/v1/ugc/authors/${id}",
+        "/v1/ugc/authors/${this.data.authorId}",
+        "/v1/ugc/media/${item.coverId}?variant=thumbnail",
+        "/v1/ugc/posts?authorId=${id}"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "pageRead",
+        "resumeAuthentication"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/community-review/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/ugc/media/${id}/review",
+        "/v1/management/ugc/media/${item.id}/preview-url",
+        "/v1/management/ugc/posts/${intent.postId}/publish",
+        "/v1/management/ugc/posts/${intent.postId}/review",
+        "/v1/management/ugc/posts/${this.data.postId}"
+      ],
+      "serviceCallsites": [
+        "currentChromeStyle",
+        "requireMemberAccess"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/community-activity/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/ugc/activity/${section}?limit=30${cursor?",
+        "/v1/me/ugc/blocks/${id}",
+        "/v1/ugc/posts/${id}/reaction",
+        "/v1/ugc/posts/${row.postId}/comments/${id}"
+      ],
+      "serviceCallsites": [
+        "cancelPageReads",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "pageRead",
+        "requireMemberAccess",
+        "shouldReduceMotion"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-finance/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/commission/settlement-cycles/${cycle.id}/approve-member",
+        "/v1/management/commission/settlement-cycles/prepare",
+        "/v1/management/commission/settlement-requests/${id}/decision",
+        "/v1/management/commission/settlement-requests/${id}/redrive",
+        "/v1/management/commission/settlement-requests/pending",
+        "/v1/management/fulfillment/${id}/decision",
+        "/v1/management/fulfillment/pending",
+        "/v1/management/money/inboxes/${item.kind===",
+        "/v1/management/money/issues",
+        "/v1/management/money/recheck/${kind}/${item.relatedId}",
+        "/v1/management/money/trade-bills",
+        "/v1/management/money/trade-bills/import",
+        "/v1/management/refund-requests/${id}/decision",
+        "/v1/management/refund-requests/pending",
+        "/v1/management/refund-submissions/${id}/redrive"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "clientOperationKey",
+        "currentChromeStyle",
+        "hasCapability",
+        "orderRuntimeStatus",
+        "runtimeActions",
+        "validateRuntime"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/commission/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/me/commercial-membership",
+        "/v1/me/commission/credit-conversions?limit=10${cursor?",
+        "/v1/me/commission/settlement-requests/${id}/confirmation",
+        "/v1/me/commission/settlement-requests?limit=10${cursor?"
+      ],
+      "serviceCallsites": [
+        "acknowledgeCommerceCommand",
+        "cancelPageReads",
+        "cancelRuntimeRead",
+        "centsToYuan",
+        "clientOperationKey",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "executeCommerceCommand",
+        "initialRuntimeView",
+        "loadRecordedCommands",
+        "orderRuntimeStatus",
+        "pageRead",
+        "readCommerceRecovery",
+        "requireMemberAccess",
+        "retryCommerceCommand",
+        "runtimeActions",
+        "runtimeReadOwner",
+        "runtimeView",
+        "validateRuntime"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": true,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/privacy-requests/${encodeURIComponent",
+        "/v1/management/privacy-requests?page=1"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "hasCapability",
+        "pageRead"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/aftersale/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/aftersales",
+        "/v1/me/aftersales"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "centsToYuan",
+        "clientOperationKey",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "historicalCommerceClosed",
+        "historicalCommerceToken",
+        "pageRead",
+        "requireHistoricalCommerceAccess"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "access": "member",
+      "lifecycleHooks": [
+        "onHide",
+        "onShow",
+        "onUnload"
+      ],
+      "apiPathExpressions": [
+        "/v1/management/shipments/export?${filter}",
+        "/v1/management/shipments/import",
+        "/v1/management/shipments?${filter}"
+      ],
+      "serviceCallsites": [
+        "authorityProjection",
+        "cancelPageReads",
+        "clientOperationKey",
+        "commerceContextRevision",
+        "currentChromeStyle",
+        "downloadPrivateMedia",
+        "hasCapability"
+      ],
+      "sourceMarkers": {
+        "memberAccessCall": false,
+        "snapshotOwnerCall": false,
+        "loadingBinding": true,
+        "errorBinding": true
+      },
+      "stateGate": {
+        "matrixComplete": false,
+        "result": "blocked"
+      }
+    }
+  ]
+}

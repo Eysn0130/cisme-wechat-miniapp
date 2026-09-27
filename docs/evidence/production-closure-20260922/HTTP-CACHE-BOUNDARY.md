@@ -1,0 +1,9 @@
+# API response cache boundary
+
+Reproduced on 40abede: mounted Fastify /v1/capabilities response did not contain Cache-Control. Most private JSON endpoints also had no explicit no-store. This is a missing privacy control, not evidence that a proxy actually leaked data.
+
+The common onSend hook now applies private, no-store to all /v1 responses, including login/session bodies, personal and operator data, anonymous capability/publication reads, errors and cloud-http-v1 error envelopes whose outer status is 200. It intentionally avoids a public API caching exemption until revocation/invalidation is reviewed. Health endpoints remain unchanged. File and binary response payloads, authentication, audit and status semantics remain unchanged. This prevents compliant HTTP storage; it cannot erase previously saved copies or force a malicious proxy to comply.
+
+The failure was reproduced before the fix. Current local validation: authentication boundary 210 tests (208 contract session operations checked with absent/invalid credentials before DB access, plus denominator and anonymous/cloud-cache checks), targeted integration 132 tests, full unit 1098 passed / 1 platform-dependent skipped (100 files), full integration 818 passed (48 files), typecheck/build/contracts passed. Isolated full run 39762b428e0b9d61365ce21c and targeted run e741347485fde99c411d19d4 both removed their owned PG/S3 containers. Integration assertions cover token-returning synthetic identity, authorized privacy queue, revoked/forbidden queue and durable command recovery. No live credentials or production data used.
+
+This is only authentication/cache coverage, not all-interface 13-dimension authorization acceptance. Native package bytes are unchanged from f627b971; its earlier screenshots retain their original backend/harness scope and do not prove this new backend deployment or device acceptance.

@@ -1,0 +1,13 @@
+{"event":"synthetic-object-target-created","runId":"47ab06be1cdf47f3ce48c974","container":"310b682be41d3daa4db26cd887ea93466833b2cf16fe255e11767b5dfd2d0ad4","endpoint":"http://127.0.0.1:33928"}
+{"event":"synthetic-target-created","runId":"47ab06be1cdf47f3ce48c974","container":"60ced25ed2438463cdd36e3ec680299efdd69703d450ce7d60205faa4d6b1378","postgresImage":"postgres:18.4-alpine","imageId":"sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15","host":"127.0.0.1","port":"33927","database":"cisme_test_47ab06be1cdf47f3ce48c974","role":"runner_47ab06be1cdf47f3ce48c974","purpose":"disposable-synthetic"}
+
+ RUN  v4.1.11 /Users/mini/CISME
+
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  04:44:34
+   Duration  3.43s (transform 371ms, setup 71ms, import 777ms, tests 2.44s, environment 0ms)
+
+{"event":"synthetic-object-target-removed","runId":"47ab06be1cdf47f3ce48c974","container":"310b682be41d3daa4db26cd887ea93466833b2cf16fe255e11767b5dfd2d0ad4"}
+{"event":"synthetic-target-removed","runId":"47ab06be1cdf47f3ce48c974","container":"60ced25ed2438463cdd36e3ec680299efdd69703d450ce7d60205faa4d6b1378"}

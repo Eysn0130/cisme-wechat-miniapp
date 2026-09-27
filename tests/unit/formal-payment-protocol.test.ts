@@ -3,12 +3,13 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type pg from "pg";
-import { afterAll, expect, it } from "vitest";
+import { afterAll, afterEach, expect, it, vi } from "vitest";
 import { loadConfig } from "@cisme/config";
 import { formalPaymentProtocol } from "../../services/api/src/formalPaymentProtocol";
 
 const roots:string[]=[];
 afterAll(async()=>{await Promise.all(roots.map(root=>rm(root,{recursive:true,force:true})));});
+afterEach(()=>{vi.unstubAllGlobals();vi.restoreAllMocks();vi.useRealTimers();});
 
 async function fixture(){
   const root=await mkdtemp(join(tmpdir(),"cisme-formal-protocol-"));roots.push(root);
@@ -38,6 +39,12 @@ async function fixture(){
     COMMERCE_FORMAL_REFUND_NOTIFY_URL:"https://api.example.test/v1/payments/wechat/refund-callback"};
   return {paths,platform,serial,environment};
 }
+
+it.each([31,33,'newline'] as const)('rejects %s APIv3 key input without silently trimming it',async length=>{
+  const f=await fixture();
+  await writeFile(f.paths.apiKey,length==='newline'?'a'.repeat(32)+'\n':'a'.repeat(length));
+  expect(()=>formalPaymentProtocol(loadConfig(f.environment),{} as pg.Pool)).toThrow('API_V3_KEY_INVALID');
+});
 
 it("starts with no formal profile and rejects incomplete or simultaneous simulated profiles",async()=>{
   expect(loadConfig({APP_ENV:"test",DATABASE_URL:"postgres://unused/cisme_test",
@@ -108,4 +115,81 @@ it('binds certificate merchant CN, serial, validity and private key before autho
   const protocol=formalPaymentProtocol(noCert,{} as pg.Pool)!;
   expect(()=>protocol.authorizeRecovery('payment.callback')).not.toThrow();
   expect(()=>protocol.authorizeRecovery('payment.query')).toThrow('MERCHANT_CERTIFICATE_REQUIRED');
+});
+
+it('permits production command configuration only with both explicit grant paths and still rejects missing grant contents',async()=>{
+  const f=await fixture();
+  const environment={...f.environment,APP_ENV:'production',WECHAT_APP_SECRET:'synthetic-config-only',
+    OBJECT_STORAGE_PROFILE:'production-reviewed',COMMERCE_ORDER_FLOW_ENABLED:'true',
+    COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE:join(f.paths.merchant,'../commands-missing.json'),
+    COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE:join(f.paths.merchant,'../recovery-missing.json')};
+  const config=loadConfig(environment);
+  expect(config.commerce.orderFlowEnabled).toBe(true);
+  const protocol=formalPaymentProtocol(config,{} as pg.Pool)!;
+  expect(()=>protocol.authorizeCommerce!('order.create')).toThrow();
+  expect(()=>protocol.authorizeRecovery('payment.callback')).toThrow();
+  expect(()=>loadConfig({...environment,COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE:''})).toThrow('FORMAL_APPROVAL_REQUIRED');
+  expect(()=>loadConfig({...environment,APP_ENV:'staging'})).toThrow('FORMAL_COMMERCE_PRODUCTION_ONLY');
+});
+
+it('loads, authorizes and dispatches the ordinary-merchant command with a bound certificate; missing, revoked and expired inputs fail closed',async()=>{
+  // Synthetic identities and a stubbed external network. The production
+  // protocol itself receives no testTransport or runtime bypass.
+  const {execFileSync}=await import('node:child_process');
+  const {chmod}=await import('node:fs/promises');
+  const f=await fixture(),root=join(f.paths.merchant,'..');
+  const certificate=join(root,'merchant-certificate.pem');
+  execFileSync('openssl',['req','-new','-x509','-key',f.paths.merchant,'-subj','/CN=1900000001',
+    '-days','1','-set_serial','0xAABBCCDD00112233','-out',certificate],{stdio:'ignore'});
+  await chmod(certificate,0o600);
+  const commerce=join(root,'commerce.json'),recovery=join(root,'recovery.json');
+  const common={schemaVersion:1,environment:'production',appId:f.environment.WECHAT_APP_ID,
+    merchantId:f.environment.COMMERCE_FORMAL_MERCHANT_ID,approvalReference:'SYNTHETIC-R4-UNIT-ONLY',
+    expiresAt:new Date(Date.now()+7*86400000).toISOString()};
+  const commandGrant={...common,mode:'ordinary-merchant-commerce-commands',capabilities:['order.create','payment.prepare']};
+  await writeFile(commerce,JSON.stringify(commandGrant),{mode:0o600});
+  await writeFile(recovery,JSON.stringify({...common,mode:'ordinary-merchant-recovery-only',
+    capabilities:['payment.query','payment.callback','refund.query','refund.callback','bill.read']}),{mode:0o600});
+  const config=loadConfig({...f.environment,APP_ENV:'production',WECHAT_APP_SECRET:'synthetic-config-only',
+    OBJECT_STORAGE_PROFILE:'production-reviewed',COMMERCE_ORDER_FLOW_ENABLED:'true',
+    COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE:commerce,COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE:recovery,
+    COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE:certificate});
+  const publicId='PUB_KEY_ID_SYNTHETIC_R5';
+  await writeFile(f.paths.manifest,JSON.stringify({schemaVersion:1,activePublicKeyId:publicId,
+    keys:[{id:publicId,publicKeyFile:f.paths.platform}]}));
+  let invalidResponse=false;
+  const outbound=vi.fn(async(input:unknown,init:RequestInit)=>{
+    expect(String(input)).toBe('https://api.mch.weixin.qq.com/v3/pay/transactions/jsapi');
+    expect(new Headers(init.headers).get('Wechatpay-Serial')).toBe(publicId);
+    expect(new Headers(init.headers).get('Authorization')).toContain(`serial_no="${f.serial}"`);
+    expect(JSON.parse(String(init.body))).toMatchObject({appid:common.appId,mchid:common.merchantId});
+    const raw=JSON.stringify({prepay_id:'synthetic-prepay-only'}),timestamp=String(Math.floor(Date.now()/1000)),nonce='synthetic-response';
+    return new Response(raw,{headers:{'Wechatpay-Serial':invalidResponse?'UNKNOWN_SERIAL':publicId,
+      'Wechatpay-Timestamp':timestamp,'Wechatpay-Nonce':nonce,
+      'Wechatpay-Signature':sign('RSA-SHA256',Buffer.from(`${timestamp}\n${nonce}\n${raw}\n`),f.platform.privateKey).toString('base64')}});
+  });
+  vi.stubGlobal('fetch',outbound);vi.spyOn(console,'info').mockImplementation(()=>{});
+  const input={appId:common.appId,outTradeNo:'SYNTHETICORDER01',payerOpenid:'synthetic-openid',totalCents:100,
+    description:'synthetic test',notifyUrl:config.commerce.formalProtocol!.paymentNotifyUrl,expiresAt:new Date(Date.now()+600000)};
+  const protocol=formalPaymentProtocol(config,{} as pg.Pool)!;
+  expect(protocol.authorizeCommerce!('order.create')).toBe(common.approvalReference);
+  expect((await protocol.channel.createJsapiPrepay(input)).prepayId).toBe('synthetic-prepay-only');
+  const {merchantCertificateFile,...profileWithoutCertificate}=config.commerce.formalProtocol!;
+  const noCertificate={...config,commerce:{...config.commerce,formalProtocol:profileWithoutCertificate}};
+  const callbackOnly=formalPaymentProtocol(noCertificate,{} as pg.Pool)!;
+  expect(()=>callbackOnly.authorizeRecovery('payment.callback')).not.toThrow();
+  await expect(callbackOnly.channel.createJsapiPrepay(input)).rejects.toThrow('MERCHANT_CERTIFICATE_REQUIRED');
+  expect(outbound).toHaveBeenCalledTimes(1);
+  invalidResponse=true;
+  await expect(protocol.channel.createJsapiPrepay(input)).rejects.toMatchObject({code:'WECHAT_PAY_FACT_INVALID'});
+  await writeFile(commerce,JSON.stringify({...commandGrant,expiresAt:'2000-01-01T00:00:00Z'}));
+  await expect(protocol.channel.createJsapiPrepay(input)).rejects.toMatchObject({code:'FORMAL_COMMERCE_NOT_AUTHORIZED'});
+  const restarted=formalPaymentProtocol(config,{} as pg.Pool)!;
+  expect(()=>restarted.authorizeRecovery('payment.callback')).not.toThrow();
+  await expect(restarted.channel.createJsapiPrepay(input)).rejects.toMatchObject({code:'FORMAL_COMMERCE_NOT_AUTHORIZED'});
+  await writeFile(commerce,JSON.stringify(commandGrant));
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(Date.now()+2*86400000);
+  await expect(protocol.channel.createJsapiPrepay(input)).rejects.toThrow('MERCHANT_CERTIFICATE_REQUIRED');
+  expect(()=>formalPaymentProtocol(config,{} as pg.Pool)).toThrow('MERCHANT_CERTIFICATE_BINDING');
+  expect(outbound).toHaveBeenCalledTimes(2);
 });

@@ -51,3 +51,19 @@ condition = "AND"
 paths = ['''^infra/tencent/staging-candidate\.py$''']
 regexTarget = "match"
 regexes = ['''OLD_API_SHA = '7df242062417c1190b5c714ba4a34fb46cf927508989514d9e9aa5c088ed7f8b''']
+
+[[allowlists]]
+description = "R3 loopback-only HTTP fixture idempotency identifier, not an API credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^docs/evidence/production-r3-20260926/harness/run-standalone\.py$''']
+regexTarget = "match"
+regexes = ["key='acceptance-order-pending-0001'"]
+
+[[allowlists]]
+description = "R3 generated-key fixture version label; the secret bytes are separately random"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^docs/evidence/production-r3-20260926/harness/setup-rehearsal-v3\.py$''']
+regexTarget = "match"
+regexes = ["CONTACT_KEY_VERSION':'r3-synthetic-v1'"]

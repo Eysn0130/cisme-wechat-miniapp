@@ -11,6 +11,9 @@ const downloadPrivateMediaMock = vi.hoisted(() => vi.fn(() => ({ promise: Promis
 vi.mock("../../apps/miniprogram/services/api", () => ({
   request: requestMock,
   requireMemberAccess: requireMemberAccessMock,
+  requireHistoricalCommerceAccess: requireMemberAccessMock,
+  historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken,
+  historicalCommerceClosed: () => false,
   retainMemberSnapshot: retainMemberSnapshotMock,
   uploadAuthorized: uploadAuthorizedMock,
   downloadPrivateMedia: downloadPrivateMediaMock
@@ -54,6 +57,16 @@ beforeEach(() => {
 });
 
 describe("U0 native page lifecycle regressions", () => {
+  it("uses the verified historical-rights token to read owned support attachments after closure", async () => {
+    await vi.importActual("../../apps/miniprogram/pages/support/index");
+    const abort = vi.fn();
+    downloadPrivateMediaMock.mockReturnValueOnce({ promise: new Promise(() => {}), abort });
+    const page = mountedPage(capturedPage!, { closedRights: true }, { mediaDownloads: [] });
+    page.downloadMedia([{ id: "message", attachments: [{ id: "image", previewPath: "/v1/me/support/media/owned" }] }]);
+    expect(downloadPrivateMediaMock).toHaveBeenCalledWith("/v1/me/support/media/owned", true);
+    page.abortDownloads();
+    expect(abort).toHaveBeenCalledOnce();
+  });
   it("drops a previous operator's finance cycle and approval keys before rechecking authority", async () => {
     requestMock.mockImplementation(() => new Promise(() => undefined));
     await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
@@ -69,6 +82,46 @@ describe("U0 native page lifecycle regressions", () => {
 
     expect(page.data).toMatchObject({ authority: null, sections: [], cycle: null,
       cycleDecisionKeys: {}, items: [], totalCount: 0, busy: false, loadingMore: false, loading: true });
+  });
+  it("shows the formal finance boundary without offering a futile retry, but permits retry after a failed read", async () => {
+    const unavailableRuntime = {
+      version: 2, scope: "formal_commerce", currency: "CNY", orderFlowEnabled: false,
+      paymentAvailable: false, paymentOnboarding: "IN_PROGRESS",
+      formalMoneyOperationsAvailable: false, formalRecoveryAvailable: false,
+      isolatedMoneyOperationsAvailable: false, isolatedTransferAvailable: false,
+      isolatedCreditCheckoutAvailable: false
+    };
+    requestMock.mockImplementation(({ path }: { path: string }) => Promise.resolve(path === "/v1/me/authority"
+      ? { version: 1, capabilities: [], managementAvailable: false } : unavailableRuntime));
+    await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
+    const page = mountedPage(capturedPage!);
+
+    await page.establish();
+    expect(page.data).toMatchObject({ formalMode: true, loading: false,
+      error: "当前环境没有开放资金核对。", errorRetryable: false });
+
+    requestMock.mockRejectedValueOnce(new Error("offline"));
+    await page.establish();
+    expect(page.data).toMatchObject({ loading: false, errorRetryable: true,
+      error: "资金权限暂时无法核验。" });
+  });
+  it("blocks retained cycle controls while the next operator's authority is being checked", async () => {
+    requestMock.mockImplementation(() => new Promise(() => undefined));
+    await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
+    const page = mountedPage(capturedPage!, {
+      section: "cycles", sections: [{ id: "cycles", label: "周期候选" }],
+      cycleMonth: "2026-08", latestCycleMonth: "2026-08"
+    });
+    session = "operator-b";
+
+    page.onShow();
+    await page.prepareCycle();
+    await page.loadCycle();
+
+    expect(page.data.sections).toEqual([]);
+    expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();
+    expect(requestMock.mock.calls.map(([options]) => options.path)).not.toContain(
+      "/v1/management/commission/settlement-cycles/prepare");
   });
   it("discards a stale finance cycle on section return and locks month edits during a submission", async () => {
     await vi.importActual("../../apps/miniprogram/pages/management-finance/index");
@@ -131,7 +184,7 @@ describe("U0 native page lifecycle regressions", () => {
     requestMock
       .mockResolvedValueOnce(product)
       .mockResolvedValueOnce({ enabled: true, addresses: [{ id: "address-1", version: 2, isDefault: true }] })
-      .mockResolvedValueOnce({ orderFlowEnabled: true });
+      .mockResolvedValueOnce({version:1,orderFlowEnabled:true,paymentAvailable:false,paymentOnboarding:"IN_PROGRESS",currency:"CNY",scope:"synthetic_nonproduction",isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false});
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       productCode: "product-1", requestedSkuId: "sku-1", quantity: 1,
@@ -150,14 +203,14 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       quote: { id: "quote-1", expiresAt: "2026-09-12T01:00:00.000Z", serverTime: "2026-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, createKey: ""
+      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
     }, { requestEpoch: 4, mounted: true, visible: true, countdownTimer: null });
     page.load = vi.fn();
 
     await page.confirmOrder();
 
     expect(page.data.quote).toBeNull();
-    expect(page.data.error).toBe("商品或价格已变化，请重新报价。");
+    expect(page.data.error).toBe("商品或价格有变化，请重新确认。");
     expect(page.load).toHaveBeenCalledTimes(1);
   });
 
@@ -167,7 +220,7 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
       quote: { id: "quote-1", expiresAt: "2099-09-12T01:00:00.000Z", serverTime: "2099-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, createKey: ""
+      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
     }, { requestEpoch: 5, mounted: true, visible: true, countdownTimer: null });
 
     const first = page.confirmOrder();
@@ -612,6 +665,7 @@ describe("U0 native page lifecycle regressions", () => {
     await page.save();
 
     expect(requestMock).toHaveBeenCalledTimes(2);
+    expect(requestMock.mock.calls[0]?.[0]?.data).not.toHaveProperty("imagePath");
     expect(page.data.product.version).toBe(2);
     expect(page.data.name).toBe("本地未保存名称");
     expect(page.data).toMatchObject({ dirty: true, conflict: true, canSaveDraft: false, saving: false });

@@ -9,6 +9,7 @@ export interface WeChatReleaseInput {
   cloudTransportVerified?: boolean;
   privacyCheckEnabled: boolean;
   devtoolsCliAvailable: boolean;
+  editorialPreviewContentExcluded?: boolean;
   manualGates: {
     privacyGuideConfigured: boolean;
     legalTextsApproved: boolean;
@@ -81,9 +82,28 @@ export function validateWeChatRelease(input: WeChatReleaseInput): string[] {
   if (input.target === "release" && !input.manualGates.miniProgramFilingCompleted) {
     errors.push("MINIPROGRAM_FILING_REQUIRED");
   }
+  if (input.target === "release" && input.editorialPreviewContentExcluded !== true) {
+    errors.push("UNAPPROVED_EDITORIAL_PREVIEW_BUNDLED");
+  }
   if (input.target === "trial" && !input.manualGates.experienceMembersConfigured) {
     errors.push("EXPERIENCE_MEMBERS_PROOF_REQUIRED");
   }
+  return errors;
+}
+
+/** Upload stores a developer version. Trial assignment, review and public
+ * release retain validateWeChatRelease and the full design QA acceptance. */
+export function validateWeChatSourceUpload(input: Pick<WeChatReleaseInput,
+  "projectAppId" | "expectedAppId" | "privacyCheckEnabled" | "devtoolsCliAvailable"> &
+  {trialApiOrigin:string;releaseApiOrigin:string}):string[]{
+  const errors:string[]=[];
+  if(!input.devtoolsCliAvailable)errors.push("DEVTOOLS_CLI_MISSING");
+  if(!input.privacyCheckEnabled)errors.push("APP_PRIVACY_CHECK_DISABLED");
+  if(!isRealWeChatAppId(input.projectAppId)||!input.expectedAppId||!isRealWeChatAppId(input.expectedAppId))
+    errors.push("EXPECTED_WECHAT_APP_ID_REQUIRED");
+  else if(input.projectAppId!==input.expectedAppId)errors.push("WECHAT_APP_ID_MISMATCH");
+  if(!isPublicHttpsOrigin(input.trialApiOrigin))errors.push("TRIAL_HTTPS_API_ORIGIN_REQUIRED");
+  if(!isPublicHttpsOrigin(input.releaseApiOrigin))errors.push("RELEASE_HTTPS_API_ORIGIN_REQUIRED");
   return errors;
 }
 

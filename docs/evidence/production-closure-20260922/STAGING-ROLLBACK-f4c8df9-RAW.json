@@ -1,0 +1,15 @@
+{
+  "runId": "rc20260922-c8e5a26d",
+  "sourceHead": "f4c8df9e5be091b246e9893b1c357bc004d943b0",
+  "previousSourceHead": "2df301818c550ae6d19649d44f785d02fb58b276",
+  "rollbackApiWorkerHealthy": true,
+  "candidateRestored": true,
+  "postBackupBusinessWriteReadableInBoth": true,
+  "postBackupObjectRetained": true,
+  "sameDatabaseThroughout": true,
+  "sameObjectRootThroughout": true,
+  "databaseBackupRestored": false,
+  "downMigrationExecuted": false,
+  "productionTouched": false,
+  "fullProductionRollbackAccepted": false
+}

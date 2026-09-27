@@ -1,0 +1,53 @@
+{
+  "scope": "follow-up input guard and read-only production observer; no credential/network/deployment changes",
+  "baseCandidate": "f346736d379e9d8b177426f17ffb58a4e4e32cca",
+  "reproduced": "Three inherited Object prototype names bypassed the own-action whitelist and opened a transaction; now rejected with AFTERSALE_ACTION_INVALID before database access. No privilege escalation was established.",
+  "runs": [
+    {
+      "log": "tmp/aftersale-action-validation-reproduction.log",
+      "sha256": "7b034d931acb5e68c75435fe83c4f8fddac724c756c1e3c8b32817cc0997549d",
+      "summary": [
+        "Test Files  1 failed (1)",
+        "Tests  3 failed | 10 passed (13)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-action-full-unit.log",
+      "sha256": "74f45f50744f42a7e8175aef96351456932fc8e6cc39181728962ae8025ff91a",
+      "summary": [
+        "Test Files  102 passed (102)",
+        "Tests  1125 passed | 1 skipped (1126)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-action-full-integration.log",
+      "sha256": "386e1fe37688a07f3b81051f5e93d250225c80beb8ed20c9fc4dfcc6d05dad2a",
+      "summary": [
+        "Test Files  48 passed (48)",
+        "Tests  835 passed (835)"
+      ]
+    },
+    {
+      "log": "tmp/aftersale-action-build.log",
+      "sha256": "e470936a9e2b0106970d8dd2d4410c680f3fe2f87e887aefa029e263b41dd089",
+      "summary": []
+    },
+    {
+      "log": "tmp/aftersale-action-contract.log",
+      "sha256": "b840d59d2f3ea1eef87eaf836a82a0b42369657bd1b6df4bb2d490729829a1be",
+      "summary": [
+        "246 registered /v1 methods match OpenAPI; 248 documented methods include health; 32 typed events match catalog. Final database schema is checked after isolated forward migrations."
+      ]
+    },
+    {
+      "log": "tmp/production-observation-full-python.log",
+      "sha256": "4187cfa4fc8d9ff0779a0cbdf483da2af2380dfb4afb5861e9d4b5526fd86188",
+      "summary": [
+        "Ran 61 tests in 1.348s",
+        "OK",
+        "Ran 4 tests in 0.000s",
+        "OK"
+      ]
+    }
+  ]
+}

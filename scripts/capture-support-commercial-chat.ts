@@ -98,7 +98,7 @@ const orderCard = {
   currency: "CNY" as const,
   totalCents: 26900,
   productName: "CISME 合成验收护理精华",
-  productImage: "/assets/cisme/community-card-purple-bottle-v1.jpg",
+  productImage: "/assets/icons/spray-bottle-plum.svg",
   itemSummary: "合成 30ml × 1",
   statusLabel: "待支付",
   totalYuan: "269.00"
@@ -108,7 +108,7 @@ const imageAttachment = {
   mimeType: "image/jpeg",
   sizeBytes: 262144,
   previewPath: "",
-  localPath: "/assets/cisme/community-card-purple-bottle-v1.jpg"
+  localPath: "/assets/icons/spray-bottle-plum.svg"
 };
 
 type State = {

@@ -1,0 +1,15 @@
+{
+  "packageSourceSha256": "3cb7509cc4cf5df6e73038b23270c4aaaadd4f8c3586470807775db524fa214d",
+  "scope": "WeChat Developer Tools simulator, local synthetic acceptance data, 333x719; not device acceptance",
+  "routes": {
+    "checkout": "pages/checkout/index?product=synthetic-acceptance-serum&sku=fe83264d-62d4-4a39-928d-9dd0d51a6ecf&quantity=1",
+    "product": "pages/product/index?id=synthetic-acceptance-serum"
+  },
+  "evidence": {
+    "checkout": "checkout.png",
+    "product": "product.png",
+    "checkoutQuantityTap": "increase changed 1 to 2; decrease changed 2 to 1"
+  },
+  "compileResults": "WXML and WXSS compiled in Developer Tools for checkout, product, order-detail, support",
+  "limits": "Order-detail support sheet and support drafts compiled but not visually captured in this receipt. iOS and Android devices not exercised."
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7e51f6d",
+  "packageSourceSha256": "2760490bab6ebe289ec17b0131b9747dfeff361e721f37935d41a6845fee5c54",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic paid order with remaining quantity",
+  "captures": [
+    {
+      "file": "order-sheet-initial-2760.png",
+      "sha256": "4f3e110a3f2d217b42abb2cb49a69bab322e061309f00ba6b727fb3caf87aeb2",
+      "state": "aftersale sheet initial view"
+    },
+    {
+      "file": "order-sheet-height-event-2760.png",
+      "sha256": "05dd4ca48b8a62811dac8c0bbd767f36c09f36823b86c8f10c96dad146e22e9d",
+      "state": "synthetic keyboardheightchange event with height 260"
+    }
+  ],
+  "observed": "The product and 44 px quantity controls appear without scrolling in the initial sheet. The minus icon measured 18 px with 13 px inset on both axes. A synthetic keyboard height event kept the sheet header and form controls on screen, unlike the prior clipped-header state. Before the height change, tapping minus and plus changed the quantity 2 to 1 to 2.",
+  "checks": "WXML compiled in WeChat Developer Tools. TypeScript, package gate and 26 targeted native order and aftersale tests passed.",
+  "scopeLimit": "The keyboard height was injected into the simulator; no physical keyboard or device was tested. No production or full journey acceptance is claimed."
+}

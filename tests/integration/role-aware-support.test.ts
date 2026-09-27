@@ -138,8 +138,8 @@ describe("R2 support authority",()=>{
     const userConversation=(await pool.query("SELECT * FROM support_conversation WHERE member_id=$1",[user.memberId])).rows[0];
     const otherConversation=(await pool.query("SELECT * FROM support_conversation WHERE member_id=$1",[memberOnly.memberId])).rows[0];
     expect((await app.inject({method:"POST",url:`/v1/management/support/conversations/${userConversation.id}/purge`,headers:{...auth(operatorA.sessionToken),"idempotency-key":"support-retention-no-cap"},payload:{expectedVersion:userConversation.version}})).statusCode).toBe(403);
-    expect((await app.inject({method:"POST",url:`/v1/management/support/conversations/${userConversation.id}/purge`,headers:{...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-pending"},payload:{expectedVersion:userConversation.version}})).json().code).toBe("SUPPORT_RETENTION_POLICY_PENDING");
-    await pool.query(`UPDATE data_retention_policy SET duration_days=1,enforcement_state='enforced',active=true,version=version+1,updated_at=now()
+    expect((await app.inject({method:"POST",url:`/v1/management/support/conversations/${userConversation.id}/purge`,headers:{...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-pending"},payload:{expectedVersion:userConversation.version}})).json().code).toBe("SUPPORT_RETENTION_NOT_RESOLVED");
+    await pool.query(`UPDATE data_retention_policy SET duration_days=1,duration_months=NULL,enforcement_state='enforced',active=true,version=version+1,updated_at=now()
       WHERE code='support_conversation_policy_pending'`);
     const resolved=(await pool.query(`UPDATE support_conversation SET status='resolved',current_handler_principal_id=NULL,resolved_at=now()-interval '2 days',
       version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[userConversation.id])).rows[0];
@@ -150,6 +150,21 @@ describe("R2 support authority",()=>{
     const held=await app.inject({method:"POST",url:`/v1/management/support/conversations/${resolved.id}/purge`,headers:{...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-held"},payload:{expectedVersion:resolved.version}});
     expect(held.statusCode).toBe(423);expect(held.json().code).toBe("SUPPORT_RETENTION_LEGAL_HOLD");
     await pool.query("UPDATE legal_hold SET status='released',released_by='privacy-operator',released_at=now() WHERE id=$1",[hold.id]);
+    const message=(await pool.query("SELECT id FROM support_message WHERE conversation_id=$1 LIMIT 1",[resolved.id])).rows[0];
+    const scopedHold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+      VALUES('SCOPED_SUPPORT_HOLD','Isolated message and media protection','privacy-operator',now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0];
+    await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'support_message',$2)",[scopedHold.id,message.id]);
+    const messageBlocked=await app.inject({method:"POST",url:`/v1/management/support/conversations/${resolved.id}/purge`,headers:{...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-message-held"},payload:{expectedVersion:resolved.version}});
+    expect(messageBlocked.statusCode).toBe(423);
+    await pool.query("DELETE FROM legal_hold_binding WHERE hold_id=$1 AND object_type='support_message'",[scopedHold.id]);
+    const media=(await pool.query(`INSERT INTO media_object(kind,object_key,mime_type,size_bytes,upload_state,
+      uploaded_at,support_conversation_id,support_member_id,support_expires_at)
+      VALUES('chat_image',$1,'image/jpeg',3,'uploaded',now(),$2,$3,now()+interval '2 days') RETURNING id`,
+      [`scoped-support-${resolved.id}`,resolved.id,user.memberId])).rows[0];
+    await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'media_object',$2)",[scopedHold.id,media.id]);
+    const mediaBlocked=await app.inject({method:"POST",url:`/v1/management/support/conversations/${resolved.id}/purge`,headers:{...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-media-held"},payload:{expectedVersion:resolved.version}});
+    expect(mediaBlocked.statusCode).toBe(423);
+    await pool.query("UPDATE legal_hold SET status='released',released_by='privacy-operator',released_at=now() WHERE id=$1",[scopedHold.id]);
     await expect(pool.query("DELETE FROM support_conversation WHERE id=$1",[otherConversation.id])).rejects.toThrow(/SUPPORT_CONVERSATION_PURGE_PATH_REQUIRED/);
     const headers={...auth(privacyOperator.sessionToken),"idempotency-key":"support-retention-purge-01"};
     const first=await app.inject({method:"POST",url:`/v1/management/support/conversations/${resolved.id}/purge`,headers,payload:{expectedVersion:resolved.version}});

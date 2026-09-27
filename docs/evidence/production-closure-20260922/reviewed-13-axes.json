@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "route": "POST /v1/management/commerce/orders/{orderId}/shipment/reconcile",
+  "routeDenominator": 239,
+  "scope": "new query-only recovery endpoint plus native existing dispatch consumer",
+  "axes": {
+    "prdBusinessId": "PRD V2.1-R4 §8.2 / WX-PAY-MAKE-01; actual parcel facts separate from platform, receipt, refund",
+    "identity": "mounted session authentication; anonymous/invalid token route matrix",
+    "roleCapability": "commerce.fulfillment.manage at initial transaction and after query; revoke-during-query integration",
+    "objectRow": "bound paid verified_commerce, exact applied full-cash identity; no unbound order or refund-review bypass",
+    "fieldProjection": "safe ids/state/queryOutcome only; encrypted parcel remains private; no upstream body",
+    "actionState": "manual_review → synced only after exact matched provider result; negative remains manual_review; no upload or attempt reset",
+    "environment": "test transport fails closed outside test; actual outbound authorization unchanged; no live provider calls in this evidence",
+    "inputBoundary": "UUID; bounded request/evidence tokens; additional properties rejected; body limits inherited",
+    "idempotencyVersion": "request HMAC and replay record; changed evidence key reuse rejected; terminal synced immutable",
+    "concurrency": "no provider I/O under DB transaction; authority row locks and payment binding rechecked on return; concurrent same key serialized for audit/response",
+    "databaseExternalEffects": "audit + idempotency + narrowly permitted state transition only; never receipt/refund/payment/parcel rewrite",
+    "limitsTimeoutPagination": "existing admin-write actor and ingress buckets; provider query 15s dependency budget and bounded JSON; single object, no pagination",
+    "positiveNegativeEvidence": "verified-payment-inbox integration covers unauthorized, not-uploaded, replay/conflict, immutable history/NULL guard, revoked return, matched resolution; native manual recovery and revocation on new DB; real platform/device pending"
+  },
+  "status": "REVIEWED_SLICE_NOT_FULL_RELEASE_ACCEPTANCE",
+  "fullInterfaceReviewComplete": false
+}

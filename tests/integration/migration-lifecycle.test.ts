@@ -38,12 +38,12 @@ describe("empty and N-1 database lifecycle", () => {
   it("migrates empty, rolls back latest, and reapplies", async () => {
     const env = { ...process.env, DATABASE_URL: migrationUrl.toString() };
     const migrationFiles = (await readdir("db/migrations")).filter((file) => file.endsWith(".sql")).sort();
-    const migrationCount = migrationFiles.length;
-    const extensionCount = migrationFiles.filter((file) => file >= "202609120002_commercial_membership_referral.sql").length;
+    let migrationCount = migrationFiles.length;
+    let extensionCount = migrationFiles.filter((file) => file >= "202609120002_commercial_membership_referral.sql").length;
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
     let pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
-    expect(await assertFinalSchemaContract(pool)).toEqual({tables:41,constraints:47,indexes:36,triggers:36});
+    expect(await assertFinalSchemaContract(pool)).toEqual({tables:43,constraints:49,indexes:36,triggers:36});
     const damaged=await pool.connect();
     try{
       await damaged.query("BEGIN");
@@ -98,6 +98,23 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    // Round-trip the watcher and observation separately before the older
+    // catalog migration guard. This fixture has no receipt observations.
+    await closePool(pool);
+    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    pool = migrationPool(); migrationCount -= 1; extensionCount -= 1;
+    expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_watch_control') name")).rows[0].name).toBeNull();
+    expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_observation') name")).rows[0].name).toBe('commerce_wechat_receipt_observation');
+    await closePool(pool);
+    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    pool = migrationPool(); migrationCount -= 1; extensionCount -= 1;
+    expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_observation') name")).rows[0].name).toBeNull();
+    await pool.query("UPDATE catalog_product SET version=3,updated_by='synthetic-rollback-guard' WHERE id='c1000000-0000-4000-8000-000000000001'");
+    await expect(exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env })).rejects.toMatchObject({
+      stderr: expect.stringContaining("CATALOG_IMAGE_RETIREMENT_ROLLBACK_REQUIRES_DATA_PRESERVATION")
+    });
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
+    await pool.query("UPDATE catalog_product SET version=2,updated_by='migration:retire-unapproved-images' WHERE id='c1000000-0000-4000-8000-000000000001'");
     expect((await pool.query("SELECT active FROM processing_purpose WHERE code='support_service'")).rows[0].active).toBe(false);
     expect((await pool.query("SELECT enabled FROM emergency_switch WHERE key='community'")).rows[0].enabled).toBe(false);
     expect((await pool.query("SELECT count(*)::int count FROM emergency_switch")).rows[0].count).toBe(8);
@@ -218,7 +235,7 @@ describe("empty and N-1 database lifecycle", () => {
 
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount+2);
     expect((await pool.query("SELECT to_regclass('public.community_comment') name")).rows[0].name).toBe("community_comment");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_target_type_check'")).rows[0].definition).toContain("invite");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_invite_target_check'")).rows[0].definition).toContain("home");

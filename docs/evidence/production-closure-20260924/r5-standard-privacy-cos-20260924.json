@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-09-24T11:34:41Z",
+  "accountId": "100007099844",
+  "appId": "1257392443",
+  "bucket": "cisme-privacy-1257392443",
+  "region": "ap-shanghai",
+  "createdIn": "standard COS console",
+  "creationResult": "success",
+  "settings": {
+    "access": "private read/write",
+    "redundancy": "single AZ",
+    "serverSideEncryption": "SSE-COS",
+    "versioning": "not enabled in creation form",
+    "customDomain": "not configured or needed for server-side suppression markers"
+  },
+  "existingMediaBucket": "lhcos-81ddf-1257392443",
+  "existingMediaBucketChanged": false,
+  "serviceCredentialProbe": {
+    "headBucket": "403",
+    "getBucketVersioning": "AccessDenied",
+    "getBucketWithSuppressionPrefix": "AccessDenied",
+    "putOrGetObjectAttempted": false,
+    "actualMemberDataUsed": false
+  },
+  "preparedRuntimeEnv": {
+    "path": "/opt/cisme/runtime-r5-prepared.env",
+    "mode": "0640",
+    "appEnv": "staging",
+    "suppressionBucket": "cisme-privacy-1257392443",
+    "active": false
+  },
+  "securityChange": "Least-privilege CAM policy and binding proposed separately; not yet applied. The service cannot use the bucket until effective access is verified.",
+  "productionDeploy": false
+}

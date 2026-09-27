@@ -1,0 +1,1010 @@
+{
+  "prepared": {
+    "runId": "rc20260922-00c7d2e9",
+    "instanceId": "lhins-ei4hz4fi",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "directory": "/opt/cisme/releases/rc20260922-00c7d2e9-202653d35b74",
+    "database": "cisme_accept_rc20260922_00c7d2e9",
+    "objectRoot": "/opt/cisme/tmp/rc20260922-00c7d2e9/object-storage",
+    "oldDirectory": "/opt/cisme/releases/rc20260922-c8e5a26d-f4c8df9e5be0",
+    "oldEnvSha256": "46cb21a66a4fbf914f3dbbb52f83a68cf4a493e30b601c9be3ca82f701cbf40e",
+    "candidateEnvSha256": "37bff66322f9717f857bc34cd827f0a9200672449d3c7233af2ca84abb584a7a",
+    "policySha256": "4cbbfd9f1b50ed4f9d02fbf80f0b5433bf371b10bc4aa3b60c67a39dbc1118a3",
+    "migrationApplied": 75,
+    "migrationRepeated": 0,
+    "oldDatabaseTouched": false,
+    "productionTouched": false,
+    "realMoneyEnabled": false,
+    "activated": false,
+    "releaseReady": false,
+    "loopbackSmoke": {
+      "health": 200,
+      "unauthenticatedMetrics": 401
+    }
+  },
+  "activated": {
+    "runId": "rc20260922-00c7d2e9",
+    "instanceId": "lhins-ei4hz4fi",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "directory": "/opt/cisme/releases/rc20260922-00c7d2e9-202653d35b74",
+    "database": "cisme_accept_rc20260922_00c7d2e9",
+    "objectRoot": "/opt/cisme/tmp/rc20260922-00c7d2e9/object-storage",
+    "oldDirectory": "/opt/cisme/releases/rc20260922-c8e5a26d-f4c8df9e5be0",
+    "oldEnvSha256": "46cb21a66a4fbf914f3dbbb52f83a68cf4a493e30b601c9be3ca82f701cbf40e",
+    "candidateEnvSha256": "37bff66322f9717f857bc34cd827f0a9200672449d3c7233af2ca84abb584a7a",
+    "policySha256": "4cbbfd9f1b50ed4f9d02fbf80f0b5433bf371b10bc4aa3b60c67a39dbc1118a3",
+    "migrationApplied": 75,
+    "migrationRepeated": 0,
+    "oldDatabaseTouched": false,
+    "productionTouched": false,
+    "realMoneyEnabled": false,
+    "activated": true,
+    "releaseReady": false,
+    "loopbackSmoke": {
+      "health": 200,
+      "unauthenticatedMetrics": 401
+    },
+    "verifiedPublicHttps": 200,
+    "publicMetricsUnauthenticated": 401,
+    "publishedPolicies": {
+      "terms": "2026-09-11-v4-staging",
+      "privacy": "2026-09-11-v7-staging-support"
+    }
+  },
+  "business-probe": {
+    "runId": "rc20260922-00c7d2e9",
+    "instanceId": "lhins-ei4hz4fi",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "syntheticOnly": true,
+    "realWechatLoginVerified": false,
+    "realFundsExecuted": false,
+    "checks": [
+      "unauthenticated-owner-denied",
+      "privacy-request-deduplicated",
+      "privacy-owner-isolation",
+      "privacy-operator-denial",
+      "privacy-concurrent-version-conflict",
+      "reply-not-misrepresented-as-export",
+      "native-privacy-legacy-role-insufficient",
+      "native-privacy-authorized-queue",
+      "native-privacy-versioned-response",
+      "native-privacy-revoked-read-and-write",
+      "native-privacy-revoked-write-no-effect",
+      "authorized-order-management-read",
+      "immediate-management-revocation",
+      "revoked-authority-projection",
+      "real-money-remains-disabled"
+    ],
+    "passed": 15,
+    "cacheChecks": 18,
+    "productionTouched": false,
+    "fullAcceptanceComplete": false
+  },
+  "acceptance": {
+    "runId": "rc20260922-00c7d2e9",
+    "instanceId": "lhins-ei4hz4fi",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "database": "cisme_accept_rc20260922_00c7d2e9",
+    "restoreDatabase": "cisme_accept_rc20260922_00c7d2e9_restore",
+    "restoreCounts": {
+      "migrations": {
+        "source": 75,
+        "restored": 75
+      },
+      "tables": {
+        "source": 129,
+        "restored": 129
+      },
+      "members": {
+        "source": 2,
+        "restored": 2
+      },
+      "privacyRequests": {
+        "source": 1,
+        "restored": 1
+      },
+      "privacyEvents": {
+        "source": 3,
+        "restored": 3
+      },
+      "auditEvents": {
+        "source": 6,
+        "restored": 6
+      },
+      "revokedGrants": {
+        "source": 2,
+        "restored": 2
+      },
+      "legalDocuments": {
+        "source": 2,
+        "restored": 2
+      },
+      "marker": {
+        "source": 1,
+        "restored": 1
+      }
+    },
+    "syntheticBusinessDigest": {
+      "source": "83d322047151077355cb1116d1fad598",
+      "restored": "83d322047151077355cb1116d1fad598"
+    },
+    "stabilityWindowSeconds": 300,
+    "backupSha256": "061daf0038756875838853dd6ca6ba5925b7df636309b7a7591b61b6f776d88e",
+    "localObjectRestoreSha256": "b00959607d7845a15cd0aca72b5e032f35ca6869332f45bdbf8093b753168f69",
+    "publicChecks": {
+      "/health/ready": 200,
+      "/v1/legal": 200,
+      "/v1/capabilities": 200,
+      "/v1/admin/runtime-metrics": 401,
+      "/v1/me": 401
+    },
+    "stabilitySamples": [
+      {
+        "timeUtc": "2026-09-23T00:50:39Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:50:44Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:50:49Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:50:54Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:50:59Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:04Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:09Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:15Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:20Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:25Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:30Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:35Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:40Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:45Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:50Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:51:55Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:00Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:05Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:10Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:15Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:20Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:25Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:30Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:35Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:40Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:45Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:50Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:52:55Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:00Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:05Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:10Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:15Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:20Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:25Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:30Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:35Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:40Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:45Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:50Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:53:55Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:00Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:05Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:11Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:16Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:21Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:26Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:31Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:36Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:41Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:46Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:51Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:54:56Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:01Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:06Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:11Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:16Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:21Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:26Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:31Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:36Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      },
+      {
+        "timeUtc": "2026-09-23T00:55:41Z",
+        "health": 200,
+        "units": [
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running",
+          "",
+          "NRestarts=0",
+          "ActiveState=active",
+          "SubState=running"
+        ]
+      }
+    ],
+    "realFundsExecuted": false,
+    "productionTouched": false,
+    "existingStagingDatabaseTouched": false,
+    "oldCismeTestImpact": "UNKNOWN",
+    "s3CosRestoreVerified": false,
+    "fullAcceptanceComplete": false,
+    "releaseReady": false
+  },
+  "baseline-rehearsal": {
+    "runId": "rc20260922-00c7d2e9",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "database": "cisme_accept_rc20260922_00c7d2e9_baseline",
+    "postgresVersion": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+    "baseline": 23,
+    "final": 75,
+    "injectedJournalFailureRolledBack": true,
+    "syntheticMemberAndConsentDigestPreserved": true,
+    "syntheticRequestPreserved": true,
+    "repeatApplied": 0,
+    "productionTouched": false,
+    "oldCismeTestImpact": "UNKNOWN / \u672a\u6062\u590d"
+  },
+  "monitor-pin": {
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "oldSha256": "d21bea1cd312d20c0d0aad18b5b863c40330b0ca5934e5e4cb458fbc3ed52c67",
+    "newSha256": "ddcc6b124d63b9d8df23f63571c444483a61975af4ed057c053f5ff9e65fadd2",
+    "serviceResult": "success",
+    "startExit": 0,
+    "productionTouched": false,
+    "externalAlertVerified": false
+  },
+  "application-rollback": {
+    "runId": "rc20260922-00c7d2e9",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "previousSourceHead": "f4c8df9e5be091b246e9893b1c357bc004d943b0",
+    "rollbackApiWorkerHealthy": true,
+    "candidateRestored": true,
+    "postBackupBusinessWriteReadableInBoth": true,
+    "postBackupObjectRetained": true,
+    "sameDatabaseThroughout": true,
+    "sameObjectRootThroughout": true,
+    "databaseBackupRestored": false,
+    "downMigrationExecuted": false,
+    "productionTouched": false,
+    "fullProductionRollbackAccepted": false
+  },
+  "postRollback": {
+    "currentRelease": "/opt/cisme/releases/rc20260922-00c7d2e9-202653d35b74",
+    "sourceHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+    "monitor": "success",
+    "probes": [
+      {
+        "environment": "production",
+        "domain": "api.cisme.cn",
+        "observedAtUtc": "2026-09-23T00:57:02.748647+00:00",
+        "dnsA": [
+          "124.223.74.198"
+        ],
+        "certificateVerification": true,
+        "httpsHealthStatus": "UNREACHABLE",
+        "errorClass": "URLError"
+      },
+      {
+        "environment": "staging",
+        "domain": "staging-api.cisme.cn",
+        "observedAtUtc": "2026-09-23T00:57:10.791884+00:00",
+        "dnsA": [
+          "150.158.39.74"
+        ],
+        "certificateVerification": true,
+        "httpsHealthStatus": 200
+      }
+    ]
+  }
+}

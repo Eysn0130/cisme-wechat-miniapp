@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "instanceId": "lhins-61ikz4mi",
+  "region": "ap-shanghai",
+  "bucket": "lhcos-81ddf-1257392443",
+  "runtimeCredentials": {
+    "headBucket": "ok",
+    "getBucketVersioning": "AccessDenied",
+    "listSuppressionPrefix": "AccessDenied"
+  },
+  "consoleObservation": "The Tencent Cloud account currently open in Chrome shows no COS buckets, including a search for this exact bucket name.",
+  "impact": "The current production AccountClosure startup requires a readable suppression prefix and versioning check. Starting the new API or Worker with these credentials would fail closed, so production deployment must wait for bucket ownership or narrowly scoped access to be resolved.",
+  "secretsRecorded": false
+}

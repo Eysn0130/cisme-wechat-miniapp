@@ -4,7 +4,7 @@ import { currentChromeStyle } from "../../services/layout";
 
 type MemberDetail={member:{id:string;displayName:string;accountStatus:string;membershipState:string;commercialEligible:boolean;effectiveAt:string|null;expiresAt:string|null;version:number;referralCode:string|null};rate:{basisPoints:number|null;effectiveAt:string|null;source:"member_override"|"global"|"none"}|null;
   commission:{pendingCents:number;availableCents:number;settledCents:number;settlementAvailable:boolean};scope:{referrals:boolean;orders:boolean;ownOrders:boolean};
-  membershipPolicy:{kind:string;termMonths:number;serverTime:string;renewalExpiresAt:string|null;rateProposalSuggestedAt:string}};
+  membershipPolicy:{kind:string;termMonths:number|null;rateOptions:number[];serverTime:string;renewalExpiresAt:string|null;rateProposalSuggestedAt:string}};
 type SectionRow={id:string;displayName?:string;confirmedAt?:string;verifiedOrderCount?:number;orderNumber?:string;status?:string;statusLabel?:string;productName?:string;totalCents?:number;totalLabel?:string;transactionSourceKind?:string;basisPoints?:number|null;rateLabel?:string;commissionNetCents?:number|null;commissionLabel?:string;title?:string};
 type SectionPage={items:SectionRow[];matchingTotal:number;nextCursor:string|null};
 type RateForm={mode:"override"|"inherit";percent:string;date:string;time:string;reason:string};
@@ -21,14 +21,14 @@ Page({
     section:"overview",sections:[{id:"overview",label:"概览"},{id:"referrals",label:"推荐"},{id:"orders",label:"订单"},{id:"posts",label:"内容"}],canManageRate:false,canManageMembership:false,
     orderMode:"own-orders",orderModes:[{id:"own-orders",label:"本人购买"},{id:"attributed-orders",label:"推荐成交"}],
     visibleRows:[] as SectionRow[],visibleTotal:0,visibleCursor:null as string|null,sectionLoading:false,sectionLoadingMore:false,sectionError:"",
-    effectiveLabel:"",expiresLabel:"",rateLabel:"",rateFormVisible:false,
+    effectiveLabel:"",expiresLabel:"",rateLabel:"",expiryDate:"",expiryMinDate:"",rateFormVisible:false,
     rateForm:{mode:"override",percent:"",date:"",time:"",reason:""} as RateForm,
-    rateOptions:["20%","25%","30%","35%"],rateFormIndex:0,
+    rateOptions:[] as string[],rateBasisPoints:[] as number[],rateFormIndex:0,
     loading:true,busy:false,alive:true,attempt:0,sectionAttempt:0,error:"",actionError:"",actionStatus:""},
   onLoad(query:Record<string,string|undefined>){this.setData({id:String(query.id||"")});},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   onShow(){this.data.alive=true;this.sectionCache={};this.rateCommand=null;this.setData({detail:null,visibleRows:[],visibleTotal:0,visibleCursor:null,sectionLoading:false,sectionError:"",
-    canManageRate:false,canManageMembership:false,rateFormVisible:false,loading:true,error:""});void this.load();},
+    canManageRate:false,canManageMembership:false,rateFormVisible:false,rateOptions:[],rateBasisPoints:[],loading:true,error:""});void this.load();},
   onUnload(){this.data.alive=false;this.rateCommand=null;this.data.attempt+=1;this.data.sectionAttempt+=1;},
   selectSection(event:WechatMiniprogram.TouchEvent){const section=String(event.currentTarget.dataset.section);if(!this.data.sections.some(item=>item.id===section))return;
     this.setData({section});void this.showSection();},
@@ -90,56 +90,77 @@ Page({
         ...(detail.scope.referrals?[{id:"referrals",label:"推荐"}]:[]),
         ...((detail.scope.orders||detail.scope.ownOrders)?[{id:"orders",label:"订单"}]:[]),{id:"posts",label:"内容"}];
       const orderMode=detail.scope.ownOrders?"own-orders":"attributed-orders";
+      const rateBasisPoints=detail.membershipPolicy.rateOptions??[];
+      const expiryMinDate=new Date(Date.parse(detail.membershipPolicy.serverTime)+8*60*60*1000).toISOString().slice(0,10);
       this.setData({detail,sections,section:sections.some(item=>item.id===this.data.section)?this.data.section:"overview",
         orderMode,effectiveLabel:dateLabel(detail.member.effectiveAt),expiresLabel:dateLabel(detail.member.expiresAt),
+        expiryDate:"",expiryMinDate,
         rateLabel:detail.rate?.basisPoints==null?"未配置":`${(detail.rate.basisPoints/100).toFixed(2)}% · ${detail.rate.source==="member_override"?"单独设置":"继承全局"}`,
+        rateBasisPoints,rateOptions:rateBasisPoints.map(value=>`${(value/100).toFixed(2)}%`),
         loading:false});
       if(this.data.section!=="overview")void this.showSection();
     }catch(error){if(this.data.alive&&attempt===this.data.attempt&&token===getApp<IAppOption>().globalData.sessionToken)
       this.setData({loading:false,error:(error as {title?:string}).title||"成员详情暂未加载，请重试。"});}
   },
+  chooseExpiryDate(event:WechatMiniprogram.PickerChange){if(!this.data.canManageMembership||this.data.busy)return;
+    const value=String(event.detail.value);if(/^\d{4}-\d{2}-\d{2}$/.test(value))this.setData({expiryDate:value,actionError:""});},
   async changeMembership(event:WechatMiniprogram.TouchEvent){
-    const detail=this.data.detail;if(!detail||this.data.busy)return;
+    const detail=this.data.detail;if(!detail||this.data.busy||!this.data.canManageMembership)return;
+    const engineering=detail.membershipPolicy.kind==="engineering_calendar_v2"&&detail.membershipPolicy.termMonths!==null;
+    const formal=detail.membershipPolicy.kind==="operator_explicit";
+    if(!engineering&&!formal){this.setData({actionError:"资格规则暂不可用，请刷新后重试。"});return;}
     const attempt=this.data.attempt,token=getApp<IAppOption>().globalData.sessionToken,id=detail.member.id,version=detail.member.version;
     const current=()=>this.data.alive&&attempt===this.data.attempt&&token===getApp<IAppOption>().globalData.sessionToken&&
       this.data.detail?.member.id===id&&this.data.detail.member.version===version;
     const state=String(event.currentTarget.dataset.state||"");if(state!=="active"&&state!=="suspended")return;
     const active=state==="active";
+    const preserveLifetime=formal&&active&&detail.member.membershipState!=="none"&&detail.member.expiresAt===null;
+    const explicitExpiry=formal&&active&&!preserveLifetime?this.data.expiryDate:"";
+    if(formal&&active&&!preserveLifetime&&(!/^\d{4}-\d{2}-\d{2}$/.test(explicitExpiry)||explicitExpiry<this.data.expiryMinDate)){
+      this.setData({actionError:"请先选择资格截止日。"});return;}
+    const expiresAt=explicitExpiry?new Date(`${explicitExpiry}T16:00:00Z`).toISOString():undefined;
     const result=await wx.showModal({title:active?"授予或续期商业会员？":"暂停商业会员资格？",
-      content:active?`新规则为 ${detail.membershipPolicy.termMonths} 个日历月。当前到期：${detail.member.expiresAt?dateLabel(detail.member.expiresAt):"长期资格"}；变更后预计到期：${detail.membershipPolicy.renewalExpiresAt?dateLabel(detail.membershipPolicy.renewalExpiresAt):"保留长期资格"}。生产政策待批准。请填写依据。`
+      content:active?(engineering?`按 ${detail.membershipPolicy.termMonths} 个日历月续期。当前到期：${detail.member.expiresAt?dateLabel(detail.member.expiresAt):"长期资格"}；预计到期：${detail.membershipPolicy.renewalExpiresAt?dateLabel(detail.membershipPolicy.renewalExpiresAt):"保留长期资格"}。请填写依据。`
+        :`当前到期：${detail.member.expiresAt?dateLabel(detail.member.expiresAt):"长期资格"}；本次${preserveLifetime?"保留长期资格":`有效至 ${explicitExpiry}`}。不会缩短已有资格。请填写依据。`)
         :`暂停后推荐码不用于新关系或订单；当前到期 ${dateLabel(detail.member.expiresAt)} 保留。请填写依据。`,
       editable:true,placeholderText:"至少 4 字的变更依据",confirmText:active?"确认资格":"确认暂停"});
     if(!result.confirm||!current())return;
     const reason=(result.content||"").trim();if(reason.length<4){this.setData({actionError:"请填写至少 4 字的变更依据。"});return;}
     this.setData({busy:true,actionError:"",actionStatus:""});
     try{if(!current())return;
-      await request({path:`/v1/management/members/${id}/membership`,method:"POST",data:{state,...(active?{term:"engineering_12_calendar_months"}:{}),expectedVersion:version,reason}});
+      await request({path:`/v1/management/members/${id}/membership`,method:"POST",data:{state,...(active&&engineering?{term:"engineering_12_calendar_months"}:{}),...(expiresAt?{expiresAt}:{}),expectedVersion:version,reason}});
       if(current()){this.setData({busy:false,actionStatus:active?"资格已更新，请核对有效期。":"资格已暂停。"});await this.load();}}
     catch(error){if(current())this.setData({actionError:(error as {title?:string}).title||"资格变更尚未确认，请刷新后核对。"});}
     finally{if(current())this.setData({busy:false});}
   },
   openRateForm(){const detail=this.data.detail;if(!detail||!this.data.canManageRate||this.data.busy)return;
     if(this.rateCommand){void this.sendRateCommand();return;}
+    const formal=detail.membershipPolicy.kind==="operator_explicit";
+    if(!formal&&!this.data.rateBasisPoints.length){this.setData({actionError:"当前可提议的费率范围尚未配置，请先核对经营规则。"});return;}
     const when=rateDateParts(detail.membershipPolicy.rateProposalSuggestedAt);
-    const index=[2000,2500,3000,3500].indexOf(detail.rate?.basisPoints??2000);
-    this.setData({rateFormVisible:true,rateFormIndex:Math.max(0,index),rateForm:{mode:"override",percent:String([20,25,30,35][Math.max(0,index)]),
+    const index=this.data.rateBasisPoints.indexOf(detail.rate?.basisPoints??this.data.rateBasisPoints[0]!);
+    const selected=Math.max(0,index);
+    this.setData({rateFormVisible:true,rateFormIndex:selected,rateForm:{mode:"override",percent:formal?(detail.rate?.basisPoints==null?"":(detail.rate.basisPoints/100).toFixed(2)):(this.data.rateBasisPoints[selected]!/100).toFixed(2),
       date:when.date,time:when.time,reason:""},actionError:"",actionStatus:""});
   },
   closeRateForm(){if(this.data.busy||this.rateCommand)return;this.setData({rateFormVisible:false,actionError:""});},
   selectRateMode(event:WechatMiniprogram.TouchEvent){const mode=String(event.currentTarget.dataset.mode);
     if(mode!=="override"&&mode!=="inherit")return;this.setData({rateForm:{...this.data.rateForm,mode}});},
   selectRatePercent(event:WechatMiniprogram.PickerChange){const index=Number(event.detail.value);
-    if(!Number.isInteger(index)||index<0||index>3)return;
-    this.setData({rateFormIndex:index,rateForm:{...this.data.rateForm,percent:String([20,25,30,35][index])}});},
+    if(!Number.isInteger(index)||index<0||index>=this.data.rateBasisPoints.length)return;
+    this.setData({rateFormIndex:index,rateForm:{...this.data.rateForm,percent:(this.data.rateBasisPoints[index]!/100).toFixed(2)}});},
+  editRatePercent(event:WechatMiniprogram.Input){this.setData({rateForm:{...this.data.rateForm,percent:event.detail.value}});},
   editRateReason(event:WechatMiniprogram.Input){this.setData({rateForm:{...this.data.rateForm,reason:event.detail.value}});},
   changeRateDate(event:WechatMiniprogram.PickerChange){this.setData({rateForm:{...this.data.rateForm,date:String(event.detail.value)}});},
   changeRateTime(event:WechatMiniprogram.PickerChange){this.setData({rateForm:{...this.data.rateForm,time:String(event.detail.value)}});},
   async submitRateForm(){const detail=this.data.detail;if(!detail||!this.data.canManageRate||this.data.busy||!this.data.rateFormVisible)return;
     if(this.rateCommand){void this.sendRateCommand();return;}
-    const form=this.data.rateForm,reason=form.reason.trim(),parts=/^(\d{2})(?:\.(\d{1,2}))?$/.exec(form.percent.trim());
+    const form=this.data.rateForm,reason=form.reason.trim(),parts=/^(\d{1,3})(?:\.(\d{1,2}))?$/.exec(form.percent.trim());
     const basisPoints=parts?Number(parts[1])*100+Number((parts[2]||"").padEnd(2,"0")):NaN;
-    if(form.mode==="override"&&![2000,2500,3000,3500].includes(basisPoints)){
-      this.setData({actionError:"请选择 20%、25%、30% 或 35%。"});return;}
+    if(form.mode==="override"&&(detail.membershipPolicy.kind==="operator_explicit"
+      ?!Number.isSafeInteger(basisPoints)||basisPoints<0||basisPoints>10000
+      :!this.data.rateBasisPoints.includes(basisPoints))){
+      this.setData({actionError:"请输入 0.00%–100.00% 的费率。"});return;}
     if(reason.length<4||reason.length>300){this.setData({actionError:"请填写 4–300 字的变更依据。"});return;}
     const effective=new Date(`${form.date}T${form.time}:00`);
     if(!Number.isFinite(effective.getTime())){this.setData({actionError:"请选择有效的生效日期和时间。"});return;}

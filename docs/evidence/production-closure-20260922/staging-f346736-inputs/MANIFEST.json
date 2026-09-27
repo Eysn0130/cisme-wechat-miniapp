@@ -1,0 +1,19 @@
+{
+  "sourceHead": "f346736d379e9d8b177426f17ffb58a4e4e32cca",
+  "sourceTree": "1faa782a8546c9b090ab96072f3318812b04f783",
+  "previousHead": "202653d35b745c9cad2e47cba248dcf9e4706946",
+  "runId": "rc20260922-35bce2d8",
+  "archiveSha256": "6c6d91286e62152b6fd3307e346a3b98775ee65baa094d81fc780aba0230be61",
+  "scope": "owned staging only; new synthetic database; no production",
+  "status": "executed on staging; activated, restored, application rollback rehearsed, candidate returned",
+  "receipt": "../STAGING-f346736-RAW.json",
+  "files": {
+    "CI-f346736.json": "65df573de7eae6586a0af519247dbd37178a5d2f2cf7f2abba1e22a1574d6f00",
+    "staging-candidate-f346736.py": "d5dc9710bfd72a0a08225a680571091a08779fc8d936126b07fa07823a0bf3ac",
+    "staging-acceptance-f346736.py": "16c8b05c98a6a4d5d32296f30e965ff5f020344a84f1e4c7dea29980e6d5d403",
+    "staging-rollback-f346736.py": "4bd569b389baa7b64786d67e84f1d253ffa1babac7518b71b7aed47828718fab",
+    "staging-business-f346736.mjs": "9660dd6d62e5825aca32cc724f821c0233a837b46c4af94e54dadc15435eef2c",
+    "LOCAL-BUNDLE-REHEARSAL.json": "402cad36278d1bf8f20d4aeec0bf04f90712a72e7ee11e26eb523da2c0c18391",
+    "staging-baseline-f346736.py": "b26184af468c1afa261dd48f1c92c46509fa5e285fe3aa0a008e851c7356575c"
+  }
+}

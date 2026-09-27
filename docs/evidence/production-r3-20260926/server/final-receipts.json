@@ -1,0 +1,153 @@
+{
+  "observedAtUtc": "2026-09-26T11:59:20.948781+00:00",
+  "mainArtifact": false,
+  "productionDeployed": false,
+  "beforeCleanup": {
+    "current": "/opt/cisme/releases/20260909-native-login",
+    "api": "active",
+    "worker": "active",
+    "migrationCount": 23,
+    "pendingOutbox": 2
+  },
+  "final-runtime-result.json": {
+    "sourceHead": "82656217d83d9ebeb6febf646597a395625c74d6",
+    "sourceTree": "4621ff2e07d5579947a02b4f7c636e9d68e1dd25",
+    "archiveSha256": "350de71b92aba931b42b9199ee2c3c5267464595dd15577af354fa037ffb22f2",
+    "manifestVerify": {
+      "migrations": 95,
+      "sourceHead": "82656217d83d9ebeb6febf646597a395625c74d6",
+      "sourceTree": "4621ff2e07d5579947a02b4f7c636e9d68e1dd25",
+      "artifacts": 101,
+      "verified": true,
+      "applied": false
+    },
+    "mainArtifact": false,
+    "productionDeployed": false,
+    "ugcScanner": "standalone scheduling enabled; no real provider or pending media",
+    "checks": [
+      {
+        "ready": 200,
+        "heartbeat": {
+          "completedAtUtc": "2026-09-26T11:47:35.705Z"
+        }
+      },
+      {
+        "unit": "cisme-r3-final-index",
+        "state": "MainPID=1633444\nUser=cisme\nActiveState=active"
+      },
+      {
+        "unit": "cisme-r3-final-worker",
+        "state": "MainPID=1633447\nUser=cisme\nActiveState=active"
+      },
+      {
+        "unauthenticatedPrivacy": 401
+      }
+    ],
+    "ok": true,
+    "live": {
+      "current": "/opt/cisme/releases/20260909-native-login",
+      "api": "active",
+      "worker": "active",
+      "journalCount": 23,
+      "pendingOutbox": 2
+    }
+  },
+  "partial-resume-result.json": {
+    "mainArtifact": false,
+    "productionTouched": false,
+    "sourceHead": "82656217d83d9ebeb6febf646597a395625c74d6",
+    "ok": true,
+    "interruption": "real PostgreSQL lock timeout",
+    "partialJournalCount": 24,
+    "finalJournalCount": 95,
+    "resumedApplied": 71,
+    "repeatedApplied": 0,
+    "originalSqlModified": false,
+    "oldDatabaseRestored": false
+  },
+  "openingDependencyPresence": {
+    "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": {
+      "configured": false,
+      "enabled": false
+    },
+    "COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_MERCHANT_ID": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_MERCHANT_SERIAL": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_API_V3_KEY_FILE": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_PLATFORM_TRUST_FILE": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_PAYMENT_NOTIFY_URL": {
+      "configured": false
+    },
+    "COMMERCE_FORMAL_REFUND_NOTIFY_URL": {
+      "configured": false
+    },
+    "COMMERCE_FULFILLMENT_MERCHANT_ID": {
+      "configured": false
+    },
+    "COMMERCE_FULFILLMENT_AUTHORIZATION_FILE": {
+      "configured": false
+    },
+    "WECHAT_MESSAGE_TOKEN": {
+      "configured": false
+    },
+    "WECHAT_MESSAGE_AES_KEY": {
+      "configured": false
+    },
+    "UGC_SCAN_BASE_URL": {
+      "configured": false
+    },
+    "UGC_LEGAL_APPROVAL_ID": {
+      "configured": false
+    }
+  },
+  "privacyCanaryBackup": {
+    "path": "/opt/cisme/backups/r3-20260926-1135z.bin",
+    "sha256": "dacaec8ca8a4045b037550cecccf5c659ac6267b42d2fe974fb87ea0ed976219",
+    "mode": "0600",
+    "originalAndRestoredObjectsRetained": true
+  },
+  "cleanup": {
+    "removedDisposableDirectories": [
+      "/opt/cisme/rehearsals/r3-20260926-1100",
+      "/opt/cisme/rehearsals/r3-20260926-1050"
+    ],
+    "isolatedPortsListening": {
+      "31956": false,
+      "31957": false,
+      "31958": false,
+      "31959": false,
+      "31960": false,
+      "31961": false
+    },
+    "activeOwnedUnits": [],
+    "privateEvidenceDirectory": "/opt/cisme/rehearsal-evidence/r3-20260926",
+    "productionBackupRemoved": false,
+    "cosObjectsDeleted": false
+  },
+  "afterCleanup": {
+    "current": "/opt/cisme/releases/20260909-native-login",
+    "api": "active",
+    "worker": "active",
+    "migrationCount": 23,
+    "pendingOutbox": 2
+  }
+}

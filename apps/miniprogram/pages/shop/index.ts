@@ -22,7 +22,7 @@ Page({
         return { ...item, image: nativeCatalogImage(item.image), displayPrice };
       });
       this.setData({ catalog, featured: catalog.items[0] ?? null, purchaseAvailable:catalog.items.some((item:any)=>item.purchaseEnabled), loading: false, error: "" });
-    } catch (error) { if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ catalog: null, featured: null, purchaseAvailable:false, loading: false, error: "商品目录暂时无法同步，请检查网络后重试。页面不会把加载失败误显示为可购买。" }); }
+    } catch (error) { if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ catalog: null, featured: null, purchaseAvailable:false, loading: false, error: "商品加载失败，请检查网络后重试。" }); }
   },
   openProduct(event: WechatMiniprogram.TouchEvent) {
     if (this.data.navigating) return;

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "6c0f38e621519cf1354e5d7adc0e3f52936554ec749ccbb3af0d343c06a309dc",
+  "tool": "wechatide 0.3.11 get_simulator_console",
+  "filter": "grep -Ein 'error|uncaught|exception|fail'",
+  "matches": 0,
+  "verifiedAt": "2026-09-25T16:38:17.273Z",
+  "result": "PASS_BOUNDED_FILTER",
+  "qualification": "The bounded post-route-open filter had no matches; this does not prove the complete historical console buffer is empty."
+}

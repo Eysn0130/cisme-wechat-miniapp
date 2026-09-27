@@ -1,14 +1,23 @@
 import { publishMemberIdentity } from "../../services/member-identity";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
-import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setSessionToken, suppressAuthenticationRedirectOnce } from "../../services/api";
+import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce } from "../../services/api";
 import { legalDocumentVersions, shouldUseDevelopmentIdentity } from "../../release-config";
 import type { LegalDocumentVersions } from "../../release-config";
-import { currentChromeStyle, motionDuration } from "../../services/layout";
+import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../services/layout";
 import { attributePendingShare } from "../../services/share";
+import { legalRequestFailure, parseLegalBootstrap, type LegalLoadError } from "../../services/legal-bootstrap";
 
 function scrollToAccountError() {
   wx.pageScrollTo({ selector: "#account-error-summary", duration: motionDuration(200) });
 }
+
+const legalReadErrors = new Set([
+  "协议服务暂时无法连接，请稍后重试。",
+  "当前用户协议尚未发布，请稍后重试。",
+  "当前隐私指引尚未发布，请稍后重试。",
+  "协议加载异常，请稍后重试。",
+  "协议暂时无法加载，请稍后重试。"
+]);
 
 function currentLegalDocuments(): LegalDocumentVersions | null {
   const account = wx.getAccountInfoSync();
@@ -17,28 +26,62 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
-  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, chromeStyle: currentChromeStyle(), loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "" },
+  data: { loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, phoneCapabilityKnown:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  async openAccountHelp(){
+    if(this.data.accountHelpBusy)return;
+    const attempt=++this.data.authAttempt;
+    this.setData({accountHelpBusy:true,error:""});
+    try{
+      const login=await wx.login();
+      if(!this.data.pageAlive||attempt!==this.data.authAttempt)return;
+      const result=await request<{sessionToken:string;scope:string}>({path:"/v1/identity/wechat/privacy-rights",
+        method:"POST",authMode:"public",data:{code:login.code}});
+      if(!this.data.pageAlive||attempt!==this.data.authAttempt)return;
+      if(result.scope!=="privacy_rights"||!result.sessionToken)throw new Error("PRIVACY_IDENTITY_INVALID");
+      setPrivacyRightsToken(result.sessionToken);
+      const landed=await navigateAfterAuthentication("/pages/privacy-rights/index");
+      if(this.data.pageAlive&&attempt===this.data.authAttempt&&landed!=="target")
+        this.setData({error:"身份已核验，隐私请求页暂时无法打开，请重试。"},scrollToAccountError);
+    }catch{
+      if(this.data.pageAlive&&attempt===this.data.authAttempt)
+        this.setData({error:"历史账号核验暂未完成，请重试。"},scrollToAccountError);
+    }finally{
+      if(this.data.pageAlive&&attempt===this.data.authAttempt)this.setData({accountHelpBusy:false});
+    }
+  },
   documents(): LegalDocumentVersions | null { return currentLegalDocuments() || this.data.serverLegalDocuments; },
   async syncLegalDocuments() {
     const previous = this.documents();
     const attempt = ++this.data.legalAttempt;
-    this.setData({legalLoading:true});
+    // Keep the accepted versions for comparison, but do not authorize a new
+    // login until the current read finishes. Returning from a legal page may
+    // otherwise leave the old ready/accepted pair actionable during refresh.
+    this.setData({legalLoading:true,legalTextsReady:false,legalLoadError:"",legalFailureCode:"",...(legalReadErrors.has(this.data.error)?{error:""}:{})});
     let documents = currentLegalDocuments();
+    let legalLoadError: LegalLoadError = "";
+    let legalFailureCode = "";
     if (!documents) {
       try {
-        const response = await request<{ready:boolean;documents:Array<{document_type:string;version:string}>}>({path:"/v1/legal",authMode:"public"});
+        const response = await request<unknown>({path:"/v1/legal",authMode:"public"});
         if (!this.data.pageAlive || attempt !== this.data.legalAttempt) return;
-        const privacy = response.documents.find(item=>item.document_type === "privacy")?.version;
-        const terms = response.documents.find(item=>item.document_type === "terms")?.version;
-        const crossBorder = response.documents.find(item=>item.document_type === "cross_border")?.version;
-        documents = response.ready && privacy && terms ? {privacy,terms,crossBorder,localFixture:false} : null;
-      } catch { documents = null; }
+        const result = parseLegalBootstrap(response);
+        documents = result.documents;
+        legalLoadError = result.error;
+        legalFailureCode = result.diagnostic;
+      } catch (error) {
+        documents = null;
+        const failure = legalRequestFailure(error);
+        legalLoadError = failure.error;
+        legalFailureCode = failure.diagnostic;
+      }
       if (!this.data.pageAlive || attempt !== this.data.legalAttempt) return;
       this.setData({ serverLegalDocuments: documents });
     }
     this.setData({
       legalTextsReady: Boolean(documents),
       legalLoading: false,
+      legalLoadError,
+      legalFailureCode,
       crossBorderRequired: Boolean(documents?.crossBorder),
       crossBorderAccepted: documents && previous?.crossBorder === documents.crossBorder ? this.data.crossBorderAccepted : false,
       localLegalFixture: documents?.localFixture === true,
@@ -57,8 +100,8 @@ Page({
       }
     }
   },
-  onShow() { this.data.pageVisible = true; if (this.data.leaving) return; if(getApp<IAppOption>().globalData.sessionToken)this.setData({pendingDestination:this.data.pendingDestination || "/pages/profile/index"}); void this.syncLegalDocuments(); void this.loadCapabilities(); },
-  onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1; if (this.data.avatarBusy) this.setData({avatarBusy:false}); },
+  onShow() { this.data.pageVisible = true; if (this.data.leaving) return; const reducedMotion=shouldReduceMotion(); this.setData({reducedMotion,heroMotionActive:!reducedMotion}); if(getApp<IAppOption>().globalData.sessionToken)this.setData({pendingDestination:this.data.pendingDestination || "/pages/profile/index"}); void this.syncLegalDocuments(); void this.loadCapabilities(); },
+  onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1; this.setData({heroMotionActive:false,...(this.data.avatarBusy?{avatarBusy:false}:{})}); },
   async loadMemberIdentity() {
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (!token) return;
@@ -70,7 +113,7 @@ Page({
       return {...me,avatarUrl};
     } catch { /* Destination pages refresh independently; profile sync never blocks login. */ }
   },
-  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
+  onResize() { const reducedMotion=shouldReduceMotion(); this.setData({ chromeStyle: currentChromeStyle(),reducedMotion,heroMotionActive:this.data.pageVisible&&!reducedMotion }); },
   onUnload() {
     this.data.pageAlive = false;
     this.data.pageVisible = false;
@@ -91,7 +134,7 @@ Page({
   async openTerms() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: "用户协议正在准备，发布后即可自主注册。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议加载异常，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "当前用户协议尚未发布，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {
@@ -110,7 +153,7 @@ Page({
   openPrivacy() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: "隐私指引正在准备，发布后即可自主注册。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议加载异常，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "当前隐私指引尚未发布，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {
@@ -126,24 +169,12 @@ Page({
     }
     wx.navigateTo({ url: "/pages/legal/index?type=privacy", fail: () => this.setData({error:"隐私指引暂时无法打开，请重试。"},scrollToAccountError) });
   },
-  async openLegalDocuments() {
-    if (this.data.loading || this.data.leaving) return;
-    try {
-      const choice = await wx.showActionSheet({ itemList: ["查看用户协议", "查看隐私保护指引"] });
-      if (!this.data.pageAlive) return;
-      if (choice.tapIndex === 0) await this.openTerms();
-      else if (choice.tapIndex === 1) this.openPrivacy();
-    } catch (error) {
-      if (/cancel/i.test((error as { errMsg?: string }).errMsg ?? "")) return;
-      if (this.data.pageAlive) this.setData({ error: "协议阅读入口暂时无法打开，请重试。" }, scrollToAccountError);
-    }
-  },
   async loadCapabilities() {
     const attempt=++this.data.capabilityAttempt;
     try {
       const result=await request<{phoneBindingEnabled:boolean}>({path:"/v1/identity/capabilities",authMode:"public"});
-      if(this.data.pageAlive && attempt===this.data.capabilityAttempt && !this.data.loading)this.setData({phoneBindingEnabled:result.phoneBindingEnabled === true});
-    } catch { if(this.data.pageAlive && attempt===this.data.capabilityAttempt)this.setData({phoneBindingEnabled:false}); }
+      if(this.data.pageAlive && attempt===this.data.capabilityAttempt && !this.data.loading)this.setData({phoneBindingEnabled:result.phoneBindingEnabled === true,phoneCapabilityKnown:true});
+    } catch { if(this.data.pageAlive && attempt===this.data.capabilityAttempt)this.setData({phoneBindingEnabled:false,phoneCapabilityKnown:false}); }
   },
   loginTap() {
     // Native open-type owns the gesture when enabled. Do not race wx.login
@@ -209,6 +240,7 @@ Page({
       }
       return;
     }
+    if (this.data.legalLoading && !this.data.legalTextsReady) return;
     if (!this.data.agreementAccepted) {
       this.setData({ error: "请先阅读并同意服务条款与隐私保护指引" }, scrollToAccountError);
       return;
@@ -222,8 +254,9 @@ Page({
       this.setData({error:"请阅读境外存储告知并单独选择是否同意；不同意仍可浏览公开社区。"},scrollToAccountError);
       return;
     }
+    const legalAttempt = this.data.legalAttempt;
     const attempt = this.data.authAttempt + 1;
-    this.setData({ authAttempt: attempt, loading: true, identityCommitStarted: false, error: "" });
+    this.setData({ authAttempt: attempt, loading: true, identityCommitStarted: false, error: "", accountHelpAvailable:false });
     try {
       const account = wx.getAccountInfoSync();
       const base = { displayName: "CISME 会员", consents: [{ documentType: "privacy", version: legalDocuments.privacy }, { documentType: "terms", version: legalDocuments.terms }] };
@@ -239,6 +272,13 @@ Page({
       } else {
         const login = await wx.login();
         if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
+        // wx.login is asynchronous. A refresh started after the tap must not
+        // submit the previously captured consent versions when it returns.
+        if (this.data.legalAttempt !== legalAttempt || !this.data.agreementAccepted ||
+          (legalDocuments.crossBorder && !this.data.crossBorderAccepted)) {
+          this.setData({error:"协议状态已更新，请确认后重新登录。"},scrollToAccountError);
+          return;
+        }
         this.setData({ identityCommitStarted: true });
         wx.enableAlertBeforeUnload({ message: "身份确认请求已经发送。离开页面不会撤回服务端核验，是否继续离开？" });
         result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, code: login.code } });
@@ -262,9 +302,15 @@ Page({
       const landed = await navigateAfterAuthentication(pendingDestination);
       if (this.data.pageAlive && landed !== "target") this.setData({ error: "身份已经确认，但原目标页面暂时无法打开。请点击主按钮再次打开，不会重复创建会员身份。" }, scrollToAccountError);
     } catch (error) {
-      if (this.data.pageAlive && this.data.authAttempt === attempt) this.setData({ error: this.data.identityCommitStarted
-        ? "暂未收到身份确认结果，服务端可能已完成核验。请检查网络后重试，本页尚未切换会员身份。"
-        : "微信身份确认暂时未完成，请重试。身份核验请求尚未发送。" }, scrollToAccountError);
+      if (this.data.pageAlive && this.data.authAttempt === attempt) {
+        const code=(error as {code?:string})?.code;
+        const unavailable=code==="ACCOUNT_CLOSED"||code==="MEMBER_NOT_ACTIVE";
+        this.setData({accountHelpAvailable:code==="ACCOUNT_CLOSED",error:unavailable
+          ?code==="ACCOUNT_CLOSED"?"账号已注销。可重新核验微信身份，继续处理历史隐私请求。":"账号暂不可登录，请稍后重试或联系小程序客服。"
+          :this.data.identityCommitStarted
+            ?"暂未收到身份确认结果，服务端可能已完成核验。请检查网络后重试，本页尚未切换会员身份。"
+            :"微信身份确认暂时未完成，请重试。身份核验请求尚未发送。"},scrollToAccountError);
+      }
     } finally {
       if (this.data.authAttempt === attempt) {
         wx.disableAlertBeforeUnload();

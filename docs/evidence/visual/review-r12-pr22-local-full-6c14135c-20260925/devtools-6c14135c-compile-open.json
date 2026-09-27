@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "6c14135c366c58ba1fb412288f971f44ab857c670f0d82b6d9325140f23ed9a0",
+  "tool": "wechatide 0.3.11 simulator_open_page",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "routeCount": 40,
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/records/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/community/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/profile/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/account/index",
+      "query": "intent=login",
+      "result": "success"
+    },
+    {
+      "route": "pages/task/index",
+      "query": "id=77e6ad7a-e06b-4171-99db-660ced51ed2d",
+      "result": "success"
+    },
+    {
+      "route": "pages/submit/index",
+      "query": "id=a9807068-e561-442d-b0d7-9f503c823161",
+      "result": "success"
+    },
+    {
+      "route": "pages/progress/index",
+      "query": "id=a9807068-e561-442d-b0d7-9f503c823161",
+      "result": "success"
+    },
+    {
+      "route": "pages/points/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/post/index",
+      "query": "id=brand-scalp-ritual",
+      "result": "success"
+    },
+    {
+      "route": "pages/shop/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/product/index",
+      "query": "id=synthetic-acceptance-serum",
+      "result": "success"
+    },
+    {
+      "route": "pages/checkout/index",
+      "query": "product=synthetic-acceptance-serum&sku=84359ff1-3bfd-4edb-b2b4-417c0528665a&quantity=1",
+      "result": "success"
+    },
+    {
+      "route": "pages/orders/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "query": "id=5ae808bb-e90b-40ea-9eac-97cf056b05b6",
+      "result": "success"
+    },
+    {
+      "route": "pages/settings/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/invite/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/legal/index",
+      "query": "type=privacy",
+      "result": "success"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/support/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-product/index",
+      "query": "id=87b36b4a-3d52-4bdb-964f-80db8565a187",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "query": "id=01833a43-2b19-42b3-8b7c-c2624bb5c468",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-support/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "query": "id=9a26ddcd-93e8-4989-8e80-8be7607b725d",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-members/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-member/index",
+      "query": "id=8990a1c0-5bdb-42c4-98cf-69cec296dda5",
+      "result": "success"
+    },
+    {
+      "route": "pages/referral/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/community-post/index",
+      "query": "id=7eee6e80-4a79-4cb7-a773-ef64f13d17ce",
+      "result": "success"
+    },
+    {
+      "route": "pages/community-author/index",
+      "query": "id=082ec38b-75c7-45ce-9696-ae78ccd030ab",
+      "result": "success"
+    },
+    {
+      "route": "pages/community-review/index",
+      "query": "id=d84e163c-676d-44d8-a873-f3f2d1a49986",
+      "result": "success"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/commission/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "query": "",
+      "result": "success"
+    },
+    {
+      "route": "pages/aftersale/index",
+      "query": "orderId=01833a43-2b19-42b3-8b7c-c2624bb5c468",
+      "result": "success"
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "query": "",
+      "result": "success"
+    }
+  ],
+  "verifiedAt": "2026-09-25T10:32:26.686Z",
+  "result": "PASS_LOCAL_SYNTHETIC",
+  "qualification": "All route opens used the query recorded here after authenticated local API/session preflight; this is not physical-device acceptance."
+}

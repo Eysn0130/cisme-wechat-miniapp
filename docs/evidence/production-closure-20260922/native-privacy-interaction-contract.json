@@ -1,0 +1,38 @@
+{
+  "route": "pages/management-privacy/index",
+  "primaryContract": "PRD R4 §6.6 / §11 and Owner's 2026-09-22 sole-native management instruction: view actual privacy requests and save audited replies; a reply cannot claim export, erasure, withdrawal or closure execution.",
+  "acceptanceReferences": [
+    "PRD P20",
+    "PRD A11",
+    "native privacy capability/queue/respond"
+  ],
+  "statesRequired": [
+    "loading",
+    "empty",
+    "authorized queue",
+    "selected request",
+    "read-only execution state",
+    "reply saving",
+    "version conflict",
+    "uncertain network result",
+    "retry",
+    "expired session",
+    "revoked capability",
+    "blocked member",
+    "hide/show",
+    "account switch",
+    "keyboard",
+    "small screen",
+    "iOS",
+    "Android",
+    "error",
+    "resume"
+  ],
+  "interaction": "One queue and in-page request detail, current status and due date first, one save action. Back from detail returns to queue. Hide clears member request bodies and draft replies. No browser session, copied credential, or persistent local PII cache.",
+  "authority": "Signed native member, environment-bound privacy.request.manage capability. Server locks request then current authority before reply; revocation after preflight is rechecked. Legacy operator roles do not authorize this native endpoint.",
+  "recovery": "409 reads latest facts without automatic resubmission. Timeout disables writes until explicit fresh read. Duplicate taps share one in-flight UI operation; expectedVersion blocks replay effects. Six-second foreground reads detect revoked access; every server action enforces authorization immediately.",
+  "design": "Existing CISME native custom topbar/capsule offsets, page/card/primary tokens. Rows have text status and readable preview; full message is in detail. Textarea supports native keyboard adjustment, safe-area padding, explicit labels and disabled visuals. No new component dependency.",
+  "bounds": "This increment is request triage/reply, not a claim that full production export/erasure executors are complete.",
+  "nativeAccepted": false,
+  "physicalDevicesAccepted": false
+}

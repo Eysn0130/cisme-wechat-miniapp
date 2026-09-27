@@ -1,5 +1,5 @@
 <view class="chrome {{chromeHidden ? 'chrome--hidden' : ''}} {{reducedMotion ? 'chrome--reduced-motion' : ''}}" style="{{chromeStyle}}">
-  <button wx:if="{{communityFabMounted}}" class="community-fab {{communityFabVisible ? 'community-fab--visible' : ''}} {{switching || externalBusy || chromeHidden ? 'control--disabled' : ''}}" bindtap="activateCommunityFab" disabled="{{switching || externalBusy || chromeHidden}}" aria-label="发布护理记录">
+  <button wx:if="{{communityFabMounted && communityPublisherAvailable}}" class="community-fab {{communityFabVisible ? 'community-fab--visible' : ''}} {{switching || externalBusy || chromeHidden ? 'control--disabled' : ''}}" bindtap="activateCommunityFab" disabled="{{switching || externalBusy || chromeHidden}}" aria-label="创作护理故事">
     <view class="community-fab__halo"></view>
     <image class="community-fab__icon" src="/assets/icons/plus-white.svg" mode="aspectFit" />
   </button>

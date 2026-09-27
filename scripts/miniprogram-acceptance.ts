@@ -1,3 +1,5 @@
+import { fulfillmentRuntime } from "../services/api/src/fulfillmentRuntime.js";
+import { nativeFulfillmentFixture } from "./native-fulfillment-fixture.js";
 import { randomBytes } from "node:crypto";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -9,11 +11,13 @@ import { createApp } from "../services/api/src/server.js";
 import { createPool } from "../services/api/src/db.js";
 import { createApiGatewayStorage } from "../services/api/src/storage.js";
 
-const acceptancePort = 18_080;
+const acceptancePort = Number(process.env.CISME_ACCEPTANCE_PORT ?? 18080);
+if(!Number.isInteger(acceptancePort)||acceptancePort<18080||acceptancePort>18089)throw new Error("ACCEPTANCE_LOOPBACK_PORT_INVALID");
 const acceptanceHost = "127.0.0.1";
 const externalUserId = "cisme-mini-acceptance-member";
-const outputDirectory = resolve(process.cwd(), "tmp/miniprogram-acceptance");
+const outputDirectory = resolve(process.cwd(), acceptancePort===18080?"tmp/miniprogram-acceptance":`tmp/miniprogram-acceptance-${acceptancePort}`);
 const fixturePath = resolve(outputDirectory, "fixture.json");
+const syntheticFulfillment = process.argv.includes("--synthetic-fulfillment");
 const syntheticCommunity = process.argv.includes("--synthetic-community");
 
 function fail(message: string): never {
@@ -59,6 +63,9 @@ const config = loadConfig({
   CONTACT_HASH_KEY: secret(),
   CONTACT_KEY_VERSION: "local-acceptance-v1",
   COMMERCE_ORDER_FLOW_ENABLED: "true",
+  COMMERCE_FULFILLMENT_ENABLED: "true",
+  WECHAT_APP_ID: "wx4eac2d4fb11d299b",
+  COMMERCE_FULFILLMENT_MERCHANT_ID: "1900000001",
   COMMERCE_QUOTE_TTL_MINUTES: "10",
   COMMERCE_PENDING_ORDER_TTL_MINUTES: "120",
   POINTS_RULES_ENABLED: "true",
@@ -79,6 +86,7 @@ const config = loadConfig({
 const pool = createPool(databaseUrl, config.database);
 const storage = createApiGatewayStorage(config);
 let app: Awaited<ReturnType<typeof createApp>> | null = null;
+let syntheticReceiptOrderNumber = '';
 
 type InjectResponse = { statusCode: number; json(): unknown };
 
@@ -94,12 +102,14 @@ async function seedFixtures() {
   await resetDatabase(pool);
   await seedTestCampaign(pool);
   await storage.ensureReady();
-  app = await createApp({ config, pool, storage });
+  app = await createApp({ config, pool, storage, ...(syntheticFulfillment?{shippingTestChannel:{query:async()=>({decision:"matched" as const,platformOrderState:2,inComplaint:false}),
+    queryOrder:async binding=>{if(binding.merchantOrderNumber!==syntheticReceiptOrderNumber)throw Error('SYNTHETIC_RECEIPT_BINDING_REQUIRED');
+      return {platformOrderState:2,inComplaint:false};},uploadOnce:async()=>{throw Error("SYNTHETIC_QUERY_ONLY");}}}:{}) });
 
   await pool.query(`INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active)
     VALUES
-      ('privacy','local-acceptance-v1','本地验收隐私说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','local@example.invalid',true),
-      ('terms','local-acceptance-v1','本地验收服务说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','local@example.invalid',true)`);
+      ('privacy','local-acceptance-v1','本地验收隐私说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','小程序客服申请',true),
+      ('terms','local-acceptance-v1','本地验收服务说明','仅用于隔离的开发者工具验收，不构成正式发布文本。','CISME 本地验收','小程序客服申请',true)`);
 
   const identity = body<any>(await app.inject({
     method: "POST",
@@ -130,6 +140,9 @@ async function seedFixtures() {
       VALUES($1,$2,'local-acceptance-admin','Isolated Mini Program acceptance fixture','test','local_acceptance',now()+interval '8 hours')`,
     [identity.memberId, capability]);
   }
+
+  body(await app.inject({method:"POST",url:"/v1/me/privacy-requests",headers:auth,
+    payload:{kind:"access",message:"我想查阅自己的护理记录和账号资料。"}}),"PRIVACY_REQUEST");
 
   // This process is test-only, loopback-bound, and resetDatabase verifies the
   // disposable runner's ownership marker before any fixture is created.
@@ -193,7 +206,7 @@ async function seedFixtures() {
       name: "合成验收护理精华",
       subtitle: "仅用于本地健康态与订单链路验收",
       description: "本商品、价格、库存和订单均为隔离测试数据，不代表真实销售承诺。",
-      imagePath: "/assets/cisme/community-card-purple-bottle-v1.jpg",
+      imagePath: "/assets/cisme/synthetic-owned-acceptance.jpg",
       sourceKind: "synthetic_test",
       sku: { code: "SYNTH_ACCEPTANCE_30", label: "合成 30ml", priceCents: 26900 }
     }
@@ -235,6 +248,31 @@ async function seedFixtures() {
     headers: { ...auth, "idempotency-key": "acceptance-order-pending-0001" },
     payload: { quoteId: quote.id }
   }), "ORDER_PENDING");
+
+  const paidFixture = syntheticFulfillment ? await nativeFulfillmentFixture(pool,config,pendingOrder.id) : null;
+  if(paidFixture){
+    syntheticReceiptOrderNumber=paidFixture.number;
+    const version=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[paidFixture.id])).rows[0].version;
+    const serverTime=(await pool.query('SELECT clock_timestamp() time')).rows[0].time.toISOString();
+    body(await app.inject({method:'POST',url:`/v1/management/commerce/orders/${paidFixture.id}/shipment`,
+      headers:{...auth,'idempotency-key':'native-receipt-dispatch-0001'},payload:{carrierCode:'SF',carrierName:'合成承运商',
+        trackingNumber:'SYNTHETICRECEIPT01',shippedAt:serverTime,evidenceReference:'synthetic-receipt-proof',expectedOrderVersion:version}}),'RECEIPT_SHIPMENT');
+  }
+  let recoveryFixture:null|{id:string;number:string;paymentEvidence:string}=null;
+  if(syntheticFulfillment){
+    recoveryFixture=await nativeFulfillmentFixture(pool,config,pendingOrder.id);
+    const failed=fulfillmentRuntime(config,pool,{query:async()=>{throw Error('Synthetic provider outage');},uploadOnce:async()=>{throw Error('Synthetic upload forbidden');}})!;
+    const version=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[recoveryFixture.id])).rows[0].version;
+    const serverTime=(await pool.query('SELECT clock_timestamp() time')).rows[0].time.toISOString();
+    const shipment=await failed.service.dispatch(identity.memberId,recoveryFixture.id,'synthetic-recovery-dispatch',{
+      carrierCode:'SF',carrierName:'合成承运商',trackingNumber:'SYNTHETICRECOVERY01',shippedAt:serverTime,evidenceReference:'synthetic-recovery-proof',expectedOrderVersion:version});
+    const job=(await pool.query('SELECT shipping_sync_id FROM commerce_shipment WHERE id=$1',[shipment.id])).rows[0].shipping_sync_id;
+    for(let attempt=0;attempt<5;attempt++){
+      await pool.query("UPDATE commerce_shipping_sync SET next_attempt_at=clock_timestamp()-interval '1 second' WHERE id=$1",[job]);
+      await failed.sync.processOne(job);
+    }
+  }
+
 
   const cancelledQuote = body<any>(await app.inject({
     method: "POST",
@@ -355,6 +393,8 @@ async function seedFixtures() {
     developmentIdentity: { externalUserId },
     routes: {
       ...communityRoutes,
+      ...(paidFixture?{managementPaidOrder:{path:"pages/management-order-detail/index",query:`id=${paidFixture.id}`}}:{}),
+      aftersale: {path:"pages/aftersale/index",query:paidFixture?`orderId=${paidFixture.id}`:""},
       managementMember: { path: "pages/management-member/index", query: `id=${identity.memberId}` },
       product: { path: "pages/product/index", query: `id=${createdProduct.code}` },
       checkout: { path: "pages/checkout/index", query: `product=${createdProduct.code}&sku=${sku.id}&quantity=1` },
@@ -362,6 +402,7 @@ async function seedFixtures() {
       submit: { path: "pages/submit/index", query: `id=${claim.submissionId}` },
       progress: { path: "pages/progress/index", query: `id=${claim.submissionId}` },
       orderDetail: { path: "pages/order-detail/index", query: `id=${pendingOrder.id}` },
+      ...(paidFixture?{orderDetailPaid:{path:'pages/order-detail/index',query:`id=${paidFixture.id}`}}:{}),
       managementProduct: { path: "pages/management-product/index", query: `id=${createdProduct.productId}` },
       managementOrderDetail: { path: "pages/management-order-detail/index", query: `id=${pendingOrder.id}` },
       managementSupportChat: { path: "pages/management-support-chat/index", query: `id=${supportMessage.conversation.id}` },
@@ -370,6 +411,8 @@ async function seedFixtures() {
     },
     facts: {
       pendingOrderId: pendingOrder.id,
+      ...(paidFixture?{paidFixture}:{}),
+      ...(recoveryFixture?{recoveryFixture}:{}),
       cancelledOrderId: cancelledOrder.id,
       productId: createdProduct.productId,
       productCode: createdProduct.code,

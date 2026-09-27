@@ -6,7 +6,11 @@ import { type ObjectStorage } from "../../api/src/storage.js";
 import { EVENT_DELIVERY_POLICIES, EVENT_TYPES, type EventType } from "@cisme/contracts";
 import { expirePendingOrders } from "../../api/src/commerceOrders.js";
 import { safeFailureFields } from "../../api/src/observability.js";
-import { SyntheticPrivacyExecution } from "../../api/src/privacyExecution.js";
+import { SyntheticPrivacyExecution, purgeExpiredPrivacyArtifacts } from "../../api/src/privacyExecution.js";
+import { purgeDueOrdinarySupport, purgeDueLinkedSupport, purgeDueMixedOrdinarySupport } from "../../api/src/supportRetention.js";
+import type { AccountClosure } from "../../api/src/accountClosure.js";
+import { FormalPrivacyExecution } from '../../api/src/formalPrivacyExecution.js';
+import type { AppConfig } from '@cisme/config';
 
 interface EventRow {
   id: string;
@@ -16,7 +20,8 @@ interface EventRow {
   attempts: number;
 }
 
-interface WorkerGates { ugcGoLiveGate: boolean; privacyEnvironment?:string; privacySyntheticExportKey?:string|null }
+interface WorkerGates { ugcGoLiveGate: boolean; privacyEnvironment?:string; privacySyntheticExportKey?:string|null;
+  accountClosure?:AccountClosure;formalPrivacyConfig?:AppConfig }
 type DeliveryOutcome = "applied" | "suppressed" | "audit_only";
 
 export const WORKER_MAX_ATTEMPTS = 5;
@@ -169,14 +174,30 @@ export async function runWorkerCycle(pool: pg.Pool, storage: ObjectStorage, gate
   const privacyExecutor=gates.privacyEnvironment==='test'&&gates.privacySyntheticExportKey
     ?new SyntheticPrivacyExecution(pool,gates.privacyEnvironment,gates.privacySyntheticExportKey):null;
   const privacyExports=privacyExecutor?Number(await privacyExecutor.runExportOnce()):0;
+  const formalExports=gates.formalPrivacyConfig?.privacy.formalExportKey
+    ?Number(await new FormalPrivacyExecution(pool,gates.formalPrivacyConfig,storage).runExportOnce()):0;
   const privacyErasures=privacyExecutor?Number(await privacyExecutor.runProfileErasureOnce()):0;
-  const purgedPrivacyArtifacts=privacyExecutor?await privacyExecutor.purgeArtifacts():0;
-  return { published, cleaned, expiredOrders, privacyExports, privacyErasures, purgedPrivacyArtifacts };
+  const purgedPrivacyArtifacts=await purgeExpiredPrivacyArtifacts(pool);
+  const purgedOrdinarySupport=await purgeDueOrdinarySupport(pool,new Date(),20,gates.accountClosure);
+  const purgedMixedOrdinarySupport=gates.accountClosure
+    ?await purgeDueMixedOrdinarySupport(pool,gates.accountClosure):0;
+  const purgedLinkedSupport=await purgeDueLinkedSupport(pool,new Date(),20,gates.accountClosure);
+  return { published, cleaned, expiredOrders, privacyExports, formalExports,privacyErasures,
+    purgedPrivacyArtifacts,purgedOrdinarySupport,purgedMixedOrdinarySupport,purgedLinkedSupport };
 }
 
-export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates, onError: (error: unknown) => void) {
+export function startBackgroundWorker(pool: pg.Pool, storage: ObjectStorage, gates: WorkerGates,
+  onError: (error: unknown) => void, onCycleSuccess?: () => Promise<void>) {
+  let lastClosureReplay=0;
   return startWorkerLoop(async () => {
+    if(gates.accountClosure&&Date.now()-lastClosureReplay>=5*60_000){
+      await gates.accountClosure.replayPendingErasure(pool);
+      lastClosureReplay=Date.now();
+    }
     const result = await runWorkerCycle(pool, storage, gates);
-    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 || result.privacyExports>0 || result.privacyErasures>0;
+    await onCycleSuccess?.();
+    return result.published === 50 || result.cleaned === 50 || result.expiredOrders === 50 ||
+      result.privacyExports>0 || result.formalExports>0 || result.privacyErasures>0 ||
+      result.purgedOrdinarySupport===20 || result.purgedMixedOrdinarySupport===20 || result.purgedLinkedSupport===20;
   }, onError);
 }

@@ -1,0 +1,11 @@
+[Unit]
+Description=Probe CISME production independently every minute
+
+[Timer]
+OnBootSec=45s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=cisme-production-health.service
+
+[Install]
+WantedBy=timers.target

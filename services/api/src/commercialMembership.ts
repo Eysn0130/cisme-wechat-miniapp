@@ -11,6 +11,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const codePattern = /^CM[A-HJ-NP-Z2-9]{10}$/;
 const codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const engineeringMembershipMonths=12;
+const engineeringRateOptions=[2000,2500,3000,3500] as const;
 const nextShanghaiMidnight="(date_trunc('day',clock_timestamp() AT TIME ZONE 'Asia/Shanghai')+interval '1 day') AT TIME ZONE 'Asia/Shanghai'";
 function member(id: string | undefined): string {
   if (!id) throw new DomainError("AUTH_REQUIRED", "请先登录后继续", 401);
@@ -29,9 +30,12 @@ function codeValue(): string {
   const bytes = randomBytes(10);
   return `CM${Array.from(bytes, byte => codeAlphabet[byte! % codeAlphabet.length]).join("")}`;
 }
-function rate(value: unknown): number {
-  if (!Number.isInteger(value) || ![2000,2500,3000,3500].includes(Number(value))) {
-    throw new DomainError("COMMISSION_RATE_INVALID", "新费率仅支持 20%、25%、30%、35%", 422);
+function rate(value: unknown,engineeringRules:boolean): number {
+  if (!Number.isInteger(value) || (engineeringRules
+    ? !engineeringRateOptions.some(option=>option===Number(value))
+    : Number(value)<0||Number(value)>10000)) {
+    throw new DomainError("COMMISSION_RATE_INVALID", engineeringRules
+      ? "新费率仅支持 20%、25%、30%、35%" : "费率须为 0.00%–100.00%", 422);
   }
   return Number(value);
 }
@@ -45,9 +49,29 @@ export class CommercialMembershipService {
   constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService,
     private readonly environment:AppConfig["env"]) {}
 
-  private requireEngineeringRules(){
-    if(this.environment!=="test"&&this.environment!=="development")
-      throw new DomainError("COMMERCIAL_RULES_NOT_APPROVED","商业资格与推荐规则尚未正式启用",503);
+  private get engineeringRules(){return this.environment==="test"||this.environment==="development";}
+
+  /** Production referral invitations require a reviewed, effective rate.
+   * Migration seed rates never qualify; no historical snapshot is changed. */
+  private async effectiveReferralRate(client:DbClient|pg.Pool,sponsorId:string):Promise<number|null>{
+    const result=await client.query<{basis_points:number|null}>(`SELECT CASE WHEN member_rate.action='override'
+        THEN member_rate.basis_points ELSE global_rate.basis_points END AS basis_points
+      FROM (SELECT 1) seed
+      LEFT JOIN LATERAL (SELECT action,basis_points FROM commission_rate_rule
+        WHERE member_id=$1 AND state='active' AND effective_at<=clock_timestamp()
+          AND ($2::boolean OR created_by<>'migration')
+        ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) member_rate ON true
+      LEFT JOIN LATERAL (SELECT basis_points FROM commission_rate_rule
+        WHERE member_id IS NULL AND state='active' AND effective_at<=clock_timestamp()
+          AND ($2::boolean OR created_by<>'migration')
+        ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true`,[sponsorId,this.engineeringRules]);
+    return result.rows[0]?.basis_points??null;
+  }
+
+  private async requireEffectiveReferralRate(client:DbClient|pg.Pool,sponsorId:string){
+    if(this.engineeringRules)return;
+    if((await this.effectiveReferralRate(client,sponsorId))===null)
+      throw new DomainError('REFERRAL_POLICY_UNAVAILABLE','推荐权益尚未开放，请稍后查看',409);
   }
 
   private async balanceFor(referrerId:string){
@@ -73,17 +97,19 @@ export class CommercialMembershipService {
 
   async myStatus(memberId: string | undefined) {
     const owner = member(memberId);
-    const [status,balance] = await Promise.all([this.pool.query(`SELECT m.state,m.effective_at,m.expires_at,m.version,c.code,c.state AS code_state,a.status AS account_status,
+    const [status,balance,referralRate] = await Promise.all([this.pool.query(`SELECT m.state,m.effective_at,m.expires_at,m.version,c.code,c.state AS code_state,a.status AS account_status,
       (a.status='active' AND m.state='active' AND m.effective_at<=now() AND (m.expires_at IS NULL OR m.expires_at>now())) AS eligible_now,
       (SELECT count(*)::int FROM commercial_referral_relation r WHERE r.referrer_member_id=$1) AS direct_referral_count,
       (SELECT count(*)::int FROM commission_order_snapshot s JOIN commerce_order o ON o.id=s.order_id
         WHERE s.referrer_member_id=$1 AND s.source_kind='verified_commerce' AND o.status='paid'
           AND EXISTS(SELECT 1 FROM commission_payment_inbox p WHERE p.order_id=o.id AND p.state='applied')) AS verified_order_count
       FROM commercial_membership m JOIN member a ON a.id=m.member_id LEFT JOIN commercial_referral_code c ON c.member_id=m.member_id WHERE m.member_id=$1`, [owner]),
-      this.balanceFor(owner)]);
+      this.balanceFor(owner),this.effectiveReferralRate(this.pool,owner)]);
     const row = status.rows[0];
-    const eligible = Boolean((this.environment==="test"||this.environment==="development") && row?.eligible_now===true);
-    return { version: 1, eligible, membershipState: row?.state ?? "none", effectiveAt: row?.effective_at ?? null,
+    const eligible = row?.eligible_now===true;
+    return { version: 1, eligible, referralAvailable:eligible &&
+      (this.engineeringRules || referralRate!==null) && row?.code_state!=="disabled",
+      membershipState: row?.state ?? "none", effectiveAt: row?.effective_at ?? null,
       expiresAt: row?.expires_at ?? null, referralCode: eligible && row.code_state === "active" ? row.code : null,
       referralCodeDisabled:row?.code_state === "disabled",
       directReferralCount: Number(row?.direct_referral_count ?? 0), verifiedOrderCount: Number(row?.verified_order_count ?? 0),
@@ -92,7 +118,6 @@ export class CommercialMembershipService {
   }
 
   async ensureCode(memberId: string | undefined) {
-    this.requireEngineeringRules();
     const owner = member(memberId);
     return transaction(this.pool, async client => {
       const m = (await client.query(`SELECT m.state,m.effective_at,m.expires_at,a.status AS account_status,
@@ -100,6 +125,7 @@ export class CommercialMembershipService {
         FROM commercial_membership m JOIN member a ON a.id=m.member_id WHERE m.member_id=$1 FOR UPDATE OF m`, [owner])).rows[0];
       if (!m || m.account_status !== "active" || m.state !== "active" || m.eligible_now!==true)
         throw new DomainError("COMMERCIAL_MEMBERSHIP_REQUIRED", "当前账号尚无有效推荐资格", 403);
+      await this.requireEffectiveReferralRate(client,owner);
       const existing = (await client.query("SELECT code,state FROM commercial_referral_code WHERE member_id=$1", [owner])).rows[0];
       if (existing) {
         if (existing.state !== "active") throw new DomainError("REFERRAL_CODE_DISABLED", "推荐码已停用，请联系平台", 409);
@@ -120,7 +146,6 @@ export class CommercialMembershipService {
   }
 
   async confirmReferral(memberId: string | undefined, principalId: string | undefined, codeInput: unknown, confirmationKey: unknown) {
-    this.requireEngineeringRules();
     const buyer = member(memberId);
     const code = typeof codeInput === "string" ? codeInput.trim().toUpperCase() : "";
     const key = typeof confirmationKey === "string" ? confirmationKey.trim() : "";
@@ -142,6 +167,7 @@ export class CommercialMembershipService {
       if (!sponsor || sponsor.state !== "active" || sponsor.membership_state !== "active" || sponsor.account_status !== "active"
         || sponsor.eligible_now !== true)
         throw new DomainError("REFERRAL_CODE_UNAVAILABLE", "推荐码无效或已停用", 409);
+      await this.requireEffectiveReferralRate(client,sponsor.member_id);
       if (sponsor.member_id === buyer) throw new DomainError("REFERRAL_SELF_FORBIDDEN", "不能确认自己的推荐码", 422);
       await client.query(`INSERT INTO commercial_referral_relation(referred_member_id,referrer_member_id,referral_code_id,confirmation_key,confirmed_by,confirmed_at)
         VALUES($1,$2,$3,$4,$5,clock_timestamp())`, [buyer,sponsor.member_id,sponsor.id,key,principalId]);
@@ -153,7 +179,6 @@ export class CommercialMembershipService {
   }
 
   async previewReferral(memberId:string|undefined,codeInput:unknown){
-    this.requireEngineeringRules();
     const buyer=member(memberId),code=typeof codeInput==="string"?codeInput.trim().toUpperCase():"";
     if(!codePattern.test(code))throw new DomainError("REFERRAL_CODE_INVALID","推荐码格式无效",422);
     const row=(await this.pool.query(`SELECT c.code,c.member_id,now() AS verified_at,
@@ -165,6 +190,7 @@ export class CommercialMembershipService {
       JOIN member a ON a.id=c.member_id LEFT JOIN member_profile profile ON profile.member_id=a.id
       WHERE c.code=$1`,[code,buyer])).rows[0];
     if(!row||!row.eligible_now)throw new DomainError("REFERRAL_CODE_UNAVAILABLE","推荐码无效或已停用",404);
+    await this.requireEffectiveReferralRate(this.pool,row.member_id);
     if(row.member_id===buyer)throw new DomainError("REFERRAL_SELF_FORBIDDEN","不能确认自己的推荐码",422);
     return {code,sponsorLabel:row.public_name??`CISME 商业会员 · ${code.slice(-4)}`,
       relationState:row.current_referrer?row.current_referrer===row.member_id?"already_bound_same":"already_bound_other":"unbound",
@@ -184,9 +210,11 @@ export class CommercialMembershipService {
       JOIN member sponsor ON sponsor.id=r.referrer_member_id
       LEFT JOIN LATERAL (SELECT id,action,basis_points FROM commission_rate_rule
         WHERE state='active' AND effective_at<=$5 AND member_id=r.referrer_member_id
+          AND ($6::boolean OR created_by<>'migration')
         ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) member_rate ON true
       LEFT JOIN LATERAL (SELECT id,basis_points FROM commission_rate_rule
         WHERE state='active' AND effective_at<=$5 AND member_id IS NULL
+          AND ($6::boolean OR created_by<>'migration')
         ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true
       JOIN LATERAL (SELECT CASE WHEN member_rate.action='override' THEN member_rate.id ELSE global_rate.id END AS id,
         CASE WHEN member_rate.action='override' THEN member_rate.basis_points ELSE global_rate.basis_points END AS basis_points) rate
@@ -199,7 +227,8 @@ export class CommercialMembershipService {
         AND m.state='active' AND m.effective_at<=$5 AND (m.expires_at IS NULL OR m.expires_at>$5)
         AND c.state='active' AND sponsor.status='active'
       ON CONFLICT(order_id) DO NOTHING RETURNING order_id,basis_points,source_kind`,
-      [orderId,buyerId,cashMerchandiseCents,sourceKind,effectiveNow]);
+      [orderId,buyerId,cashMerchandiseCents,sourceKind,effectiveNow,
+        this.environment==='test'||this.environment==='development']);
     return result.rows[0] ?? null;
   }
 
@@ -269,10 +298,13 @@ export class CommercialMembershipService {
         FROM (SELECT 1) seed
         LEFT JOIN LATERAL (SELECT id,action,basis_points,effective_at FROM commission_rate_rule
           WHERE member_id=$1 AND state='active' AND effective_at<=now()
+            AND ($2::boolean OR created_by<>'migration')
           ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) member_rate ON true
         LEFT JOIN LATERAL (SELECT id,basis_points,effective_at FROM commission_rate_rule
           WHERE member_id IS NULL AND state='active' AND effective_at<=now()
-          ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true`, [id])
+            AND ($2::boolean OR created_by<>'migration')
+          ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) global_rate ON true`,
+          [id,this.environment==='test'||this.environment==='development'])
         :Promise.resolve({rows:[]}),
       canReadCommission?this.balanceFor(id):Promise.resolve(null),
     ]);
@@ -285,8 +317,12 @@ export class CommercialMembershipService {
         memberAction:rateRule.rows[0]?.member_action??null,memberActionEffectiveAt:rateRule.rows[0]?.member_action_effective_at??null }:null,
       scope:{referrals:canReadCommission,orders:canReadCommission&&canReadOrders,ownOrders:canReadOrders},
       commission:balance?{...balance,settlementAvailable:false}:null,
-      membershipPolicy:{kind:"engineering_calendar_v2",termMonths:engineeringMembershipMonths,serverTime:person.server_time,
-        renewalExpiresAt:person.renewal_expires_at,rateProposalSuggestedAt:person.rate_proposal_suggested_at} };
+      membershipPolicy:{kind:this.engineeringRules?"engineering_calendar_v2":"operator_explicit",
+        termMonths:this.engineeringRules?engineeringMembershipMonths:null,
+        rateOptions:this.engineeringRules?[...engineeringRateOptions]:[],
+        serverTime:person.server_time,
+        renewalExpiresAt:this.engineeringRules?person.renewal_expires_at:null,
+        rateProposalSuggestedAt:person.rate_proposal_suggested_at} };
   }
 
   async memberSection(actorId:string|undefined,memberId:string,section:string,input:{limit?:unknown;cursor?:unknown}={}){
@@ -351,13 +387,16 @@ export class CommercialMembershipService {
   }
 
   async setMembership(actorId: string | undefined, principalId: string | undefined, memberId: string, input: {state?:unknown;expiresAt?:unknown;term?:unknown;expectedVersion?:unknown;reason?:unknown}) {
-    this.requireEngineeringRules();
+    if(!this.engineeringRules&&input.term!==undefined)
+      throw new DomainError('MEMBERSHIP_TERM_UNAVAILABLE','请明确选择本次资格到期日',422);
     const target = identifier(memberId);
     const state = input.state;
     if (state!=="active" && state!=="suspended" && state!=="expired") throw new DomainError("MEMBERSHIP_STATE_INVALID", "会员资格状态无效", 422);
     const fixtureTerm=input.term==="engineering_12_calendar_months"||input.term==="engineering_365_day";
     const expiry = typeof input.expiresAt === "string" && Number.isFinite(Date.parse(input.expiresAt)) ? new Date(input.expiresAt) : null;
-    if(state==="active"&&!fixtureTerm&&!expiry)throw new DomainError("MEMBERSHIP_EXPIRY_REQUIRED","请设置资格有效期",422);
+    if(input.expiresAt!=null&&!expiry)throw new DomainError("MEMBERSHIP_EXPIRY_INVALID","资格到期时间无效",422);
+    if(state!=="active"&&(input.expiresAt!=null||input.term!=null))
+      throw new DomainError("MEMBERSHIP_EXPIRY_CONFLICT","暂停或到期操作无需重新设置期限",422);
     if(fixtureTerm&&input.expiresAt!=null)throw new DomainError("MEMBERSHIP_TERM_CONFLICT","请选择一种资格期限方式",422);
     const expected = Number(input.expectedVersion);
     if (!Number.isSafeInteger(expected) || expected<0) throw new DomainError("MEMBERSHIP_VERSION_INVALID", "请刷新成员资料后重试", 422);
@@ -369,6 +408,8 @@ export class CommercialMembershipService {
       if(!account || account.status!=="active")throw new DomainError("MEMBER_NOT_ACTIVE","账号不存在或不可用",409);
       const previous=(await client.query("SELECT * FROM commercial_membership WHERE member_id=$1 FOR UPDATE",[target])).rows[0];
       if((previous?.version ?? 0)!==expected)throw new DomainError("MEMBERSHIP_CHANGED","会员资格已变化，请刷新",409);
+      if(state==="active"&&!fixtureTerm&&!expiry&&!(previous&&previous.expires_at===null))
+        throw new DomainError("MEMBERSHIP_EXPIRY_REQUIRED","请设置资格有效期",422);
       const effective=(await client.query<{at:Date}>("SELECT clock_timestamp() AS at")).rows[0]!.at;
       let nextExpiry:Date|null=previous?.expires_at??null;
       if(state==="active"){
@@ -400,7 +441,6 @@ export class CommercialMembershipService {
 
   async proposeRate(actorId: string | undefined, principalId: string | undefined, requestKey:unknown,
     input:{memberId?:unknown;basisPoints?:unknown;action?:unknown;effectiveAt?:unknown;reason?:unknown}) {
-    this.requireEngineeringRules();
     const actor=await this.authority.require(actorId,"commission.rate.manage");
     const target=input.memberId==null?null:identifier(input.memberId);
     if(target===actor)throw new DomainError("RATE_SELF_CHANGE_FORBIDDEN","不能为自己提议费率",403);
@@ -408,7 +448,7 @@ export class CommercialMembershipService {
     if(action!=="override"&&action!=="inherit")throw new DomainError("RATE_ACTION_INVALID","费率处理方式无效",422);
     if(action==="inherit"&&(target===null||input.basisPoints!=null))
       throw new DomainError("RATE_INHERIT_INVALID","恢复继承仅适用于单个会员，且无需填写费率",422);
-    const basisPoints=action==="inherit"?null:rate(input.basisPoints);const why=reason(input.reason);
+    const basisPoints=action==="inherit"?null:rate(input.basisPoints,this.engineeringRules);const why=reason(input.reason);
     const effective=input.effectiveAt==null?null:typeof input.effectiveAt==="string"?new Date(input.effectiveAt):new Date(NaN);
     if(effective&&!Number.isFinite(effective.getTime()))throw new DomainError("RATE_EFFECTIVE_INVALID","生效时间无效",422);
     if(!principalId)throw new DomainError("AUTH_REQUIRED","请重新登录后操作",401);
@@ -426,9 +466,10 @@ export class CommercialMembershipService {
       const proposed=effective??suggested;
       const result=await client.query(`INSERT INTO commission_rate_rule(member_id,action,basis_points,state,
         effective_at,proposed_effective_at,rule_version,created_by,reason,request_key,request_fingerprint)
-        VALUES($1,$2,$3,'proposed',$4,$4,'commercial-rate-v2',$5,$6,$7,$8)
+        VALUES($1,$2,$3,'proposed',$4,$4,$9,$5,$6,$7,$8)
         RETURNING id,action,basis_points,effective_at,proposed_effective_at,state,version`,
-        [target,action,basisPoints,proposed,principalId,why,request,fingerprint]);
+        [target,action,basisPoints,proposed,principalId,why,request,fingerprint,
+          this.engineeringRules?'commercial-rate-v2':'operator-rate-v1']);
       return {...result.rows[0],alreadyCreated:false};
     });
   }
@@ -445,18 +486,22 @@ export class CommercialMembershipService {
 
   async currentGlobalRate(actorId:string|undefined){
     if(!await this.authority.has(actorId,"commission.read"))await this.authority.require(actorId,"commission.rate.manage");
-    const row=(await this.pool.query(`SELECT id,basis_points,effective_at,now() AS server_time,
+    const row=(await this.pool.query(`SELECT rate.id,rate.basis_points,rate.effective_at,now() AS server_time,
       ${nextShanghaiMidnight} AS suggested_effective_at
-      FROM commission_rate_rule WHERE member_id IS NULL AND action='override' AND state='active' AND effective_at<=now()
-      ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1`)).rows[0];
+      FROM (SELECT 1) seed LEFT JOIN LATERAL (SELECT id,basis_points,effective_at
+        FROM commission_rate_rule WHERE member_id IS NULL AND action='override' AND state='active' AND effective_at<=now()
+          AND ($1::boolean OR created_by<>'migration')
+        ORDER BY effective_at DESC,created_at DESC,id DESC LIMIT 1) rate ON true`,
+      [this.environment==='test'||this.environment==='development'])).rows[0];
     return {basisPoints:row?.basis_points??null,effectiveAt:row?.effective_at??null,
       serverTime:row?.server_time??null,suggestedEffectiveAt:row?.suggested_effective_at??null,
-      policyKind:"engineering_fixture",paymentAvailable:false};
+      rateOptions:this.engineeringRules?[...engineeringRateOptions]:[],
+      policyKind:this.engineeringRules?"engineering_fixture":
+        row?.id?"approved_rule":"unconfigured",paymentAvailable:false};
   }
 
   async approveRate(actorId: string | undefined, principalId: string | undefined, ruleId: string,
     decisionKey:unknown,input:{decision?:unknown;expectedVersion?:unknown;reason?:unknown}) {
-    this.requireEngineeringRules();
     const actor=await this.authority.require(actorId,"commission.rate.approve");
     const id=identifier(ruleId);
     if(input.decision!=="active" && input.decision!=="rejected")throw new DomainError("RATE_DECISION_INVALID","请选择批准或退回",422);

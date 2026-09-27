@@ -1,0 +1,12 @@
+# Bounded native capture procedure
+
+1. This procedure is only for the disposable local synthetic boundary. Start only through scripts/disposable-test.mjs and verify the generated run/instance/db/role/ownership marker. Never use legacy cisme_test or port 55432, staging, production or a real-user database.
+2. Start `npm run miniprogram:acceptance`. The command requires an explicit reset, binds only `127.0.0.1:18080`, loads the current 76-migration schema and synthetic fixtures, keeps payment unavailable, and writes a credential-free fixture manifest under `tmp/miniprogram-acceptance`.
+3. Open `/Users/mini/CISME/apps/miniprogram` in WeChat DevTools, confirm AppID `wx4eac2d4fb11d299b`, base library `3.15.2`, develop mode and API origin `http://127.0.0.1:18080`. Use the Account page to explicitly accept the local fixture notice and perform the development login; do not inject a session token.
+4. Before any screenshot, require ready/legal/order-boundary checks, a stored session, the fixed synthetic development identity and one protected-read proof. Approve the separate project-action permission prompt without changing business authorization, privacy checks or TLS validation.
+5. Restart the project window at most once if the bridge is stale, compile once, then try one page. If `waitForAutomatorReady` recurs, stop automation and use the built-in simulator screenshot control.
+6. Follow `routes.csv` with its exact synthetic queries. Save untouched PNGs under `screenshots/raw`; after the four-second stability window, assert current route, `loading=false` where exposed, and an empty page error. A redirect, spinner or missing-id page is a failed healthy capture, not a visual result.
+7. Clear or filter console/network immediately before each journey. Record application errors separately from tool/system warnings; do not erase a failed frame.
+8. For recordings, start before the first tap and stop after the authority response is rendered. Add operation steps, timestamps, expected/actual and keyframe paths; never infer app FPS from video FPS.
+9. Exclude login QR codes, personal profile data, tokens, complete OpenID/session keys, secrets and real conversations. The acceptance fixture contains only synthetic data.
+10. Run the capture finalizer to refresh route status and `SHA256SUMS`; stop the local acceptance process after evidence is finalized. Do not mark full visual acceptance passed until interaction, responsive and physical-device checks are reviewed.

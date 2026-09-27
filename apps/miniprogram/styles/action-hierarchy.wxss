@@ -1,0 +1,7 @@
+.action-main,.action-secondary{min-height:50px;font-size:var(--cisme-text-action);font-weight:500;line-height:22px}
+.action-main .action-label,.action-secondary .action-label{font-weight:500;line-height:22px}
+.action-text{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8rpx 12rpx;border:0;border-radius:0;color:var(--cisme-plum);background:transparent;font-size:var(--cisme-text-body);font-weight:500;line-height:20px}
+.action-text .action-label{font-size:var(--cisme-text-body);font-weight:500;line-height:20px}
+.action-main.primary--disabled{border:1rpx solid #ded1e3!important;color:#6f6075!important;background:#e9e1ec!important;box-shadow:none!important;opacity:1!important}
+.action-main.primary--disabled .action-label{color:#6f6075}
+.action-pressed{opacity:.82;transform:translateY(1px)}

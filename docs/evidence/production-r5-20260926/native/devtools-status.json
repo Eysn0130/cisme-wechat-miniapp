@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "loginExpired": false,
+  "skillVersion": "0.3.11",
+  "versionRelation": "equal",
+  "cliTokenRequired": false
+}

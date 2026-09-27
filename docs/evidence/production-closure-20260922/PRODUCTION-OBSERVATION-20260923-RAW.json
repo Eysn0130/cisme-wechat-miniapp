@@ -1,0 +1,23 @@
+{
+  "actualRuntime": {
+    "appEnv": "staging",
+    "databaseHost": "127.0.0.1",
+    "databaseName": "cisme",
+    "objectBucket": "lhcos-81ddf-1257392443",
+    "objectStorageDriver": "cos_gateway"
+  },
+  "deployed": false,
+  "identity": {
+    "dnsA": "124.223.74.198",
+    "domain": "api.cisme.cn",
+    "instanceId": "lhins-61ikz4mi",
+    "mappingEvidence": "PRODUCTION-LIVE-METADATA-20260923.json",
+    "metadataInstanceId": "ins-l9utqwxv",
+    "observedAtUtc": "2026-09-23T02:08:16.605883Z",
+    "privateIpv4": "10.0.0.10",
+    "publicIpv4": "124.223.74.198",
+    "schemaVersion": 1
+  },
+  "permissionGranted": false,
+  "readOnly": true
+}

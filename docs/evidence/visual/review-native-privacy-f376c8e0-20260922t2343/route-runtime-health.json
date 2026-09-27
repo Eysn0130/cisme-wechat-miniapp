@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "f376c8e0a5ad8b924154acaf9528a3bbbea4772106396fdc4fe632bcc624dcda",
+  "verifiedAt": "2026-09-22T23:49:08.448Z",
+  "environment": {
+    "origin": "http://127.0.0.1:18080",
+    "database": {
+      "name": "cisme_test_fc11f18b9a951bbbced4fb05",
+      "migrationCount": 75,
+      "latestMigration": "202609220003_shipping_manual_query.sql"
+    },
+    "runtime": {
+      "apiBaseUrl": "http://127.0.0.1:18080",
+      "hasSession": true,
+      "storedSession": true,
+      "platform": "devtools",
+      "envVersion": "develop",
+      "devUserMatches": true
+    }
+  },
+  "routes": [
+    {
+      "route": "pages/home/index",
+      "query": "",
+      "currentPage": "pages/home/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__home__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/records/index",
+      "query": "",
+      "currentPage": "pages/records/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__records__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/community/index",
+      "query": "",
+      "currentPage": "pages/community/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__community__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/profile/index",
+      "query": "",
+      "currentPage": "pages/profile/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__profile__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/account/index",
+      "query": "intent=login",
+      "currentPage": "pages/account/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__account__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/task/index",
+      "query": "id=f875d0f6-3f5c-4181-8a38-fdce901f6a96",
+      "currentPage": "pages/task/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__task__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/submit/index",
+      "query": "id=7d7c2f63-e616-4d0d-be01-02ccba8c0e86",
+      "currentPage": "pages/submit/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__submit__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/progress/index",
+      "query": "id=7d7c2f63-e616-4d0d-be01-02ccba8c0e86",
+      "currentPage": "pages/progress/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__progress__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/points/index",
+      "query": "",
+      "currentPage": "pages/points/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__points__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/post/index",
+      "query": "id=brand-scalp-ritual",
+      "currentPage": "pages/post/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__post__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/shop/index",
+      "query": "",
+      "currentPage": "pages/shop/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__shop__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/product/index",
+      "query": "id=synthetic-acceptance-serum",
+      "currentPage": "pages/product/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__product__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/checkout/index",
+      "query": "product=synthetic-acceptance-serum&sku=93d53658-4fb4-46ff-a86e-49f6d5061092&quantity=1",
+      "currentPage": "pages/checkout/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__checkout__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/orders/index",
+      "query": "",
+      "currentPage": "pages/orders/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__orders__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "query": "id=8976bd79-45d7-45e5-8ea7-d26d63696c6f",
+      "currentPage": "pages/order-detail/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__order-detail__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/settings/index",
+      "query": "",
+      "currentPage": "pages/settings/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__settings__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/invite/index",
+      "query": "",
+      "currentPage": "pages/invite/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__invite__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/legal/index",
+      "query": "type=privacy",
+      "currentPage": "pages/legal/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__legal__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "query": "",
+      "currentPage": "pages/privacy-rights/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__privacy-rights__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/support/index",
+      "query": "",
+      "currentPage": "pages/support/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__support__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management/index",
+      "query": "",
+      "currentPage": "pages/management/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "query": "",
+      "currentPage": "pages/management-catalog/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-catalog__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-product/index",
+      "query": "id=4a984bb5-aef3-47b6-87b7-a8bf0f11c03e",
+      "currentPage": "pages/management-product/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-product__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "query": "",
+      "currentPage": "pages/management-orders/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-orders__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "query": "id=4767df9a-9b5b-4192-9a34-e8867a467fb0",
+      "currentPage": "pages/management-order-detail/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-order-detail__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-support/index",
+      "query": "",
+      "currentPage": "pages/management-support/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-support__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "query": "id=09c7d393-43bf-4842-820b-afeac6eb5599",
+      "currentPage": "pages/management-support-chat/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-support-chat__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-members/index",
+      "query": "",
+      "currentPage": "pages/management-members/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-members__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-member/index",
+      "query": "id=37d8d09f-ae9e-4053-87df-1fd7dd53b953",
+      "currentPage": "pages/management-member/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-member__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/referral/index",
+      "query": "",
+      "currentPage": "pages/referral/index",
+      "loading": "not_exposed",
+      "error": "",
+      "screenshot": "screenshots/raw/pages__referral__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "query": "",
+      "currentPage": "pages/community-compose/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__community-compose__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/community-post/index",
+      "query": "id=60f8639c-54dc-4985-a2dd-20a2da70dffe",
+      "currentPage": "pages/community-post/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__community-post__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/community-author/index",
+      "query": "id=b456a451-522e-43c4-a582-c53659f8ae19",
+      "currentPage": "pages/community-author/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__community-author__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/community-review/index",
+      "query": "id=1c0160c3-5f86-4aa7-b2ef-3a93430f9b3b",
+      "currentPage": "pages/community-review/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__community-review__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "query": "",
+      "currentPage": "pages/community-activity/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__community-activity__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "query": "",
+      "currentPage": "pages/management-finance/index",
+      "loading": false,
+      "error": "当前环境没有开放资金核对。",
+      "screenshot": "screenshots/raw/pages__management-finance__index.png",
+      "result": "PASS_EXPECTED_MONEY_DISABLED"
+    },
+    {
+      "route": "pages/commission/index",
+      "query": "",
+      "currentPage": "pages/commission/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__commission__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "query": "",
+      "currentPage": "pages/management-privacy/index",
+      "loading": false,
+      "error": "",
+      "screenshot": "screenshots/raw/pages__management-privacy__index.png",
+      "result": "PASS_LOCAL_SYNTHETIC"
+    }
+  ],
+  "result": "PASS_LOCAL_SYNTHETIC_38_OF_38",
+  "exclusions": [
+    "production data",
+    "real payment",
+    "formal upload",
+    "physical-device acceptance"
+  ]
+}

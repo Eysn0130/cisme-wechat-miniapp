@@ -1,0 +1,31 @@
+{
+  "databaseId": 35799462097,
+  "headSha": "f4c8df9e5be091b246e9893b1c357bc004d943b0",
+  "conclusion": "success",
+  "status": "completed",
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/35799462097",
+  "createdAt": "2026-09-22T23:52:19Z",
+  "updatedAt": "2026-09-22T23:57:51Z",
+  "counts": {
+    "unit": 1086,
+    "unitFiles": 98,
+    "integration": 818,
+    "integrationFiles": 48,
+    "python": 52
+  },
+  "jobs": [
+    {
+      "name": "verify",
+      "conclusion": "success"
+    },
+    {
+      "name": "candidate-design-qa",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "wechat-credentialed-preview",
+      "conclusion": "skipped"
+    }
+  ],
+  "qualification": "Exact run logs reviewed; PR synthetic checkout is not a main merge. Skipped credentialed preview/design acceptance are not physical-device evidence."
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "sanitized transcription from Tencent TAT terminal; original root-only JSON retained on staging",
+  "environment": "staging",
+  "instanceId": "lhins-ei4hz4fi",
+  "sourceHead": "0f1b4c346173ed26d6ffd3d6e3612ef893b14212",
+  "sourceTree": "e4a39feaabcc0c7a0f8aa9a427c281432e5cd5eb",
+  "runId": "rc20260922-9ac72e41",
+  "releaseDirectory": "/opt/cisme/releases/rc20260922-9ac72e41-0f1b4c346173",
+  "database": "cisme_accept_rc20260922_9ac72e41",
+  "restoreDatabase": "cisme_accept_rc20260922_9ac72e41_restore",
+  "objectRoot": "/opt/cisme/tmp/rc20260922-9ac72e41/object-storage",
+  "apiSha256": "37d3fdbe92006a42e6d3b9a037e4cec55e1f433f78d0ee404096fb57d72dfe4f",
+  "archiveSha256": "2fa2d4167a4d03591a891fa78e75c4b7257a1b74bdc6089441417c20f95e576b",
+  "migrationApplied": 74,
+  "migrationRepeated": 0,
+  "activated": true,
+  "publicHttps": 200,
+  "publicMetricsUnauthenticated": 401,
+  "privacyVersion": "2026-09-11-v7-staging-support",
+  "termsVersion": "2026-09-11-v4-staging",
+  "restoreCounts": {
+    "migrations": {
+      "source": 74,
+      "restored": 74
+    },
+    "tables": {
+      "source": 129,
+      "restored": 129
+    },
+    "legalDocuments": {
+      "source": 2,
+      "restored": 2
+    },
+    "marker": {
+      "source": 1,
+      "restored": 1
+    }
+  },
+  "backupSha256": "f6d4189c440197d98b034074bdca95b2d7dedf4267b68c49f06ddbdd765b6d6e",
+  "localObjectRestoreSha256": "b00959607d7845a15cd0aca72b5e032f35ca6869332f45bdbf8093b753168f69",
+  "shortStability": {
+    "fromUtc": "2026-09-22T10:30:12Z",
+    "throughUtc": "2026-09-22T10:30:42Z",
+    "samples": 6,
+    "httpsAll": 200,
+    "apiWorker": "active/running",
+    "restarts": 0
+  },
+  "monitor": {
+    "timer": "cisme-staging-health-20260922.timer",
+    "observedAtUtc": "2026-09-22T10:29:23Z",
+    "sourceHead": "0f1b4c346173ed26d6ffd3d6e3612ef893b14212",
+    "healthy": true,
+    "sourceSha256": "0175e86be9ab7b0b87c3061ef9fb4fca0beda8b3f659ca56c0c129bd505e7cb6",
+    "freeBytes": 41547259904,
+    "automaticRepair": false,
+    "externalNotificationsConfigured": false
+  },
+  "ci": {
+    "runId": 35715524252,
+    "headSha": "0f1b4c346173ed26d6ffd3d6e3612ef893b14212",
+    "verify": "success",
+    "unitPassed": 1023,
+    "integrationPassed": 800,
+    "candidateDesignQa": "skipped",
+    "wechatCredentialedPreview": "skipped"
+  },
+  "rollback": {
+    "previousSourceHead": "ae31437652e2fe3fbb24e7ac493d3b60ad747d27",
+    "releaseDirectory": "/opt/cisme/releases/rc20260922-8d13f6a2-ae31437652e2",
+    "database": "cisme_accept_rc20260922_8d13f6a2",
+    "objectRoot": "/opt/cisme/tmp/rc20260922-8d13f6a2/object-storage",
+    "runtimeEnv": "/opt/cisme/staging-acceptance/rc20260922-9ac72e41/old-runtime.env",
+    "monitorSource": "/opt/cisme/operations/staging-health-before-pr22.py",
+    "secretsExported": false,
+    "postDeploymentRollbackExecuted": false
+  },
+  "preparedButNeverActivated": {
+    "sourceHead": "249efe38a08953f94611dc155a9f48be37a79842",
+    "runId": "rc20260922-c18f5e70",
+    "preserved": true
+  },
+  "localPythonExternalProbe": {
+    "atUtc": "2026-09-22T10:28:02Z",
+    "result": "SSLEOFError; not a server-failure conclusion",
+    "tlsVerificationBypassed": false
+  },
+  "realMoneyEnabled": false,
+  "realFundsExecuted": false,
+  "wechatOutboundGrantInstalled": false,
+  "productionTouched": false,
+  "oldCismeTestImpact": "UNKNOWN",
+  "s3CosRestoreVerified": false,
+  "fullAcceptanceComplete": false,
+  "releaseReady": false
+}

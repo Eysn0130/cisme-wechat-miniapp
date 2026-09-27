@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "f56b63be1f648e609949ba928e38374ffaea89e0",
+  "packageSourceSha256": "a46cbb3ba88b88c2ff64ad9219377429314e198ff79d4acbaaaac3a98ad9c933",
+  "tool": "WeChat Developer Tools simulator via wechatide",
+  "viewport": "333x719",
+  "fixture": "local synthetic order with one active aftersale case",
+  "capture": {
+    "file": "aftersale-active.png",
+    "sha256": "21cfe5ba53962c3752e575ed11c45381fb1b47c7b4beb12e586b50adf956a577",
+    "route": "pages/aftersale/index",
+    "query": "orderId=4aa6c740-b074-4a52-9c21-65b0499991d0",
+    "observed": "The active case is shown with its status. The remaining-item application button is absent until the case closes."
+  },
+  "checks": "11 targeted native aftersale tests passed, including active, closed, and paged cases; TypeScript, package gate and static route audit passed.",
+  "scopeLimit": "One simulator state with local synthetic data. This does not establish real-device behavior, all aftersale states, production data, or release acceptance."
+}

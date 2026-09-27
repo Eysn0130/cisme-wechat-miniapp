@@ -1,0 +1,28 @@
+<view class="fulfillment-shell" style="{{chromeStyle}}">
+ <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">发货与履约</text></view>
+ <view class="page page--stack">
+  <view class="page-title">先核对，再登记物流</view><text class="subtitle">适用于整单一次发货。Excel 用于拣货，系统记录是发货事实依据。</text>
+  <view wx:if="{{loading}}" class="state">正在核验权限与订单…</view>
+  <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button bindtap="retry" disabled="{{busy}}" class="text-button {{busy ? 'control--disabled' : ''}}">重新核验</button></view>
+  <view wx:if="{{coreReady}}" class="section-card">
+   <picker range="{{states}}" value="{{stateIndex}}" bindchange="onState" disabled="{{busy}}"><view class="filter-choice">物流状态 · {{states[stateIndex]}}　⌄</view></picker>
+   <input aria-label="精确订单号" placeholder="输入精确订单号（可选）" value="{{orderNumber}}" maxlength="32" bindinput="onNumber" disabled="{{busy}}"/>
+   <button class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="retry" disabled="{{busy}}">查询订单</button>
+   <view wx:if="{{!items.length}}" class="state">当前筛选没有订单。</view>
+   <view wx:for="{{items}}" wx:key="id" class="order"><text class="order-number">{{item.orderNumber}}</text><text>{{item.items}}</text><text class="muted">{{item.stateLabel}} · {{item.carrierName || '尚未登记快递'}}{{item.receiptConfirmedAt?' · 用户已确认收货':''}}</text></view>
+   <button wx:if="{{nextCursor}}" bindtap="next" disabled="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">下一页</button>
+   <button bindtap="exportExcel" disabled="{{busy}}" loading="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">导出当前筛选 Excel</button>
+   <text class="hint">含收件信息，仅限履约使用。最多 500 单，可按订单号缩小范围。</text>
+  </view>
+  <view wx:if="{{coreReady}}" class="section-card">
+   <view class="section-title">登记单笔 / 批量物流</view><text class="hint">从 Excel 复制 5 列，不含表头，最多 25 行：订单号、快递代码、快递名称、运单号、实际交寄时间（如 2026-09-22T10:00:00.000Z）。这是粘贴回写，不是上传 Excel 文件。</text>
+   <textarea aria-label="五列物流信息" placeholder="粘贴已交寄订单的物流信息" value="{{rows}}" maxlength="16000" bindinput="onRows" disabled="{{busy || batchLocked}}"/>
+   <checkbox-group bindchange="onConfirm"><label class="confirmation"><checkbox value="confirmed" checked="{{confirmed}}" disabled="{{busy}}" color="#705278"/>已核对订单、运单和实际交寄事实</label></checkbox-group>
+   <button class="primary {{busy || !confirmed ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || !confirmed}}" loading="{{busy}}">{{batchPending?'重试原批次':'确认登记物流'}}</button>
+   <button wx:if="{{batchPending}}" class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="reconcileBatch" disabled="{{busy}}">核对系统订单后结束上批</button>
+   <button class="secondary {{busy || batchPending ? 'control--disabled' : ''}}" bindtap="newBatch" disabled="{{busy || batchPending}}">开始另一批</button>
+   <view wx:for="{{results}}" wx:key="orderId" class="order"><text>{{item.orderId}}</text><text>{{item.status==='accepted'?'已登记，微信同步独立处理':('未登记 · '+item.code)}}</text></view>
+  </view>
+  <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
+ </view>
+</view>

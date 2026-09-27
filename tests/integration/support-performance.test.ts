@@ -11,9 +11,18 @@ it("accepts one first support message from 100 isolated members without failure"
  const latencies:number[]=[];const responses=await Promise.all(members.map(async(member,index)=>{const started=performance.now();const response=await app.inject({method:"POST",url:"/v1/me/support/messages",headers:{authorization:`Bearer ${member.sessionToken}`},payload:{body:`并发客服消息 ${index}`,clientMessageId:`support-perf-message-${index}`}});latencies.push(performance.now()-started);return response;}));
  expect(responses.map(response=>response.statusCode)).toEqual(Array(100).fill(200));
  expect((await pool.query("SELECT count(*)::int AS count FROM support_conversation")).rows[0].count).toBe(100);expect((await pool.query("SELECT count(*)::int AS count FROM support_message")).rows[0].count).toBe(100);
- latencies.sort((a,b)=>a-b);const p95=latencies[Math.ceil(latencies.length*.95)-1]!;const queueStarted=performance.now();
+ latencies.sort((a,b)=>a-b);const p95=latencies[Math.ceil(latencies.length*.95)-1]!;
  const operator=members[0];await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'support.read','performance-test','bounded local performance test','test','integration_fixture')",[operator.memberId]);
+ const queueStarted=performance.now();
  const queue=await app.inject({method:"GET",url:"/v1/management/support/conversations?limit=100",headers:{authorization:`Bearer ${operator.sessionToken}`}});const queueMs=performance.now()-queueStarted;
+ // Keep the original cold first-message threshold. Emit evidence before any
+ // performance assertion so a failure still reports both independently timed paths.
+ // The authority grant above is fixture setup, not queue HTTP latency.
+ console.log(JSON.stringify({scenario:"100 isolated first messages",samples:latencies.length,
+   failures:responses.filter(response=>response.statusCode!==200).length,
+   p50Ms:Number(latencies[Math.ceil(latencies.length*.50)-1]!.toFixed(2)),
+   p95Ms:Number(p95.toFixed(2)),p99Ms:Number(latencies[Math.ceil(latencies.length*.99)-1]!.toFixed(2)),
+   maxMs:Number(latencies.at(-1)!.toFixed(2)),queue100Ms:Number(queueMs.toFixed(2)),queueStatus:queue.statusCode,
+   thresholdsMs:{firstMessageP95:1000,queue100:1000}}));
  expect(queue.statusCode).toBe(200);expect(queue.json().items).toHaveLength(100);expect(p95).toBeLessThan(1000);expect(queueMs).toBeLessThan(1000);
- console.log(JSON.stringify({scenario:"100 isolated first messages",failures:0,p95Ms:Number(p95.toFixed(2)),queue100Ms:Number(queueMs.toFixed(2))}));
 },15000);

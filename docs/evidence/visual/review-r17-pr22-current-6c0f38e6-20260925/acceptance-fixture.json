@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-25T16:16:47.235Z",
+  "scope": "local_devtools_synthetic_nonproduction",
+  "origin": "http://127.0.0.1:18080",
+  "database": {
+    "name": "cisme_test_80a8b2acd24f1600a293a98e",
+    "migrationCount": 94,
+    "latestMigration": "202609240005_support_message_purpose.sql"
+  },
+  "developmentIdentity": {
+    "externalUserId": "cisme-mini-acceptance-member"
+  },
+  "routes": {
+    "communityAuthor": {
+      "path": "pages/community-author/index",
+      "query": "id=a6e3ee6b-2999-4f85-8fbf-2b48cc1dba69"
+    },
+    "communityPost": {
+      "path": "pages/community-post/index",
+      "query": "id=526b77ef-8fe8-4ca1-a577-dc40aea53ed7"
+    },
+    "communityReview": {
+      "path": "pages/community-review/index",
+      "query": "id=169eba03-4c92-46c5-a961-4c7e5eda5c2d"
+    },
+    "communityDeleted": {
+      "path": "pages/community-post/index",
+      "query": "id=289ab1c7-eb52-4045-9599-76a8be23b4e5"
+    },
+    "managementPaidOrder": {
+      "path": "pages/management-order-detail/index",
+      "query": "id=0b570346-51f0-40fa-a2a4-43f7bb46cafc"
+    },
+    "aftersale": {
+      "path": "pages/aftersale/index",
+      "query": "orderId=0b570346-51f0-40fa-a2a4-43f7bb46cafc"
+    },
+    "managementMember": {
+      "path": "pages/management-member/index",
+      "query": "id=a1aa1718-7ae9-4cc1-b43e-29037d37158d"
+    },
+    "product": {
+      "path": "pages/product/index",
+      "query": "id=synthetic-acceptance-serum"
+    },
+    "checkout": {
+      "path": "pages/checkout/index",
+      "query": "product=synthetic-acceptance-serum&sku=53cd3ce5-fe11-4051-afa4-f0444d9223ab&quantity=1"
+    },
+    "task": {
+      "path": "pages/task/index",
+      "query": "id=3aeea46e-b010-46f4-b76d-c1d7fe853bb4"
+    },
+    "submit": {
+      "path": "pages/submit/index",
+      "query": "id=6a4b98ed-789c-4d78-931b-500ea34016bd"
+    },
+    "progress": {
+      "path": "pages/progress/index",
+      "query": "id=6a4b98ed-789c-4d78-931b-500ea34016bd"
+    },
+    "orderDetail": {
+      "path": "pages/order-detail/index",
+      "query": "id=2c73d792-a365-4a59-b31b-7cea75670458"
+    },
+    "managementProduct": {
+      "path": "pages/management-product/index",
+      "query": "id=25c637b0-329c-4e76-a296-287d1fbcb147"
+    },
+    "managementOrderDetail": {
+      "path": "pages/management-order-detail/index",
+      "query": "id=2c73d792-a365-4a59-b31b-7cea75670458"
+    },
+    "managementSupportChat": {
+      "path": "pages/management-support-chat/index",
+      "query": "id=e8dcc251-84a4-4960-9ce2-802dd913a3b1"
+    },
+    "post": {
+      "path": "pages/post/index",
+      "query": "id=brand-scalp-ritual"
+    },
+    "legal": {
+      "path": "pages/legal/index",
+      "query": "type=privacy"
+    }
+  },
+  "facts": {
+    "pendingOrderId": "2c73d792-a365-4a59-b31b-7cea75670458",
+    "paidFixture": {
+      "id": "0b570346-51f0-40fa-a2a4-43f7bb46cafc",
+      "number": "CM202609223391457B17B7",
+      "paymentEvidence": "synthetic signed/encrypted notification applied through real inbox; no real provider or money"
+    },
+    "recoveryFixture": {
+      "id": "c24d5935-e7e1-4cfe-9cf4-1017b5016c33",
+      "number": "CM202609220672B98A258D",
+      "paymentEvidence": "synthetic signed/encrypted notification applied through real inbox; no real provider or money"
+    },
+    "cancelledOrderId": "0be0bd71-617c-4f1e-9659-85c7b7d6b0fe",
+    "productId": "25c637b0-329c-4e76-a296-287d1fbcb147",
+    "productCode": "synthetic-acceptance-serum",
+    "skuId": "53cd3ce5-fe11-4051-afa4-f0444d9223ab",
+    "addressId": "51c0ea53-b81b-44c6-ab5e-5469e832e535",
+    "supportConversationId": "e8dcc251-84a4-4960-9ce2-802dd913a3b1",
+    "careCycleId": "57237c5c-c136-47ca-b749-d959c4043423",
+    "taskId": "3aeea46e-b010-46f4-b76d-c1d7fe853bb4",
+    "submissionId": "6a4b98ed-789c-4d78-931b-500ea34016bd",
+    "shareId": "041c78782a7648b5be1c6bd3265fdc49"
+  },
+  "assertions": {
+    "protectedReadCount": 7,
+    "orderFlowEnabled": true,
+    "paymentAvailable": false,
+    "credentialsOrTokensPersisted": false
+  }
+}

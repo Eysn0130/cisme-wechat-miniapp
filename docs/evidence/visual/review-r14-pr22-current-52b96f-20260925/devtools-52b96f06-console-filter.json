@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "52b96f06ebcd5c0407f9b234bf62c1e66dafc2d961a56d80b8a3470e1e5ed3d9",
+  "tool": "wechatide 0.3.11 get_simulator_console",
+  "filter": "grep -Ein error|uncaught|exception|fail",
+  "matches": null,
+  "result": "pending_capture",
+  "qualification": "The capture runner records the bounded post-route-open match count. It does not prove the complete historical console buffer is empty."
+}

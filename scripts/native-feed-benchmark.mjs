@@ -16,7 +16,7 @@ async function run(source,total){
   const request=async()=>{const count=Math.min(30,total-index),items=Array.from({length:count},(_,i)=>({id:`post-${index+i}`,title:'合成护理故事',authorId:'synthetic-author',author:'合成会员',coverId:'synthetic-cover',likeCount:0,commentCount:0}));index+=count;return {items,nextCursor:index<total?`cursor-${index}`:null};};
   const mocks={
     '../../services/api':{request},'../../services/page-requests':{pageRead:(_,o)=>request(o),cancelPageReads(){}},
-    '../../services/member-avatar':{defaultMemberAvatar:'/neutral.svg'},'../../services/editorial':{editorialStories:[]},
+    '../../services/member-avatar':{defaultMemberAvatar:'/neutral.svg'},'../../services/editorial':{editorialStories:[],editorialStoriesForRuntime:()=>[]},
     '../../services/layout':{currentChromeStyle:()=>''},'../../services/member-identity':{memberIdentity:()=>null},'../../services/task-entry':{},
     '../../services/performance-metrics':{measurementClock:()=>performance.now(),recordClientMetric(){}}
   };

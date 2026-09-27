@@ -1,0 +1,5 @@
+# Partial capture — not an accepted 40-route pack
+
+This directory is bound to Mini Program source SHA-256 `52b96f06ebcd5c0407f9b234bf62c1e66dafc2d961a56d80b8a3470e1e5ed3d9` and local synthetic run `0b6852e7c697067000672c86` (94 migrations). The first 31 route-health checks succeeded; the runner then captured a 32nd raw frame for `pages/community-post/index` and stopped because that page reported `内容编号缺失，请返回社区重试。` (no post ID). The service had been started without the existing `--synthetic-community` fixture option, so this is a fixture selection failure, not a demonstrated page defect.
+
+The 32 raw PNGs remain only as partial, unfinalized source evidence. The generated route manifest predates those captures and **must not be treated as a completed screenshot index**. The archival checksum list below was recalculated after failure for file integrity only. No route coverage or visual acceptance result is claimed for this directory. The disposable Postgres/object targets were removed by the owning wrapper. A separately named run with the community fixture will create the complete pack.

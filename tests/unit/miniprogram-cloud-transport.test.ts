@@ -2,12 +2,12 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 let state: { globalData: { apiBaseUrl: string; sessionToken: string; cloudFunction: { env: string; name: string } } };
 let sdk: { init: ReturnType<typeof vi.fn>; callHTTPFunction: ReturnType<typeof vi.fn> };
-let wxMock: { cloud?: typeof sdk; request: ReturnType<typeof vi.fn>; navigateTo: ReturnType<typeof vi.fn>; setStorageSync: ReturnType<typeof vi.fn> };
+let wxMock: { cloud?: typeof sdk; request: ReturnType<typeof vi.fn>; navigateTo: ReturnType<typeof vi.fn>; setStorageSync: ReturnType<typeof vi.fn>; removeStorageSync: ReturnType<typeof vi.fn> };
 beforeEach(() => {
   vi.resetModules();
   state = { globalData: { apiBaseUrl: "https://unused.example", sessionToken: "old-session", cloudFunction: { env: "test-env", name: "cismeApi" } } };
   sdk = { init: vi.fn(), callHTTPFunction: vi.fn() };
-  wxMock = { cloud: sdk, request: vi.fn(), navigateTo: vi.fn(), setStorageSync: vi.fn() };
+  wxMock = { cloud: sdk, request: vi.fn(), navigateTo: vi.fn(), setStorageSync: vi.fn(), removeStorageSync: vi.fn() };
   Object.assign(globalThis, { wx: wxMock, getApp: () => state, getCurrentPages: () => [{ route: "pages/records/index" }] });
 });
 

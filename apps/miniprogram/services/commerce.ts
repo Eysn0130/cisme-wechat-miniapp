@@ -15,12 +15,7 @@ export interface CatalogProduct {
 export interface CatalogPage { version?: number; checkoutEnabled?: boolean; items: CatalogProduct[]; nextCursor: string | null }
 
 export const packagedCatalogImages = [
-  "/assets/cisme/community-card-purple-bottle-v1.jpg",
-  "/assets/cisme/community-card-care-flatlay-v2.jpg",
-  "/assets/cisme/community-card-care-journal-v2.jpg",
-  "/assets/cisme/community-card-glossy-hair-v1.jpg",
-  "/assets/cisme/community-card-mirror-roots-v2.jpg",
-  "/assets/cisme/community-card-scalp-massage-v2.jpg"
+  "/assets/icons/spray-bottle-plum.svg"
 ] as const;
 
 export function parseYuanToCents(value: string): number {

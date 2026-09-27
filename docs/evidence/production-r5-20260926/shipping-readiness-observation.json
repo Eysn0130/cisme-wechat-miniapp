@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "CUA visual transcription of terminal JSON",
+  "originalMachineReceiptSaved": false,
+  "observedAt": "2026-09-26T15:51:34.394Z",
+  "appId": "wx4eac2d4fb11d299b",
+  "managed": null,
+  "settlementConfirmed": null,
+  "checks": [
+    {
+      "operation": "is_trade_managed",
+      "httpStatus": 200,
+      "errcode": 48001,
+      "verified": false
+    },
+    {
+      "operation": "is_trade_management_confirmation_completed",
+      "httpStatus": 200,
+      "errcode": 48001,
+      "verified": false
+    }
+  ],
+  "tokenRequest": {
+    "httpStatus": 200,
+    "errcode": 0,
+    "tokenReceived": true
+  },
+  "orderQueries": 0,
+  "shippingWrites": 0,
+  "fundsWrites": 0,
+  "interpretation": "Account status unverified; do not convert 48001 into false or claim setup complete."
+}

@@ -2,6 +2,7 @@ import { authorityProjection, hasCapability, type AuthorityProjection } from "..
 import { retainMemberSnapshot } from "../../services/api";
 import { adjustInventory, createProduct, managementProduct, packagedCatalogImages, parseYuanToCents, publishProduct, qualifyProduct, updateProduct, type CatalogProduct } from "../../services/commerce";
 import { currentChromeStyle } from "../../services/layout";
+import { hiddenHistoricalCatalogImage, nativeCatalogImage } from "../../services/catalog";
 import {
   createProductDraftState,
   keepLocalDraftAgainstLatest,
@@ -20,10 +21,10 @@ Page({
   visible: false,
   data: {
     chromeStyle: currentChromeStyle(), authority: null as AuthorityProjection | null, id: "", product: null as CatalogProduct | null,
-    loading: true, refreshing: false, saving: false, dirty: false, conflict: false, canSaveDraft: true, error: "",
+    loading: true, refreshing: false, saving: false, dirty: false, conflict: false, canSaveDraft: true, error: "", originalImageRetained: false,
     name: "", code: "", subtitle: "", description: "", imagePath: packagedCatalogImages[0] as string, skuCode: "", skuLabel: "", priceYuan: "",
     baseRevision: "", qualificationReason: "", qualificationEvidence: "", publicationReason: "", stockDelta: "", stockReason: "",
-    canProduct: false, canQualify: false, canInventory: false, images: packagedCatalogImages
+    canProduct: false, canQualify: false, canInventory: false
   },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) { this.setData({ id: query.id ?? "" }); },
@@ -64,7 +65,7 @@ Page({
     wx.disableAlertBeforeUnload();
     this.setData({
       authority: null, product: null, loading: true, refreshing: false, saving: false, dirty: false, conflict: false, canSaveDraft: true,
-      error: "", name: "", code: "", subtitle: "", description: "", imagePath: packagedCatalogImages[0], skuCode: "", skuLabel: "",
+      error: "", originalImageRetained: false, name: "", code: "", subtitle: "", description: "", imagePath: packagedCatalogImages[0], skuCode: "", skuLabel: "",
       priceYuan: "", baseRevision: "", qualificationReason: "", qualificationEvidence: "", publicationReason: "", stockDelta: "", stockReason: "",
       canProduct: false, canQualify: false, canInventory: false
     });
@@ -107,10 +108,6 @@ Page({
   publicationReasonChange(e: WechatMiniprogram.CustomEvent<{ value: string }>) { this.setData({ publicationReason: field(e) }); },
   stockDeltaChange(e: WechatMiniprogram.CustomEvent<{ value: string }>) { this.setData({ stockDelta: field(e) }); },
   stockReasonChange(e: WechatMiniprogram.CustomEvent<{ value: string }>) { this.setData({ stockReason: field(e) }); },
-  imageChange(e: WechatMiniprogram.CustomEvent<{ value: number }>) {
-    const selected = packagedCatalogImages[Number(e.detail.value)];
-    if (selected) this.mark({ imagePath: selected });
-  },
   async load(mode: "refresh" | "trusted-operation" = "refresh") {
     if (!this.data.id) { this.setData({ loading: false, refreshing: false, error: "" }); return; }
     const epoch = this.lifecycleEpoch;
@@ -118,14 +115,15 @@ Page({
     const preserveDraft = this.dirty && Boolean(this.data.product);
     this.setData(preserveDraft ? { refreshing: true, error: "" } : { loading: true, error: "" });
     try {
-      const product = await managementProduct(this.data.id);
+      const raw = await managementProduct(this.data.id);
+      const product = { ...raw, image: nativeCatalogImage(raw.image) };
       if (!this.owns(epoch, ownerToken)) return;
       const current = this.draftState();
       const state = current
         ? reconcileProductDraft(current, product, mode, packagedCatalogImages[0])
         : createProductDraftState(product, packagedCatalogImages[0]);
       this.applyDraftState(state);
-      this.setData({ loading: false, refreshing: false });
+      this.setData({ loading: false, refreshing: false, originalImageRetained: hiddenHistoricalCatalogImage(raw.image) });
     } catch (error) {
       if (this.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken) this.setData({ loading: false, refreshing: false, error: problem(error) });
     }
@@ -140,7 +138,9 @@ Page({
   },
   payload() {
     const priceCents = parseYuanToCents(this.data.priceYuan);
-    return { code: this.data.code, name: this.data.name, subtitle: this.data.subtitle, description: this.data.description, imagePath: this.data.imagePath, sku: { code: this.data.skuCode, label: this.data.skuLabel, priceCents } };
+    const fields = { code: this.data.code, name: this.data.name, subtitle: this.data.subtitle, description: this.data.description,
+      sku: { code: this.data.skuCode, label: this.data.skuLabel, priceCents } };
+    return this.data.product ? fields : { ...fields, imagePath: this.data.imagePath };
   },
   async save() {
     if (!this.data.canProduct || this.data.saving || this.data.conflict || !this.data.canSaveDraft) return;
@@ -156,8 +156,8 @@ Page({
         ? await updateProduct(current.productId, { ...payload, expectedVersion: current.version, sku: { ...(payload.sku as WechatMiniprogram.IAnyObject), id: current.variants[0]!.id, expectedVersion: current.variants[0]!.version, expectedPriceVersion: current.variants[0]!.priceVersion } })
         : await createProduct(payload);
       if (!this.owns(epoch, ownerToken)) return;
-      this.applyDraftState(createProductDraftState(product, packagedCatalogImages[0]));
-      this.setData({ id: product.productId, error: "" });
+      this.applyDraftState(createProductDraftState({ ...product, image: nativeCatalogImage(product.image) }, packagedCatalogImages[0]));
+      this.setData({ id: product.productId, error: "", originalImageRetained: hiddenHistoricalCatalogImage(product.image) });
       wx.showToast({ title: "已由服务端保存", icon: "success" });
     } catch (error) {
       if (this.owns(epoch, ownerToken)) {
@@ -173,7 +173,9 @@ Page({
   },
   adoptTrustedProduct(product: CatalogProduct) {
     const current = this.draftState();
-    this.applyDraftState(current ? reconcileProductDraft(current, product, "trusted-operation", packagedCatalogImages[0]) : createProductDraftState(product, packagedCatalogImages[0]));
+    const safe = { ...product, image: nativeCatalogImage(product.image) };
+    this.applyDraftState(current ? reconcileProductDraft(current, safe, "trusted-operation", packagedCatalogImages[0]) : createProductDraftState(safe, packagedCatalogImages[0]));
+    this.setData({ originalImageRetained: hiddenHistoricalCatalogImage(product.image) });
   },
   async qualify(e: WechatMiniprogram.TouchEvent) {
     if (!this.data.canQualify || !this.data.product || this.data.saving) return;

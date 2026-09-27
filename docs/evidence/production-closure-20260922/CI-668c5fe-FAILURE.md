@@ -1,0 +1,9 @@
+# CI35812642867 拦截记录
+
+668c5feb2be9410c68fa29be24db62d3ec08bc5d 的 CISME R0 gates 失败在个人信息外发清单门禁，1133单元通过、1失败；后续集成阶段未执行，不计作835通过。商业材料工作流35812642825通过不替代此CI。
+
+精确签名差异是production-release.py新增4个GitHub只读fetch调用，以及test_staging_production_release.py中5个离线fixture/调用签名。实际读取固定仓库main、commit/tree、CI和迁移脚本内容；不发送会员、订单、数据库配置或秘密。另显式审阅了扫描器未按fetch识别的元数据、CISME健康探测与只读peer schema查询，范围写入docs/privacy/miniprogram-personal-data-inventory.json。
+
+保留全部门禁；完成字段/目的/目标/认证/日志与本地私有备份边界审查后更新清单哈希。没有伪造正式隐私政策批准。本地首次完整单元运行早于新增infra代码，因此当时通过不能替代其后完整源码检查；后续重新执行完整单元与新准确CI。
+
+此失败候选仅打包与本地隔离演练、上传staging准备文件，未运行prepare/activate，staging仍为44e1789。修正提交通过新CI后才继续候选切换。

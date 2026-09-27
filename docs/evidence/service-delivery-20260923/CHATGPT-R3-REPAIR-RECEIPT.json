@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "reviewedBaseline": "3c2f99496d2bee972269165702b3313814a98a5c",
+  "priorCodexRound": "57b1f5c4d80f69392c972a40bcac21d653e8630b",
+  "sourceRepairCommit": "a333cbd68181f48b479cad6f88d4879177971db1",
+  "sourceRepairTree": "7f9a377be237434f4bfb8f1a244ff9e1f2bde787",
+  "branch": "codex/fulfillment-lifecycle-20260922",
+  "pr": 22,
+  "nativePackageSourceSha256": "8af96f1c4f23a88a8d8c503c0a2eeee704b0bafea77ecda6783fb4b4038266d2",
+  "verification": {
+    "offlineScopedOriginal": {"passed": 7, "failed": 24, "scope": "TypeScript-transpiled controller assertions, not actual Vitest or native rendering"},
+    "offlineScopedRepaired": {"passed": 31, "failed": 0},
+    "actualRunner": {"runId": 35879195464, "inputCommit": "08b5eb4ffcadd1ab88f772d7e10d8b8842415b45", "artifactId": 10759723572, "resultCommit": "a333cbd68181f48b479cad6f88d4879177971db1", "node": "24.18.0", "unitPassed": 1238, "unitFilesPassed": 110, "typecheck": "passed", "packageGate": "passed", "routeAudit": "passed", "designEvidenceStructure": "passed", "designReleaseReady": false},
+    "exactFinalPrCI": "Query the subsequent cleanup/handoff commit; this receipt does not reuse the earlier PR CI as evidence for new source",
+    "integrationTestsInScopedRunner": "not run; retain full existing PR CI for final combination",
+    "devtools": "not performed in this ChatGPT session",
+    "ios": "not performed in this ChatGPT session",
+    "android": "not performed in this ChatGPT session"
+  },
+  "implemented": [
+    "case progress polling independent of chat availability",
+    "sheet read generations reject late close/reopen and refresh responses",
+    "cancelled and rejected case history no longer blocks a new application",
+    "request submission waits for current case read; chat failure alone does not block",
+    "account change clears inherited busy flags and private drafts",
+    "navigation failure resumes polling",
+    "current-case return address card and guarded copy, not unrelated chat addresses",
+    "native page-container enter/leave with keyboard-aware bounded height",
+    "one primary request or conversation input area",
+    "short customer copy without false success or hidden financial facts",
+    "strict runtime projection validation at action derivation",
+    "button disabled visuals and action inventory aligned without weakening tests"
+  ],
+  "notImplementedByThisRepair": [
+    "partial line/quantity refund allocation and cumulative historical shipping/discount budgets",
+    "formal commercial policy assembly and production identity operations",
+    "formal full-scope privacy execution and restore suppression",
+    "all management attention action/filter closure",
+    "all-route native visual and device acceptance",
+    "main merge or production deployment"
+  ],
+  "productionTouched": false,
+  "mainTouched": false,
+  "temporaryReviewToolingRemovedInFollowingCommit": true,
+  "nextExecution": "docs/CISME-CODEX-PRODUCTION-CLOSURE-R3-20260923.md"
+}

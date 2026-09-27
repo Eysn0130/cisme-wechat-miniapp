@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "ea77479b4e6b112f9fe3990afa60888990e8492a64d9486f0740d75555e7a549",
+  "tool": "wechatide 0.3.9 simulator_open_page, automation_element_action, simulator_screenshot",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "viewport": "333x719 simulator",
+  "fixture": "Disposable synthetic WeChat identity, paid order and loopback API; no real payment",
+  "observed": [
+    "Paid order support sheet opens from the order detail; stepper buttons and icons are centered and the plus button is disabled at the two-item limit.",
+    "The current privacy rights page opens with legal identity, request form and received request history visible."
+  ],
+  "screenshots": ["aftersale-sheet.png", "privacy-rights.png"],
+  "limits": "This simulator capture does not prove physical iOS/Android, large text, real keyboard, user account closure, or production API behavior."
+}

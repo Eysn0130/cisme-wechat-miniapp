@@ -7,6 +7,8 @@ export function projectFeedCards(items: readonly any[]): [FeedCard[], FeedCard[]
   return columns;
 }
 export function feedColumnPatch(previous: readonly FeedCard[][], next: [FeedCard[], FeedCard[]]): WechatMiniprogram.IAnyObject {
+  if (!(previous[0]?.length || previous[1]?.length) && (next[0].length || next[1].length))
+    return { feedColumns: next };
   const patch: WechatMiniprogram.IAnyObject = {};
   for (let c = 0; c < 2; c++) {
     const before = previous[c] ?? [], after = next[c]!;

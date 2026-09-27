@@ -1,0 +1,58 @@
+{
+  "actualRuntime": {
+    "appEnv": "staging",
+    "databaseHost": "127.0.0.1",
+    "databaseName": "cisme",
+    "objectBucket": "lhcos-81ddf-1257392443",
+    "objectStorageDriver": "cos_gateway"
+  },
+  "historicalSqlIntegrityVerified": false,
+  "identity": {
+    "dnsA": "124.223.74.198",
+    "domain": "api.cisme.cn",
+    "instanceId": "lhins-61ikz4mi",
+    "mappingEvidence": "PRODUCTION-LIVE-METADATA-20260923.json",
+    "metadataInstanceId": "ins-l9utqwxv",
+    "observedAtUtc": "2026-09-23T02:45:10.727082Z",
+    "privateIpv4": "10.0.0.10",
+    "publicIpv4": "124.223.74.198",
+    "schemaVersion": 1
+  },
+  "journal": [
+    "202608140001_initial.sql",
+    "202608150001_business_release_switches.sql",
+    "202608150002_explicit_ugc_publication.sql",
+    "202608150003_identity_and_media_safety.sql",
+    "202608150004_versioned_usage_consents.sql",
+    "202608150005_pending_reward_claims.sql",
+    "202608150006_current_media_hash_uniqueness.sql",
+    "202608150007_share_identity_attribution.sql",
+    "202608150008_care_pause_policy.sql",
+    "202608150009_points_asset_maker_checker.sql",
+    "202608150010_emergency_switch_versioning.sql",
+    "202608150011_worker_delivery_control.sql",
+    "202608150012_worker_delivery_outcome.sql",
+    "202608150013_campaign_operations.sql",
+    "202608300001_expired_media_cleanup.sql",
+    "202609080001_member_invitation_share.sql",
+    "202609080002_community_preview.sql",
+    "202609090001_community_follow_team.sql",
+    "202609090002_cloud_upload_chunks.sql",
+    "202609090003_member_contact_legal.sql",
+    "202609090004_privacy_requests.sql",
+    "202609090005_member_profile.sql",
+    "202609090006_member_identity_display.sql"
+  ],
+  "journalNamesSha256": "36113d30d3bfc034dfe1c046ee0dce79c2f2357f92b96dfcac5b0ceb04d9ebfc",
+  "migrationExecuted": false,
+  "observedAtUtc": "2026-09-23T02:45:10.871360+00:00",
+  "permissionGranted": false,
+  "productionRestoreVerified": false,
+  "readOnly": true,
+  "schemaCounts": {
+    "constraints": 202,
+    "tables": 46,
+    "unvalidatedConstraints": 0
+  },
+  "schemaVersion": 1
+}

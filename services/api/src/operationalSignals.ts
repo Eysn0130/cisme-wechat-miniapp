@@ -15,10 +15,14 @@ export async function operationalSignals(pool:pg.Pool){
   (SELECT count(*)::int FROM commission_settlement_request WHERE state IN ('unknown','processing')) transfer_unresolved,
   (SELECT count(*)::int FROM commerce_trade_bill_row WHERE status='exception') trade_bill_exception,
   (SELECT count(*)::int FROM commission_payment_composition_observation) payment_composition_conflicts,
+  (SELECT count(*)::int FROM commerce_wechat_receipt_observation WHERE watch_state='manual_review') receipt_watch_manual_review,
+  (SELECT count(*)::int FROM commerce_wechat_receipt_observation WHERE watch_state='active'
+    AND watch_next_attempt_at<clock_timestamp()-interval '1 hour') receipt_watch_overdue,
+  (SELECT (cooldown_until>clock_timestamp())::int FROM commerce_wechat_receipt_watch_control WHERE singleton=true) receipt_watch_cooldown,
   (SELECT extract(epoch FROM clock_timestamp()-min(occurred_at))::bigint::text FROM outbox_event
     WHERE processed_at IS NULL AND dead_lettered_at IS NULL) oldest_outbox_seconds`)).rows[0];
  const counts=Object.fromEntries(Object.entries(row).filter(([k])=>k!=='oldest_outbox_seconds').map(([k,v])=>[k,Number(v)]));
- const signals=Object.entries(counts).filter(([key,value])=>value>0&&/quarantined|exception|unknown|unresolved|conflicts/.test(key))
+ const signals=Object.entries(counts).filter(([key,value])=>value>0&&/quarantined|exception|unknown|unresolved|conflicts|manual_review|overdue|cooldown/.test(key))
   .map(([kind,count])=>({kind,count,action:'investigate_original_facts',automaticRetry:false,terminalFailureInferred:false}));
  return {schemaVersion:1,counts,oldestOutboxSeconds:row.oldest_outbox_seconds===null?null:Math.max(0,Number(row.oldest_outbox_seconds)),
   signals,thresholdPolicy:'presence of unresolved/exception facts; no invented SLA or terminal status',

@@ -3,12 +3,13 @@ import { measurementClock, recordClientMetric } from "../../services/performance
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors, prepareFeedPage } from "../../services/member-avatar";
 import { request, resumeAuthentication } from "../../services/api";
-import { editorialStories } from "../../services/editorial";
+import { editorialStoriesForRuntime } from "../../services/editorial";
 import { currentChromeStyle } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
 import { consumerTaskEntries } from "../../services/task-entry";
 
 const feedModels = new WeakMap<object, { feed: any[]; following: any[] }>();
+const initialEditorialStories = editorialStoriesForRuntime();
 function feedModel(page: object) {
   let model = feedModels.get(page);
   if (!model) { model = { feed: [], following: [] }; feedModels.set(page, model); }
@@ -24,7 +25,7 @@ let scrollDirection: -1 | 0 | 1 = 0;
 let scrollTravel = 0;
 
 Page({
-  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: editorialStories.length, feedColumns: projectFeedCards(editorialStories), hero: editorialStories[0], tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.resetChromeMotion();
@@ -33,7 +34,7 @@ Page({
     if (tab) tab.setData({ active: 2, externalBusy: false });
     tab?.syncActive?.(2);
     tab?.setPresentation?.("community-scroll", false);
-    tab?.enterCommunityFab?.();
+    tab?.setCommunityPublisherAvailable?.(false);
     void this.load();
   },
   onHide() {
@@ -43,7 +44,7 @@ Page({
     this.resetChromeMotion();
     const tab = this.getTabBar?.();
     tab?.setPresentation?.("community-scroll", false);
-    tab?.leaveCommunityFab?.();
+    tab?.setCommunityPublisherAvailable?.(false);
     this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [],formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:"",reviewNotice:"" });
   },
   onUnload() {
@@ -108,7 +109,7 @@ Page({
     }
   },
   openPublisher() {
-    if (this.data.navigating) return;
+    if (this.data.navigating || !this.data.ugcFeedEnabled) return;
     if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication("/pages/community/index"); return; }
     this.setData({ navigating: true });
     wx.navigateTo({ url: "/pages/community-compose/index?new=1", fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "创作页暂时无法打开", icon: "none" }); } });
@@ -174,7 +175,7 @@ Page({
     const reviewed = (this.data.mode === "following" ? model.following : model.feed).map((item: any) => item.kind === "formal"
       ? { ...item, avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: `${item.likeCount || 0} 赞` }
       : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
-    const featured = editorialStories.map(item => ({ ...item, author_id: "brand:cisme" }));
+    const featured = editorialStoriesForRuntime().map(item => ({ ...item, author_id: "brand:cisme" }));
     let items = this.data.mode === "featured" ? featured : this.data.mode === "recommend" ? reviewed : reviewed.concat(featured);
     if (this.data.mode === "following") items = items.filter(item => item.kind==="formal"||this.data.follows.includes(item.author_id));
     const patch = feedColumnPatch(this.data.feedColumns, projectFeedCards(items));
@@ -385,11 +386,12 @@ Page({
   },
   async load() {
     cancelPageReads(this);
+    this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);
     const session = getApp<IAppOption>().globalData.sessionToken;
     feedModel(this).following = [];
     const attempt = this.data.feedAttempt + 1;
     const privateMode=this.data.mode==="following"||this.data.mode==="review";
-    this.setData({ feedAttempt: attempt, loading: true, formalNextCursor:null, followingNextCursor:null,
+    this.setData({ feedAttempt: attempt, loading: true, ugcFeedEnabled:false, formalNextCursor:null, followingNextCursor:null,
       follows:[],canReview:false,reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],
       formalLoadingMore:false, moreError:"", reviewBusy: false, teamError: "", error: "",
       ...(privateMode?{feedColumns:[[],[]] as [any[],any[]],displayFeedCount:0}:{}) });
@@ -410,6 +412,7 @@ Page({
       ? "featured"
       : this.data.mode;
     this.setData({ ...capabilities, mode: availableMode });
+    this.getTabBar?.()?.setCommunityPublisherAvailable?.(capabilities.ugcFeedEnabled);
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (token) {
       try {
@@ -438,7 +441,7 @@ Page({
       if (this.data.mode === "review") await this.loadReview();
       else if (this.data.mode === "following") await this.loadFollowing();
     } catch (error) {
-      if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = []; this.setData({ error: "社区内容暂时无法加载，请重试；精选护理故事仍可浏览。" }); this.renderFeed(); }
+      if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = []; this.setData({ error: "社区内容暂时无法加载，请重试。" }); this.renderFeed(); }
     } finally {
       if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) this.setData({ loading: false });
       await tasksPromise;

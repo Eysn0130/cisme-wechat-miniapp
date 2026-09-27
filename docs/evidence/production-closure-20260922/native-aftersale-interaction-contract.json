@@ -1,0 +1,14 @@
+{
+  "route": "pages/aftersale/index",
+  "primaryContract": "PRD R4 §8.2, P18 and AFS-01..03; sole native management client. R0 whole-order refund/return case, independent local return facts and verified monetary facts.",
+  "acceptanceReferences": ["AFS-01", "AFS-02", "AFS-03", "A04", "A05", "A13"],
+  "statesRequired": ["loading", "empty", "error", "resume", "owner case", "unauthorized", "requested", "need_info", "awaiting_return", "return_in_transit", "return_received", "quality_checked", "refund_pending", "refund rejected", "refund closed", "verified refund success", "missing approved destination", "uncertain response", "revoked capability", "account switch", "keyboard", "modal", "pagination", "iOS", "Android"],
+  "interaction": "Owner enters from paid order detail; operators enter from the existing native management centre using current server capabilities. Whole-order intake, owner supplement/withdraw/return waybill, operator review/receipt/inspection and linked refund request. UI mode never authorizes a server operation.",
+  "recovery": "Single in-flight mutation, original key and frozen payload for foreground uncertain retries. Hide clears personal content, preserves only reconciliation-needed state. Fresh case read and explicit acknowledgement required before a new operation. Server versions, ordered row locks and unique active claim protect concurrent paths.",
+  "authority": "Separate commerce.aftersale.review, commerce.return.receive and commerce.return.inspect. Money approval still requires commerce.refund.approve and formal command authorization. Owner cannot review own case. Six-second visible management polling removes revoked capabilities; server checks on every action are authoritative.",
+  "privacy": "Read own case or capability-limited management view only. Public-to-customer handling notes must not contain unrelated persons or internal secrets. Deployment approval reference is excluded from the contact projection. No device persistence of case contents, no cross-account late response, no cacheable API response. New objects are mapped as unapproved for general privacy export/erasure.",
+  "visual": "Reuse chrome safe-area layout, project palette and card/button patterns. Vertical cards, scrollable history, 88rpx controls, explicit text states and disabled style, original native WXSS/WXML. No new design system, dependency or web entry.",
+  "limits": "No partial claim or exchange/reship workflow; no automatic inventory restock; no automatic statutory eligibility decision. Missing real return contact fails closed. Full native state matrix and physical devices remain unaccepted.",
+  "nativeAccepted": false,
+  "physicalDevicesAccepted": false
+}
