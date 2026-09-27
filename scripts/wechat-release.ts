@@ -75,6 +75,8 @@ const releaseInput = {
     serverDomainsConfigured: flag("WECHAT_SERVER_DOMAINS_CONFIGURED"),
     demoScopeApproved: flag("WECHAT_DEMO_SCOPE_APPROVED"),
     experienceMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED"),
+    developerUploadConfirmed: flag("WECHAT_DEVELOPER_UPLOAD_CONFIRMED"),
+    realWeChatIdentityVerified: flag("WECHAT_REAL_IDENTITY_VERIFIED"),
     miniProgramFilingCompleted: flag("WECHAT_MINIPROGRAM_FILING_COMPLETED")
   }
 };
@@ -96,7 +98,16 @@ if (target === "preview") {
 } else if (command === "upload") {
   const designQa = await evaluateDesignQaEvidence(root);
   errors.push(...designQa.structuralErrors,...uploadMainErrors());
-} else if (target === "trial" || target === "release") {
+} else if (target === "trial") {
+  errors.push(...validateInternalTestPackageSafety({
+    testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
+    paymentsDisabled: flag("WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED"),
+    publicUgcDisabled: flag("WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED"),
+    testMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED")
+  }));
+  const designQa = await evaluateDesignQaEvidence(root);
+  errors.push(...designQa.structuralErrors);
+} else if (target === "release") {
   const designQa = await evaluateDesignQaEvidence(root);
   errors.push(...designQa.releaseErrors);
 }

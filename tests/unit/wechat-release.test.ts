@@ -21,6 +21,8 @@ const completeGates = {
   serverDomainsConfigured: true,
   demoScopeApproved: true,
   experienceMembersConfigured: true,
+  developerUploadConfirmed: true,
+  realWeChatIdentityVerified: true,
   miniProgramFilingCompleted: true
 };
 const exec = promisify(execFile);
@@ -190,6 +192,52 @@ describe("WeChat release preflight", () => {
       manualGates: completeGates
     })).toEqual([]);
   });
+
+  it("requires uploaded code and real WeChat identity before controlled trial", () => {
+    const input = {
+      target: "trial" as const,
+      projectAppId: "wx0123456789abcdef",
+      expectedAppId: "wx0123456789abcdef",
+      apiOrigin: "https://demo-api.cisme.example",
+      privacyCheckEnabled: true,
+      devtoolsCliAvailable: true,
+      manualGates: { ...completeGates, developerUploadConfirmed: false, realWeChatIdentityVerified: false }
+    };
+    expect(validateWeChatRelease(input)).toEqual([
+      "DEVELOPER_UPLOAD_PROOF_REQUIRED",
+      "REAL_WECHAT_IDENTITY_PROOF_REQUIRED"
+    ]);
+  });
+
+  it("keeps post-experience device and route evidence out of the first trial preflight", async () => {
+    const failure = await exec("./node_modules/.bin/tsx", ["scripts/wechat-release.ts", "preflight", "trial"], {
+      env: {
+        ...process.env,
+        WECHAT_APP_ID: "wx4eac2d4fb11d299b",
+        WECHAT_DEVELOPER_UPLOAD_CONFIRMED: "false",
+        WECHAT_REAL_IDENTITY_VERIFIED: "false",
+        WECHAT_TEST_TARGET_ISOLATED_VERIFIED: "false",
+        WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED: "false",
+        WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED: "false",
+        WECHAT_EXPERIENCE_MEMBERS_CONFIGURED: "false"
+      }
+    }).then(() => undefined, (error: unknown) => error);
+    expect(failure).toMatchObject({ code: 1 });
+    const stderr = (failure as { stderr: string }).stderr;
+    expect(stderr).toContain("REAL_WECHAT_IDENTITY_PROOF_REQUIRED");
+    expect(stderr).toContain("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
+    expect(stderr).not.toContain("DESIGN_QA_ROUTE_MATRIX_INCOMPLETE");
+    expect(stderr).not.toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED");
+
+    const releaseFailure = await exec("./node_modules/.bin/tsx", ["scripts/wechat-release.ts", "preflight", "release"], {
+      env: { ...process.env, WECHAT_APP_ID: "wx4eac2d4fb11d299b", WECHAT_MINIPROGRAM_FILING_COMPLETED: "false" }
+    }).then(() => undefined, (error: unknown) => error);
+    expect(releaseFailure).toMatchObject({ code: 1 });
+    const releaseStderr = (releaseFailure as { stderr: string }).stderr;
+    expect(releaseStderr).toContain("MINIPROGRAM_FILING_REQUIRED");
+    expect(releaseStderr).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
+    expect(releaseStderr).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
+  }, 20_000);
 
   it("keeps every internal test-package safety proof independent of final design evidence", () => {
     const safe = { riskAccepted: true, testTargetIsolated: true, paymentsDisabled: true,

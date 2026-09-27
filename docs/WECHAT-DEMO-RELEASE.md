@@ -1,8 +1,8 @@
-> 2026-09-09 17:18 最新状态：数据库、API、Worker 与对象存储已切换腾讯云；现行协议为 `2026-09-09-v2-domestic`。开发版 `0.1.2-dev.20260909` 已上传，体验版设置、备案及真机验收尚未完成。详见 [会员与迁移复盘](MEMBER-PERFORMANCE-DOMESTIC-2026-09-09.md)；下方旧记录保留原时间范围。
+> 2026-09-27 M3 状态：`751f7407…` 的开发版 `0.1.4-dev.20260927` 已由官方 CLI 上传，原生输入 SHA-256 为 `3c895fb7…a3901d`；尚无公众平台独立读回、体验版设置或真机登录回执。下方旧记录仅保留其原时间范围。
 
 # CISME 微信小程序开发版与体验版发布手册
 
-状态（2026-09-09）：Stable 2.02.2608070 / 基础库 3.15.2 已运行，AppID `wx4eac2d4fb11d299b` 的微信凭据兑换、云函数部署、数据库与存储就绪已验证。协议正文/阅读入口、云上传通道和独立定时 Worker 已完成并部署；当前源码真机业务验收和体验版设置仍另行跟踪。没有可移交的团队体验二维码。以 [本轮交付审阅](DELIVERY-REVIEW-2026-09-09.md) 和 [外部阻塞登记](EXTERNAL-BLOCKERS.md) 为当前状态；下文有明确日期的旧事件只作历史记录。
+历史状态（2026-09-09）：Stable 2.02.2608070 / 基础库 3.15.2 曾运行。该日期的凭据兑换和云部署验证不证明 M3 的体验版身份链路；有明确日期的旧事件只作历史记录。
 
 ## 1. 发布裁决
 
@@ -98,21 +98,18 @@ WECHAT_DEMO_SCOPE_APPROVED=true \
 npm run wechat:preview
 ```
 
-上传一个开发版本，供后台选为体验版：
+上传一个开发版本，供后台选为体验版。此命令只证明官方 CLI 上传，不会自动设置体验版：
 
 ```bash
 WECHAT_APP_ID=wx... \
-WECHAT_PRIVACY_GUIDE_CONFIGURED=true \
-WECHAT_LEGAL_TEXTS_APPROVED=true \
-WECHAT_SERVER_DOMAINS_CONFIGURED=true \
-WECHAT_DEMO_SCOPE_APPROVED=true \
-WECHAT_EXPERIENCE_MEMBERS_CONFIGURED=true \
 WECHAT_VERSION=0.1.0-demo.1 \
 WECHAT_RELEASE_DESC='CISME R0 封闭体验：护理、邀请投稿与积分账' \
 npm run wechat:upload -- --confirm-upload
 ```
 
-二维码和 CLI 信息只写入被 Git 忽略的 `docs/evidence/wechat/`，不会进入提交历史。上传成功后仍需在小程序管理后台把该开发版本设为体验版；本项目不自动提交审核或发布正式版。
+首次受控体验的 `wechat:preflight:trial` 使用真实证明设置 `WECHAT_APP_ID`、`WECHAT_PRIVACY_GUIDE_CONFIGURED`、`WECHAT_LEGAL_TEXTS_APPROVED`、`WECHAT_SERVER_DOMAINS_CONFIGURED`、`WECHAT_DEMO_SCOPE_APPROVED`、`WECHAT_EXPERIENCE_MEMBERS_CONFIGURED`、`WECHAT_DEVELOPER_UPLOAD_CONFIRMED`、`WECHAT_REAL_IDENTITY_VERIFIED`、`WECHAT_TEST_TARGET_ISOLATED_VERIFIED`、`WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED` 与 `WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED`。这些值仅在对应证据已经取得后设为 `true`；当前源码哈希及包结构必须匹配。体验中再取得 iOS/Android、弱网和逐页证据，作为待提审候选门槛，不能把它们当作首次体验的前置条件（PRD §15.6）。
+
+二维码和 CLI 信息只写入被 Git 忽略的 `docs/evidence/wechat/`，不会进入提交历史。上传成功后仍需通过获允许的微信公众平台流程把该开发版本设为体验版；本项目不自动提交审核或发布正式版。
 
 ## 8. 上传后验收
 
