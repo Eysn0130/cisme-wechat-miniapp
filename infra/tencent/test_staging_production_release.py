@@ -556,11 +556,14 @@ class PrivateInputs(unittest.TestCase):
 
     def check(self):
         original=Path.lstat
+        host_ancestors=set(self.root.parents)
         def metadata(path,*args,**kwargs):
             info=original(path,*args,**kwargs)
-            # Only root ownership of the host's temporary path is simulated.
-            # Real file descriptors, bytes, mode checks and symlinks are used.
-            return SimpleNamespace(st_mode=info.st_mode,st_uid=0,st_gid=info.st_gid)
+            # The host's /tmp may be writable by others (including on CI).
+            # Model protected ancestors outside this fixture, while keeping
+            # the fixture directory's real mode for the mutable-parent test.
+            mode=info.st_mode&~0o022 if path in host_ancestors else info.st_mode
+            return SimpleNamespace(st_mode=mode,st_uid=0,st_gid=info.st_gid)
         with patch.object(Path,'lstat',metadata),patch.object(m.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=m.os.geteuid())):
             return m.private_inputs(self.config)
 
