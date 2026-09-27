@@ -90,8 +90,12 @@ def unit_active(name):
         return False
 
 
-def observe(now=None):
-    now = time.time() if now is None else now
+def observe(now=None, clock=None):
+    # Keep explicit `now` deterministic for existing offline callers while
+    # sampling a fresh clock at the heartbeat read in the running observer.
+    if clock is None:
+        clock = time.time if now is None else lambda: now
+    probe_started_at = clock() if now is None else now
     checks = {name: unit_active(unit) for name, unit in UNITS.items()}
     try:
         with urllib.request.build_opener(NoRedirect).open(READY_URL, timeout=6) as response:
@@ -101,10 +105,11 @@ def observe(now=None):
     try:
         completed = json.loads(HEARTBEAT.read_text())['completedAtUtc']
         completed_at = datetime.datetime.fromisoformat(completed.replace('Z', '+00:00')).timestamp()
-        checks['workerCycleRecent'] = 0 <= now - completed_at <= HEARTBEAT_MAX_AGE_SECONDS
+        age = clock() - completed_at
+        checks['workerCycleRecent'] = 0 <= age <= HEARTBEAT_MAX_AGE_SECONDS
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
         checks['workerCycleRecent'] = False
-    checks.update(authorization_expiry_checks(now))
+    checks.update(authorization_expiry_checks(probe_started_at))
     return checks
 
 

@@ -121,6 +121,10 @@ Page({
     this.syncSession();
     if(!this.data.visible||this.data.busy){this.data.refreshOnShow=true;return;}
     this.data.refreshOnShow=false;cancelPageReads(this);cancelRuntimeRead(this);
+    // A reload invalidates the previous receipt read. Its late response can no
+    // longer clear loading, so release that guard together with its attempt.
+    this.receiptQueryAttempt+=1;
+    this.setData({receiptQueryLoading:false,receiptQueryError:''});
     const epoch=++this.data.epoch,readEpoch=++this.data.readEpoch,token=historicalCommerceToken();
     if(this.data.invalidId){this.setData({loading:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,error:"请从订单列表选择一笔订单。",order:null});return;}
     this.setData({loading:!this.data.order,coreReady:false,error:"",isolatedPayment:false,paymentRecovery:false});
@@ -437,7 +441,20 @@ Page({
       if(!this.sheetCurrent(epoch,token))return;
       this.setData({sheetCase:row,sheetAttempt:null,sheetReason:'',sheetError:''});await this.loadSupportSheet();
     }catch(error){if(this.sheetCurrent(epoch,token)){
-      this.setData({sheetError:(error as {status?:number})?.status===409?'本单可能已有申请，请先刷新核对原案件。':'提交结果尚未核实。请用原请求重试，或刷新本单售后记录。'});
+      const code=(error as {code?:string})?.code;
+      // Background case/message polling must not erase a submission result
+      // before the buyer can read or correct it.
+      this.sheetValidationError=true;
+      // These named pre-insert business/validation rejections cannot have
+      // created this request. Keep the draft but permit a corrected intent.
+      if(['AFTERSALE_RETURN_REQUIRED','AFTERSALE_KIND_INVALID','AFTERSALE_CLAIM_BASIS_INVALID',
+        'AFTERSALE_NOTE_INVALID','AFTERSALE_SELECTION_INVALID'].includes(code??''))
+        this.setData({sheetAttempt:null,sheetError:code==='AFTERSALE_RETURN_REQUIRED'
+          ?'本单已发货，请选择退货退款；未收到或漏发可选择对应问题类型。'
+          :errorTitle(error,'请修改申请内容后重试。')});
+      else if(code==='AFTERSALE_ACTIVE_CASE'||code==='AFTERSALE_EXISTING_REFUND')
+        this.setData({sheetError:'本单已有售后或退款记录，请先刷新并核对原案件。'});
+      else this.setData({sheetError:'提交结果尚未核实。请用原请求重试，或刷新本单售后记录。'});
     }}finally{if(this.current(epoch,token))this.setData({sheetSubmitting:false});}
   },
   async sendSheetMessage(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSending)return;

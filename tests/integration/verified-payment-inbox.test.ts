@@ -852,8 +852,31 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   // A shipped, verified order must keep moving when the buyer never opens the
   // mini program again. Only the synthetic shipping journal state is advanced.
   await pool.query('DELETE FROM commerce_wechat_receipt_observation WHERE order_id=$1',[order.id]);
-  await pool.query("UPDATE commerce_shipping_sync SET state='synced' WHERE id=$1",[job]);
   const {WechatReceiptWatch}=await import('../../services/api/src/wechatReceiptWatch.js');
+  const failedManual=new WechatReceiptService(pool,appId,merchantId,{queryOrder:async()=>{throw Error('synthetic unavailable');}});
+  await expect(failedManual.queryMine(buyer,order.id)).rejects.toThrow('synthetic unavailable');
+  // The manual attempt was recorded before its read failed, while upload is prepared.
+  await pool.query("UPDATE commerce_wechat_receipt_observation SET watch_next_attempt_at=clock_timestamp()-interval '1 second' WHERE order_id=$1",[order.id]);
+  let prematureQueries=0;
+  const waitingWatch=new WechatReceiptWatch(pool,appId,merchantId,{queryOrder:async()=>{
+    prematureQueries++;return {platformOrderState:3,inComplaint:false};
+  }});
+  expect(await waitingWatch.runCycle()).toMatchObject({processed:0,status:'processed'});
+  expect(prematureQueries).toBe(0);
+  expect((await pool.query('SELECT watch_state,watch_last_error_code,watch_next_attempt_at FROM commerce_wechat_receipt_observation WHERE order_id=$1',[order.id])).rows[0])
+    .toMatchObject({watch_state:'active',watch_last_error_code:'SHIPPING_SYNC_PENDING',watch_next_attempt_at:expect.any(Date)});
+  const wrongShipment=(await pool.query('SELECT id FROM commerce_shipment WHERE order_id=$1',[bulkB.id])).rows[0].id;
+  await pool.query(`INSERT INTO commerce_wechat_receipt_observation
+    (order_id,shipment_id,payment_inbox_id,watch_next_attempt_at)
+    SELECT o.id,$2,i.id,clock_timestamp()-interval '1 minute' FROM commerce_order o
+    JOIN commission_payment_inbox i ON i.order_id=o.id AND i.state='applied' WHERE o.id=$1`,[bulkA.id,wrongShipment]);
+  expect(await waitingWatch.runCycle()).toMatchObject({processed:0,status:'processed'});
+  expect((await pool.query('SELECT watch_state,watch_last_error_code FROM commerce_wechat_receipt_observation WHERE order_id=$1',[bulkA.id])).rows[0])
+    .toMatchObject({watch_state:'manual_review',watch_last_error_code:'PAYMENT_OR_SHIPMENT_BINDING_CHANGED'});
+  await pool.query('DELETE FROM commerce_wechat_receipt_observation WHERE order_id=$1',[bulkA.id]);
+  await pool.query("UPDATE commerce_shipping_sync SET state='synced' WHERE id=$1",[job]);
+  // Advance only this observation's synthetic due time; no buyer visit is needed.
+  await pool.query("UPDATE commerce_wechat_receipt_observation SET watch_next_attempt_at=clock_timestamp()-interval '1 second' WHERE order_id=$1",[order.id]);
   const {CommerceOrderService}=await import('../../services/api/src/commerceOrders.js');
   const lists=new CommerceOrderService(pool,authority,addresses,null as never,
     {enabled:false,quoteTtlMinutes:15,pendingOrderTtlMinutes:15});

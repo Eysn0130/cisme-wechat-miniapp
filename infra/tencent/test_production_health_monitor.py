@@ -1,5 +1,6 @@
 """Offline tests for the independent alert state machine; no live channel used."""
 import importlib.util
+import datetime
 import json
 from pathlib import Path
 import tempfile
@@ -47,6 +48,34 @@ class ProductionMonitorTests(unittest.TestCase):
             self.assertTrue(result['apiReadyAndDatabaseQuery'])
             self.assertTrue(result['worker'])
             self.assertFalse(result['workerCycleRecent'])
+
+    def test_worker_heartbeat_uses_time_after_slow_ready_probe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            heartbeat = Path(directory) / 'worker.json'
+            def heartbeat_at(seconds):
+                value = datetime.datetime.fromtimestamp(seconds, datetime.timezone.utc)
+                heartbeat.write_text(json.dumps({'completedAtUtc': value.isoformat()}))
+            class Ready:
+                status = 200
+                def geturl(self): return health.READY_URL
+                def __enter__(self): return self
+                def __exit__(self, *_): return False
+            class Opener:
+                def open(self, *_args, **_kwargs):
+                    heartbeat_at(1004)  # The worker finished while readiness was slow.
+                    return Ready()
+            with patch.object(health, 'HEARTBEAT', heartbeat), \
+                 patch.object(health, 'unit_active', return_value=True), \
+                 patch.object(health.urllib.request, 'build_opener', return_value=Opener()):
+                with patch.object(health.time, 'time', side_effect=[1000, 1006]):
+                    self.assertTrue(health.observe()['workerCycleRecent'])
+            with patch.object(health, 'HEARTBEAT', heartbeat), \
+                 patch.object(health, 'unit_active', return_value=True), \
+                 patch.object(health.urllib.request, 'build_opener', return_value=type('Opener', (), {'open': lambda *a, **k: Ready()})()):
+                for value in [1007, 800, None]:
+                    if value is None: heartbeat.write_text('{invalid')
+                    else: heartbeat_at(value)
+                    self.assertFalse(health.observe(now=1000, clock=lambda: 1006)['workerCycleRecent'])
 
     def test_external_channel_requires_https_and_no_local_target(self):
         for url in ['', 'http://alerts.example.com/hook', 'https://localhost/hook',
