@@ -77,6 +77,28 @@ class ProductionMonitorTests(unittest.TestCase):
                     else: heartbeat_at(value)
                     self.assertFalse(health.observe(now=1000, clock=lambda: 1006)['workerCycleRecent'])
 
+    def test_running_monitor_uses_fresh_heartbeat_clock_after_ready_probe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            heartbeat = Path(directory) / 'worker.json'
+            state = Path(directory) / 'state.json'
+            class Ready:
+                status = 200
+                def geturl(self): return health.READY_URL
+                def __enter__(self): return self
+                def __exit__(self, *_): return False
+            class Opener:
+                def open(self, *_args, **_kwargs):
+                    completed = datetime.datetime.fromtimestamp(1004, datetime.timezone.utc)
+                    heartbeat.write_text(json.dumps({'completedAtUtc': completed.isoformat()}))
+                    return Ready()
+            with patch.object(health, 'HEARTBEAT', heartbeat), \
+                 patch.object(health, 'unit_active', return_value=True), \
+                 patch.object(health, 'authorization_expiry_checks', return_value={}), \
+                 patch.object(health.urllib.request, 'build_opener', return_value=Opener()), \
+                 patch.object(health.time, 'time', side_effect=[1000, 1006, 1007]):
+                self.assertEqual(health.run(state_path=state, webhook=''), 0)
+            self.assertEqual(json.loads(state.read_text())['failureStreak'], 0)
+
     def test_external_channel_requires_https_and_no_local_target(self):
         for url in ['', 'http://alerts.example.com/hook', 'https://localhost/hook',
                     'https://user:password@alerts.example.com/hook',

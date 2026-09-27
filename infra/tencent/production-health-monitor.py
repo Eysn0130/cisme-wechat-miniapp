@@ -159,8 +159,10 @@ def deliver(url, kind, failed, now):
 
 
 def run(now=None, checks=None, webhook=None, state_path=STATE):
-    now = time.time() if now is None else now
     checks = observe(now) if checks is None else checks
+    # Let the live observer sample the clock again when it reads the heartbeat.
+    # Freezing `now` before the readiness probe can mark a fresh cycle as future.
+    now = time.time() if now is None else now
     failed = sorted(name for name, healthy in checks.items() if healthy is not True)
     try:
         previous = json.loads(state_path.read_text())
