@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "repository": "Eysn0130/cisme-wechat-miniapp",
+  "event": "pull_request",
+  "headSha": "3b1fbe861a4684c53f5af32e6425e1350c017a14",
+  "checkoutSha": "b2a508144fc6c84c3dcf7629e8d01d9a586d7690",
+  "checkoutTree": "8cb0381c282debe7299f96355da821dae9b125b1",
+  "checkoutTreeMatchesHeadTree": true,
+  "runId": 38397962896,
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/38397962896",
+  "conclusion": "success",
+  "completedAtUtc": "2026-10-13T12:40:04Z",
+  "verifyJobId": 115297914087,
+  "unit": {"files": 128, "passed": 1473},
+  "integration": {"files": 58, "passed": 921, "target": "isolated disposable PostgreSQL and object store"},
+  "productionAuditPassed": true,
+  "developmentToolAuditPassed": true,
+  "buildPassed": true,
+  "syntheticRestorePassed": true,
+  "performance": {
+    "baselineSource": "56432fb9b42777ffd4b3aeaf17134a666c7f243c",
+    "allSixExitCodes": 0,
+    "installedPackageCountPerCohort": 533,
+    "nodeVersion": "v24.18.0",
+    "sameDependencyInputsAndInstalledBytesVerified": true,
+    "installedNodeModulesSha256": "5029432b7901fad51f74e8c09c3b80dea7328734fcbd3dda03376f80464608f1",
+    "contextFileSha256": "93421553b183e802b096a3645c648c730a1dfe480f8114d09e2d1d8a6dce8b39",
+    "exitStatusFileSha256": "95861626a3227819cbb051b647067b49dd9d3846e2304a292808cc56ef6f0d78"
+  },
+  "evidenceArtifact": {
+    "id": 11814941376,
+    "name": "cisme-r0-evidence",
+    "sizeInBytes": 262480,
+    "githubReportedDigest": "sha256:06e246507f46d772fd1c19a3e972a364bc1f2ba8cc8b947e7502fe0ef14856af"
+  },
+  "skippedJobs": ["candidate-design-qa", "wechat-credentialed-preview"],
+  "limits": [
+    "Covers this exact PR tree; not a later main push or later documentation revision.",
+    "Synthetic restore is not a live production data recovery qualification.",
+    "Performance compares cohort source under common fixed dependencies, not historical old-dependency results.",
+    "Not public TLS, WeChat upload, native device or visual acceptance; deployed dependency versions remain separately recorded."
+  ]
+}

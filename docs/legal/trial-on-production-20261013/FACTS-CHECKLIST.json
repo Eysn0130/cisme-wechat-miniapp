@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 1,
+  "preparedOn": "2026-10-13",
+  "status": "PUBLISHED_TO_ISOLATED_TRIAL_DATABASE_EXTERNAL_PLATFORM_PENDING",
+  "legalApproval": {
+    "status": "NO_INDEPENDENT_LEGAL_SIGNOFF_RECORDED",
+    "evidence": null
+  },
+  "publication": {
+    "performed": true,
+    "sourceInputReady": true,
+    "candidatePath": "docs/legal/trial-on-production-20261013/publication-candidate.json",
+    "reason": "根据用户运营委托，现有事务发布器已原子发布体验terms/privacy；trusted loopback TLS接口ready=true且全文SHA匹配。未创建成员/同意、未改变微信平台或公网。",
+    "evidence": "../../evidence/production-runtime-20261013/trial-legal-publication.json"
+  },
+  "scope": {
+    "environment": "staging",
+    "hostInstance": "lhins-61ikz4mi",
+    "publicIp": "124.223.74.198",
+    "apiOrigin": "https://staging-api.cisme.cn",
+    "currentNativeSourceSha256": "3c895fb74af445001cc5b731dc1199eba90cfe8f0536a1f3d8faa789a2a3901d",
+    "enabledReleaseGroupApproval": "CLOSED_CAPABILITIES_SCOPE_DOCUMENTED; platform/release facts still require readback"
+  },
+  "sources": [
+    {
+      "id": "owner-20260923",
+      "path": "docs/legal/CONFIRMED-OPERATING-FACTS-20260923.md",
+      "scope": "此前经营方明确回复；不等于文本审批或微信后台更新"
+    },
+    {
+      "id": "runtime-20261012",
+      "path": "docs/deployment/PRODUCTION-RUNTIME-2026-10-12.md",
+      "scope": "历史安装与核验范围"
+    },
+    {
+      "id": "runtime-20261013",
+      "path": "docs/evidence/production-runtime-20261013/runtime-readback.json",
+      "observedWindowUtc": "2026-10-13T11:48:00Z/2026-10-13T11:52:32.389940Z",
+      "scope": "runtime_audit 本轮只读回执，经协作消息提供并已保存脱敏证据；只覆盖本机服务与配置，不能推定公网或真机通过"
+    },
+    {
+      "id": "schema",
+      "path": "scripts/legal-publication.ts",
+      "scope": "LegalReleaseFacts、13 类 retention 与三份可读附件"
+    },
+    {
+      "id": "generator",
+      "path": "scripts/prepare-legal-documents.ts",
+      "scope": "固定读取 production-candidate-20260923 模板；输出仅供审阅"
+    },
+    {
+      "id": "ordinary-support-source",
+      "path": "db/migrations/202609240001_ordinary_support_finite_policy.sql",
+      "scope": "历史源码初值与本轮现场读回结合，普通三个日历月已按用户最新委托采用；不自动证明清理执行或独立法务签字"
+    },
+    {
+      "id": "trial-publication-20261013",
+      "path": "docs/evidence/production-runtime-20261013/trial-legal-publication.json",
+      "observedWindowUtc": "2026-10-13T12:55:35Z/2026-10-13T12:55:48Z",
+      "scope": "本轮根代理实际体验库事务发布与TLS匿名回读；历史empty协议读取不作为当前状态；不替代公网/微信/真机"
+    }
+  ],
+  "alreadyConfirmedByOperator": [
+    {
+      "id": "operator-name",
+      "value": "熹芃（上海）生物科技有限公司",
+      "source": "owner-20260923",
+      "askAgain": false,
+      "remainingEngineering": "核对当前微信平台主体绑定；不得由公司名称推定平台已一致"
+    },
+    {
+      "id": "public-contact-policy",
+      "value": "使用现有微信小程序客服，不新增电话、邮箱、第二客服或独立后台；账号不可用时仍在同一小程序受理",
+      "source": "owner-20260923",
+      "askAgain": false,
+      "remainingEngineering": "验证未登录 open-type=contact 的实际接待、发送和回复；微信反馈不作为已确认客服"
+    },
+    {
+      "id": "transaction-baseline",
+      "value": "交易及直接关联售后/客服记录：完成后的三年业务基线，未结争议或另有适用义务时按必要范围延长",
+      "source": "owner-20260923",
+      "askAgain": false,
+      "scopeNote": "体验真实交易关闭，不能声称体验已经产生订单、支付或物流事实"
+    },
+    {
+      "id": "minimal-retention",
+      "value": "按业务目的必要的最短期限保存；到期删除或匿名化；账号注销后不必要资料清除，必要记录隔离",
+      "source": "owner-20260923",
+      "askAgain": false
+    },
+    {
+      "id": "restore-suppression",
+      "value": "恢复前后重放独立删除/注销抑制事实，不让已经删除资料重新成为活跃资料",
+      "source": "owner-20260923",
+      "askAgain": false,
+      "remainingEngineering": "体验备份及真实恢复/抑制执行尚待完成"
+    }
+  ],
+  "automaticallyVerifiableFacts": [
+    {
+      "id": "same-host-isolation",
+      "status": "READ_BACK",
+      "source": "runtime-20261013",
+      "facts": [
+        "独立 cisme-trial 系统用户、cisme_trial 数据库/角色",
+        "97 个迁移，137 个 public tables",
+        "数据库连接、会话、上传、联系信息加密、联系信息索引、正式隐私导出六类配置与生产分别独立；不保存任何秘密或摘要"
+      ],
+      "limits": [
+        "共享同一主机、PostgreSQL 和网络故障域，不称独立容灾"
+      ]
+    },
+    {
+      "id": "storage",
+      "status": "READ_BACK",
+      "source": "runtime-20261013",
+      "facts": [
+        "OBJECT_STORAGE_DRIVER=api_gateway",
+        "OBJECT_STORAGE_PROFILE=production-host-isolated-trial",
+        "媒体目录 /opt/cisme-trial/tmp/object-storage 为体验用户所有，0700，本次为空",
+        "抑制目录 /opt/cisme-trial/privacy-suppression 为体验用户所有，0700，本次为空",
+        "COS 直传关闭"
+      ],
+      "limits": [
+        "尚无体验上传、对象清理、删除或恢复抑制执行实测",
+        "不能复用旧 CloudBase/COS/海外存储表述"
+      ]
+    },
+    {
+      "id": "closed-capabilities",
+      "status": "READ_BACK",
+      "source": "runtime-20261013",
+      "facts": [
+        "真实交易、模拟支付、履约、积分消费、积分规则、公开 UGC、COS 直传和手机号绑定均关闭",
+        "ALLOW_DEV_ADAPTERS=false，实际运行值已读回"
+      ],
+      "limits": [
+        "开关关闭不代替真实身份、逐功能或真机验收"
+      ]
+    },
+    {
+      "id": "legal-bootstrap",
+      "status": "READ_BACK_NOT_READY",
+      "source": "runtime-20261013",
+      "facts": [
+        "本机证书验证的 /v1/legal HTTP 200，ready=false，documents=[]",
+        "legal_document 总数及 active 数均为 0"
+      ],
+      "limits": [
+        "本机 HTTP 200 不证明公网、微信域名或手机流程"
+      ]
+    },
+    {
+      "id": "tls-and-network",
+      "status": "PARTIAL",
+      "source": "runtime-20261013",
+      "facts": [
+        "服务器 IPv4 解析 staging-api.cisme.cn 至 124.223.74.198",
+        "本机 SNI 与证书正常验证，HTTPS /health/ready HTTP 200，TLS 1.3",
+        "体验证书截止 2027-01-11T01:43:12Z",
+        "UFW 仅开放 22"
+      ],
+      "missing": [
+        "对应服务备案的实际审核状态",
+        "外部正常解析/证书/HTTP",
+        "微信 request/upload/download 合法域名和实际隐私指引"
+      ]
+    },
+    {
+      "id": "trial-backup",
+      "status": "NOT_READY",
+      "source": "runtime-20261013",
+      "facts": [
+        "无体验备份 unit",
+        "生产备份仅覆盖 cisme，不覆盖 cisme_trial",
+        "maintenance 对 backups/cisme-trial 的 GET 返回 403 AccessDenied"
+      ],
+      "missing": [
+        "体验独立加密备份、保留/轮换参数、恢复与删除抑制验证；不能以生产备份替代"
+      ],
+      "gateScope": "运行能力与隐私恢复限制，不能单凭此项前置完整商业恢复资格为首次受控体验条件"
+    },
+    {
+      "id": "retention-policy-readback",
+      "status": "READ_BACK_AND_OPERATIONAL_PARAMETER_ADOPTED",
+      "source": "runtime-20261013",
+      "observedAtUtc": "2026-10-13T11:52:32.389940Z",
+      "facts": [
+        "普通咨询 support_conversation_policy_pending：3个月，restrict_then_delete，enforced，active=true，version=2，automatic_purge_enabled=false",
+        "客服审计 support_audit_policy_pending：无固定天/月，declared，active=false，version=1，automatic_purge_enabled=false",
+        "commerce_transaction_three_years 与 support_transaction_three_years：36个月，restrict_then_delete，declared，active=false，version=1，automatic_purge_enabled=false"
+      ],
+      "limits": [
+        "三个日历月已按用户最新委托采用为本体验运营安排；不记录独立法务签字，自动批量清理未开放",
+        "交易三年是复用的经营基线，相关策略为声明未启用，不称自动删除已执行"
+      ]
+    },
+    {
+      "id": "third-parties",
+      "status": "TECHNICAL_INVENTORY_PENDING",
+      "source": "runtime-20261013",
+      "knownServiceNames": [
+        "微信小程序平台/微信登录",
+        "腾讯云正式主机与 DNS/TLS 基础设施"
+      ],
+      "missing": [
+        "按实际服务条款核对提供方名称、处理关系、用途、资料类别、位置与公开联系渠道",
+        "核对无外部 AI、支付、物流、CloudBase 或海外服务承接本体验资料；不能凭依赖存在认定已接线"
+      ]
+    },
+    {
+      "id": "actual-trial-legal-publication",
+      "status": "PUBLISHED_AND_READ_BACK",
+      "source": "trial-publication-20261013",
+      "facts": [
+        "12:55原子发布terms/privacy两份2026-10-13-v1-trial文档及一条legal.publish审计",
+        "本机可信TLS /v1/legal ready=true，正文SHA与准确文件一致",
+        "前后四服务PID、正式协议、UFW均相同，成员和三类同意记录仍为0"
+      ],
+      "limits": [
+        "不代替备案/公网/微信平台合法域名及隐私/真实微信身份/真机验收",
+        "未授予独立法务签字或创建会员同意"
+      ]
+    }
+  ],
+  "retentionInventory": [
+    {
+      "code": "account",
+      "category": "微信身份、会员账号、会话及协议确认",
+      "purpose": "识别体验成员、维持本人会话和记录基础协议选择",
+      "endCondition": "本人仍选择保留体验账号且体验目的需要时；退出体验、注销、体验结束或目的完成后，不再必要部分停止使用",
+      "cleanup": "核验后删除或匿名化不必要账号资料，吊销相应会话；仅保留有必要依据的最小协议/处理凭证并限制访问",
+      "exceptions": "未结争议、反滥用核验或适用保存义务，仅按必要范围和期限保留并复核，不继续用于日常体验或营销",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "optional_profile",
+      "category": "头像缩略图、昵称、选填微信号与历史可选联系资料",
+      "purpose": "本人资料展示和必要人工联系；本体验手机号绑定关闭",
+      "endCondition": "相应资料用途和本人保留选择存续期间；修改、移除、退出体验、注销或目的完成后",
+      "cleanup": "清除不再需要的当前资料和可清理缓存；正常替换不把旧资料用于其他用途",
+      "exceptions": "已有争议或依法需保留的必要证据隔离；不保留与争议无关的整套资料",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "care_media",
+      "category": "护理日期、分步事实、自我感受、文字及本人主动提供的素材",
+      "purpose": "保存和回看本人护理过程，核对体验问题",
+      "endCondition": "体验中本人选择保存记录且回看/问题处理需要时；退出、体验结束、本人删除或处理目的完成后",
+      "cleanup": "核验本人范围后删除或匿名化不必要记录，素材按绑定关系进入清理；保留必要的问题处理结论时减少身份信息",
+      "exceptions": "正在处理的投诉、审核争议或有效保全只保留相关材料；不以一般护理记录要求无关病历",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "addresses",
+      "category": "本人主动保存的地址簿资料",
+      "purpose": "仅在实际可用的地址簿操作中保存本人草稿/资料，不用于本体验下单或发货",
+      "endCondition": "本人保留地址的选择与相关用途存续期间；删除地址、退出体验、注销或目的完成后",
+      "cleanup": "清除不再必要的地址密文和索引；如有独立证据保存必要性，先隔离并说明范围",
+      "exceptions": "本体验不产生实际订单地址快照；若本人提供既有交易材料，其必要范围按独立争议处理",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "order_payment",
+      "category": "交易相关材料与测试履约依据",
+      "purpose": "本体验不开放销售、真实支付、退款或履约；仅核对本人主动提供的必要体验/既有问题依据",
+      "endCondition": "纯测试依据在体验核对目的完成、退出或体验结束后处理；实际交易证据如确需处理，采用交易完成或售后结束后三年业务基线",
+      "cleanup": "区分纯测试与真实交易证据，不产生收入、支付或正式会员资产；不必要测试资料删除或匿名化，必要交易证据限制用途",
+      "exceptions": "适用义务要求更长或未结争议/有效保全时，仅必要范围延长；三年是既有业务基线，不声称对所有资料均为法定期限",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "aftersale_support",
+      "category": "普通咨询与确有关联交易的客服/售后证据",
+      "purpose": "处理护理、账号、体验问题、投诉和必要交易核对",
+      "endCondition": "普通已结案咨询自结案起三个日历月；直接关联实际交易的必要客服/售后证据自交易完成或售后结束中较晚时间起三年",
+      "cleanup": "到期并无争议/保全时按受控处理删除或匿名化；普通与交易关联材料分别判断，不因同一会话而统一延长",
+      "exceptions": "未结争议或有效保全暂停相关必要材料清理；历史用途未判明时先核验，不擅自按普通咨询删除；不承诺即时批量物理清零",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "community",
+      "category": "邀请任务、私有投稿、链接、平台账号、材料、许可、审核与申诉",
+      "purpose": "完成邀请制投稿、人工核对及本人进度查询，不公开用户内容",
+      "endCondition": "相关投稿、核对或申诉需要期间；退出体验、体验结束、本人撤回或目的完成后",
+      "cleanup": "删除或匿名化不必要私有草稿和材料；保留必要决定/争议凭证时缩减身份和原件范围",
+      "exceptions": "未结审核/申诉或有效保全只保留必要部分；投稿不构成公开展示或任意用途授权",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "benefits",
+      "category": "体验资格、护理周期关联、邀请归属与权益解释事实",
+      "purpose": "核对体验资格、唯一护理周期和本人权益记录",
+      "endCondition": "封闭体验和必要资格/争议核对期间；退出、体验结束或目的完成后",
+      "cleanup": "不转入正式会员资产，删除或匿名化不必要测试事实；保留需复核的最小处理结论",
+      "exceptions": "必要争议和反重复证据单独限制访问；不据此生成实际交易、现金承诺或积分消费",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "privacy_requests",
+      "category": "隐私申请、补充说明、回复、核验和执行凭据",
+      "purpose": "受理并完成本人查阅、复制、更正、删除、撤回或注销请求",
+      "endCondition": "请求处理、复核及相关必要证明目的完成后；未完成请求不因退出体验而一并销毁",
+      "cleanup": "处理结束后删除或匿名化不必要正文；必要结果凭证以最小范围隔离保存并定期复核",
+      "exceptions": "未结争议或适用义务仅保留必要证明；登记成功不代表实际导出、删除或注销完成",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "security_audit",
+      "category": "必要访问日志、安全、权限及操作审计",
+      "purpose": "排障、保护账号与资料、核对未授权操作和处理争议",
+      "endCondition": "排障、安全处置和必要审计目的完成且适用保留要求满足后",
+      "cleanup": "轮换、删除或匿名化不再必要的记录；审计避免复制消息正文和完整业务原件",
+      "exceptions": "适用保存义务、正在处理的安全事件或有效保全仅按必要范围延长；不得以日志用途永久保存所有个人资料",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "temporary_exports",
+      "category": "本人数据副本、下载授权和临时材料",
+      "purpose": "按本人请求安全交付资料；仅在实际已启用且身份核验通过时生成",
+      "endCondition": "副本访问默认一小时或本人撤销后失效；未提交客服图片草稿的已实现有效期为二十四小时，其他临时资料按其具体失效事件处理",
+      "cleanup": "撤销访问并按到期/撤销清理流程删除服务端临时密文或无效对象；本机临时副本在操作结束/页面离开时清理",
+      "exceptions": "本人已发送或另存的副本不由小程序自动收回；原业务事实的独立必要保留不因副本失效而改变",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "local_cache",
+      "category": "本机会话、账号隔离草稿、缓存与操作恢复提示",
+      "purpose": "维持本人界面、减少重复输入并核对中断操作",
+      "endCondition": "退出身份、相应缓存到期/删除或恢复操作已核对后；无会话的公开缓存按功能需要处理",
+      "cleanup": "按身份切换、页面离开、退出或功能失效事件清理；可通过微信清除小程序本地数据",
+      "exceptions": "未核对操作只保留最小恢复提示；设备故障或本人另存/发送的副本不承诺同步清除，清除本机提示不撤销服务端事实",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    },
+    {
+      "code": "backups",
+      "category": "体验数据备份及删除/注销抑制凭证",
+      "purpose": "范围有限的故障恢复和必要安全保护，不保证全部体验资料可恢复",
+      "endCondition": "故障恢复保护目的结束或原资料处理目的完成后；确有必要保存的部分限制范围和用途，不保证长期保留全部记录",
+      "cleanup": "备份不能即时逐条清除时限制使用；恢复时核对并应用最新删除、注销和撤回记录，不让已处理资料重新成为日常可用资料",
+      "exceptions": "恢复范围有限，相关删除、注销或撤回记录不完整时，不恢复对应旧资料；本人已发送或另存的副本不由本体验同步清除",
+      "source": "PUBLICATION-FACTS.json",
+      "operatorInputResolved": true
+    }
+  ],
+  "requiredReadableAnnexes": [
+    "经营者与联系信息",
+    "个人信息保存与清理清单",
+    "第三方信息清单"
+  ],
+  "generation": {
+    "inputReady": true,
+    "inputPath": "docs/legal/trial-on-production-20261013/PUBLICATION-FACTS.json",
+    "outputPath": "docs/legal/trial-on-production-20261013/publication-candidate.json",
+    "helper": "existing assembleLegalPublication with local trial templates",
+    "helperChanged": false,
+    "databasePublicationPerformed": true
+  },
+  "operatorDelegation": {
+    "date": "2026-10-13",
+    "quote": "请你来思考，不要来询问我，根据你的判断研究验证，例如客服时段一般都是 早上 9 点 到 晚上 10 点。不要过度增加更多硬性条件",
+    "source": "当前对话用户原句，由根代理原文转交",
+    "threeOperationalParametersResolved": true,
+    "newUserAnswersRequired": false,
+    "independentLegalSignoffImplied": false
+  },
+  "historicalMissingInputsResolvedByDelegation": [
+    {
+      "id": "support-arrangement",
+      "status": "RESOLVED_BY_AUTHORIZED_JUDGMENT",
+      "decision": "北京时间09:00–22:00人工接待，其他时间留言后处理；不保证即时送达或固定解决时限"
+    },
+    {
+      "id": "ordinary-support-parameter",
+      "status": "RESOLVED_BY_AUTHORIZED_JUDGMENT",
+      "decision": "采用普通结案咨询三个日历月及必要hold/争议例外；没有自动删除承诺"
+    },
+    {
+      "id": "trial-end-condition",
+      "status": "RESOLVED_BY_AUTHORIZED_JUDGMENT",
+      "decision": "按最短必要目的清理；必要证据隔离与恢复删除抑制；不增加完整商业RPO/RTO或全量设备矩阵为首轮条件"
+    }
+  ],
+  "minimalOperatorInputs": [],
+  "publicationSchema": {
+    "topLevel": "Array<LegalDocument>",
+    "documentFields": [
+      "type",
+      "version",
+      "title",
+      "body",
+      "operatorName",
+      "contact"
+    ],
+    "version": "2026-10-13-v1-trial",
+    "factsInput": "PUBLICATION-FACTS.json",
+    "sellerScope": "不适用，本次封闭体验不开放商品销售",
+    "readableAnnexesIncluded": true,
+    "validatorPassed": true
+  },
+  "resolvedOperationalPolicy": {
+    "timeZone": "Asia/Shanghai",
+    "staffedHours": "09:00–22:00 daily",
+    "outsideHours": "leave a message, handle in staffed hours; no immediate reply or fixed resolution-time guarantee",
+    "ordinaryResolvedSupportRetention": "three calendar months",
+    "transactionLinkedEvidenceRetention": "three-year business baseline with necessary obligation/hold exceptions",
+    "trialEndOrExit": "clear no-longer-necessary data by purpose; isolate minimum dispute/request/audit evidence; preserve restore suppression",
+    "automatedBulkDeletionPromised": false,
+    "realWechatSupportDeliveryVerified": false
+  },
+  "firstControlledTrial": {
+    "prdReference": "15.6 first-entry conditions",
+    "requires": [
+      "exact developer upload/platform version",
+      "experience member scope",
+      "real WeChat identity",
+      "HTTPS test API and actual legal domain/privacy platform evidence",
+      "independent data/storage and fail-closed capability controls"
+    ],
+    "fullCommercialRpoRtoOrFullDeviceMatrixAdded": false,
+    "outstandingTechnicalEvidenceIsNotMissingOperatorInputs": true
+  },
+  "candidateManifest": "docs/legal/trial-on-production-20261013/CANDIDATE-MANIFEST.json",
+  "finalValidation": {
+    "publicationValidatorPassed": true,
+    "regenerationIdentical": true,
+    "threeReadableAnnexesIncluded": true,
+    "clientLegalBootstrapFixtureCompatible": true,
+    "existingLegalUnitTestsPassed": 34,
+    "operatorInputsBlocking": false,
+    "trialDatabasePublished": true,
+    "wechatPlatformPublished": false
+  }
+}

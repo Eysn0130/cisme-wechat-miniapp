@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "status": "PUBLISHED_TO_ISOLATED_TRIAL_DATABASE",
+  "version": "2026-10-13-v1-trial",
+  "intendedEffectiveDate": "2026-10-13",
+  "operatorName": "熹芃（上海）生物科技有限公司",
+  "documents": [
+    {
+      "type": "terms",
+      "version": "2026-10-13-v1-trial",
+      "title": "CISME 用户协议（封闭体验）",
+      "bodySha256": "45968141b9c2b375b74b168b0b9afb36147e6ceaf35afa20c67cc241bb8fd5ef",
+      "characters": 1498
+    },
+    {
+      "type": "privacy",
+      "version": "2026-10-13-v1-trial",
+      "title": "CISME 隐私政策（封闭体验）",
+      "bodySha256": "37161182f48720cb93dfc07a409940a93e9c7c9408c3fd08f0c71acfa8e42992",
+      "characters": 5224
+    }
+  ],
+  "validator": "scripts/legal-publication.ts validateLegalPublication and assembleLegalPublication",
+  "validationPassed": true,
+  "publicationPerformed": true,
+  "platformChanged": false,
+  "memberConsentsCreated": false,
+  "independentLegalSignoffRecorded": false,
+  "firstControlledTrialMustUse": "PRD §15.6 first-entry evidence",
+  "fullCommercialRpoRtoOrFullDeviceMatrixAddedAsInitialGate": false,
+  "sourceHeadForGeneratorAndTechnicalReview": "3b1fbe861a4684c53f5af32e6425e1350c017a14",
+  "businessOperationalDecisionsAuthorized": true,
+  "userAuthorizationEvidence": "USER-AUTHORIZATION-AND-RESEARCH.md",
+  "publicationFileSha256": "573582b3d1e461fac209f3ef5eeb3d495108af05d7fcc8d12abd1b4c62b3c700",
+  "existingLegalUnitTests": {
+    "files": 2,
+    "testsPassed": 34
+  },
+  "finalValidation": {
+    "validatorPassed": true,
+    "regenerationIdentical": true,
+    "clientBootstrapFixtureCompatible": true,
+    "operatorParametersResolved": true,
+    "liveEndpointOrDeviceVerified": false,
+    "trustedLoopbackTlsEndpointVerified": true,
+    "nativeDeviceVerified": false
+  },
+  "publicationEvidence": "../../evidence/production-runtime-20261013/trial-legal-publication.json",
+  "publicationObservedWindowUtc": "2026-10-13T12:55:35Z/2026-10-13T12:55:48Z"
+}

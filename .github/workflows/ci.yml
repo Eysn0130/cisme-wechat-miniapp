@@ -62,8 +62,14 @@ jobs:
       - run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/native-validation/typecheck.log"
       - name: Offline staging deployment and monitor guards
         run: |
+          set -euo pipefail
           python3 -m unittest discover -s infra/tencent -p 'test_staging_*.py' -v
           python3 -m unittest discover -s infra/tencent -p 'test_production_*.py' -v
+          trial_backup_test_venv="$RUNNER_TEMP/trial-backup-test-venv"
+          python3 -m venv "$trial_backup_test_venv"
+          "$trial_backup_test_venv/bin/python" -m pip install --disable-pip-version-check cryptography==50.0.1 cffi==2.1.1 pycparser==3.0
+          "$trial_backup_test_venv/bin/python" -W error::ResourceWarning -m unittest discover -s infra/tencent -p 'test_cisme_trial_encrypted_backup.py' -v
+          python3 -W error::ResourceWarning -m unittest discover -s infra/tencent -p 'test_certbot_trial_dnspod.py' -v
       - run: npm run miniprogram:package-gate 2>&1 | tee "$RUNNER_TEMP/native-validation/miniprogram-package-gate.log"
       - run: npm run miniprogram:route-audit 2>&1 | tee "$RUNNER_TEMP/native-validation/miniprogram-route-audit.log"
       - run: npm run design:qa:status 2>&1 | tee "$RUNNER_TEMP/native-validation/design-qa-status.log"
@@ -99,19 +105,107 @@ jobs:
           git rev-parse HEAD > "$out/checkout-sha.txt"
           git status --porcelain > "$out/pre-perf-worktree.txt"
           node scripts/native-feed-benchmark.mjs > "$out/feed-before-after.json"
+          baseline_ref=56432fb9b42777ffd4b3aeaf17134a666c7f243c
           baseline="$RUNNER_TEMP/cisme-perf-baseline"
-          mkdir -p "$baseline"
-          git archive 56432fb9b42777ffd4b3aeaf17134a666c7f243c | tar -x -C "$baseline"
-          cmp package-lock.json "$baseline/package-lock.json"
+          candidate="$RUNNER_TEMP/cisme-perf-candidate"
+          mkdir -p "$baseline" "$candidate"
+          git archive "$baseline_ref" | tar -x -C "$baseline"
+          git archive HEAD | tar -x -C "$candidate"
+          # Compare both source revisions under today's exact fixed lock. Keep
+          # baseline scripts; unrelated manifest/workspace drift fails closed.
+          node --input-type=module - "$baseline" "$candidate" "$out" "$baseline_ref" <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { createHash } from 'node:crypto';
+          import { deepStrictEqual } from 'node:assert';
+          const [baseline, candidate, out, baselineRef] = process.argv.slice(2);
+          const read = (root, file) => readFileSync(join(root, file));
+          const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+          const originals = Object.fromEntries([['baseline', baseline], ['candidate', candidate]].map(([cohort, root]) => [cohort, {
+            manifestSha256: sha(read(root, 'package.json')), lockSha256: sha(read(root, 'package-lock.json'))
+          }]));
+          const base = JSON.parse(read(baseline, 'package.json')), current = JSON.parse(read(candidate, 'package.json'));
+          const dependencyKeys = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies', 'peerDependenciesMeta', 'overrides'];
+          for (const key of new Set([...Object.keys(base), ...Object.keys(current)])) {
+            if (key !== 'scripts' && !dependencyKeys.includes(key)) deepStrictEqual(base[key], current[key], `MANIFEST_DRIFT:${key}`);
+          }
+          for (const key of ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish']) {
+            deepStrictEqual(base.scripts?.[key], current.scripts?.[key], `INSTALL_SCRIPT_DRIFT:${key}`);
+          }
+          const locals = root => Object.keys(JSON.parse(read(root, 'package-lock.json')).packages)
+            .filter(path => path && !path.split('/').includes('node_modules')).sort();
+          deepStrictEqual(locals(baseline), locals(candidate), 'WORKSPACE_SET_DRIFT');
+          const workspaceManifestSha256 = Object.fromEntries(locals(candidate).map(path => {
+            const file = `${path}/package.json`;
+            deepStrictEqual(read(baseline, file), read(candidate, file), `WORKSPACE_MANIFEST_DRIFT:${path}`);
+            return [file, sha(read(candidate, file))];
+          }));
+          for (const key of dependencyKeys) { delete base[key]; if (Object.hasOwn(current, key)) base[key] = current[key]; }
+          const manifest = JSON.stringify(base, null, 2) + '\n', lock = read(candidate, 'package-lock.json');
+          for (const root of [baseline, candidate]) { writeFileSync(join(root, 'package.json'), manifest); writeFileSync(join(root, 'package-lock.json'), lock); }
+          writeFileSync(join(out, 'performance-dependency-context.json'), JSON.stringify({
+            schemaVersion: 1, baselineSourceHead: baselineRef, candidateSourceHead: read(out, 'checkout-sha.txt').toString().trim(),
+            scope: 'Fixed baseline source versus candidate source under shared candidate dependencies; not historical results under the old dependencies or native acceptance',
+            manifestPolicy: 'Baseline non-dependency fields/scripts plus candidate dependency fields; workspace and install-lifecycle drift forbidden',
+            originalInputs: originals, workspaceManifestSha256,
+            comparisonInputs: { manifestSha256: sha(manifest), lockSha256: sha(lock) }, installedDependencies: {}
+          }, null, 2) + '\n');
+          NODE
+          cmp "$baseline/package.json" "$candidate/package.json"
+          cmp "$baseline/package-lock.json" "$candidate/package-lock.json"
           # Same measurement code on both runtimes; no copied runtime fixes.
           for harness in performance-smoke.ts capacity-benchmark.ts worker-capacity-benchmark.ts performance-measurement.ts; do
             cp "scripts/$harness" "$baseline/scripts/$harness"
             sha256sum "scripts/$harness" >> "$out/harness-sha256.txt"
           done
-          (cd "$baseline" && npm ci > "$out/baseline-npm-ci.log" 2>&1)
           failed=0
           for cohort in baseline candidate; do
-            if [ "$cohort" = baseline ]; then directory="$baseline"; else directory="$GITHUB_WORKSPACE"; fi
+            if [ "$cohort" = baseline ]; then directory="$baseline"; else directory="$candidate"; fi
+            if (cd "$directory" && npm ci > "$out/$cohort-npm-ci.log" 2>&1); then status=0; else status=$?; failed=1; fi
+            printf '%s npm-ci %s\n' "$cohort" "$status" >> "$out/performance-exit-status.txt"
+          done
+          test "$failed" = 0
+          node --input-type=module - "$baseline" "$candidate" "$out" <<'NODE'
+          import { readFileSync, writeFileSync, readdirSync, lstatSync, readlinkSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { createHash } from 'node:crypto';
+          import { deepStrictEqual } from 'node:assert';
+          const [baseline, candidate, out] = process.argv.slice(2);
+          const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+          const installedTreeSha = root => {
+            const digest = createHash('sha256');
+            const visit = (directory, prefix = '') => {
+              for (const name of readdirSync(directory).sort()) {
+                const relative = prefix + name, file = join(directory, name), info = lstatSync(file);
+                if (relative === '.package-lock.json') continue;
+                if (info.isSymbolicLink()) digest.update(`link\0${relative}\0${readlinkSync(file)}\0`);
+                else if (info.isDirectory()) { digest.update(`directory\0${relative}\0`); visit(file, `${relative}/`); }
+                else if (info.isFile()) digest.update(`file\0${relative}\0${info.mode & 0o111}\0${sha(readFileSync(file))}\0`);
+                else throw new Error('UNSUPPORTED_DEPENDENCY_FILE');
+              }
+            };
+            visit(join(root, 'node_modules'));
+            return digest.digest('hex');
+          };
+          const file = join(out, 'performance-dependency-context.json'), evidence = JSON.parse(readFileSync(file));
+          for (const [cohort, root] of [['baseline', baseline], ['candidate', candidate]]) {
+            const actualLock = readFileSync(join(root, 'node_modules/.package-lock.json'));
+            const inventory = Object.keys(JSON.parse(actualLock).packages).sort().map(path => [path, sha(readFileSync(join(root, path, 'package.json')))]);
+            const actual = { manifestSha256: sha(readFileSync(join(root, 'package.json'))), lockSha256: sha(readFileSync(join(root, 'package-lock.json'))) };
+            deepStrictEqual(actual, evidence.comparisonInputs, `COMPARISON_INPUT_CHANGED:${cohort}`);
+            evidence.installedDependencies[cohort] = { ...actual, installedLockSha256: sha(actualLock),
+              installedNodeModulesSha256: installedTreeSha(root), installedPackageManifestsSha256: sha(JSON.stringify(inventory)),
+              installedPackageCount: inventory.length, nodeVersion: process.version };
+          }
+          evidence.dependencyDigestPolicy = 'Relative node_modules paths, file bytes/execute bits and unfollowed symlink targets; hidden lock recorded separately; linked workspace runtime remains cohort source';
+          writeFileSync(file, JSON.stringify(evidence, null, 2) + '\n');
+          deepStrictEqual(evidence.installedDependencies.baseline.installedPackageManifestsSha256,
+            evidence.installedDependencies.candidate.installedPackageManifestsSha256, 'INSTALLED_DEPENDENCY_DRIFT');
+          deepStrictEqual(evidence.installedDependencies.baseline.installedNodeModulesSha256,
+            evidence.installedDependencies.candidate.installedNodeModulesSha256, 'INSTALLED_DEPENDENCY_BYTES_DRIFT');
+          NODE
+          for cohort in baseline candidate; do
+            if [ "$cohort" = baseline ]; then directory="$baseline"; else directory="$candidate"; fi
             for kind in smoke capacity worker-capacity; do
               # Keep output inside the scripts' existing protected evidence root.
               # A failed cohort must not prevent collecting the other cohort.
@@ -126,7 +220,7 @@ jobs:
             done
             cp "$directory/docs/evidence/performance/ci-$cohort-"*.json "$out/" || failed=1
           done
-          rm -rf "$baseline"
+          rm -rf "$baseline" "$candidate"
           test "$failed" = 0
       - run: npm run sbom
       - run: npm run license:report

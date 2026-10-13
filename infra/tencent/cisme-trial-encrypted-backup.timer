@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily CISME isolated trial encrypted database-only backup
+
+[Timer]
+OnCalendar=*-*-* 03:45:00
+RandomizedDelaySec=300
+Persistent=true
+Unit=cisme-trial-encrypted-backup.service
+
+[Install]
+WantedBy=timers.target

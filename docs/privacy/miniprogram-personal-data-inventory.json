@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-09-27",
+  "inventoryDate": "2026-10-13",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -535,6 +535,20 @@
       "serverStorage": "CISME PostgreSQL support_message.retention_purpose；独立本机/COS 抑制标记仅保存待抑制的消息及附件 ID",
       "currentGate": "普通消息仅在有限期限和保留条件满足后清理；历史未判明消息不按普通咨询清理",
       "retention": "普通咨询三个月、交易关联三十六个月的业务基线，均受保全和正式政策开关约束"
+    },
+    {
+      "surface": "trial_database_encrypted_backup",
+      "informationType": "固定 cisme_trial 库内已存业务个人信息、控制及审计事实的可恢复加密数据库归档；manifest 仅含体验对象 Key、密文字节数和 SHA-256，不含数据库正文",
+      "purpose": "为同机隔离体验环境提供数据库单项故障恢复材料；不迁移为正式会员资产，不作为完整恢复或开放采集资格",
+      "activation": "候选未安装/未启用；仅独立身份、密钥、准确前缀权限及专用路径核验后，显式 backup 才可执行。默认 preflight 只读准确体验 manifest",
+      "serverStorage": "候选 /var/backups/cisme-trial-encrypted 本地密文和腾讯云上海私有 COS backups/cisme-trial/postgres/；数据库明文仅经管道直接 AES-256-GCM 加密；运行配置、AES 密钥及 COS 凭据文件不上传",
+      "currentGate": "无体验备份任务；现有 maintenance 身份读取较宽 backups/cisme-trial/ 测试 Key 为 403 AccessDenied。候选准确 postgres/ 前缀及专用身份的 GET/PUT/DELETE 尚未验证；403 不视为首次空 manifest",
+      "authority": "固定 cisme_trial 同名低权限角色，只读 pg_dump；前缀与 manifest 强绑定，成功仅证明本次归档摘要、GCM 认证和 pg_restore --list 可读性",
+      "visibleTo": "未来专用运维恢复角色；无消费者下载接口或公开对象权限，候选凭据要求独立前缀 IAM，源码限制不证明现有 IAM 已满足",
+      "retention": "候选参数：远端至少最近 7 份，仅清理其余超过 30 天且准确命名/manifest 验证的体验密文；本地远端验证成功后保留最近 7 个已知完成副本。未批准为对外保留保证；未追踪失败文件保留待核对",
+      "userDeletionOrClosure": "旧数据库归档可能保留删除前资料；本候选不备份媒体或恢复前最新抑制记录，实际恢复须另行验证完整最新体验抑制事实，禁止恢复删除资料为活跃资料",
+      "legalHold": "数据库归档轮换不能替代各业务/审计保留和保全判断；不得按 30 天归档策略删除或回滚独立抑制事实",
+      "audit": "未来成功回执仅含范围、归档 Key、摘要、字节数、核验布尔值及保留参数；原始 SDK/Pg 错误、私有输入和响应正文不输出；fullRecoveryQualified=false、admissionMayOpen=false"
     }
   ],
   "runtimeDataEgress": [
@@ -573,10 +587,48 @@
       "data": "固定仓库名、main引用/commit/tree、CI查询参数及迁移脚本路径；不发送数据库/用户/订单数据或认证秘密",
       "purpose": "只读核验准确main和最新main push CI，核对迁移入口来源；HTTPS校验、固定仓库、禁止重定向、12秒超时",
       "state": "operator_deployment_tool_only_no_production_apply_executed"
+    },
+    {
+      "recipient": "腾讯云 COS（隔离体验数据库备份候选）",
+      "data": "固定 cisme_trial 的 AES-256-GCM 数据库归档及仅含 Key/sha256/bytes 的 manifest；业务个人信息仍包含在可恢复密文内，加密不等于匿名化",
+      "purpose": "仅为体验库异地保存数据库归档、下载核验与固定前缀轮换；不触及生产数据库、生产备份前缀或消费者支付",
+      "state": "operator_backup_candidate_not_installed_not_enabled_permission_blocked",
+      "source": "infra/tencent/cisme-trial-encrypted-backup.py",
+      "destination": {
+        "bucket": "lhcos-81ddf-1257392443",
+        "region": "ap-shanghai",
+        "prefix": "backups/cisme-trial/postgres/",
+        "manifest": "backups/cisme-trial/postgres/manifest.json",
+        "transport": "HTTPS"
+      },
+      "operations": [
+        "GetObject 读取 manifest，403/非 NoSuchKey 错误失败关闭",
+        "PutObject 上传本次已完整认证/可读的数据库密文",
+        "GetObject 下载本次密文并核对摘要、完整 GCM 认证及归档目录可读性",
+        "DeleteObject 仅处理超过保留条件且 manifest/命名验证通过的体验归档",
+        "PutObject 写入具名 manifest 后再次 GetObject 读回核对"
+      ],
+      "installed": false,
+      "enabled": false,
+      "fullRecoveryQualified": false,
+      "admissionMayOpen": false,
+      "formalPolicyApproved": false
+    },
+    {
+      "recipient": "腾讯云 DNSPod（体验域名证书维护）",
+      "data": "固定 cisme.cn 域、_acme-challenge.staging-api 子域、ACME TXT 验证值、TTL 与本 hook 保存的 RecordId；SDK 使用既有维护凭据签名，不发送会员、护理、客服或数据库正文",
+      "purpose": "为 staging-api.cisme.cn 完成 DNS-01 证书维护；清理仅删除该 hook 已保存绑定的 RecordId",
+      "state": "operator_certificate_hook_only_no_member_payload",
+      "source": "infra/tencent/certbot-trial-dnspod.py",
+      "operations": [
+        "DnspodClient CreateRecord/DeleteRecord",
+        "dig 仅向 wood.dnspod.net 和 bee.dnspod.net 查询固定 challenge TXT 的传播"
+      ],
+      "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
   "migrationSetSha256": "d9b0394b6c9d07c92cbc96e31feec0388d18a7b08978694ba778a02e4e5f6523",
-  "egressSignatureSha256": "4a6d8f0fb03f2117341d31274c72c3309136aeab1a3a410d5551faedb9e60317",
+  "egressSignatureSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -748,5 +800,91 @@
     "monitor": "Existing independent observer reads the configured grants locally and emits only per-capability expiry warning names fourteen days before expiry. No grant data or credentials are sent; it neither renews grants nor changes API readiness.",
     "productionCodeDeployed": false,
     "newPersonalFields": false
+  },
+  "trialBackupEgressReview20261013": {
+    "date": "2026-10-13",
+    "reviewedSourceHead": "216421bd83dcae853f140a0800376530039c024c",
+    "sources": [
+      "infra/tencent/cisme-trial-encrypted-backup.py",
+      "infra/tencent/cisme-trial-encrypted-backup.service",
+      "infra/tencent/cisme-trial-encrypted-backup.timer",
+      "infra/tencent/TRIAL-BACKUP-PREPARED.md"
+    ],
+    "dataFlow": "固定 cisme_trial 只读 pg_dump -> 管道 AES-256-GCM -> 体验本地密文 -> 固定上海 COS 体验归档前缀；manifest 仅 Key/sha256/bytes；归档下载验证后才更新 manifest/成功回执",
+    "dataScope": "整个固定体验数据库中存在的业务、控制及审计资料进入可恢复密文。没有新增消费者采集字段、数据库表或消费端 API，但新增了这些现有数据库资料的备份出站用途/副本",
+    "signatureReview": {
+      "baselineRef": "origin/main",
+      "baselineHead": "aa7516e88e4210e00ede57b2b6557accaf7f21f4",
+      "baselineCount": 30,
+      "reviewedCount": 31,
+      "baselineSha256": "4a6d8f0fb03f2117341d31274c72c3309136aeab1a3a410d5551faedb9e60317",
+      "reviewedSha256": "9097b30fe134026e9e5d8f98165072a859004f56ce3bf1c70e6fce2645e3a9f4",
+      "added": [
+        {
+          "source": "infra/tencent/cisme-trial-encrypted-backup.py",
+          "signature": "return CosS3Client(CosConfig(Region=REGION, SecretId=settings['accessKeyId'],"
+        }
+      ],
+      "removed": [],
+      "gate": "tests/unit/privacy-inventory-gate.test.ts；仍扫描原六目录和原调用正则，未修改断言。逐文件差异复核后按路径、trim 后行和 NUL 分隔重新计算",
+      "additionalManualReview": [
+        "Cos 客户端构造后的 GetObject/PutObject/DeleteObject 明确展开并审阅；不是仅改指纹",
+        "新增 certbot-trial-dnspod.py 的 DNSPod SDK CreateRecord/DeleteRecord 与固定 TXT DNS 查询不在原正则内，作为仅基础设施元数据另列",
+        "新增 production-trial.py 的 urllib 127.0.0.1:3101/health/ready 只读本机检查及复用既有实例元数据核验，无新会员出站接收方",
+        "新增 infra/tencent 三组 Python tests 仅临时合成输入/mock；无实际微信、COS 或 DNSPod 调用"
+      ]
+    },
+    "permissionEvidence": {
+      "observedAtUtc": "2026-10-13T11:50:45.181738Z",
+      "source": "docs/evidence/production-runtime-20261013/runtime-readback.json",
+      "testedKey": "backups/cisme-trial/read-only-permission-probe-nonexistent",
+      "httpStatus": 403,
+      "errorCode": "AccessDenied",
+      "exactCandidatePrefixVerified": false,
+      "putOrDeleteTested": false
+    },
+    "status": {
+      "installed": false,
+      "enabled": false,
+      "liveBackupExecuted": false,
+      "consumerGuarantee": false,
+      "formalPolicyApproved": false,
+      "businessRetentionApproved": false,
+      "fullRecoveryQualified": false,
+      "admissionMayOpen": false
+    },
+    "recoveryLimits": "只覆盖数据库，未覆盖同机媒体、恢复前最新完整体验抑制记录和字段密钥恢复资格；当前抑制目录为空不能证明采集后的完整性。主机/抑制事实丢失时保持采集与服务恢复关闭；不提供自动 SQL 恢复",
+    "retentionLimits": "至少 7 份/30 天是未启用候选参数，不声称已有 7 个可恢复副本；manifest 更新失败可能遗留独立前缀未追踪密文，未知本地文件不盲删；不变更业务保留/保全或最新抑制记录",
+    "documentationBoundary": "历史审计和旧 staging 协议保持原日期/范围；本次只是工程数据流清单复核，不发布协议、不设置微信隐私指引或开启注册"
+  },
+  "dependencyUpgradeReview20261013": {
+    "source": "infra/tencent/dependency-only-upgrade.py",
+    "sourceFileSha256": "f3167be74d1e9322eec2155bc5d11e6cfb4ac3a73edc0d137f599e8ce4c0e6dd",
+    "state": "reviewed candidate, not activated",
+    "dataScope": "Reads bound protected runtime/private-input metadata and bytes only for local root-private preservation and drift checks; no member rows are exported or restored.",
+    "externalScope": "GET only fixed public GitHub repository commit, CI and reviewed source metadata; instance metadata and own loopback TLS readiness. No database, credentials, private grants or member content is sent to GitHub.",
+    "privateStorage": "Per-environment root0700 upgrade state with 0600 previous env/unit/initial-record snapshots and binding; public stdout contains version/binding outcomes only, no runtime-env or private-input fingerprint.",
+    "mutationScope": "Stop/drain only selected API/Worker, switch immutable application or verified trial ExecStart, update own active-release record; no migration up, restore, configuration, secret, storage or network change.",
+    "signatureDelta": {
+      "previousDetectedCount": 31,
+      "reviewedDetectedCount": 32,
+      "previousSha256": "9097b30fe134026e9e5d8f98165072a859004f56ce3bf1c70e6fce2645e3a9f4",
+      "reviewedSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
+      "added": [
+        {
+          "source": "infra/tencent/test_production_dependency_upgrade.py",
+          "line": "def fetch(path):",
+          "purpose": "Local synthetic GitHub adapter declaration, not an executed network operation"
+        }
+      ],
+      "removed": [],
+      "existingGateRegexAndAssertionsChanged": false
+    },
+    "consumerCollectionFieldsChanged": false,
+    "wechatApisAndWxmlChanged": false,
+    "migrationsChanged": false,
+    "businessAdmissionGranted": false,
+    "publicOrNativeAcceptanceGranted": false,
+    "configurationBinding": "Trial keeps all capability flags closed. Production preserves existing protocol/fulfillment preparation booleans while core order/simulated payment-transfer/points/public UGC/dev controls stay closed; original full env and actual processes are bound, never rewritten."
   }
 }

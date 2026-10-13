@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-13T12:09:50.713037+00:00",
+  "scope": "Read-only deployed dependency metadata; required sharp only for .versions; no image input, decoding, transformation, database query, service or configuration mutation",
+  "target": {
+    "instanceId": "lhins-61ikz4mi",
+    "publicIpv4": "124.223.74.198"
+  },
+  "runtimes": [
+    {
+      "unit": "cisme-api.service",
+      "pid": 2050563,
+      "actualCwd": "/opt/cisme/releases/tencent-release-751f7407af4e",
+      "runtimeEntry": "/opt/cisme/releases/tencent-release-751f7407af4e/index.js",
+      "nodeBinaryElfType": "ET_EXEC",
+      "nodeVersion": "v24.14.0",
+      "nodeExecutable": "/opt/node-v24.14.0-linux-x64/bin/node",
+      "platform": "linux",
+      "arch": "x64",
+      "glibcVersionRuntime": "2.39",
+      "packages": {
+        "fastify": {
+          "version": "5.12.3",
+          "packagePath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/fastify/package.json",
+          "entryPath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/fastify/fastify.js"
+        },
+        "sharp": {
+          "version": "0.35.4",
+          "packagePath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/sharp/package.json",
+          "entryPath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/sharp/dist/index.cjs"
+        }
+      },
+      "sharpVersions": {
+        "aom": "3.15.0",
+        "archive": "3.8.9",
+        "cairo": "1.18.4",
+        "cgif": "0.5.3",
+        "exif": "0.6.26",
+        "expat": "2.8.3",
+        "ffi": "3.8.0",
+        "fontconfig": "2.18.3",
+        "freetype": "2.14.3",
+        "fribidi": "1.0.16",
+        "glib": "2.89.4",
+        "harfbuzz": "14.3.1",
+        "heif": "1.23.2",
+        "highway": "1.4.0",
+        "imagequant": "2.4.1",
+        "lcms": "2.19.1",
+        "mozjpeg": "0826579",
+        "pango": "1.58.2",
+        "pixman": "0.46.4",
+        "png": "1.6.58",
+        "proxy-libintl": "0.5",
+        "rsvg": "2.62.91",
+        "tiff": "4.7.2",
+        "uhdr": "2.0.2",
+        "vips": "8.18.6",
+        "webp": "1.6.0",
+        "xml2": "2.15.3",
+        "zlib-ng": "2.3.3",
+        "sharp": "0.35.4"
+      },
+      "imageProcessed": false
+    },
+    {
+      "unit": "cisme-worker.service",
+      "pid": 2050559,
+      "actualCwd": "/opt/cisme/releases/tencent-release-751f7407af4e",
+      "runtimeEntry": "/opt/cisme/releases/tencent-release-751f7407af4e/worker.js",
+      "nodeBinaryElfType": "ET_EXEC",
+      "nodeVersion": "v24.14.0",
+      "nodeExecutable": "/opt/node-v24.14.0-linux-x64/bin/node",
+      "platform": "linux",
+      "arch": "x64",
+      "glibcVersionRuntime": "2.39",
+      "packages": {
+        "fastify": {
+          "version": "5.12.3",
+          "packagePath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/fastify/package.json",
+          "entryPath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/fastify/fastify.js"
+        },
+        "sharp": {
+          "version": "0.35.4",
+          "packagePath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/sharp/package.json",
+          "entryPath": "/opt/cisme/releases/tencent-release-751f7407af4e/node_modules/sharp/dist/index.cjs"
+        }
+      },
+      "sharpVersions": {
+        "aom": "3.15.0",
+        "archive": "3.8.9",
+        "cairo": "1.18.4",
+        "cgif": "0.5.3",
+        "exif": "0.6.26",
+        "expat": "2.8.3",
+        "ffi": "3.8.0",
+        "fontconfig": "2.18.3",
+        "freetype": "2.14.3",
+        "fribidi": "1.0.16",
+        "glib": "2.89.4",
+        "harfbuzz": "14.3.1",
+        "heif": "1.23.2",
+        "highway": "1.4.0",
+        "imagequant": "2.4.1",
+        "lcms": "2.19.1",
+        "mozjpeg": "0826579",
+        "pango": "1.58.2",
+        "pixman": "0.46.4",
+        "png": "1.6.58",
+        "proxy-libintl": "0.5",
+        "rsvg": "2.62.91",
+        "tiff": "4.7.2",
+        "uhdr": "2.0.2",
+        "vips": "8.18.6",
+        "webp": "1.6.0",
+        "xml2": "2.15.3",
+        "zlib-ng": "2.3.3",
+        "sharp": "0.35.4"
+      },
+      "imageProcessed": false
+    },
+    {
+      "unit": "cisme-trial-api.service",
+      "pid": 3151709,
+      "actualCwd": "/opt/cisme-trial",
+      "runtimeEntry": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/index.js",
+      "nodeBinaryElfType": "ET_EXEC",
+      "nodeVersion": "v24.14.0",
+      "nodeExecutable": "/opt/node-v24.14.0-linux-x64/bin/node",
+      "platform": "linux",
+      "arch": "x64",
+      "glibcVersionRuntime": "2.39",
+      "packages": {
+        "fastify": {
+          "version": "5.12.3",
+          "packagePath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/fastify/package.json",
+          "entryPath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/fastify/fastify.js"
+        },
+        "sharp": {
+          "version": "0.35.4",
+          "packagePath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/sharp/package.json",
+          "entryPath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/sharp/dist/index.cjs"
+        }
+      },
+      "sharpVersions": {
+        "aom": "3.15.0",
+        "archive": "3.8.9",
+        "cairo": "1.18.4",
+        "cgif": "0.5.3",
+        "exif": "0.6.26",
+        "expat": "2.8.3",
+        "ffi": "3.8.0",
+        "fontconfig": "2.18.3",
+        "freetype": "2.14.3",
+        "fribidi": "1.0.16",
+        "glib": "2.89.4",
+        "harfbuzz": "14.3.1",
+        "heif": "1.23.2",
+        "highway": "1.4.0",
+        "imagequant": "2.4.1",
+        "lcms": "2.19.1",
+        "mozjpeg": "0826579",
+        "pango": "1.58.2",
+        "pixman": "0.46.4",
+        "png": "1.6.58",
+        "proxy-libintl": "0.5",
+        "rsvg": "2.62.91",
+        "tiff": "4.7.2",
+        "uhdr": "2.0.2",
+        "vips": "8.18.6",
+        "webp": "1.6.0",
+        "xml2": "2.15.3",
+        "zlib-ng": "2.3.3",
+        "sharp": "0.35.4"
+      },
+      "imageProcessed": false
+    },
+    {
+      "unit": "cisme-trial-worker.service",
+      "pid": 3151710,
+      "actualCwd": "/opt/cisme-trial",
+      "runtimeEntry": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/worker.js",
+      "nodeBinaryElfType": "ET_EXEC",
+      "nodeVersion": "v24.14.0",
+      "nodeExecutable": "/opt/node-v24.14.0-linux-x64/bin/node",
+      "platform": "linux",
+      "arch": "x64",
+      "glibcVersionRuntime": "2.39",
+      "packages": {
+        "fastify": {
+          "version": "5.12.3",
+          "packagePath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/fastify/package.json",
+          "entryPath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/fastify/fastify.js"
+        },
+        "sharp": {
+          "version": "0.35.4",
+          "packagePath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/sharp/package.json",
+          "entryPath": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc/node_modules/sharp/dist/index.cjs"
+        }
+      },
+      "sharpVersions": {
+        "aom": "3.15.0",
+        "archive": "3.8.9",
+        "cairo": "1.18.4",
+        "cgif": "0.5.3",
+        "exif": "0.6.26",
+        "expat": "2.8.3",
+        "ffi": "3.8.0",
+        "fontconfig": "2.18.3",
+        "freetype": "2.14.3",
+        "fribidi": "1.0.16",
+        "glib": "2.89.4",
+        "harfbuzz": "14.3.1",
+        "heif": "1.23.2",
+        "highway": "1.4.0",
+        "imagequant": "2.4.1",
+        "lcms": "2.19.1",
+        "mozjpeg": "0826579",
+        "pango": "1.58.2",
+        "pixman": "0.46.4",
+        "png": "1.6.58",
+        "proxy-libintl": "0.5",
+        "rsvg": "2.62.91",
+        "tiff": "4.7.2",
+        "uhdr": "2.0.2",
+        "vips": "8.18.6",
+        "webp": "1.6.0",
+        "xml2": "2.15.3",
+        "zlib-ng": "2.3.3",
+        "sharp": "0.35.4"
+      },
+      "imageProcessed": false
+    }
+  ],
+  "provenance": {
+    "sourceHead": "751f7407af4e525c5b6c09c6997800acfb4048fc",
+    "evidenceRelated": "docs/evidence/production-runtime-20261013/runtime-readback.json",
+    "methods": [
+      "Read systemd MainPID then /proc/PID/exe, cwd and allowlisted .js/.mjs entry argument",
+      "Execute the same installed Node binary in a separate short-lived process; createRequire(actual entry), resolve installed packages, read named package.json version and sharp.versions",
+      "Read only Node process.report header glibcVersionRuntime and installed Node ELF e_type"
+    ],
+    "authentication": "Existing pinned SSH host key; StrictHostKeyChecking=yes and BatchMode=yes; sudo noninteractive",
+    "moduleMetadataProbe": "Resolves installed modules from observed runtime entries; does not inspect libraries already loaded in application memory"
+  },
+  "advisoryAssessment": {
+    "id": "GHSA-wq5f-xc86-pv6w",
+    "primarySourceUrl": "https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w",
+    "sourceConsultedOn": "2026-10-13",
+    "upstreamSeverity": "high",
+    "affectedSharpRange": "<0.35.5",
+    "patchedSharpRange": ">=0.35.5",
+    "patchedPrebuiltLibrsvg": "2.63.2",
+    "installedSharpFallsInAffectedRange": true,
+    "installedAffectedEnvironments": [
+      "production",
+      "isolated-trial"
+    ],
+    "conclusion": "Both deployed environments contain sharp 0.35.4 with librsvg 2.62.91 on glibc-based Linux. The source dependency-update candidate has not been deployed; this readback does not close the server vulnerability.",
+    "exploitabilityTested": false,
+    "applicationSvgDecoderMitigationVerified": false,
+    "serverRemediationPerformed": false
+  },
+  "limitations": [
+    "Version and installed resolution metadata only; no image input, image decoding, transformation or exploit attempt",
+    "No production/trial package installation, configuration, service, database, object or network mutation",
+    "No secret files or application environment read/output",
+    "Installed affected version confirms dependency remediation is outstanding; does not by itself prove an exploitable image path",
+    "Does not claim the source/CI candidate is deployed or the server vulnerability is fixed",
+    "Fastify version recorded for deployment comparison; this probe does not assign an additional advisory to Fastify",
+    "Did not rehash whole node_modules or inspect running-process module memory"
+  ]
+}

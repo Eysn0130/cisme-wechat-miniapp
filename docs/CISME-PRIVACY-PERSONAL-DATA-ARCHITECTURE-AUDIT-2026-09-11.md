@@ -272,3 +272,40 @@ CISME 的目标数据能力应覆盖会员、护理、完整社区、完整商�
 - staging 演练与运行证据：迁移按 27→28→29→28→27→28→29 完成，基线事实保持；P0/P1 合成路径通过并清理回零；最终为 29 migrations、66 张 public base tables（含 ledger）、0 member/identity/privacy job/event/UGC/outbox/DLQ 行，上传和社区开关均为 false。API-only release 为 `/opt/cisme/releases/20260911T051500Z-p0p1-staging`；worker 与 worker-once 哈希保持基线不变。
 - 仍未实现：身份核验状态机、maker-checker 批准、真实导出生成、一次性下载、legal-hold 计算、字段级删除/匿名化、账号关闭、备份 manifest 重放以及任务 worker。上述任一项完成前，UI 和隐私回复不得显示“已执行”。
 - 正式社区仍未实现：业务 API、小程序/后台交互、媒体对象、内容安全供应商、举报目标存在性/速率限制、审核处置 worker、草稿过期、对象 GC、导出/擦除映射和真机验证。上述闭环完成前 `community` 开关不得解除数据库约束。
+
+## 11. 2026-10-13 同机体验数据库备份候选的出站复核
+
+本节只补充本次工程候选，前十节保留其原审计日期与状态范围，不自动变成当前服务器或原生验收结论。复核源码为 `216421bd83dcae853f140a0800376530039c024c` 中的 `infra/tencent/cisme-trial-encrypted-backup.py` 及专用 service/timer，细节见 [备份准备说明](../infra/tencent/TRIAL-BACKUP-PREPARED.md) 与 [本轮服务器只读回执](evidence/production-runtime-20261013/runtime-readback.json)。本候选**未安装、未启用、没有真实备份执行**，不发布协议、不代会员同意、不提供消费者已经可用的保证。
+
+### 数据范围与接收方
+
+- 来源固定为 `cisme_trial` 同名低权限数据库角色的只读 `pg_dump`；归档覆盖该库内存在的业务个人信息、控制与审计事实。没有新增消费者采集字段、数据库表或消费端 API，但这些既有数据库资料将增加备份副本和出站用途。可恢复加密不等于匿名化。
+- 明文只经管道直接 AES-256-GCM 加密，写入体验专用本地密文目录；未来上传目标固定为腾讯云上海私有 COS `backups/cisme-trial/postgres/`，具名 manifest 为该前缀的 `manifest.json`。运行配置、AES 密钥和 COS 凭据文件不上传。manifest 只包含体验对象 Key、密文字节数和 SHA-256，不包含数据库正文。
+- 实际 SDK 操作已经逐项审阅：GetObject 读取 manifest；PutObject 上传本次经过完整认证和目录可读性检查的密文；GetObject 下载核对本次归档；DeleteObject 仅清理命名与 manifest 校验通过的体验到期归档；PutObject 更新具名 manifest 后再次 GetObject 读回。403 或非 `404/NoSuchKey` 不能转为首次空 manifest。
+- 候选参数是远端至少最近 7 份，只清理其余超过 30 天的受验证体验归档；本地远端验证成功后保留最近 7 个已知完成副本。参数尚未成为批准的对外保留保证，也不证明现有七份可恢复副本。manifest 更新失败可能留下未追踪密文，未知本地文件保留待核对，不扩大为桶级扫描或盲删。
+
+### 现场门禁与恢复限制
+
+2026-10-13 11:50:45 UTC 的既有 maintenance 身份只读 GET `backups/cisme-trial/read-only-permission-probe-nonexistent` 为 `403 AccessDenied`。这不是候选更窄 `postgres/` 前缀和未来专用身份的权限证明；准确前缀的 GET/PUT/DELETE 仍未实测，本次不扩权。服务器没有体验备份任务。
+
+候选只覆盖数据库，不备份同机媒体、不备份恢复前最新完整体验抑制记录，也不提供自动 SQL 恢复。数据库目录可读、密文摘要及认证成功不替代实际全量恢复、业务对账或字段密钥恢复资格。体验当前本地抑制目录为空不能证明采集后的完整性；主机或最新抑制事实丢失时，禁止恢复或重新暴露相关旧资料。首次受控体验按PRD §15.6的真实版本、限定数据范围和已说明的恢复局限评估，不把完整容灾整体前移为首次体验前置。成功回执仍明确 `fullRecoveryQualified=false`、`admissionMayOpen=false`，工具不授准入，归档三十天轮换不得清理或覆盖独立最新抑制事实。
+
+### 调用签名和字典更新
+
+按既有 `tests/unit/privacy-inventory-gate.test.ts` 的六个目录、原调用正则、相对路径/trim 后源码行及 NUL 分隔规则，对当前分支相对 `origin/main` 的全部差异复核：基线 `aa7516e88e4210e00ede57b2b6557accaf7f21f4` 为 30 条签名，当前为 31 条，**仅新增**备份脚本的 `CosS3Client(CosConfig(...))` 一条，删除为零。基线摘要为 `4a6d8f0fb03f2117341d31274c72c3309136aeab1a3a410d5551faedb9e60317`，复核后摘要为 `9097b30fe134026e9e5d8f98165072a859004f56ce3bf1c70e6fce2645e3a9f4`。保留门禁和断言，不将依赖锁更新误作数据流变更。
+
+原正则未覆盖的新增 SDK/其他调用亦人工复核：体验 Certbot hook 向 DNSPod 发出固定 challenge TXT 的 CreateRecord/DeleteRecord，并只向固定权威 DNS 查询 TXT，发送域名、验证值和保存的 RecordId，不发送会员正文；体验安装器只读 GET 本机 `127.0.0.1:3101/health/ready` 并复用既有实例元数据核验；三个新增 Python 测试组只使用临时合成输入与 mock，不产生真实微信/COS/DNSPod 调用。这些范围已写入字典，签名门禁不是完整网络流量证明。
+
+机器清单新增一个 `trial_database_encrypted_backup` 处理边界、体验 COS 备份与 DNSPod 维护两条出站用途，以及 `trialBackupEgressReview20261013` 的来源、签名差异、权限、恢复和未批准状态。49 个微信 API、5 个固定 WXML 接口、`requiredPrivateInfos` 及 migration 集合摘要保持不变。此复核不修改旧 staging 协议、微信隐私指引或服务器配置。
+
+本地运行 `npx vitest run tests/unit/privacy-inventory-gate.test.ts --exclude 'dist/**'`，既有四项测试全部通过，覆盖微信/WXML 接口清单、migration 集合、已知出站调用签名和旧 staging 客服告知边界；未改测试或断言。该结果只验证工程清单同步，不证明备份部署、权限或实际恢复通过。
+
+## 12. 2026-10-13 限定依赖升级候选的数据流复核
+
+复核 `infra/tencent/dependency-only-upgrade.py` 文件SHA `f3167be74d1e9322eec2155bc5d11e6cfb4ac3a73edc0d137f599e8ce4c0e6dd` 与离线测试SHA `ddfa4989084103b2ad7feed33f07d0a5f6489987a0612d4073fd2e09247cbf93`。工具读取本环境受保护runtime及私有文件，原字节和绑定只保存在对应root0700/0600本地升级状态；公开输出不含环境或私有输入的内容/摘要。只读数据库查询用于固定DB/owner、迁移journal与连接排空元数据，没有会员行导出、数据库备份、恢复或新采集字段。
+
+外部GET限于固定公开GitHub仓库的commit、CI与已审阅package/lock/migrator源码；实例元数据及本环境健康检查属于既有腾讯云、本机loopback范围。GitHub收到公开提交标识，不收到数据库、会话密钥、业务内容或私有授权。Node Sharp烟测仅生成小幅合成PNG并在内存转换，不处理业务图片。应用与SQL必须逐字节相同才允许切换，配置/密钥/网络不变，失败只恢复应用，保留数据库新事实；此候选还未启用，不授予业务开放或真机验收。
+
+保持原六目录、正则和断言提取签名，相对3b1提交为31→32条、无删除，唯一新增是 `infra/tencent/test_production_dependency_upgrade.py` 的本地 `def fetch(path):` 合成GitHub适配器声明。该声明被原静态正则纳入，不代表真实网络调用。新摘要为 `5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a`；未被正则覆盖的实际urllib/curl/psql操作按上述用途人工复核，并记录于机器清单 `dependencyUpgradeReview20261013`。49个微信API、5个固定WXML接口及全部迁移集合不变。旧版本签名及§11的来源范围保留。
+
+正式环境保留原协议/履约准备配置并绑定完整env、授权文件和实际进程，业务订单/模拟付款转账/积分/公众UGC/开发身份关闭；体验环境继续全部关闭。本入口不为这次依赖修补改变原配置，也不把准备配置解释为真实交易开放。

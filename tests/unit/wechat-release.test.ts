@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -210,33 +210,55 @@ describe("WeChat release preflight", () => {
   });
 
   it("keeps post-experience device and route evidence out of the first trial preflight", async () => {
-    const failure = await exec("./node_modules/.bin/tsx", ["scripts/wechat-release.ts", "preflight", "trial"], {
-      env: {
-        ...process.env,
-        WECHAT_APP_ID: "wx4eac2d4fb11d299b",
-        WECHAT_DEVELOPER_UPLOAD_CONFIRMED: "false",
-        WECHAT_REAL_IDENTITY_VERIFIED: "false",
-        WECHAT_TEST_TARGET_ISOLATED_VERIFIED: "false",
-        WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED: "false",
-        WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED: "false",
-        WECHAT_EXPERIENCE_MEMBERS_CONFIGURED: "false"
+    const fixtureRoot = await mkdtemp(resolve(tmpdir(), "cisme-wechat-preflight-"));
+    const preloadPath = resolve(fixtureRoot, "public-legal-fetch.mjs"), probePath = resolve(fixtureRoot, "requests.jsonl");
+    try {
+      // Exercise the real CLI and design evidence, while making the anonymous
+      // legal transport deterministic. Two live 8s probes consumed this test's
+      // budget before the CLI startup/package checks finished on a busy runner.
+      await writeFile(preloadPath, [
+        'import { appendFileSync } from "node:fs";',
+        'globalThis.fetch = async (input, options = {}) => {',
+        `  const allowed = ${JSON.stringify([`${miniProgramApiOrigins.trial}/v1/legal`, `${miniProgramApiOrigins.release}/v1/legal`])};`,
+        '  if (!allowed.includes(input) || options.method !== "GET" || options.credentials !== "omit" || options.redirect !== "manual") throw new Error("UNEXPECTED_PREFLIGHT_FETCH");',
+        `  appendFileSync(${JSON.stringify(probePath)}, JSON.stringify({ url: input, method: options.method, credentials: options.credentials, redirect: options.redirect }) + "\\n");`,
+        '  return new Response(JSON.stringify({ ready: false, documents: [] }), { status: 200, headers: { "Content-Type": "application/json" } });',
+        '};'
+      ].join("\n"));
+      const preflight = (target: "trial" | "release", gates: Record<string, string>) => exec(process.execPath,
+        ["--import", "tsx", "--import", preloadPath, "scripts/wechat-release.ts", "preflight", target], {
+          env: { ...process.env, WECHAT_APP_ID: "wx4eac2d4fb11d299b", ...gates }
+        }).then(() => undefined, (error: unknown) => error);
+      const [failure, releaseFailure] = await Promise.all([
+        preflight("trial", {
+          WECHAT_DEVELOPER_UPLOAD_CONFIRMED: "false", WECHAT_REAL_IDENTITY_VERIFIED: "false",
+          WECHAT_TEST_TARGET_ISOLATED_VERIFIED: "false", WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED: "false",
+          WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED: "false", WECHAT_EXPERIENCE_MEMBERS_CONFIGURED: "false"
+        }),
+        preflight("release", { WECHAT_MINIPROGRAM_FILING_COMPLETED: "false" })
+      ]);
+      expect(failure).toMatchObject({ code: 1 });
+      const trial = JSON.parse((failure as { stderr: string }).stderr);
+      expect(trial.errors).toContain("REAL_WECHAT_IDENTITY_PROOF_REQUIRED");
+      expect(trial.errors).toContain("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
+      expect(trial.errors.some((error: string) => error.startsWith("DESIGN_QA_ROUTE_MATRIX_INCOMPLETE"))).toBe(false);
+      expect(trial.errors.some((error: string) => error.startsWith("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED"))).toBe(false);
+      expect(releaseFailure).toMatchObject({ code: 1 });
+      const release = JSON.parse((releaseFailure as { stderr: string }).stderr);
+      expect(release.errors).toContain("MINIPROGRAM_FILING_REQUIRED");
+      expect(release.errors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
+      expect(release.errors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
+      for (const [receipt, target] of [[trial, "trial"], [release, "release"]] as const) {
+        expect(receipt.errors).toContain("PUBLIC_LEGAL_BOOTSTRAP_FAILED:LEGAL_NOT_PUBLISHED");
+        expect(receipt.publicLegalProbe).toMatchObject({ origin: miniProgramApiOrigins[target], path: "/v1/legal", ok: false, code: "LEGAL_NOT_PUBLISHED", status: 200 });
       }
-    }).then(() => undefined, (error: unknown) => error);
-    expect(failure).toMatchObject({ code: 1 });
-    const stderr = (failure as { stderr: string }).stderr;
-    expect(stderr).toContain("REAL_WECHAT_IDENTITY_PROOF_REQUIRED");
-    expect(stderr).toContain("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
-    expect(stderr).not.toContain("DESIGN_QA_ROUTE_MATRIX_INCOMPLETE");
-    expect(stderr).not.toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED");
-
-    const releaseFailure = await exec("./node_modules/.bin/tsx", ["scripts/wechat-release.ts", "preflight", "release"], {
-      env: { ...process.env, WECHAT_APP_ID: "wx4eac2d4fb11d299b", WECHAT_MINIPROGRAM_FILING_COMPLETED: "false" }
-    }).then(() => undefined, (error: unknown) => error);
-    expect(releaseFailure).toMatchObject({ code: 1 });
-    const releaseStderr = (releaseFailure as { stderr: string }).stderr;
-    expect(releaseStderr).toContain("MINIPROGRAM_FILING_REQUIRED");
-    expect(releaseStderr).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
-    expect(releaseStderr).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
+      const requests = (await readFile(probePath, "utf8")).trim().split("\n").map(line => JSON.parse(line));
+      expect(requests.map(request => request.url).sort()).toEqual([
+        `${miniProgramApiOrigins.trial}/v1/legal`, `${miniProgramApiOrigins.release}/v1/legal`
+      ].sort());
+    } finally {
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
   }, 20_000);
 
   it("keeps every internal test-package safety proof independent of final design evidence", () => {
