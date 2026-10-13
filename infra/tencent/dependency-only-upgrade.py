@@ -6,7 +6,6 @@ database provisioning or credential/configuration changes. Runtime bytes and
 every SQL byte must match the currently running immutable release exactly.
 """
 import argparse
-import base64
 from datetime import datetime, timezone
 import fcntl
 import hashlib
@@ -152,16 +151,21 @@ def equal_runtime(previous, candidate):
 def github_source(name, head):
     require(name in ('package.json', 'package-lock.json', 'scripts/release-migrate.mjs')
             and general.observe.target.git_sha(head), 'DEPENDENCY_GITHUB_RESOURCE_REFUSED')
-    request = urllib.request.Request('https://api.github.com/repos/' + general.REPO + '/contents/' + name + '?ref=' + head,
-                                    headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'cisme-dependency-preflight'})
+    request = urllib.request.Request('https://raw.githubusercontent.com/' + general.REPO + '/' + head + '/' + name,
+                                    headers={'Cache-Control': 'no-cache', 'User-Agent': 'cisme-dependency-preflight'})
     with urllib.request.build_opener(general.observe.NoRedirect()).open(request, timeout=12) as response:
         require(response.status == 200, 'DEPENDENCY_SOURCE_UNAVAILABLE')
-        data = response.read(1024 * 1024 + 1)
-    require(len(data) <= 1024 * 1024, 'DEPENDENCY_SOURCE_TOO_LARGE')
-    value = json_bytes(data)
-    require(value.get('path') == name and value.get('type') == 'file' and value.get('encoding') == 'base64',
-            'DEPENDENCY_SOURCE_BINDING_REQUIRED')
-    return base64.b64decode(value['content'].replace('\n', ''), validate=True)
+        limit = 1024 * 1024
+        length = response.headers.get('Content-Length')
+        require(length is None or re.fullmatch(r'[0-9]+', length), 'DEPENDENCY_SOURCE_LENGTH_INVALID')
+        expected = int(length) if length is not None else None
+        require(expected is None or 0 < expected <= limit, 'DEPENDENCY_SOURCE_TOO_LARGE')
+        data = bytearray()
+        while chunk := response.read(min(65536, limit + 1 - len(data))):
+            data.extend(chunk)
+            require(len(data) <= limit, 'DEPENDENCY_SOURCE_TOO_LARGE')
+        require(expected is None or len(data) == expected, 'DEPENDENCY_SOURCE_TRUNCATED')
+    return bytes(data)
 
 
 def permit(candidate, main):

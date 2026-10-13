@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "dependency-upgrade-source-transport-diagnostic",
+  "instanceId": "lhins-61ikz4mi",
+  "candidateSourceHead": "8eb2edb71a7728cb53d6cd5706be862543e0ee98",
+  "candidateSourceTree": "e59a44fb8ec2da902fea925bb62be6d61f671d4b",
+  "candidateStaged": true,
+  "candidateActivated": false,
+  "attempts": {
+    "first": "DEPENDENCY_UPGRADE_REVIEW_REQUIRED",
+    "second": "JSONDecodeError in permit -> github_source(package-lock.json) -> json_bytes",
+    "failureBeforeServiceStop": true,
+    "trialUpgradeStateDirectories": 0,
+    "originalFourServicePidsPreserved": true,
+    "databaseRestored": false
+  },
+  "contentsApiObservation": {
+    "diagnosticWindowUtc": {
+      "from": "2026-10-13T14:17:57Z",
+      "to": "2026-10-13T14:30:15Z",
+      "exactRequestCompletionTimeRecorded": false
+    },
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "contentEncoding": null,
+    "declaredContentLength": 457363,
+    "actualReadBytes": 455857,
+    "missingBytes": 1506,
+    "responseBodySha256": "485c7b68e5b6bb090e3f6493a6bcb0705834b13b2505dc59d0d983423866950b",
+    "jsonDecoded": false,
+    "firstBytesHex": "7b226e616d65223a227061636b616765"
+  },
+  "independentRawHttpsObservations": [
+    {
+      "path": "package.json",
+      "status": 200,
+      "bytes": 4155,
+      "sha256": "64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5"
+    },
+    {
+      "path": "package-lock.json",
+      "status": 200,
+      "bytes": 331169,
+      "sha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9"
+    },
+    {
+      "path": "scripts/release-migrate.mjs",
+      "status": 200,
+      "bytes": 6283,
+      "sha256": "28a6c251d7290d176410a16a6d837af27e3d16573fa7e18e348431ccbf6a6f19"
+    }
+  ],
+  "rawObservationScope": "Fixed public repository and exact candidate commit; verified TLS, no redirects, bounded full reads, original byte permits; no source text or private input is recorded here.",
+  "limits": [
+    "Does not establish the upstream cause of the short response.",
+    "No fabricated response or injected CI/source cache is used for deployment.",
+    "New source transport code requires its own reviewed main and successful push CI before activation."
+  ]
+}

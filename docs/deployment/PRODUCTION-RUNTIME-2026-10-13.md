@@ -74,4 +74,8 @@ PR #26 已合入准确主线 `9a0417300e2f03da803543ba1e73bcd98057be42` / tree `
 
 13:45:37 UTC现场只读检查发现正式API/Worker各有root:root0644的 `10-privacy-suppression.conf`，唯一directive为ReadWritePaths，父链root0755；体验没有drop-in。初版工具在停止服务前就会拒绝该输入。已保留配置并补充原drop-in完整字节、磁盘/加载文件集、父链元数据、静态有效定义和服务不可写边界的绑定，工具SHA更新为 `4f17023475c5022d78cf6097873849579772b37581af34c7364338b9f5a0373b`。35项拒绝/回退检查及两份独立审阅通过；全production离线检查60通过、1项原Linux条件skip。此后需新准确main及其push CI、重新打包和现场预检，不能修改9a制品manifest冒充新来源。尚未改变现场drop-in、配置、PID或数据库。
 
+PR #27 已合入8eb主线，其 [push CI 38409876173](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/38409876173) 于14:10:20 UTC完成成功；verify job115339049584成功，原生QA/预览仍skipped。新的准确8eb Linux归档SHA `6842c80dc6b193218079de260f1c4e9e0192ad4d7bf4f339dbfca1c4f888906f`、25,586,442 B，101应用/SQL字节与两套现网全等。14:14已完整暂存至两套新release目录，manifest SHA `ee207238501bda6ab3d446a69e9eae0b2eef42e970e8f4d4c5e3b70087eb4a75`、整棵依赖SHA `351d7b03ebf507c9ddfc68c6cc04cdc69104e4bb6a6cc660b7b39bad256c5e44`及7运维模块匹配，未启用此包。两套只读preflight均通过。
+
+两次体验apply在停止服务之前退出，诊断定位为GitHub Contents API锁文件HTTP200响应截断：声明457363、实际455857字节，缺1506，JSON无法解析。升级状态目录未生成，四旧PID全等，未迁移、恢复或切换。已保留 [真实截断及固定raw读回证据](../evidence/production-runtime-20261013/source-response-truncation.json)，并将三份固定提交源文件改为TLS验证的raw传输、64KiB循环完整读、1MiB上限及已知长度不符拒绝。新工具SHA `7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429`；38项专项、完整production63项及独立审阅通过，保留1条原Linux条件skip。main/tree、最新push CI、原package/lock许可和migrator字节门禁不变，不注入假来源或复用旧制品元数据。
+
 下一步按实际证据推进：材料修正 → 提交前明确确认 → 腾讯云/管局实际结果 → 公网入口与外部 HTTPS 验证；并行落实有效体验协议和服务器依赖补丁，备份候选按准确权限与恢复范围逐步启用。之后读回微信合法域名/隐私指引和准确开发版，设置指定成员体验版，进行 iOS/Android 原生验收。正式发布与真实交易、公众 UGC 各自通过适用门禁后才开放。
