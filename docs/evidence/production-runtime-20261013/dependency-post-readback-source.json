@@ -1,0 +1,9 @@
+{
+  "collectorSourceSha256": "80ea8021533b42d92c1866bd00bf362bdfa775a1ac97298c089e2a5716b201df",
+  "startedAtUtc": "2026-10-13T15:37:59.027953Z",
+  "finishedAtUtc": "2026-10-13T15:38:03.895724Z",
+  "sshExitCode": 0,
+  "readOnly": true,
+  "githubRestRequested": false,
+  "serverConfigurationChanged": false
+}

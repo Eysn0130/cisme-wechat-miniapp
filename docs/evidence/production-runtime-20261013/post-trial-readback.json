@@ -1,0 +1,19 @@
+{
+  "readOnly": true,
+  "observedAtUtc": "2026-10-13T15:12:04.417386+00:00",
+  "formalHostGithubRequests": 0,
+  "trial": {
+    "newActiveRelease": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "loopbackTrustedTlsReadyHttp": "200",
+    "workerCompletedAtUtc": "2026-10-13T15:12:04.021Z"
+  },
+  "production": {
+    "newActiveRelease": null,
+    "loopbackTrustedTlsReadyHttp": "200",
+    "workerCompletedAtUtc": "2026-10-13T15:11:59.265Z"
+  },
+  "limits": {
+    "productionSwitchProven": false,
+    "publicOrNativeAcceptanceVerified": false
+  }
+}

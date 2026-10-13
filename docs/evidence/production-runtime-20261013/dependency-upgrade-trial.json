@@ -1,0 +1,27 @@
+{
+  "startedAtUtc": "2026-10-13T15:07:32.993989+00:00",
+  "finishedAtUtc": "2026-10-13T15:08:57.564992+00:00",
+  "sshExitCode": 0,
+  "supervisorSha256": "6e72f43b02ae7240ca21096a6cc19bc1d3d44c5365502d954d3fb2730c1574ce",
+  "report": {
+    "approvalReference": "USER-20261013-CONTINUE-PRODUCTION-DEPLOYMENT",
+    "businessAdmissionGranted": false,
+    "configurationChanged": false,
+    "credentialsChanged": false,
+    "databaseMigrated": false,
+    "databaseRestored": false,
+    "deployed": true,
+    "environment": "trial",
+    "networkChanged": false,
+    "operatorSourceFetchRetries": [],
+    "originalReviewedHelperSha256": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
+    "publicReachabilityVerified": false,
+    "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "versions": {
+      "fastify": "5.12.5",
+      "rsvg": "2.63.2",
+      "sharp": "0.35.5",
+      "vips": "8.18.7"
+    }
+  }
+}

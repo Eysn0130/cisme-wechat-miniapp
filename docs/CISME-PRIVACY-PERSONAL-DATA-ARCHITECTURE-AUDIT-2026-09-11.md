@@ -308,7 +308,13 @@ drop-in只接受固定unit目录内的root普通单硬链接conf，完整磁盘�
 
 14:23现场诊断取得GitHub Contents API不完整响应：HTTP200声明457363字节、实际455857，JSON解析失败。两次apply均在停止前退出，升级state未生成，四服务PID仍为原值。固定8eb提交的三份真实raw文件随后完整返回并匹配源码许可及Git对象，详见 [来源截断回执](evidence/production-runtime-20261013/source-response-truncation.json)。据此将三份源文件传输改为准确40位提交的固定raw GitHub路径；64KiB循环完整读取、1MiB上限、已知Content-Length不符拒绝，TLS/重定向与原main/tree/CI及字节门禁不变。新的工具SHA为 `7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429`，测试SHA `5e442086dc0a5b10303f54169fc570f9e932699d1ec49fdf28e99632b273b30f`；38项专项及独立审阅通过。GitHub接收范围仍只有公开repo/commit/file请求，无会员、私有配置或授权内容，不增加消费者采集字段。
 
-外部GET限于固定公开GitHub仓库的commit、CI与已审阅package/lock/migrator源码；实例元数据及本环境健康检查属于既有腾讯云、本机loopback范围。GitHub收到公开提交标识，不收到数据库、会话密钥、业务内容或私有授权。Node Sharp烟测仅生成小幅合成PNG并在内存转换，不处理业务图片。应用与SQL必须逐字节相同才允许切换，配置/密钥/网络不变，失败只恢复应用，保留数据库新事实；此候选还未启用，不授予业务开放或真机验收。
+外部GET限于固定公开GitHub仓库的commit、CI与已审阅package/lock/migrator源码；实例元数据及本环境健康检查属于既有腾讯云、本机loopback范围。GitHub收到公开提交标识，不收到数据库、会话密钥、业务内容或私有授权。Node Sharp烟测仅生成小幅合成PNG并在内存转换，不处理业务图片。应用与SQL必须逐字节相同才允许切换，配置/密钥/网络不变，失败只恢复应用，保留数据库新事实。
+
+2026-10-13本候选已按准确main `b7e853e9dcd9f72f3cf7b933707fd477e635d6d7` 实际切换：[体验15:07–15:08](evidence/production-runtime-20261013/dependency-upgrade-trial.json)、[正式15:35–15:36](evidence/production-runtime-20261013/dependency-upgrade-production.json)。两者均解析Fastify5.12.5、Sharp0.35.5、librsvg2.63.2，未迁移/恢复DB或改原配置、密钥和网络，不授予业务开放或真机验收。公开字典的候选状态已据实际回执更新；前述初版SHA/未启用记录保留原阶段范围，不能冒充当前运行状态。
+
+正式机到raw源码域名的真实连接先后在HTTP正文和首字节等待超时，失败均在服务停止前，未使用不完整响应。经 [官方格式说明](https://docs.github.com/en/rest/repos/contents?apiVersion=2026-03-10) 与完整331169字节、精确锁SHA的现场读回，独立复核临时传输监督 `e62d09a842cb17ff38e607ba36c5fa10fb473b60b0f633468a7d6a90b5b391f7`：只把三条准确b7源GET映射到同仓库、同commit ref的官方Contents raw-media，实际response未经正文/header/status改写即交给原7c读取与校验。TLS、NoRedirect、12秒timeout、1MiB/长度、原源码许可/migrator及main/CI/切换规则保持，其他网络请求不映射，HTTP/SSL/验证错误不重试，调用结束恢复原函数；没有源码缓存或GitHub凭据。成功正式apply的六个真实源读回均匹配许可，未触发重试。范围与失败事实见 [来源监督回执](evidence/production-runtime-20261013/source-fetch-supervisor.json)，不新增消费者字段、业务接收方或私有输入外发。
+
+15:38的 [独立只读核验](evidence/production-runtime-20261013/dependency-post-readback.json) 确认四个实际进程与准确新来源绑定，原env/私有输入/有效unit/drop-in/初始化记录、97迁移及协议保持；秘密比较仅公开是否隔离/一致，未输出原值或私有指纹。此次源码传输监督与配置保护不增加任何会员采集、第三方业务发送或业务开放。
 
 保持原六目录、正则和断言提取签名，相对3b1提交为31→32条、无删除，唯一新增是 `infra/tencent/test_production_dependency_upgrade.py` 的本地 `def fetch(path):` 合成GitHub适配器声明。该声明被原静态正则纳入，不代表真实网络调用。新摘要为 `5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a`；未被正则覆盖的实际urllib/curl/psql操作按上述用途人工复核，并记录于机器清单 `dependencyUpgradeReview20261013`。49个微信API、5个固定WXML接口及全部迁移集合不变。旧版本签名及§11的来源范围保留。
 

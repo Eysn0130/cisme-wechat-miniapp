@@ -1,0 +1,133 @@
+"""Operator supervisor: original apply, live official raw-media source transport."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import socket
+import ssl
+import stat
+import sys
+import time
+import traceback
+import urllib.error
+import urllib.request
+
+HEAD = 'b7e853e9dcd9f72f3cf7b933707fd477e635d6d7'
+ROOT = Path('/opt/cisme/operations/dependency-only-b7e853e9dcd9')
+HASHES = {
+    'dependency-only-upgrade.py': '7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429',
+    'production-release.py': 'b5b0a3e6645a8a244ba732fae1883ecba961b7fbc4e297b497bb0ede92a566cb',
+    'production-trial.py': 'e49d669715581ade8726e23830903c386fcb9764b1e11e2a2727c7957a364f2b',
+    'production-observation.py': '69e1d1638b86798791bd41a5a99d6fddf2822dc3ca5ca4881274994f841ee8e4',
+    'production-target.py': '4fc403288db9486f7ad721617ab3c8edfd5cc0643c15ec52179b042119e36f74',
+    'production-security-audit.py': '0e8f209d19f0e1b62f3ec31f5eec93f1ff99faac3c8a3b3c2cbb7ff11461cb82',
+    'production-migration-audit.py': '470b78ab3af29aabcb3259c85a92124f184c4b879579e688606674a7e31d4dee',
+}
+SOURCES = ('package.json', 'package-lock.json', 'scripts/release-migrate.mjs')
+retries = []
+source_readbacks = []
+ORIGINAL_OPEN = urllib.request.OpenerDirector.open
+SOURCE_URLS = {
+    'https://raw.githubusercontent.com/Eysn0130/cisme-wechat-miniapp/' + HEAD + '/' + name:
+    'https://api.github.com/repos/Eysn0130/cisme-wechat-miniapp/contents/' + name + '?ref=' + HEAD
+    for name in SOURCES
+}
+
+
+def official_source_open(opener, fullurl, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
+    url = fullurl.full_url if isinstance(fullurl, urllib.request.Request) else fullurl
+    if url not in SOURCE_URLS:
+        return ORIGINAL_OPEN(opener, fullurl, data, timeout)
+    if (not isinstance(fullurl, urllib.request.Request) or fullurl.get_method() != 'GET'
+            or fullurl.data is not None or data is not None or timeout != 12
+            or {key.lower(): value for key, value in fullurl.header_items()} != {
+                'cache-control': 'no-cache', 'user-agent': 'cisme-dependency-preflight'}):
+        raise RuntimeError('OPERATOR_SOURCE_REQUEST_CONTEXT_REQUIRED')
+    request = urllib.request.Request(SOURCE_URLS[url], headers={
+        'Accept': 'application/vnd.github.raw+json',
+        'Cache-Control': 'no-cache', 'User-Agent': 'cisme-dependency-preflight'})
+    # A real request through the same original opener/default TLS/NoRedirect.
+    # Return its actual response, without reading or rewriting status/body/headers.
+    return ORIGINAL_OPEN(opener, request, None, timeout)
+
+
+def real_source_fetch(original):
+    def fetch(name, head):
+        if name not in SOURCES or head != HEAD:
+            return original(name, head)
+        for attempt in range(1, 4):
+            try:
+                # Each attempt executes the complete unchanged reviewed function:
+                # a fresh real HTTPS GET, default TLS, NoRedirect, 12s timeout,
+                # bounded full body and exact Content-Length checks. No cache.
+                value = original(name, head)
+                source_readbacks.append({'source': name, 'sourceHead': head,
+                                         'byteCount': len(value),
+                                         'sha256': hashlib.sha256(value).hexdigest(),
+                                         'transport': 'github-contents-raw-media'})
+                return value
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+                reason = getattr(error, 'reason', error)
+                if (isinstance(error, urllib.error.HTTPError)
+                        or isinstance(reason, (ssl.SSLError, ssl.CertificateError))
+                        or attempt == 3):
+                    raise
+                retries.append({'source': name, 'failedAttempt': attempt,
+                                'errorType': type(error).__name__, 'reasonType': type(reason).__name__})
+                time.sleep(attempt)
+    return fetch
+
+
+def main():
+    if os.geteuid() != 0 or len(sys.argv) != 2 or sys.argv[1] not in ('trial', 'production'):
+        raise RuntimeError('OPERATOR_CONTEXT_REQUIRED')
+    for parent in (ROOT, *ROOT.parents):
+        info = parent.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+            raise RuntimeError('OPERATOR_SOURCE_DIRECTORY_UNSAFE')
+    for name, sha in HASHES.items():
+        path = ROOT / name
+        info = path.lstat()
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != 0
+                or info.st_mode & 0o022 or info.st_nlink != 1
+                or hashlib.sha256(path.read_bytes()).hexdigest() != sha):
+            raise RuntimeError('OPERATOR_SOURCE_HASH_REQUIRED')
+    spec = importlib.util.spec_from_file_location('actual_reviewed_dependency_apply', ROOT / 'dependency-only-upgrade.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    environment = sys.argv[1]
+    release = ('/opt/cisme-trial' if environment == 'trial' else '/opt/cisme') + '/releases/tencent-release-b7e853e9dcd9'
+    original_source = module.github_source
+    module.github_source = real_source_fetch(original_source)
+    urllib.request.OpenerDirector.open = official_source_open
+    try:
+        result = module.apply(environment, release, 'USER-20261013-CONTINUE-PRODUCTION-DEPLOYMENT')
+        result['operatorSourceFetchRetries'] = retries
+        result['operatorSourceReadbacks'] = source_readbacks
+        result['operatorSourceTransport'] = 'live-official-contents-raw-media-at-exact-commit'
+        result['originalReviewedHelperSha256'] = HASHES['dependency-only-upgrade.py']
+        print(json.dumps(result, sort_keys=True))
+        return 0
+    except Exception as error:
+        output = {'ok': False, 'environment': environment, 'errorType': type(error).__name__,
+                  'code': str(error) if isinstance(error, module.Refused) else 'DEPENDENCY_UPGRADE_REVIEW_REQUIRED',
+                  'operatorSourceFetchRetries': retries,
+                  'operatorSourceReadbacks': source_readbacks,
+                  'frames': [{'file': Path(item.filename).name, 'function': item.name, 'line': item.lineno}
+                             for item in traceback.extract_tb(error.__traceback__)]}
+        if isinstance(error, urllib.error.HTTPError):
+            output['httpStatus'] = error.code
+            output['rateLimitRemaining'] = error.headers.get('x-ratelimit-remaining')
+            output['rateLimitReset'] = error.headers.get('x-ratelimit-reset')
+        elif isinstance(error, urllib.error.URLError):
+            output['reasonType'] = type(error.reason).__name__
+        print(json.dumps(output, sort_keys=True))
+        return 1
+    finally:
+        module.github_source = original_source
+        urllib.request.OpenerDirector.open = ORIGINAL_OPEN
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

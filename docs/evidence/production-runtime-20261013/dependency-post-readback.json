@@ -1,0 +1,247 @@
+{
+  "environments": {
+    "production": {
+      "boundPrivateFileCount": 8,
+      "configurationUnchanged": true,
+      "database": {
+        "journalMatchesImmutableRelease": true,
+        "journalReadUsingReadOnlyAdministrator": true,
+        "migrationCount": 97,
+        "name": "cisme",
+        "owner": "cisme",
+        "role": "cisme",
+        "runtimeCredentialAuthenticationVerified": true
+      },
+      "legalDocuments": [
+        {
+          "bodySha256": "76d895ab06a4f834b6cd79538574ecfa2cc36df6a34ddb7aa6169cc05566ae9d",
+          "type": "privacy",
+          "version": "2026-09-09-v3-profile"
+        },
+        {
+          "bodySha256": "96cacaace1ddafbfae4147925d7c29ca0bd94f779b4236da1faf654bd347e922",
+          "type": "terms",
+          "version": "2026-09-09-v3-profile"
+        }
+      ],
+      "privateInputsUnchanged": true,
+      "runtimeAndSqlIdentical": true,
+      "services": [
+        {
+          "actualCwd": "/opt/cisme/releases/tencent-release-b7e853e9dcd9",
+          "argv": [
+            "/opt/node-v24.14.0-linux-x64/bin/node",
+            "index.js"
+          ],
+          "configurationMatches": true,
+          "flags": {
+            "ALLOW_DEV_ADAPTERS": "false",
+            "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": "true",
+            "COMMERCE_FULFILLMENT_ENABLED": "true",
+            "COMMERCE_ORDER_FLOW_ENABLED": "false",
+            "COMMERCE_SIMULATED_PAYMENT_ENABLED": "<unset>",
+            "COMMERCE_SIMULATED_TRANSFER_ENABLED": "<unset>",
+            "COS_DIRECT_UPLOAD_ENABLED": "<unset>",
+            "POINTS_REDEMPTION_ENABLED": "<unset>",
+            "POINTS_RULES_ENABLED": "<unset>",
+            "UGC_GO_LIVE_GATE": "false",
+            "WECHAT_PHONE_BINDING_ENABLED": "<unset>"
+          },
+          "native": {
+            "arch": "x64",
+            "fastify": "5.12.5",
+            "glibc": "2.39",
+            "node": "v24.14.0",
+            "platform": "linux",
+            "rsvg": "2.63.2",
+            "sharp": "0.35.5",
+            "vips": "8.18.7"
+          },
+          "pid": 3342694,
+          "state": "active/running",
+          "uid": 999,
+          "unit": "cisme-api.service"
+        },
+        {
+          "actualCwd": "/opt/cisme/releases/tencent-release-b7e853e9dcd9",
+          "argv": [
+            "/opt/node-v24.14.0-linux-x64/bin/node",
+            "worker.js"
+          ],
+          "configurationMatches": true,
+          "flags": {
+            "ALLOW_DEV_ADAPTERS": "false",
+            "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": "true",
+            "COMMERCE_FULFILLMENT_ENABLED": "true",
+            "COMMERCE_ORDER_FLOW_ENABLED": "false",
+            "COMMERCE_SIMULATED_PAYMENT_ENABLED": "<unset>",
+            "COMMERCE_SIMULATED_TRANSFER_ENABLED": "<unset>",
+            "COS_DIRECT_UPLOAD_ENABLED": "<unset>",
+            "POINTS_REDEMPTION_ENABLED": "<unset>",
+            "POINTS_RULES_ENABLED": "<unset>",
+            "UGC_GO_LIVE_GATE": "false",
+            "WECHAT_PHONE_BINDING_ENABLED": "<unset>"
+          },
+          "native": {
+            "arch": "x64",
+            "fastify": "5.12.5",
+            "glibc": "2.39",
+            "node": "v24.14.0",
+            "platform": "linux",
+            "rsvg": "2.63.2",
+            "sharp": "0.35.5",
+            "vips": "8.18.7"
+          },
+          "pid": 3342695,
+          "state": "active/running",
+          "uid": 999,
+          "unit": "cisme-worker.service"
+        }
+      ],
+      "trustedLoopbackTls": {
+        "dbAndHttpDocumentHashesMatch": true,
+        "domain": "api.cisme.cn",
+        "legalReady": true,
+        "legalStatus": 200,
+        "readyStatus": 200
+      },
+      "workerCompletedAtUtc": "2026-10-13T15:38:01.476Z",
+      "workerCycleAgeSeconds": 0.989
+    },
+    "trial": {
+      "boundPrivateFileCount": 0,
+      "configurationUnchanged": true,
+      "counts": {
+        "consentAcceptanceCount": 0,
+        "consentGrantCount": 0,
+        "consentReceiptCount": 0,
+        "legalPublishAuditCount": 1,
+        "memberCount": 0
+      },
+      "database": {
+        "journalMatchesImmutableRelease": true,
+        "journalReadUsingReadOnlyAdministrator": true,
+        "migrationCount": 97,
+        "name": "cisme_trial",
+        "owner": "cisme_trial",
+        "role": "cisme_trial",
+        "runtimeCredentialAuthenticationVerified": true
+      },
+      "initialRecordsUnchanged": true,
+      "legalDocuments": [
+        {
+          "bodySha256": "37161182f48720cb93dfc07a409940a93e9c7c9408c3fd08f0c71acfa8e42992",
+          "type": "privacy",
+          "version": "2026-10-13-v1-trial"
+        },
+        {
+          "bodySha256": "45968141b9c2b375b74b168b0b9afb36147e6ceaf35afa20c67cc241bb8fd5ef",
+          "type": "terms",
+          "version": "2026-10-13-v1-trial"
+        }
+      ],
+      "privateInputsUnchanged": true,
+      "runtimeAndSqlIdentical": true,
+      "services": [
+        {
+          "actualCwd": "/opt/cisme-trial",
+          "argv": [
+            "/opt/node-v24.14.0-linux-x64/bin/node",
+            "/opt/cisme-trial/releases/tencent-release-b7e853e9dcd9/index.js"
+          ],
+          "configurationMatches": true,
+          "flags": {
+            "ALLOW_DEV_ADAPTERS": "false",
+            "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": "false",
+            "COMMERCE_FULFILLMENT_ENABLED": "false",
+            "COMMERCE_ORDER_FLOW_ENABLED": "false",
+            "COMMERCE_SIMULATED_PAYMENT_ENABLED": "false",
+            "COMMERCE_SIMULATED_TRANSFER_ENABLED": "<unset>",
+            "COS_DIRECT_UPLOAD_ENABLED": "false",
+            "POINTS_REDEMPTION_ENABLED": "false",
+            "POINTS_RULES_ENABLED": "false",
+            "UGC_GO_LIVE_GATE": "false",
+            "WECHAT_PHONE_BINDING_ENABLED": "false"
+          },
+          "native": {
+            "arch": "x64",
+            "fastify": "5.12.5",
+            "glibc": "2.39",
+            "node": "v24.14.0",
+            "platform": "linux",
+            "rsvg": "2.63.2",
+            "sharp": "0.35.5",
+            "vips": "8.18.7"
+          },
+          "pid": 3334456,
+          "state": "active/running",
+          "uid": 996,
+          "unit": "cisme-trial-api.service"
+        },
+        {
+          "actualCwd": "/opt/cisme-trial",
+          "argv": [
+            "/opt/node-v24.14.0-linux-x64/bin/node",
+            "/opt/cisme-trial/releases/tencent-release-b7e853e9dcd9/worker.js"
+          ],
+          "configurationMatches": true,
+          "flags": {
+            "ALLOW_DEV_ADAPTERS": "false",
+            "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": "false",
+            "COMMERCE_FULFILLMENT_ENABLED": "false",
+            "COMMERCE_ORDER_FLOW_ENABLED": "false",
+            "COMMERCE_SIMULATED_PAYMENT_ENABLED": "false",
+            "COMMERCE_SIMULATED_TRANSFER_ENABLED": "<unset>",
+            "COS_DIRECT_UPLOAD_ENABLED": "false",
+            "POINTS_REDEMPTION_ENABLED": "false",
+            "POINTS_RULES_ENABLED": "false",
+            "UGC_GO_LIVE_GATE": "false",
+            "WECHAT_PHONE_BINDING_ENABLED": "false"
+          },
+          "native": {
+            "arch": "x64",
+            "fastify": "5.12.5",
+            "glibc": "2.39",
+            "node": "v24.14.0",
+            "platform": "linux",
+            "rsvg": "2.63.2",
+            "sharp": "0.35.5",
+            "vips": "8.18.7"
+          },
+          "pid": 3334457,
+          "state": "active/running",
+          "uid": 996,
+          "unit": "cisme-trial-worker.service"
+        }
+      ],
+      "trustedLoopbackTls": {
+        "dbAndHttpDocumentHashesMatch": true,
+        "domain": "staging-api.cisme.cn",
+        "legalReady": true,
+        "legalStatus": 200,
+        "readyStatus": 200
+      },
+      "workerCompletedAtUtc": "2026-10-13T15:37:54.436Z",
+      "workerCycleAgeSeconds": 9.708
+    }
+  },
+  "instanceId": "lhins-61ikz4mi",
+  "isolatedSecretCategoriesDifferent": {
+    "contactEncryptionKey": true,
+    "contactHashKey": true,
+    "databaseCredentials": true,
+    "privacyFormalExportKey": true,
+    "sessionSecret": true,
+    "uploadTokenSecret": true
+  },
+  "nativeDeviceVerified": false,
+  "observedAtUtc": "2026-10-13T15:38:00.998870Z",
+  "operationsHelperSha256": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
+  "publicNetworkVerified": false,
+  "readOnly": true,
+  "schemaVersion": 1,
+  "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+  "sourceTree": "abbf0a257effdc2575c3c6d2706fde4d265a6e7e",
+  "ufwStatus": "Status: active\n\nTo                         Action      From\n--                         ------      ----\n22/tcp                     ALLOW       Anywhere                  \n22/tcp (v6)                ALLOW       Anywhere (v6)             \n\n",
+  "ufwUnchanged": true
+}

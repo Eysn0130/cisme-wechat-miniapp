@@ -1,0 +1,72 @@
+{
+  "startedAtUtc": "2026-10-13T15:35:40.016581+00:00",
+  "finishedAtUtc": "2026-10-13T15:36:36.270066+00:00",
+  "sshExitCode": 0,
+  "supervisorSha256": "e62d09a842cb17ff38e607ba36c5fa10fb473b60b0f633468a7d6a90b5b391f7",
+  "report": {
+    "approvalReference": "USER-20261013-CONTINUE-PRODUCTION-DEPLOYMENT",
+    "businessAdmissionGranted": false,
+    "configurationChanged": false,
+    "credentialsChanged": false,
+    "databaseMigrated": false,
+    "databaseRestored": false,
+    "deployed": true,
+    "environment": "production",
+    "networkChanged": false,
+    "operatorSourceFetchRetries": [],
+    "operatorSourceReadbacks": [
+      {
+        "byteCount": 4155,
+        "sha256": "64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5",
+        "source": "package.json",
+        "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+        "transport": "github-contents-raw-media"
+      },
+      {
+        "byteCount": 331169,
+        "sha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9",
+        "source": "package-lock.json",
+        "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+        "transport": "github-contents-raw-media"
+      },
+      {
+        "byteCount": 6283,
+        "sha256": "28a6c251d7290d176410a16a6d837af27e3d16573fa7e18e348431ccbf6a6f19",
+        "source": "scripts/release-migrate.mjs",
+        "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+        "transport": "github-contents-raw-media"
+      },
+      {
+        "byteCount": 4155,
+        "sha256": "64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5",
+        "source": "package.json",
+        "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+        "transport": "github-contents-raw-media"
+      },
+      {
+        "byteCount": 331169,
+        "sha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9",
+        "source": "package-lock.json",
+        "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+        "transport": "github-contents-raw-media"
+      },
+      {
+        "byteCount": 6283,
+        "sha256": "28a6c251d7290d176410a16a6d837af27e3d16573fa7e18e348431ccbf6a6f19",
+        "source": "scripts/release-migrate.mjs",
+        "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+        "transport": "github-contents-raw-media"
+      }
+    ],
+    "operatorSourceTransport": "live-official-contents-raw-media-at-exact-commit",
+    "originalReviewedHelperSha256": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
+    "publicReachabilityVerified": false,
+    "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "versions": {
+      "fastify": "5.12.5",
+      "rsvg": "2.63.2",
+      "sharp": "0.35.5",
+      "vips": "8.18.7"
+    }
+  }
+}

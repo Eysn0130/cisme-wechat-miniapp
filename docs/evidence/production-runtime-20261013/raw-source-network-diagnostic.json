@@ -1,0 +1,64 @@
+{
+  "configurationChanged": false,
+  "dns": {
+    "host": "raw.githubusercontent.com",
+    "ipv4": [
+      "185.199.108.133",
+      "185.199.109.133",
+      "185.199.110.133",
+      "185.199.111.133"
+    ],
+    "ipv6": [
+      "2606:50c0:8000::154",
+      "2606:50c0:8001::154",
+      "2606:50c0:8002::154",
+      "2606:50c0:8003::154"
+    ]
+  },
+  "fixedCommitPackageTransport": {
+    "byteCount": 0,
+    "curlExitCode": 28,
+    "failureClass": "timeout",
+    "httpStatus": 0,
+    "permittedSourceMatches": false,
+    "redirectCount": 0,
+    "remoteIp": "185.199.111.133",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timingSeconds": {
+      "appconnect": 5.807367,
+      "connect": 4.241259,
+      "namelookup": 0.00092,
+      "pretransfer": 5.807624,
+      "starttransfer": 0.0,
+      "total": 15.002781
+    },
+    "tlsCertificateVerifyResult": 0
+  },
+  "githubRestRequested": false,
+  "observedAtUtc": "2026-10-13T15:23:45.462150Z",
+  "readOnly": true,
+  "routes": {
+    "ipv4": {
+      "destination": "185.199.108.133",
+      "dev": "eth0",
+      "flags": [],
+      "gateway": "10.0.0.1",
+      "prefsrc": "10.0.0.10",
+      "routeAvailable": true,
+      "routeExamined": true
+    },
+    "ipv6": {
+      "destination": "2606:50c0:8000::154",
+      "failureClass": "route_unavailable",
+      "routeAvailable": false,
+      "routeExamined": true
+    }
+  },
+  "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+  "sourcePath": "package.json",
+  "limits": {
+    "diagnosticFailureIsNotSourcePermission": true,
+    "doesNotAttributeDnsOrCertificateFailure": true,
+    "publicOrNativeAcceptanceVerified": false
+  }
+}

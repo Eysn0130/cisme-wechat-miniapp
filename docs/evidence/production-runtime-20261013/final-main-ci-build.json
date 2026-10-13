@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "collectedAtUtc": "2026-10-13 15:06:01 UTC",
+  "repository": "Eysn0130/cisme-wechat-miniapp",
+  "main": {
+    "run": {
+      "id": 38415568719,
+      "name": "CISME R0 gates",
+      "head_branch": "main",
+      "head_sha": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+      "path": ".github/workflows/ci.yml",
+      "run_number": 415,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/38415568719",
+      "created_at": "2026-10-13T14:41:45Z",
+      "updated_at": "2026-10-13T14:50:07Z",
+      "run_started_at": "2026-10-13T14:41:45Z",
+      "run_attempt": 1,
+      "artifacts_url": "https://api.github.com/repos/Eysn0130/cisme-wechat-miniapp/actions/runs/38415568719/artifacts",
+      "jobs_url": "https://api.github.com/repos/Eysn0130/cisme-wechat-miniapp/actions/runs/38415568719/jobs",
+      "head_commit": {
+        "id": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+        "message": "Merge pull request #28 from Eysn0130/codex/production-runtime-20261012\n\nRead complete immutable source files during dependency upgrades",
+        "timestamp": "2026-10-13T14:40:38Z"
+      }
+    },
+    "verifyJobId": 115358961943,
+    "artifactMetadata": {
+      "total_count": 1,
+      "artifacts": [
+        {
+          "id": 11823923148,
+          "name": "cisme-r0-evidence",
+          "size_in_bytes": 262155,
+          "expired": false,
+          "created_at": "2026-10-13T14:50:02Z",
+          "updated_at": "2026-10-13T14:50:02Z",
+          "expires_at": "2027-01-11T14:41:45Z",
+          "digest": "sha256:c3cd5a3562a9fc28ef9d8862e04a1255ee2ec32f2729a55e286138fa1a47cdd3",
+          "workflow_run": {
+            "id": 38415568719,
+            "repository_id": 1361404616,
+            "head_repository_id": 1361404616,
+            "head_branch": "main",
+            "head_sha": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7"
+          }
+        }
+      ]
+    },
+    "logSummary": {
+      "sourceTree": "abbf0a257effdc2575c3c6d2706fde4d265a6e7e",
+      "testCounts": {
+        "unit": {
+          "passedFiles": 128,
+          "totalFiles": 128,
+          "passedTests": 1473,
+          "totalTests": 1473
+        },
+        "integration": {
+          "passedFiles": 58,
+          "totalFiles": 58,
+          "passedTests": 921,
+          "totalTests": 921
+        }
+      },
+      "summaryLines": [
+        {
+          "step": "Run npm ci 2>&1 | tee \"$RUNNER_TEMP/native-validation/ci.log\"",
+          "summary": "2026-10-13T14:42:29.7496080Z found 0 vulnerabilities"
+        },
+        {
+          "step": "Production dependency audit",
+          "summary": "2026-10-13T14:42:30.3588396Z found 0 vulnerabilities"
+        },
+        {
+          "step": "Development-tool high-severity audit",
+          "summary": "2026-10-13T14:42:30.9828490Z found 0 vulnerabilities"
+        },
+        {
+          "step": "Offline staging deployment and monitor guards",
+          "summary": "2026-10-13T14:42:35.8074990Z Ran 121 tests in 2.365s"
+        },
+        {
+          "step": "Offline staging deployment and monitor guards",
+          "summary": "2026-10-13T14:42:37.0120094Z Ran 64 tests in 1.025s"
+        },
+        {
+          "step": "Offline staging deployment and monitor guards",
+          "summary": "2026-10-13T14:42:37.0120500Z OK (skipped=1)"
+        },
+        {
+          "step": "Offline staging deployment and monitor guards",
+          "summary": "2026-10-13T14:42:41.1558687Z Ran 14 tests in 0.084s"
+        },
+        {
+          "step": "Offline staging deployment and monitor guards",
+          "summary": "2026-10-13T14:42:41.2674498Z Ran 8 tests in 0.023s"
+        },
+        {
+          "step": "Run npm test 2>&1 | tee \"$RUNNER_TEMP/native-validation/test.log\"",
+          "summary": "2026-10-13T14:43:02.0882267Z  Test Files  128 passed (128)"
+        },
+        {
+          "step": "Run npm test 2>&1 | tee \"$RUNNER_TEMP/native-validation/test.log\"",
+          "summary": "2026-10-13T14:43:02.0892472Z       Tests  1473 passed (1473)"
+        },
+        {
+          "step": "Run npm run test:integration 2>&1 | tee \"$RUNNER_TEMP/native-validation/test-integration.log\"",
+          "summary": "2026-10-13T14:47:51.6627058Z  Test Files  58 passed (58)"
+        },
+        {
+          "step": "Run npm run test:integration 2>&1 | tee \"$RUNNER_TEMP/native-validation/test-integration.log\"",
+          "summary": "2026-10-13T14:47:51.6633191Z       Tests  921 passed (921)"
+        }
+      ],
+      "rawLogPersisted": false
+    }
+  },
+  "pr28": {
+    "runId": 38414011437,
+    "sourceHead": "325b85af317ab927dce0c1ed404afb409bd7e23e",
+    "sourceTree": "abbf0a257effdc2575c3c6d2706fde4d265a6e7e",
+    "verifyJobId": 115353468577,
+    "conclusion": "success"
+  },
+  "actualLinuxBuild": {
+    "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "sourceTree": "abbf0a257effdc2575c3c6d2706fde4d265a6e7e",
+    "archiveSha256": "1ba07be9d0fa8e40796933ad189372453c92582e89fa2ee3f800a32f75dcc802",
+    "archiveSize": 25586242,
+    "manifestSha256": "0c314a07a28d327dc0f4e5f36d72982f3def6dbcf8235aa6ae707f9aa27f9d3a",
+    "node": "v24.14.0",
+    "platform": {
+      "os": "linux",
+      "arch": "x64",
+      "libc": "glibc"
+    },
+    "sourceLockSha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9",
+    "runtimeDependencyVersions": {
+      "fastify": "5.12.5",
+      "sharp": "0.35.5"
+    },
+    "migrations": 97,
+    "hashedFiles": 103,
+    "applicationAndSqlComponentCount": 101,
+    "deployedComparisons": [
+      {
+        "directory": "/opt/cisme/releases/tencent-release-751f7407af4e",
+        "sourceHead": "751f7407af4e525c5b6c09c6997800acfb4048fc",
+        "all101ApplicationAndSqlBytesEqual": true,
+        "completeMigrationNamesEqual": true,
+        "otherDifferenceNames": [
+          "package-lock.json",
+          "package.json"
+        ]
+      },
+      {
+        "directory": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc",
+        "sourceHead": "751f7407af4e525c5b6c09c6997800acfb4048fc",
+        "all101ApplicationAndSqlBytesEqual": true,
+        "completeMigrationNamesEqual": true,
+        "otherDifferenceNames": [
+          "package-lock.json",
+          "package.json"
+        ]
+      }
+    ],
+    "builderImageId": "sha256:43ffb442676c100df1e90d50b1d582c5af0b9dca1bdf7cbc9065dad0c5521044",
+    "publicCacheSource": {
+      "containerId": "6d4c40c6236c00ed459c64cb1857097265faea82b00a971097ab1c557464ad99",
+      "sourceHead": "8eb2edb71a7728cb53d6cd5706be862543e0ee98",
+      "entries": [
+        ".git/objects",
+        ".git/refs",
+        ".git/HEAD",
+        ".git/shallow",
+        ".npm/_cacache"
+      ],
+      "gitConfigOrCredentialsCopied": false,
+      "exactSourceFetchedFromPublicOrigin": true
+    },
+    "containerId": "7fb6d59c286912a3ca2c7ee28a7c7b14e191ce55aff40b454352b7c291957c98",
+    "containerState": "exited",
+    "containerExitCode": 0,
+    "hostMounts": [],
+    "privileged": false,
+    "activationPerformedByBuilder": false,
+    "comparisonEvidenceSha256": "66c833b2f9948b3c4bb23b119c63f42dd2a828b7b90586eac675f7c6940a1355",
+    "buildLogSha256": "bd96ff0cb1d1d9d252c80ae2ed9a2dd4737484fb1ed3a367b3b1216583818a54"
+  },
+  "sharpNativeVersions": {
+    "rsvg": "2.63.2",
+    "vips": "8.18.7"
+  },
+  "stage": {
+    "archiveSha256": "1ba07be9d0fa8e40796933ad189372453c92582e89fa2ee3f800a32f75dcc802",
+    "archiveSize": 25586242,
+    "candidateDirectories": [
+      "/opt/cisme/releases/tencent-release-b7e853e9dcd9",
+      "/opt/cisme-trial/releases/tencent-release-b7e853e9dcd9"
+    ],
+    "configurationChanged": false,
+    "databaseChanged": false,
+    "dependenciesSha256": "351d7b03ebf507c9ddfc68c6cc04cdc69104e4bb6a6cc660b7b39bad256c5e44",
+    "deployed": false,
+    "instanceId": "lhins-61ikz4mi",
+    "manifestSha256": "0c314a07a28d327dc0f4e5f36d72982f3def6dbcf8235aa6ae707f9aa27f9d3a",
+    "migrations": 97,
+    "operationsDirectory": "/opt/cisme/operations/dependency-only-b7e853e9dcd9",
+    "privateStage": "/var/lib/cisme-dependency-stage/b7e853e9dcd9-myqthfz1",
+    "publicIpv4": "124.223.74.198",
+    "servicesChanged": false,
+    "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "sourceTree": "abbf0a257effdc2575c3c6d2706fde4d265a6e7e",
+    "staged": true,
+    "toolFiles": {
+      "dependency-only-upgrade.py": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
+      "production-migration-audit.py": "470b78ab3af29aabcb3259c85a92124f184c4b879579e688606674a7e31d4dee",
+      "production-observation.py": "69e1d1638b86798791bd41a5a99d6fddf2822dc3ca5ca4881274994f841ee8e4",
+      "production-release.py": "b5b0a3e6645a8a244ba732fae1883ecba961b7fbc4e297b497bb0ede92a566cb",
+      "production-security-audit.py": "0e8f209d19f0e1b62f3ec31f5eec93f1ff99faac3c8a3b3c2cbb7ff11461cb82",
+      "production-target.py": "4fc403288db9486f7ad721617ab3c8edfd5cc0643c15ec52179b042119e36f74",
+      "production-trial.py": "e49d669715581ade8726e23830903c386fcb9764b1e11e2a2727c7957a364f2b"
+    }
+  },
+  "independentStageChecks": {
+    "finalStagerSha256": "875572681d758d00a4dedf73884e570decfca02627aaefed21f86311340a5b75",
+    "finalStagerHashMatchesCommand": true,
+    "finalUnpackAstMatchesIndependentlyReviewedDraft": true,
+    "archiveShaSizeHeadTreeManifestMatchBuild": true
+  },
+  "toolModuleBindings": {
+    "dependency-only-upgrade.py": {
+      "sha256": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
+      "manifestHashMatches": true,
+      "exactMainGitBytesMatch": true,
+      "receiptHashMatches": true
+    },
+    "production-release.py": {
+      "sha256": "b5b0a3e6645a8a244ba732fae1883ecba961b7fbc4e297b497bb0ede92a566cb",
+      "manifestHashMatches": true,
+      "exactMainGitBytesMatch": true,
+      "receiptHashMatches": true
+    },
+    "production-trial.py": {
+      "sha256": "e49d669715581ade8726e23830903c386fcb9764b1e11e2a2727c7957a364f2b",
+      "manifestHashMatches": true,
+      "exactMainGitBytesMatch": true,
+      "receiptHashMatches": true
+    },
+    "production-observation.py": {
+      "sha256": "69e1d1638b86798791bd41a5a99d6fddf2822dc3ca5ca4881274994f841ee8e4",
+      "manifestHashMatches": true,
+      "exactMainGitBytesMatch": true,
+      "receiptHashMatches": true
+    },
+    "production-target.py": {
+      "sha256": "4fc403288db9486f7ad721617ab3c8edfd5cc0643c15ec52179b042119e36f74",
+      "manifestHashMatches": true,
+      "exactMainGitBytesMatch": true,
+      "receiptHashMatches": true
+    },
+    "production-security-audit.py": {
+      "sha256": "0e8f209d19f0e1b62f3ec31f5eec93f1ff99faac3c8a3b3c2cbb7ff11461cb82",
+      "manifestHashMatches": true,
+      "exactMainGitBytesMatch": true,
+      "receiptHashMatches": true
+    },
+    "production-migration-audit.py": {
+      "sha256": "470b78ab3af29aabcb3259c85a92124f184c4b879579e688606674a7e31d4dee",
+      "manifestHashMatches": true,
+      "exactMainGitBytesMatch": true,
+      "receiptHashMatches": true
+    }
+  },
+  "crossChecks": {
+    "mainPushCompletedSuccessfully": true,
+    "mainShaAndTreeMatchActualLinuxBuild": true,
+    "prTreeMatchesMergedMainTree": true,
+    "mainVerifyJobSuccess": true,
+    "prVerifyJobSuccess": true,
+    "exactMainPushCiSeparateFromPrCi": true,
+    "ciArtifactsAreEvidenceBundlesNotReleaseArchive": true,
+    "unitAndIntegrationNumbersReadFromExactJobSummary": true,
+    "mainSkippedJobs": [
+      "candidate-design-qa",
+      "wechat-credentialed-preview"
+    ],
+    "prSkippedJobs": [
+      "wechat-credentialed-preview",
+      "candidate-design-qa"
+    ],
+    "nativeVisualOrDeviceAcceptanceVerified": false,
+    "runtimeActivationVerifiedByThisEvidence": false,
+    "stagedReceiptIsHistoricalLocalRecord": true
+  },
+  "limits": {
+    "ciArtifactsAreEvidenceNotDeploymentArchive": true,
+    "runtimeActivationVerifiedByThisReceipt": false,
+    "nativeVisualOrDeviceAcceptanceVerified": false,
+    "wechatUploadPerformed": false,
+    "publicReachabilityVerified": false
+  }
+}

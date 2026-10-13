@@ -1,0 +1,491 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+  "originalHelperSha256": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
+  "initialSourceOpenDiagnostic": {
+    "code": "SAFE_DIAGNOSTIC_ONLY",
+    "errorType": "URLError",
+    "frames": [
+      {
+        "file": "<stdin>",
+        "function": "<module>",
+        "line": 11
+      },
+      {
+        "file": "dependency-only-upgrade.py",
+        "function": "preflight",
+        "line": 460
+      },
+      {
+        "file": "dependency-only-upgrade.py",
+        "function": "permit",
+        "line": 178
+      },
+      {
+        "file": "dependency-only-upgrade.py",
+        "function": "github_source",
+        "line": 156
+      },
+      {
+        "file": "request.py",
+        "function": "open",
+        "line": 515
+      },
+      {
+        "file": "request.py",
+        "function": "_open",
+        "line": 532
+      },
+      {
+        "file": "request.py",
+        "function": "_call_chain",
+        "line": 492
+      },
+      {
+        "file": "request.py",
+        "function": "https_open",
+        "line": 1392
+      },
+      {
+        "file": "request.py",
+        "function": "do_open",
+        "line": 1347
+      }
+    ],
+    "ok": false
+  },
+  "subsequentRealRawRead": {
+    "completionTimestampNotRecorded": true,
+    "originalHelperUnmodified": true,
+    "attempts": [
+      {
+        "attempt": 1,
+        "sourceBytes": 331169,
+        "sourceSha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9",
+        "sourcePermitMatches": true
+      }
+    ],
+    "formalHostRestCalls": 0
+  },
+  "openOnlySupervisorAttempt": {
+    "startedAtUtc": "2026-10-13T15:03:56.229687+00:00",
+    "finishedAtUtc": "2026-10-13T15:04:33.308198+00:00",
+    "sshExitCode": 1,
+    "supervisorSha256": "fa33bfef3f8fa1103293b6dd24989bf2fc12e44b6a52e9692bd8c837db2d7814",
+    "report": {
+      "code": "DEPENDENCY_UPGRADE_REVIEW_REQUIRED",
+      "environment": "trial",
+      "errorType": "TimeoutError",
+      "frames": [
+        {
+          "file": "<stdin>",
+          "function": "main",
+          "line": 78
+        },
+        {
+          "file": "dependency-only-upgrade.py",
+          "function": "apply",
+          "line": 681
+        },
+        {
+          "file": "dependency-only-upgrade.py",
+          "function": "preflight",
+          "line": 460
+        },
+        {
+          "file": "dependency-only-upgrade.py",
+          "function": "permit",
+          "line": 178
+        },
+        {
+          "file": "dependency-only-upgrade.py",
+          "function": "github_source",
+          "line": 164
+        },
+        {
+          "file": "client.py",
+          "function": "read",
+          "line": 484
+        },
+        {
+          "file": "socket.py",
+          "function": "readinto",
+          "line": 707
+        },
+        {
+          "file": "ssl.py",
+          "function": "recv_into",
+          "line": 1252
+        },
+        {
+          "file": "ssl.py",
+          "function": "read",
+          "line": 1104
+        }
+      ],
+      "ok": false,
+      "operatorSourceOpenRetries": []
+    }
+  },
+  "completeOriginalFetchSupervisor": {
+    "sha256": "6e72f43b02ae7240ca21096a6cc19bc1d3d44c5365502d954d3fb2730c1574ce",
+    "fixedSourceNames": [
+      "package.json",
+      "package-lock.json",
+      "scripts/release-migrate.mjs"
+    ],
+    "exactCommitRequired": true,
+    "maximumRealFetchAttempts": 3,
+    "originalFunctionExecutesOnEveryAttempt": true,
+    "originalResponseBytesOnly": true,
+    "freshRequestOnRetry": true,
+    "cacheOrCredentialInjection": false,
+    "tlsOrNoRedirectChanged": false,
+    "lengthOrHashChecksChanged": false,
+    "mainOrCiChecksChanged": false,
+    "httpSslCertificateOrVerificationFailuresRetried": false,
+    "otherNetworkFunctionsChanged": false,
+    "originalFunctionRestoredInFinally": true,
+    "independentOfflineBoundaryGroupsPassed": 5
+  },
+  "actualSuccessfulTrialRetries": [],
+  "failureScope": {
+    "reportedApplyFailureOccurredInFirstPreflightBeforeStop": true,
+    "fourOriginalPidsIndependentlyReadActiveAfterFailure": {
+      "cisme-api.service": 2050563,
+      "cisme-worker.service": 2050559,
+      "cisme-trial-api.service": 3151709,
+      "cisme-trial-worker.service": 3151710
+    },
+    "readbackTimestampNotRecorded": true
+  },
+  "limits": {
+    "noFailureAttributedToSpecificDnsTlsOrUpstreamCause": true,
+    "offlineValidationIsNotNetworkEvidence": true,
+    "trialSuccessDoesNotImplyProductionSwitch": true,
+    "publicOrNativeAcceptanceGranted": false
+  },
+  "productionFailuresReachedStop": false,
+  "productionObservationAfterThoseFailures": {
+    "observedAtUtc": "2026-10-13T15:24:00.863108+00:00",
+    "readOnly": true,
+    "formalHostGithubRequests": 0,
+    "productionCurrent": "/opt/cisme/releases/tencent-release-751f7407af4e",
+    "productionActiveReleaseRecordExists": false,
+    "services": [
+      {
+        "unit": "cisme-api.service",
+        "pid": 2050563,
+        "active": "active",
+        "substate": "running"
+      },
+      {
+        "unit": "cisme-worker.service",
+        "pid": 2050559,
+        "active": "active",
+        "substate": "running"
+      }
+    ]
+  },
+  "failedProductionAttemptsBeforeStop": [
+    {
+      "startedAtUtc": "2026-10-13T15:16:48.033999+00:00",
+      "finishedAtUtc": "2026-10-13T15:17:57.898173+00:00",
+      "sshExitCode": 1,
+      "supervisorSha256": "6e72f43b02ae7240ca21096a6cc19bc1d3d44c5365502d954d3fb2730c1574ce",
+      "report": {
+        "code": "DEPENDENCY_UPGRADE_REVIEW_REQUIRED",
+        "environment": "production",
+        "errorType": "URLError",
+        "frames": [
+          {
+            "file": "<stdin>",
+            "function": "main",
+            "line": 74
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "apply",
+            "line": 681
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "preflight",
+            "line": 460
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "permit",
+            "line": 177
+          },
+          {
+            "file": "<stdin>",
+            "function": "fetch",
+            "line": 39
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "github_source",
+            "line": 156
+          },
+          {
+            "file": "request.py",
+            "function": "open",
+            "line": 515
+          },
+          {
+            "file": "request.py",
+            "function": "_open",
+            "line": 532
+          },
+          {
+            "file": "request.py",
+            "function": "_call_chain",
+            "line": 492
+          },
+          {
+            "file": "request.py",
+            "function": "https_open",
+            "line": 1392
+          },
+          {
+            "file": "request.py",
+            "function": "do_open",
+            "line": 1347
+          }
+        ],
+        "ok": false,
+        "operatorSourceFetchRetries": [
+          {
+            "errorType": "URLError",
+            "failedAttempt": 1,
+            "reasonType": "TimeoutError",
+            "source": "package.json"
+          },
+          {
+            "errorType": "TimeoutError",
+            "failedAttempt": 2,
+            "reasonType": "TimeoutError",
+            "source": "package.json"
+          }
+        ],
+        "reasonType": "TimeoutError"
+      }
+    },
+    {
+      "startedAtUtc": "2026-10-13T15:22:05.945512+00:00",
+      "finishedAtUtc": "2026-10-13T15:23:44.462626+00:00",
+      "sshExitCode": 1,
+      "supervisorSha256": "6e72f43b02ae7240ca21096a6cc19bc1d3d44c5365502d954d3fb2730c1574ce",
+      "report": {
+        "code": "DEPENDENCY_UPGRADE_REVIEW_REQUIRED",
+        "environment": "production",
+        "errorType": "URLError",
+        "frames": [
+          {
+            "file": "<stdin>",
+            "function": "main",
+            "line": 74
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "apply",
+            "line": 681
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "preflight",
+            "line": 460
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "permit",
+            "line": 177
+          },
+          {
+            "file": "<stdin>",
+            "function": "fetch",
+            "line": 39
+          },
+          {
+            "file": "dependency-only-upgrade.py",
+            "function": "github_source",
+            "line": 156
+          },
+          {
+            "file": "request.py",
+            "function": "open",
+            "line": 515
+          },
+          {
+            "file": "request.py",
+            "function": "_open",
+            "line": 532
+          },
+          {
+            "file": "request.py",
+            "function": "_call_chain",
+            "line": 492
+          },
+          {
+            "file": "request.py",
+            "function": "https_open",
+            "line": 1392
+          },
+          {
+            "file": "request.py",
+            "function": "do_open",
+            "line": 1347
+          }
+        ],
+        "ok": false,
+        "operatorSourceFetchRetries": [
+          {
+            "errorType": "URLError",
+            "failedAttempt": 1,
+            "reasonType": "TimeoutError",
+            "source": "package.json"
+          },
+          {
+            "errorType": "TimeoutError",
+            "failedAttempt": 2,
+            "reasonType": "TimeoutError",
+            "source": "package.json"
+          }
+        ],
+        "reasonType": "TimeoutError"
+      }
+    }
+  ],
+  "officialAlternateSourceDocumentation": "https://docs.github.com/en/rest/repos/contents?apiVersion=2026-03-10",
+  "officialApiRawLockReadback": {
+    "authenticationUsed": false,
+    "configurationChanged": false,
+    "contentLength": "331169",
+    "contentType": "application/vnd.github.raw+json; charset=utf-8",
+    "finishedAtUtc": "2026-10-13T15:30:31.951942Z",
+    "knownContentLengthMatches": true,
+    "length": 331169,
+    "permittedSourceMatches": true,
+    "rateLimitRemaining": "53",
+    "rateLimitReset": "1791908221",
+    "readOnly": true,
+    "restRequestsAttempted": 1,
+    "sourceSha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9",
+    "startedAtUtc": "2026-10-13T15:30:23.325644Z",
+    "status": 200
+  },
+  "canonicalDnsEndpointReadback": {
+    "canonicalHost": "raw.githubusercontent.com",
+    "configurationChanged": false,
+    "dnsMembershipVerified": true,
+    "fixedCommitPackageTransport": {
+      "byteCount": 0,
+      "curlExitCode": 28,
+      "failureClass": "timeout",
+      "httpStatus": 0,
+      "permittedSourceMatches": false,
+      "redirectCount": 0,
+      "remoteIp": "185.199.108.133",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timingSeconds": {
+        "appconnect": 2.649589,
+        "connect": 2.344428,
+        "namelookup": 1.6e-05,
+        "pretransfer": 2.649827,
+        "starttransfer": 0.0,
+        "total": 20.002204
+      },
+      "tlsCertificateVerifyResult": 0
+    },
+    "githubRestRequested": false,
+    "observedAtUtc": "2026-10-13T15:26:47.262450Z",
+    "readOnly": true,
+    "requestExecuted": true,
+    "selectedDnsAddress": "185.199.108.133"
+  },
+  "apiRawLockSourceBinding": {
+    "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "repository": "Eysn0130/cisme-wechat-miniapp",
+    "sourcePath": "package-lock.json",
+    "mediaType": "application/vnd.github.raw+json",
+    "fixedCommitRef": true,
+    "noBase64WrapperUsed": true
+  },
+  "officialApiRawTransportSupervisor": {
+    "sha256": "e62d09a842cb17ff38e607ba36c5fa10fb473b60b0f633468a7d6a90b5b391f7",
+    "originalHelperAndSourceFunctionSha256": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
+    "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "repository": "Eysn0130/cisme-wechat-miniapp",
+    "allowedSourcePaths": [
+      "package.json",
+      "package-lock.json",
+      "scripts/release-migrate.mjs"
+    ],
+    "mappedFrom": "exact raw.githubusercontent.com immutable source URLs",
+    "mappedTo": "same repository official api.github.com/contents source paths with exact commit ref",
+    "mediaType": "application/vnd.github.raw+json",
+    "getOnlyNoBody": true,
+    "originalTwoHeadersRequired": true,
+    "timeoutSeconds": 12,
+    "liveOriginalOpenerResponseReturnedUnmodified": true,
+    "defaultTlsAndNoRedirectPreserved": true,
+    "completeOriginalSourceReaderPreserved": true,
+    "sourceBodyOrStatusHeaderRewrite": false,
+    "mainCiOrHashChecksChanged": false,
+    "cacheOrCredentialInjection": false,
+    "otherNetworkRequestsMapped": false,
+    "callablesRestoredInFinally": true,
+    "independentReviewsPassed": 2,
+    "offlineBoundaryValidationOnly": true
+  },
+  "actualSuccessfulProductionReadbacks": [
+    {
+      "byteCount": 4155,
+      "sha256": "64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5",
+      "source": "package.json",
+      "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+      "transport": "github-contents-raw-media"
+    },
+    {
+      "byteCount": 331169,
+      "sha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9",
+      "source": "package-lock.json",
+      "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+      "transport": "github-contents-raw-media"
+    },
+    {
+      "byteCount": 6283,
+      "sha256": "28a6c251d7290d176410a16a6d837af27e3d16573fa7e18e348431ccbf6a6f19",
+      "source": "scripts/release-migrate.mjs",
+      "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+      "transport": "github-contents-raw-media"
+    },
+    {
+      "byteCount": 4155,
+      "sha256": "64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5",
+      "source": "package.json",
+      "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+      "transport": "github-contents-raw-media"
+    },
+    {
+      "byteCount": 331169,
+      "sha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9",
+      "source": "package-lock.json",
+      "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+      "transport": "github-contents-raw-media"
+    },
+    {
+      "byteCount": 6283,
+      "sha256": "28a6c251d7290d176410a16a6d837af27e3d16573fa7e18e348431ccbf6a6f19",
+      "source": "scripts/release-migrate.mjs",
+      "sourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+      "transport": "github-contents-raw-media"
+    }
+  ],
+  "actualSuccessfulProductionRetries": [],
+  "actualSuccessfulProductionIntervalUtc": {
+    "startedAtUtc": "2026-10-13T15:35:40.016581+00:00",
+    "finishedAtUtc": "2026-10-13T15:36:36.270066+00:00"
+  }
+}

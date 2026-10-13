@@ -1,8 +1,24 @@
 # CISME 正式服务器接续记录 — 2026-10-13
 
-接续聊天“完成正式服务器部署运行”。本轮复查与准备工作仅针对正式实例 `lhins-61ikz4mi` / `124.223.74.198`，未连接旧测试机，未切换生产应用、修改业务数据、开放公网或发布微信版本。裁决仍以 PRD V2.1-R4 §15.5、§15.6、`BASE-WX`、`G0-PRE/G0-OPS` 为准。
+接续聊天“完成正式服务器部署运行”。本轮全部服务器工作仅针对正式实例 `lhins-61ikz4mi` / `124.223.74.198`，未连接旧测试机。独立体验协议已发布，体验和正式服务的依赖补丁均已实际切换。未开放公网或发布微信版本。裁决仍以 PRD V2.1-R4 §15.5、§15.6、`BASE-WX`、`G0-PRE/G0-OPS` 为准。
 
-## 现场运行与范围
+## 最新交付状态（15:38 UTC）
+
+准确主线 `b7e853e9dcd9f72f3cf7b933707fd477e635d6d7` / tree `abbf0a257effdc2575c3c6d2706fde4d265a6e7e` 的 [push CI 38415568719](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/38415568719) 于14:50:07 UTC成功。1473项unit、921项隔离真实integration与两项审计通过；Design QA和微信预览作业仍skipped，不作为原生或上传证明。[最终CI/构建/暂存回执](../evidence/production-runtime-20261013/final-main-ci-build.json) 绑定新Linux归档SHA `1ba07be9d0fa8e40796933ad189372453c92582e89fa2ee3f800a32f75dcc802`、25,586,242 B；两环境101个应用/SQL文件与旧运行制品逐字节全等，97迁移集合相同。
+
+体验环境于15:07:32–15:08:57 UTC使用原审阅工具 `7c0f9e…` 完成限定依赖切换，[实际回执](../evidence/production-runtime-20261013/dependency-upgrade-trial.json) 确认 Fastify5.12.5、Sharp0.35.5、librsvg2.63.2、libvips8.18.7。15:12的 [后续只读观察](../evidence/production-runtime-20261013/post-trial-readback.json) 再次确认新体验active记录、可信本机TLS200和持续Worker心跳；当时正式尚未切换。正式环境于15:35:40–15:36:36 UTC完成相同补丁的 [实际切换](../evidence/production-runtime-20261013/dependency-upgrade-production.json)，原部署检查确认相同实际依赖、可信TLS就绪和新Worker心跳。两次切换均未迁移或恢复数据库、改变原配置/密钥/网络、授予业务准入。新旧不可变制品和各环境root私有保护点保留。
+
+首次b7预检曾在真实raw连接失败，后续真实原函数锁文件读回完整且许可一致。第一次apply又在停止前遇到正文读取Timeout；四个原PID仍active。已独立复核仅对三份准确b7源码的完整原函数做最多三次真实GET的临时调用监督，TLS、NoRedirect、12秒timeout、长度/哈希、main/tree/CI与全部切换/回退门禁保持；不重试HTTP/SSL/证书或验证拒绝，不注入来源、缓存或凭据。成功的体验apply实际上没有触发重试。[来源监督与失败回执](../evidence/production-runtime-20261013/source-fetch-supervisor.json) 保留准确工具/监督SHA及范围，不把离线测试称为现场传输证据。
+
+正式的两次raw源预检也在停止前遇到连接超时。15:24只读检查确认正式两个原PID仍active、current仍751f。对实际DNS返回的111与108入口分别诊断，两次均TLS通过后没有HTTP首字节，不归因为DNS或证书失败，也未更改DNS、路由、hosts或TLS。经 [GitHub官方媒体格式说明](https://docs.github.com/en/rest/repos/contents?apiVersion=2026-03-10) 和一次真实锁文件响应确认，改用同仓库、准确b7 `ref` 的Contents API原始媒体请求。临时监督SHA `e62d09a842cb17ff38e607ba36c5fa10fb473b60b0f633468a7d6a90b5b391f7` 经两份独立审阅，仅映射三条准确源URL的GET/no-body/原header/12秒请求，原opener、TLS/NoRedirect和真实response对象保持；原7c源码函数仍执行完整读取和长度检查，原许可、migrator比对、main/CI及全部apply规则未改。正式成功时六次真实源码响应均完整匹配三份许可，未触发重试。没有读取JSON base64封套、使用预置来源或转交GitHub凭据。
+
+已清理本轮五个已退出的临时构建容器，另两个此前已不存在；归档、原始metadata、日志和比较证据全部保留且哈希再次一致，未删镜像/缓存或操作真实应用。见 [构建清理回执](../evidence/production-runtime-20261013/build-container-cleanup.json)。
+
+15:37:59–15:38:03 UTC的 [独立只读核验](../evidence/production-runtime-20261013/dependency-post-readback.json) 全部通过，[采集源码/时间回执](../evidence/production-runtime-20261013/dependency-post-readback-source.json) 绑定collector SHA `80ea8021533b42d92c1866bd00bf362bdfa775a1ac97298c089e2a5716b201df`，没有REST请求或服务器写入。正式API/Worker PID为3342694/3342695、UID999，体验为3334456/3334457、UID996；四个真实入口均运行b7制品并解析上述补丁与Node24.14/glibc2.39。101应用/SQL字节、完整97SQL集合和journal、原env/八项正式私有输入、四进程env、unit有效定义/原drop-in字节和权限、体验三份初始化记录保持；六类隔离秘密分别不同。可信本机TLS readiness和legal均200，体验两新协议SHA/零成员/三同意表零/一条发布审计及正式旧协议SHA保持；两Worker心跳新鲜、UFW仍只有22。此独立读回不证明公网可达、微信身份、上传或真机通过。
+
+备案仍是未提交草稿：本轮最后只读预览的“提交审核”disabled，条款未勾选，需符合要求的原件照片和提交时的条款确认。截图 `filing-review-final-pending.jpg` 仅保存在本地Git忽略目录。首次指定成员体验尚需实际备案/API外部HTTPS及合法域名/隐私指引、准确包官方上传回执（CI-03）、体验名单和真实微信身份（A21）。iOS/Android、弱网、隐私、上传和审核证据依§15.6在受控体验中产生，再评估提审候选；不把全媒体容灾、完整RPO/RTO或正式值守整体前移。
+
+## 初始现场运行与范围（历史观察）
 
 实测元数据保存于 [runtime-readback.json](../evidence/production-runtime-20261013/runtime-readback.json)，时间为 2026-10-13 11:48–11:52 UTC（洛杉矶 04:48–04:52）。记录不包含密钥、成员身份、业务正文或证件号码。
 
@@ -50,7 +66,7 @@
 
 体验独立加密备份候选在 `infra/tencent/cisme-trial-encrypted-backup.*`，操作条件与恢复边界见 [候选说明](../../infra/tencent/TRIAL-BACKUP-PREPARED.md)，当前未安装/启用。14 项本地合成测试、Python 语法检查及独立代码审阅通过；最终脚本 SHA-256 为 `d84a53c74aa81397c5c8851496e33daa29f05e334adeb91b047af35acb0cbbe0`。测试包含真实合成 dump 子进程成功/失败、完整 GCM 认证与篡改拒绝、403/非 NoSuchKey 404 拒绝、生产目标与跨前缀清理拒绝。远端体验前缀权限、独立密钥及恢复/删除抑制验证尚未完成，不得以工具写完或数据库归档可读性宣称完整恢复合格。
 
-## 依赖审计发现与修复候选
+## 依赖审计与候选演进（历史记录）
 
 草稿 PR #26 的 `94ef829` 验证在生产依赖审计失败：Sharp 0.35.4 处于 [GHSA-wq5f-xc86-pv6w](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w) 的高危受影响范围，另有 Fastify、busboy、fast-uri 和 ip-address 中危项。本轮没有关闭或降低审计门禁。候选已精确升级 Fastify 5.12.5、Sharp 0.35.5，并在原依赖范围内更新这些传递包以及开发工具链的 brace-expansion、http-cache-semantics、source-map-js，未跨 major 或增加 override。
 
@@ -78,4 +94,4 @@ PR #27 已合入8eb主线，其 [push CI 38409876173](https://github.com/Eysn013
 
 两次体验apply在停止服务之前退出，诊断定位为GitHub Contents API锁文件HTTP200响应截断：声明457363、实际455857字节，缺1506，JSON无法解析。升级状态目录未生成，四旧PID全等，未迁移、恢复或切换。已保留 [真实截断及固定raw读回证据](../evidence/production-runtime-20261013/source-response-truncation.json)，并将三份固定提交源文件改为TLS验证的raw传输、64KiB循环完整读、1MiB上限及已知长度不符拒绝。新工具SHA `7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429`；38项专项、完整production63项及独立审阅通过，保留1条原Linux条件skip。main/tree、最新push CI、原package/lock许可和migrator字节门禁不变，不注入假来源或复用旧制品元数据。
 
-下一步按实际证据推进：材料修正 → 提交前明确确认 → 腾讯云/管局实际结果 → 公网入口与外部 HTTPS 验证；并行落实有效体验协议和服务器依赖补丁，备份候选按准确权限与恢复范围逐步启用。之后读回微信合法域名/隐私指引和准确开发版，设置指定成员体验版，进行 iOS/Android 原生验收。正式发布与真实交易、公众 UGC 各自通过适用门禁后才开放。
+下一步按实际证据推进：材料修正 → 提交前明确确认 → 腾讯云/管局实际结果 → 公网入口与外部 HTTPS 验证。体验协议和两环境服务器依赖补丁已完成，不再列为待执行。之后读回微信合法域名/隐私指引和准确开发版上传回执，设置指定成员体验版、核验真实微信身份，再在受控体验中取得iOS/Android、弱网、隐私、上传和审核状态证据。体验备份候选按准确权限和恢复范围单独推进，不整体前移为首轮体验新门槛；正式发布、真实交易和公众UGC各自通过适用门禁后开放。

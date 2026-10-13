@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "startedAtUtc": "2026-10-13T15:14:00.850865+00:00",
+  "completedAtUtc": "2026-10-13T15:14:03.224665+00:00",
+  "status": "complete",
+  "removedCount": 5,
+  "alreadyAbsentCount": 2,
+  "serverCalls": 0,
+  "developerToolsCalls": 0,
+  "applicationOperations": 0,
+  "forceUsed": false,
+  "runningContainersStopped": false,
+  "imagesRemoved": false,
+  "externalCachesRemoved": false,
+  "localBuildEvidenceDeleted": false,
+  "allLocalEvidenceRetainedAndVerified": true,
+  "pinnedBuilderImageStillPresent": true,
+  "preCleanupCiBuildReceiptUnchanged": true,
+  "fullLocalReceiptSha256": "49fd896d8c95a8fd0609e95b5cac8fd61634665c4e7a909332a9e02e9e88554a"
+}

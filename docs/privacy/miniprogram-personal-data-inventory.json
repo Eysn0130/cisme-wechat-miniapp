@@ -860,9 +860,9 @@
   "dependencyUpgradeReview20261013": {
     "source": "infra/tencent/dependency-only-upgrade.py",
     "sourceFileSha256": "7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429",
-    "state": "reviewed candidate, not activated",
+    "state": "activated on production and isolated trial at exact reviewed main b7e853e9dcd9, 2026-10-13",
     "dataScope": "Reads bound protected runtime/private-input metadata and bytes only for local root-private preservation and drift checks; no member rows are exported or restored.",
-    "externalScope": "GET only fixed public GitHub repository commit/CI metadata and three allowlisted raw source files at the exact validated commit, with TLS, no redirects, bounded complete reads and original byte permits; instance metadata and own loopback TLS readiness. No database, credentials, private grants or member content is sent to GitHub.",
+    "externalScope": "GET only fixed public GitHub repository commit/CI metadata and three allowlisted source files at the exact reviewed immutable commit. Trial used raw URLs; the reviewed production supervisor used the same repository official Contents API raw-media response with exact commit ref. Default TLS, no redirects, original bounded complete reads and byte permits remain; no cached source, credential, private grants or member content is sent to GitHub. Instance metadata and own loopback TLS readiness remain read-only.",
     "privateStorage": "Per-environment root0700 upgrade state with 0600 previous env/unit/initial-record and original drop-in snapshots and binding; public stdout contains version/binding outcomes only, no runtime-env, private-input or drop-in fingerprint.",
     "mutationScope": "Stop/drain only selected API/Worker, switch immutable application or verified trial ExecStart, update own active-release record; no migration up, restore, configuration, secret, storage or network change.",
     "signatureDelta": {
@@ -885,6 +885,21 @@
     "migrationsChanged": false,
     "businessAdmissionGranted": false,
     "publicOrNativeAcceptanceGranted": false,
-    "configurationBinding": "Trial keeps all capability flags closed. Production preserves existing protocol/fulfillment preparation booleans while core order/simulated payment-transfer/points/public UGC/dev controls stay closed; original full env and actual processes are bound, never rewritten. Existing protected unit-specific drop-ins are preserved byte-for-byte and bound to their complete disk/loaded path sets, static definitions and protected parent metadata; added, removed or changed inputs reject activation or rollback start."
+    "configurationBinding": "Trial keeps all capability flags closed. Production preserves existing protocol/fulfillment preparation booleans while core order/simulated payment-transfer/points/public UGC/dev controls stay closed; original full env and actual processes are bound, never rewritten. Existing protected unit-specific drop-ins are preserved byte-for-byte and bound to their complete disk/loaded path sets, static definitions and protected parent metadata; added, removed or changed inputs reject activation or rollback start.",
+    "activationEvidence": [
+      "docs/evidence/production-runtime-20261013/dependency-upgrade-trial.json",
+      "docs/evidence/production-runtime-20261013/dependency-upgrade-production.json",
+      "docs/evidence/production-runtime-20261013/source-fetch-supervisor.json",
+      "docs/evidence/production-runtime-20261013/dependency-post-readback.json"
+    ],
+    "operatorTransportReview": {
+      "trialSupervisorSha256": "6e72f43b02ae7240ca21096a6cc19bc1d3d44c5365502d954d3fb2730c1574ce",
+      "productionSupervisorSha256": "e62d09a842cb17ff38e607ba36c5fa10fb473b60b0f633468a7d6a90b5b391f7",
+      "defaultTlsNoRedirectAndTimeoutUnchanged": true,
+      "originalSourceReaderLengthHashAndMainCiChecksUnchanged": true,
+      "liveOfficialSourceResponseUnmodified": true,
+      "sourceCacheOrCredentialsInjected": false,
+      "businessDataScopeExpanded": false
+    }
   }
 }
