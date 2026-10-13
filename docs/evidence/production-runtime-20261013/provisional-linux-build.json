@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "atUtc": "2026-10-13T13:05:35.720552+00:00",
+  "status": "PROVISIONAL_3B1_BUILD_ONLY_NOT_DEPLOYMENT_READY",
+  "sourceHead": "3b1fbe861a4684c53f5af32e6425e1350c017a14",
+  "sourceTree": "8cb0381c282debe7299f96355da821dae9b125b1",
+  "archiveSha256": "d08354ad00d833537a9ee19f5eff5a45634c19d157d3db0bb45d50f901119c9e",
+  "archiveBytes": 25586859,
+  "node": "v24.14.0",
+  "platform": {
+    "os": "linux",
+    "arch": "x64",
+    "libc": "glibc"
+  },
+  "migrations": 97,
+  "artifactHashedFiles": 103,
+  "runtimeDependencyVersions": {
+    "fastify": "5.12.5",
+    "sharp": "0.35.5"
+  },
+  "buildImageId": "sha256:43ffb442676c100df1e90d50b1d582c5af0b9dca1bdf7cbc9065dad0c5521044",
+  "hostMounts": false,
+  "credentialsProvided": false,
+  "nativeVersions": {
+    "rsvg": "2.63.2",
+    "vips": "8.18.7",
+    "webp": "1.6.0"
+  },
+  "comparisons": [
+    {
+      "deployedDirectory": "/opt/cisme/releases/tencent-release-751f7407af4e",
+      "deployedSourceHead": "751f7407af4e525c5b6c09c6997800acfb4048fc",
+      "deployedSourceTree": "d23e42b55843000ac5e97af108f404e7a12e92e8",
+      "requiredComparedCount": 101,
+      "applicationAndCompleteMigrationBytesEqual": true,
+      "migrationFilenameListsEqual": true,
+      "allHashedFileDifferencesExcludingReleaseManifest": {
+        "package-lock.json": {
+          "candidate": "1d12da023a4929f1d59dca0c264fb2b297f00390860125b3bbccee07d5e06a23",
+          "deployed": "be075a21e00d843a4699693143ccd5ae594014395870807379cac4a55bb9b562"
+        },
+        "package.json": {
+          "candidate": "40ee9c98a3a6bb366463d127cf50a67f3cb2254a46da183f336263ea626e6d2b",
+          "deployed": "22caf0f12cd69e597162035a79c50e6348e14a5afd7b652c5c22ecc3f42fc273"
+        }
+      }
+    },
+    {
+      "deployedDirectory": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc",
+      "deployedSourceHead": "751f7407af4e525c5b6c09c6997800acfb4048fc",
+      "deployedSourceTree": "d23e42b55843000ac5e97af108f404e7a12e92e8",
+      "requiredComparedCount": 101,
+      "applicationAndCompleteMigrationBytesEqual": true,
+      "migrationFilenameListsEqual": true,
+      "allHashedFileDifferencesExcludingReleaseManifest": {
+        "package-lock.json": {
+          "candidate": "1d12da023a4929f1d59dca0c264fb2b297f00390860125b3bbccee07d5e06a23",
+          "deployed": "be075a21e00d843a4699693143ccd5ae594014395870807379cac4a55bb9b562"
+        },
+        "package.json": {
+          "candidate": "40ee9c98a3a6bb366463d127cf50a67f3cb2254a46da183f336263ea626e6d2b",
+          "deployed": "22caf0f12cd69e597162035a79c50e6348e14a5afd7b652c5c22ecc3f42fc273"
+        }
+      }
+    }
+  ],
+  "detailedComparisonSha256": "0c5ac23c4fb7d14d1defae12d24a01e1abc618ddbe5e03ecacea56b11ab4c49b",
+  "containerCleaned": true,
+  "deployed": false,
+  "limits": [
+    "Provisional 3b1 artifact: final main must be freshly packaged and bound to its latest successful push CI before activation.",
+    "No API/Worker/DB was started in the build container; server files were only hashed.",
+    "Does not close deployed vulnerabilities or public/native acceptance."
+  ]
+}

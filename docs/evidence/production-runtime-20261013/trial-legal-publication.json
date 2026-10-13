@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "trial-legal-publication",
+  "authorization": "User delegated reasonable operational decisions in the current continuation task; see USER-AUTHORIZATION-AND-RESEARCH.md",
+  "operator": "cisme-trial-ops-20261013",
+  "instanceId": "lhins-61ikz4mi",
+  "database": "cisme_trial",
+  "payloadSha256": "573582b3d1e461fac209f3ef5eeb3d495108af05d7fcc8d12abd1b4c62b3c700",
+  "publisherSha256": "86029f69eeebf201c9c11a98d6ac517526c2b88997617576502213db9e0431bb",
+  "supervisorSha256": "d21b71b3666df5d5f5ced769e5109bcc6cfcd5b2c10db4384b5c4b9a3993967f",
+  "beforeRuntime": {
+    "observedAtUtc": "2026-10-13T12:55:35.394826+00:00",
+    "services": [
+      {
+        "unit": "cisme-api.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "2050563"
+      },
+      {
+        "unit": "cisme-worker.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "2050559"
+      },
+      {
+        "unit": "cisme-trial-api.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "3151709"
+      },
+      {
+        "unit": "cisme-trial-worker.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "3151710"
+      }
+    ],
+    "trustedLoopbackTlsLegal": [
+      {
+        "domain": "api.cisme.cn",
+        "status": 200,
+        "ready": true,
+        "bodySha256": "3efe18f343471220ea89760b16650df55319bd91cdc079b1e78b2a831c47079e",
+        "documents": [
+          {
+            "type": "privacy",
+            "version": "2026-09-09-v3-profile",
+            "bodySha256": "76d895ab06a4f834b6cd79538574ecfa2cc36df6a34ddb7aa6169cc05566ae9d"
+          },
+          {
+            "type": "terms",
+            "version": "2026-09-09-v3-profile",
+            "bodySha256": "96cacaace1ddafbfae4147925d7c29ca0bd94f779b4236da1faf654bd347e922"
+          }
+        ]
+      },
+      {
+        "domain": "staging-api.cisme.cn",
+        "status": 200,
+        "ready": false,
+        "bodySha256": "b2b7d2e0922ebfceb76e3efcf462fc4d1146e4653dbe14fe726b68c8bcedb6d0",
+        "documents": []
+      }
+    ],
+    "ufwStatus": "Status: active\n\nTo                         Action      From\n--                         ------      ----\n22/tcp                     ALLOW       Anywhere                  \n22/tcp (v6)                ALLOW       Anywhere (v6)             \n\n",
+    "publicNetworkVerified": false
+  },
+  "publication": {
+    "publisherExit": 0,
+    "activePublicationMatches": true,
+    "before": {
+      "database": "cisme_trial",
+      "role": "cisme_trial",
+      "owner": "cisme_trial",
+      "memberCount": 0,
+      "consentAcceptanceCount": 0,
+      "consentReceiptCount": 0,
+      "consentGrantCount": 0,
+      "legalPublishAuditCount": 0,
+      "documents": []
+    },
+    "after": {
+      "database": "cisme_trial",
+      "role": "cisme_trial",
+      "owner": "cisme_trial",
+      "memberCount": 0,
+      "consentAcceptanceCount": 0,
+      "consentReceiptCount": 0,
+      "consentGrantCount": 0,
+      "legalPublishAuditCount": 1,
+      "documents": [
+        {
+          "type": "privacy",
+          "version": "2026-10-13-v1-trial",
+          "active": true,
+          "bodySha256": "37161182f48720cb93dfc07a409940a93e9c7c9408c3fd08f0c71acfa8e42992"
+        },
+        {
+          "type": "terms",
+          "version": "2026-10-13-v1-trial",
+          "active": true,
+          "bodySha256": "45968141b9c2b375b74b168b0b9afb36147e6ceaf35afa20c67cc241bb8fd5ef"
+        }
+      ]
+    },
+    "scope": "trial legal_document and legal.publish audit; member consent is never fabricated"
+  },
+  "afterRuntime": {
+    "observedAtUtc": "2026-10-13T12:55:48.318262+00:00",
+    "services": [
+      {
+        "unit": "cisme-api.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "2050563"
+      },
+      {
+        "unit": "cisme-worker.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "2050559"
+      },
+      {
+        "unit": "cisme-trial-api.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "3151709"
+      },
+      {
+        "unit": "cisme-trial-worker.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "MainPID": "3151710"
+      }
+    ],
+    "trustedLoopbackTlsLegal": [
+      {
+        "domain": "api.cisme.cn",
+        "status": 200,
+        "ready": true,
+        "bodySha256": "3efe18f343471220ea89760b16650df55319bd91cdc079b1e78b2a831c47079e",
+        "documents": [
+          {
+            "type": "privacy",
+            "version": "2026-09-09-v3-profile",
+            "bodySha256": "76d895ab06a4f834b6cd79538574ecfa2cc36df6a34ddb7aa6169cc05566ae9d"
+          },
+          {
+            "type": "terms",
+            "version": "2026-09-09-v3-profile",
+            "bodySha256": "96cacaace1ddafbfae4147925d7c29ca0bd94f779b4236da1faf654bd347e922"
+          }
+        ]
+      },
+      {
+        "domain": "staging-api.cisme.cn",
+        "status": 200,
+        "ready": true,
+        "bodySha256": "3d9fb8f103d989f3dff3901bf85a8afc063733df4d4d4ed9dbc60577cfbc3a39",
+        "documents": [
+          {
+            "type": "privacy",
+            "version": "2026-10-13-v1-trial",
+            "bodySha256": "37161182f48720cb93dfc07a409940a93e9c7c9408c3fd08f0c71acfa8e42992"
+          },
+          {
+            "type": "terms",
+            "version": "2026-10-13-v1-trial",
+            "bodySha256": "45968141b9c2b375b74b168b0b9afb36147e6ceaf35afa20c67cc241bb8fd5ef"
+          }
+        ]
+      }
+    ],
+    "ufwStatus": "Status: active\n\nTo                         Action      From\n--                         ------      ----\n22/tcp                     ALLOW       Anywhere                  \n22/tcp (v6)                ALLOW       Anywhere (v6)             \n\n",
+    "publicNetworkVerified": false
+  },
+  "productionLegalAndAllServicePidsUnchanged": true,
+  "ufwUnchanged": true,
+  "memberConsentNotCreated": true,
+  "publicNetworkVerified": false,
+  "wechatConsoleChanged": false,
+  "nativeDeviceVerified": false,
+  "independentLegalSignoffRecorded": false,
+  "nativeLegalBootstrapDecodedActualTlsResponse": true,
+  "nativeBootstrapSource": "apps/miniprogram/services/legal-bootstrap.ts parseLegalBootstrap"
+}

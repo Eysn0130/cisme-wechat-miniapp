@@ -628,7 +628,7 @@
     }
   ],
   "migrationSetSha256": "d9b0394b6c9d07c92cbc96e31feec0388d18a7b08978694ba778a02e4e5f6523",
-  "egressSignatureSha256": "9097b30fe134026e9e5d8f98165072a859004f56ce3bf1c70e6fce2645e3a9f4",
+  "egressSignatureSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -856,5 +856,35 @@
     "recoveryLimits": "只覆盖数据库，未覆盖同机媒体、恢复前最新完整体验抑制记录和字段密钥恢复资格；当前抑制目录为空不能证明采集后的完整性。主机/抑制事实丢失时保持采集与服务恢复关闭；不提供自动 SQL 恢复",
     "retentionLimits": "至少 7 份/30 天是未启用候选参数，不声称已有 7 个可恢复副本；manifest 更新失败可能遗留独立前缀未追踪密文，未知本地文件不盲删；不变更业务保留/保全或最新抑制记录",
     "documentationBoundary": "历史审计和旧 staging 协议保持原日期/范围；本次只是工程数据流清单复核，不发布协议、不设置微信隐私指引或开启注册"
+  },
+  "dependencyUpgradeReview20261013": {
+    "source": "infra/tencent/dependency-only-upgrade.py",
+    "sourceFileSha256": "f3167be74d1e9322eec2155bc5d11e6cfb4ac3a73edc0d137f599e8ce4c0e6dd",
+    "state": "reviewed candidate, not activated",
+    "dataScope": "Reads bound protected runtime/private-input metadata and bytes only for local root-private preservation and drift checks; no member rows are exported or restored.",
+    "externalScope": "GET only fixed public GitHub repository commit, CI and reviewed source metadata; instance metadata and own loopback TLS readiness. No database, credentials, private grants or member content is sent to GitHub.",
+    "privateStorage": "Per-environment root0700 upgrade state with 0600 previous env/unit/initial-record snapshots and binding; public stdout contains version/binding outcomes only, no runtime-env or private-input fingerprint.",
+    "mutationScope": "Stop/drain only selected API/Worker, switch immutable application or verified trial ExecStart, update own active-release record; no migration up, restore, configuration, secret, storage or network change.",
+    "signatureDelta": {
+      "previousDetectedCount": 31,
+      "reviewedDetectedCount": 32,
+      "previousSha256": "9097b30fe134026e9e5d8f98165072a859004f56ce3bf1c70e6fce2645e3a9f4",
+      "reviewedSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
+      "added": [
+        {
+          "source": "infra/tencent/test_production_dependency_upgrade.py",
+          "line": "def fetch(path):",
+          "purpose": "Local synthetic GitHub adapter declaration, not an executed network operation"
+        }
+      ],
+      "removed": [],
+      "existingGateRegexAndAssertionsChanged": false
+    },
+    "consumerCollectionFieldsChanged": false,
+    "wechatApisAndWxmlChanged": false,
+    "migrationsChanged": false,
+    "businessAdmissionGranted": false,
+    "publicOrNativeAcceptanceGranted": false,
+    "configurationBinding": "Trial keeps all capability flags closed. Production preserves existing protocol/fulfillment preparation booleans while core order/simulated payment-transfer/points/public UGC/dev controls stay closed; original full env and actual processes are bound, never rewritten."
   }
 }
