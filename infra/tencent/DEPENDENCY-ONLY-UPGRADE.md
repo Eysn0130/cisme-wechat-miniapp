@@ -50,13 +50,18 @@ trial 的 apply 使用相同参数格式、自己的 environment 与 release。�
 旧、新两个入口都先以对应服务身份解析实际依赖并用合成 PNG 做 WebP/JPEG 转换，
 验证 Node/平台、实际版本及候选 librsvg；没有处理业务图片。
 
-切换和每次启动前，工具核对原 unit 的完整字节及有效静态定义，不支持 drop-in，
-存在 drop-in、待 daemon-reload 或未知定义就退出。ExecStart 的动态执行时间/PID/退出状态
+切换和每次启动前，工具核对原 unit 的完整字节及有效静态定义。已有 drop-in 仅接受
+该 unit 在 `/etc/systemd/system/<unit>.d` 内的普通 `.conf` 文件；文件单硬链接、目录及全部
+父路径均须 root 所有且组和其他用户不可写。预检捕获每份完整字节、路径集与有效定义，
+服务 sandbox 不得允许写入这些文件或目录。任何增删、未知路径、权限或内容漂移、
+待 daemon-reload 或未知有效定义都退出；不删除、替换或放宽原 drop-in。
+ExecStart 的动态执行时间/PID/退出状态
 不作为定义指纹。production 只切换原 `current` symlink；trial 只替换已核验的原
 ExecStart 路径，其余 unit 字节不变，并保持原 WorkingDirectory。
 
 各环境 `dependency-upgrades` 下保存 root0700 状态目录，旧 env/unit、初始化记录、
-私有绑定与回执均为 0600。env、secret、private key/grant 内容及其摘要不进入公开输出。
+私有绑定、drop-in 原字节快照与回执均为 0600；drop-in 快照目录为 root0700。
+env、secret、private key/grant 内容及其摘要不进入公开输出。
 trial 的 ownershipId、原 ownership.source、empty-database 和 initial migration-complete
 保持历史原样；新的 `dependency-active-release.json` 与 upgrade 回执记录当前制品，
 不伪造重新初始化，也不删除已有体验资料、审计或协议。

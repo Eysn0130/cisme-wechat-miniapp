@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+import stat
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -77,11 +78,21 @@ class DependencyUpgradeTests(unittest.TestCase):
         self.patches = [patch.object(m, 'OWNER', os.getuid()), patch.object(m, 'unit_path', side_effect=lambda unit: self.units / unit),
                         patch.object(m, 'private_inputs', return_value=[]),
                         patch.object(m.pwd, 'getpwnam', return_value=SimpleNamespace(pw_uid=os.getuid(), pw_gid=os.getgid())),
-                        patch.object(m, 'property_value', side_effect=self.property)]
+                        patch.object(m, 'property_value', side_effect=self.property),
+                        patch.object(m, 'owned_directory', side_effect=self.owned_test_directory)]
         for mocked in self.patches:
             mocked.start()
             self.addCleanup(mocked.stop)
         self.plan['unitDefinitions'] = self.definitions(self.profile)
+        self.plan['dropIns'] = {unit: m.dropin_inputs(unit) for unit in self.profile['units']}
+
+    def owned_test_directory(self, path, private=False):
+        # The temporary fixture substitutes its own UID for root. Its system
+        # ancestors are outside the fixture; exercise real modes within it.
+        if path.is_relative_to(self.root):
+            info = path.lstat()
+            m.require(stat.S_ISDIR(info.st_mode) and info.st_uid == m.OWNER
+                      and info.st_mode & (0o077 if private else 0o022) == 0, 'DEPENDENCY_DIRECTORY_UNSAFE')
 
     def property(self, unit, name):
         data = (self.units / unit).read_text()
@@ -93,6 +104,17 @@ class DependencyUpgradeTests(unittest.TestCase):
                        'WorkingDirectory': raw['WorkingDirectory'],
                        'EnvironmentFiles': raw['EnvironmentFile'] + ' (ignore_errors=no)',
                        'Environment': raw['Environment'], 'ProtectSystem': 'strict', 'NoNewPrivileges': 'yes'})
+        directory = self.units / (unit + '.d')
+        if directory.exists():
+            dropins = sorted(directory.glob('*.conf'))
+            values['DropInPaths'] = ' '.join(str(path) for path in dropins)
+            # Mimic an effective existing sandbox addition, independently of
+            # the original fragment's bytes.
+            for dropin in dropins:
+                for line in dropin.read_text().splitlines():
+                    if line.startswith('ReadWritePaths='):
+                        values['ReadWritePaths'] += ' ' + line.split('=', 1)[1]
+            values['ReadWritePaths'] = values['ReadWritePaths'].strip()
         values['ExecStart'] = '{ path=' + m.NODE + ' ; argv[]=' + raw['ExecStart'] + ' ; ignore_errors=no ; start_time=n/a ; }'
         return values[name]
 
@@ -114,7 +136,19 @@ class DependencyUpgradeTests(unittest.TestCase):
             (self.units / unit).write_bytes(data)
         self.facts.update({'database': 'cisme', 'owner': 'cisme'})
         return {**self.plan, 'profile': profile, 'units': units, 'unitDefinitions': self.definitions(profile),
+                'dropIns': {unit: m.dropin_inputs(unit) for unit in profile['units']},
                 'ownership': None, 'initialRecords': {}}
+
+    def existing_dropin_plan(self, production=True):
+        plan = self.production_plan() if production else self.plan
+        for unit in plan['profile']['units']:
+            directory = self.units / (unit + '.d')
+            directory.mkdir(mode=0o755, exist_ok=True)
+            (directory / '10-privacy-suppression.conf').write_bytes(
+                b'[Service]\nReadWritePaths=' + str(self.root / 'privacy-suppression').encode() + b'\n')
+        plan['dropIns'] = {unit: m.dropin_inputs(unit) for unit in plan['profile']['units']}
+        plan['unitDefinitions'] = self.definitions(plan['profile'])
+        return plan
 
     def release(self, name, patched):
         directory = self.root / 'releases' / name
@@ -330,6 +364,128 @@ class DependencyUpgradeTests(unittest.TestCase):
         self.assertTrue(all((self.units / unit).read_bytes() == data for unit, data in plan['units'].items()))
         self.assertEqual(self.calls, [])
 
+    def test_existing_protected_dropins_are_bound_preserved_and_snapshotted_privately(self):
+        plan = self.existing_dropin_plan()
+        original = {path: data for inputs in plan['dropIns'].values() for path, data in inputs['files'].items()}
+        m.verify_units(plan)
+        state = self.state()
+        with contextlib.ExitStack() as stack:
+            for mocked in self.cutover_patches():
+                stack.enter_context(mocked)
+            self.assertTrue(m.cutover(plan, state, 'synthetic-test-only')['deployed'])
+        self.assertTrue(all(Path(path).read_bytes() == data for path, data in original.items()))
+        for unit, inputs in plan['dropIns'].items():
+            for path, data in inputs['files'].items():
+                snapshot = state / 'drop-ins' / unit / Path(path).name
+                self.assertEqual(snapshot.read_bytes(), data)
+                self.assertEqual(stat.S_IMODE(snapshot.stat().st_mode), 0o600)
+                self.assertEqual(stat.S_IMODE(snapshot.parent.stat().st_mode), 0o700)
+                self.assertEqual(stat.S_IMODE(snapshot.parent.parent.stat().st_mode), 0o700)
+            definition = plan['unitDefinitions'][unit]
+            self.assertEqual(definition['ReadWritePaths'], str(self.root / 'privacy-suppression'))
+            self.assertEqual(definition['DropInBinding'], inputs['binding'])
+        with patch('sys.argv', ['upgrade', '--environment', 'production', '--release', self.new['directory']]), \
+                patch.object(m, 'preflight', return_value=plan), contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(m.main(), 0)
+        self.assertNotIn('DropInBinding', output.getvalue())
+        self.assertNotIn('ReadWritePaths', output.getvalue())
+        self.assertTrue(all(m.digest(data) not in output.getvalue() for data in original.values()))
+
+    def test_dropin_addition_deletion_content_and_metadata_drift_are_refused(self):
+        plan = self.existing_dropin_plan()
+        unit = plan['profile']['units'][0]
+        directory = self.units / (unit + '.d')
+        path = directory / '10-privacy-suppression.conf'
+        original = path.read_bytes()
+        added = directory / '20-unknown.conf'
+        added.write_bytes(b'[Service]\nReadWritePaths=/unknown\n')
+        with self.assertRaisesRegex(m.Refused, 'UNKNOWN_DROPIN_DRIFT'):
+            m.verify_units(plan)
+        # Newly created files may not yet appear in systemd's loaded set.
+        with patch.object(m, 'property_value', side_effect=lambda u, key:
+                          plan['unitDefinitions'][u]['DropInPaths'] if key == 'DropInPaths' else self.property(u, key)):
+            with self.assertRaisesRegex(m.Refused, 'DROPIN_SET_REQUIRED'):
+                m.verify_units(plan)
+        added.unlink()
+        path.unlink()
+        with self.assertRaisesRegex(m.Refused, 'UNKNOWN_DROPIN_DRIFT'):
+            m.verify_units(plan)
+        path.write_bytes(original + b'# protected but changed\n')
+        with self.assertRaisesRegex(m.Refused, 'UNKNOWN_DROPIN_DRIFT'):
+            m.verify_units(plan)
+        path.write_bytes(original)
+        path.chmod(0o600)
+        with self.assertRaisesRegex(m.Refused, 'UNKNOWN_DROPIN_DRIFT'):
+            m.verify_units(plan)
+
+    def test_dropin_unknown_paths_links_writable_files_and_directories_are_refused(self):
+        plan = self.existing_dropin_plan()
+        unit = plan['profile']['units'][0]
+        directory = self.units / (unit + '.d')
+        path = directory / '10-privacy-suppression.conf'
+        for foreign in ('/usr/lib/systemd/system/' + unit + '.d/override.conf',
+                        str(directory / '..' / 'foreign.conf'), str(directory / 'bad name.conf')):
+            with self.subTest(path=foreign), self.assertRaisesRegex(m.Refused, 'DROPIN_PATH_REQUIRED'):
+                m.dropin_inputs(unit, foreign)
+        path.chmod(0o666)
+        with self.assertRaisesRegex(m.Refused, 'FILE_UNSAFE'):
+            m.dropin_inputs(unit)
+        path.chmod(0o644)
+        directory.chmod(0o777)
+        with self.assertRaisesRegex(m.Refused, 'DIRECTORY_UNSAFE'):
+            m.dropin_inputs(unit)
+        directory.chmod(0o755)
+        with patch.object(m, 'OWNER', os.getuid() + 1):
+            with self.assertRaisesRegex(m.Refused, 'DIRECTORY_UNSAFE'):
+                m.dropin_inputs(unit)
+        data = path.read_bytes()
+        path.unlink()
+        path.symlink_to(self.root / 'runtime.env')
+        with self.assertRaisesRegex(m.Refused, 'DROPIN_FILE_UNSAFE'):
+            m.dropin_inputs(unit)
+        path.unlink()
+        path.write_bytes(data)
+        alias = directory / '20-hardlink.conf'
+        os.link(path, alias)
+        with self.assertRaisesRegex(m.Refused, 'DROPIN_FILE_UNSAFE'):
+            m.dropin_inputs(unit)
+
+    def test_dropin_drift_after_candidate_failure_fences_before_old_application_start(self):
+        plan = self.existing_dropin_plan()
+        unit = plan['profile']['units'][0]
+        path = self.units / (unit + '.d') / '10-privacy-suppression.conf'
+        def health(*args):
+            path.write_bytes(b'[Service]\nReadWritePaths=/unknown\n')
+            raise m.Refused('DEPENDENCY_ACTIVATION_FAILED')
+        state = self.state()
+        with contextlib.ExitStack() as stack:
+            for mocked in self.cutover_patches(health):
+                stack.enter_context(mocked)
+            with self.assertRaisesRegex(m.Refused, 'FENCED_REVIEW_REQUIRED'):
+                m.cutover(plan, state, 'synthetic-test-only')
+        self.assertEqual(sum(args[:2] == ['systemctl', 'start'] for args in self.calls), 1)
+        self.assertEqual(path.read_bytes(), b'[Service]\nReadWritePaths=/unknown\n')
+        self.assertEqual((self.root / 'current').resolve(), Path(self.new['directory']))
+        self.assertTrue(json.loads((state / 'manual-recovery-required.json').read_text())['servicesStopped'])
+
+    def test_trial_existing_dropins_survive_execstart_replacement_and_rollback(self):
+        plan = self.existing_dropin_plan(production=False)
+        original = {path: data for inputs in plan['dropIns'].values() for path, data in inputs['files'].items()}
+        with patch.object(m, 'command', side_effect=self.command):
+            m.switch(plan, self.new['directory'])
+            m.verify_units(plan, allow_candidate=True)
+            m.switch(plan, self.old['directory'])
+            m.verify_units(plan)
+        self.assertTrue(all(Path(path).read_bytes() == data for path, data in original.items()))
+
+    def test_running_rejects_service_write_access_to_dropin_directory(self):
+        def prop(unit, name):
+            return {'User': 'cisme-trial', 'ProtectSystem': 'strict',
+                    'ReadWritePaths': str(self.units / (unit + '.d')), 'DropInPaths': ''}[name]
+        with patch.object(m, 'property_value', side_effect=prop):
+            with self.assertRaisesRegex(m.Refused, 'SERVICE_WRITE_ACCESS_REFUSED'):
+                m.running(self.profile, self.old['directory'], {})
+
     def test_effective_execstart_ignores_only_dynamic_systemd_execution_fields(self):
         plan = self.production_plan()
         def prop(unit, name):
@@ -525,7 +681,7 @@ class DependencyUpgradeTests(unittest.TestCase):
             (proc / 'environ').write_bytes(b'ALLOW_DEV_ADAPTERS=false\0')
         def prop(unit, name):
             return {'User': 'cisme-trial', 'ProtectSystem': 'strict', 'ReadWritePaths': str(self.root / 'tmp'),
-                    'ActiveState': 'active', 'MainPID': '100' if unit == self.profile['units'][0] else '101'}[name]
+                    'ActiveState': 'active', 'MainPID': '100' if unit == self.profile['units'][0] else '101'}.get(name, '')
         with patch.object(m, 'NODE', str(executable)), \
                 patch.object(m, 'Path', side_effect=lambda value: proc_root if value == '/proc' else Path(value)), \
                 patch.object(m, 'property_value', side_effect=prop):
@@ -554,7 +710,7 @@ class DependencyUpgradeTests(unittest.TestCase):
                 (proc_root / pid / 'environ').write_bytes(environment)
             def production_prop(unit, name):
                 return {'User': 'cisme', 'ProtectSystem': 'strict', 'ReadWritePaths': str(self.root / 'tmp'),
-                        'ActiveState': 'active', 'MainPID': '100' if unit == production['units'][0] else '101'}[name]
+                        'ActiveState': 'active', 'MainPID': '100' if unit == production['units'][0] else '101'}.get(name, '')
             with patch.object(m, 'property_value', side_effect=production_prop):
                 self.assertEqual(len(m.running(production, self.old['directory'], prepared)), 2)
                 for key in m.PREPARATION_FLAGS:

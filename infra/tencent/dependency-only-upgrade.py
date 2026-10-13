@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import pwd
 import re
+import shlex
 import stat
 import time
 import urllib.request
@@ -226,6 +227,43 @@ def property_value(unit, name):
     return command(['systemctl', 'show', unit, '--property=' + name, '--value']).decode().strip()
 
 
+def dropin_inputs(unit, effective_paths=None):
+    """Bind only protected, unit-specific original drop-ins; never rewrite them."""
+    directory = unit_path(unit).with_name(unit + '.d')
+    raw = property_value(unit, 'DropInPaths') if effective_paths is None else effective_paths
+    paths = shlex.split(raw)
+    require(len(paths) <= 32 and len(set(paths)) == len(paths), 'DEPENDENCY_DROPIN_SET_REQUIRED')
+    require(all(str(Path(path)) == path and Path(path).parent == directory
+                and re.fullmatch(r'[A-Za-z0-9_.-]+\.conf', Path(path).name)
+                for path in paths), 'DEPENDENCY_DROPIN_PATH_REQUIRED')
+    exists = directory.exists() or directory.is_symlink()
+    parents = []
+    for parent in reversed(directory.parents):
+        owned_directory(parent)
+        info = parent.lstat()
+        parents.append({'path': str(parent), 'uid': info.st_uid, 'gid': info.st_gid,
+                        'mode': stat.S_IMODE(info.st_mode)})
+    directory_metadata = None
+    if exists:
+        owned_directory(directory)
+        info = directory.lstat()
+        directory_metadata = {'uid': info.st_uid, 'gid': info.st_gid, 'mode': stat.S_IMODE(info.st_mode)}
+        require({str(path) for path in directory.iterdir()} == set(paths), 'DEPENDENCY_DROPIN_SET_REQUIRED')
+    else:
+        require(not paths, 'DEPENDENCY_DROPIN_SET_REQUIRED')
+    files, descriptors = {}, {}
+    for value in sorted(paths):
+        path = Path(value)
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, 'DEPENDENCY_DROPIN_FILE_UNSAFE')
+        data = read_owned(path, limit=65536)
+        files[value] = data
+        descriptors[value] = {'uid': info.st_uid, 'gid': info.st_gid, 'mode': stat.S_IMODE(info.st_mode),
+                              'sha256': digest(data)}
+    return {'files': files, 'binding': {'directory': directory_metadata, 'parents': parents,
+                                      'files': descriptors}}
+
+
 UNIT_PROPERTIES = ('FragmentPath', 'DropInPaths', 'LoadState', 'NeedDaemonReload', 'User', 'Group',
                    'WorkingDirectory', 'EnvironmentFiles', 'Environment', 'ProtectSystem', 'ReadWritePaths',
                    'ReadOnlyPaths', 'InaccessiblePaths', 'RootDirectory', 'RootImage', 'BindPaths',
@@ -234,11 +272,14 @@ UNIT_PROPERTIES = ('FragmentPath', 'DropInPaths', 'LoadState', 'NeedDaemonReload
                    'ExecStartPre', 'ExecStartPost', 'ExecStop', 'ExecStopPost', 'ExecReload')
 
 
-def unit_definition(unit, data, entry, profile):
+def unit_definition(unit, data, entry, profile, dropins=None):
     definition = {name: property_value(unit, name) for name in UNIT_PROPERTIES}
-    require(definition['FragmentPath'] == str(unit_path(unit)) and definition['DropInPaths'] == ''
+    require(definition['FragmentPath'] == str(unit_path(unit))
             and definition['LoadState'] == 'loaded' and definition['NeedDaemonReload'] == 'no',
             'DEPENDENCY_UNIT_DEFINITION_REQUIRED')
+    dropins = dropin_inputs(unit, definition['DropInPaths']) if dropins is None else dropins
+    require(set(shlex.split(definition['DropInPaths'])) == set(dropins['files']), 'DEPENDENCY_DROPIN_SET_REQUIRED')
+    definition['DropInBinding'] = dropins['binding']
     require(definition['User'] == profile['user'] and definition['Group'] == profile['user']
             and definition['WorkingDirectory'] == str(Path(profile['root']) /
                 'current' if profile['name'] == 'production' else Path(profile['root']))
@@ -266,10 +307,12 @@ def verify_units(plan, allow_candidate=False):
             allowed.append(replacement_unit(original, plan['old']['directory'], plan['candidate']['directory'], entry, profile))
         data = read_owned(unit_path(unit))
         require(data in allowed, 'DEPENDENCY_UNKNOWN_UNIT_DRIFT')
+        dropins = dropin_inputs(unit)
+        require(dropins == plan['dropIns'][unit], 'DEPENDENCY_UNKNOWN_DROPIN_DRIFT')
         expected = dict(plan['unitDefinitions'][unit])
         if data != original:
             expected['ExecStartArgv'] = NODE + ' ' + str(Path(plan['candidate']['directory']) / entry)
-        require(unit_definition(unit, data, entry, profile) == expected, 'DEPENDENCY_EFFECTIVE_UNIT_DRIFT')
+        require(unit_definition(unit, data, entry, profile, dropins) == expected, 'DEPENDENCY_EFFECTIVE_UNIT_DRIFT')
 
 
 def environment_metadata(profile):
@@ -329,7 +372,10 @@ def running(profile, directory, config):
                 'DEPENDENCY_SERVICE_SANDBOX_REQUIRED')
         writable = [Path(value.lstrip('-+')).resolve() for value in property_value(unit, 'ReadWritePaths').split()]
         secret_paths = [Path(item['path']) for item in private_inputs(profile, config)]
-        for protected in (root / 'runtime.env', root / 'releases', unit_path(unit), Path(NODE), *secret_paths):
+        dropins = dropin_inputs(unit)
+        for protected in (root / 'runtime.env', root / 'releases', unit_path(unit),
+                          unit_path(unit).with_name(unit + '.d'), *(Path(path) for path in dropins['files']),
+                          Path(NODE), *secret_paths):
             require(not any(protected.resolve() == path or protected.resolve().is_relative_to(path) for path in writable),
                     'DEPENDENCY_SERVICE_WRITE_ACCESS_REFUSED')
         pid = property_value(unit, 'MainPID')
@@ -399,7 +445,8 @@ def preflight(environment, directory):
     units = {unit: read_owned(unit_path(unit)) for unit in profile['units']}
     previous_dirs = {unit_entry(units[unit], entry, profile) for unit, entry in zip(profile['units'], ('index.js', 'worker.js'))}
     require(len(previous_dirs) == 1, 'DEPENDENCY_RUNNING_RELEASE_SPLIT')
-    definitions = {unit: unit_definition(unit, units[unit], entry, profile)
+    dropins = {unit: dropin_inputs(unit) for unit in profile['units']}
+    definitions = {unit: unit_definition(unit, units[unit], entry, profile, dropins[unit])
                    for unit, entry in zip(profile['units'], ('index.js', 'worker.js'))}
     old = artifact(previous_dirs.pop(), root)
     candidate = artifact(directory, root)
@@ -441,7 +488,8 @@ def preflight(environment, directory):
     old_versions = native_smoke(profile, old['directory'], False)
     versions = native_smoke(profile, candidate['directory'])
     return {'profile': profile, 'main': main, 'old': old, 'candidate': candidate, 'env': env_bytes,
-            'units': units, 'unitDefinitions': definitions, 'config': config, 'privateInputs': private_inputs(profile, config),
+            'units': units, 'unitDefinitions': definitions, 'dropIns': dropins,
+            'config': config, 'privateInputs': private_inputs(profile, config),
             'environmentMetadata': env_metadata, 'oldVersions': old_versions,
             'ownership': ownership, 'initialRecords': initial_records,
             'activeBytes': active_bytes, 'pids': pids, 'versions': versions}
@@ -527,8 +575,18 @@ def cutover(plan, state, approval):
     general.store(state / 'previous.env', plan['env'])
     for unit, data in plan['units'].items():
         general.store(state / unit, data)
+    for unit, inputs in plan['dropIns'].items():
+        if inputs['files']:
+            snapshot_parent = state / 'drop-ins'
+            snapshot_parent.mkdir(mode=0o700, exist_ok=True)
+            owned_directory(snapshot_parent, private=True)
+            snapshot = snapshot_parent / unit
+            snapshot.mkdir(mode=0o700)
+            for path, data in inputs['files'].items():
+                general.store(snapshot / Path(path).name, data)
     # Private binding contains fingerprints, never public stdout or repository data.
-    binding = {key: value for key, value in plan.items() if key not in ('env', 'units', 'config', 'activeBytes', 'initialRecords')}
+    binding = {key: value for key, value in plan.items() if key not in
+               ('env', 'units', 'dropIns', 'config', 'activeBytes', 'initialRecords')}
     binding['old'] = {key: value for key, value in plan['old'].items() if key != 'files'}
     binding['candidate'] = {key: value for key, value in plan['candidate'].items() if key != 'files'}
     binding['environmentSha256'] = digest(plan['env'])

@@ -859,11 +859,11 @@
   },
   "dependencyUpgradeReview20261013": {
     "source": "infra/tencent/dependency-only-upgrade.py",
-    "sourceFileSha256": "f3167be74d1e9322eec2155bc5d11e6cfb4ac3a73edc0d137f599e8ce4c0e6dd",
+    "sourceFileSha256": "4f17023475c5022d78cf6097873849579772b37581af34c7364338b9f5a0373b",
     "state": "reviewed candidate, not activated",
     "dataScope": "Reads bound protected runtime/private-input metadata and bytes only for local root-private preservation and drift checks; no member rows are exported or restored.",
     "externalScope": "GET only fixed public GitHub repository commit, CI and reviewed source metadata; instance metadata and own loopback TLS readiness. No database, credentials, private grants or member content is sent to GitHub.",
-    "privateStorage": "Per-environment root0700 upgrade state with 0600 previous env/unit/initial-record snapshots and binding; public stdout contains version/binding outcomes only, no runtime-env or private-input fingerprint.",
+    "privateStorage": "Per-environment root0700 upgrade state with 0600 previous env/unit/initial-record and original drop-in snapshots and binding; public stdout contains version/binding outcomes only, no runtime-env, private-input or drop-in fingerprint.",
     "mutationScope": "Stop/drain only selected API/Worker, switch immutable application or verified trial ExecStart, update own active-release record; no migration up, restore, configuration, secret, storage or network change.",
     "signatureDelta": {
       "previousDetectedCount": 31,
@@ -885,6 +885,6 @@
     "migrationsChanged": false,
     "businessAdmissionGranted": false,
     "publicOrNativeAcceptanceGranted": false,
-    "configurationBinding": "Trial keeps all capability flags closed. Production preserves existing protocol/fulfillment preparation booleans while core order/simulated payment-transfer/points/public UGC/dev controls stay closed; original full env and actual processes are bound, never rewritten."
+    "configurationBinding": "Trial keeps all capability flags closed. Production preserves existing protocol/fulfillment preparation booleans while core order/simulated payment-transfer/points/public UGC/dev controls stay closed; original full env and actual processes are bound, never rewritten. Existing protected unit-specific drop-ins are preserved byte-for-byte and bound to their complete disk/loaded path sets, static definitions and protected parent metadata; added, removed or changed inputs reject activation or rollback start."
   }
 }
