@@ -255,6 +255,13 @@ def encrypted_dump(key, env, destination):
 
 
 def verify_archive(path, key):
+    class DiscardSink:
+        def write(self, data):
+            pass
+
+    # Authenticate first, before any PostgreSQL parser consumes plaintext.
+    # The second pass still uses only pipes; no plaintext archive reaches disk.
+    decrypt_to_stream(path, key, DiscardSink())
     # --list may exit after the TOC without consuming the complete custom dump.
     # Still authenticate every ciphertext byte; its pipe is only a read-only
     # parser and never receives database credentials or runs restored SQL.

@@ -143,6 +143,7 @@ class TrialBackupTests(unittest.TestCase):
                 path.write_bytes(data)
                 with self.assertRaises(InvalidTag):
                     m.verify_archive(path, b'k' * 32)
+            self.assertEqual(len(children), 1, 'authentication failure must not start the PostgreSQL parser')
             self.assertTrue(all(child.poll() is not None for child in children))
 
     def test_real_dump_subprocess_success_creates_only_authenticated_ciphertext(self):
