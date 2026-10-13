@@ -70,4 +70,8 @@ CI 性能比较已与安全补丁协调：保留历史基线业务源码，两�
 
 精确提交 `3b1fbe861a4684c53f5af32e6425e1350c017a14` 的 [CI run 38397962896](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/38397962896) 于 12:40:04 UTC 完成成功：verify job 115297914087 的两项审计、128 文件/1473 项 unit、58 文件/921 项隔离真实 integration、构建、合成恢复和两组同依赖性能比较均通过。原生 Design QA 与带凭证的微信预览 job 按该 PR 触发条件 skipped，不作为已上传、真机或原生视觉验收。该回执只覆盖此准确提交；后续文档版本及主线部署绑定仍须分别核对。
 
+PR #26 已合入准确主线 `9a0417300e2f03da803543ba1e73bcd98057be42` / tree `0d868aacc396aafd786e91ce4db8a7e906c90c11`；该主线push [CI 38406957800](https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/38406957800) 完整verify成功，原生QA/微信预览仍按触发条件skipped。该main独立Linux归档SHA为 `874cb4dfb7f3896c039dc90d166d636e0c9a6f528405ccb2e263746a20a88381`，25,585,711 B，fresh读取两套旧制品确认101个应用/SQL字节全等。没有激活此归档。
+
+13:45:37 UTC现场只读检查发现正式API/Worker各有root:root0644的 `10-privacy-suppression.conf`，唯一directive为ReadWritePaths，父链root0755；体验没有drop-in。初版工具在停止服务前就会拒绝该输入。已保留配置并补充原drop-in完整字节、磁盘/加载文件集、父链元数据、静态有效定义和服务不可写边界的绑定，工具SHA更新为 `4f17023475c5022d78cf6097873849579772b37581af34c7364338b9f5a0373b`。35项拒绝/回退检查及两份独立审阅通过；全production离线检查60通过、1项原Linux条件skip。此后需新准确main及其push CI、重新打包和现场预检，不能修改9a制品manifest冒充新来源。尚未改变现场drop-in、配置、PID或数据库。
+
 下一步按实际证据推进：材料修正 → 提交前明确确认 → 腾讯云/管局实际结果 → 公网入口与外部 HTTPS 验证；并行落实有效体验协议和服务器依赖补丁，备份候选按准确权限与恢复范围逐步启用。之后读回微信合法域名/隐私指引和准确开发版，设置指定成员体验版，进行 iOS/Android 原生验收。正式发布与真实交易、公众 UGC 各自通过适用门禁后才开放。
