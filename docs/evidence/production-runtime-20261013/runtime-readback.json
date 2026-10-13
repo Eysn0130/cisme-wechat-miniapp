@@ -1,0 +1,520 @@
+{
+  "schemaVersion": 1,
+  "scope": "Authenticated read-only observation of the sole production host and isolated trial; no production/trial/database/network/COS mutations",
+  "observedAtUtc": {
+    "runtime": "2026-10-13T11:48:23.182852Z",
+    "backupAndTls": "2026-10-13T11:49:04.068325Z",
+    "databasePrivilegesAndDirectories": "2026-10-13T11:49:42.986652Z",
+    "cosGetPermission": "2026-10-13T11:50:45.181738Z",
+    "artifactVerification": "2026-10-13T11:51:38.441484Z",
+    "crossDatabaseAuthenticationAndRenewalHooks": "2026-10-13T11:52:21.376481Z",
+    "retentionPolicies": "2026-10-13T11:52:32.389940Z"
+  },
+  "target": {
+    "instanceId": "lhins-61ikz4mi",
+    "publicIpv4": "124.223.74.198",
+    "sshUser": "ubuntu",
+    "sudoAuthenticated": true,
+    "strictHostKeyChecking": true,
+    "hostIdentityMetadataRequeriedThisTurn": false
+  },
+  "services": {
+    "production": {
+      "api": {
+        "unit": "cisme-api.service",
+        "state": "active/running",
+        "pid": 2050563,
+        "uid": 999
+      },
+      "worker": {
+        "unit": "cisme-worker.service",
+        "state": "active/running",
+        "pid": 2050559,
+        "uid": 999
+      },
+      "actualCwd": "/opt/cisme/releases/tencent-release-751f7407af4e",
+      "appEnv": "production",
+      "database": {
+        "name": "cisme",
+        "role": "cisme",
+        "host": "127.0.0.1",
+        "port": 5432
+      },
+      "objectStorageDriver": "cos_gateway",
+      "objectStorageProfile": "tencent-cos-shanghai-private",
+      "privacySuppressionDir": "/var/lib/cisme/privacy-suppression",
+      "loopbackReady": {
+        "http": 200,
+        "status": "ready"
+      },
+      "legal": {
+        "http": 200,
+        "ready": true,
+        "documentCount": 2,
+        "types": [
+          "privacy",
+          "terms"
+        ],
+        "versions": [
+          "2026-09-09-v3-profile"
+        ]
+      },
+      "closedOrderFlow": true,
+      "ugcGoLiveGate": false,
+      "fulfillmentConfigured": true,
+      "workerCompletedAtUtc": "2026-10-13T11:49:03.818Z"
+    },
+    "trial": {
+      "api": {
+        "unit": "cisme-trial-api.service",
+        "state": "active/running",
+        "pid": 3151709,
+        "uid": 996
+      },
+      "worker": {
+        "unit": "cisme-trial-worker.service",
+        "state": "active/running",
+        "pid": 3151710,
+        "uid": 996
+      },
+      "actualCwd": "/opt/cisme-trial",
+      "appEnv": "staging",
+      "apiListenHost": "127.0.0.1",
+      "port": 3101,
+      "database": {
+        "name": "cisme_trial",
+        "role": "cisme_trial",
+        "host": "127.0.0.1",
+        "port": 5432
+      },
+      "objectStorageDriver": "api_gateway",
+      "objectStorageProfile": "production-host-isolated-trial",
+      "privacySuppressionDir": "/opt/cisme-trial/privacy-suppression",
+      "closedFlags": {
+        "COMMERCE_ORDER_FLOW_ENABLED": false,
+        "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": false,
+        "COMMERCE_SIMULATED_PAYMENT_ENABLED": false,
+        "COMMERCE_FULFILLMENT_ENABLED": false,
+        "UGC_GO_LIVE_GATE": false,
+        "POINTS_REDEMPTION_ENABLED": false,
+        "POINTS_RULES_ENABLED": false,
+        "COS_DIRECT_UPLOAD_ENABLED": false,
+        "WECHAT_PHONE_BINDING_ENABLED": false,
+        "ALLOW_DEV_ADAPTERS": false
+      },
+      "loopbackReady": {
+        "http": 200,
+        "status": "ready"
+      },
+      "legal": {
+        "http": 200,
+        "ready": false,
+        "documentCount": 0,
+        "documents": []
+      },
+      "workerCompletedAtUtc": "2026-10-13T11:48:56.780Z"
+    }
+  },
+  "isolation": {
+    "secretsComparedInternallyWithoutDisclosure": true,
+    "productionAndTrialDifferent": {
+      "databaseCredentials": true,
+      "sessionSecret": true,
+      "uploadTokenSecret": true,
+      "contactEncryptionKey": true,
+      "contactHashKey": true,
+      "privacyFormalExportKey": true
+    },
+    "apiAndOwnWorkerCredentialsMatch": {
+      "production": true,
+      "trial": true
+    },
+    "trialOperatingSystemAccount": {
+      "uid": 996,
+      "gid": 987,
+      "groupIds": [
+        987
+      ]
+    },
+    "trialDatabaseOwner": "cisme_trial",
+    "trialRolePrivileges": {
+      "superuser": false,
+      "createdb": false,
+      "createrole": false,
+      "replication": false,
+      "bypassrls": false,
+      "membershipCount": 0
+    },
+    "trialPublicDatabaseConnect": false,
+    "trialCredentialConnectionResults": {
+      "cisme_trial": {
+        "authenticates": true,
+        "exit": 0
+      },
+      "cisme": {
+        "authenticates": false,
+        "exit": 2
+      },
+      "postgres": {
+        "authenticates": false,
+        "exit": 2
+      },
+      "template1": {
+        "authenticates": false,
+        "exit": 2
+      }
+    },
+    "trialHbaRules": [
+      {
+        "type": "host",
+        "database": [
+          "cisme_trial"
+        ],
+        "user": [
+          "cisme_trial"
+        ],
+        "address": "127.0.0.1",
+        "method": "scram-sha-256",
+        "parseError": false
+      },
+      {
+        "type": "local",
+        "database": [
+          "all"
+        ],
+        "user": [
+          "cisme_trial"
+        ],
+        "address": null,
+        "method": "reject",
+        "parseError": false
+      },
+      {
+        "type": "host",
+        "database": [
+          "all"
+        ],
+        "user": [
+          "cisme_trial"
+        ],
+        "address": "0.0.0.0",
+        "method": "reject",
+        "parseError": false
+      },
+      {
+        "type": "host",
+        "database": [
+          "all"
+        ],
+        "user": [
+          "cisme_trial"
+        ],
+        "address": "::",
+        "method": "reject",
+        "parseError": false
+      }
+    ],
+    "directories": {
+      "/opt/cisme-trial/tmp/object-storage": {
+        "uid": 996,
+        "gid": 987,
+        "mode": "0700",
+        "childCount": 0
+      },
+      "/opt/cisme-trial/privacy-suppression": {
+        "uid": 996,
+        "gid": 987,
+        "mode": "0700",
+        "childCount": 0
+      },
+      "/var/lib/cisme/privacy-suppression": {
+        "uid": 999,
+        "gid": 988,
+        "mode": "0700",
+        "childCount": 0
+      }
+    },
+    "uploadAndRestoreSuppressionFunctionalVerification": false
+  },
+  "artifacts": {
+    "production": {
+      "directory": "/opt/cisme/releases/tencent-release-751f7407af4e",
+      "sourceHead": "751f7407af4e525c5b6c09c6997800acfb4048fc",
+      "sourceTree": "d23e42b55843000ac5e97af108f404e7a12e92e8",
+      "migrateVerifyExit": 0,
+      "verified": true,
+      "artifacts": 103,
+      "migrations": 97,
+      "configurationIncluded": false,
+      "appliedByProbe": false
+    },
+    "trial": {
+      "directory": "/opt/cisme-trial/releases/751f7407af4e525c5b6c09c6997800acfb4048fc",
+      "sourceHead": "751f7407af4e525c5b6c09c6997800acfb4048fc",
+      "sourceTree": "d23e42b55843000ac5e97af108f404e7a12e92e8",
+      "migrateVerifyExit": 0,
+      "verified": true,
+      "artifacts": 103,
+      "migrations": 97,
+      "configurationIncluded": false,
+      "appliedByProbe": false
+    },
+    "nodeModulesWholeTreeRehashedThisTurn": false
+  },
+  "trialDatabaseMetadata": {
+    "appliedMigrations": 97,
+    "publicTableCount": 137,
+    "legalDocumentCount": 0,
+    "activeLegalDocumentCount": 0
+  },
+  "network": {
+    "nginxConfigurationTestExit": 0,
+    "hostUfw": {
+      "active": true,
+      "allowedInbound": [
+        {
+          "port": 22,
+          "protocol": "tcp",
+          "ipVersions": [
+            4,
+            6
+          ]
+        }
+      ]
+    },
+    "listeners": [
+      {
+        "host": "0.0.0.0",
+        "port": 443
+      },
+      {
+        "host": "0.0.0.0",
+        "port": 3100
+      },
+      {
+        "host": "0.0.0.0",
+        "port": 5432
+      },
+      {
+        "host": "::",
+        "port": 5432
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 3101
+      }
+    ],
+    "dnsIpv4OnServer": {
+      "api.cisme.cn": [
+        "124.223.74.198"
+      ],
+      "staging-api.cisme.cn": [
+        "124.223.74.198"
+      ]
+    },
+    "nginxUpstreams": {
+      "api.cisme.cn": "http://127.0.0.1:3100",
+      "staging-api.cisme.cn": "http://127.0.0.1:3101"
+    },
+    "externalRequestsFromWorkstation": {
+      "api.cisme.cn": {
+        "curlExit": 28,
+        "http": 0,
+        "remoteIpv4": "198.18.0.99",
+        "failure": "SSL connection timeout"
+      },
+      "staging-api.cisme.cn": {
+        "curlExit": 28,
+        "http": 0,
+        "remoteIpv4": "198.18.0.96",
+        "failure": "SSL connection timeout"
+      },
+      "scope": "Requests used workstation DNS/proxy synthetic addresses; no completed TLS handshake or public acceptance. Do not attribute these failures to the cloud firewall."
+    },
+    "cloudFirewall": {
+      "source": "browser-readback/root in current task",
+      "screenshot": "docs/evidence/production-runtime-20261013/cloud-firewall-readback.jpg",
+      "rules": [
+        {
+          "port": 443,
+          "protocol": "TCP",
+          "source": "all IPv4",
+          "action": "allow"
+        },
+        {
+          "port": 22,
+          "protocol": "TCP",
+          "source": "all IPv4",
+          "action": "allow"
+        },
+        {
+          "port": 80,
+          "protocol": "TCP",
+          "source": "all IPv4",
+          "action": "allow"
+        },
+        {
+          "protocol": "ICMP",
+          "source": "all",
+          "action": "allow"
+        }
+      ],
+      "independentlyObservedByRuntimeAgent": false
+    }
+  },
+  "tls": {
+    "scope": "Loopback 127.0.0.1:443 with actual domain SNI, trusted chain and hostname checks; no -k. This is not public ingress acceptance.",
+    "api.cisme.cn": {
+      "chainVerified": true,
+      "hostnameVerified": true,
+      "tls": "TLSv1.3",
+      "san": [
+        "api.cisme.cn"
+      ],
+      "notBeforeUtc": "2026-09-09T05:52:01Z",
+      "notAfterUtc": "2026-12-08T05:52:00Z",
+      "httpsReadyHttp": 200
+    },
+    "staging-api.cisme.cn": {
+      "chainVerified": true,
+      "hostnameVerified": true,
+      "tls": "TLSv1.3",
+      "san": [
+        "staging-api.cisme.cn"
+      ],
+      "notBeforeUtc": "2026-10-13T01:43:13Z",
+      "notAfterUtc": "2027-01-11T01:43:12Z",
+      "httpsReadyHttp": 200
+    },
+    "certbotTimerActive": true,
+    "dryRunRepeatedThisTurn": false,
+    "renewalHooks": {
+      "api.cisme.cn": "systemctl reload nginx",
+      "staging-api.cisme.cn": "/usr/sbin/nginx -t && /bin/systemctl reload nginx"
+    }
+  },
+  "backup": {
+    "productionTimerEnabled": true,
+    "productionTimerActive": true,
+    "lastRunResult": "success",
+    "lastRunExit": 0,
+    "latestReceipt": {
+      "atUtc": "2026-10-12T19:30:06Z",
+      "bytes": 1235443,
+      "remoteChecksumVerified": true,
+      "authenticationVerified": true,
+      "archiveReadable": true,
+      "remoteRetentionDays": 30
+    },
+    "latestReceiptScope": "Read existing last-success.json and systemd result; did not redownload/decrypt/relist this archive in current task.",
+    "historicalFullRestoreReceipt": {
+      "atUtc": "2026-09-09T07:30:15Z",
+      "fullRestoreVerified": true,
+      "restoredPublicTables": 45,
+      "tamperedCiphertextRejected": true,
+      "scope": "Historical receipt only; not a current restoration rehearsal"
+    },
+    "productionScriptDatabase": "cisme",
+    "trialBackupUnitFound": false,
+    "trialIndependentBackupVerified": false,
+    "trialBackupKeyOrIdentityCreated": false,
+    "cosReadOnlyPermissionProbe": {
+      "operation": "GetObject",
+      "identity": "existing production maintenance identity, credentials never printed",
+      "bucket": "lhcos-81ddf-1257392443",
+      "trialNonexistentObject": {
+        "prefix": "backups/cisme-trial/",
+        "http": 403,
+        "code": "AccessDenied"
+      },
+      "productionManifest": {
+        "prefix": "backups/postgres/",
+        "http": 200,
+        "bodyReadOrPrinted": false
+      },
+      "putOrDeleteProbed": false,
+      "objectsCreated": false
+    },
+    "externalAlertDeliveryVerified": false
+  },
+  "trialRetentionPolicies": [
+    {
+      "code": "commerce_transaction_three_years",
+      "data_class": "order, payment, refund and aftersale facts",
+      "trigger_event": "transaction complete or aftersale closed",
+      "duration_days": null,
+      "duration_months": 36,
+      "disposition": "restrict_then_delete",
+      "enforcement_state": "declared",
+      "active": false,
+      "version": 1,
+      "automatic_purge_enabled": false
+    },
+    {
+      "code": "support_audit_policy_pending",
+      "data_class": "support handling audit and purge tombstone",
+      "trigger_event": "support event recorded",
+      "duration_days": null,
+      "duration_months": null,
+      "disposition": "restrict_then_delete",
+      "enforcement_state": "declared",
+      "active": false,
+      "version": 1,
+      "automatic_purge_enabled": false
+    },
+    {
+      "code": "support_conversation_policy_pending",
+      "data_class": "support conversation and message",
+      "trigger_event": "conversation resolved",
+      "duration_days": null,
+      "duration_months": 3,
+      "disposition": "restrict_then_delete",
+      "enforcement_state": "enforced",
+      "active": true,
+      "version": 2,
+      "automatic_purge_enabled": false
+    },
+    {
+      "code": "support_transaction_three_years",
+      "data_class": "support records linked to an order or aftersale",
+      "trigger_event": "later of transaction completion and aftersale closure",
+      "duration_days": null,
+      "duration_months": 36,
+      "disposition": "restrict_then_delete",
+      "enforcement_state": "declared",
+      "active": false,
+      "version": 1,
+      "automatic_purge_enabled": false
+    }
+  ],
+  "registrationConclusion": {
+    "trialLegalPublicationMissing": true,
+    "nativeLegalBootstrapRejectsUnpublishedDocuments": true,
+    "wechatIdentityCodeRequiresCurrentActiveTermsAndPrivacy": true,
+    "expectedCodeWithMissingLegal": "LEGAL_VERSION_REQUIRED",
+    "expectedStatus": 409,
+    "realWechatRegistrationAttempted": false,
+    "backupIsOperationalCollectionGate": true,
+    "backupEnforcementInIdentityCodeVerified": false,
+    "publicApiAcceptance": false,
+    "phoneAcceptance": false
+  },
+  "commands": {
+    "transport": "ssh with pinned IdentityFile/UserKnownHostsFile, StrictHostKeyChecking=yes, BatchMode=yes, ubuntu@124.223.74.198; sudo python stdin read-only probes",
+    "service": "systemctl show cisme-api/cisme-worker/cisme-trial-api/cisme-trial-worker; /proc/PID cwd, argv and allowlisted environment; secret equality comparisons kept internal",
+    "readyAndLegal": "HTTP GET 127.0.0.1:3100/3101 /health/ready and /v1/legal; saved only readiness and document metadata",
+    "network": "ss -lnt; ufw status numbered; nginx -t; server getaddrinfo(domain, AF_INET)",
+    "tls": "Python ssl.create_default_context with wrap_socket(server_hostname=domain) to 127.0.0.1:443; curl --fail --resolve DOMAIN:443:127.0.0.1 https://DOMAIN/health/ready",
+    "db": "psql -XAt ON_ERROR_STOP=1: SELECT metadata/counts; Pg role/HBA metadata; trial credentials passed only via subprocess environment for SELECT true to own and other databases",
+    "artifact": "node RELEASE/migrate.mjs verify for production and trial",
+    "backup": "systemctl list-unit-files/list-timers/show; read existing sanitized backup receipts; COS GetObject probe without reading manifest body"
+  },
+  "limitations": [
+    "No server, runtime, database, network, COS or credential changes were made by these probes.",
+    "No old host was contacted.",
+    "No real identity/member/session values, private inputs, object content or private documents are included.",
+    "No legal approval, ICP approval, WeChat domain approval, real-device validation, publication or transaction capability is inferred from health/TLS readiness.",
+    "Filesystem object directory existence does not validate upload, retention execution or restoration suppression.",
+    "Actual cloud firewall evidence was supplied by the root agent and has a separate browser screenshot source."
+  ]
+}
