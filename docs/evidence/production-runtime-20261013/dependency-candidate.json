@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-13T12:18:07.383Z",
+  "scope": "Source dependency candidate only; no deployed server package or runtime changes",
+  "inputs": {
+    "package.json": {
+      "sha256": "64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5"
+    },
+    "package-lock.json": {
+      "sha256": "d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9"
+    },
+    ".github/workflows/ci.yml": {
+      "sha256": "f282be8e990269792c2115c0740c743f10fbc2af7cf9c83a78696aba44178d11"
+    }
+  },
+  "productionAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "allDependencyAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "versions": {
+    "sharp": [
+      "0.35.5"
+    ],
+    "fastify": [
+      "5.12.5"
+    ],
+    "@fastify/busboy": [
+      "3.2.3"
+    ],
+    "fast-uri": [
+      "3.1.8",
+      "4.2.2"
+    ],
+    "ip-address": [
+      "10.7.4"
+    ],
+    "brace-expansion": [
+      "1.1.21",
+      "2.1.7"
+    ],
+    "http-cache-semantics": [
+      "4.3.0"
+    ],
+    "source-map-js": [
+      "1.2.2"
+    ]
+  },
+  "delegatedVerification": {
+    "by": "collaboration/trial_backup_prepare",
+    "buildPassed": true,
+    "typecheckIncluded": true,
+    "targetedUnitFiles": 8,
+    "targetedUnitTestsPassed": 261,
+    "sharpSyntheticPngToWebpAndJpegPassed": true,
+    "backendOrDatabaseStarted": false
+  },
+  "workflowVerification": {
+    "yamlPassed": true,
+    "modifiedBashBlocksPassed": true,
+    "embeddedNodeAndDriftFixturesPassedBy": "collaboration/runtime_audit",
+    "fullRemoteCiPassed": false
+  },
+  "serverDependencyRemediationPerformed": false,
+  "serverReadback": "deployed-dependency-readback.json",
+  "limitations": [
+    "Local candidate audit, build and synthetic checks are not deployment or WeChat acceptance.",
+    "Full remote CI remains required for the exact committed candidate.",
+    "No server dependency update, network opening, business data change, legal publication or WeChat upload occurred."
+  ]
+}

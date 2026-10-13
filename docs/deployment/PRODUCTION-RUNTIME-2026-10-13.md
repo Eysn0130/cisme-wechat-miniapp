@@ -46,4 +46,14 @@
 
 体验独立加密备份候选在 `infra/tencent/cisme-trial-encrypted-backup.*`，操作条件与恢复边界见 [候选说明](../../infra/tencent/TRIAL-BACKUP-PREPARED.md)，当前未安装/启用。14 项本地合成测试、Python 语法检查及独立代码审阅通过；最终脚本 SHA-256 为 `d84a53c74aa81397c5c8851496e33daa29f05e334adeb91b047af35acb0cbbe0`。测试包含真实合成 dump 子进程成功/失败、完整 GCM 认证与篡改拒绝、403/非 NoSuchKey 404 拒绝、生产目标与跨前缀清理拒绝。远端体验前缀权限、独立密钥及恢复/删除抑制验证尚未完成，不得以工具写完或数据库归档可读性宣称完整恢复合格。
 
+## 依赖审计发现与修复候选
+
+草稿 PR #26 的 `94ef829` 验证在生产依赖审计失败：Sharp 0.35.4 处于 [GHSA-wq5f-xc86-pv6w](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w) 的高危受影响范围，另有 Fastify、busboy、fast-uri 和 ip-address 中危项。本轮没有关闭或降低审计门禁。候选已精确升级 Fastify 5.12.5、Sharp 0.35.5，并在原依赖范围内更新这些传递包以及开发工具链的 brace-expansion、http-cache-semantics、source-map-js，未跨 major 或增加 override。
+
+锁定候选的 [依赖修复回执](../evidence/production-runtime-20261013/dependency-candidate.json) 记录两份 manifest/lock 与 workflow 摘要。生产和全依赖的 high 门禁均 exit 0，所有严重程度合计均为 0；构建（包含两套 typecheck）、8 文件/261 项定向 unit 和内存合成 PNG→128×128 WebP/JPEG 转换通过。没有启动本地后端、数据库或重复跑真实集成；完整远端 CI 仍须单独取得准确提交的回执。
+
+12:09:50 UTC（洛杉矶 05:09:50）的 [已部署依赖回执](../evidence/production-runtime-20261013/deployed-dependency-readback.json) 确认两环境四个入口均解析到 Node 24.14.0、Fastify 5.12.3、Sharp 0.35.4、librsvg 2.62.91。这个版本查询没有处理图像、测试利用或修改服务器。源码依赖更新和 npm 审计通过不能关闭已部署服务器的漏洞；必须在准确主线及 CI 通过后重新制作不可变制品，按生产与体验各自的升级/保护点流程部署并读回实际版本。禁止在当前运行目录内原地 npm 更新。
+
+CI 性能比较已与安全补丁协调：保留历史基线业务源码，两组使用相同修复后的依赖输入，保留基线脚本并拒绝无关 manifest/workspace/安装生命周期漂移，保存原始与共同 manifest/lock、实际安装依赖摘要；不能用旧依赖运行基线，不能把受控比较称为旧依赖下的历史成绩。该调整不跳过性能、审计、集成或原生验收门禁。新增独立 Python venv 的精确 cryptography/cffi/pycparser 依赖与体验备份 14 项、Certbot 8 项 CI 覆盖。YAML、Bash、嵌入 Node 与正反漂移夹具验证通过，未把静态验证称为性能通过。
+
 下一步按实际证据推进：材料修正 → 提交前明确确认 → 腾讯云/管局实际结果 → 公网入口与外部 HTTPS 验证；并行完成体验备份权限/恢复抑制、有效协议及客服事实。之后读回微信合法域名/隐私指引和准确开发版，设置指定成员体验版，进行 iOS/Android 原生验收。正式发布与真实交易、公众 UGC 各自通过适用门禁后才开放。
