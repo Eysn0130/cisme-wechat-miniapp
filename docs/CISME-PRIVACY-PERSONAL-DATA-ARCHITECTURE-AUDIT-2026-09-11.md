@@ -306,6 +306,8 @@ CISME 的目标数据能力应覆盖会员、护理、完整社区、完整商�
 
 drop-in只接受固定unit目录内的root普通单硬链接conf，完整磁盘文件集与systemd加载集匹配，父链权限及原字节在停止、切换、启动和回退前复核。服务可写目录不得覆盖这些输入；任何增删、未知路径或字节/权限漂移保持拒绝，不覆盖现场配置。快照目录root0700、文件0600；新增六项拒绝/回退检查，共35项通过，独立审阅通过。静态调用签名仍为32条且摘要不变，没有新增对外数据接收方。
 
+14:23现场诊断取得GitHub Contents API不完整响应：HTTP200声明457363字节、实际455857，JSON解析失败。两次apply均在停止前退出，升级state未生成，四服务PID仍为原值。固定8eb提交的三份真实raw文件随后完整返回并匹配源码许可及Git对象，详见 [来源截断回执](evidence/production-runtime-20261013/source-response-truncation.json)。据此将三份源文件传输改为准确40位提交的固定raw GitHub路径；64KiB循环完整读取、1MiB上限、已知Content-Length不符拒绝，TLS/重定向与原main/tree/CI及字节门禁不变。新的工具SHA为 `7c0f9e3456bc77c4659fd3538b23267f16719fc1e4f0e2cdb77c008671a3e429`，测试SHA `5e442086dc0a5b10303f54169fc570f9e932699d1ec49fdf28e99632b273b30f`；38项专项及独立审阅通过。GitHub接收范围仍只有公开repo/commit/file请求，无会员、私有配置或授权内容，不增加消费者采集字段。
+
 外部GET限于固定公开GitHub仓库的commit、CI与已审阅package/lock/migrator源码；实例元数据及本环境健康检查属于既有腾讯云、本机loopback范围。GitHub收到公开提交标识，不收到数据库、会话密钥、业务内容或私有授权。Node Sharp烟测仅生成小幅合成PNG并在内存转换，不处理业务图片。应用与SQL必须逐字节相同才允许切换，配置/密钥/网络不变，失败只恢复应用，保留数据库新事实；此候选还未启用，不授予业务开放或真机验收。
 
 保持原六目录、正则和断言提取签名，相对3b1提交为31→32条、无删除，唯一新增是 `infra/tencent/test_production_dependency_upgrade.py` 的本地 `def fetch(path):` 合成GitHub适配器声明。该声明被原静态正则纳入，不代表真实网络调用。新摘要为 `5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a`；未被正则覆盖的实际urllib/curl/psql操作按上述用途人工复核，并记录于机器清单 `dependencyUpgradeReview20261013`。49个微信API、5个固定WXML接口及全部迁移集合不变。旧版本签名及§11的来源范围保留。

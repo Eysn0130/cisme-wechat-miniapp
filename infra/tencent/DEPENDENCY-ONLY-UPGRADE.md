@@ -18,6 +18,14 @@ Linux x64 glibc / Node 24.14.0 在无服务器秘密的独立构建环境运行�
 - 正在运行的旧制品与候选的 `index.js`、`worker.js`、`worker-once.js`、`migrate.mjs`
   和完整、有序 SQL 文件集逐字节相同。任一变化退出，不能扩展成 schema 或业务源码升级。
 
+`package.json`、`package-lock.json` 和 `scripts/release-migrate.mjs` 仅从固定仓库
+`raw.githubusercontent.com` 的准确 40 位提交路径
+读取原始字节，使用默认 HTTPS 证书验证、拒绝重定向和 `Cache-Control: no-cache`。
+读取按 64KiB 循环直至 EOF，总量最多 1MiB；已知 `Content-Length` 不符或正文越界即拒绝。
+原 Contents API 的已观察截断响应曾在停止服务前被拒绝，不能把不完整 JSON 当作来源证明。
+raw 传输随后仍须通过上述精确哈希及 migrator 字节比对；准确 main/tree、最新 push CI
+和切换前后来源复核保持原样，不使用注入响应或源缓存替代。
+
 在同一正式实例 `lhins-61ikz4mi` 上，production 固定 `/opt/cisme`、`cisme` DB/role/user、
 `api.cisme.cn`；trial 固定 `/opt/cisme-trial`、`cisme_trial` DB/role、`cisme-trial` user、
 `staging-api.cisme.cn`。每次分别预检、分别升级并保存各自私有状态。

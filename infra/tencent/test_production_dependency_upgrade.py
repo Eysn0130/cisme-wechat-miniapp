@@ -233,6 +233,71 @@ class DependencyUpgradeTests(unittest.TestCase):
             with self.assertRaisesRegex(m.Refused, 'LOCK_NOT_REVIEWED_SOURCE'):
                 m.permit(modified, self.main)
 
+    def source_response(self, data, length=None, chunk=4096, status=200):
+        class ShortResponse(io.BytesIO):
+            def read(response, amount=-1):
+                self.assertGreater(amount, 0)
+                self.assertLessEqual(amount, 65536)
+                response.amounts.append(amount)
+                return super().read(min(amount, chunk))
+        response = ShortResponse(data)
+        response.status = status
+        response.headers = {} if length is None else {'Content-Length': length}
+        response.amounts = []
+        return response
+
+    def test_raw_source_http_adapter_reads_all_short_chunks_at_exact_immutable_url(self):
+        data = b'public synthetic source bytes\n' * 4000
+        for name in ('package.json', 'package-lock.json', 'scripts/release-migrate.mjs'):
+            with self.subTest(path=name):
+                response = self.source_response(data, str(len(data)), chunk=1234)
+                opener = SimpleNamespace(open=lambda request, timeout: response)
+                with patch.object(m.urllib.request, 'build_opener', return_value=opener) as build, \
+                        patch.object(opener, 'open', return_value=response) as opened:
+                    self.assertEqual(m.github_source(name, self.main['sha']), data)
+                request = opened.call_args.args[0]
+                self.assertEqual(request.full_url, 'https://raw.githubusercontent.com/' + m.general.REPO +
+                                 '/' + self.main['sha'] + '/' + name)
+                headers = {key.lower(): value for key, value in request.header_items()}
+                self.assertEqual(headers['cache-control'], 'no-cache')
+                self.assertNotIn('authorization', headers)
+                self.assertEqual(opened.call_args.kwargs, {'timeout': 12})
+                self.assertIsInstance(build.call_args.args[0], m.general.observe.NoRedirect)
+                self.assertGreater(len(response.amounts), 3)
+
+    def test_raw_source_known_truncated_length_and_oversize_are_refused(self):
+        for data, length, code in ((b'partial', '1506', 'SOURCE_TRUNCATED'),
+                                    (b'extra bytes', '1', 'SOURCE_TRUNCATED'),
+                                    (b'not consumed', str(1024 * 1024 + 1), 'SOURCE_TOO_LARGE'),
+                                    (b'x' * (1024 * 1024 + 1), None, 'SOURCE_TOO_LARGE'),
+                                    (b'x', 'invalid', 'SOURCE_LENGTH_INVALID')):
+            with self.subTest(length=length, code=code):
+                response = self.source_response(data, length)
+                with patch.object(m.urllib.request, 'build_opener', return_value=SimpleNamespace(open=lambda *args, **kwargs: response)):
+                    with self.assertRaisesRegex(m.Refused, code):
+                        m.github_source('package-lock.json', self.main['sha'])
+        response = self.source_response(b'exact EOF without length', None, chunk=2)
+        with patch.object(m.urllib.request, 'build_opener', return_value=SimpleNamespace(open=lambda *args, **kwargs: response)):
+            self.assertEqual(m.github_source('package.json', self.main['sha']), b'exact EOF without length')
+
+    def test_raw_source_foreign_name_sha_status_and_redirect_are_refused(self):
+        for name, head in (('../package.json', self.main['sha']), ('https://foreign.invalid/source', self.main['sha']),
+                           ('package-lock.json?ref=main', self.main['sha']), ('package.json', 'main'),
+                           ('package.json', 'a' * 39), ('package.json', '0' * 40)):
+            with self.subTest(name=name, head=head), patch.object(m.urllib.request, 'build_opener') as build:
+                with self.assertRaisesRegex(m.Refused, 'GITHUB_RESOURCE_REFUSED'):
+                    m.github_source(name, head)
+                build.assert_not_called()
+        for status in (206, 301, 403):
+            response = self.source_response(b'not accepted', status=status)
+            with patch.object(m.urllib.request, 'build_opener', return_value=SimpleNamespace(open=lambda *args, **kwargs: response)):
+                with self.assertRaisesRegex(m.Refused, 'SOURCE_UNAVAILABLE'):
+                    m.github_source('package.json', self.main['sha'])
+        handler = m.general.observe.NoRedirect()
+        with self.assertRaisesRegex(m.general.observe.target.Refused, 'REDIRECT_REFUSED'):
+            handler.redirect_request(m.urllib.request.Request('https://raw.githubusercontent.com/'),
+                                     None, 302, 'redirect', {}, 'https://foreign.invalid/source')
+
     def test_wrong_head_tree_platform_or_manifest_permit_refused_before_network(self):
         for key, value in (('sourceHead', 'e' * 40), ('sourceTree', 'e' * 40),
                            ('buildPlatform', {'os': 'darwin', 'arch': 'arm64', 'libc': 'glibc'}),
