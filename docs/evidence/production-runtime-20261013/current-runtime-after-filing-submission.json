@@ -1,0 +1,61 @@
+{
+  "configurationChanged": false,
+  "githubRestRequested": false,
+  "instanceId": "lhins-61ikz4mi",
+  "observedAtUtc": "2026-10-13T16:35:05.355600Z",
+  "publicNetworkVerified": false,
+  "readOnly": true,
+  "services": [
+    {
+      "active": true,
+      "pid": 3342694,
+      "unit": "cisme-api.service"
+    },
+    {
+      "active": true,
+      "pid": 3342695,
+      "unit": "cisme-worker.service"
+    },
+    {
+      "active": true,
+      "pid": 3334456,
+      "unit": "cisme-trial-api.service"
+    },
+    {
+      "active": true,
+      "pid": 3334457,
+      "unit": "cisme-trial-worker.service"
+    }
+  ],
+  "trustedLoopbackTlsReady": [
+    {
+      "domain": "api.cisme.cn",
+      "httpStatus": 200,
+      "loopbackOnly": true,
+      "trustedDomainSniTls": true
+    },
+    {
+      "domain": "staging-api.cisme.cn",
+      "httpStatus": 200,
+      "loopbackOnly": true,
+      "trustedDomainSniTls": true
+    }
+  ],
+  "ufwActive": true,
+  "ufwRuleCount": 2,
+  "ufwSsh22Only": true,
+  "workers": [
+    {
+      "ageSeconds": 1.79,
+      "completedAtUtc": "2026-10-13T16:35:03.849Z",
+      "freshWithin120Seconds": true,
+      "user": "cisme"
+    },
+    {
+      "ageSeconds": 0.266,
+      "completedAtUtc": "2026-10-13T16:35:05.373Z",
+      "freshWithin120Seconds": true,
+      "user": "cisme-trial"
+    }
+  ]
+}

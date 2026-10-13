@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-13T16:37:41.322780+00:00",
+  "recordedAtClientLocal": "2026-10-13T09:37:41.322780-07:00",
+  "source": "Read-only authenticated Chrome DOM and visible screenshots at the requested Tencent console",
+  "consoleUrl": "https://console.cloud.tencent.com/beian/manage",
+  "orderNumber": "30179055481144617",
+  "orderType": "新增服务（原备案不在腾讯云）",
+  "currentStage": "腾讯云审核中",
+  "submission": "已提交",
+  "detailsStage": "订单详情（腾讯云初审）",
+  "controlDisplayedLastUpdate": "2026-10-14 00:19:31",
+  "controlDisplayedTimezoneSpecified": false,
+  "subject": {
+    "name": "熹芃（上海）生物科技有限公司",
+    "subjectFilingNumber": "沪ICP备2026051386号",
+    "region": "上海市",
+    "kind": "企业",
+    "requiredIdentityContactAndDocumentFieldsPresent": true,
+    "identityContactValuesOrDocumentPixelsExported": false
+  },
+  "service": {
+    "type": "网站/域名",
+    "name": "熹芃生物科技",
+    "domain": "cisme.cn",
+    "serverIp": "124.223.74.198",
+    "content": "其他",
+    "language": "中文简体",
+    "preApproval": "以上都不涉及",
+    "declaredPurpose": "Same-subject CISME mini-program backend: member login, private textual care records and member service",
+    "productionApi": "api.cisme.cn",
+    "isolatedTrialApi": "staging-api.cisme.cn",
+    "declaredTransactionsPublicUgcMedicalDiagnosisClosed": true,
+    "responsiblePersonContactIdentityAndVideoFieldsPresent": true
+  },
+  "currentCorrectionRequestDisplayed": false,
+  "nextOrderStages": [
+    "腾讯云电话初审",
+    "待提交管局",
+    "工信部短信核验（页面提示24小时内）",
+    "管局审核（页面预计1–20个工作日）"
+  ],
+  "publicSecuritySyncAuthorization": "授权已完成",
+  "publicSecurityFilingCompletionProven": false,
+  "completedTencentSubjectAndServicesLedger": "暂无备案",
+  "miniProgramFilingApproval": {
+    "userConfirmed": true,
+    "independentlyReadFromWeChatPlatformThisTurn": false
+  },
+  "screenshot": "filing-submitted-tencent-review-20261013.png (local Git-ignored, masked contacts only)",
+  "limits": {
+    "readonly": true,
+    "submittedOrSignedByThisAgent": false,
+    "correctionMaterialsApproved": false,
+    "finalAuthorityApprovalProven": false,
+    "publicReachabilityOrWeChatDomainRegistrationProven": false
+  },
+  "officialReferences": [
+    "https://cloud.tencent.com/document/product/243/73180",
+    "https://cloud.tencent.com/document/product/243/37403"
+  ]
+}
