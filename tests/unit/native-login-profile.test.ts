@@ -10,9 +10,10 @@ let page:any, wxMock:any;
 const member={id:'member-1',display_name:'原有昵称',profile_revision:2,avatar_data_url:null,avatar_revision:null};
 beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();mocks.token='';
- wxMock={getAccountInfoSync:vi.fn(()=>({miniProgram:{envVersion:'develop'}})),getDeviceInfo:vi.fn(()=>({platform:'devtools'})),login:vi.fn(async()=>({code:'identity-code'})),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),pageScrollTo:vi.fn(),showToast:vi.fn()};
+ wxMock={getAccountInfoSync:vi.fn(()=>({miniProgram:{envVersion:'develop'}})),getDeviceInfo:vi.fn(()=>({platform:'devtools'})),getStorageSync:vi.fn(()=>false),switchTab:vi.fn(),login:vi.fn(async()=>({code:'identity-code'})),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),pageScrollTo:vi.fn(),showToast:vi.fn()};
  (globalThis as any).wx=wxMock;
  (globalThis as any).getApp=()=>({globalData:{get sessionToken(){return mocks.token;},cloudFunction:{name:'cismeApi'}}});
+ (globalThis as any).getCurrentPages=()=>[{route:'pages/account/index'}];
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:{...definition.data},setData(patch:any,callback?:()=>void){Object.assign(this.data,patch);callback?.();}};};
  mocks.local.mockResolvedValue('neutral');mocks.prepare.mockResolvedValue('data:image/jpeg;base64,dGVzdA==');
  mocks.request.mockImplementation(async(options:any)=>{
@@ -27,6 +28,31 @@ beforeEach(async()=>{
  await vi.importActual<any>('../../apps/miniprogram/pages/account/index');
  Object.assign(page.data,{agreementAccepted:true,legalTextsReady:true});
 });
+it('keeps a fresh cold launch on Account without starting identity or phone authorization',()=>{
+ page.onLoad({});
+ expect(page.data.leaving).toBe(false);expect(wxMock.switchTab).not.toHaveBeenCalled();
+ expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
+});
+it('restores an existing session to Home without starting a second login',()=>{
+ mocks.token='retained-member-session';page.onLoad({});
+ expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/home/index'}));
+ expect(page.data.leaving).toBe(true);expect(wxMock.login).not.toHaveBeenCalled();
+});
+it('honours an explicit retained guest choice without forcing a login loop',()=>{
+ wxMock.getStorageSync.mockReturnValue(true);page.onLoad({});
+ expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/community/index'}));
+ expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
+});
+it('keeps an explicit Account visit open even when a member session exists',()=>{
+ mocks.token='retained-member-session';page.onLoad({intent:'login'});
+ expect(page.data.leaving).toBe(false);expect(wxMock.switchTab).not.toHaveBeenCalled();
+});
+it('recovers the Account consent screen when restoring the destination fails',async()=>{
+ mocks.token='retained-member-session';wxMock.switchTab.mockImplementation(({fail}:any)=>fail());
+ page.onLoad({});await Promise.resolve();
+ expect(page.data.leaving).toBe(false);expect(page.data.legalTextsReady).toBe(true);
+ expect(wxMock.login).not.toHaveBeenCalled();
+});
 it('lets the native phone callback own login and exchanges separate phone and identity codes',async()=>{
  page.data.phoneBindingEnabled=true;page.loginTap();expect(wxMock.login).not.toHaveBeenCalled();
  await page.loginWithPhone({detail:{code:'selected-phone-code'}});
@@ -34,14 +60,19 @@ it('lets the native phone callback own login and exchanges separate phone and id
  const calls=mocks.request.mock.calls.map(([request])=>request);
  expect(calls[0]).toMatchObject({path:'/v1/identity/wechat',data:{code:'identity-code'}});
  expect(calls[1]).toEqual({path:'/v1/me/phone',method:'POST',data:{code:'selected-phone-code'}});
- expect(page.data.loginStage).toBe('avatar');expect(mocks.navigate).not.toHaveBeenCalled();
+ expect(page.data.loginStage).toBe('login');expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');
  expect(JSON.stringify(page.data)).not.toContain('selected-phone-code');
 });
 it('continues login after phone denial without inventing a phone binding',async()=>{
  await page.loginWithPhone({detail:{errMsg:'getPhoneNumber:fail user deny'}});
- expect(mocks.token).toBe('member-session');expect(page.data.loginStage).toBe('avatar');
+ expect(mocks.token).toBe('member-session');expect(page.data.loginStage).toBe('login');expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');
  expect(mocks.request.mock.calls.some(([options])=>options.path==='/v1/me/phone')).toBe(false);
  expect(page.data.notice).toContain('未提供手机号');
+});
+it('does not promise a future phone binding when the native phone service is unavailable',async()=>{
+ await page.loginWithPhone({detail:{errMsg:'getPhoneNumber:fail privacy not configured'}});
+ expect(mocks.token).toBe('member-session');expect(page.data.notice).toBe('微信手机号授权暂不可用，仍可使用微信账号登录。');
+ expect(mocks.request.mock.calls.some(([options])=>options.path==='/v1/me/phone')).toBe(false);
 });
 it('does not consume authorization when the agreement is unchecked',async()=>{
  page.data.agreementAccepted=false;
@@ -86,16 +117,32 @@ it('keeps an avatar save conflict visible and does not navigate as if saved',asy
  await page.chooseLoginAvatar({detail:{avatarUrl:'wxfile://chosen.jpg'}});
  expect(page.data.error).toBe('资料已更新，请重试');expect(mocks.navigate).not.toHaveBeenCalled();expect(mocks.publish).not.toHaveBeenCalled();
 });
-it('unblocks explicit login when the retained session expires during profile verification',async()=>{
- mocks.token='expired-session';page.data.pendingDestination='/pages/profile/index';
- mocks.request.mockImplementation(async()=>{mocks.token='';throw {status:401};});
- await page.login();
- expect(page.data.loading).toBe(false);expect(page.data.loginStage).toBe('login');
- expect(page.data.error).toContain('登录状态');expect(mocks.navigate).not.toHaveBeenCalled();
-});
-it('does not mistake an unavailable profile for a missing avatar during retained-session login',async()=>{
+it('continues a retained valid session without making profile or identity a prerequisite',async()=>{
  mocks.token='valid-session';page.data.pendingDestination='/pages/profile/index';
  mocks.request.mockRejectedValue({status:503});await page.login();
- expect(page.data.loading).toBe(false);expect(page.data.loginStage).toBe('login');expect(page.data.error).toContain('资料');
- expect(mocks.navigate).not.toHaveBeenCalled();
+ expect(page.data.loading).toBe(false);expect(page.data.loginStage).toBe('login');expect(page.data.error).toBe('');
+ expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');expect(mocks.request).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();
+});
+it('goes straight to the requested destination after identity succeeds with no avatar',async()=>{
+ await page.login();
+ expect(mocks.token).toBe('member-session');expect(page.data.loginStage).toBe('login');
+ expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');expect(mocks.prepare).not.toHaveBeenCalled();
+ expect(mocks.request.mock.calls.filter(([options])=>options.path==='/v1/identity/wechat')).toHaveLength(1);
+});
+it('does not wait for an optional profile response before navigating after identity',async()=>{
+ const original=mocks.request.getMockImplementation()!;
+ mocks.request.mockImplementation(options=>options.path==='/v1/me'?new Promise(()=>{}):original(options));
+ await page.login();
+ expect(mocks.token).toBe('member-session');expect(page.data.loading).toBe(false);
+ expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');expect(page.data.loginStage).toBe('login');
+});
+it('keeps successful identity navigable when profile refresh fails and retries navigation without another identity',async()=>{
+ const original=mocks.request.getMockImplementation()!;
+ mocks.request.mockImplementation(options=>options.path==='/v1/me'?Promise.reject({status:503}):original(options));
+ mocks.navigate.mockResolvedValueOnce('fallback');await page.login();
+ expect(mocks.token).toBe('member-session');expect(page.data.loginStage).toBe('login');
+ expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');expect(page.data.error).toContain('原目标页面');
+ await page.login();
+ expect(mocks.navigate).toHaveBeenCalledTimes(2);expect(page.data.error).toBe('');
+ expect(mocks.request.mock.calls.filter(([options])=>options.path==='/v1/identity/wechat')).toHaveLength(1);expect(wxMock.login).toHaveBeenCalledTimes(1);
 });

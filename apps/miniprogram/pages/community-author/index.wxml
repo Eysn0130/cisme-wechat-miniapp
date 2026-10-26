@@ -8,7 +8,7 @@
         <image wx:if="{{author.avatar}}" class="author-avatar" src="{{author.avatar}}" mode="aspectFill"/>
         <view wx:else class="author-avatar author-avatar--empty">C</view>
         <view class="author-info"><text class="author-name">{{author.name}}</text><text class="author-count">{{author.postCount}} 篇公开护理故事</text></view>
-        <button wx:if="{{!author.isMine}}" class="author-follow {{busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
+        <button wx:if="{{!author.isMine && (!editorialSource || articleContextId)}}" class="author-follow {{busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
       </view>
       <text class="author-section">公开故事</text>
       <view wx:if="{{!items.length && !loading}}" class="state">这位作者目前没有可查看的故事。</view>

@@ -16,3 +16,5 @@
 .author-story__title{font-size:28rpx;line-height:1.4;font-weight:600;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .author-story__excerpt{font-size:24rpx;line-height:1.45;color:#6f6573;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .author-story__meta{font-size:23rpx;line-height:1.4;color:#6f6573}
+
+.author-follow { min-height:44px; }

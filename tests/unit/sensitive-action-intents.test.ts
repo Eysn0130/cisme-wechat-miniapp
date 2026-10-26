@@ -17,7 +17,7 @@ function mounted(overrides:Record<string,unknown>={}){
   return page;
 }
 async function load(path:string){await import(path);return captured;}
-function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return {promise,resolve};}
+function deferred<T>(){let resolve!:(value:T)=>void,reject!:(reason:unknown)=>void;const promise=new Promise<T>((done,fail)=>{resolve=done;reject=fail;});return {promise,resolve,reject};}
 beforeEach(()=>{
   vi.resetModules();requestMock.mockReset();session="actor-a";
   modal=vi.fn((..._args:unknown[]):unknown=>undefined);sheet=vi.fn((..._args:unknown[]):unknown=>undefined);
@@ -109,13 +109,50 @@ it("does not approve a rate when the member list reloads before confirmation",as
   expect(requestMock).not.toHaveBeenCalled();
 });
 
-it("does not bind a referral after the account or code changes during confirmation",async()=>{
+it.each(["account","code"])("does not bind a referral after the %s changes during confirmation",async(change)=>{
   await load("../../apps/miniprogram/pages/referral/index");
   const page=mounted();page.onLoad({code:"CM23456789AB"});
+  page.data.preview={code:page.data.code,sponsorLabel:"合成推荐人",relationState:"unbound",attributionLevel:1};
   const answer=deferred<{confirm:boolean}>();modal.mockReturnValueOnce(answer.promise);
-  const pending=page.confirm();session="actor-b";page.onShow();answer.resolve({confirm:true});await pending;
+  const pending=page.confirm();
+  expect(modal).toHaveBeenCalledOnce();
+  if(change==="account"){session="actor-b";page.onShow();}
+  else page.editCode({detail:{value:"CMBBBBBBBBBB"}});
+  answer.resolve({confirm:true});await pending;
   expect(requestMock).not.toHaveBeenCalled();
   expect(page.data.confirmed).toBe(false);
+});
+
+it.each(["success","failure"])("keeps an edited referral usable after a stale preview %s",async(outcome)=>{
+  await load("../../apps/miniprogram/pages/referral/index");
+  const page=mounted();page.onLoad({code:"CMAAAAAAAAAA"});
+  const old=deferred<Record<string,unknown>>(),fresh=deferred<Record<string,unknown>>();
+  requestMock.mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);
+  const first=page.preview();expect(page.data.busy).toBe(true);
+  page.editCode({detail:{value:"CMBBBBBBBBBB"}});
+  expect(page.data).toMatchObject({code:"CMBBBBBBBBBB",busy:false,preview:null,confirmed:false});
+  const second=page.preview();expect(page.data.busy).toBe(true);
+  if(outcome==="success")old.resolve({code:"CMAAAAAAAAAA",sponsorLabel:"旧合成推荐人",relationState:"unbound",attributionLevel:1});
+  else old.reject({title:"旧请求失败"});
+  await first;
+  expect(page.data).toMatchObject({code:"CMBBBBBBBBBB",busy:true,preview:null,error:""});
+  const answer={code:"CMBBBBBBBBBB",sponsorLabel:"新合成推荐人",relationState:"unbound",attributionLevel:1};
+  fresh.resolve(answer);await second;
+  expect(page.data).toMatchObject({code:"CMBBBBBBBBBB",busy:false,preview:answer,error:""});
+});
+
+it("does not mark an edited referral confirmed when an earlier confirmation returns",async()=>{
+  await load("../../apps/miniprogram/pages/referral/index");
+  const page=mounted();page.onLoad({code:"CMAAAAAAAAAA"});
+  page.data.preview={code:page.data.code,sponsorLabel:"合成推荐人",relationState:"unbound",attributionLevel:1};
+  modal.mockResolvedValueOnce({confirm:true});const response=deferred<Record<string,unknown>>();
+  requestMock.mockReturnValueOnce(response.promise);
+  const pending=page.confirm();await Promise.resolve();
+  expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({path:"/v1/me/referral/confirm",method:"POST"}));
+  expect(page.data.busy).toBe(true);
+  page.editCode({detail:{value:"CMBBBBBBBBBB"}});
+  response.resolve({confirmed:true,alreadyConfirmed:false});await pending;page.onShow();
+  expect(page.data).toMatchObject({code:"CMBBBBBBBBBB",busy:false,preview:null,confirmed:false,status:""});
 });
 
 it("does not report, block, or delete an old post after an account switch",async()=>{

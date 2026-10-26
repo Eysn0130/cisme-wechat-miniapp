@@ -68,3 +68,8 @@
 .post-copy { font-size:32rpx; line-height:1.6; }
 .post-title { font-size:36rpx; line-height:1.4; }
 .post-comments-count { font-size:28rpx; }
+
+.post-author-link { min-height:44px; margin:0; padding:0; border-radius:0; background:none; text-align:left; line-height:inherit; }
+.post-follow,.post-source-link { min-height:44px; }
+.post-copy { display:block; white-space:pre-wrap; }
+.post-editorial-actions .post-bottom-action { flex:1; min-width:48px; }

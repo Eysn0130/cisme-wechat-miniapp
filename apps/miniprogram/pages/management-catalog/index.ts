@@ -1,4 +1,4 @@
-import { requireCapability } from "../../services/authority";
+import { authorityProjection, hasCapability, type Capability } from "../../services/authority";
 import { centsToYuan, managementCatalog, type CatalogProduct } from "../../services/commerce";
 import { currentChromeStyle } from "../../services/layout";
 import { nativeCatalogImage } from "../../services/catalog";
@@ -12,9 +12,9 @@ Page({
   async onShow(){this.data.pageAlive=true;
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({items:[],nextCursor:null,loading:true,loadingMore:false,navigating:false,error:""});
-    const allowed=await requireCapability("commerce.product.manage");
+    const allowed=await authorityProjection().catch(()=>null);
     if(!this.current(epoch,token))return;
-    if(!allowed){this.setData({loading:false,error:"当前账号没有商品管理权限。"});return;}
+    if(!allowed||!["commerce.product.manage","commerce.qualification.manage","commerce.inventory.manage"].some(capability=>hasCapability(allowed,capability as Capability))){this.setData({loading:false,error:"当前账号没有商品管理权限。"});return;}
     await this.load();},
   onUnload(){this.data.pageAlive=false;this.data.epoch+=1;},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&

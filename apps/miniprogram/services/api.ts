@@ -72,6 +72,28 @@ export function beginAuthentication(returnUrl = currentRouteUrl()): void {
   });
 }
 
+/** Legal renewal keeps the current verified member session and never accepts
+ * documents until that member explicitly confirms them on Account. */
+export function beginLegalRenewal(returnUrl = currentRouteUrl()): void {
+  clearAuthenticationRedirectSuppression();
+  if (!app.globalData.sessionToken) { beginAuthentication(returnUrl); return; }
+  if (returnUrl.startsWith("/pages/") && !returnUrl.startsWith("/pages/account/")) wx.setStorageSync(authReturnKey, returnUrl);
+  if (authRedirecting) return;
+  authRedirecting = true;
+  wx.navigateTo({ url:"/pages/account/index?intent=renew", fail:()=>wx.reLaunch({
+    url:"/pages/account/index?intent=renew",fail:()=>{authRedirecting=false;wx.showToast({title:"协议确认页暂时无法打开，请重试",icon:"none"});}
+  }) });
+}
+
+export interface CurrentLegalDocument { documentType:"terms"|"privacy"; version:string }
+export async function acceptCurrentLegalDocuments(consents:CurrentLegalDocument[]):Promise<void> {
+  // The route requires a valid session on the server. Account handles an expired
+  // session itself, so a 401 must not automatically open another Account above it.
+  const result=await request<{accepted:boolean;documents:CurrentLegalDocument[]}>({path:"/v1/me/legal-acceptances",method:"POST",authMode:"optional",cacheTags:["member"],data:{consents}});
+  if(result?.accepted!==true||!Array.isArray(result.documents)||result.documents.length!==consents.length||
+    !consents.every(item=>result.documents.some(value=>value.documentType===item.documentType&&value.version===item.version)))throw new Error("CURRENT_LEGAL_ACCEPTANCE_RESPONSE_INVALID");
+}
+
 function requestEnvironment(): string {
   const data = app.globalData;
   return JSON.stringify([data.apiBaseUrl, data.cloudFunction?.env ?? null, data.cloudFunction?.name ?? null]);

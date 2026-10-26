@@ -5,10 +5,13 @@ const source = (path: string) => readFile(path, "utf8");
 
 describe("mini program user-perceived performance guardrails", () => {
   it("derives a unique route inventory from app.json without a fixed page count", async () => {
-    const app = JSON.parse(await source("apps/miniprogram/app.json")) as { pages: string[]; subPackages: Array<{ root:string;pages: string[] }> };
-    expect(app.pages).toHaveLength(4);
+    const app = JSON.parse(await source("apps/miniprogram/app.json")) as { pages: string[]; subPackages: Array<{ root:string;pages: string[] }>; tabBar: {list:Array<{pagePath:string}>} };
+    const tabRoutes = app.tabBar.list.map(entry=>entry.pagePath);
+    expect(tabRoutes).toEqual(["pages/home/index","pages/records/index","pages/community/index","pages/profile/index"]);
+    expect(app.pages).toEqual(["pages/account/index",...tabRoutes]);
     const routes=[...app.pages,...app.subPackages.flatMap(entry=>entry.pages.map(page=>`${entry.root}/${page}`))];
     expect(new Set(routes).size).toBe(routes.length);
+    expect(routes.filter(route=>route==="pages/account/index")).toEqual(["pages/account/index"]);
     expect(routes).toContain("pages/checkout/index");
     expect(routes).toContain("pages/management-order-detail/index");
   });

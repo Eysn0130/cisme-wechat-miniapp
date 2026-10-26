@@ -4,7 +4,7 @@ const requireCapabilityMock=vi.hoisted(()=>vi.fn());
 const managementOrderMock=vi.hoisted(()=>vi.fn());
 const managementOrdersMock=vi.hoisted(()=>vi.fn());
 const managementCatalogMock=vi.hoisted(()=>vi.fn());
-vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock,authorityProjection:()=>requireCapabilityMock("commerce.order.read")}));
+vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock,authorityProjection:()=>requireCapabilityMock("commerce.order.read"),hasCapability:(projection:any,capability:string)=>Boolean(projection?.capabilities.includes(capability))}));
 vi.mock("../../apps/miniprogram/services/orders",()=>({managementOrder:managementOrderMock,
   managementOrders:managementOrdersMock}));
 vi.mock("../../apps/miniprogram/services/commerce",()=>({centsToYuan:(n:number)=>(n/100).toFixed(2),
@@ -95,5 +95,24 @@ it("does not retain a private catalog queue after the product-management permiss
   expect(page.data).toMatchObject({items:[],nextCursor:null,loading:true,loadingMore:false});
   deny();await checking;
   expect(page.data).toMatchObject({items:[],loading:false,error:"当前账号没有商品管理权限。"});
+  expect(managementCatalogMock).not.toHaveBeenCalled();
+});
+
+it.each(["commerce.product.manage","commerce.qualification.manage","commerce.inventory.manage"])("opens the catalog for its existing %s permission",async(capability)=>{
+  requireCapabilityMock.mockResolvedValue({version:1,managementAvailable:true,capabilities:[capability]});
+  managementCatalogMock.mockResolvedValue({items:[],nextCursor:null});
+  await vi.importActual("../../apps/miniprogram/pages/management-catalog/index");
+  const page=mount();
+  await page.onShow();
+  expect(managementCatalogMock).toHaveBeenCalledOnce();
+  expect(page.data).toMatchObject({loading:false,error:"",items:[]});
+});
+
+it("keeps unrelated management roles out of the catalog",async()=>{
+  requireCapabilityMock.mockResolvedValue({version:1,managementAvailable:true,capabilities:["support.read"]});
+  await vi.importActual("../../apps/miniprogram/pages/management-catalog/index");
+  const page=mount();
+  await page.onShow();
+  expect(page.data).toMatchObject({loading:false,error:"当前账号没有商品管理权限。"});
   expect(managementCatalogMock).not.toHaveBeenCalled();
 });

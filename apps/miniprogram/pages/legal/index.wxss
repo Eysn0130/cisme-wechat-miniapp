@@ -1,3 +1,8 @@
 .legal-title { font-size:40rpx; font-weight:600; margin-bottom:20rpx; }
 .legal-meta { font-size:26rpx; line-height:1.7; color:#756c75; margin:16rpx 0; overflow-wrap:anywhere; }
-.legal-body { display:block; white-space:pre-wrap; font-size:30rpx; line-height:1.9; margin:28rpx 0; overflow-wrap:anywhere; }
+.legal-body { margin:28rpx 0; }
+.legal-block { display:block; white-space:pre-wrap; font-size:30rpx; line-height:1.9; margin:24rpx 0; overflow-wrap:anywhere; }
+.legal-block--heading { font-size:34rpx; line-height:1.5; font-weight:600; margin-top:40rpx; margin-bottom:20rpx; }
+.legal-block--level1 { font-size:38rpx; }
+.legal-block--level3 { font-size:30rpx; }
+.legal-block--list { padding-left:12rpx; }

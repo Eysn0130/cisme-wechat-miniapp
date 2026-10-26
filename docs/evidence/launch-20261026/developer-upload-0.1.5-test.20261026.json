@@ -1,0 +1,18 @@
+{
+  "observedAtUtc": "2026-10-26T08:21:06.171Z",
+  "sourceHead": "dbd2b88a47f622621c2b226b03339677b183fef8",
+  "sourceTree": "7ced9ed2248a1e27a9f30f2995badab21fdddf79",
+  "nativePackageSourceSha256": "dfae3e43ee81570d7e48fb0c2accd09cf6e9be62b92ebc96b487b2b9b586a4d2",
+  "appId": "wx4eac2d4fb11d299b",
+  "tool": "/Applications/wechatwebdevtools-nightly.app/Contents/MacOS/cli",
+  "version": "0.1.5-test.20261026",
+  "commandExitCode": 0,
+  "officialCliUploadSuccess": true,
+  "platformState": "developer_version_only",
+  "experienceVersionConfigured": false,
+  "realDeviceIdentityVerified": false,
+  "logSha256": "8f64bce5445627fcb736bcfbe47950dc3f6a5b4c171a7fd55e957f523b4ba49d",
+  "infoOutputSha256": "9a8792dd9723958421df09019c3df30ab560980691aa9028df26411eabb3aeec",
+  "logModifiedAtUtc": "2026-10-26T08:16:02.696Z",
+  "note": "Official CLI reported upload success. This receipt does not substitute for WeChat console experience setting, declared server domains/privacy guide, member scope or real-device identity."
+}

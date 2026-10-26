@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-26T09:49:46.361274+00:00",
+  "runtimeSourceHead": "dbd2b88a47f622621c2b226b03339677b183fef8",
+  "runtimeSourceTree": "7ced9ed2248a1e27a9f30f2995badab21fdddf79",
+  "instance": "lhins-61ikz4mi",
+  "publicIpv4": "124.223.74.198",
+  "currentRuntimeVerified": true,
+  "versions": {
+    "node": "24.14.0",
+    "fastify": "5.12.6",
+    "sharp": "0.35.5",
+    "rsvg": "2.63.2",
+    "vips": "8.18.7"
+  },
+  "databaseMigrationPerformed": false,
+  "productionTrialDataIsolationPreserved": true,
+  "runtimeConfigurationAndSecretsPreserved": true,
+  "transactionAndPublicUgcRemainClosed": true,
+  "archiveSha256": "12549b832a075961a4544a8b6508b258fe62d840a3384869e5f77679371eacc1",
+  "archiveBytes": 25604917,
+  "ciRunUrl": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/40290841940",
+  "transportReview": "Trial reused the exact raw-source guard with a reviewed 45-second socket budget. Production used the same first-party repository exact-commit Contents API, complete bounded response/Base64/Git blob checks; exact source permits and latest main push CI stayed mandatory. No local source substitution or retries inside either supervisor.",
+  "nativeExperienceVersion": "0.1.5-test.20261026",
+  "nativeSourceSha256": "dfae3e43ee81570d7e48fb0c2accd09cf6e9be62b92ebc96b487b2b9b586a4d2",
+  "experienceConfiguredAndDeviceLogin": "User explicitly confirmed experience version configured and login completed; live read-only aggregate found exactly one real WeChat identity and zero development identities. This does not prove every page/device state or every console domain/privacy field.",
+  "currentNativeEnhancements": "Uncommitted onboarding, page interaction fixes and owner-authorized editorial are a later candidate; the old package evidence does not accept that new source.",
+  "files": [
+    {
+      "file": "runtime-deployment-dbd2b88a47f6.json",
+      "sha256": "ee76fc065056afcedb0aa8c69061e910e0d032951f8e23d24ae6e5105b7efcdd",
+      "bytes": 12624
+    },
+    {
+      "file": "trial-dependency-activation-dbd2b88a47f6.json",
+      "sha256": "187b1764d8fb7bdc4862257d654d3f5bab392b18e43019c1cdb66a46340429c0",
+      "bytes": 713
+    },
+    {
+      "file": "production-dependency-activation-dbd2b88a47f6.json",
+      "sha256": "3a163b252f4e6ccc35ac30d7fb878cbc63df6e1ce09d1104a0d8599423d9fe8d",
+      "bytes": 779
+    },
+    {
+      "file": "developer-upload-0.1.5-test.20261026.json",
+      "sha256": "5faf56ee08f913fa6050de1ad0c930b08141464004b42d769bf41cfdaefa9460",
+      "bytes": 1021
+    },
+    {
+      "file": "native-guest-smoke-dfae3e43ee81.json",
+      "sha256": "aaec4330ec8365b8eefa625d24e18a92910077eaeb4e3fb211e33615720a39ef",
+      "bytes": 7505
+    },
+    {
+      "file": "trial-real-identity-aggregate-20261026.json",
+      "sha256": "0f096b8b1846eed15be6ebf19e9063c9ab0c940526ad5671b784b8da25aaffc5",
+      "bytes": 669
+    }
+  ]
+}

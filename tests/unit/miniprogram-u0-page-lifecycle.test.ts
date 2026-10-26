@@ -57,6 +57,40 @@ beforeEach(() => {
 });
 
 describe("U0 native page lifecycle regressions", () => {
+  it("turns a failed support authority read into a retryable state and rechecks authority once on retry", async () => {
+    requestMock.mockRejectedValueOnce(new Error("offline"));
+    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
+    const page = mountedPage(capturedPage!, { id: "conversation-a", messages: [{ id: "private-message" }],
+      canReply: true, memberContext: { id: "private-member" }, contextOpen: true });
+    page.load = vi.fn(async () => page.setData({ loading: false, error: "" }));
+    page.loadAiStatus = vi.fn(async () => {});
+    page.startPolling = vi.fn();
+    page.measureActions = vi.fn();
+    await page.onShow();
+    expect(page.data).toMatchObject({ loading: false, messages: [], canReply: false,
+      memberContext: null, contextOpen: false, visible: false });
+    expect(page.data.error).toContain("请重试");
+    expect(page.load).not.toHaveBeenCalled();
+    requestMock.mockResolvedValueOnce({ version: 1, managementAvailable: true, capabilities: ["support.read", "support.reply"] });
+    await page.retry();
+    expect(requestMock).toHaveBeenCalledTimes(2);
+    expect(requestMock.mock.calls.every(([options]) => options.path === "/v1/me/authority")).toBe(true);
+    expect(page.load).toHaveBeenCalledOnce();
+    expect(page.data).toMatchObject({ loading: false, visible: true, canReply: true, error: "" });
+  });
+
+  it("clears the operator thread and stops loading when support authority is denied", async () => {
+    requestMock.mockResolvedValueOnce({ version: 1, managementAvailable: true, capabilities: ["member.profile.read"] });
+    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
+    const page = mountedPage(capturedPage!, { id: "conversation-a", messages: [{ id: "private-message" }],
+      canReply: true, input: "private draft", assignedToMe: true });
+    await page.onShow();
+    expect(page.data).toMatchObject({ loading: false, visible: false, messages: [], canReply: false,
+      input: "", assignedToMe: false });
+    expect(page.data.error).toContain("没有客服访问权限");
+    expect(requestMock).toHaveBeenCalledOnce();
+  });
+
   it("uses the verified historical-rights token to read owned support attachments after closure", async () => {
     await vi.importActual("../../apps/miniprogram/pages/support/index");
     const abort = vi.fn();

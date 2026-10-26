@@ -250,7 +250,7 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
     },
     async writeDerivedImage(objectKey, bytes) {
-      if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
+      if (!(objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: objectKey, Body: bytes, ContentType: "image/webp" }), { abortSignal: dependencySignal(30_000) });
     }
@@ -328,7 +328,7 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       }finally{await file.close();}
     },
     async writeDerivedImage(objectKey, bytes) {
-      if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
+      if (!(objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
       await mkdir(directory, { recursive: true });
       await writeFile(resolve(directory, objectKey.replaceAll("/", "__")), bytes, { flag: "w", signal: dependencySignal(30_000) });
@@ -507,7 +507,7 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
     },
     async delete(objectKey) { await getClient().deleteObject({ ...location, Key: objectKey }); },
     async writeDerivedImage(objectKey, bytes) {
-      if (!objectKey.startsWith("ugc-derived/") || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
+      if (!(objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
       await requireNoVersioning();
       await immutablePut(objectKey,bytes,"image/webp");

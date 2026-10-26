@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "status": "draft_not_published",
+  "preparedAtUtc": "2026-10-26T09:29:52.433064+00:00",
+  "authorDisplayName": "ʜᴇ ʜᴇ ʜᴇ",
+  "authorMemberId": null,
+  "authorBindingRequired": "Fresh real canonical WeChat identity; never nickname/WeChat ID lookup as authority",
+  "publicationAuthorization": "User explicitly authorized CISME community content preparation and publication under their real account on 2026-10-26",
+  "noImportedEngagementMetrics": true,
+  "contentOriginalRewrite": true,
+  "posts": [
+    {
+      "slug": "meet-cisme-care-journal",
+      "category": "品牌介绍",
+      "title": "从一次护理开始，认识 CISME",
+      "excerpt": "把日常步骤和自己的感受，慢慢记下来。",
+      "coverKey": "journal-comb",
+      "body": "CISME 关心日常头皮与发丝护理，也关心每次使用后的真实感受。\n\n在这里，你可以认识护理步骤，阅读日常护理知识，并在实际开放的护理周期中回看自己的记录。护理不是一张统一的标准答卷：当天用了什么、怎样操作、使用后是否舒适，都值得如实记录。\n\n社区中有品牌介绍、护理常识和记录方法。你可以先收藏感兴趣的文章，等需要时再回来慢慢看。\n\n从了解自己的日常习惯开始。具体产品的用法、用量和频次，请以产品说明为准。",
+      "sources": [
+        {
+          "url": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5",
+          "role": "品牌账号与介绍主题参考；本篇为重新撰写的品牌编辑内容，不引用未经核验的研发或功效数据。"
+        }
+      ],
+      "kind": "brand"
+    },
+    {
+      "slug": "scalp-clean-hair-condition",
+      "category": "护理常识",
+      "title": "头皮清洁与发丝修护，分开照顾",
+      "excerpt": "洗发与护发的重点不同，先看清产品说明。",
+      "coverKey": "scalp-hair-still-life",
+      "body": "洗发时，清洁重点通常在头皮；发丝护理则要结合发质和产品说明，选择适当的使用部位。\n\n美国皮肤病学会建议把洗发产品主要用于头皮。细软或直发使用护发素时可重点照顾发梢，干燥或卷曲发质的使用范围可能不同。不要用同一条规则要求所有发质。\n\nCISME 四步中的 02 是发丝修护，03 是洗后头皮精护。两步不要混用，停留时间、是否冲洗等以各自产品说明为准。出现明显不适时停止使用。",
+      "sources": [
+        {
+          "url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips",
+          "title": "American Academy of Dermatology · Tips for healthy hair",
+          "role": "洗发与护发部位建议；中文内容为摘要改写。"
+        },
+        {
+          "path": "docs/product/CISME-产品需求文档-PRD-V2.1-R4.md",
+          "section": "§1.1",
+          "role": "CISME 00–03 产品步骤定义。"
+        }
+      ],
+      "kind": "knowledge"
+    },
+    {
+      "slug": "washing-frequency-observation",
+      "category": "护理常识",
+      "title": "多久洗一次头？先看自己的状态",
+      "excerpt": "关注油脂、汗水和残留，不必追求统一间隔。",
+      "coverKey": "water-linen",
+      "body": "洗头频次不需要和别人一样。可以先留意：头皮和发丝什么时候变得油腻，运动后是否有汗水或造型产品残留，清洁后是否舒适。\n\n美国疾控中心的日常卫生资料指出，油脂、汗水及产品残留等可能在头皮积累，建议规律清洁，并选择适合自己发质的洗护产品。\n\n不要仅凭气味、出油速度或几条网络自查，就给自己下诊断。持续明显瘙痒、疼痛、红肿或其他异常时，向皮肤科医生咨询。这里提供日常观察方法，不承诺某个固定天数后的改善。",
+      "sources": [
+        {
+          "url": "https://www.cdc.gov/hygiene/about/hair-and-scalp-hygiene.html",
+          "title": "CDC · Healthy Habits: Hair and Scalp Hygiene",
+          "role": "日常清洁与油脂、汗水、残留的一般说明。"
+        },
+        {
+          "url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips",
+          "title": "American Academy of Dermatology · Tips for healthy hair",
+          "role": "持续头皮问题向皮肤科医生咨询的一般建议。"
+        }
+      ],
+      "kind": "knowledge"
+    },
+    {
+      "slug": "gentle-after-wash-drying",
+      "category": "护理常识",
+      "title": "洗后擦干，少一点来回摩擦",
+      "excerpt": "先温和吸走水分，再按发质整理。",
+      "coverKey": "gentle-towel",
+      "body": "洗完头后，可以先用干净毛巾轻轻包裹、吸走多余水分，减少反复用力揉搓。\n\n美国皮肤病学会在日常护发建议中提醒，用毛巾大力摩擦和过度加热都可能损伤发丝。如需吹干，可选择较低热度，并减少高热工具的使用。\n\n梳理方法也要结合发质。遇到打结时，从发梢慢慢整理，避免硬拉。具体护发产品和工具的使用仍以说明为准；不需要为了完成一套流程而忍受拉扯或明显不适。",
+      "sources": [
+        {
+          "url": "https://www.aad.org/public/diseases/hair-loss/insider/stop-damage/",
+          "title": "American Academy of Dermatology · How to stop damaging your hair",
+          "role": "温和吸水与减少热损伤建议，摘要改写。"
+        },
+        {
+          "url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips",
+          "title": "American Academy of Dermatology · Tips for healthy hair",
+          "role": "按发质、从发梢温和梳理建议。"
+        }
+      ],
+      "kind": "knowledge"
+    },
+    {
+      "slug": "describe-your-care-feeling",
+      "category": "记录方法",
+      "title": "护理后怎么记：写感受，不写标准答案",
+      "excerpt": "舒适、不适或没有明显变化，都可以如实写。",
+      "coverKey": "feeling-diary",
+      "body": "完成护理步骤后，先问自己：现在最直接的感受是什么？\n\n可以记录清爽程度、紧绷感、发丝触感，以及是否出现不适。不必为了“完成任务”写成满意，也不必推测尚未发生的效果。没有明显变化，同样是真实信息。\n\n记录尽量具体，例如“吹干后发梢容易梳开”“本次洗后有紧绷感”。把日期、步骤和感受放在一起，回看时更容易理解。请勿提交无关病历、证件或他人资料。\n\n日常练习完成不等于生成正式护理记录。保存结果以护理页面显示为准，记录页可查看已实际提交的步骤事实和自我感受。",
+      "sources": [
+        {
+          "path": "docs/product/CISME-产品需求文档-PRD-V2.1-R4.md",
+          "section": "§1.1、CARE-01/02",
+          "role": "步骤完成与护理后感受记录要求。"
+        }
+      ],
+      "kind": "guide"
+    },
+    {
+      "slug": "four-step-care-explained",
+      "category": "使用指南",
+      "title": "认识 00–03：四步护理各做什么",
+      "excerpt": "按顺序区分净澈、清洁、发丝修护与头皮精护。",
+      "coverKey": "drying-comb",
+      "body": "00 周期净澈、01 日常头皮清洁、02 发丝水光修护、03 洗后头皮精护，各有对应的护理部位与使用方式。\n\n开始前先阅读产品说明，确认本次适用步骤、用量、频次和冲洗方式。02 护理发丝，03 用于洗后头皮精护，不要因为都是“修护”就混用。\n\n实际护理周期从待开始状态进入，需要你明确确认；到期护理按 00、01、02、03 的顺序完成，再提交自己的护理后感受。中途离开后，请回到原流程核对当前进度。\n\n如果只是查看或日常练习，页面会说明是否生成记录。不要把操作完成提示当作已经保存的护理事实。",
+      "sources": [
+        {
+          "path": "docs/product/CISME-产品需求文档-PRD-V2.1-R4.md",
+          "section": "§1.1、CARE-01/02",
+          "role": "稳定护理步骤、显式开始和分步持久化要求。"
+        }
+      ],
+      "kind": "guide"
+    }
+  ]
+}

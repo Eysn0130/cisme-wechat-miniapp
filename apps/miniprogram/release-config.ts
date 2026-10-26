@@ -8,7 +8,7 @@ export const miniProgramCloudFunctions: Partial<Record<MiniProgramRuntime, Cloud
 /**
  * These URLs are public release metadata, not credentials.
  *
- * - devtools: local simulator only.
+ * - devtools: real WeChat identity and the isolated experience API.
  * - preview: QR codes opened on a physical device (envVersion=develop).
  * - trial: WeChat experience version.
  * - release: audited production version.
@@ -17,7 +17,7 @@ export const miniProgramCloudFunctions: Partial<Record<MiniProgramRuntime, Cloud
  * require an HTTPS API origin registered in the Mini Program console.
  */
 export const miniProgramApiOrigins: Record<MiniProgramRuntime, string> = {
-  devtools: "http://127.0.0.1:18080",
+  devtools: "https://staging-api.cisme.cn",
   preview: "https://staging-api.cisme.cn",
   trial: "https://staging-api.cisme.cn",
   release: "https://api.cisme.cn"
@@ -85,7 +85,7 @@ const localLegalFixture: LegalDocumentVersions = {
 };
 
 export function shouldUseDevelopmentIdentity(envVersion: string, platform: string, remoteDebugMode = false, cloudTransport = false): boolean {
-  return !cloudTransport && envVersion === "develop" && (platform === "devtools" || remoteDebugMode);
+  return !cloudTransport && envVersion === "develop" && platform !== "devtools" && remoteDebugMode;
 }
 
 export function legalDocumentVersions(envVersion: string, platform: string, remoteDebugMode = false, cloudTransport = false): LegalDocumentVersions | null {

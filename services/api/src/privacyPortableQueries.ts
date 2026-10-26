@@ -104,6 +104,16 @@ export const portableQuerySpecs = [
   {section:'community',collection:'reports',single:false,sql:`SELECT id,target_type,target_id,category,description,state,
         created_at,updated_at FROM ugc_report WHERE reporter_member_id=$1
         ORDER BY created_at,id`},
+  {section:'editorial',collection:'articles',single:false,sql:`SELECT id,external_ref,author_display_name,title,excerpt,body,
+        source_url,authorization_ref,media,content_sha256,status,version,published_at,created_at,updated_at
+        FROM editorial_article WHERE author_member_id=$1 ORDER BY created_at,id`},
+  {section:'editorial',collection:'publicationEvidence',single:false,sql:`SELECT r.article_id,r.version,r.content_sha256,r.action,
+        r.authorization_sha256,r.rights_sha256,r.created_at FROM editorial_article_revision r JOIN editorial_article a ON a.id=r.article_id
+        WHERE a.author_member_id=$1 OR r.actor_member_id=$1 ORDER BY r.article_id,r.version`},
+  {section:'editorial',collection:'reactions',single:false,sql:`SELECT post_id,kind,created_at FROM community_reaction
+        WHERE member_id=$1 AND post_id LIKE 'editorial:%' ORDER BY created_at,post_id,kind`},
+  {section:'editorial',collection:'follows',single:false,sql:`SELECT author_id,created_at FROM community_follow
+        WHERE member_id=$1 ORDER BY created_at,author_id`},
   {section:'membership',collection:'state',single:true,sql:`SELECT state,effective_at,expires_at,updated_at
         FROM commercial_membership WHERE member_id=$1`},
   {section:'membership',collection:'referralCode',single:true,sql:`SELECT code,state,created_at,disabled_at

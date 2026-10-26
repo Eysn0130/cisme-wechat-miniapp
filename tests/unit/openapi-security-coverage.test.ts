@@ -11,6 +11,9 @@ const publicOperations = new Set([
   "GET /v1/capabilities",
   "GET /v1/identity/capabilities",
   "GET /v1/legal",
+  // Independently authorized owned content only; no UGC/preview gate exceptions.
+  "GET /v1/editorial/articles",
+  "GET /v1/editorial/media/{id}/{sha}",
   "POST /v1/identity/dev",
   "POST /v1/identity/wechat",
   "POST /v1/identity/wechat/privacy-rights",
@@ -40,7 +43,8 @@ const publicOperations = new Set([
   "GET /v1/ugc/safety-callback",
   "POST /v1/ugc/safety-callback"
 ]);
-const optionalSessionOperations = new Set(["GET /v1/community/{postId}"]);
+const optionalSessionOperations = new Set(["GET /v1/community/{postId}",
+  "GET /v1/editorial/articles/{id}", "GET /v1/editorial/authors/{id}"]);
 
 it("declares a supported security policy for every registered versioned operation", () => {
   const source = readFileSync("services/api/src/server.ts", "utf8");

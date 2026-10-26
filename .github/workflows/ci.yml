@@ -65,6 +65,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s infra/tencent -p 'test_staging_*.py' -v
           python3 -m unittest discover -s infra/tencent -p 'test_production_*.py' -v
+          python3 -W error::ResourceWarning -m unittest discover -s infra/tencent -p 'test_trial_application_upgrade.py' -v
           trial_backup_test_venv="$RUNNER_TEMP/trial-backup-test-venv"
           python3 -m venv "$trial_backup_test_venv"
           "$trial_backup_test_venv/bin/python" -m pip install --disable-pip-version-check cryptography==50.0.1 cffi==2.1.1 pycparser==3.0

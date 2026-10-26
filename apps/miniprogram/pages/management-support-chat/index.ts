@@ -1,6 +1,6 @@
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
-import { authorityProjection, hasCapability, requireCapability } from "../../services/authority";
+import { authorityProjection, hasCapability } from "../../services/authority";
 import { downloadPrivateMedia, request, retainMemberSnapshot } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
 import { clientOperationKey } from "../../services/orders";
@@ -104,6 +104,7 @@ Page({
     this.measureActions();
   },
   async onShow() {
+    this.stopPolling();
     this.readRevision=commerceContextRevision();
     this.lifecycleEpoch += 1;
     const epoch = this.lifecycleEpoch;
@@ -117,29 +118,37 @@ Page({
       this.clearSensitiveThread();
     }
     this.setData({ loading: true, busy: false });
-    if (!await requireCapability("support.read")) {
-      this.clearSensitiveThread();
-      this.data.visible = false;
-      return;
+    try {
+      const authority = await authorityProjection(this);
+      if (!this.owns(epoch, ownerToken)) return;
+      if (authority.version !== 1 || !authority.managementAvailable || !hasCapability(authority, "support.read")) {
+        this.clearSensitiveThread();
+        this.data.visible = false;
+        this.setData({ loading:false, error:"当前账号没有客服访问权限，请返回管理中心或重试。" });
+        return;
+      }
+      const canAssign = hasCapability(authority, "support.assign");
+      const canReply = hasCapability(authority, "support.reply");
+      const canViewContext = hasCapability(authority, "member.support_view");
+      const canManageAftersale = hasCapability(authority,"commerce.aftersale.review");
+      if (!canReply) {
+        this.inputRevision += 1;
+        this.setData({ input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
+      }
+      this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
+        ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
+        ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],returnFormCaseId:"",returnAttempt:null}:{}) });
+      await Promise.all([this.load(), this.loadAiStatus()]);
+      if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
+      if (this.owns(epoch, ownerToken)) this.startPolling();
+      wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
+    } catch {
+      if (this.owns(epoch, ownerToken)) {
+        this.clearSensitiveThread();
+        this.data.visible = false;
+        this.setData({ loading:false, error:"客服权限或会话暂时无法核验，请重试。" });
+      }
     }
-    if (!this.owns(epoch, ownerToken)) return;
-    const authority = await authorityProjection(this);
-    if (!this.owns(epoch, ownerToken)) return;
-    const canAssign = hasCapability(authority, "support.assign");
-    const canReply = hasCapability(authority, "support.reply");
-    const canViewContext = hasCapability(authority, "member.support_view");
-    const canManageAftersale = hasCapability(authority,"commerce.aftersale.review");
-    if (!canReply) {
-      this.inputRevision += 1;
-      this.setData({ input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
-    }
-    this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
-      ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
-      ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],returnFormCaseId:"",returnAttempt:null}:{}) });
-    await Promise.all([this.load(), this.loadAiStatus()]);
-    if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
-    if (this.owns(epoch, ownerToken)) this.startPolling();
-    wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
   },
   onHide() {
     cancelPageReads(this);
@@ -703,7 +712,7 @@ Page({
     const id = String(event.currentTarget.dataset.id ?? "");
     if (id) wx.navigateTo({ url: `/pages/management-order-detail/index?id=${encodeURIComponent(id)}` });
   },
-  retry() { void this.load(); },
+  retry() { return this.onShow(); },
   back() {
     wx.navigateBack({ fail: () => wx.redirectTo({ url: "/pages/management-support/index" }) });
   }

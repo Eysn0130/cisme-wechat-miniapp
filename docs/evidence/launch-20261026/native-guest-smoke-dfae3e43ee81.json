@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "createdAtUtc": "2026-10-26T08:53:39.708945+00:00",
+  "kind": "source-bound-native-guest-smoke",
+  "source": {
+    "commit": "dbd2b88a47f622621c2b226b03339677b183fef8",
+    "tree": "7ced9ed2248a1e27a9f30f2995badab21fdddf79",
+    "nativeSourceSha256": "dfae3e43ee81570d7e48fb0c2accd09cf6e9be62b92ebc96b487b2b9b586a4d2",
+    "nativeFileCount": 270,
+    "hashAlgorithm": "SHA256 of sorted absolute-path strings converted to relative paths, then relative path + NUL + file bytes; project.private.config.json excluded, matching scripts/miniprogram-package-lib.ts.",
+    "bindingScope": "Current session source/readback/capture context. Historical screenshots are not promoted.",
+    "workingTreeNativeChanges": []
+  },
+  "environment": {
+    "tool": "WeChat DevTools Nightly",
+    "versionReportedByRoot": "2.02.2609102",
+    "baseLibraryObservedBySdk": "3.15.2",
+    "viewportPx": {
+      "width": 390,
+      "height": 844
+    },
+    "identity": "guest; no login or authorization action in this smoke",
+    "runtimeOrigin": "http://127.0.0.1:18080",
+    "transport": "Root-established strict SSH local forwarding to isolated trial service on formal-host loopback port3101. No claim of HTTP-origin TLS or WeChat-domain qualification."
+  },
+  "evidence": [
+    {
+      "path": "docs/evidence/launch-20261026/native-home-guest.jpg",
+      "sha256": "84cbd768ef58bb57f6486524880f5d7f18051502bcc59a76f68fce0984fbb118",
+      "bytes": 48073,
+      "mimeType": "image/jpeg",
+      "widthPx": 390,
+      "heightPx": 844,
+      "scope": "Current-session WeChat DevTools simulator capture by root; visually inspected by native_release_audit. File does not intrinsically attest a source hash."
+    },
+    {
+      "path": "docs/evidence/launch-20261026/native-home-step02.jpg",
+      "sha256": "3d44658f8134a76bbbd2d19cdbe27646a1fae9c00168e6f29923486ddf70064b",
+      "bytes": 48524,
+      "mimeType": "image/jpeg",
+      "widthPx": 390,
+      "heightPx": 844,
+      "scope": "Current-session WeChat DevTools simulator capture by root; visually inspected by native_release_audit. File does not intrinsically attest a source hash."
+    },
+    {
+      "path": "docs/evidence/launch-20261026/native-community-empty.jpg",
+      "sha256": "865411e5760b8402fbb548d03bb8e4f4ce80e290697f4bbcf3f5ba72d70adaf3",
+      "bytes": 15017,
+      "mimeType": "image/jpeg",
+      "widthPx": 390,
+      "heightPx": 844,
+      "scope": "Current-session WeChat DevTools simulator capture by root; visually inspected by native_release_audit. File does not intrinsically attest a source hash."
+    },
+    {
+      "path": "tmp/launch-20261026/nightly-post-refresh-runtime-sanitized.json",
+      "sha256": "ce4161b04ec97b79ff52d2c9dd2aa639b8b56e5c5aad4ba5d32856de1c229acf",
+      "bytes": 3165
+    },
+    {
+      "path": "tmp/launch-20261026/nightly-post-forward-runtime-sanitized.json",
+      "sha256": "da7e8c140513a11e00c9a87ae78ba3d2a9d3e299a596fdb8a5704a484d78ba0b",
+      "bytes": 3914
+    },
+    {
+      "path": "tmp/launch-20261026/nightly-guest-navigation-warnings-sanitized.json",
+      "sha256": "39a33e2119371c9fe18ee8979bda5fc1d94d5f12e5478dc8760a59e1035821e0",
+      "bytes": 5163
+    }
+  ],
+  "observations": [
+    {
+      "id": "GUEST_HOME_CTA",
+      "result": "observed",
+      "statement": "Guest home shows 授权身份并开始. Root observed returning to home without an automatic redirect. Screenshot independently confirms the CTA and the 00 周期净澈 copy.",
+      "evidence": [
+        "docs/evidence/launch-20261026/native-home-guest.jpg",
+        "tmp/launch-20261026/nightly-guest-navigation-warnings-sanitized.json"
+      ]
+    },
+    {
+      "id": "STEP02_HAIR_REPAIR_COPY",
+      "result": "observed-with-P2-finding",
+      "statement": "Selecting 02 shows 发丝水光修护 and a cue beginning 本步骤护理发丝; the cue is ellipsized at this 390px viewport. No authenticated completion or dosage/duration acceptance is inferred.",
+      "evidence": [
+        "docs/evidence/launch-20261026/native-home-step02.jpg"
+      ]
+    },
+    {
+      "id": "COMMUNITY_EMPTY_AND_CLOSED_PUBLIC_ENTRY",
+      "result": "observed",
+      "statement": "Guest community shows 精选护理故事暂未上架，稍后再来看看。 and no visible public-posting entry. SDK currentPage independently reads pages/community/index.",
+      "evidence": [
+        "docs/evidence/launch-20261026/native-community-empty.jpg",
+        "tmp/launch-20261026/nightly-post-forward-runtime-sanitized.json"
+      ]
+    },
+    {
+      "id": "COMMUNITY_API_FORWARD",
+      "result": "observed-local-forward-only",
+      "statement": "At 08:31:29–31Z SDK network records GET /v1/capabilities, /v1/ugc/status, /v1/feed/page and /v1/ugc/posts with HTTP200 through 127.0.0.1:18080. SDK response content types were unavailable. No response bodies are included in this artifact.",
+      "evidence": [
+        "tmp/launch-20261026/nightly-post-forward-runtime-sanitized.json"
+      ]
+    },
+    {
+      "id": "GUEST_RECORDS_ACCOUNT_CANCEL_HOME",
+      "result": "observed-by-root",
+      "statement": "Root reports community → records tap → account, login disabled until agreement consent; no login/authorization tap. Choosing 暂不登录，浏览公开社区 then 护理 returns to guest home. SDK at 08:36:05Z confirms pages/home/index. The transient account sequence has no screenshot among these three files and is attributed only to root current-session UI observation.",
+      "evidence": [
+        "tmp/launch-20261026/nightly-guest-navigation-warnings-sanitized.json"
+      ]
+    }
+  ],
+  "warnings": {
+    "guiObservedByRoot": {
+      "errors": 0,
+      "warnings": 6
+    },
+    "sdkConsoleAt083606Z": {
+      "errorLines": 0,
+      "warningLines": 0,
+      "bufferLines": 5
+    },
+    "officialLogObserved": "Six WARN records at 08:34:35–08:35:03Z are three RouteController eventQueue push(length1) / remove after routeDone(length0) pairs. Two separate 08:31 IDE plugin check-update WARN records also occurred.",
+    "classification": "These observed log messages show completed internal routing; no source or SDK blocker is demonstrated. Their identity with the GUI warning counter is not independently established.",
+    "acceptanceCaveat": "Do not describe the entire GUI as warning-free."
+  },
+  "findings": [
+    {
+      "id": "P2_HOME_STEP02_HINT_ELLIPSIZED_390",
+      "severity": "P2",
+      "status": "open",
+      "route": "pages/home/index",
+      "statement": "The step02 hint is visibly ellipsized after 出现明显不适时停止使… at 390px. Keep this bounded visual issue separate from authentication and server lifecycle gates.",
+      "evidence": "docs/evidence/launch-20261026/native-home-step02.jpg"
+    }
+  ],
+  "notVerified": {
+    "realDeviceIos": false,
+    "realDeviceAndroid": false,
+    "realWechatIdentity": false,
+    "authenticatedCareCycleActivationAndPersistence": false,
+    "currentSourceFullPageStateMatrix": false,
+    "publicHttpsTlsFromDevice": false,
+    "wechatRequestUploadDownloadDomainStatus": "unknown",
+    "wechatPlatformPrivacyDeclaration": "unknown",
+    "trialVersionUploadedAndAssignedToDesignatedMembers": "unknown",
+    "designatedTesterPlatformMembership": "unknown",
+    "approvedTesterQualificationAndNamedOperator": "not established by this smoke"
+  },
+  "releaseReady": false,
+  "scopeConclusion": "Only the listed current-source native guest smoke observations are supported. This artifact changes no master Design QA or release gate."
+}

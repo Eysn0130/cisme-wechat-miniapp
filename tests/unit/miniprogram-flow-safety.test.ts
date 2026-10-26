@@ -102,8 +102,9 @@ describe("mini program submission flow safety", () => {
     expect(releaseConfig).toContain('query.cisme_remote_debug !== "1"');
     expect(releaseConfig).toContain('envVersion !== "develop"');
     expect(account).not.toContain("const initialLegalDocuments = currentLegalDocuments()");
-    expect(account).toMatch(/onShow\(\)\s*\{[^\n]*this\.syncLegalDocuments\(\)/);
-    expect(account).toMatch(/onShow\(\)\s*\{[^\n]*void this\.syncLegalDocuments\(\);/);
+    const accountOnShow = account.slice(account.indexOf("  onShow() {"), account.indexOf("  onHide()"));
+    expect(accountOnShow).toContain("void this.syncLegalDocuments();");
+    expect(accountOnShow).toContain("if(this.data.renewalMode)");
     expect(account).toMatch(/syncLegalDocuments\(\)\s*\{[\s\S]*legalTextsReady:\s*Boolean\(documents\)/);
     expect(account).toContain("legalDocuments.privacy");
     expect(account).toContain("legalDocuments.terms");
@@ -140,7 +141,7 @@ describe("mini program submission flow safety", () => {
     const records = await source("apps/miniprogram/pages/records/index.ts");
     const recordsView = await source("apps/miniprogram/pages/records/index.wxml");
 
-    expect(community).toContain('feedModel(this).feed = []; this.setData({ error: "社区内容暂时无法加载');
+    expect(community).toContain('if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = [];feedModel(this).editorial=[];this.setData({ error: this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。" }); this.renderFeed(); }');
     expect(community).toContain("this.data.feedAttempt === attempt");
     expect(home).toContain("authorityAvailable: false");
     expect(home).toContain("care: null, view: homeView(null)");
@@ -200,7 +201,7 @@ describe("mini program submission flow safety", () => {
     const product = await source("apps/miniprogram/pages/product/index.ts");
     const productView = await source("apps/miniprogram/pages/product/index.wxml");
 
-    expect(account).toContain("if (this.data.loading && this.data.identityCommitStarted)");
+    expect(account).toContain("if (this.data.loading && (this.data.identityCommitStarted||this.data.legalAcceptanceStarted))");
     expect(account).toContain("身份请求已发送");
     expect(account).toContain("离开页面不会撤回已提交的身份确认");
     expect(accountView).toContain('disabled="{{leavePromptOpen || leaving || avatarBusy}}"');
@@ -342,10 +343,12 @@ describe("mini program submission flow safety", () => {
     expect(profile).toContain("this.data.loadAttempt === attempt");
     expect(profile).toContain("this.data.tasksAttempt !== attempt");
     expect(profile).toContain("member:null, points:null, care:null, coreUnavailable:false, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null");
-    expect(post).toContain("onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
+    expect(post).toContain("onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
     expect(post).not.toContain("allowPublicBrowsing");
     expect(post).toContain("this.data.loadAttempt !== attempt");
-    expect(post).toContain('this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followError: "", item: null, media: [], mediaIndex: 0, shareId: "", loading: true');
+    expect(post).toContain('this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], mediaIndex: 0, mediaError:"",shareId: "", loading: true');
+    expect(post).toContain('currentEditorial(attempt:number,token:string){return this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken;}');
+    expect(post).toContain('onHide() { this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1;');
     expect(tab).toContain("wx.pageScrollTo({ scrollTop: 0, duration: 0 })");
     expect(tab).toContain("reducedMotion: shouldReduceMotion()");
     expect(tabView).toContain("bar--reduced-motion");

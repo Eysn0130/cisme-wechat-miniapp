@@ -95,26 +95,30 @@ Page({
   async loadSettingsBootstrap() {
     const token = getApp<IAppOption>().globalData.sessionToken;
     const attempt = ++this.data.loadAttempt;
+    let snapshotReceived = false;
     this.setData({ loading: true, phoneLoading: true, profileError: "", phoneError: "", error: "" });
     try {
       const snapshot = await request<any>({ path: "/v1/bootstrap/settings", cacheTags: ["member"] });
       if (!this.data.pageAlive || token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.loadAttempt) return;
       const profile = snapshot.settings.profile;
+      this.setData({ authenticated:true,phoneEnabled:snapshot.settings.phone.enabled,phoneBound:snapshot.settings.phone.bound,phoneMasked:snapshot.settings.phone.masked || "",
+        consents:snapshot.settings.consents.map((item:any)=>({...item,purposeLabel:consentPurposeLabels[item.purpose] ?? "其他已记录用途许可"})),sessionStatus:"valid" });
+      snapshotReceived = true;
+      if (this.data.profileDirty) return;
       const avatarUrl = await localMemberAvatar(profile.avatar_data_url, profile.avatar_revision);
       if (!this.data.pageAlive || token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.loadAttempt || this.data.profileDirty) return;
       this.profileSessionToken = token;
       publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision || 0,completed_at:profile.completed_at,public_status:profile.public_status});
       this.setData({ displayName:profile.display_name, wechatHandle:profile.wechat_handle || "", avatarUrl, memberId:profile.id, memberCode:String(profile.id || "").slice(0,8).toUpperCase(),
         avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,
-        publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true,
-        authenticated:true,phoneEnabled:snapshot.settings.phone.enabled,phoneBound:snapshot.settings.phone.bound,phoneMasked:snapshot.settings.phone.masked || "",
-        consents:snapshot.settings.consents.map((item:any)=>({...item,purposeLabel:consentPurposeLabels[item.purpose] ?? "其他已记录用途许可"})),sessionStatus:"valid",loading:false,phoneLoading:false
+        publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true
       },()=>this.checkAddressDraftRecovery(profile.id));
     } catch (error) {
       if (!this.data.pageAlive || attempt !== this.data.loadAttempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
+      if (snapshotReceived) { this.setData({profileError:"会员头像暂未同步，可重新加载资料；手机号与许可状态已更新。"}); return; }
       const invalid=isAuthenticationFailure(error);
       this.setData({loading:false,phoneLoading:false,profileError:"会员资料暂未同步，请重试。",phoneError:"手机号状态暂未同步。",sessionStatus:invalid?"invalid":"unknown",errorAction:invalid?"auth":"load",error:invalid?"当前会话已失效。重新登录后会回到本页，不会改写已有许可。":"设置快照暂时无法加载，请检查网络后重试。"},scrollToSettingsError);
-    }
+    } finally { if (this.data.pageAlive && attempt === this.data.loadAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({loading:false,phoneLoading:false}); }
   },
   async loadProfile() {
     const token = getApp<IAppOption>().globalData.sessionToken;
