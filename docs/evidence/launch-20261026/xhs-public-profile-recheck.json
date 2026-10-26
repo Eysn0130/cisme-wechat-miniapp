@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "public-brand-profile-recheck",
+  "observedAtUtc": "2026-10-26T16:19:46Z",
+  "profile": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5",
+  "profileName": "CISME头皮实验室",
+  "publicPostedNoteIdsObserved": [
+    "6a6f2c8c00000000320218eb",
+    "6a6ca32d00000000220107c3",
+    "6a6a902b000000001101c47e",
+    "6a682a3a000000001101d411",
+    "6a66dae5000000001101afde",
+    "6a657b7200000000110046ed",
+    "6a63563e000000000f02a45e",
+    "6a5f641a000000000f01f1b0",
+    "6a5d82bf00000000110107a3",
+    "6a51a9580000000011014ffc",
+    "6a1598380000000035030f24",
+    "6a1443e6000000003501d11f",
+    "6a12fc6c000000003501eff2",
+    "6a11232400000000360034c6"
+  ],
+  "visiblePostedNotes": 14,
+  "allIdsEqualMigrationInventory": true,
+  "browserDomDocumentMetrics": {
+    "scrollTop": 1472,
+    "clientHeight": 863,
+    "scrollHeight": 2335
+  },
+  "documentAtBottom": true,
+  "temporarySignedMediaUrlsIncluded": false,
+  "collectionPanelCountsUsedAsPostedNoteCount": false,
+  "acquisitionRepeated": false
+}

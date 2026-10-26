@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "isolated-trial-application-deployment-receipt",
+  "observedAtUtc": "2026-10-26T16:12:22Z",
+  "sourceTree": "e367fb91ca0f0442226271e055bb37af8b8b38e7",
+  "mainPushCiRunId": 40353798624,
+  "originalReceiptSha256": "f9c879295e487e6703cbb83ccfdf0e31fedda3f5572ed4c2cf79292b0b0d46a3",
+  "actualReport": {
+    "authorityGranted": false,
+    "configurationChanged": false,
+    "consentCreated": false,
+    "contentPublished": false,
+    "credentialsChanged": false,
+    "databaseRestored": false,
+    "deployed": true,
+    "environment": "trial",
+    "existingEditorialBatchPreserved": true,
+    "fullRecoveryQualified": false,
+    "migrationCommandExecuted": false,
+    "migrationCountAfter": 98,
+    "migrationCountBefore": 98,
+    "networkChanged": false,
+    "productionChanged": false,
+    "snapshotAuthenticated": true,
+    "snapshotScope": "same-host-database-only",
+    "sourceHead": "45091a1259c2731eda21db7c367dff28513472bd",
+    "versions": {
+      "fastify": "5.12.6",
+      "rsvg": "2.63.2",
+      "sharp": "0.35.5",
+      "vips": "8.18.7"
+    }
+  },
+  "miniProgramUploadOrPublicReleaseConfirmed": false
+}

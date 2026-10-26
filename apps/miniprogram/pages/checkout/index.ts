@@ -1,6 +1,6 @@
 import {validateRuntime} from "../../services/commerce-runtime";
 import {nativeCatalogImage} from "../../services/catalog";
-import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
+import { requireMemberAccess, resumeAuthentication, retainMemberSnapshot } from "../../services/api";
 import { catalogDetail, centsToYuan, type CatalogProduct, type CatalogSku } from "../../services/commerce";
 import {
   clearCheckoutPrivateState,
@@ -16,6 +16,8 @@ import { currentChromeStyle } from "../../services/layout";
 function problemCopy(error: unknown): string {
   const problem = error as { code?: string; title?: string };
   const known: Record<string, string> = {
+    AUTH_REQUIRED: "登录已过期，请重新登录后继续。", AUTHENTICATION_REQUIRED: "请先登录，再继续确认订单。",
+    CATALOG_READ_UNAVAILABLE: "商品资料暂时无法加载，请稍后重试。",
     INVENTORY_NOT_AVAILABLE: "库存不足，请调整数量后重新确认。", QUOTE_STALE: "商品或价格有变化，请重新确认。",
     QUOTE_EXPIRED: "费用已过期，请重新确认。", DELIVERY_ADDRESS_CHANGED: "收货地址有变化，请重新选择并确认费用。",
     CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "暂时无法下单，请稍后重试。",
@@ -26,6 +28,7 @@ function problemCopy(error: unknown): string {
 }
 
 function currentSessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
+function validProductCode(value: string): boolean { return /^[a-z0-9][a-z0-9-]{2,63}$/.test(value); }
 function creditCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
   return parts?Number(parts[1])*100+Number((parts[2]??"").padEnd(2,"0")):NaN;}
 
@@ -40,7 +43,8 @@ Page({
     selectedSku: null as CatalogSku | null, addresses: [] as CheckoutAddress[], selectedAddressId: "", runtimeEnabled: false,
     formalPayment:false,isolatedPayment:false,creditEnabled:false,creditAvailableCents:0,creditAvailableYuan:"0.00",
     creditInput:"",creditReadError:"",
-    loading: true, busy: false, navigating: false, error: "", syncError: "", quote: null as CheckoutQuote | null,
+    loading: true, busy: false, navigating: false, authenticationRequired: false, missingProduct: false,
+    error: "", syncError: "", quote: null as CheckoutQuote | null,
     quoteClock: null as QuoteClock | null, quoteExpired: false, unitPriceYuan: "", subtotalYuan: "", discountYuan: "",
     shippingYuan: "", totalYuan: "",creditYuan:"",cashYuan:"",
     countdown: "", quoteKey: "", createKey: "", sessionToken: ""
@@ -58,7 +62,7 @@ Page({
     // A request that was interrupted by backgrounding is no longer allowed to
     // own this page epoch. Unlock the controls so the same retained
     // idempotency key can be retried safely.
-    this.setData({ navigating: false, busy: false });
+    this.setData({ navigating: false, busy: false, authenticationRequired: false, missingProduct: false });
     const token = currentSessionToken();
     const preserve = retainMemberSnapshot(this);
     if (!preserve) {
@@ -68,12 +72,34 @@ Page({
       this.setData({ sessionToken: token });
       if (this.data.quote && this.data.quoteClock) this.startCountdown(this.data.quoteClock);
     }
-    if (!requireMemberAccess()) { this.visible = false; return; }
+    if (!validProductCode(this.data.productCode)) { this.showMissingProduct(); return; }
+    if (!requireMemberAccess()) { this.showLoginRequired(); this.visible = false; return; }
     void this.load();
   },
   onHide() { this.visible = false; this.requestEpoch += 1; this.stopCountdown(); },
   onUnload() { this.mounted = false; this.visible = false; this.requestEpoch += 1; this.stopCountdown(); },
   ownership() { return { mounted: this.mounted, visible: this.visible, epoch: this.requestEpoch, sessionToken: currentSessionToken() }; },
+  showMissingProduct() {
+    this.stopCountdown();
+    this.setData({ ...clearCheckoutPrivateState(this.data), product: null, selectedSku: null,
+      loading: false, busy: false, missingProduct: true, authenticationRequired: false,
+      syncError: "请先选择商品，再确认订单。" });
+  },
+  showLoginRequired() {
+    this.requestEpoch += 1;
+    this.loadAttempt += 1;
+    this.stopCountdown();
+    this.setData({ ...clearCheckoutPrivateState(this.data), loading: false, busy: false, navigating: false,
+      authenticationRequired: true, missingProduct: false, syncError: "登录已过期，请重新登录后继续。" });
+  },
+  authenticationFailure(error: unknown, epoch: number, token: string) {
+    const problem = error as { code?: string; status?: number };
+    const required = problem?.status === 401 || ["AUTH_REQUIRED", "AUTHENTICATION_REQUIRED"].includes(problem?.code ?? "");
+    if (!required || !this.mounted || !this.visible || epoch !== this.requestEpoch ||
+      currentSessionToken() && currentSessionToken() !== token) return false;
+    this.showLoginRequired();
+    return true;
+  },
   stopCountdown() { if (this.countdownTimer) { clearInterval(this.countdownTimer); this.countdownTimer = null; } },
   tickCountdown() {
     const clock = this.data.quoteClock;
@@ -89,12 +115,16 @@ Page({
   },
   async load() {
     if (this.data.busy) return;
+    if (!validProductCode(this.data.productCode)) { this.showMissingProduct(); return; }
+    if (!currentSessionToken()) { this.showLoginRequired(); return; }
     const attempt = ++this.loadAttempt;
     const epoch = this.requestEpoch;
     const ownerToken = currentSessionToken();
-    this.setData({ loading: true, syncError: "" });
+    this.setData({ loading: true, syncError: "", authenticationRequired: false, missingProduct: false });
     try {
-      const [rawProduct, addressBook, runtimeResponse] = await Promise.all([catalogDetail(this.data.productCode), memberAddresses(), orderRuntimeStatus()]);
+      // A public catalog failure must not be mistaken for an expired member session.
+      const productRead = catalogDetail(this.data.productCode).catch(() => { throw { code: "CATALOG_READ_UNAVAILABLE" }; });
+      const [rawProduct, addressBook, runtimeResponse] = await Promise.all([productRead, memberAddresses(), orderRuntimeStatus()]);
       const product={...rawProduct,image:nativeCatalogImage(rawProduct.image)};
       const runtime=validateRuntime(runtimeResponse);
       const credit=runtime.isolatedCreditCheckoutAvailable?await isolatedCreditSummary().catch(()=>null):null;
@@ -135,6 +165,7 @@ Page({
         if (this.data.quote && this.data.quoteClock) this.startCountdown(this.data.quoteClock);
       }
     } catch (error) {
+      if (attempt === this.loadAttempt && this.authenticationFailure(error, epoch, ownerToken)) return;
       if (requestStillOwned(this.ownership(), epoch, ownerToken) && attempt === this.loadAttempt) this.setData({ loading: false, syncError: problemCopy(error) });
     }
   },
@@ -143,7 +174,23 @@ Page({
     this.setData({ ...invalidateCheckoutQuote(this.data, patch, preserveError), quoteExpired: false });
   },
   checkoutBlocked() { return this.data.busy || this.data.loading || this.data.navigating || Boolean(this.data.syncError); },
-  retryLoad() { if (!this.data.busy && !this.data.loading) void this.load(); },
+  async retryLoad() {
+    if (!this.mounted || this.data.busy || this.data.loading || this.data.navigating) return;
+    if (this.data.missingProduct) {
+      this.setData({ navigating: true });
+      wx.redirectTo({ url: "/pages/shop/index", fail: () => {
+        this.setData({ navigating: false });
+        wx.showToast({ title: "商品目录暂时无法打开，请重试", icon: "none" });
+      } });
+      return;
+    }
+    if (this.data.authenticationRequired || !currentSessionToken()) {
+      const query = `product=${encodeURIComponent(this.data.productCode)}&sku=${encodeURIComponent(this.data.requestedSkuId)}&quantity=${this.data.quantity}`;
+      resumeAuthentication(`/pages/checkout/index?${query}`);
+      return;
+    }
+    await this.load();
+  },
   selectSku(event: WechatMiniprogram.TouchEvent) {
     if (this.checkoutBlocked()) return;
     const sku = this.data.product?.variants.find((item) => item.id === String(event.currentTarget.dataset.id));
@@ -189,6 +236,7 @@ Page({
       });
       this.startCountdown(quoteClock);
     } catch (error) {
+      if (this.authenticationFailure(error, epoch, ownerToken)) return;
       if (requestStillOwned(this.ownership(), epoch, ownerToken)) this.setData({ error: problemCopy(error) });
     } finally { if (requestStillOwned(this.ownership(), epoch, ownerToken)) this.setData({ busy: false }); }
   },
@@ -214,6 +262,7 @@ Page({
       this.setData({ quote: null, quoteClock: null, quoteExpired: false });
       wx.redirectTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(order.id)}`, fail: () => { this.setData({ busy: false, error: "订单已创建，但详情页暂时无法打开；可从“我的订单”查看。" }); } });
     } catch (error) {
+      if (this.authenticationFailure(error, epoch, ownerToken)) return;
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const problem = error as { code?: string };
       const errorCopy = problemCopy(error);

@@ -196,7 +196,7 @@ describe("U0 native page lifecycle regressions", () => {
     vi.setSystemTime(new Date("2026-09-12T00:00:00.000Z"));
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const quote = { id: "q", expiresAt: "2026-09-12T00:10:00.000Z", serverTime: "2026-09-12T00:00:00.000Z" };
-    const page = mountedPage(capturedPage!, { quote, quoteClock: createQuoteClock(quote.expiresAt, quote.serverTime), countdown: "" }, { requestEpoch: 0, mounted: true, visible: false, countdownTimer: null });
+    const page = mountedPage(capturedPage!, { productCode:"serum", quote, quoteClock: createQuoteClock(quote.expiresAt, quote.serverTime), countdown: "" }, { requestEpoch: 0, mounted: true, visible: false, countdownTimer: null });
     page.load = vi.fn();
 
     page.onShow();
@@ -267,7 +267,7 @@ describe("U0 native page lifecycle regressions", () => {
   it("unlocks a retained checkout after an in-flight request was interrupted by backgrounding", async () => {
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
-      busy: true, navigating: true, quote: { id: "quote-1" },
+      productCode:"serum", busy: true, navigating: true, quote: { id: "quote-1" },
       quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z")
     }, { requestEpoch: 8, mounted: true, visible: false, countdownTimer: null });
     page.load = vi.fn();

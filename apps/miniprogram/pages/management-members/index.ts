@@ -22,7 +22,7 @@ Page({
     globalRateBusy:false,pendingVisible:false,
     matchingTotal:0,loadedCount:0,nextCursor:null as string|null,loadingMore:false,moreError:"",
     pendingTotal:0,pendingCursor:null as string|null,pendingLoadingMore:false,pendingMoreError:"",
-    loading:true,reviewBusy:false,navigating:false,attempt:0,alive:true,error:"",reviewError:""},
+    loading:true,membersLoaded:false,reviewBusy:false,navigating:false,attempt:0,alive:true,error:"",reviewError:""},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   onShow(){this.data.alive=true;
     const token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
@@ -30,7 +30,7 @@ Page({
     this.lastToken=token;this.lastRevision=revision;this.setData({navigating:false,items:[],pending:[],canApprove:false,canReadCommission:false,canManageRate:false,
     globalRate:null,globalRateLabel:"",globalRateError:"",globalRateFormVisible:false,globalRateBusy:false,pendingVisible:false,rateOptions:[],rateBasisPoints:[],
     summary:{all:0,members:0,ordinary:0},matchingTotal:0,loadedCount:0,nextCursor:null,loadingMore:false,moreError:"",
-    pendingTotal:0,pendingCursor:null,pendingLoadingMore:false,pendingMoreError:"",loading:true,error:""});void this.load();},
+    pendingTotal:0,pendingCursor:null,pendingLoadingMore:false,pendingMoreError:"",loading:true,membersLoaded:false,error:""});void this.load();},
   onHide(){this.data.alive=false;this.data.attempt+=1;cancelPageReads(this);},
   onUnload(){this.onHide();this.globalRateCommand=null;this.rateDecisionCommand=null;},
   editSearch(event:WechatMiniprogram.Input){this.setData({q:event.detail.value});},
@@ -44,7 +44,7 @@ Page({
     this.setData({items:[],pending:[],canApprove:false,canReadCommission:false,canManageRate:false,reviewBusy:false,
       globalRate:null,globalRateLabel:"",globalRateError:"",globalRateStatus:"",globalRateFormVisible:false,
       summary:{all:0,members:0,ordinary:0},matchingTotal:0,loadedCount:0,nextCursor:null,loadingMore:false,moreError:"",
-      pendingTotal:0,pendingCursor:null,pendingLoadingMore:false,pendingMoreError:"",loading:true,error:""});
+      pendingTotal:0,pendingCursor:null,pendingLoadingMore:false,pendingMoreError:"",loading:true,membersLoaded:false,error:""});
     const projection=await authorityProjection(this).catch(()=>null);
     if(!this.data.alive||attempt!==this.data.attempt||(token!==getApp<IAppOption>().globalData.sessionToken||this.lastRevision!==commerceContextRevision()))return;
     if(!projection||!hasCapability(projection,"member.profile.read")){this.setData({loading:false,error:"当前无法确认会员管理权限，请返回管理中心或重试。"});return;}
@@ -57,7 +57,7 @@ Page({
       if(!this.data.alive||this.data.attempt!==attempt||(token!==getApp<IAppOption>().globalData.sessionToken||this.lastRevision!==commerceContextRevision()))return;
       this.setData({items:members.items.map(row=>({...row,initial:row.displayName?.slice(0,1)||"C",expiresLabel:dateLabel(row.expiresAt)})),summary:members.summary,
         appliedQuery:q,matchingTotal:members.matchingTotal,loadedCount:members.loadedCount,nextCursor:members.nextCursor,
-        loading:false});
+        loading:false,membersLoaded:true});
       if(canApprove)void this.loadPending(attempt,token);
       if(canReadCommission||canManageRate)void this.loadGlobalRate(attempt,token);
     }catch(error){if(this.data.alive&&this.data.attempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision())

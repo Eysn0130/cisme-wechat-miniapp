@@ -3,7 +3,7 @@
     <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
     <view class="operator-title">
       <text class="topbar__title">{{memberDisplayName}}</text>
-      <view class="operator-status operator-status--{{statusTone}}" aria-label="{{statusLabel}}">
+      <view wx:if="{{statusLabel}}" class="operator-status operator-status--{{statusTone}}" aria-label="{{statusLabel}}">
         <text class="operator-status__dot">●</text><text class="operator-status__label">{{statusLabel}}</text>
       </view>
     </view>

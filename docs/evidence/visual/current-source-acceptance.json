@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87",
+  "packageSourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source 21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87 adds flow-bound login return, native management visibility and brand video playback. Current-source native verification is recorded separately as partial evidence when captured. Prior 2c419820288f and 567b50db6a90 screenshots retain their original source scope; none is promoted to this hash. Full route/state/device matrices remain unverified, so this acceptance manifest remains blocked."
+  "note": "Current source 0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd fixes missing-product and login recovery, catalog create permissions, support error status and unverified member statistics. Current-source native verification is recorded separately as partial evidence when captured. Prior 21626946046e, 2c419820288f and 567b50db6a90 screenshots retain their original source scope; none is promoted to this hash. Full route/state/device matrices remain unverified, so this acceptance manifest remains blocked."
 }
