@@ -5,13 +5,15 @@ import { currentChromeStyle } from "../../services/layout";
 import { formatCnyCents } from "../../services/presentation";
 import { prepareShareLink, registerIncomingShare } from "../../services/share";
 
+function validProductCode(value: string): boolean { return /^[a-z0-9][a-z0-9-]{2,63}$/.test(value); }
+
 Page({
-  data: { galleryIndex: 0, gallery: [] as string[], chromeStyle: currentChromeStyle(), id: "", item: null as any, selectedSku:null as any, quantity:1, navigating:false, catalog: null as any, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { galleryIndex: 0, gallery: [] as string[], chromeStyle: currentChromeStyle(), id: "", item: null as any, selectedSku:null as any, quantity:1, navigating:false, catalog: null as any, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "selection" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
     this.setData({ id, pageAlive: true });
-    void registerIncomingShare(query.share_id, "product", id);
+    if (validProductCode(id)) void registerIncomingShare(query.share_id, "product", id);
     wx.hideShareMenu();
   },
   onShow() { this.setData({ pageAlive: true, leaving: false }); void this.load(); },
@@ -21,6 +23,11 @@ Page({
     const attempt = this.data.loadAttempt + 1;
     wx.hideShareMenu();
     this.setData({ loadAttempt: attempt, item: null, catalog: null, shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
+    if (!validProductCode(this.data.id)) {
+      this.setData({ loading: false, errorKind: "selection", errorTitle: "先选一件商品",
+        error: "请从商品目录选择商品，再查看详细资料。" });
+      return;
+    }
     try {
       const raw = await catalogDetail(this.data.id);
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
@@ -62,6 +69,10 @@ Page({
       this.setData({ leaving: false });
       wx.showToast({ title: "暂时无法返回，请重试", icon: "none" });
     };
+    if (this.data.errorKind === "selection") {
+      wx.redirectTo({ url: "/pages/shop/index", fail: failed });
+      return;
+    }
     wx.navigateBack({ fail: () => {
       if (!this.data.pageAlive) return;
       wx.redirectTo({ url: "/pages/shop/index", fail: () => {

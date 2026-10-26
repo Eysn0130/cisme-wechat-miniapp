@@ -117,7 +117,7 @@ Page({
       this.inputRevision += 1;
       this.clearSensitiveThread();
     }
-    this.setData({ loading: true, busy: false });
+    this.setData({ loading: true, busy: false, statusLabel: "正在加载", statusTone: "neutral" });
     try {
       const authority = await authorityProjection(this);
       if (!this.owns(epoch, ownerToken)) return;
@@ -186,6 +186,9 @@ Page({
     this.clearPresenceTimer();
     this.abortDownloads();
     this.setData({
+      memberDisplayName: "CISME 会员",
+      statusLabel: "",
+      statusTone: "neutral",
       conversation: null,
       presence: emptyPresence,
       messages: [],
@@ -232,7 +235,7 @@ Page({
   },
   headerPatch(conversation: Conversation | null, presence: Presence, assignedToMe?: boolean) {
     const owned = assignedToMe ?? this.data.assignedToMe;
-    if (!conversation) return { statusLabel: "正在加载", statusTone: "neutral", presence };
+    if (!conversation) return { statusLabel: "", statusTone: "neutral", presence };
     if (conversation.status === "waiting_human") return { statusLabel: "等待接管", statusTone: "waiting", presence };
     if (conversation.status === "ai_active") return { statusLabel: "AI 助手处理中", statusTone: "ai", presence };
     if (conversation.status === "resolved") return { statusLabel: "本次服务已结束", statusTone: "resolved", presence };
@@ -317,12 +320,12 @@ Page({
   },
   async load() {
     if (!this.data.id) {
-      this.setData({ loading: false, error: "未找到这次会话，请返回客服列表重新进入。" });
+      this.setData({ loading: false, statusLabel: "", statusTone: "neutral", error: "未找到这次会话，请返回客服列表重新进入。" });
       return;
     }
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    this.setData({ loading: true, error: "" });
+    this.setData({ loading: true, error: "", statusLabel: "正在加载", statusTone: "neutral" });
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
@@ -349,7 +352,7 @@ Page({
       await this.markRead();
       if (assignedToMe && conversation.status === "human_active") void this.publishPresence(true, Boolean(this.data.input.trim()), true);
     } catch {
-      if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, error: "会话暂时无法同步，请重试。" });
+      if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, statusLabel: "", statusTone: "neutral", error: "会话暂时无法同步，请重试。" });
     }
   },
   async loadAftersales(){

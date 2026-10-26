@@ -7,21 +7,22 @@ const qualificationLabels: Record<string,string> = { pending:"待核验", eligib
 const publicationLabels: Record<string,string> = { draft:"草稿", published:"已上架", unpublished:"已下架" };
 
 Page({
-  data:{chromeStyle:currentChromeStyle(),items:[] as Array<CatalogProduct & {priceYuan:string;qualificationLabel:string;publicationLabel:string}>,nextCursor:null as string|null,loading:true,loadingMore:false,navigating:false,error:"",pageAlive:true,epoch:0},
+  authorityToken:"",
+  data:{chromeStyle:currentChromeStyle(),items:[] as Array<CatalogProduct & {priceYuan:string;qualificationLabel:string;publicationLabel:string}>,nextCursor:null as string|null,loading:true,loadingMore:false,navigating:false,canCreate:false,error:"",pageAlive:true,epoch:0},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
-  async onShow(){this.data.pageAlive=true;
-    const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    this.setData({items:[],nextCursor:null,loading:true,loadingMore:false,navigating:false,error:""});
-    const allowed=await authorityProjection().catch(()=>null);
-    if(!this.current(epoch,token))return;
-    if(!allowed||!["commerce.product.manage","commerce.qualification.manage","commerce.inventory.manage"].some(capability=>hasCapability(allowed,capability as Capability))){this.setData({loading:false,error:"当前账号没有商品管理权限。"});return;}
-    await this.load();},
+  async onShow(){this.data.pageAlive=true;this.setData({navigating:false});await this.load();},
+  onHide(){this.data.pageAlive=false;this.data.epoch+=1;this.authorityToken="";this.setData({canCreate:false});},
   onUnload(){this.data.pageAlive=false;this.data.epoch+=1;},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&
     token===getApp<IAppOption>().globalData.sessionToken;},
   normalize(items:CatalogProduct[]){return items.map((item)=>({...item,image:nativeCatalogImage(item.image),priceYuan:item.price===null?"未定价":`¥${centsToYuan(item.price)}`,qualificationLabel:qualificationLabels[item.qualificationStatus]??item.qualificationStatus,publicationLabel:publicationLabels[item.publicationStatus]??item.publicationStatus}));},
   async load(){const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    this.setData({loading:true,error:"",items:[],nextCursor:null});
+    this.authorityToken="";
+    this.setData({loading:true,loadingMore:false,canCreate:false,error:"",items:[],nextCursor:null});
+    const allowed=await authorityProjection().catch(()=>null);
+    if(!this.current(epoch,token))return;
+    if(!allowed||!["commerce.product.manage","commerce.qualification.manage","commerce.inventory.manage"].some(capability=>hasCapability(allowed,capability as Capability))){this.setData({loading:false,error:"当前账号没有商品管理权限。"});return;}
+    this.authorityToken=token;this.setData({canCreate:hasCapability(allowed,"commerce.product.manage")});
     try{const page=await managementCatalog();if(this.current(epoch,token))
       this.setData({items:this.normalize(page.items),nextCursor:page.nextCursor,loading:false});
     }catch{if(this.current(epoch,token))this.setData({loading:false,error:"商品列表暂未加载，请重试后查看最新资料。"});}},
@@ -32,7 +33,10 @@ Page({
         this.setData({items:[...this.data.items,...this.normalize(page.items)],nextCursor:page.nextCursor});
     }catch{if(this.current(epoch,token))wx.showToast({title:"更多商品暂时无法加载",icon:"none"});}
     finally{if(this.current(epoch,token))this.setData({loadingMore:false});}},
-  create(){if(this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-product/index",fail:()=>this.setData({navigating:false})});},
+  create(){if(!this.data.pageAlive||this.data.loading||this.data.navigating)return;
+    if(!this.data.canCreate||!this.authorityToken||this.authorityToken!==getApp<IAppOption>().globalData.sessionToken){
+      this.setData({canCreate:false});wx.showToast({title:"当前账号没有新建商品权限",icon:"none"});return;}
+    this.setData({navigating:true});wx.navigateTo({url:"/pages/management-product/index",fail:()=>this.setData({navigating:false})});},
   open(event:WechatMiniprogram.TouchEvent){if(this.data.navigating)return;const id=String(event.currentTarget.dataset.id??"");if(!id)return;this.setData({navigating:true});wx.navigateTo({url:`/pages/management-product/index?id=${encodeURIComponent(id)}`,fail:()=>this.setData({navigating:false})});},
   back(){wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/management/index"})});}
 });

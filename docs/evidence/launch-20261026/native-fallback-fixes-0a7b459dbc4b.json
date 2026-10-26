@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-partial-native-fallback-fix-verification",
+  "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+  "officialDevtools": "Nightly 2.02.2609102 / base 3.15.2",
+  "currentSourceRefreshedBeforeCapture": true,
+  "urlCheckTrueInBothConfigurations": true,
+  "captures": [
+    {
+      "route": "pages/product/index",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+      "screenshotSha256": "6e692da4f94a9730cae8b171e3ee0e12fec5bafffa04e3d786626f98cb9aceb1",
+      "loadingAtCapture": false,
+      "pageErrorAtCapture": "请从商品目录选择商品，再查看详细资料。"
+    },
+    {
+      "route": "pages/checkout/index",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+      "screenshotSha256": "e4b459018b43d6d1cfa06df911b4f8af26459cb15e04c6f9c2a45891840b6a3f",
+      "loadingAtCapture": false,
+      "pageErrorAtCapture": ""
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+      "screenshotSha256": "ff054fd03be70b2d802a3cba85aceed0d5cc8f1df8a8265022cf3cc95e26b8ef",
+      "loadingAtCapture": false,
+      "pageErrorAtCapture": "当前账号没有商品管理权限。"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+      "screenshotSha256": "028d1d5af685bc70557e171638a7931d45120d54a2901e81ac28978ba70b2a85",
+      "loadingAtCapture": false,
+      "pageErrorAtCapture": "当前账号没有客服访问权限，请返回管理中心或重试。"
+    },
+    {
+      "route": "pages/management-members/index",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+      "screenshotSha256": "52432f4a84c6c173ca02ee8343e93e9188f589e9a337574c623a663d805b0769",
+      "loadingAtCapture": false,
+      "pageErrorAtCapture": "当前无法确认会员管理权限，请返回管理中心或重试。"
+    }
+  ],
+  "visuallyInspectedByRoot": true,
+  "realUiAndLiveStateProof": [
+    {
+      "label": "06-checkout-browse-real-tap",
+      "route": "pages/shop/index",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+      "screenshotSha256": "4be6e23c28824e5ecca145564b458f83a6a5923cdf19e0447a5ebaf9999a8f20",
+      "originRoute": "pages/checkout/index",
+      "realUiTap": true
+    },
+    {
+      "label": "07-product-browse-real-tap",
+      "route": "pages/shop/index",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd",
+      "screenshotSha256": "2ef875d63abefb714c0654d6c93ca4757e590e324ecad8a2d33d01a6cecd36b4",
+      "originRoute": "pages/product/index",
+      "realUiTap": true
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "field": "canCreate",
+      "actual": false,
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "field": "statusLabel",
+      "actual": "",
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd"
+    },
+    {
+      "route": "pages/management-members/index",
+      "field": "membersLoaded",
+      "actual": false,
+      "sourceSha256": "0a7b459dbc4b3549f0455f36d27339627d1b8499be8f94706beba421b0406bbd"
+    }
+  ],
+  "actualUiNavigations": 2,
+  "unitPassed": 1686,
+  "unitConditionallySkipped": 1,
+  "unitFailed": 0,
+  "physicalDeviceVerified": false,
+  "fullRouteOrStateMatrixVerified": false,
+  "authOrBusinessWritesPerformed": false,
+  "historical216ScreenshotsPromoted": false
+}
