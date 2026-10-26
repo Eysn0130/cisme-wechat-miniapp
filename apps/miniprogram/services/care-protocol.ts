@@ -2,34 +2,34 @@ export const careProtocolSteps = [
   {
     code: "00",
     label: "净澈",
-    title: "温和净澈",
+    title: "周期净澈",
     eyebrow: "PREPARE",
-    instruction: "先充分湿润头皮与发根，用指腹轻柔带走表面附着物，为后续护理做好准备。",
-    cue: "保持动作轻缓，不抓挠头皮。"
+    instruction: "按照净澈产品说明完成本次周期净澈，为后续护理做好准备。",
+    cue: "用量、频次及冲洗方式以产品说明为准。"
   },
   {
     code: "01",
     label: "清洁",
-    title: "日常清洁",
+    title: "日常头皮清洁",
     eyebrow: "CLEANSE",
-    instruction: "将清洁产品在掌心起泡后分区带到头皮，用指腹画小圈清洁，再彻底冲净。",
-    cue: "重点照顾发际线与耳后，避免用指甲。"
+    instruction: "按照清洁产品说明清洁头皮，动作轻缓，避免用指甲抓挠。",
+    cue: "用量及冲洗方式以产品说明为准。"
   },
   {
     code: "02",
     label: "修护",
-    title: "舒缓修护",
+    title: "发丝水光修护",
     eyebrow: "REPAIR",
-    instruction: "擦去多余水分后，将护理精华分线点涂于头皮，轻按帮助均匀覆盖。",
-    cue: "少量多点，出现明显不适时停止使用。"
+    instruction: "按照修护产品说明完成发丝护理，使用部位、停留时间及冲洗方式以产品说明为准。",
+    cue: "本步骤护理发丝；出现明显不适时停止使用。"
   },
   {
     code: "03",
     label: "精护",
-    title: "专注精护",
+    title: "洗后头皮精护",
     eyebrow: "FINISH",
-    instruction: "用指腹由两侧向头顶缓慢按压，完成本次护理，让头皮自然保持轻盈。",
-    cue: "约 60 秒即可，无需用力摩擦。"
+    instruction: "按照精护产品说明完成洗后头皮护理，再记录本次护理后的自我感受。",
+    cue: "用量及使用方式以产品说明为准，避免用力摩擦。"
   }
 ] as const;
 

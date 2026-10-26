@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preserve-data upgrade for the specifically reviewed Fastify/Sharp patch.
+"""Preserve-data upgrade for the specifically reviewed 2026-10-26 Fastify patch.
 
 Read-only preflight by default. Never invokes migrations, restores, npm, DNS,
 database provisioning or credential/configuration changes. Runtime bytes and
@@ -34,9 +34,13 @@ general = module('dependency_upgrade_general', 'production-release.py')
 trial = module('dependency_upgrade_trial', 'production-trial.py')
 NODE = general.NODE
 OWNER = 0
-PACKAGE_PERMIT = '64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5'
-LOCK_PERMIT = 'd86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9'
-PATCHES = {'fastify': ('5.12.3', '5.12.5'), 'sharp': ('0.35.4', '0.35.5')}
+PACKAGE_PERMIT = 'c70b97f3ec0e6c339c5c27b0e9067549f9256287cfbfdf32f39ae46fcf54e231'
+LOCK_PERMIT = '2a14af4f1bfdd86d0108015b43df14d62b2cc6e8eedcd3831446970a26d7d32a'
+BASELINE = {'sourceHead': 'b7e853e9dcd9f72f3cf7b933707fd477e635d6d7',
+            'sourceTree': 'abbf0a257effdc2575c3c6d2706fde4d265a6e7e',
+            'sourceLockSha256': 'd86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9'}
+PATCHES = {'fastify': ('5.12.5', '5.12.6')}
+PRESERVED_VERSIONS = {'sharp': '0.35.5'}
 CLOSED_FLAGS = ('COMMERCE_ORDER_FLOW_ENABLED',
                 'COMMERCE_SIMULATED_PAYMENT_ENABLED', 'COMMERCE_SIMULATED_TRANSFER_ENABLED',
                 'POINTS_REDEMPTION_ENABLED', 'POINTS_RULES_ENABLED', 'UGC_GO_LIVE_GATE')
@@ -135,6 +139,8 @@ def artifact(directory, root):
 
 
 def equal_runtime(previous, candidate):
+    require(all(previous['manifest'].get(key) == value for key, value in BASELINE.items()),
+            'DEPENDENCY_REVIEWED_BASELINE_REQUIRED')
     require(previous['manifest']['migrations'] == candidate['manifest']['migrations'], 'DEPENDENCY_SQL_SET_CHANGED')
     names = set(ENTRIES) | {'db/migrations/' + name for name in previous['manifest']['migrations']}
     require(all(previous['files'][name] == candidate['files'][name] for name in names),
@@ -142,6 +148,8 @@ def equal_runtime(previous, candidate):
     before, after = (json_bytes(value['files']['package.json']) for value in (previous, candidate))
     expected = json.loads(json.dumps(before))
     require(isinstance(expected.get('dependencies'), dict), 'DEPENDENCY_PACKAGE_INVALID')
+    require(all(expected['dependencies'].get(name) == version for name, version in PRESERVED_VERSIONS.items()),
+            'DEPENDENCY_PATCH_BASELINE_REFUSED')
     for name, (old, new) in PATCHES.items():
         require(expected['dependencies'].get(name) == old, 'DEPENDENCY_PATCH_BASELINE_REFUSED')
         expected['dependencies'][name] = new
@@ -418,7 +426,9 @@ def native_smoke_entry(profile, directory, entry, patched):
             and result.get('platform') == 'linux' and result.get('arch') == 'x64'
             and bool(result.get('glibc')), 'DEPENDENCY_RUNTIME_RESOLUTION_REQUIRED')
     side = 1 if patched else 0
-    require(all(result.get(name) == versions[side] for name, versions in PATCHES.items()), 'DEPENDENCY_RUNTIME_VERSION_REQUIRED')
+    require(all(result.get(name) == versions[side] for name, versions in PATCHES.items())
+            and all(result.get(name) == version for name, version in PRESERVED_VERSIONS.items()),
+            'DEPENDENCY_RUNTIME_VERSION_REQUIRED')
     if patched:
         require(re.fullmatch(r'\d+\.\d+\.\d+', result.get('rsvg', ''))
                 and tuple(map(int, result['rsvg'].split('.'))) >= (2, 63, 2), 'DEPENDENCY_PATCHED_NATIVE_REQUIRED')

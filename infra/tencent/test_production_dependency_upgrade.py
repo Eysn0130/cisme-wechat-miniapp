@@ -29,13 +29,13 @@ class DependencyUpgradeTests(unittest.TestCase):
         self.main = {'sha': 'b' * 40, 'tree': 'c' * 40, 'ciRunId': 123}
         self.package = {'name': 'cisme-tencent-release', 'version': '0.1.0', 'private': True,
                         'type': 'module', 'engines': {'node': '>=24.14 <25'},
-                        'dependencies': {'fastify': '5.12.3', 'sharp': '0.35.4', 'pg': '8.23.0'}}
+                        'dependencies': {'fastify': '5.12.5', 'sharp': '0.35.5', 'pg': '8.23.0'}}
         self.source_package = {**self.package, 'name': 'cisme-source', 'dependencies':
-                               {**self.package['dependencies'], 'fastify': '5.12.5', 'sharp': '0.35.5'}}
+                               {**self.package['dependencies'], 'fastify': '5.12.6'}}
         self.source_package_bytes = json.dumps(self.source_package).encode()
         self.source_lock = {'name': 'cisme-source', 'packages': {'': {'name': 'cisme-source'},
                             'node_modules/sharp': {'version': '0.35.5'},
-                            'node_modules/fastify': {'version': '5.12.5'},
+                            'node_modules/fastify': {'version': '5.12.6'},
                             'node_modules/@cisme/fixture': {'link': True}, 'packages/fixture': {'version': '1.0.0'}}}
         self.source_lock_bytes = json.dumps(self.source_lock).encode()
         self.migrations = ['202601010001_synthetic.sql']
@@ -57,7 +57,8 @@ class DependencyUpgradeTests(unittest.TestCase):
         (self.root / 'runtime.env').chmod(0o640)
         self.ownership = {'kind': 'cisme-isolated-trial', 'instanceId': 'lhins-61ikz4mi', 'root': str(self.root),
                           'database': 'cisme_trial', 'role': 'cisme_trial', 'user': 'cisme-trial',
-                          'ownershipId': 'a' * 32, 'source': {'sourceHead': 'a' * 40, 'sourceTree': 'd' * 40,
+                          'ownershipId': 'a' * 32, 'source': {'sourceHead': m.BASELINE['sourceHead'],
+                                                           'sourceTree': m.BASELINE['sourceTree'],
                                                            'dependenciesSha256': 'old-tree'}}
         initial = {'ownership.json': self.ownership, 'empty-database.json': {'synthetic': True, 'tablesBefore': 0},
                    'migration-complete.json': {'ownershipId': 'a' * 32, 'source': self.ownership['source'], 'migrations': 1}}
@@ -72,8 +73,8 @@ class DependencyUpgradeTests(unittest.TestCase):
         self.plan = {'profile': self.profile, 'main': self.main, 'old': self.old, 'candidate': self.new,
                      'env': self.env, 'units': self.old_units, 'config': {}, 'privateInputs': [],
                      'ownership': self.ownership, 'initialRecords': self.initial, 'activeBytes': None,
-                     'pids': {'api': '100', 'worker': '101'}, 'versions': {'sharp': '0.35.5', 'fastify': '5.12.5'},
-                     'oldVersions': {'sharp': '0.35.4', 'fastify': '5.12.3'},
+                     'pids': {'api': '100', 'worker': '101'}, 'versions': {'sharp': '0.35.5', 'fastify': '5.12.6'},
+                     'oldVersions': {'sharp': '0.35.5', 'fastify': '5.12.5'},
                      'environmentMetadata': {'uid': os.getuid(), 'gid': os.getgid(), 'mode': 0o640}}
         self.patches = [patch.object(m, 'OWNER', os.getuid()), patch.object(m, 'unit_path', side_effect=lambda unit: self.units / unit),
                         patch.object(m, 'private_inputs', return_value=[]),
@@ -157,7 +158,7 @@ class DependencyUpgradeTests(unittest.TestCase):
         (directory / 'db/migrations').mkdir(parents=True)
         package = copy.deepcopy(self.package)
         if patched:
-            package['dependencies'].update({'sharp': '0.35.5', 'fastify': '5.12.5'})
+            package['dependencies']['fastify'] = '5.12.6'
         lock = copy.deepcopy(self.source_lock)
         lock['name'] = package['name']
         lock['packages'][''] = {key: value for key, value in package.items() if key not in ('private', 'type')}
@@ -169,9 +170,9 @@ class DependencyUpgradeTests(unittest.TestCase):
         for relative, data in files.items():
             (directory / relative).write_bytes(data)
         manifest = {'schemaVersion': 1, 'configurationIncluded': False, 'migrations': self.migrations,
-                    'sourceHead': self.main['sha'] if patched else 'a' * 40,
-                    'sourceTree': self.main['tree'] if patched else 'd' * 40,
-                    'sourceLockSha256': m.digest(self.source_lock_bytes),
+                    'sourceHead': self.main['sha'] if patched else m.BASELINE['sourceHead'],
+                    'sourceTree': self.main['tree'] if patched else m.BASELINE['sourceTree'],
+                    'sourceLockSha256': m.digest(self.source_lock_bytes) if patched else m.BASELINE['sourceLockSha256'],
                     'buildPlatform': {'os': 'linux', 'arch': 'x64', 'libc': 'glibc'},
                     'hashes': {relative: m.digest(data) for relative, data in files.items()}}
         manifest_bytes = json.dumps(manifest).encode()
@@ -184,6 +185,21 @@ class DependencyUpgradeTests(unittest.TestCase):
         directory.mkdir(mode=0o700)
         return directory
 
+    def historical_trial(self):
+        # The trial was initialized from an older source. Its immutable first
+        # three records must survive this second dependency-only upgrade.
+        self.ownership['source'] = {'sourceHead': 'a' * 40, 'sourceTree': 'd' * 40,
+                                    'dependenciesSha256': 'initial-tree'}
+        for name in ('ownership.json', 'migration-complete.json'):
+            value = json.loads(self.initial[name])
+            value['source'] = self.ownership['source']
+            self.initial[name] = json.dumps(value).encode()
+            (self.root / name).write_bytes(self.initial[name])
+        prior = {key: self.old[key] for key in ('directory', 'manifestSha256', 'dependenciesSha256')}
+        self.plan['activeBytes'] = json.dumps(prior).encode()
+        (self.root / 'dependency-active-release.json').write_bytes(self.plan['activeBytes'])
+        (self.root / 'dependency-active-release.json').chmod(0o600)
+
     def command(self, args, **kwargs):
         self.calls.append(args)
         self.assertNotIn('up', args)
@@ -195,7 +211,7 @@ class DependencyUpgradeTests(unittest.TestCase):
                 patch.object(m, 'stopped'), patch.object(m, 'database_facts', return_value=self.facts),
                 patch.object(m, 'healthy', side_effect=healthy, return_value=self.plan['versions'])]
 
-    def test_exact_runtime_and_full_sql_set_only_accepts_the_two_direct_patches(self):
+    def test_exact_runtime_and_full_sql_set_only_accepts_the_fastify_patch(self):
         m.equal_runtime(self.old, self.new)
         for name in (*m.ENTRIES, 'db/migrations/' + self.migrations[0]):
             modified = copy.deepcopy(self.new)
@@ -208,10 +224,26 @@ class DependencyUpgradeTests(unittest.TestCase):
             m.equal_runtime(self.old, modified)
         modified = copy.deepcopy(self.new)
         value = json.loads(modified['files']['package.json'])
-        value['dependencies']['pg'] = '8.24.0'
-        modified['files']['package.json'] = json.dumps(value).encode()
-        with self.assertRaisesRegex(m.Refused, 'DIRECT_CHANGE_NOT_PERMITTED'):
-            m.equal_runtime(self.old, modified)
+        for name, version in (('pg', '8.24.0'), ('sharp', '0.35.6'), ('fastify', '5.12.7')):
+            changed = copy.deepcopy(value)
+            changed['dependencies'][name] = version
+            modified['files']['package.json'] = json.dumps(changed).encode()
+            with self.subTest(name=name, version=version), self.assertRaisesRegex(m.Refused, 'DIRECT_CHANGE_NOT_PERMITTED'):
+                m.equal_runtime(self.old, modified)
+
+    def test_only_the_current_b7_baseline_is_accepted_even_with_identical_runtime_bytes(self):
+        for key in ('sourceHead', 'sourceTree', 'sourceLockSha256'):
+            modified = copy.deepcopy(self.old)
+            modified['manifest'][key] = 'e' * len(modified['manifest'][key])
+            with self.subTest(key=key), self.assertRaisesRegex(m.Refused, 'REVIEWED_BASELINE_REQUIRED'):
+                m.equal_runtime(modified, self.new)
+        for name, version in (('fastify', '5.12.3'), ('sharp', '0.35.4')):
+            modified = copy.deepcopy(self.old)
+            value = json.loads(modified['files']['package.json'])
+            value['dependencies'][name] = version
+            modified['files']['package.json'] = json.dumps(value).encode()
+            with self.subTest(name=name), self.assertRaisesRegex(m.Refused, 'PATCH_BASELINE_REFUSED'):
+                m.equal_runtime(modified, self.new)
 
     def test_source_permit_binds_actual_main_files_and_transformed_release_lock(self):
         def source(name, head):
@@ -339,7 +371,7 @@ class DependencyUpgradeTests(unittest.TestCase):
 
     def test_native_resolution_versions_linux_runtime_and_patched_librsvg(self):
         result = {'smoke': True, 'node': 'v24.14.0', 'platform': 'linux', 'arch': 'x64', 'glibc': '2.39',
-                  'fastify': '5.12.5', 'sharp': '0.35.5', 'rsvg': '2.63.2', 'vips': '8.18.7',
+                  'fastify': '5.12.6', 'sharp': '0.35.5', 'rsvg': '2.63.2', 'vips': '8.18.7',
                   'fastifyPath': self.new['directory'] + '/node_modules/fastify/index.js',
                   'sharpPath': self.new['directory'] + '/node_modules/sharp/index.js'}
         with patch.object(m, 'command', return_value=json.dumps(result).encode()) as command:
@@ -350,15 +382,21 @@ class DependencyUpgradeTests(unittest.TestCase):
                 command.return_value = json.dumps({**result, key: value}).encode()
                 with self.assertRaises(m.Refused):
                     m.native_smoke(self.profile, self.new['directory'])
-            command.return_value = json.dumps({**result, 'fastify': '5.12.3', 'sharp': '0.35.4',
-                                              'rsvg': '2.62.91',
+            command.return_value = json.dumps({**result, 'fastify': '5.12.5',
                                               'fastifyPath': self.old['directory'] + '/node_modules/fastify/index.js',
                                               'sharpPath': self.old['directory'] + '/node_modules/sharp/index.js'}).encode()
-            self.assertEqual(m.native_smoke(self.profile, self.old['directory'], False)['sharp'], '0.35.4')
+            self.assertEqual(m.native_smoke(self.profile, self.old['directory'], False)['sharp'], '0.35.5')
+            baseline = json.loads(command.return_value)
+            for key, value in (('sharp', '0.35.4'), ('fastify', '5.12.3')):
+                command.return_value = json.dumps({**baseline, key: value}).encode()
+                with self.subTest(key=key), self.assertRaisesRegex(m.Refused, 'RUNTIME_VERSION_REQUIRED'):
+                    m.native_smoke(self.profile, self.old['directory'], False)
+            command.return_value = json.dumps(baseline).encode()
             with self.assertRaises(m.Refused):
                 m.native_smoke(self.profile, self.old['directory'], True)
 
     def test_trial_success_preserves_environment_ownership_initial_migration_and_existing_data(self):
+        self.historical_trial()
         data = self.root / 'new-fact.json'
         data.write_text('new test-only business fact')
         with contextlib.ExitStack() as stack:
@@ -377,6 +415,7 @@ class DependencyUpgradeTests(unittest.TestCase):
             self.assertEqual(m.unit_entry((self.units / unit).read_bytes(), entry, self.profile), Path(self.new['directory']))
 
     def test_health_failure_rolls_back_only_application_and_preserves_post_activation_facts(self):
+        self.historical_trial()
         fact = self.root / 'post-activation-fact'
         def health(plan, directory, started, patched):
             if patched:
@@ -393,7 +432,7 @@ class DependencyUpgradeTests(unittest.TestCase):
         self.assertTrue(all((self.units / unit).read_bytes() == data for unit, data in self.old_units.items()))
         self.assertEqual((self.root / 'runtime.env').read_bytes(), self.env)
         self.assertTrue(all((self.root / name).read_bytes() == value for name, value in self.initial.items()))
-        self.assertFalse((self.root / 'dependency-active-release.json').exists())
+        self.assertEqual((self.root / 'dependency-active-release.json').read_bytes(), self.plan['activeBytes'])
         self.assertTrue((state / 'application-rollback.json').exists())
 
     def test_unresolved_database_client_refuses_cutover_and_keeps_original_units(self):
@@ -894,6 +933,7 @@ class DependencyUpgradeTests(unittest.TestCase):
             m.general.reviewed_main(fetch)
 
     def test_preflight_has_no_writes_or_service_commands_and_refuses_wrong_trial_database(self):
+        self.historical_trial()
         with patch.dict(m.PROFILES, {'trial': self.profile}), patch.object(m.os, 'geteuid', return_value=0), \
                 patch.object(m.general.observe, 'identity', return_value={'instanceId': 'lhins-61ikz4mi'}), \
                 patch.object(m, 'owned_directory'), patch.object(m, 'artifact', side_effect=[self.old, self.new]), \
@@ -901,7 +941,10 @@ class DependencyUpgradeTests(unittest.TestCase):
                 patch.object(m, 'database_facts', return_value=self.facts), patch.object(m.trial, 'db_owned'), \
                 patch.object(m, 'running', return_value=self.plan['pids']), patch.object(m, 'native_smoke', return_value=self.plan['versions']), \
                 patch.object(m, 'command') as command, patch.object(m.general, 'store') as store:
-            m.preflight('trial', self.new['directory'])
+            plan = m.preflight('trial', self.new['directory'])
+            self.assertEqual(plan['activeBytes'], self.plan['activeBytes'])
+            self.assertEqual(plan['initialRecords'], self.initial)
+            self.assertNotEqual(plan['ownership']['source']['sourceHead'], plan['old']['manifest']['sourceHead'])
             self.assertEqual(command.call_args.args[0], ['/usr/sbin/runuser', '-u', 'cisme-trial', '--',
                                                         '/usr/bin/test', '-r', str(self.root / 'runtime.env')])
             store.assert_not_called()
