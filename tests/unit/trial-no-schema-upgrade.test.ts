@@ -13,7 +13,7 @@ describe('trial schema98 application-only upgrade',()=>{
   });
   expect(result.error).toBeUndefined();
   expect(result.status,result.stderr).toBe(0);
-  expect(result.stderr).toContain('Ran 15 tests');
+  expect(result.stderr).toContain('Ran 22 tests');
   expect(result.stderr).toMatch(/\bOK\b/);
  },25000);
 });
