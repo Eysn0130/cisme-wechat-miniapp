@@ -248,8 +248,11 @@ class SnapshotPipelineTests(unittest.TestCase):
         def popen(args,**kwargs):
             if args[0]=='/usr/sbin/runuser' and '/usr/bin/pg_dump'in args:
                 self.calls.append((args,kwargs))
-                code='import sys,base64;sys.stdout.buffer.write(base64.b64decode('+repr(base64.b64encode(self.dump_data).decode())+'));sys.exit('+str(self.dump_status)+')'
-                return real_popen([sys.executable,'-c',code],**kwargs)
+                # Keep the full fixture without exceeding Linux's per-argument limit.
+                dump_fixture=self.root/'synthetic-dump.fixture'
+                dump_fixture.write_bytes(self.dump_data);dump_fixture.chmod(0o600)
+                code='import pathlib,sys;sys.stdout.buffer.write(pathlib.Path(sys.argv[1]).read_bytes());sys.exit(int(sys.argv[2]))'
+                return real_popen([sys.executable,'-c',code,str(dump_fixture),str(self.dump_status)],**kwargs)
             if args[:2]==['/usr/bin/pg_restore','--list']:
                 self.calls.append((args,kwargs))
                 return real_popen([sys.executable,'-c','import sys;sys.stdin.buffer.read();sys.stdout.write('+repr(self.toc)+')'],**kwargs)
