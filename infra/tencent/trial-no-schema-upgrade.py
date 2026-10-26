@@ -67,7 +67,14 @@ def parents(path, private=False):
         need(stat.S_ISDIR(st.st_mode) and st.st_uid == OWNER and not st.st_mode & 0o022,
              'NO_SCHEMA_ROOT_PROTECTED_PARENT_REQUIRED')
     if private:
-        need(stat.S_IMODE(path.parent.lstat().st_mode) == 0o700, 'NO_SCHEMA_PRIVATE_PARENT_REQUIRED')
+        # These root-only records share the service-traversable application root.
+        # Their bytes still require a single-link, root-owned 0600 file in read().
+        # Every ancestor must remain root-owned and non-writable by other users.
+        root_record = path.parent == ROOT and path.name in (
+            'application-active-release.json', 'dependency-active-release.json')
+        allowed_modes = (0o700, 0o750, 0o755) if root_record else (0o700,)
+        need(stat.S_IMODE(path.parent.lstat().st_mode) in allowed_modes,
+             'NO_SCHEMA_PRIVATE_PARENT_REQUIRED')
 
 
 def read(path, limit=1024*1024, private=False):

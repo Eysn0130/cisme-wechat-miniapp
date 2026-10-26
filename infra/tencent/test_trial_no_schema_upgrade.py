@@ -1,8 +1,11 @@
 import ast
+from contextlib import contextmanager
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
+import stat
 import tempfile
 import types
 import unittest
@@ -121,6 +124,87 @@ class ContractTests(unittest.TestCase):
         self.assertNotIn('editorial-publish.js',text)
         self.assertNotIn('authority-grants.js',text)
         self.assertNotIn('publish-legal-documents.js',text)
+
+
+class PrivateMetadataFileTests(unittest.TestCase):
+    @contextmanager
+    def filesystem(self, mode=0o755):
+        # Files and fixture ancestors use real OS metadata and descriptors. Only
+        # the workstation's external system ancestors stand in for root-owned
+        # host directories, so these cases also run without root privileges.
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory).resolve();root=base/'trial';root.mkdir(mode=mode);root.chmod(mode)
+            original=Path.lstat
+            def checked_lstat(path,*args,**kwargs):
+                value=original(path,*args,**kwargs)
+                if path==base or path.is_relative_to(base):return value
+                self.assertIn(path,base.parents)
+                fields=list(value);fields[0]=stat.S_IFDIR|0o755;fields[4]=M.OWNER
+                return os.stat_result(fields)
+            with patch.object(M,'ROOT',root),patch.object(M,'OWNER',os.getuid()),patch.object(Path,'lstat',checked_lstat):
+                yield base,root
+
+    def record(self,root,name='application-active-release.json',mode=0o600):
+        path=root/name;path.write_bytes(b'{"publicFixture":true}\n');path.chmod(mode);return path
+
+    def test_exact_two_root_records_read_under_service_traversable_modes(self):
+        for mode in (0o700,0o750,0o755):
+            with self.subTest(mode=oct(mode)),self.filesystem(mode) as (_,root):
+                for name in ('application-active-release.json','dependency-active-release.json'):
+                    path=self.record(root,name)
+                    self.assertEqual(M.read(path,private=True),b'{"publicFixture":true}\n')
+
+    def test_unknown_or_nested_private_metadata_retains_private_parent_requirement(self):
+        with self.filesystem() as (_,root):
+            path=self.record(root,'unknown-private.json')
+            with self.assertRaisesRegex(M.Refused,'PRIVATE_PARENT_REQUIRED'):M.read(path,private=True)
+            nested=root/'private-state';nested.mkdir(mode=0o750);nested.chmod(0o750)
+            path=self.record(nested)
+            with self.assertRaisesRegex(M.Refused,'PRIVATE_PARENT_REQUIRED'):M.read(path,private=True)
+            nested.chmod(0o700)
+            self.assertEqual(M.read(path,private=True),b'{"publicFixture":true}\n')
+
+    def test_group_or_other_readable_record_is_refused(self):
+        with self.filesystem() as (_,root):
+            for mode in (0o640,0o644):
+                path=self.record(root,mode=mode)
+                with self.subTest(mode=oct(mode)),self.assertRaisesRegex(M.Refused,'PROTECTED_FILE_REQUIRED'):
+                    M.read(path,private=True)
+
+    def test_symlink_file_and_symlink_ancestor_are_refused(self):
+        with self.filesystem() as (_,root):
+            target=self.record(root,'target.json');path=root/'application-active-release.json';path.symlink_to(target)
+            with self.assertRaises((OSError,M.Refused)):M.read(path,private=True)
+            path.unlink();private=root/'actual-private';private.mkdir(mode=0o700)
+            target=self.record(private);link=root/'linked-private';link.symlink_to(private,target_is_directory=True)
+            with self.assertRaisesRegex(M.Refused,'PROTECTED_PARENT_REQUIRED'):M.read(link/target.name,private=True)
+
+    def test_multiply_linked_record_is_refused(self):
+        with self.filesystem() as (_,root):
+            path=self.record(root);os.link(path,root/'alias.json')
+            self.assertEqual(path.stat().st_nlink,2)
+            with self.assertRaisesRegex(M.Refused,'PROTECTED_FILE_REQUIRED'):M.read(path,private=True)
+
+    def test_writable_ancestor_and_foreign_owner_are_refused(self):
+        with self.filesystem() as (base,root):
+            path=self.record(root);base.chmod(0o777)
+            with self.assertRaisesRegex(M.Refused,'PROTECTED_PARENT_REQUIRED'):M.read(path,private=True)
+            base.chmod(0o700)
+            with patch.object(M,'OWNER',os.getuid()+1):
+                with self.assertRaisesRegex(M.Refused,'PROTECTED_PARENT_REQUIRED'):M.read(path,private=True)
+
+    def test_file_content_drift_during_real_descriptor_read_is_refused(self):
+        with self.filesystem() as (_,root):
+            path=self.record(root);original=os.read;changed=False
+            def mutate_after_read(fd,limit):
+                nonlocal changed
+                value=original(fd,limit)
+                if value and not changed:
+                    changed=True
+                    with path.open('r+b') as stream:stream.write(b'!');stream.flush();os.fsync(stream.fileno())
+                return value
+            with patch.object(M.os,'read',side_effect=mutate_after_read):
+                with self.assertRaisesRegex(M.Refused,'FILE_CHANGED'):M.read(path,private=True)
 
 
 class CutoverTests(unittest.TestCase):
