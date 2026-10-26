@@ -57,7 +57,7 @@ describe("CARE-01–04 native write recovery and late response ownership",()=>{
   });
   it("never writes completed steps onto a different target or version after refresh",async()=>{
     await mount();steps();care={...care,version:3,due:"D7",next:"D7"};version++;await page.load(true);await page.submitCareSession();
-    expect(posts).toHaveLength(0);expect(page.data.error).toContain("不会把旧步骤写到新节点");
+    expect(posts).toHaveLength(0);expect(page.data.error).toContain("护理安排已有更新。请先退出本次步骤，查看最新安排后再开始。");
   });
   it("ignores activation confirmation returning after leaving the page",async()=>{
     care={...initial(),phase:"planned",startedOn:null as any,due:null as any};await mount();const modal=deferred();wxMock.showModal.mockReturnValueOnce(modal.promise);

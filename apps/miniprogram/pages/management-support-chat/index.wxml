@@ -12,7 +12,7 @@
 
   <scroll-view class="operator-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="true" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
     <view class="operator-thread__content">
-    <view wx:if="{{loading}}" class="operator-state" aria-live="polite">正在同步会话…</view>
+    <view wx:if="{{loading}}" class="operator-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
 
     <block wx:for="{{messages}}" wx:key="id">
@@ -36,7 +36,7 @@
           <view wx:if="{{item.attachments.length}}" class="operator-media-grid">
             <button wx:for="{{item.attachments}}" wx:for-item="media" wx:key="id" class="operator-media" data-media-id="{{media.id}}" bindtap="previewImage" aria-label="预览会员图片">
               <image src="{{media.localPath || '/assets/icons/images-plum.svg'}}" mode="aspectFill" lazy-load="true"/>
-              <text wx:if="{{!media.localPath}}">安全加载中</text>
+              <text wx:if="{{!media.localPath}}">图片加载中</text>
             </button>
           </view>
           <button wx:if="{{item.orderCard}}" class="operator-order-card" data-id="{{item.orderCard.orderId}}" bindtap="openOrder" aria-label="打开订单尾号 {{item.orderCard.orderNumberTail}}">
@@ -78,7 +78,7 @@
     <block wx:if="{{assignedToMe && conversation.status === 'human_active'}}">
       <view class="operator-ai-row">
         <button wx:if="{{aiProviderAvailable}}" class="{{busy ? 'control--disabled' : ''}}" bindtap="suggest" disabled="{{busy}}">AI 建议</button>
-        <text wx:else class="operator-ai-status">AI 建议未接入</text>
+        <text wx:else class="operator-ai-status">AI 建议暂不可用</text>
         <text class="operator-ai-row__helper">仅生成草稿，需人工确认发送</text>
       </view>
       <view class="operator-compose {{composerFocused ? 'operator-compose--focused' : ''}}">
@@ -106,7 +106,7 @@
   <view wx:if="{{aftersaleOpen && !loading}}" class="context-mask" catchtap="closeAftersales" catchtouchmove="stopPropagation">
     <scroll-view class="context-sheet aftersale-sheet" scroll-y catchtap="stopPropagation">
       <view class="context-handle"></view><strong class="context-title">本会话售后</strong>
-      <text class="context-note">申请时间由服务端记录。聊天说明不改变案件、收件或退款事实。</text>
+      <text class="context-note">请以案件中保存的申请时间、收件和退款记录为准，聊天说明不会直接更新这些记录。</text>
       <text wx:if="{{aftersaleError}}" class="aftersale-sheet__error" aria-live="polite">{{aftersaleError}}</text>
       <text wx:if="{{!aftersaleCases.length}}" class="context-note">暂无关联售后申请。</text>
       <view wx:for="{{aftersaleCases}}" wx:key="id" class="aftersale-sheet__case">

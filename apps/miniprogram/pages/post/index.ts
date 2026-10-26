@@ -26,7 +26,7 @@ Page({
     this.data.loadAttempt+=1;
     this.setData({loading:false,item:null,authorId:"",media:[],mediaIndex:0,mediaError:"",shareId:"",socialEnabled:false,socialLoading:false,socialBusy:false,
       social:emptyCommunity,threads:[],following:false,followBusy:false,followError:"",socialError:"",draft:"",replyToId:"",replyToName:"",
-      errorKind:"load",errorTitle:"登录状态已失效",error:"请重新加载公开精选；点赞、收藏与关注可在重新登录后继续。"});
+      errorKind:"load",errorTitle:"登录状态已失效",error:"请重新加载内容。点赞、收藏和关注前，请重新登录。"});
     wx.hideShareMenu();return true;
   },
   editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}&source=editorial`;},
@@ -52,7 +52,7 @@ Page({
             socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false});
           wx.showShareMenu({menus:["shareAppMessage"]});
         }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;if(this.currentEditorial(attempt,token)){const missing=(error as {status?:number}).status===404;
-          this.setData({loading:false,errorKind:missing?"missing":"load",errorTitle:missing?"这篇精选暂不可见":"精选内容暂未同步",error:missing?"内容已撤回或尚未发布，请返回社区。":"请检查网络后重试。"});}}
+          this.setData({loading:false,errorKind:missing?"missing":"load",errorTitle:missing?"这篇精选暂不可见":"暂时无法加载精选",error:missing?"内容已撤回或尚未发布，请返回社区。":"请检查网络后重试。"});}}
         return;
       }
       if (editorial) {
@@ -68,7 +68,7 @@ Page({
       // The feed exposes an object key, not an authorized media URL or avatar.
       // Never attribute bundled brand imagery or a local portrait to a submission.
       const reviewed = feed.find((item: any) => item.id === this.data.id) ?? null;
-      this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, author: reviewed.author || "CISME 会员", publishedLabel: "经审用户投稿", provenanceLabel: "人工审核通过 · 有效用途许可" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、展示许可已失效，或链接不存在。请安全返回品牌精选社区。" });
+      this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, author: reviewed.author || "CISME 会员", publishedLabel: "用户投稿", provenanceLabel: "经作者授权并审核后展示" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、授权已失效，或链接无效。请返回社区查看其他内容。" });
       if (reviewed) {
         void this.loadSocial();
         wx.showShareMenu({ menus: ["shareAppMessage"] });
@@ -76,7 +76,7 @@ Page({
       }
     }
     catch (error) {
-      if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ item: null, shareId: "", loading: false, errorKind: "load", errorTitle: "护理故事暂时未同步", error: "请检查网络后重试。加载失败不会被误显示为内容已撤回。" });
+      if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ item: null, shareId: "", loading: false, errorKind: "load", errorTitle: "暂时无法加载故事", error: "请检查网络后重新加载。" });
     }
   },
   async loadFollow() {
@@ -86,7 +86,7 @@ Page({
     try {
       const follows = await request<string[]>({ path: "/v1/me/follows", authMode: "optional" });
       if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ following: follows.includes(this.data.authorId) });
-    } catch { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followError: "关注状态暂未同步" }); }
+    } catch { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followError: "暂时无法查询关注状态" }); }
   },
   async toggleFollow() {
     if (!this.data.socialEnabled || this.data.followBusy || !this.data.authorId || this.data.leaving) return;
@@ -101,7 +101,7 @@ Page({
         if(this.currentEditorial(attempt,token))this.setData({following:result.following});
       }catch(error){if(this.currentEditorial(attempt,token)){
         if((error as {status?:number;code?:string}).status===409&&(error as {code?:string}).code==="CURRENT_LEGAL_CONSENT_REQUIRED")beginLegalRenewal(this.editorialReturnUrl());
-        this.setData({followError:(error as {title?:string}).title||"关注尚未确认，请重试。"});}}
+        this.setData({followError:(error as {title?:string}).title||"关注结果尚未确认，请先重新加载查看。"});}}
       finally{if(this.currentEditorial(attempt,token))this.setData({followBusy:false});}
       return;
     }
@@ -111,7 +111,7 @@ Page({
     try {
       const result = await request<{following:boolean}>({ path: `/v1/me/follows/${encodeURIComponent(this.data.authorId)}`, method: "PUT", data: { active: !this.data.following } });
       if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ following: result.following });
-    } catch (error) { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followError: (error as {title?:string}).title || "关注未保存，请重试" }); }
+    } catch (error) { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followError: (error as {title?:string}).title || "关注结果尚未确认，请先重新加载查看" }); }
     finally { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followBusy: false }); }
   },
   async loadSocial() {
@@ -128,7 +128,7 @@ Page({
       if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return;
       this.setData({ social, threads: commentThreads(social.comments, this.data.expandedThreads) });
     } catch {
-      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialError: "交流暂时未同步，点击重试" });
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialError: "暂时无法加载评论，点击重试" });
     } finally {
       if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialLoading: false });
     }
@@ -144,7 +144,7 @@ Page({
       this.setData({ social, threads: commentThreads(social.comments, this.data.expandedThreads) });
       return true;
     } catch (error) {
-      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialError: (error as { title?: string }).title || "暂未保存，请重试；已输入的内容仍保留" });
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialError: (error as { title?: string }).title || "保存结果尚未确认，请先重新加载查看。已输入的内容仍保留。" });
       return false;
     } finally {
       if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialBusy: false });
@@ -160,7 +160,7 @@ Page({
       if(this.currentEditorial(attempt,token))this.setData({social:{...this.data.social,liked:result.liked,saved:result.saved,likeCount:result.likeCount,saveCount:result.saveCount}});
     }catch(error){if(this.currentEditorial(attempt,token)){
       if((error as {status?:number;code?:string}).status===409&&(error as {code?:string}).code==="CURRENT_LEGAL_CONSENT_REQUIRED")beginLegalRenewal(this.editorialReturnUrl());
-      this.setData({socialError:(error as {title?:string}).title||"互动结果尚未确认，请重试原操作或重新加载。"});}}
+      this.setData({socialError:(error as {title?:string}).title||"互动结果尚未确认，请先重新加载查看，再决定是否重试。"});}}
     finally{if(this.currentEditorial(attempt,token))this.setData({socialBusy:false});}
   },
   toggleLike() { if(this.data.editorialSource)return this.mutateEditorialReaction("like");return this.mutateSocial("/reaction", "PUT", { kind: "like", active: !this.data.social.liked }); },
@@ -206,7 +206,7 @@ Page({
       this.showComments();
     }
   },
-  mediaFailed(event:WechatMiniprogram.CustomEvent){const src=String(event.currentTarget.dataset.src||"");if(this.data.editorialSource&&this.data.media.includes(src))this.setData({mediaError:"图片暂未加载，请重新核对内容。"});},
+  mediaFailed(event:WechatMiniprogram.CustomEvent){const src=String(event.currentTarget.dataset.src||"");if(this.data.editorialSource&&this.data.media.includes(src))this.setData({mediaError:"图片加载失败，请重新加载。"});},
   mediaLoaded(event: WechatMiniprogram.CustomEvent) {
     if (Number(event.currentTarget.dataset.index) !== 0) return;
     const ratio = Math.min(16 / 9, Math.max(3 / 4, Number(event.detail.width) / Math.max(1, Number(event.detail.height))));

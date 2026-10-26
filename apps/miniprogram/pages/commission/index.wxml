@@ -1,50 +1,50 @@
 <import src="../../templates/recorded-commands.wxml"/>
 <view class="chrome-root" style="{{chromeStyle}}">
-  <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">商业资格与佣金</text></view>
+  <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">商业会员与佣金</text></view>
   <view class="page page--stack commission-page">
-    <view wx:if="{{loading}}" class="state">正在核对资格和佣金事实…</view>
+    <view wx:if="{{loading}}" class="state">正在加载资格和佣金…</view>
     <view wx:if="{{error}}" class="state state--error"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重试</button></view>
     <view class="state" aria-live="polite"><text>{{runtimeCopy}}</text><button wx:if="{{runtimeState==='error'}}" class="text-button {{busy?'text-button--disabled':''}}" bindtap="retryRuntime" disabled="{{busy}}">重新核验操作状态</button></view>
 <view wx:if="{{recoveryLoading||recoveryError||recoveryRows.length}}" class="state" aria-live="polite">
   <text wx:if="{{recoveryLoading}}">正在核对上次操作…</text><text wx:if="{{recoveryError}}">{{recoveryError}}</text>
   <view wx:for="{{recoveryRows}}" wx:key="key"><text>{{item.label}}</text>
     <button wx:if="{{item.recorded||item.retryable&&(item.kind==='settlement'?isolatedTransfer:isolatedCredit)}}" class="text-button {{busy||!coreReady?'text-button--disabled':''}}" data-key="{{item.key}}" bindtap="resolveRecovery" disabled="{{busy||!coreReady}}">{{item.recorded?'已核对原记录':'重试最初确认的操作'}}</button>
-    <text wx:if="{{!item.recorded&&!item.retryable}}">原填写内容已清除，请联系客服核对；不要新建重复申请。</text>
+    <text wx:if="{{!item.recorded&&!item.retryable}}">原填写内容已清除，请联系客服核对，不要重复申请。</text>
   </view>
   <button class="text-button {{busy||recoveryLoading?'text-button--disabled':''}}" bindtap="loadRecovery" disabled="{{busy||recoveryLoading}}">重新核对原操作</button>
 </view>
 <view wx:if="{{status&&!coreReady}}" class="state">显示上次读取的内容，正在等待最新核验；暂不可提交资金操作。</view><block wx:if="{{status}}">
-      <view class="commission-hero"><text>可用佣金</text><strong>¥{{availableLabel}}</strong><small>以支付、退款、履约和结算核验结果为准。佣金不是积分。</small></view>
+      <view class="commission-hero"><text>可用佣金</text><strong>¥{{availableLabel}}</strong><small>金额随订单、退款和结算结果更新，与积分分别记录。</small></view>
       <view class="commission-grid">
         <view><text>待释放</text><strong>¥{{pendingLabel}}</strong></view>
-        <view><text>在途预占</text><strong>¥{{heldLabel}}</strong></view>
+        <view><text>已预留</text><strong>¥{{heldLabel}}</strong></view>
         <view><text>已结算</text><strong>¥{{settledLabel}}</strong></view>
         <view><text>待追偿</text><strong>¥{{recoveryLabel}}</strong></view>
       </view>
-      <view class="commission-facts"><text>商业资格：{{status.eligible?'有效':status.membershipState==='active'?'资格暂不可用':status.membershipState==='suspended'?'暂停':status.membershipState==='expired'?'到期':'未开通'}}</text><text>直接推荐 {{status.directReferralCount}} 人 · 核验成交 {{status.verifiedOrderCount}} 单</text></view>
-      <view wx:if="{{runtimeMode==='formal'}}" class="commission-note">当前可查看既有佣金记录；正式结算尚未开放，可用金额不代表可提现。</view>
-      <view wx:if="{{runtimeMode==='test'}}" class="commission-note">仅供隔离测试，不支持真实提现。正式结算、转账及税务售后规则仍待批准。</view>
+      <view class="commission-facts"><text>商业会员资格：{{status.eligible?'有效':status.membershipState==='active'?'资格暂不可用':status.membershipState==='suspended'?'暂停':status.membershipState==='expired'?'到期':'未开通'}}</text><text>直接推荐 {{status.directReferralCount}} 人 · 核验成交 {{status.verifiedOrderCount}} 单</text></view>
+      <view wx:if="{{runtimeMode==='formal'}}" class="commission-note">可查看佣金记录，暂不支持结算和提现。</view>
+      <view wx:if="{{runtimeMode==='test'}}" class="commission-note">测试记录，不涉及真实结算或提现。</view>
       <view wx:if="{{runtimeMode==='test'||creditTotal>0||creditError}}" class="commission-section">
-        <view class="commission-section__heading"><strong>{{runtimeMode==='test'?'购物权益 · 隔离测试':'购物权益历史'}}</strong><text>{{runtimeMode==='test'?'不是真实余额':'仅可回看原有记录'}}</text></view>
+        <view class="commission-section__heading"><strong>{{runtimeMode==='test'?'测试购物权益':'购物权益历史'}}</strong><text>{{runtimeMode==='test'?'不是真实余额':'仅可查看历史记录'}}</text></view>
         <view class="commission-muted">{{creditLoading?'正在核对权益记录…':creditError?'权益记录暂未核实':runtimeMode==='test'?'测试权益 ¥'+creditAvailableLabel:'原有权益记录'}}</view>
         <view class="commission-muted">退款争议可能减少下单可用额。</view>
-        <view class="commission-muted">与现金佣金、积分分账；购物下单不重复计佣。</view>
+        <view class="commission-muted">购物权益与佣金、积分分别记录，使用时不重复计算佣金。</view>
         <button wx:if="{{isolatedCredit&&!creditFormVisible&&status.commission.availableCents>0}}" class="secondary commission-credit__action {{busy?'secondary--disabled':''}}" bindtap="showCreditForm" disabled="{{busy}}">自愿转换已释放佣金</button>
         <view wx:if="{{isolatedCredit&&creditFormVisible}}" class="commission-form"><text>转换金额（元）</text><input type="digit" value="{{creditAmount}}" placeholder="例如 20.00" maxlength="11" bindinput="editCreditAmount"/><view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeCreditForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitCredit" disabled="{{busy}}" loading="{{busy}}">确认测试转换</button></view></view>
         <view wx:if="{{creditActionStatus}}" class="state" aria-live="polite">{{creditActionStatus}}</view><view wx:if="{{creditActionError}}" class="state state--error" aria-live="assertive">{{creditActionError}}</view>
         <view class="commission-history"><strong>权益来源记录</strong><text wx:if="{{!creditLoading&&!creditError}}">共 {{creditTotal}} 项</text></view>
         <view wx:if="{{creditLoading}}" class="commission-muted">正在核对来源…</view><view wx:elif="{{!creditError&&creditRows.length===0}}" class="commission-muted">暂无转换记录。</view>
-        <view wx:for="{{creditRows}}" wx:key="id" class="commission-request commission-credit__row"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.state==='cancelled'?'已撤销':item.availableCents===0?'已使用或冻结':'账面剩余 ¥'+item.availableLabel}}</text></view><small>{{item.createdLabel}}</small><button wx:if="{{isolatedCredit&&item.cancellable}}" class="secondary commission-request__confirm {{busy?'secondary--disabled':''}}" data-id="{{item.id}}" bindtap="cancelCredit" disabled="{{busy}}">撤销完全未用的测试转换</button></view>
+        <view wx:for="{{creditRows}}" wx:key="id" class="commission-request commission-credit__row"><view><strong>¥{{item.amountLabel}}</strong><text>{{item.state==='cancelled'?'已撤销':item.availableCents===0?'已使用或冻结':'账面剩余 ¥'+item.availableLabel}}</text></view><small>{{item.createdLabel}}</small><button wx:if="{{isolatedCredit&&item.cancellable}}" class="secondary commission-request__confirm {{busy?'secondary--disabled':''}}" data-id="{{item.id}}" bindtap="cancelCredit" disabled="{{busy}}">撤销未用测试权益</button></view>
         <view wx:if="{{creditError}}" class="state state--error"><text>{{creditError}}</text><button class="text-button" bindtap="retryCredits">重试</button></view>
         <button wx:if="{{creditCursor}}" class="secondary {{creditMoreLoading?'secondary--disabled':''}}" bindtap="moreCredits" loading="{{creditMoreLoading}}" disabled="{{creditMoreLoading}}">加载更多来源</button>
       </view>
       <view wx:if="{{runtimeMode==='test'||totalCount>0||listError}}" class="commission-section">
-        <view class="commission-section__heading"><strong>周期结算意向</strong><text>{{runtimeMode==='test'?'仅隔离测试':'仅可回看原有记录'}}</text></view>
+        <view class="commission-section__heading"><strong>结算意向</strong><text>{{runtimeMode==='test'?'仅供测试':'仅可查看历史记录'}}</text></view>
         <button wx:if="{{isolatedTransfer&&!formVisible&&status.commission.availableCents>0}}" class="primary" bindtap="showForm">登记结算意向</button>
         <text wx:if="{{!formVisible&&status.commission.availableCents===0}}" class="commission-muted">暂无可申请的已释放金额。</text>
         <view wx:if="{{isolatedTransfer&&formVisible}}" class="commission-form">
           <text>申请金额（元）</text><input type="digit" value="{{amount}}" placeholder="例如 20.00" maxlength="11" bindinput="editAmount"/>
-          <text>申请依据</text><textarea value="{{reason}}" placeholder="说明这笔隔离测试申请" maxlength="300" auto-height bindinput="editReason"/>
+          <text>申请依据</text><textarea value="{{reason}}" placeholder="填写本次测试申请的说明" maxlength="300" auto-height bindinput="editReason"/>
           <view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submit" disabled="{{busy}}" loading="{{busy}}">登记意向</button></view>
         </view>
         <view wx:if="{{actionStatus}}" class="state">{{actionStatus}}</view>

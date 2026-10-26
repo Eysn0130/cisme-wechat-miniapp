@@ -13,13 +13,13 @@
   <view wx:if="{{signedIn && mode !== 'review'}}" class="community-my-content"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openMyPosts" disabled="{{navigating}}">我的内容与草稿 <text>查看 ›</text></button></view>
 
   <view wx:if="{{mode === 'review'}}" class="review-panel">
-    <text wx:if="{{reviewBusy}}">正在同步审核状态…</text>
+    <text wx:if="{{reviewBusy}}">正在加载审核列表…</text>
     <view wx:if="{{teamError}}" class="state state--error">{{teamError}}</view>
     <view wx:if="{{reviewNotice}}" class="state" aria-live="polite">{{reviewNotice}}</view>
     <button class="{{reviewBusy ? 'control--disabled' : ''}} text-button" bindtap="loadReview" disabled="{{reviewBusy}}">刷新审核列表</button>
-    <view wx:for="{{profileReviewQueue}}" wx:key="member_id" class="glass review-card"><view class="review-profile"><image class="review-profile-avatar" src="{{item.avatar}}" mode="aspectFill"/><view><text>社区头像昵称待审核</text><text class="review-detail">{{item.display_name}}</text></view></view><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.member_id}}" data-decision="approve" bindtap="reviewMemberProfile" disabled="{{reviewBusy}}">资料审核通过</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.member_id}}" data-decision="reject" bindtap="reviewMemberProfile" disabled="{{reviewBusy}}">退回修改资料</button></view>
-    <view wx:for="{{reviewQueue}}" wx:key="id" class="glass review-card"><text>待审核投稿 · {{item.platform_account}}</text><text class="review-detail">{{item.disclosure}}</text><button data-url="{{item.post_url}}" bindtap="copyPostUrl">复制原文链接核验</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="approve" bindtap="reviewSubmission" disabled="{{reviewBusy}}">审核通过</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="request_changes" bindtap="reviewSubmission" disabled="{{reviewBusy}}">要求补充</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="reject" bindtap="reviewSubmission" disabled="{{reviewBusy}}">拒绝</button></view>
-    <view wx:for="{{publicationQueue}}" wx:key="id" class="glass review-card"><text>投稿已通过 · {{item.platform_account}}</text><text class="review-detail">{{item.visible ? '已进入推荐流' : item.publication_queued ? '正在发布' : !item.publication_enabled ? '公开发布尚未开放' : '待另一名审核员完成发布复核'}}</text><button data-url="{{item.post_url}}" bindtap="copyPostUrl">复制原文链接核验</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" wx:if="{{item.publication_enabled && !item.visible && !item.publication_queued}}" data-id="{{item.id}}" bindtap="publishSubmission" disabled="{{reviewBusy}}">复核并发布到推荐</button></view>
+    <view wx:for="{{profileReviewQueue}}" wx:key="member_id" class="glass review-card"><view class="review-profile"><image class="review-profile-avatar" src="{{item.avatar}}" mode="aspectFill"/><view><text>社区头像昵称待审核</text><text class="review-detail">{{item.display_name}}</text></view></view><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.member_id}}" data-decision="approve" bindtap="reviewMemberProfile" disabled="{{reviewBusy}}">通过资料审核</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.member_id}}" data-decision="reject" bindtap="reviewMemberProfile" disabled="{{reviewBusy}}">退回修改</button></view>
+    <view wx:for="{{reviewQueue}}" wx:key="id" class="glass review-card"><text>待审核投稿 · {{item.platform_account}}</text><text class="review-detail">{{item.disclosure}}</text><button data-url="{{item.post_url}}" bindtap="copyPostUrl">复制原文链接</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="approve" bindtap="reviewSubmission" disabled="{{reviewBusy}}">审核通过</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="request_changes" bindtap="reviewSubmission" disabled="{{reviewBusy}}">要求补充</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" data-decision="reject" bindtap="reviewSubmission" disabled="{{reviewBusy}}">拒绝</button></view>
+    <view wx:for="{{publicationQueue}}" wx:key="id" class="glass review-card"><text>投稿已通过 · {{item.platform_account}}</text><text class="review-detail">{{item.visible ? '已发布到社区' : item.publication_queued ? '正在发布' : !item.publication_enabled ? '公开发布尚未开放' : '待另一名审核员完成发布复核'}}</text><button data-url="{{item.post_url}}" bindtap="copyPostUrl">复制原文链接</button><button class="{{reviewBusy ? 'control--disabled' : ''}}" wx:if="{{item.publication_enabled && !item.visible && !item.publication_queued}}" data-id="{{item.id}}" bindtap="publishSubmission" disabled="{{reviewBusy}}">复核并发布</button></view>
     <view wx:for="{{formalReviewQueue}}" wx:key="id" class="glass review-card"><text>社区故事待处理 · {{item.image_count}} 张图片</text><text class="review-detail">{{item.title || item.body || '图片故事'}}</text><button data-id="{{item.id}}" bindtap="openFormalReview">查看并审核</button></view>
     <view wx:if="{{formalAppealQueue.length}}" class="review-report-heading">内容申诉 · {{appealTotal}} 条待复核</view>
     <view wx:for="{{formalAppealQueue}}" wx:key="id" class="glass review-card review-report-card">
@@ -40,19 +40,19 @@
       <text>举报{{item.targetType==='post'?'帖子':item.targetType==='comment'?'评论':'用户'}} · {{item.category}}</text>
       <text class="review-detail">{{item.targetSummary || '对象当前不可见，请核对举报信息'}}</text>
       <text wx:if="{{item.description}}" class="review-detail">举报说明：{{item.description}}</text>
-      <view class="review-report-actions"><button wx:if="{{item.postId}}" data-id="{{item.id}}" bindtap="openReportTarget">查看对象</button>
+      <view class="review-report-actions"><button wx:if="{{item.postId}}" data-id="{{item.id}}" bindtap="openReportTarget">查看内容</button>
         <button wx:if="{{item.targetType==='post'}}" data-id="{{item.id}}" data-decision="hide_post" bindtap="decideFormalReport" class="{{reviewBusy?'control--disabled':''}}" disabled="{{reviewBusy}}">核查后下架</button>
         <button wx:if="{{item.targetType==='comment'}}" data-id="{{item.id}}" data-decision="remove_comment" bindtap="decideFormalReport" class="{{reviewBusy?'control--disabled':''}}" disabled="{{reviewBusy}}">核查后移除</button>
         <button data-id="{{item.id}}" data-decision="dismiss" bindtap="decideFormalReport" class="{{reviewBusy?'control--disabled':''}}" disabled="{{reviewBusy}}">驳回举报</button></view>
-      <text wx:if="{{item.targetType==='member'}}" class="review-detail">账号处置需另行核查；这里不能直接停用账号。</text>
+      <text wx:if="{{item.targetType==='member'}}" class="review-detail">账号问题需另行核查，此处不能停用账号。</text>
     </view>
     <button wx:if="{{reportNextCursor}}" class="text-button {{reportLoadingMore?'control--disabled':''}}" bindtap="loadMoreReports" disabled="{{reportLoadingMore}}" loading="{{reportLoadingMore}}">加载更多举报</button>
     <text wx:if="{{!reviewBusy && !teamError && !reviewQueue.length && !publicationQueue.length && !profileReviewQueue.length && !formalReviewQueue.length && !formalReportQueue.length && !formalAppealQueue.length}}">当前没有待处理的资料或内容</text>
   </view>
   <block wx:if="{{mode !== 'review'}}">
-  <view wx:if="{{mode === 'recommend' && !loading && !displayFeedCount && !error}}" class="state">暂无审核发布的护理故事，稍后再来看看。</view>
-  <view wx:if="{{mode === 'featured' && !loading && !displayFeedCount && !error}}" class="state">精选护理故事暂未上架，稍后再来看看。</view>
-  <view wx:if="{{mode === 'following' && !loading && !displayFeedCount}}" class="state">关注作者后，这里会显示他们公开的护理故事。可在故事详情中关注作者。</view>
+  <view wx:if="{{mode === 'recommend' && !loading && !displayFeedCount && !error}}" class="state">还没有已发布的护理故事，请稍后再来。</view>
+  <view wx:if="{{mode === 'featured' && !loading && !displayFeedCount && !error}}" class="state">还没有精选内容，请稍后再来。</view>
+  <view wx:if="{{mode === 'following' && !loading && !displayFeedCount}}" class="state">在故事详情关注作者后，可在这里查看他们的公开内容。</view>
   <view wx:if="{{loading}}" class="community-loading" aria-live="polite">正在加载护理故事…</view>
   <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重新加载</button></view>
 
@@ -70,6 +70,6 @@
   <view wx:if="{{moreError}}" class="state state--error" aria-live="polite"><text>{{moreError}}</text><button class="text-button {{formalLoadingMore ? 'control--disabled' : ''}}" bindtap="onReachBottom" disabled="{{formalLoadingMore}}">重试加载更多</button></view>
   <view wx:if="{{formalLoadingMore}}" class="community-loading" aria-live="polite">正在加载更多内容…</view>
   <view wx:if="{{mode === 'recommend' && appliedSearch && !loading && !displayFeedCount}}" class="state">没有找到相关护理故事或作者。试试其他关键词。</view>
-  <view wx:if="{{mode === 'featured' && !loading && displayFeedCount}}" class="community-notice"><image class="community-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>精选内容由作者授权发布。点赞、收藏和关注会保存到当前账号。</text></view>
+  <view wx:if="{{mode === 'featured' && !loading && displayFeedCount}}" class="community-notice"><image class="community-notice__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text>精选内容经作者授权发布。</text></view>
   </block>
 </view>

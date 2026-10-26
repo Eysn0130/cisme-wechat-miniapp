@@ -40,7 +40,7 @@ describe("address editor custom component", () => {
     const component = renderEditor({ busy: true, parseStatus: "partial", parseSummary: "已识别：联系电话", parseWarnings: ["仍需补充：收货人"], fieldErrors: { region: "请确认行政区划" }, conflict: true });
     expect(component.dom.textContent).toContain("仍需补充：收货人");
     expect(component.dom.textContent).toContain("请确认行政区划");
-    expect(component.dom.textContent).toContain("加载服务器版本");
+    expect(component.dom.textContent).toContain("加载最新地址");
     expect(component.querySelectorAll(".is-disabled").length).toBeGreaterThan(3);
     component.detach();
   });

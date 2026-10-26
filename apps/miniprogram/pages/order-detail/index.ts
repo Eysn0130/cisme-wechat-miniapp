@@ -55,7 +55,7 @@ Page({
     this.wechatReturn=takeWechatReceiptReturn(this.data.id,historicalCommerceToken());
     if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){
       const attempt=takeSupportSendAttempt(historicalCommerceToken(),this.data.id);
-      if(attempt)this.setData({sheetInput:attempt.body,sheetSendAttempt:{key:attempt.id,body:attempt.body},sheetError:'原消息结果尚未核实；重试将使用同一消息编号。'});
+      if(attempt)this.setData({sheetInput:attempt.body,sheetSendAttempt:{key:attempt.id,body:attempt.body},sheetError:'上次消息发送结果尚未确认，请重试原消息。'});
     }
     if(this.data.supportSheetOpen&&!this.data.sheetInput&&!this.data.sheetSendAttempt){
       const draft=takeSupportDraft(historicalCommerceToken(),this.data.id);
@@ -99,14 +99,14 @@ Page({
     const current=()=>this.readCurrent(epoch,token,readEpoch);
     this.setData({recoveryLoading:true,recoveryError:""});
     try{const recoveryRows=await readCommerceRecovery(this,this.recoveryScope(),current);if(current())this.setData({recoveryRows,recoveryLoading:false});}
-    catch{if(current())this.setData({recoveryLoading:false,recoveryError:"原操作暂时无法核对；请重试核对，不要重新创建重复申请。"});}
+    catch{if(current())this.setData({recoveryLoading:false,recoveryError:"上次操作暂时无法核对，请重试查询，不要重复申请。"});}
   },
   async resolveRecovery(event:WechatMiniprogram.BaseEvent){
     const key=String(event.currentTarget.dataset.key??""),row=this.data.recoveryRows.find(item=>item.key===key);
     if(!row||!this.canAct()||this.data.busy||!row.recorded&&!(row.kind==="cancel"||this.data.isolatedPayment))return;
     const epoch=this.data.epoch,token=historicalCommerceToken();
     const current=()=>this.current(epoch,token)&&this.data.visible&&this.data.coreReady&&(row.recorded||(row.kind==="cancel"||this.data.isolatedPayment));
-    const answer=await this.confirmOperation({title:row.recorded?"确认已核对原操作？":"重试原操作？",content:row.recorded?"原申请已由服务端记录。确认后才可开始新的申请；付款、退款和到账仍分别按权威状态展示。":"只使用最初确认的金额、原因、版本和请求编号，先查询原结果；不会使用后来修改的内容，资金操作仍须服务端当前授权，重试可能继续原付款、退款或关单操作。",confirmText:row.recorded?"已核对":"重试原操作"});
+    const answer=await this.confirmOperation({title:row.recorded?"确认已核对原操作？":"重试原操作？",content:row.recorded?"原申请已记录。请先查看付款、退款或到账进度，再开始新的申请。":"将先查询原结果，并使用最初确认的金额和内容重试；后续修改不会提交。重试可能继续原付款、退款或取消订单操作。",confirmText:row.recorded?"已核对":"重试原操作"});
     if(!answer.confirm||!current()||this.data.busy)return;
     this.setData({busy:true,recoveryError:""});
     try{if(row.recorded)await acknowledgeCommerceCommand(key,this.recoveryScope(),current);else await retryCommerceCommand(key,this.recoveryScope(),current);
@@ -207,16 +207,16 @@ Page({
       }
       if(!open)return;
       if(!result.canOpenComponent||!result.component?.transactionId){this.setData({actionError:'当前订单暂不能打开微信确认收货；可稍后刷新状态或联系客服。'});return;}
-      if(this.data.runtimeMode==='test'){this.setData({actionStatus:'本地测试仅核对组件入口，不会打开真实微信确认收货。'});return;}
+      if(this.data.runtimeMode==='test'){this.setData({actionStatus:'测试订单不会打开微信确认收货页面。'});return;}
       const api=wx as typeof wx & {openBusinessView?:(options:{businessType:'weappOrderConfirm';extraData:{transaction_id:string};
         success?:()=>void;fail?:()=>void})=>void};
       if(!wx.canIUse('openBusinessView')||typeof api.openBusinessView!=='function'){
-        this.setData({actionError:'当前微信版本暂不支持确认收货组件，请升级微信后再试。'});return;
+        this.setData({actionError:'当前微信版本暂不支持确认收货，请升级微信后再试。'});return;
       }
       beginWechatReceiptReturn(id,token,result.component.transactionId);
       try{api.openBusinessView({businessType:'weappOrderConfirm',extraData:{transaction_id:result.component.transactionId},
-        fail:()=>{clearWechatReceiptReturn();if(current())this.setData({actionError:'微信确认收货组件暂无法打开，请稍后重试或联系客服。'});}});}
-      catch{clearWechatReceiptReturn();if(current())this.setData({actionError:'微信确认收货组件暂无法打开，请稍后重试或联系客服。'});}
+        fail:()=>{clearWechatReceiptReturn();if(current())this.setData({actionError:'微信确认收货页面暂时无法打开，请稍后重试或联系客服。'});}});}
+      catch{clearWechatReceiptReturn();if(current())this.setData({actionError:'微信确认收货页面暂时无法打开，请稍后重试或联系客服。'});}
     }catch{if(current())this.setData({receiptQueryLoading:false,actionStatus:'',receiptQueryError:'暂时无法查询微信记录。上次有效记录仍保留，请重试或联系售后服务。'});}
   },
   applyRuntime(){const ready=this.canAct()&&this.data.runtimeState==="ready"&&this.data.order?.transactionSourceKind==="verified_commerce",actions=runtimeActions(this.data.runtimeStatus);
@@ -262,7 +262,7 @@ Page({
     const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id,
       key=this.data.refundKey||clientOperationKey("refund-request");
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.status==="paid"&&this.data.runtimeMode!=="formal";
-    const answer=await this.confirmOperation({title:"提交隔离退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名授权人员复核后按原组成分配现金与购物权益；只有可信渠道成功才退回权益。`,confirmText:"提交申请"});
+    const answer=await this.confirmOperation({title:"提交测试退款申请？",content:`订单 ${order.orderNumber}\n申请商品金额 ¥${centsToYuan(amountCents)}。另一名工作人员复核后，按原付款组成处理模拟支付金额与测试购物权益；确认退款成功后才会退回权益。`,confirmText:"提交申请"});
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,refundKey:key,actionError:"",actionStatus:""});
     try{await executeCommerceCommand({kind:"refund",objectId:id,key,payload:{amountCents,reason}},()=>current()&&this.data.visible&&this.data.isolatedPayment);
@@ -279,13 +279,13 @@ Page({
       path:`/v1/me/orders/${id}/payment-intent`,method:"POST",data:{}});
       if(!current())return;
       if(result.state==="verified_pending")this.setData({actionStatus:"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。"});
-      else if(result.simulation)this.setData({actionStatus:"隔离预支付意图已建立。此环境不会拉起真实微信付款或扣款。"});
-      else if(result.requestPayment&&!this.data.visible){this.setData({actionStatus:"支付意图已返回，请回到订单核对原单后再主动付款。"});return;}
+      else if(result.simulation)this.setData({actionStatus:"测试支付已准备好，不会发起真实微信付款或扣款。"});
+      else if(result.requestPayment&&!this.data.visible){this.setData({actionStatus:"付款信息已获取，请返回订单确认后再付款。"});return;}
       else if(result.requestPayment){try{await wx.requestPayment(result.requestPayment);}
         catch{if(current())this.setData({actionError:"微信付款未确认，请按原单核对。"});}
         // The intent action must not release busy while its authoritative follow-up is pending.
         if(current()){this.setData({busy:false});await this.recheckPayment();}}
-    }catch(error){if(current())this.setData({actionError:errorTitle(error,"支付意图暂未建立，请核对原单后重试。")});}
+    }catch(error){if(current())this.setData({actionError:errorTitle(error,"暂时无法发起付款，请核对原订单后重试。")});}
     finally{this.finishAction(epoch,token);}},
   async recheckPayment(){const order=this.data.order;
     if(!this.canAct()||this.data.busy||!order||order.status!=="pending_payment"||!this.data.paymentRecovery)return;
@@ -295,7 +295,7 @@ Page({
     try{const result=await request<{state:string}>({path:`/v1/me/orders/${id}/payment-intent`});
       if(!current())return;
       this.setData({actionStatus:result.state==="verified_pending"?"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。":
-        result.state==="paid"?"支付已由服务端核验。":result.state==="notpay"?"渠道仍未确认付款。":"原单状态待确认，请稍后重查。"});
+        result.state==="paid"?"付款已确认。":result.state==="notpay"?"渠道仍未确认付款。":"原单状态待确认，请稍后重查。"});
       if(result.state==="paid"){this.setData({busy:false});void this.load();}
     }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}
     finally{this.finishAction(epoch,token);}},
@@ -304,7 +304,7 @@ Page({
     const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id,version=order.version;
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id&&this.data.order.version===version;
     const answer=await this.confirmOperation({title:"取消待支付订单？",
-      content:this.data.isolatedPayment?"系统会先按原商户订单号核对并关闭渠道订单；未知支付状态不会释放库存。":"取消后将释放本单预留库存，订单记录仍保留。",
+      content:this.data.isolatedPayment?"将先核对付款结果，再取消订单。付款状态未确认前，不会释放预留库存。":"取消后将释放本单预留库存，订单记录仍保留。",
       confirmText:"确认取消",confirmColor:"#8d3150"}).catch(()=>({confirm:false}));if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     const cancelKey=this.data.cancelKey||clientOperationKey("order-cancel");this.setData({busy:true,error:"",actionError:"",cancelKey});
     try{const result=await executeCommerceCommand<CommerceOrder<MemberOrderAddress>>({kind:this.data.isolatedPayment?"cancel-verified":"cancel",objectId:id,key:cancelKey,

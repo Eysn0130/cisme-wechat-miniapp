@@ -214,7 +214,7 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   await p.queryWechatReceipt(true);
   expect(m.write).toHaveBeenCalledTimes(1);
   expect((globalThis as any).wx.openBusinessView).not.toHaveBeenCalled();
-  expect(p.data.actionStatus).toContain('不会打开真实微信');
+  expect(p.data.actionStatus).toContain('测试订单不会打开微信确认收货页面');
  });
  it('checks a successful component return again without reopening it, and stops after confirmation',async()=>{
   const p=await page(),shipmentId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';

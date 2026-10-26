@@ -7,7 +7,7 @@ import { commerceContextRevision } from '../../services/commerce-command-store';
 import { centsToYuan } from '../../services/commerce';
 const caps:Capability[]=['commerce.aftersale.review','commerce.return.receive','commerce.return.inspect'];
 const labels:Record<string,string>={requested:'申请已收到',need_info:'请补充信息',awaiting_instruction:'待客服发送退货指引',awaiting_return:'请按本案指引寄回',return_in_transit:'退货运输中',return_received:'已收件，待质检',quality_checked:'已质检，待核对退款',refund_exception_approved:'无需寄回，待退款审批',refund_pending:'退款处理中',rejected:'申请未通过',cancelled:'已撤回'};
-const actions:Record<string,string>={cancel:'撤回申请',provide_info:'提交补充说明',report_old_route:'已按旧版指引寄出，联系客服协助',ship_return:'登记退货运单',request_info:'请用户补充说明',reject:'不予受理并说明',approve_return:'确认需寄回核对',approve_refund_without_return:'核对无需寄回例外',resolve_old_route:'记录旧地址处理结果',receive_return:'确认实际收到退货',inspect_return:'记录质检结果',request_refund:'转入独立退款审批',reopen_refund:'恢复原售后案件'};
+const actions:Record<string,string>={cancel:'撤回申请',provide_info:'提交补充说明',report_old_route:'已按旧版指引寄出，联系客服协助',ship_return:'登记退货运单',request_info:'请用户补充说明',reject:'不予受理并说明',approve_return:'确认需寄回核对',approve_refund_without_return:'核对无需寄回例外',resolve_old_route:'记录旧地址处理结果',receive_return:'确认实际收到退货',inspect_return:'记录质检结果',request_refund:'提交退款审批',reopen_refund:'恢复原售后案件'};
 const attentionLabels:Record<string,string>={requested:'待受理',instruction:'待发送退货指引',old_route:'旧地址寄件待协助',receiving:'待收件',inspection:'待质检'};
 type ReturnInstruction={version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string;issuedAt?:string};
 type Row={id:string;orderId:string;state:string;kind:string;version:number;reason:string;claimBasis:string;supportConversationId:string|null;requestedAt:string;amountCents:number;resolved:boolean;refund:any;returnDestination:ReturnInstruction|null;returnInstructionHistory?:ReturnInstruction[];returnCarrier:string|null;returnTracking:string|null;shippedInstructionVersion:number|null;returnRouteReviewRequired:boolean;routeReviewOutcome:string|null;routeReviewedAt:string|null;canReviewOldRoute?:boolean;qualityResult:string|null;exceptionResolution:null|{kind:string;evidenceReference:string;approvedAt:string};lines:any[];events?:any[];historyTruncated?:boolean;label?:string;amountLabel?:string};
@@ -140,14 +140,14 @@ Page({
     action==='resolve_old_route'?`处理结果：${this.data.routeOutcomeOptions[this.data.routeOutcomeIndex]}。\n`:
     action==='approve_refund_without_return'?`例外：${this.data.exceptionOptions[this.data.exceptionIndex]}。\n依据：${this.data.exceptionEvidence.trim()}。\n此操作不等于已退款。\n`:'';
    const yes=await new Promise<boolean>(resolve=>wx.showModal({title:actions[action]!,
-    content:extra+'提交后可在案件中查看操作时间和编号；退货指引、收件、质检及退款会分别记录。',
+    content:extra+'提交后可在处理记录中查看时间和进度，退货、质检与退款会分别更新。',
     confirmText:'确认提交',success:r=>resolve(r.confirm),fail:()=>resolve(false)}));
    if(!this.current(epoch,token)){if(this.visible&&epoch===this.epoch)this.deny('身份已变化，请重新核验。');return;}this.setData({busy:false});if(!yes)return;
    this.pending={key:clientOperationKey('aftersale'),path:`${this.base()}/${row.id}/actions`,data};
   }
   const pending=this.pending,epoch=this.epoch,token=this.token;this.setData({busy:true,locked:true,reconciliationReady:false,notice:'正在提交，请勿重复操作。'});
   try{const result=await request<Row>({path:pending.path,method:'POST',idempotencyKey:pending.key,data:pending.data});if(!this.current(epoch,token))return;
-   this.selection=result.id;this.pending=null;this.setData({busy:false,locked:false,note:'',carrier:'',tracking:'',qualityIndex:0,exceptionIndex:0,exceptionEvidence:'',notice:'本次操作已记录，请核对最新案件事实。'});await this.load();
+   this.selection=result.id;this.pending=null;this.setData({busy:false,locked:false,note:'',carrier:'',tracking:'',qualityIndex:0,exceptionIndex:0,exceptionEvidence:'',notice:'本次操作已记录，请查看最新处理进度。'});await this.load();
   }catch(error){if(this.current(epoch,token)){
    if([401,403].includes((error as any)?.status))this.deny('身份或权限已变化，请重新核验。');
    else if([400,404,409,422].includes((error as any)?.status)&&(error as any)?.code!=='TRANSACTION_OUTCOME_UNKNOWN'){
@@ -157,7 +157,7 @@ Page({
   }}finally{if(this.visible&&epoch===this.epoch){this.setData({busy:false});if(!this.current(epoch,token))this.deny('身份已变化，请重新核验。');}}
  },
  async reconcile(){if(!this.canAct())return;if(!this.data.reconciliationReady){this.setData({notice:'请先刷新并核对原案件。'});return;}const epoch=this.epoch,token=this.token;this.setData({busy:true});
-  const yes=await new Promise<boolean>(resolve=>wx.showModal({title:'核对原售后记录',content:'请先刷新并查看原案件和处理记录。确认已核对后，仅清除本页重试上下文，不撤回服务端已经记录的操作。',confirmText:'已核对',success:r=>resolve(r.confirm),fail:()=>resolve(false)}));
+  const yes=await new Promise<boolean>(resolve=>wx.showModal({title:'核对原售后记录',content:'请先刷新并查看原售后申请和处理记录。确认后将结束本页重试，不会撤回已提交的操作。',confirmText:'已核对',success:r=>resolve(r.confirm),fail:()=>resolve(false)}));
   if(this.current(epoch,token)){if(yes){this.pending=null;this.setData({needsReconcile:false,reconciliationReady:false,locked:false,note:'',carrier:'',tracking:'',qualityIndex:0,notice:''});}this.setData({busy:false});}
  },
  retry(){void this.load();},next(){if(this.canAct()&&!this.pending){this.selection='';void this.load(true);}},

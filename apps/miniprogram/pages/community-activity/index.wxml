@@ -13,7 +13,7 @@
     <view wx:if="{{!loading && !items.length && !error}}" class="activity-state activity-state--empty">{{section==='comments'?'还没有评论':section==='saves'?'还没有收藏':section==='reports'?'还没有举报记录':section==='appeals'?'还没有内容申诉':'还没有屏蔽的用户'}}</view>
     <block wx:if="{{section==='comments'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
       <view class="activity-row__top"><text class="activity-row__title">{{item.postTitle || '内容暂不可见'}}</text><text class="activity-status">{{item.stateLabel}}</text></view>
-      <text class="activity-row__body">{{item.body || '评论正文已删除'}}</text><text class="activity-row__time">{{item.createdLabel}}</text>
+      <text class="activity-row__body">{{item.body || '评论已删除'}}</text><text class="activity-row__time">{{item.createdLabel}}</text>
       <view class="activity-row__actions"><button wx:if="{{item.postTitle}}" data-id="{{item.postId}}" bindtap="openPost">查看帖子</button><button wx:if="{{item.state!=='deleted'}}" data-id="{{item.id}}" bindtap="deleteComment" class="{{busy?'control--disabled':''}}" disabled="{{busy}}">删除评论</button></view>
     </view></block>
     <block wx:if="{{section==='saves'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">

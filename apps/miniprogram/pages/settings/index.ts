@@ -11,9 +11,9 @@ function scrollToSettingsError() {
 }
 
 const consentPurposeLabels: Record<string, string> = {
-  content_storage: "安全存储投稿证据",
+  content_storage: "保存投稿资料",
   human_review: "人工审核与风险复核",
-  feed_readonly: "通过后只读精选展示"
+  feed_readonly: "审核通过后用于精选展示"
 };
 
 function isAuthenticationFailure(error: unknown): boolean {
@@ -49,7 +49,7 @@ Page({
     this.data.pageAlive = true;
     const memberChanged = !retainMemberSnapshot(this);
     if (memberChanged) this.clearMemberSnapshot();
-    if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "auth", error: "请先确认身份后查看个人设置。" }); return; }
+    if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "auth", error: "登录后可查看和修改个人设置。" }); return; }
     this.setData({ leaving: false, canManageMembers:false, ...(memberChanged && this.requestedAddressSection ? {editingAddresses:true} : {}) });
     void this.loadSettingsBootstrap(); void this.loadAddresses(); void this.loadManagementAccess();
   },
@@ -115,9 +115,9 @@ Page({
       },()=>this.checkAddressDraftRecovery(profile.id));
     } catch (error) {
       if (!this.data.pageAlive || attempt !== this.data.loadAttempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      if (snapshotReceived) { this.setData({profileError:"会员头像暂未同步，可重新加载资料；手机号与许可状态已更新。"}); return; }
+      if (snapshotReceived) { this.setData({profileError:"头像暂未加载，请重新加载资料。手机号和授权信息已更新。"}); return; }
       const invalid=isAuthenticationFailure(error);
-      this.setData({loading:false,phoneLoading:false,profileError:"会员资料暂未同步，请重试。",phoneError:"手机号状态暂未同步。",sessionStatus:invalid?"invalid":"unknown",errorAction:invalid?"auth":"load",error:invalid?"当前会话已失效。重新登录后会回到本页，不会改写已有许可。":"设置快照暂时无法加载，请检查网络后重试。"},scrollToSettingsError);
+      this.setData({loading:false,phoneLoading:false,profileError:"会员资料暂未加载，请重试。",phoneError:"暂时无法查看手机号绑定情况。",sessionStatus:invalid?"invalid":"unknown",errorAction:invalid?"auth":"load",error:invalid?"登录已过期，请重新登录。返回本页后可继续查看已有授权。":"设置暂时无法加载，请检查网络后重试。"},scrollToSettingsError);
     } finally { if (this.data.pageAlive && attempt === this.data.loadAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({loading:false,phoneLoading:false}); }
   },
   async loadProfile() {
@@ -135,20 +135,20 @@ Page({
         avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0, profileCompleted:Boolean(profile.completed_at),
         communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true
       },()=>this.checkAddressDraftRecovery(profile.id)); }
-    } catch { if(this.data.pageAlive && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken)this.setData({profileError:"会员资料暂未同步，请重试。"}); }
+    } catch { if(this.data.pageAlive && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken)this.setData({profileError:"会员资料暂未加载，请重试。"}); }
   },
   markProfileDirty() {
     this.setData({profileDirty:true,profileError:""});
     this.syncUnloadGuard();
   },
   syncUnloadGuard() {
-    if (this.data.profileDirty || this.data.addressDirty || this.data.workingConsentId || this.data.addressBusy) wx.enableAlertBeforeUnload({message:"有尚未确认的设置修改，请完成或放弃后再离开。"});
+    if (this.data.profileDirty || this.data.addressDirty || this.data.workingConsentId || this.data.addressBusy) wx.enableAlertBeforeUnload({message:"还有未完成的修改，请保存或放弃后再离开。"});
     else wx.disableAlertBeforeUnload();
   },
   editDisplayName(event:WechatMiniprogram.Input) { if(this.data.displayName === event.detail.value)return; this.setData({displayName:event.detail.value,nicknameInvalid:false}); this.markProfileDirty(); },
   editWechatHandle(event:WechatMiniprogram.Input) { if(this.data.wechatHandle === event.detail.value)return; this.setData({wechatHandle:event.detail.value}); this.markProfileDirty(); },
   reviewNickname(event:WechatMiniprogram.CustomEvent) {
-    if (event.detail.pass === false) this.setData({nicknameInvalid:true,profileError:"微信未通过该昵称检测，请修改后再保存。"});
+    if (event.detail.pass === false) this.setData({nicknameInvalid:true,profileError:"昵称未通过微信审核，请修改后保存。"});
   },
   changeCommunityVisibility(event:WechatMiniprogram.SwitchChange) { this.setData({communityVisible:event.detail.value}); this.markProfileDirty(); },
   async chooseAvatar(event:WechatMiniprogram.CustomEvent) {
@@ -169,7 +169,7 @@ Page({
   async reloadProfile() {
     if(this.data.profileBusy || this.data.avatarBusy)return;
     if(this.data.profileDirty) {
-      const result=await wx.showModal({title:"重新加载会员资料？",content:"未保存的修改将被丢弃，读取服务器当前资料。",confirmText:"重新加载"});
+      const result=await wx.showModal({title:"重新加载会员资料？",content:"重新加载会放弃未保存的修改，并显示最新资料。",confirmText:"重新加载"});
       if(!result.confirm)return;
     }
     this.setData({profileDirty:false});this.syncUnloadGuard();await this.loadProfile();
@@ -195,7 +195,7 @@ Page({
     try {
       const result = await request<{enabled:boolean;bound:boolean;masked:string}>({path:"/v1/me/phone",authMode:"optional"});
       if (this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ phoneEnabled: result.enabled, phoneBound: result.bound, phoneMasked: result.masked || "" });
-    } catch { if (this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ phoneError: "手机号状态暂未同步，你仍可继续使用会员账号。" }); }
+    } catch { if (this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ phoneError: "暂时无法查看手机号绑定情况，其他账号功能仍可使用。" }); }
     finally { if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken)this.setData({phoneLoading:false}); }
   },
   async bindPhone(event: WechatMiniprogram.CustomEvent) {
@@ -206,7 +206,7 @@ Page({
     try {
       const result=await request<{bound:boolean;masked:string}>({path:"/v1/me/phone",method:"POST",data:{code:event.detail.code}});
       if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken){this.setData({phoneBound:result.bound,phoneMasked:result.masked});const identity=memberIdentity();if(identity)publishMemberIdentity({...identity,phone_masked:result.masked});}
-    } catch(error) {if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken)this.setData({phoneError:(error as {title?:string}).title || "绑定未确认，请重新授权；会员注册结果不受影响。"});}
+    } catch(error) {if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken)this.setData({phoneError:(error as {title?:string}).title || "暂未确认手机号是否绑定成功，请重新授权。会员账号不受影响。"});}
     finally{if(this.data.pageAlive)this.setData({phoneBusy:false});}
   },
   async unbindPhone() {
@@ -239,7 +239,7 @@ Page({
     try{
       const result=await request<{enabled:boolean;maxAddresses:number;addresses:Array<Omit<AddressView,"labelText"|"summary">>}>({path:"/v1/me/addresses"});
       if(!this.data.pageAlive || attempt!==this.data.addressAttempt || token!==getApp<IAppOption>().globalData.sessionToken)return;
-      this.setData({addressesEnabled:result.enabled,addresses:result.addresses.map(addressView),addressesReady:true,addressesError:result.enabled?"":"地址簿安全存储尚未配置，当前不会收集地址。"});
+      this.setData({addressesEnabled:result.enabled,addresses:result.addresses.map(addressView),addressesReady:true,addressesError:result.enabled?"":"地址簿暂不可用，当前不会收集收货地址。"});
     }catch(error){if(this.data.pageAlive && attempt===this.data.addressAttempt && token===getApp<IAppOption>().globalData.sessionToken)this.setData({addressesReady:false,addressesError:(error as {title?:string}).title||"收货地址暂时无法同步，请重试。"});}
     finally{if(this.data.pageAlive && attempt===this.data.addressAttempt)this.setData({addressesLoading:false});}
   },
@@ -296,7 +296,7 @@ Page({
     const item=this.data.addresses.find(address=>address.id===String(event.currentTarget.dataset.id||""));
     if(!item)return;
     const codes=[item.provinceCode||"",item.cityCode||"",item.districtCode||item.nationalCode||""];
-    this.setData({addressEditorOpen:true,addressDirty:false,addressDraft:{...emptyAddressDraft(),id:item.id,recipientName:item.recipientName,phone:item.phone,region:[item.province,item.city,item.district],regionText:[item.province,item.city,item.district].join(" "),regionCodes:codes,regionSource:"server",regionNeedsConfirmation:codes.some(code=>!code),detail:item.detail,postalCode:item.postalCode||"",nationalCode:item.nationalCode||item.districtCode||"",label:item.label,isDefault:item.isDefault,expectedVersion:item.version,clientRequestKey:""},addressQuickInput:"",addressParseStatus:"idle",addressParseSummary:"",addressParseWarnings:codes.some(code=>!code)?["此历史地址缺少完整行政区划 code，保存前请重新选择所在地"]:[],addressFieldErrors:{},addressConflict:false});
+    this.setData({addressEditorOpen:true,addressDirty:false,addressDraft:{...emptyAddressDraft(),id:item.id,recipientName:item.recipientName,phone:item.phone,region:[item.province,item.city,item.district],regionText:[item.province,item.city,item.district].join(" "),regionCodes:codes,regionSource:"server",regionNeedsConfirmation:codes.some(code=>!code),detail:item.detail,postalCode:item.postalCode||"",nationalCode:item.nationalCode||item.districtCode||"",label:item.label,isDefault:item.isDefault,expectedVersion:item.version,clientRequestKey:""},addressQuickInput:"",addressParseStatus:"idle",addressParseSummary:"",addressParseWarnings:codes.some(code=>!code)?["这条旧地址的地区信息不完整，请重新选择所在地区后保存。"]:[],addressFieldErrors:{},addressConflict:false});
   },
   updateAddressDraft(next:AddressDraft,clearedField?:AddressField) {
     const errors={...this.data.addressFieldErrors};if(clearedField)delete errors[clearedField];
@@ -314,7 +314,7 @@ Page({
     this.setData({addressParsing:true,addressParseSummary:"正在本机识别…",addressParseWarnings:[]},()=>{
       const result=parseQuickAddress(this.data.addressQuickInput);
       const next=mergeAddressDraft(this.data.addressDraft,result.patch,true);
-      const summary=result.recognized.length?`已识别：${result.recognized.join("、")}`:"未识别出可可靠填写的字段";
+      const summary=result.recognized.length?`已识别：${result.recognized.join("、")}`:"没有识别出可填写的地址，请手动补充。";
       this.setData({addressDraft:next,addressDirty:true,addressParsing:false,addressParseStatus:result.status,addressParseSummary:summary,addressParseWarnings:[...result.warnings,...(result.missing.length?[`仍需补充：${result.missing.join("、")}`]:[])]},()=>this.persistAddressDraft());
       this.syncUnloadGuard();
     });
@@ -349,9 +349,9 @@ Page({
     const token=getApp<IAppOption>().globalData.sessionToken,ownerId=this.data.memberId;
     const attempt=this.addressImportAttempt=(this.addressImportAttempt??0)+1;
     const current=()=>this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken&&ownerId===this.data.memberId&&attempt===this.addressImportAttempt;
-    if(!token||!ownerId){this.setData({addressesError:"会员身份暂未同步，请稍后重试。"});return;}
+    if(!token||!ownerId){this.setData({addressesError:"暂时无法确认登录状态，请稍后重试。"});return;}
     wx.chooseAddress({
-      success:(result)=>{if(!current())return;const region=[result.provinceName||"",result.cityName||"",result.countyName||""];const districtCode=result.nationalCode||"";const next=mergeAddressDraft(this.data.addressDraft,{recipientName:result.userName||"",phone:result.telNumber||"",region,regionCodes:["","",districtCode],regionSource:"wechat",regionNeedsConfirmation:true,detail:(result as typeof result & {detailInfoNew?:string}).detailInfoNew||[result.streetName,result.detailInfo].filter(Boolean).join(""),postalCode:result.postalCode||"",nationalCode:districtCode},true);this.setData({addressEditorOpen:true,addressDirty:true,addressDraft:next,addressParseStatus:"partial",addressParseSummary:"已从微信地址填入未手工修改的字段",addressParseWarnings:["请用所在地选择器核对省、市、区县及行政区划 code"]},()=>{if(current())this.persistAddressDraft();});if(current())this.syncUnloadGuard();},
+      success:(result)=>{if(!current())return;const region=[result.provinceName||"",result.cityName||"",result.countyName||""];const districtCode=result.nationalCode||"";const next=mergeAddressDraft(this.data.addressDraft,{recipientName:result.userName||"",phone:result.telNumber||"",region,regionCodes:["","",districtCode],regionSource:"wechat",regionNeedsConfirmation:true,detail:(result as typeof result & {detailInfoNew?:string}).detailInfoNew||[result.streetName,result.detailInfo].filter(Boolean).join(""),postalCode:result.postalCode||"",nationalCode:districtCode},true);this.setData({addressEditorOpen:true,addressDirty:true,addressDraft:next,addressParseStatus:"partial",addressParseSummary:"已补入微信收货地址，手动填写的内容已保留。",addressParseWarnings:["请重新选择并核对省、市、区县。"]},()=>{if(current())this.persistAddressDraft();});if(current())this.syncUnloadGuard();},
       fail:(error)=>{if(current()&&!String(error.errMsg||"").includes("cancel"))this.setData({addressesError:"未能读取微信收货地址，你仍可手动填写。"});}
     });
   },
@@ -374,17 +374,17 @@ Page({
       await request({path:draft.id?`/v1/me/addresses/${draft.id}`:"/v1/me/addresses",method:draft.id?"PUT":"POST",...(draft.id?{}:{idempotencyKey:draft.clientRequestKey}),data});
       if(!this.data.pageAlive || token!==getApp<IAppOption>().globalData.sessionToken)return;
       this.clearAddressDraftRecovery();this.setData({addressDirty:false,addressEditorOpen:false,addressDraft:emptyAddressDraft(),addressQuickInput:"",addressFieldErrors:{},addressConflict:false,operationStatus:"收货地址已保存"});this.syncUnloadGuard();await this.loadAddresses();
-    }catch(error){if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken){const problem=error as {title?:string;code?:string};this.setData({addressesError:problem.code==="DELIVERY_ADDRESS_CHANGED"?"这个地址已在其他页面更新。请选择加载服务器版本，或将当前内容另存为新地址。":problem.title||"地址未保存，草稿已保留，可按原请求重试。",addressConflict:problem.code==="DELIVERY_ADDRESS_CHANGED",operationStatus:""});this.persistAddressDraft();}}
+    }catch(error){if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken){const problem=error as {title?:string;code?:string};this.setData({addressesError:problem.code==="DELIVERY_ADDRESS_CHANGED"?"这条地址已在其他页面更新。可以加载最新地址，或将当前内容另存为新地址。":problem.title||"地址暂未保存，填写的内容已保留，可以重试。",addressConflict:problem.code==="DELIVERY_ADDRESS_CHANGED",operationStatus:""});this.persistAddressDraft();}}
     finally{if(this.data.pageAlive){this.setData({addressBusy:false});this.syncUnloadGuard();}}
   },
   async loadConflictedAddress(){
     const id=this.data.addressDraft.id;if(!id||this.data.addressBusy)return;
-    this.setData({addressBusy:true,operationStatus:"正在加载服务器版本…"});
+    this.setData({addressBusy:true,operationStatus:"正在加载最新地址…"});
     await this.loadAddresses();
-    if(!this.data.addressesReady){this.setData({addressBusy:false,operationStatus:"",addressesError:"服务器版本暂时无法加载，当前草稿仍保留在本机。"});this.syncUnloadGuard();return;}
+    if(!this.data.addressesReady){this.setData({addressBusy:false,operationStatus:"",addressesError:"暂时无法加载最新地址，当前填写的内容仍保留在本机。"});this.syncUnloadGuard();return;}
     const item=this.data.addresses.find(address=>address.id===id);
-    if(item){const codes=[item.provinceCode||"",item.cityCode||"",item.districtCode||item.nationalCode||""];this.clearAddressDraftRecovery();this.setData({addressDraft:{...emptyAddressDraft(),id:item.id,recipientName:item.recipientName,phone:item.phone,region:[item.province,item.city,item.district],regionText:[item.province,item.city,item.district].join(" "),regionCodes:codes,regionSource:"server",regionNeedsConfirmation:codes.some(code=>!code),detail:item.detail,postalCode:item.postalCode||"",nationalCode:item.nationalCode||"",label:item.label,isDefault:item.isDefault,expectedVersion:item.version,clientRequestKey:""},addressDirty:false,addressConflict:false,addressFieldErrors:{},addressesError:"",operationStatus:"已加载服务器当前版本"});}
-    else this.setData({addressesError:"服务器中的这条地址已不存在。可将当前内容另存为新地址。",operationStatus:""});
+    if(item){const codes=[item.provinceCode||"",item.cityCode||"",item.districtCode||item.nationalCode||""];this.clearAddressDraftRecovery();this.setData({addressDraft:{...emptyAddressDraft(),id:item.id,recipientName:item.recipientName,phone:item.phone,region:[item.province,item.city,item.district],regionText:[item.province,item.city,item.district].join(" "),regionCodes:codes,regionSource:"server",regionNeedsConfirmation:codes.some(code=>!code),detail:item.detail,postalCode:item.postalCode||"",nationalCode:item.nationalCode||"",label:item.label,isDefault:item.isDefault,expectedVersion:item.version,clientRequestKey:""},addressDirty:false,addressConflict:false,addressFieldErrors:{},addressesError:"",operationStatus:"已加载最新地址"});}
+    else this.setData({addressesError:"这条地址已被删除。可以将当前内容另存为新地址。",operationStatus:""});
     this.setData({addressBusy:false});this.syncUnloadGuard();
   },
   saveConflictedAsNew(){
@@ -402,7 +402,7 @@ Page({
   },
   async deleteAddress(event:WechatMiniprogram.TouchEvent){
     if(this.data.addressBusy)return;const item=this.data.addresses.find(address=>address.id===String(event.currentTarget.dataset.id||""));if(!item)return;
-    const result=await wx.showModal({title:"删除这个收货地址？",content:"仅删除地址簿记录，不会删除会员账号或历史业务记录。",confirmText:"删除",confirmColor:"#8b3f5c"}).catch(()=>({confirm:false}));if(!result.confirm)return;
+    const result=await wx.showModal({title:"删除这个收货地址？",content:"只删除这条收货地址，账号和历史订单不会删除。",confirmText:"删除",confirmColor:"#8b3f5c"}).catch(()=>({confirm:false}));if(!result.confirm)return;
     this.setData({addressBusy:true,addressesError:"",operationStatus:"正在删除收货地址…"});this.syncUnloadGuard();
     try{await request({path:`/v1/me/addresses/${item.id}`,method:"DELETE",data:{expectedVersion:item.version}});if(this.data.pageAlive){this.setData({operationStatus:"收货地址已删除"});await this.loadAddresses();}}
     catch(error){if(this.data.pageAlive){this.setData({addressesError:(error as {title?:string}).title||"地址删除结果未确认，请刷新核对。",operationStatus:""});await this.loadAddresses();}}
@@ -426,7 +426,7 @@ Page({
     } catch (error) {
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
       const invalid = isAuthenticationFailure(error);
-      this.setData({ consents: [], sessionStatus: invalid ? "invalid" : "unknown", errorAction: invalid ? "auth" : "load", error: invalid ? "当前会话已失效。重新登录后会回到本页，不会改写已有许可。" : "许可记录暂时无法加载，请检查网络后重试。" }, scrollToSettingsError);
+      this.setData({ consents: [], sessionStatus: invalid ? "invalid" : "unknown", errorAction: invalid ? "auth" : "load", error: invalid ? "登录已过期，请重新登录。返回本页后可继续查看已有授权。" : "许可记录暂时无法加载，请检查网络后重试。" }, scrollToSettingsError);
     } finally {
       if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ loading: false });
     }
@@ -438,20 +438,20 @@ Page({
     if (!id || !this.data.pageAlive || this.data.leaving || this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) return;
     let confirmation: { confirm: boolean };
     try {
-      confirmation = await wx.showModal({ title: `确认撤回“${purpose}”？`, content: `撤回“${purpose}”会立即阻止新增使用，但不会改写历史审核与积分证据。`, confirmText: "确认撤回" });
+      confirmation = await wx.showModal({ title: `确认撤回“${purpose}”？`, content: `撤回后不再将内容用于“${purpose}”；已有审核和积分记录仍会保留。`, confirmText: "确认撤回" });
     } catch {
-      if (this.data.pageAlive) this.setData({ errorAction: "revoke", error: `“${purpose}”撤回确认窗口暂时无法打开，请刷新许可状态后再试。` }, scrollToSettingsError);
+      if (this.data.pageAlive) this.setData({ errorAction: "revoke", error: `暂时无法确认撤回“${purpose}”，请刷新授权记录后重试。` }, scrollToSettingsError);
       return;
     }
     if (!confirmation.confirm || !this.data.pageAlive || this.data.workingConsentId) return;
     const attempt = this.data.revokeAttempt + 1;
     this.setData({ revokeAttempt: attempt, workingConsentId: id, operationStatus: "正在提交撤回请求…", error: "" });
-    wx.enableAlertBeforeUnload({ message: "用途许可撤回正在确认，请等待结果后再离开。" });
+    wx.enableAlertBeforeUnload({ message: "正在确认撤回结果，请稍等后再离开。" });
     try {
       await request({ path: `/v1/consents/${id}/revoke`, method: "POST", idempotencyKey: `consent-revoke-${id}`, data: { reason: "MEMBER_REQUEST" } });
       if (!this.data.pageAlive || this.data.revokeAttempt !== attempt) return;
       await this.load();
-      if (this.data.pageAlive && this.data.revokeAttempt === attempt) this.setData({ operationStatus: "用途许可撤回请求已受理，不再产生新增使用" });
+      if (this.data.pageAlive && this.data.revokeAttempt === attempt) this.setData({ operationStatus: "撤回申请已受理，内容不再用于这项用途。" });
     } catch (error) {
       if (this.data.pageAlive && this.data.revokeAttempt === attempt) this.setData({ operationStatus: "", errorAction: "revoke", error: `“${purpose}”撤回请求尚未确认。请刷新许可状态后再决定是否重试。` }, scrollToSettingsError);
     } finally {
@@ -463,16 +463,16 @@ Page({
   },
   async logout() {
     if (!this.data.pageAlive || this.data.leaving) return;
-    if (this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) { wx.showToast({ title: this.data.loggingOut ? "正在退出当前账号" : this.data.confirmingLogout ? "退出确认窗口已打开" : "设置操作确认中，请稍候", icon: "none" }); return; }
+    if (this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) { wx.showToast({ title: this.data.loggingOut ? "正在退出当前账号" : this.data.confirmingLogout ? "请先完成退出确认" : "正在确认操作，请稍等", icon: "none" }); return; }
     if (this.data.profileDirty && !await this.confirmProfileLeave()) return;
     if (this.data.addressDirty && !await this.confirmAddressLeave()) return;
     if (!this.data.pageAlive || this.data.leaving) return;
     this.setData({ confirmingLogout: true, error: "" });
     let confirmation: { confirm: boolean };
     try {
-      confirmation = await wx.showModal({ title: "确认退出当前账号？", content: "本机登录会话将被清除；护理记录、投稿、许可与积分账本不会被删除。", confirmText: "确认退出" });
+      confirmation = await wx.showModal({ title: "确认退出当前账号？", content: "退出后需重新登录。护理记录、投稿、授权和积分记录仍会保留。", confirmText: "确认退出" });
     } catch {
-      if (this.data.pageAlive) this.setData({ confirmingLogout: false, errorAction: "auth", error: "退出确认窗口暂时无法打开，请稍后重试。" }, scrollToSettingsError);
+      if (this.data.pageAlive) this.setData({ confirmingLogout: false, errorAction: "auth", error: "暂时无法确认退出，请稍后重试。" }, scrollToSettingsError);
       return;
     }
     if (this.data.pageAlive) this.setData({ confirmingLogout: false });
@@ -485,7 +485,7 @@ Page({
     wx.reLaunch({
       url: "/pages/account/index",
       fail: () => {
-        if (this.data.pageAlive) this.setData({ loggingOut: false, operationStatus: "", errorAction: "auth", error: "会话已经安全退出，但登录页面暂时无法打开。请点击下方按钮重新登录。" }, scrollToSettingsError);
+        if (this.data.pageAlive) this.setData({ loggingOut: false, operationStatus: "", errorAction: "auth", error: "已退出账号，但登录页面暂未打开。请点击下方按钮重新登录。" }, scrollToSettingsError);
       }
     });
   },
@@ -507,7 +507,7 @@ Page({
   openMemberManagement() { if(this.data.canManageMembers)void this.openSettingsRoute("/pages/management-members/index","会员管理暂时无法打开"); },
   async back() {
     if (!this.data.pageAlive || this.data.leaving) return;
-    if (this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) { wx.showToast({ title: this.data.loggingOut ? "正在退出当前账号" : this.data.confirmingLogout ? "请先完成退出确认" : "设置操作确认中，请稍候", icon: "none" }); return; }
+    if (this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) { wx.showToast({ title: this.data.loggingOut ? "正在退出当前账号" : this.data.confirmingLogout ? "请先完成退出确认" : "正在确认操作，请稍等", icon: "none" }); return; }
     if (this.data.profileDirty && !await this.confirmProfileLeave()) return;
     if (this.data.addressDirty && !await this.confirmAddressLeave()) return;
     if (!this.data.pageAlive || this.data.leaving) return;

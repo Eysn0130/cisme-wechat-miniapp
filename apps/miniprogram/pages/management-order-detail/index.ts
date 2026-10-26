@@ -33,15 +33,15 @@ Page({
    const canDispatch=allowed.capabilities.includes("commerce.fulfillment.manage");
    this.setData({order:this.normalize(order),canDispatch,loading:false});
    if(canDispatch)await this.readShipment(epoch,token);
-  }catch(error){if(this.current(epoch,token))this.setData({loading:false,error:(error as {title?:string}).title??"订单详情暂时无法读取；权限变化后不会继续展示旧内容。"});}
+  }catch(error){if(this.current(epoch,token))this.setData({loading:false,error:(error as {title?:string}).title??"暂时无法查看订单详情，请重试或返回列表。"});}
  },
  async readShipment(epoch:number,token:string){
   this.setData({shipmentLoading:true,shipmentError:""});
   try{const shipment=await managementShipment(this.data.id);if(!this.current(epoch,token))return;
    this.setData({shipment,shipmentLabel:deliveryLabels[shipment.logisticsState]??"状态待核对",syncLabel:syncLabels[shipment.wechatSyncState??""]??"微信同步尚未开始"});
-   if(shipment.id&&this.pendingDispatch){this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"原订单已记录交寄；请核对微信同步状态，不要重复交寄。"});}
+   if(shipment.id&&this.pendingDispatch){this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"订单已登记交寄。请核对微信同步结果，不要重复发货。"});}
   }catch(error){if(this.current(epoch,token)){const status=(error as {status?:number}).status;
-   this.setData({shipment:null,shipmentError:(error as {title?:string}).title??"履约状态暂时无法核验，请刷新后重试。",...(status===401||status===403?{canDispatch:false,order:null,form:emptyForm(),error:"登录或履约权限已变化，请返回管理中心重新核验。"}:{})});}}
+   this.setData({shipment:null,shipmentError:(error as {title?:string}).title??"履约状态暂时无法核验，请刷新后重试。",...(status===401||status===403?{canDispatch:false,order:null,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"}:{})});}}
   finally{if(this.current(epoch,token))this.setData({shipmentLoading:false});}
  },
  shipmentInput(event:WechatMiniprogram.Input){if(this.data.dispatchBusy||this.pendingDispatch)return;const field=event.currentTarget.dataset.field as keyof ReturnType<typeof emptyForm>;
@@ -57,12 +57,12 @@ Page({
   try{
    const result=await reconcileShipment(this.data.id,evidence,clientOperationKey("shipping-query"));
    if(!this.current(epoch,token))return;
-   this.setData({dispatchMessage:result.state==="synced"?"微信已核对为同一包裹；未重复上传或改变签收、退款事实。":"微信尚未确认同一包裹，已保留核对记录。请排查平台原订单，不要重复发货。"});
+   this.setData({dispatchMessage:result.state==="synced"?"已确认微信记录为同一包裹，未重复上传，也未改变签收或退款记录。":"微信尚未确认同一包裹，已保留核对记录。请排查平台原订单，不要重复发货。"});
    await this.readShipment(epoch,token);
   }catch(error){if(this.current(epoch,token)){
    const status=(error as {status?:number}).status;
-   if(status===401||status===403)this.setData({order:null,shipment:null,canDispatch:false,form:emptyForm(),error:"登录或履约权限已变化，请返回管理中心重新核验。"});
-   else this.setData({dispatchMessage:(error as {title?:string}).title??"微信核对暂不可用，交寄事实保持不变。请稍后重试。"});
+   if(status===401||status===403)this.setData({order:null,shipment:null,canDispatch:false,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"});
+   else this.setData({dispatchMessage:(error as {title?:string}).title??"暂时无法核对微信结果，已保存的交寄记录不变。请稍后重试。"});
   }}finally{if(this.current(epoch,token))this.setData({dispatchBusy:false});}
  },
  async submitShipment(){
@@ -78,11 +78,11 @@ Page({
    this.pendingDispatch??={key:clientOperationKey("shipment"),input:{carrierCode:form.carrierCode,carrierName:form.carrierName,trackingNumber:form.trackingNumber,evidenceReference:form.evidenceReference,shippedAt,expectedOrderVersion:this.data.order.version}};
    await dispatchShipment(this.data.id,this.pendingDispatch.input,this.pendingDispatch.key);
    if(!this.current(epoch,token))return;
-   this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"交寄事实已保存；微信同步和签收状态请分别核对。"});
+   this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"交寄记录已保存，请另行核对微信同步和签收状态。"});
    await this.readShipment(epoch,token);
   }catch(error){if(this.current(epoch,token)){
    const status=(error as {status?:number}).status;
-   if(status===401||status===403){this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,form:emptyForm(),error:"登录或履约权限已变化，请返回管理中心重新核验。"});}
+   if(status===401||status===403){this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"});}
    else if(status===422){this.pendingDispatch=null;this.setData({dispatchMessage:(error as {code?:string}).code==="SHIPMENT_TIME_INVALID"?"交寄时间须晚于支付成功时间，且不能晚于当前时间。请核对后重新填写。":((error as {title?:string}).title??"交寄信息未通过校验，请修正后重试。")});}
    else{this.setData({dispatchMessage:"提交结果尚未确认，请先刷新核对原订单。不要重新交寄包裹。"});await this.readShipment(epoch,token);}
   }}finally{if(this.current(epoch,token))this.setData({dispatchBusy:false});}

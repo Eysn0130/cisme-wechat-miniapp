@@ -23,7 +23,7 @@ Page({
     this.setData({authority,coreReady:true,canSupport:hasCapability(authority,"support.read"),canCatalog:["commerce.product.manage","commerce.qualification.manage","commerce.inventory.manage"].some(capability=>hasCapability(authority,capability as Parameters<typeof hasCapability>[1])),canAftersale:["commerce.aftersale.review","commerce.return.receive","commerce.return.inspect"].some(c=>hasCapability(authority,c as Capability)),canOrders:hasCapability(authority,"commerce.order.read"),canFulfillment:hasCapability(authority,"commerce.fulfillment.manage"),canMembers:hasCapability(authority,"member.profile.read"),canPrivacy:hasCapability(authority,"privacy.request.manage"),hasFinanceCapability:["commerce.refund.approve","commerce.fulfillment.manage","commission.settlement.approve","commerce.money.reconcile"].some(c=>hasCapability(authority,c as Capability)),loading:false});
     this.applyRuntime();
     void this.loadAttention(epoch,token);
-  }catch{if(this.current(epoch,token))this.setData({authority:null,coreReady:false,loading:false,error:"管理权限暂时无法核验，所有管理入口保持关闭。"});}},
+  }catch{if(this.current(epoch,token))this.setData({authority:null,coreReady:false,loading:false,error:"暂时无法确认管理权限，请重试后进入。"});}},
  async loadAttention(epoch:number,token:string){
   try{const result=await pageRead<{version:number;counts:Record<string,{count:number}>}>(this,{path:'/v1/management/attention'});
    if(!this.current(epoch,token))return;

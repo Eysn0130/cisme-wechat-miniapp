@@ -111,7 +111,7 @@ Page({
     const formal=policy==="unconfigured"||policy==="approved_rule";
     if(!formal&&policy!=="engineering_fixture"){
       this.setData({globalRateError:"费率状态暂不可用，请刷新后重试。"});return;}
-    if(!formal&&!this.data.rateBasisPoints.length){this.setData({globalRateError:"当前可提议的费率范围尚未配置，请先核对经营规则。"});return;}
+    if(!formal&&!this.data.rateBasisPoints.length){this.setData({globalRateError:"可调整的费率范围尚未设置，请先核对经营规则。"});return;}
     const when=rateDateParts(this.data.globalRate.suggestedEffectiveAt);
     const current=this.data.rateBasisPoints.indexOf(this.data.globalRate.basisPoints??this.data.rateBasisPoints[0]!);
     const selected=Math.max(0,current);
@@ -159,7 +159,7 @@ Page({
     catch(error){if(!current())return;
       try{const existing=await pageRead<{id:string}>(this,{path:`/v1/management/commission-rates/by-request/${command.key}`});
         if(current()){this.globalRateCommand=null;this.setData({globalRateFormVisible:false,globalRateStatus:`原提议 ${existing.id.slice(0,8)} 已记录，等待复核。`});}}
-      catch{if(current())this.setData({globalRateError:(error as {title?:string}).title||"结果暂不可确认。再次点击将查询并重试同一提议编号。"});}}
+      catch{if(current())this.setData({globalRateError:(error as {title?:string}).title||"结果还未确认。再次点击会先查询，再重试原提议。"});}}
     finally{if(current())this.setData({globalRateBusy:false});}
   },
   openMember(event:WechatMiniprogram.TouchEvent){if(this.data.navigating)return;const id=String(event.currentTarget.dataset.id||"");if(!/^[0-9a-f-]{36}$/i.test(id))return;this.setData({navigating:true});wx.navigateTo({url:`/pages/management-member/index?id=${id}`,fail:()=>this.setData({navigating:false})});},
@@ -174,7 +174,7 @@ Page({
     let command=this.rateDecisionCommand;
     if(!command||command.id!==id||command.decision!==decision){
       const modal=await wx.showModal({title:decision==="active"?"批准费率提议？":"退回费率提议？",
-        content:`${item.displayName} · ${item.rateLabel}\n拟定生效 ${dateLabel(item.effectiveAt)}；批准后不早于下一个上海午夜。\n${item.reason}\n请填写本次复核依据。`,
+        content:`${item.displayName} · ${item.rateLabel}\n拟定生效 ${dateLabel(item.effectiveAt)}；批准后不早于下一个北京时间零点。\n${item.reason}\n请填写本次复核依据。`,
         editable:true,placeholderText:"至少 4 字的独立复核依据",confirmText:decision==="active"?"批准":"退回"});
       if(!modal.confirm||!current())return;
       const why=(modal.content||"").trim();

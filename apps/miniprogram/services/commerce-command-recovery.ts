@@ -16,7 +16,7 @@ const states: Record<CommerceCommandKind, readonly string[]> = {
   settlement: ["requested", "reserved", "unknown", "processing", "succeeded", "failed", "cancelled", "rejected"],
   credit: ["available", "cancelled"], "credit-cancel": ["cancelled"], cancel: ["cancelled"], "cancel-verified": ["cancelled"]
 };
-const changed = () => ({ code: "COMMERCE_RECOVERY_CONTEXT", title: "页面或身份已变化；未确认的原操作会保留，请返回原页面核对。" });
+const changed = () => ({ code: "COMMERCE_RECOVERY_CONTEXT", title: "页面或登录状态已变化，请回到原页面核对操作结果。" });
 const unresolved = () => ({ code: "COMMERCE_RECOVERY_PENDING", title: "上一笔操作尚未核实。请先核对或重试原操作，不要修改金额后另行提交。" });
 function environment(): string {
   const data = getApp<IAppOption>().globalData;
@@ -53,7 +53,7 @@ async function receipt(command: StoredCommerceCommand, page?: object): Promise<R
       command.kind === "refund" && value.record.orderId !== command.objectId ||
       command.payload?.amountCents !== undefined && value.record.amountCents !== command.payload.amountCents ||
       ["cancel", "cancel-verified", "credit-cancel"].includes(command.kind) && (value.record.id !== command.objectId || value.record.state !== "cancelled"))) {
-    throw { code: "COMMERCE_RECOVERY_RECEIPT", title: "原操作核对回执不完整，请稍后核对，暂不创建新操作。" };
+    throw { code: "COMMERCE_RECOVERY_RECEIPT", title: "暂时无法确认原操作结果，请稍后查询，勿重复提交。" };
   }
   return value;
 }
@@ -66,7 +66,7 @@ export async function readCommerceRecovery(page: object, scope: RecoveryScope, c
     const value = active.has(commandSlot(row)) ? null : await receipt(row, page); context.check();
     const recorded = value?.status === "recorded";
     output.push({ key: row.key, kind: row.kind, recorded,
-      label: recorded ? `原${labels[row.kind]}已在服务端记录；请查看对应历史后确认。` : `${labels[row.kind]}结果待核对`,
+      label: recorded ? `原${labels[row.kind]}已收到，请到对应记录查看进度。` : `${labels[row.kind]}结果待核对`,
       retryable: !recorded && row.payload !== null });
   }
   return output;
@@ -81,13 +81,13 @@ function writeResultIsComplete(command: StoredCommerceCommand, result: unknown):
 }
 async function dispatch<T>(command: StoredCommerceCommand, check: () => void): Promise<{ recovered: boolean; result?: T }> {
   check();
-  if (!command.payload) throw { code: "COMMERCE_RECOVERY_REDACTED", title: "退出登录后已清除原填写内容。请仅核对原申请，仍未知时联系客服，不要新建重复申请。" };
+  if (!command.payload) throw { code: "COMMERCE_RECOVERY_REDACTED", title: "退出登录前的填写内容已清除。请先查看原申请；结果仍未确认时联系客服，勿重复提交。" };
   // Persist the may-have-been-sent boundary before the transport call.
   const payload = command.payload;
   command = { ...command, dispatched: true }; putCommerceCommand(command); check();
   const result = await request<T>({ path: path(command), method: "POST", idempotencyKey: command.key, data: payload });
   // A successful HTTP envelope with missing business facts remains unknown.
-  if (!writeResultIsComplete(command, result)) throw { code: "COMMERCE_RECOVERY_RESPONSE", title: "操作回执不完整；请核对原操作，不要重复新建。" };
+  if (!writeResultIsComplete(command, result)) throw { code: "COMMERCE_RECOVERY_RESPONSE", title: "操作结果尚未确认，请先核对原操作，勿重复提交。" };
   // Retire only this owner/key even if its page has gone away. Never write any
   // payment success to the new page or delete another account's pending record.
   forgetCommerceCommand(command);

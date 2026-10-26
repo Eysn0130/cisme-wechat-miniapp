@@ -122,7 +122,7 @@ function captureLabel(text: string, labels: string[], max = 120): string {
 function regionParts(text: string): { region: string[]; consumed: string[]; warnings: string[] } {
   const provincePattern = /(北京市|上海市|天津市|重庆市|香港特别行政区|澳门特别行政区|台湾省|[\u4e00-\u9fa5]{2,8}?(?:省|自治区))/;
   const provinceMatch = provincePattern.exec(text);
-  if (!provinceMatch) return { region: [], consumed: [], warnings: ["未可靠识别省级地区"] };
+  if (!provinceMatch) return { region: [], consumed: [], warnings: ["未识别出省份，请手动选择"] };
   const province = provinceMatch[1] ?? "";
   const afterProvince = text.slice((provinceMatch.index ?? 0) + province.length);
   const municipality = /^(北京市|上海市|天津市|重庆市)$/.test(province);
@@ -132,9 +132,9 @@ function regionParts(text: string): { region: string[]; consumed: string[]; warn
   const districtMatch = /([\u4e00-\u9fa5]{2,10}?(?:区|县|旗|市))/.exec(afterCity);
   const district = districtMatch?.[1] ?? "";
   const warnings: string[] = [];
-  if (!city) warnings.push("未可靠识别城市");
-  if (!district) warnings.push("未可靠识别区县");
-  warnings.push("识别出的地区名称尚无行政区划 code，请用所在地选择器确认");
+  if (!city) warnings.push("未识别出城市，请手动选择");
+  if (!district) warnings.push("未识别出区县，请手动选择");
+  warnings.push("识别后请再选择一次省、市、区县，确认所在地区。");
   return { region: [province, city, district], consumed: [province, cityMatch?.[1] ?? "", district].filter(Boolean), warnings };
 }
 
@@ -187,9 +187,9 @@ export function parseQuickAddress(raw: string): QuickAddressParseResult {
   if (regionResult.region.length !== 3 || regionResult.region.some((item) => !item)) missing.push("完整省市区");
   if (detail.length < 2) missing.push("详细地址");
   const warnings = [...regionResult.warnings];
-  if (!explicitName && recipientName) warnings.push("收货人由号码前文本推测，请核对");
+  if (!explicitName && recipientName) warnings.push("收货人姓名为自动识别，请确认是否正确。");
   const status = recognized.length === 0 ? "failed" : missing.length ? "partial" : "success";
-  if (status === "failed") warnings.unshift("未能可靠拆分这段文本，原文已保留");
+  if (status === "failed") warnings.unshift("未能识别这段地址，原文已保留。");
   return { status, patch, recognized, missing, warnings: Array.from(new Set(warnings)) };
 }
 
@@ -199,7 +199,7 @@ export function validateAddressDraft(draft: AddressDraft): AddressValidation {
   if (nameLength < 1 || nameLength > 40) errors.recipientName = "请填写 1–40 字的收货人姓名";
   if (!/^\+?[0-9\s-]{6,24}$/.test(draft.phone.trim())) errors.phone = "请填写可用于配送联系的电话号码";
   if (draft.region.length !== 3 || draft.region.some((item) => !item)) errors.region = "请选择完整的省、市、区县";
-  else if (draft.regionNeedsConfirmation || draft.regionCodes.length !== 3 || draft.regionCodes.some((code) => !code)) errors.region = "请用所在地选择器确认行政区划";
+  else if (draft.regionNeedsConfirmation || draft.regionCodes.length !== 3 || draft.regionCodes.some((code) => !code)) errors.region = "请重新选择省、市、区县，确认所在地区";
   const detailLength = Array.from(draft.detail.trim()).length;
   if (detailLength < 2 || detailLength > 120) errors.detail = "请填写 2–120 字的街道和门牌信息";
   if (draft.postalCode && !/^[A-Za-z0-9 -]{2,12}$/.test(draft.postalCode.trim())) errors.postalCode = "邮政编码格式不正确";

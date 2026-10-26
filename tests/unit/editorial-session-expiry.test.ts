@@ -45,7 +45,7 @@ describe("editorial reads after a real transport session revocation",()=>{
   Object.assign(page.data,route==="post"?{following:true,social:{liked:true,saved:true},draft:"old private draft"}:{author:{following:true,isMine:true},articleContextId:articleId,busy:true});
   await page.load();
   expect(requests[0].header.Authorization).toBe("Bearer synthetic-expired-session");expect(runtime.globalData.sessionToken).toBe("");expect(storage.get("synthetic.session")).toBe("");
-  expect(page.data).toMatchObject({loading:false,error:expect.stringContaining("重新加载公开")});
+  expect(page.data).toMatchObject({loading:false,error:route==="post"?"请重新加载内容。点赞、收藏和关注前，请重新登录。":"登录状态已失效，请重新加载公开作者资料。"});
   if(route==="post")expect(page.data).toMatchObject({errorTitle:"登录状态已失效",item:null,following:false,socialEnabled:false,draft:"",social:{liked:false,saved:false}});
   else expect(page.data).toMatchObject({author:null,items:[],articleContextId:"",busy:false,loadingMore:false});
   expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();

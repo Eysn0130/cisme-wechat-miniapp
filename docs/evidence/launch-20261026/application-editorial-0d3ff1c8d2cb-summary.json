@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-isolated-api-deployment-and-initial-editorial-publication",
+  "recordedAtUtc": "2026-10-26T12:23:45.383419+00:00",
+  "instance": "lhins-61ikz4mi",
+  "publicIpv4": "124.223.74.198",
+  "productionSourceHead": "dbd2b88a47f622621c2b226b03339677b183fef8",
+  "isolatedApiSourceHead": "0d3ff1c8d2cb6e2f53233e2cf6ca1efc62280527",
+  "schemaVersions": {
+    "production": 97,
+    "isolated": 98
+  },
+  "productionAndIsolatedDataRemainSeparate": true,
+  "ordinaryPublicUgcAndRealCommerceRemainClosed": true,
+  "newBackendApplicationDeployed": true,
+  "initialEditorialArticlesActuallyPublished": 6,
+  "existingCanonicalWeChatOwnerVerifiedByOfficialLoginCodeProbe": true,
+  "memberLoginOrConsentCreatedByAgent": false,
+  "initialPublishedLegalVersion": "2026-10-26-v2",
+  "laterFormalCopyLegalVersion": "2026-10-26-v3",
+  "laterFormalCopyNotProvedByTheseHistoricalReceipts": true,
+  "snapshotScope": "Authenticated encrypted database-only snapshot; no restore drill, media backup or off-host disaster recovery claimed",
+  "nativeFullStateAndDeviceAcceptance": false,
+  "files": [
+    {
+      "file": "trial-application-stage-0d3ff1c8d2cb.json",
+      "sha256": "26c3ba69abcfcce562840d64bf228c4b44584f355af28d1624e04cd56ce17195",
+      "bytes": 1093
+    },
+    {
+      "file": "trial-application-activation-0d3ff1c8d2cb.json",
+      "sha256": "65d9d0439bcec2541a2e1d588ad2d41be2b7f066ffa0a41219fde87ff002a9b3",
+      "bytes": 532
+    },
+    {
+      "file": "runtime-after-application-actual-0d3ff1c8d2cb.json",
+      "sha256": "f831176c2ef68cca97bcd61fe23fe036b315deeb8f91544fe8f5b7904c1a1bcc",
+      "bytes": 1695
+    },
+    {
+      "file": "owner-legal-publish-113329.json",
+      "sha256": "0d327a4231a8fb7ac071d24dd11db963525234206e5700e5d0aa93b59fa0b355",
+      "bytes": 68
+    },
+    {
+      "file": "owner-editorial-grant-113329.json",
+      "sha256": "26e754ad3616f95f8be549a297d67e8dcd8e93c41708fab9548f0c7301d9741b",
+      "bytes": 96
+    },
+    {
+      "file": "owner-editorial-publish6-113329.json",
+      "sha256": "cab618b5e29599499cec4934fc837abaabac07a9e97aa75004ab79f8754e62ac",
+      "bytes": 356
+    },
+    {
+      "file": "editorial-public-readback-113858.json",
+      "sha256": "f23990406420b6a3be7b11518d51ec09a9a73501fdead507296e0083ab7d058f",
+      "bytes": 6954
+    }
+  ]
+}

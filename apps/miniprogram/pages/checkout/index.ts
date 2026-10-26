@@ -19,8 +19,8 @@ function problemCopy(error: unknown): string {
     INVENTORY_NOT_AVAILABLE: "库存不足，请调整数量后重新确认。", QUOTE_STALE: "商品或价格有变化，请重新确认。",
     QUOTE_EXPIRED: "费用已过期，请重新确认。", DELIVERY_ADDRESS_CHANGED: "收货地址有变化，请重新选择并确认费用。",
     CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "暂时无法下单，请稍后重试。",
-    CREDIT_CHECKOUT_INSUFFICIENT:"可用测试购物权益已变化，请刷新后重新报价。",
-    CREDIT_CASH_COMPONENT_REQUIRED:"本机测试订单仍需保留至少一分模拟渠道现金支付。"
+    CREDIT_CHECKOUT_INSUFFICIENT:"可用测试购物权益已变化，请刷新后重新确认费用。",
+    CREDIT_CASH_COMPONENT_REQUIRED:"测试订单仍需保留至少 ¥0.01 的模拟支付金额。"
   };
   return known[problem.code ?? ""] ?? problem.title ?? "操作未完成，请检查网络后重试。";
 }
@@ -123,7 +123,7 @@ Page({
         creditAvailableCents:credit?.checkoutAvailableCents??0,
         creditAvailableYuan:centsToYuan(credit?.checkoutAvailableCents??0),
         creditInput:credit?this.data.creditInput:"",
-        creditReadError:runtime.isolatedCreditCheckoutAvailable&&!credit?"测试购物权益暂不可核对，请仅按原价继续。":"",
+        creditReadError:runtime.isolatedCreditCheckoutAvailable&&!credit?"测试购物权益暂时无法使用，可不使用权益继续。":"",
         unitPriceYuan: selected ? centsToYuan(selected.priceCents) : "", loading: false,
         syncError: addressBook.enabled ? "" : "收货地址暂时无法使用，请稍后重试。"
       };
@@ -171,7 +171,7 @@ Page({
     const credit=this.data.creditInput?creditCents(this.data.creditInput):0;
     if(!Number.isSafeInteger(credit)||credit<0||credit>this.data.creditAvailableCents||
       credit>0&&!this.data.creditEnabled||credit>=sku.priceCents*this.data.quantity){
-      this.setData({error:"购物权益金额须在本机测试可用额度内，且小于商品金额。"});return;}
+      this.setData({error:"使用金额不能超过可用测试权益，且须小于商品金额。"});return;}
     const epoch = this.requestEpoch;
     const ownerToken = currentSessionToken();
     const quoteKey = this.data.quoteKey || clientOperationKey("checkout-quote");

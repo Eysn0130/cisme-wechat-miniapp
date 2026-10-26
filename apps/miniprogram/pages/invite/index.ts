@@ -20,7 +20,7 @@ Page({
         expiresAt: "", commercialEligible: false, referralAvailable:false, referralCode: "", referralError: "", history: [], error: "" });
       wx.hideShareMenu();
     }
-    if (!requireMemberAccess()) { this.setData({ loading: false, error: "请先确认身份后查看邀请资料。" }); return; }
+    if (!requireMemberAccess()) { this.setData({ loading: false, error: "登录后即可查看邀请记录。" }); return; }
     this.setData({ pageAlive: true, leaving: false });
     void this.load();
   },
@@ -40,16 +40,16 @@ Page({
       const invitations = links.filter((link) => link.targetType === "invite" && link.targetRef === "home");
       const active = invitations.find((link) => link.state === "active");
       const referralAvailable=commercial.eligible&&commercial.referralAvailable===true;
-      this.setData({ displayName: member.display_name || "CISME 会员", shareId: active?.shareId ?? "", shareCode: active ? shortCode(active.shareId) : "待生成", expiresAt: active?.expiresAt ?? "", commercialEligible:commercial.eligible&&(referralAvailable||Boolean(commercial.referralCode)||commercial.referralCodeDisabled),referralAvailable,referralCode:commercial.referralCode||"", referralError:commercial.referralCodeDisabled?"推荐码已停用，请联系客服。":!referralAvailable&&commercial.referralCode?"暂不可建立新的推荐关系。":"", history: invitations.slice(0, 5).map((link) => ({ ...link, code: shortCode(link.shareId), date: dateLabel(link.createdAt), label: link.state === "active" ? "可分享" : link.state === "expired" ? "已过期" : "已失效" })), loading: false });
+      this.setData({ displayName: member.display_name || "CISME 会员", shareId: active?.shareId ?? "", shareCode: active ? shortCode(active.shareId) : "待生成", expiresAt: active?.expiresAt ?? "", commercialEligible:commercial.eligible&&(referralAvailable||Boolean(commercial.referralCode)||commercial.referralCodeDisabled),referralAvailable,referralCode:commercial.referralCode||"", referralError:commercial.referralCodeDisabled?"推荐码已停用，请联系客服。":!referralAvailable&&commercial.referralCode?"推荐功能暂不可用。":"", history: invitations.slice(0, 5).map((link) => ({ ...link, code: shortCode(link.shareId), date: dateLabel(link.createdAt), label: link.state === "active" ? "可分享" : link.state === "expired" ? "已过期" : "已失效" })), loading: false });
       if (referralAvailable && !commercial.referralCode) void this.prepareReferralCode(attempt);
       if (active || (referralAvailable && commercial.referralCode)) wx.showShareMenu({ menus: ["shareAppMessage"] });
     } catch {
-      if (this.data.pageAlive && attempt === this.data.attempt) this.setData({ loading: false, error: "邀请资料暂时无法同步，请重试。" });
+      if (this.data.pageAlive && attempt === this.data.attempt) this.setData({ loading: false, error: "暂时无法加载邀请记录，请重试。" });
     }
   },
   async prepareReferralCode(attempt:number){try{const result=await request<{code:string}>({path:"/v1/me/commercial-membership/code",method:"POST"});
       if(this.data.pageAlive&&attempt===this.data.attempt){this.setData({referralCode:result.code});wx.showShareMenu({menus:["shareAppMessage"]});}}
-    catch(error){if(this.data.pageAlive&&attempt===this.data.attempt)this.setData({referralError:(error as {title?:string}).title||"推荐码暂未生成，请稍后重试。"});}},
+    catch(error){if(this.data.pageAlive&&attempt===this.data.attempt)this.setData({referralError:(error as {title?:string}).title||"暂时无法查询推荐码，请稍后重试。"});}},
   copyReferralCode(){if(this.data.referralCode)wx.setClipboardData({data:this.data.referralCode});},
   openReferralConfirm(){wx.navigateTo({url:"/pages/referral/index",fail:()=>wx.showToast({title:"推荐码页面暂时无法打开",icon:"none"})});},
   async prepare() {
@@ -60,7 +60,7 @@ Page({
       await request({ path: "/v1/shares", method: "POST", idempotencyKey: `invite-${Date.now().toString(36)}`, data: { targetType: "invite", targetRef: "home" } });
       if (this.data.pageAlive && attempt === this.data.attempt) await this.load();
     } catch {
-      if (this.data.pageAlive && attempt === this.data.attempt) this.setData({ preparing: false, error: "分享卡片暂未生成，请稍后重试。" });
+      if (this.data.pageAlive && attempt === this.data.attempt) this.setData({ preparing: false, error: "卡片生成结果尚未确认，请先刷新页面查看。" });
     }
   },
   back() {
@@ -70,8 +70,8 @@ Page({
   },
   onShareAppMessage(event?:{target?:{dataset?:{kind?:string}}}) {
     if(event?.target?.dataset?.kind==="commercial"&&this.data.referralAvailable&&this.data.referralCode)
-      return {title:"邀请你了解 CISME，推荐关系由你决定是否确认",path:`/pages/referral/index?code=${this.data.referralCode}`};
+      return {title:"邀请你了解 CISME，推荐码由你选择是否确认",path:`/pages/referral/index?code=${this.data.referralCode}`};
     const ready = this.data.shareId && new Date(this.data.expiresAt).getTime() > Date.now();
-    return { title: "邀请你一起，记录真实的头皮护理", path: `/pages/home/index${ready ? `?share_id=${this.data.shareId}` : ""}` };
+    return { title: "邀请你一起记录头皮护理", path: `/pages/home/index${ready ? `?share_id=${this.data.shareId}` : ""}` };
   }
 });

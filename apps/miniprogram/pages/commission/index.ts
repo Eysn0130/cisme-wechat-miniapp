@@ -22,7 +22,7 @@ type CreditRow={id:string;amountCents:number;availableCents:number;cancellable:b
   createdAt:string;amountLabel?:string;availableLabel?:string;createdLabel?:string};
 type CreditPage={items:CreditRow[];totalCount:number;availableCents:number;nextCursor:string|null;
   redemptionStatus:"ISOLATED_TEST_ONLY"};
-const stateNames:Record<string,string>={requested:"已登记意向，等待周期候选",reserved:"金额已预占",unknown:"渠道结果待核对",
+const stateNames:Record<string,string>={requested:"结算意向已登记",reserved:"金额已预占",unknown:"渠道结果待核对",
   processing:"渠道处理中",succeeded:"渠道已确认付款",failed:"未付款",cancelled:"已取消",rejected:"未通过"};
 const problem=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
 function yuanToCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
@@ -82,14 +82,14 @@ Page({
     const current=()=>this.readCurrent(epoch,token,readEpoch);
     this.setData({recoveryLoading:true,recoveryError:""});
     try{const recoveryRows=await readCommerceRecovery(this,this.recoveryScope(),current);if(current())this.setData({recoveryRows,recoveryLoading:false});}
-    catch{if(current())this.setData({recoveryLoading:false,recoveryError:"原操作暂时无法核对；请重试核对，不要重新创建重复申请。"});}
+    catch{if(current())this.setData({recoveryLoading:false,recoveryError:"上次操作暂时无法核对，请重试查询，不要重复申请。"});}
   },
   async resolveRecovery(event:WechatMiniprogram.BaseEvent){
     const key=String(event.currentTarget.dataset.key??""),row=this.data.recoveryRows.find(item=>item.key===key);
     if(!row||!this.canAct()||this.data.busy||!row.recorded&&!(row.kind==="settlement"?this.data.isolatedTransfer:this.data.isolatedCredit))return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     const current=()=>this.current(epoch,token)&&this.data.visible&&this.data.coreReady&&(row.recorded||(row.kind==="settlement"?this.data.isolatedTransfer:this.data.isolatedCredit));
-    const answer=await this.confirmOperation({title:row.recorded?"确认已核对原操作？":"重试原操作？",content:row.recorded?"原申请已由服务端记录。确认后才可开始新的申请；付款、退款和到账仍分别按权威状态展示。":"只使用最初确认的金额、原因、版本和请求编号，先查询原结果；不会使用后来修改的内容，也不会开启真实资金操作。",confirmText:row.recorded?"已核对":"重试原操作"});
+    const answer=await this.confirmOperation({title:row.recorded?"确认已核对原操作？":"重试原操作？",content:row.recorded?"原申请已记录。请先查看付款、退款或到账进度，再开始新的申请。":"将先查询原结果，并使用最初确认的金额和内容重试；后续修改不会提交，也不涉及真实资金。",confirmText:row.recorded?"已核对":"重试原操作"});
     if(!answer.confirm||!current()||this.data.busy)return;
     this.setData({busy:true,recoveryError:""});
     try{if(row.recorded)await acknowledgeCommerceCommand(key,this.recoveryScope(),current);else await retryCommerceCommand(key,this.recoveryScope(),current);
@@ -117,18 +117,18 @@ Page({
         heldLabel:centsToYuan(amounts.paymentHeldCents),settledLabel:centsToYuan(amounts.settledCents),
         recoveryLabel:centsToYuan(amounts.recoveryCents+amounts.reservedRecoveryCents)});
       this.applyRuntime();void this.loadRequests(epoch,token);void this.loadCredits(epoch,token);void this.loadRecovery();this.refreshRecordedCommands();
-    }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({status:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.status,coreReady:false,loading:false,error:problem(error,"商业资格与佣金事实暂时无法核对。")});}
+    }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({status:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.status,coreReady:false,loading:false,error:problem(error,"商业会员资格与佣金记录暂时无法加载，请重试。")});}
   },
   applyRuntime(){const actions=runtimeActions(this.data.runtimeStatus),ready=this.canAct()&&this.data.runtimeState==="ready";
     const isolatedTransfer=ready&&actions.transfer,isolatedCredit=ready&&actions.credit;
     this.setData({isolatedTransfer,isolatedCredit});
   },
   async loadRuntime(epoch:number,token:string){cancelRuntimeRead(this);const attempt=++this.data.runtimeEpoch,readEpoch=this.data.readEpoch;
-    this.setData({runtimeState:"loading",runtimeMode:"unknown",runtimeStatus:null,runtimeCopy:"正在核验资金操作状态，佣金事实可先查看。",isolatedTransfer:false,isolatedCredit:false});
+    this.setData({runtimeState:"loading",runtimeMode:"unknown",runtimeStatus:null,runtimeCopy:"正在确认操作状态，可先查看佣金记录。",isolatedTransfer:false,isolatedCredit:false});
     try{const status=validateRuntime(await orderRuntimeStatus(runtimeReadOwner(this)));
       if(!this.readCurrent(epoch,token,readEpoch)||attempt!==this.data.runtimeEpoch)return;
       this.setData(runtimeView(status));this.applyRuntime();
-    }catch{if(this.readCurrent(epoch,token,readEpoch)&&attempt===this.data.runtimeEpoch)this.setData({runtimeState:"error",runtimeCopy:"资金操作状态暂时无法核验，转换和结算保持关闭；可单独重试。",isolatedTransfer:false,isolatedCredit:false});}
+    }catch{if(this.readCurrent(epoch,token,readEpoch)&&attempt===this.data.runtimeEpoch)this.setData({runtimeState:"error",runtimeCopy:"暂时无法确认操作状态，转换与结算暂不可用，请重试。",isolatedTransfer:false,isolatedCredit:false});}
   },
   async loadRequests(epoch:number,token:string,cursor?:string){
     if(!this.data.visible||!this.data.coreReady)return;
@@ -180,14 +180,14 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,
       key=this.data.creditRequestKey||clientOperationKey("credit-convert");
     const current=()=>this.current(epoch,token)&&this.data.isolatedCredit;
-    const answer=await this.confirmOperation({title:"确认隔离测试转换？",
-      content:`自愿将 ¥${centsToYuan(amountCents)} 已释放佣金按 1:1 转为仅本机可测试购物权益。无赠额、不提现、不转让；零扣缴仅为合成测试口径，不代表真实免税。使用或冻结后不可直接撤销。`,
+    const answer=await this.confirmOperation({title:"转换为测试购物权益？",
+      content:`自愿将 ¥${centsToYuan(amountCents)} 已释放佣金按 1:1 转为测试购物权益，不增加金额、不能提现或转让。本次为模拟操作，不代表实际税费；使用或冻结后不可直接撤销。`,
       confirmText:"确认测试"}).catch(()=>({confirm:false}));
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,creditRequestKey:key,creditActionError:"",creditActionStatus:""});
     try{await executeCommerceCommand({kind:"credit",key,payload:{amountCents,confirmed:true,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"}},()=>current()&&this.data.visible);
       if(current()){this.setData({busy:false,creditFormVisible:false,creditAmount:"",creditRequestKey:"",
-        creditActionStatus:"隔离测试转换已记录，原现金来源和权益分录可分别核对。"});void this.load();}}
+        creditActionStatus:"测试转换已记录，可分别查看原佣金和购物权益记录。"});void this.load();}}
     catch(error){if(current())this.setData({creditActionError:problem(error,"转换结果不确定；重试会使用同一请求编号。")});}
     finally{this.finishAction(epoch,token);}
   },
@@ -198,7 +198,7 @@ Page({
       key=this.data.creditCancelKeys[id]||clientOperationKey("credit-cancel");
     const current=()=>this.current(epoch,token)&&this.data.isolatedCredit;
     const answer=await this.confirmOperation({title:"撤销未使用的测试权益？",
-      content:`仅当 ¥${row.amountLabel} 全部未使用、未预占、未冻结且原销售无争议，才会追加分录恢复原佣金来源。`,
+      content:`仅当 ¥${row.amountLabel} 全部未使用、未预留、未冻结，且原订单无争议时，才能撤销并恢复原佣金。`,
       confirmText:"确认撤销"}).catch(()=>({confirm:false}));
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,creditCancelKeys:{...this.data.creditCancelKeys,[id]:key},
@@ -228,7 +228,7 @@ Page({
       launched=true;
       wx.requestMerchantTransfer({mchId:confirmation.mchId,appId:confirmation.appId,
         package:confirmation.package,
-        success:()=>{if(this.current(epoch,token))this.setData({actionStatus:"已打开收款确认页；是否到账仍以渠道查单为准。"});},
+        success:()=>{if(this.current(epoch,token))this.setData({actionStatus:"已打开收款确认页，到账结果请刷新原申请查看。"});},
         fail:()=>{if(this.current(epoch,token))this.setData({actionError:"确认页未完成或已取消，可刷新原单后重试。"});},
         complete:()=>{if(this.current(epoch,token)){this.finishAction(epoch,token);void this.loadRequests(epoch,token);}}});
     }catch(error){launched=false;if(this.current(epoch,token))this.setData({actionError:problem(error,"原转账单暂不可确认，请稍后刷新。")});}
@@ -248,14 +248,14 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,
       key=this.data.requestKey||clientOperationKey("settlement-request");
     const current=()=>this.current(epoch,token)&&this.data.isolatedTransfer;
-    const answer=await this.confirmOperation({title:"登记隔离结算意向？",
-      content:`意向 ¥${centsToYuan(amountCents)}。它不会直接预占或发款；公司每月 15 日起准备上一月候选，税前未满 ¥100 结转，须由另一人按来源与合成税务规则复核。本环境不转出真实资金。`,
+    const answer=await this.confirmOperation({title:"登记测试结算意向？",
+      content:`意向 ¥${centsToYuan(amountCents)}。本次不会预留或发放真实款项。测试规则为每月 15 日起核对上月记录，税前不足 ¥100 顺延，并由另一名工作人员复核。`,
       confirmText:"登记意向"});
     if(!answer.confirm||!current()||!this.canAct()||this.data.busy)return;
     this.setData({busy:true,requestKey:key,actionError:"",actionStatus:""});
     try{await executeCommerceCommand({kind:"settlement",key,payload:{amountCents,reason:why}},()=>current()&&this.data.visible);
       if(current()){this.setData({busy:false,formVisible:false,amount:"",reason:"",requestKey:"",
-        actionStatus:"结算意向已记录；它不会绕开周期候选和独立复核。"});void this.loadRequests(epoch,token);}}
+        actionStatus:"结算意向已记录，后续须按周期审核并由另一名工作人员复核。"});void this.loadRequests(epoch,token);}}
     catch(error){if(current())this.setData({busy:false,
       actionError:problem(error,"申请结果暂时无法确认；再次提交会使用同一请求编号。")});}
     finally{this.finishAction(epoch,token);}

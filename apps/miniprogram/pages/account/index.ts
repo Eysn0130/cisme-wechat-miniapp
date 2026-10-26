@@ -13,9 +13,9 @@ function scrollToAccountError() {
 
 const legalReadErrors = new Set([
   "协议服务暂时无法连接，请稍后重试。",
-  "当前用户协议尚未发布，请稍后重试。",
-  "当前隐私指引尚未发布，请稍后重试。",
-  "协议加载异常，请稍后重试。",
+  "用户协议暂不可用，请稍后重试。",
+  "隐私保护指引暂不可用，请稍后重试。",
+  "协议信息暂不可用，请稍后重试。",
   "协议暂时无法加载，请稍后重试。"
 ]);
 
@@ -46,7 +46,7 @@ Page({
         this.setData({error:"身份已核验，隐私请求页暂时无法打开，请重试。"},scrollToAccountError);
     }catch{
       if(this.data.pageAlive&&attempt===this.data.authAttempt)
-        this.setData({error:"历史账号核验暂未完成，请重试。"},scrollToAccountError);
+        this.setData({error:"账号信息暂时无法确认，请重试。"},scrollToAccountError);
     }finally{
       if(this.data.pageAlive&&attempt===this.data.authAttempt)this.setData({accountHelpBusy:false});
     }
@@ -151,7 +151,7 @@ Page({
   async openTerms() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议加载异常，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "当前用户协议尚未发布，请稍后重试。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议信息暂不可用，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "用户协议暂不可用，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {
@@ -170,7 +170,7 @@ Page({
   openPrivacy() {
     const documents = this.documents();
     if (!documents) {
-      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议加载异常，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "当前隐私指引尚未发布，请稍后重试。" }, scrollToAccountError);
+      this.setData({ error: this.data.legalLoadError === "invalid" ? "协议信息暂不可用，请稍后重试。" : this.data.legalLoadError === "unreachable" ? "协议暂时无法加载，请稍后重试。" : "隐私保护指引暂不可用，请稍后重试。" }, scrollToAccountError);
       return;
     }
     if (documents.localFixture) {
@@ -288,7 +288,7 @@ Page({
         const deviceId = wx.getStorageSync<string>("cisme.devUserId") || `device-${Date.now()}`;
         wx.setStorageSync("cisme.devUserId", deviceId);
         this.setData({ identityCommitStarted: true });
-        wx.enableAlertBeforeUnload({ message: "身份确认请求已经发送。离开页面不会撤回服务端核验，是否继续离开？" });
+        wx.enableAlertBeforeUnload({ message: "登录正在处理中，离开后请先确认账号状态。" });
         result = await request({ path: "/v1/identity/dev", method: "POST", authMode: "public", data: { ...base, externalUserId: deviceId } });
       } else {
         const login = await wx.login();
@@ -301,7 +301,7 @@ Page({
           return;
         }
         this.setData({ identityCommitStarted: true });
-        wx.enableAlertBeforeUnload({ message: "身份确认请求已经发送。离开页面不会撤回服务端核验，是否继续离开？" });
+        wx.enableAlertBeforeUnload({ message: "登录正在处理中，离开后请先确认账号状态。" });
         result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, code: login.code } });
       }
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
@@ -326,10 +326,10 @@ Page({
         const code=(error as {code?:string})?.code;
         const unavailable=code==="ACCOUNT_CLOSED"||code==="MEMBER_NOT_ACTIVE";
         this.setData({accountHelpAvailable:code==="ACCOUNT_CLOSED",error:unavailable
-          ?code==="ACCOUNT_CLOSED"?"账号已注销。可重新核验微信身份，继续处理历史隐私请求。":"账号暂不可登录，请稍后重试或联系小程序客服。"
+          ?code==="ACCOUNT_CLOSED"?"账号已注销。你仍可核验微信身份，查看历史隐私申请。":"账号暂不可登录，请稍后重试或联系小程序客服。"
           :this.data.identityCommitStarted
-            ?"暂未收到身份确认结果，服务端可能已完成核验。请检查网络后重试，本页尚未切换会员身份。"
-            :"微信身份确认暂时未完成，请重试。身份核验请求尚未发送。"},scrollToAccountError);
+            ?"登录结果尚未确认，请检查网络后重试。"
+            :"微信登录尚未完成，请重试。"},scrollToAccountError);
       }
     } finally {
       if (this.data.authAttempt === attempt) {
@@ -345,7 +345,7 @@ Page({
     if(token!==this.renewalSessionToken){this.renewalSessionToken=token;this.renewalDestination="";this.setData({renewalComplete:false,agreementAccepted:false,error:"账号状态已变化，请重新阅读并确认。"});return;}
     const documents=this.documents();
     if(!this.data.renewalComplete&&(this.data.legalLoading||!this.data.legalTextsReady||!documents||!this.data.agreementAccepted)){
-      this.setData({error:"请阅读并明确同意当前用户协议与隐私指引。"},scrollToAccountError);return;
+      this.setData({error:"请先阅读并同意用户协议与隐私保护指引。"},scrollToAccountError);return;
     }
     const attempt=++this.data.authAttempt,legalAttempt=this.data.legalAttempt;
     const current=()=>this.data.pageAlive&&this.data.pageVisible&&!this.data.leaving&&attempt===this.data.authAttempt&&token===getApp<IAppOption>().globalData.sessionToken;
@@ -357,7 +357,7 @@ Page({
         if(!current())return;
         this.renewalDestination=consumeAuthReturnUrl();
         this.setData({renewalComplete:true,legalAcceptanceStarted:false});
-        if(legalAttempt!==this.data.legalAttempt){this.setData({notice:"本次确认已由服务端保存，返回后将重新核对当前状态。"});}
+        if(legalAttempt!==this.data.legalAttempt){this.setData({notice:"协议已确认，返回后会重新加载最新状态。"});}
       }
       if(!current())return;
       const landed=await navigateAfterAuthentication(this.renewalDestination||"/pages/community/index");
@@ -365,7 +365,7 @@ Page({
     }catch(error){if(current()){
       const problem=error as {status?:number;code?:string};
       if(problem.status===409&&["LEGAL_VERSION_REQUIRED","CURRENT_LEGAL_CONSENT_REQUIRED"].includes(problem.code||"")){await this.syncLegalDocuments();if(current())this.setData({agreementAccepted:false,renewalComplete:false,error:"协议版本已更新，请重新阅读后确认。"},scrollToAccountError);}
-      else this.setData({error:"协议确认结果尚未收到，请重试。原会话仍保留，互动尚未执行。"},scrollToAccountError);
+      else this.setData({error:"协议确认结果尚未收到，请重试；本次互动尚未执行。"},scrollToAccountError);
     }else if(this.data.pageAlive&&attempt===this.data.authAttempt&&!getApp<IAppOption>().globalData.sessionToken){
       this.setData({renewalMode:false,renewalComplete:false,pendingDestination:"",error:"会话已失效，请重新微信登录确认。"});
     }}finally{if(this.data.pageAlive&&attempt===this.data.authAttempt)this.setData({loading:false,legalAcceptanceStarted:false});}
@@ -377,10 +377,10 @@ Page({
       let confirmation: WechatMiniprogram.ShowModalSuccessCallbackResult;
       try {
         confirmation = await wx.showModal({
-          title: this.data.legalAcceptanceStarted?"协议确认请求已发送":"身份请求已发送",
-          content: this.data.legalAcceptanceStarted?"返回阅读不会撤回已提交的确认；服务端仍可能保存本次明确同意。是否仍要返回？":destination === "source"
-            ? "返回来源页面不会撤回已提交的身份确认；服务端仍可能完成唯一会员身份核验。是否仍要返回？"
-            : "离开页面不会撤回已提交的身份确认；服务端仍可能完成唯一会员身份核验。是否仍要前往公开社区？",
+          title: this.data.legalAcceptanceStarted?"协议正在确认":"登录仍在处理中",
+          content: this.data.legalAcceptanceStarted?"协议确认仍在处理中。返回后请先查看确认结果。":destination === "source"
+            ? "登录结果尚未确认。返回后请先查看账号状态。"
+            : "登录仍在处理中。前往社区后，请重新确认登录状态。",
           confirmText: destination === "source" ? "仍然返回" : "仍然离开",
           cancelText: "继续等待"
         });

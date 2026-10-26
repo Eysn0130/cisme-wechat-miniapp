@@ -11,12 +11,12 @@ import { authorityProjection, type AuthorityProjection } from "../../services/au
 function profileCareView(care: any): { title: string; copy: string; status: string } {
   const completed = care?.completed?.length ?? 0;
   const next = care?.due || care?.next || "待安排";
-  if (care?.phase === "planned") return { title: "护理周期待开始", copy: `${completed} / 4 个里程碑已完成，下一节点 ${next}`, status: "待用户确认开始" };
-  if (care?.phase === "active") return { title: "护理周期进行中", copy: `${completed} / 4 个里程碑已完成，下一节点 ${next}`, status: "护理进行中" };
-  if (care?.phase === "paused") return { title: "护理周期已暂停", copy: `${completed} / 4 个里程碑已完成，恢复后继续 ${next}`, status: "护理已暂停" };
-  if (care?.phase === "terminated") return { title: "护理周期已终止", copy: `${completed} / 4 个里程碑已完成，历史护理事实已归档`, status: "周期已终止" };
-  if (care?.phase === "completed") return { title: "护理周期已完成", copy: "4 / 4 个里程碑已完成，护理事实已归档", status: "周期已完成" };
-  return { title: "护理周期待确认", copy: `${completed} / 4 个里程碑已完成，下一节点 ${next}`, status: "待资格确认" };
+  if (care?.phase === "planned") return { title: "护理周期待开始", copy: `已完成 ${completed} / 4 次阶段护理，下一次 ${next}`, status: "等你确认开始" };
+  if (care?.phase === "active") return { title: "护理周期进行中", copy: `已完成 ${completed} / 4 次阶段护理，下一次 ${next}`, status: "护理进行中" };
+  if (care?.phase === "paused") return { title: "护理周期已暂停", copy: `已完成 ${completed} / 4 次阶段护理，恢复后继续 ${next}`, status: "护理已暂停" };
+  if (care?.phase === "terminated") return { title: "护理周期已终止", copy: `已完成 ${completed} / 4 次阶段护理，记录仍可查看`, status: "周期已终止" };
+  if (care?.phase === "completed") return { title: "护理周期已完成", copy: "4 次阶段护理已完成，记录都保存在这里", status: "周期已完成" };
+  return { title: "护理周期待确认", copy: `已完成 ${completed} / 4 次阶段护理，下一次 ${next}`, status: "护理资格待确认" };
 }
 
 const snapshotOwners = new WeakMap<object, string>();

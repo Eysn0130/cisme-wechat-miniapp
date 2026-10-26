@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "a5b73a96d5d1d528e6ea4b808721aec24476d8f1ba4fcfd6fdbaa08d622773bb",
+  "packageSourceSha256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source dfae3e43: on 2026-10-26 only native care-protocol copy changed, aligning product 02 with hair repair and leaving usage details to product instructions. No historical native screenshot was recollected for this hash. The three order screenshot descriptors and their original source binding remain unchanged in source-acceptance-3c895fb74af4.json; earlier history remains there as recorded. The login concept with null package source remains a visual reference only. Full route/device matrices, real WeChat component evidence, and platform release qualification remain blocked."
+  "note": "Current source 2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f: formal-product copy revision on 2026-10-26 across native pages. No historical screenshot is promoted to evidence for this package. Earlier native default-state and editorial screenshots remain bound to source a5b73a96d5d1 in their original records; prior history is preserved in source-acceptance-a5b73a96d5d1.json and earlier manifests. Full route/state/device matrices and real WeChat component evidence remain unverified; this manifest intentionally does not mark acceptance passed."
 }

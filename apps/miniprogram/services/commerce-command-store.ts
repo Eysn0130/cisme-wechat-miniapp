@@ -14,7 +14,7 @@ const kinds: CommerceCommandKind[] = ["refund", "settlement", "credit", "credit-
 export const commerceUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keyPattern = /^[A-Za-z0-9._:-]{8,200}$/;
 const maximumRecords = 16, maximumSerializedUnits = 64_000;
-const problem = () => ({ code: "COMMERCE_RECOVERY_STORAGE", title: "原操作恢复记录无法安全保存或读取；请勿重新提交，先联系客服核对。" });
+const problem = () => ({ code: "COMMERCE_RECOVERY_STORAGE", title: "暂时无法恢复上次操作。请先联系客服核对，勿重复提交。" });
 export function normalizeCommandPayload(kind: CommerceCommandKind, input: CommandPayload): CommandPayload {
   if (!kinds.includes(kind) || !input || typeof input !== "object" || Array.isArray(input)) throw problem();
   const fields = kind === "credit" ? ["amountCents", "confirmed", "taxPolicyVersion"] :

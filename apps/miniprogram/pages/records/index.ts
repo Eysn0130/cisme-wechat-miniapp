@@ -94,7 +94,7 @@ function headlineForPhase(phase: CarePhase | undefined): [string, string] {
   if (phase === "paused") return ["护理暂时停下，", "已完成的都在这里。"];
   if (phase === "terminated") return ["这个周期已经结束，", "记录仍为你保留。"];
   if (phase === "planned") return ["护理周期已就绪，", "等你确认开始。"];
-  return ["你的头皮护理，", "正在成为一种习惯。"];
+  return ["你的日常护理，", "按自己的节奏继续。"];
 }
 
 function zonedCompletion(completedAt: string | undefined, timezone: string): { short: string; date: string; time: string } {
@@ -120,8 +120,8 @@ function recordView(record: CareRecordApi, cycle: CareCycleApi, cycleLabel: stri
   const stepSummary = steps.length === careProtocolSteps.length
     ? ""
     : steps.length === 0
-      ? "这条历史记录保存了里程碑与完成时间，但当时尚未记录分步事实。"
-      : `这条历史记录只保存了 ${steps.length} / 4 个步骤，未显示的步骤没有可核对事实。`;
+      ? "这条旧记录只保存了护理阶段和完成时间，没有详细步骤。"
+      : `这条旧记录只保存了 ${steps.length} / 4 个步骤，其余步骤没有记录。`;
   return {
     recordKey: `${cycle.id}:${record.milestone}`,
     milestone: record.milestone,
@@ -129,8 +129,8 @@ function recordView(record: CareRecordApi, cycle: CareCycleApi, cycleLabel: stri
     completedAt: completion.short,
     completedDate: completion.date,
     completedTime: completion.time,
-    assessmentLabel: assessment?.label ?? "旧记录未包含护理后感受",
-    assessmentNote: assessment?.note ?? "该记录生成于详细护理事实启用之前。",
+    assessmentLabel: assessment?.label ?? "这条旧记录未保存护理后感受",
+    assessmentNote: assessment?.note ?? "这条旧记录未保存更详细的护理内容。",
     assessmentAvailable: Boolean(assessment),
     assessmentIcon: assessment ? "/assets/icons/check-circle-plum.svg" : "/assets/icons/clock-plum.svg",
     steps,
@@ -148,11 +148,11 @@ function cycleStartedLabel(cycle: CareCycleApi): string {
 }
 
 function emptyRecordCopy(cycle: CareCycleApi, isCurrent: boolean): string {
-  if (!isCurrent) return "本周期未留下里程碑记录";
-  if (cycle.phase === "planned") return "确认开始周期后才会出现 D1";
-  if (cycle.phase === "paused") return "已暂停，恢复后才会继续生成里程碑";
-  if (cycle.phase === "terminated") return "本周期终止前没有保存里程碑记录";
-  return "当前没有已完成的里程碑";
+  if (!isCurrent) return "这个周期还没有护理记录";
+  if (cycle.phase === "planned") return "确认开始后，就会安排 D1 护理";
+  if (cycle.phase === "paused") return "周期已暂停，恢复后再继续安排护理";
+  if (cycle.phase === "terminated") return "这个周期结束前没有保存护理记录";
+  return "还没有完成阶段护理";
 }
 
 function recordGroups(care: CareCycleApi): { groups: RecordGroupView[]; records: RecordView[] } {
@@ -180,10 +180,10 @@ function timelineStatus(care: CareCycleApi, milestone: string, done: boolean, cu
 }
 
 function cycleSummary(care: CareCycleApi): string {
-  if (care.phase === "planned") return "确认开始后生成 D1、D7、D14、D28";
-  if (care.phase === "paused") return "已完成记录保留，恢复后重新安排未完成节点";
+  if (care.phase === "planned") return "确认开始后，安排 D1、D7、D14、D28 护理";
+  if (care.phase === "paused") return "已完成的记录会保留，恢复后继续安排剩余护理";
   if (care.phase === "terminated") return "周期已终止，历史护理记录仍可查看";
-  if (care.phase === "completed") return "四个里程碑已完成并保存";
+  if (care.phase === "completed") return "四次阶段护理均已完成并保存";
   return care.startedOn ? `${cycleStartedLabel(care)}，按护理日程自动更新` : "开始日期未记录";
 }
 
@@ -313,7 +313,7 @@ Page({
       } else if (preserveSnapshot && this.data.authorityAvailable && !failClosed) {
         this.setData({ error: `暂时无法更新护理档案。下方保留${this.data.lastSyncedLabel || "上次确认"}的记录，请检查网络后重试。` }, scrollToRecordsError);
       } else {
-        this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, accessRequired: false, error: "护理档案暂时无法同步，请检查网络后重试。旧记录不会被当作当前周期状态。" }, scrollToRecordsError);
+        this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, accessRequired: false, error: "护理档案暂未加载，请检查网络后重试，再查看当前周期进度。" }, scrollToRecordsError);
       }
       return false;
     }
@@ -386,26 +386,26 @@ Page({
     const copy = action === "pause"
       ? { title: "暂停当前护理周期？", content: "已保存记录不会丢失；恢复后未来提醒将重新计算。" }
       : action === "resume"
-        ? { title: "恢复当前护理周期？", content: "系统会按恢复事实重新安排后续里程碑。" }
+        ? { title: "恢复当前护理周期？", content: "恢复后，会按暂停天数顺延尚未完成的阶段护理。" }
         : { title: "终止当前护理周期？", content: "终止不会删除历史记录，也不会自动触发退款或积分变化。" };
     this.setData({ confirmingCycleAction: true });
     let confirmation: WechatMiniprogram.ShowModalSuccessCallbackResult;
     try {
       confirmation = await wx.showModal({ ...copy, confirmText: action === "pause" ? "确认暂停" : action === "resume" ? "确认恢复" : "确认终止" });
     } catch {
-      if (confirmationCurrent()) this.setData({ error: "周期操作确认弹层暂时无法打开，请重新选择操作。" }, scrollToRecordsError);
+      if (confirmationCurrent()) this.setData({ error: "暂时无法确认这次操作，请重新选择。" }, scrollToRecordsError);
       return;
     } finally {
       if (confirmationCurrent()) this.setData({ confirmingCycleAction: false });
     }
     if (!confirmationCurrent() || !confirmation.confirm) return;
     if (this.data.working || !this.data.writeReady || !this.data.authorityAvailable || !this.data.care || this.data.care.id !== care.id || this.data.care.version !== care.version) {
-      this.setData({ operationStatus: "", error: "护理周期状态已变化，请核对最新状态后重新选择操作。" }, scrollToRecordsError);
+      this.setData({ operationStatus: "", error: "护理周期已更新，请查看最新进度后重新操作。" }, scrollToRecordsError);
       return;
     }
     this.setData({ working: true, workingAction: action, operationStatus: "正在更新护理周期状态…", error: "" });
     const tab = this.getTabBar?.(); if (tab) tab.setData({ externalBusy: true });
-    wx.enableAlertBeforeUnload({ message: "护理周期操作已经发送，离开不会撤回服务端处理。请等待最新状态确认。" });
+    wx.enableAlertBeforeUnload({ message: "正在确认操作结果，请稍等。离开页面不会取消已提交的操作。" });
     const reasonCode = action === "pause" ? "MEMBER_REQUEST" : action === "resume" ? "MEMBER_RESUME" : "MEMBER_TERMINATION";
     const successCopy = action === "pause" ? "护理周期已暂停" : action === "resume" ? "护理周期已恢复" : "护理周期已终止";
     let acknowledged = false;
@@ -425,8 +425,8 @@ Page({
       const verified = refreshed && this.data.care?.id === care.id && this.data.care.phase === target &&
         Number.isSafeInteger(this.data.care.version) && this.data.care.version > care.version;
       this.setData({ operationStatus: verified ? successCopy : "", writeReady: Boolean(refreshed),
-        error: verified ? "" : acknowledged ? "周期操作已受理，但预期状态尚未核实。请核对当前周期后再操作。" :
-          "原周期操作结果暂未核实。当前显示最新可确认事实，不表示原操作未执行。" }, verified ? undefined : scrollToRecordsError);
+        error: verified ? "" : acknowledged ? "操作已提交，结果还需核对。请刷新当前周期后再操作。" :
+          "上次操作的结果还未确认，请先刷新核对，避免重复操作。" }, verified ? undefined : scrollToRecordsError);
     } finally {
       if (current()) {
         this.setData({ working: false, workingAction: "" });

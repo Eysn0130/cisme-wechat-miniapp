@@ -31,14 +31,14 @@ Page({
       this.setData({items:this.normalize(page.items),nextCursor:page.nextCursor,loading:false,refreshing:false,coreReady:true});
     }catch(error){if(this.current(attempt,token)){
       const denied=[401,403,404].includes((error as {status?:number})?.status??0);
-      this.setData({loading:false,refreshing:false,coreReady:false,items:denied?[]:this.data.items,nextCursor:denied?null:this.data.nextCursor,error:(error as {title?:string})?.title??"订单暂时无法同步，已显示内容仅供参考，请重试。"});}}
+      this.setData({loading:false,refreshing:false,coreReady:false,items:denied?[]:this.data.items,nextCursor:denied?null:this.data.nextCursor,error:(error as {title?:string})?.title??"订单暂时无法更新，请重新加载后再操作。"});}}
   },
   async loadMore(){const cursor=this.data.nextCursor;if(!this.canOpen()||this.data.loadingMore||!cursor)return;
     const attempt=this.data.loadAttempt,token=this.lastToken;this.setData({loadingMore:true});
     try{const page=await myOrders(cursor,this);if(!this.current(attempt,token)||this.data.nextCursor!==cursor)return;
       const seen=new Set(this.data.items.map(item=>item.id));this.setData({items:[...this.data.items,...this.normalize(page.items).filter((item: { id: string })=>!seen.has(item.id))],nextCursor:page.nextCursor});
     }catch(error){if(this.current(attempt,token)){
-      if([401,403,404].includes((error as {status?:number})?.status??0))this.setData({items:[],nextCursor:null,coreReady:false,error:"订单访问权限需重新核验，请重试。"});
+      if([401,403,404].includes((error as {status?:number})?.status??0))this.setData({items:[],nextCursor:null,coreReady:false,error:"暂时无法查看订单，请重新确认身份后重试。"});
       else wx.showToast({title:"更多订单暂时无法加载",icon:"none"});}}
     finally{if(this.current(attempt,token))this.setData({loadingMore:false});}
   },

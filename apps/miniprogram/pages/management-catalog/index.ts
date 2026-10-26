@@ -24,7 +24,7 @@ Page({
     this.setData({loading:true,error:"",items:[],nextCursor:null});
     try{const page=await managementCatalog();if(this.current(epoch,token))
       this.setData({items:this.normalize(page.items),nextCursor:page.nextCursor,loading:false});
-    }catch{if(this.current(epoch,token))this.setData({loading:false,error:"商品管理目录暂时无法同步。旧数据不会被当作当前权威。"});}},
+    }catch{if(this.current(epoch,token))this.setData({loading:false,error:"商品列表暂未加载，请重试后查看最新资料。"});}},
   async loadMore(){const cursor=this.data.nextCursor;if(this.data.loadingMore||!cursor)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({loadingMore:true});try{const page=await managementCatalog(cursor);

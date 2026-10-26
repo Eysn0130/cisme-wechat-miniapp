@@ -9,7 +9,7 @@
 
   <scroll-view class="support-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="true" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
     <view class="support-thread__content">
-    <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在同步会话…</view>
+    <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
     <view wx:if="{{!loading && !messages.length && !pendingMessage}}" class="support-welcome">
       <image src="/assets/icons/chat-circle-plum.svg"/>
@@ -39,7 +39,7 @@
           <view wx:if="{{item.attachments.length}}" class="support-media-grid">
             <button wx:for="{{item.attachments}}" wx:for-item="media" wx:key="id" class="support-media" data-media-id="{{media.id}}" bindtap="previewImage" aria-label="预览客服图片">
               <image src="{{media.localPath || '/assets/icons/images-plum.svg'}}" mode="aspectFill" lazy-load="true"/>
-              <text wx:if="{{!media.localPath}}">安全加载中</text>
+              <text wx:if="{{!media.localPath}}">图片加载中</text>
             </button>
           </view>
           <button wx:if="{{item.orderCard}}" class="support-order-card" data-id="{{item.orderCard.orderId}}" bindtap="openOrder" aria-label="查看订单尾号 {{item.orderCard.orderNumberTail}}">
@@ -89,7 +89,7 @@
         <button class="support-tool support-tool--send {{!composerSendEnabled || sending || sendAttempt || uploadBusy ? 'control--disabled' : ''}} {{composerSendEnabled && !sending && !sendAttempt && !uploadBusy ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || sending || sendAttempt || uploadBusy}}" aria-label="{{sending ? '正在发送消息' : sendAttempt ? '请先核对上条消息' : '发送消息'}}"><image src="{{composerSendEnabled && !sending && !sendAttempt && !uploadBusy ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
       </view>
     </view>
-    <button wx:if="{{!closedRights && conversation && conversation.status === 'ai_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">需要真人帮助</button>
+    <button wx:if="{{!closedRights && conversation && conversation.status === 'ai_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">联系人工客服</button>
   </view>
 
   <view wx:if="{{attachmentSheetOpen}}" class="support-sheet-mask" catchtap="closeAttachmentSheet" catchtouchmove="stopPropagation">

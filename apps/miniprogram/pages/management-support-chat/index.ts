@@ -51,7 +51,7 @@ Page({
     chromeStyle: currentChromeStyle(),
     id: "",
     memberDisplayName: "CISME 会员",
-    statusLabel: "同步中",
+    statusLabel: "正在加载",
     statusTone: "neutral",
     conversation: null as Conversation | null,
     presence: emptyPresence,
@@ -232,7 +232,7 @@ Page({
   },
   headerPatch(conversation: Conversation | null, presence: Presence, assignedToMe?: boolean) {
     const owned = assignedToMe ?? this.data.assignedToMe;
-    if (!conversation) return { statusLabel: "同步中", statusTone: "neutral", presence };
+    if (!conversation) return { statusLabel: "正在加载", statusTone: "neutral", presence };
     if (conversation.status === "waiting_human") return { statusLabel: "等待接管", statusTone: "waiting", presence };
     if (conversation.status === "ai_active") return { statusLabel: "AI 助手处理中", statusTone: "ai", presence };
     if (conversation.status === "resolved") return { statusLabel: "本次服务已结束", statusTone: "resolved", presence };
@@ -317,7 +317,7 @@ Page({
   },
   async load() {
     if (!this.data.id) {
-      this.setData({ loading: false, error: "会话编号缺失。" });
+      this.setData({ loading: false, error: "未找到这次会话，请返回客服列表重新进入。" });
       return;
     }
     const epoch = this.lifecycleEpoch;
@@ -403,7 +403,7 @@ Page({
     }
     const payer=form.freightPayer==='merchant'?'商家':'用户';
     const decision=await wx.showModal({title:row.state==='awaiting_return'?'发送新版本退货指引？':'发送本案退货指引？',
-      content:`${form.recipientName} · ${form.phone}\n${form.region} ${form.address}\n运费：${payer}承担。发送后形成不可覆盖的版本记录。`,confirmText:'确认发送'});
+      content:`${form.recipientName} · ${form.phone}\n${form.region} ${form.address}\n运费：${payer}承担。发送后会保留这一版指引，修改时需再发送新版本。`,confirmText:'确认发送'});
     if(!decision.confirm)return;
     await this.runAftersaleAction(row,{action:'send_return_instruction',expectedVersion:row.version,note:'本案退货收件信息和运费承担已核对并发送',
       recipientName:form.recipientName.trim(),phone:form.phone.trim(),region:form.region.trim(),address:form.address.trim(),
@@ -635,7 +635,7 @@ Page({
       await this.markRead();
       wx.nextTick(() => this.measureActions());
     } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "回复尚未获得服务端确认，文字仍保留。", pendingMessage: this.pendingFrom(sendAttempt, "failed") });
+      if (this.owns(epoch, ownerToken)) this.setData({ error: "回复是否发送成功还未确认，文字已保留。", pendingMessage: this.pendingFrom(sendAttempt, "failed") });
     } finally {
       if (this.owns(epoch, ownerToken)) this.setData({ busy: false });
     }
@@ -703,7 +703,7 @@ Page({
     const attachments = this.data.messages.flatMap((message) => message.attachments ?? []).filter((attachment) => attachment.localPath);
     const current = attachments.find((attachment) => attachment.id === id)?.localPath;
     if (!current) {
-      wx.showToast({ title: "图片仍在安全加载，请稍后重试", icon: "none" });
+      wx.showToast({ title: "图片仍在加载，请稍后重试", icon: "none" });
       return;
     }
     wx.previewImage({ current, urls: attachments.map((attachment) => attachment.localPath!) });
