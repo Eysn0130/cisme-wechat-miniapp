@@ -7,7 +7,7 @@
       <view class="member-hero">
         <text class="eyebrow">{{detail.member.commercialEligible?'CISME MEMBER':'成员资料'}}</text>
         <text class="ux-strong">{{detail.member.displayName}}</text>
-        <text class="ux-small">{{detail.member.commercialEligible?'商业会员':detail.member.membershipState==='active'?'资格未生效或不可用':detail.member.membershipState==='suspended'?'资格暂停':detail.member.membershipState==='expired'?'资格到期':'普通用户'}} · {{detail.member.accountStatus==='active'?'账号正常':'账号受限'}}</text>
+        <text class="ux-small">{{detail.member.commercialEligible?'商业会员':detail.member.membershipState==='active'?'资格暂不可用':detail.member.membershipState==='suspended'?'资格暂停':detail.member.membershipState==='expired'?'资格到期':'普通用户'}} · {{detail.member.accountStatus==='active'?'账号正常':'账号受限'}}</text>
       </view>
       <view class="member-tabs" aria-role="tablist" aria-label="成员详情分类"><button wx:for="{{sections}}" wx:key="id" data-section="{{item.id}}" bindtap="selectSection" class="{{section===item.id?'is-active':''}}" aria-role="tab" aria-selected="{{section===item.id}}">{{item.label}}</button></view>
       <view wx:if="{{section==='overview'}}" class="member-panel">
@@ -31,12 +31,12 @@
           <button wx:if="{{detail.scope.orders}}" data-mode="attributed-orders" class="{{orderMode==='attributed-orders'?'is-active':''}}" bindtap="selectOrderMode">推荐归因</button>
         </view>
         <text class="member-panel__title ux-strong">{{section==='referrals'?'直接推荐':section==='posts'?'公开内容':orderMode==='own-orders'?'本人订单':'推荐归因订单'}} · {{visibleTotal}} 项（已加载 {{visibleRows.length}}）</text>
-        <text wx:if="{{section==='orders'}}" class="member-caveat">待支付、取消和合成订单不计入真实成交或可结算佣金。</text>
+        <text wx:if="{{section==='orders'}}" class="member-caveat">待支付、已取消和测试订单，不计入实际成交或可结算佣金。</text>
         <text wx:if="{{sectionLoading}}" class="member-empty">正在加载…</text>
         <text wx:if="{{!sectionLoading && !visibleRows.length && !sectionError}}" class="member-empty">此分类暂无内容。</text>
         <button wx:for="{{visibleRows}}" wx:key="id" class="member-list-row member-list-button" data-id="{{item.id}}" bindtap="openRow">
           <text class="ux-strong">{{section==='referrals'?item.displayName:section==='posts'?item.title:item.productName||'商品'}}</text>
-          <text class="ux-small">{{section==='referrals'?'已确认直接关系 · 已核实付款 '+item.verifiedOrderCount+' 笔':section==='posts'?'查看公开故事':item.orderNumber+' · '+item.statusLabel+(item.transactionSourceKind==='synthetic_nonproduction'?' · 合成测试':'')}}</text>
+          <text class="ux-small">{{section==='referrals'?'已确认直接关系 · 已核实付款 '+item.verifiedOrderCount+' 笔':section==='posts'?'查看公开内容':item.orderNumber+' · '+item.statusLabel+(item.transactionSourceKind==='synthetic_nonproduction'?' · 合成测试':'')}}</text>
           <text wx:if="{{section==='orders'}}" class="ux-small">{{item.totalLabel}}{{orderMode==='attributed-orders'&&item.rateLabel?' · 订单费率 '+item.rateLabel:''}}{{orderMode==='attributed-orders'&&item.commissionLabel?' · 佣金净流水 '+item.commissionLabel:''}}</text>
         </button>
         <button wx:if="{{visibleCursor}}" class="text-button {{sectionLoadingMore?'control--disabled':''}}" bindtap="loadMoreSection" disabled="{{sectionLoadingMore}}" loading="{{sectionLoadingMore}}">加载更多</button>

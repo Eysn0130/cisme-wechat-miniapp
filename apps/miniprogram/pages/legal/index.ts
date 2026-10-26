@@ -15,7 +15,7 @@ Page({
    if(!current())return;
    const legalDoc=Array.isArray(result.documents)?result.documents.find(item=>item?.document_type===this.data.type):null;
    const valid=legalDoc&&typeof legalDoc.body==='string'&&legalDoc.body.trim()&&typeof legalDoc.title==='string'&&typeof legalDoc.version==='string';
-   this.setData({legalDoc:valid?legalDoc:null,legalBlocks:valid?legalTextBlocks(legalDoc.body,legalDoc.title):[],error:valid?'':'协议资料正在完善，发布后可在此阅读全文。'});
+   this.setData({legalDoc:valid?legalDoc:null,legalBlocks:valid?legalTextBlocks(legalDoc.body,legalDoc.title):[],error:valid?'':'协议暂不可用，请稍后重试。'});
   }catch{if(current())this.setData({error:'协议暂时无法加载，请检查网络后重试。'});}
   finally{if(current())this.setData({loading:false});}
  },

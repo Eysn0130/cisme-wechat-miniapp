@@ -41,7 +41,7 @@ Page({
   async load(){
     if(!this.readVisible)return;
     const id=this.data.authorId;
-    if(!/^[0-9a-f-]{36}$/i.test(id)||(this.data.editorialSource&&!editorialIdentifier(id))){this.setData({loading:false,invalidId:true,error:"作者编号无效，请返回社区。"});return;}
+    if(!/^[0-9a-f-]{36}$/i.test(id)||(this.data.editorialSource&&!editorialIdentifier(id))){this.setData({loading:false,invalidId:true,error:"作者主页链接无效，请返回社区。"});return;}
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.readRevision=commerceContextRevision();this.lastSessionToken=token;
     this.setData({loading:true,invalidId:false,error:"",items:[],nextCursor:null});

@@ -12,9 +12,9 @@ interface FactsPage { version: number; kind: string; coverage: string; absenceIs
   items: Fact[]; nextCursor: string | null; hasMore: boolean }
 const titles: Record<CommerceCommandKind, string> = { refund: '退款申请记录', settlement: '结算意向记录',
   credit: '权益转换记录', 'credit-cancel': '权益撤销记录', cancel: '订单取消记录', 'cancel-verified': '渠道核对取消记录' };
-const states: Record<string, string> = { requested: '已记录申请，等待处理', approved: '申请已核准，渠道结果另行核对',
+const states: Record<string, string> = { requested: '已记录申请，等待处理', approved: '申请已通过，处理结果待确认',
   rejected: '申请未通过', reserved: '已预占，尚未确认到账', unknown: '渠道结果待核对', processing: '渠道处理中',
-  succeeded: '服务端记录已完成', failed: '服务端记录未完成', cancelled: '已取消', available: '权益已记录' };
+  succeeded: '记录显示已完成', failed: '记录显示未完成', cancelled: '已取消', available: '权益已记录' };
 const attempts = new WeakMap<object, number>();
 
 /** Discovery is deliberately independent of the local command journal. It
@@ -61,7 +61,7 @@ export async function loadRecordedCommands(page: PageHost, scope: RecoveryScope,
       if (generation === attempts.get(page) && !getApp<IAppOption>().globalData.sessionToken) {
         page.setData({ recordedGroups: [] }); return;
       }
-      update({ loading: false, error: '暂时无法核对。请重试查询或联系客服，不要重复提交未知操作。' });
+      update({ loading: false, error: '暂时无法查询结果，请重试查询或联系客服。结果未确认前，请勿重复提交。' });
     }
   }));
 }

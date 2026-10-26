@@ -5,7 +5,7 @@ const cycle = { phase: "active", startedOn: "2026-09-01", timezone: "Asia/Shangh
 
 describe("home care facts", () => {
   it("does not claim today was completed on a non-milestone day", () => {
-    expect(careHomeSchedule(cycle, new Date("2026-09-04T04:00:00.000Z"))).toMatchObject({ state: "not_due", schedule: "下一节点 D7 · 9月7日", completedToday: false });
+    expect(careHomeSchedule(cycle, new Date("2026-09-04T04:00:00.000Z"))).toMatchObject({ state: "not_due", schedule: "下次护理 D7 · 9月7日", completedToday: false });
   });
 
   it("distinguishes an actual completion today", () => {

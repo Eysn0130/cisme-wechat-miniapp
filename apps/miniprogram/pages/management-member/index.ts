@@ -136,7 +136,7 @@ Page({
   openRateForm(){const detail=this.data.detail;if(!detail||!this.data.canManageRate||this.data.busy)return;
     if(this.rateCommand){void this.sendRateCommand();return;}
     const formal=detail.membershipPolicy.kind==="operator_explicit";
-    if(!formal&&!this.data.rateBasisPoints.length){this.setData({actionError:"当前可提议的费率范围尚未配置，请先核对经营规则。"});return;}
+    if(!formal&&!this.data.rateBasisPoints.length){this.setData({actionError:"可调整的费率范围尚未设置，请先核对经营规则。"});return;}
     const when=rateDateParts(detail.membershipPolicy.rateProposalSuggestedAt);
     const index=this.data.rateBasisPoints.indexOf(detail.rate?.basisPoints??this.data.rateBasisPoints[0]!);
     const selected=Math.max(0,index);
@@ -186,7 +186,7 @@ Page({
     catch(error){if(!current())return;
       try{const existing=await request<{id:string}>({path:`/v1/management/commission-rates/by-request/${command.key}`});
         if(current()){this.rateCommand=null;this.setData({rateFormVisible:false,actionStatus:`原提议 ${existing.id.slice(0,8)} 已记录，等待复核。`});}}
-      catch{if(current())this.setData({actionError:(error as {title?:string}).title||"结果暂不可确认。再次点击将查询并重试同一提议编号。"});}}
+      catch{if(current())this.setData({actionError:(error as {title?:string}).title||"结果还未确认。再次点击会先查询，再重试原提议。"});}}
     finally{if(current())this.setData({busy:false});}
   },
   async refreshAuthority(){const projection=await authorityProjection().catch(()=>null);if(projection&&hasCapability(projection,"member.profile.read"))void this.load();},

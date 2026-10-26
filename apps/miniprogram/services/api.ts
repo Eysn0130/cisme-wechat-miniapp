@@ -157,7 +157,7 @@ export function consumeAuthReturnUrl(): string {
 export function navigateAfterAuthentication(url: string): Promise<"target" | "failed"> {
   const path = url.split("?")[0] ?? url;
   return new Promise((resolve) => {
-    const failed = () => { wx.showToast({ title: "身份已确认，但目标页面暂时无法打开", icon: "none" }); resolve("failed"); };
+    const failed = () => { wx.showToast({ title: "身份已确认，页面暂时无法打开，请重试", icon: "none" }); resolve("failed"); };
     if (tabRoutes.has(path)) {
       wx.switchTab({ url: path, success: () => resolve("target"), fail: failed });
       return;
@@ -228,7 +228,7 @@ function retryDelayMs(error: unknown, options: RequestOptions): number | null {
   return problem?.status === 502 || problem?.status === 503 || problem?.code === "NETWORK_ERROR" || problem?.code === "NETWORK_TIMEOUT"
     ? 40 + Math.floor(Math.random() * 81) : null;
 }
-const cancelledProblem = () => ({ code: "REQUEST_ABORTED", title: "请求已取消；已发送写入不会因此撤回，请查询结果" });
+const cancelledProblem = () => ({ code: "REQUEST_ABORTED", title: "已停止等待。已提交的操作可能仍在处理，请先查看记录。" });
 const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "暂未确认操作结果，请先查看记录，勿重复提交。" });
 
 function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
@@ -250,7 +250,7 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const origin = currentRouteUrl();
   const budgetMs = options.budgetMs ?? 12_000;
   if (!Number.isInteger(budgetMs) || budgetMs < 1 || budgetMs > 60_000)
-    return { promise: Promise.reject({ code: "INVALID_REQUEST_BUDGET", title: "请求等待预算无效" }), abort() {} };
+    return { promise: Promise.reject({ code: "INVALID_REQUEST_BUDGET", title: "暂时无法发起请求，请稍后重试" }), abort() {} };
   const deadline = measurementClock() + budgetMs;
   let stopped: unknown = null, transport: TransportHandle | null = null, interrupt: ((reason: unknown) => void) | null = null;
   const stop = (reason: unknown) => { if (stopped) return; stopped = reason; interrupt?.(reason); transport?.abort(); };
@@ -258,11 +258,11 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const remaining = () => {
     if (stopped) throw stopped;
     if (commerceContextRevision() !== revision || app.globalData.sessionToken !== session)
-      throw { code: "REQUEST_SESSION_CHANGED", title: "会员身份已变化，请重新加载" };
+      throw { code: "REQUEST_SESSION_CHANGED", title: "登录状态已变化，请重新加载" };
     if (requestEnvironment() !== environment)
       throw { code: "REQUEST_ENVIRONMENT_CHANGED", title: "连接已变化，请刷新后核对操作结果" };
     if (token === rightsSession && rightsSession && app.globalData.privacyRightsToken !== rightsSession)
-      throw { code: "REQUEST_SESSION_CHANGED", title: "隐私请求身份已变化，请重新加载" };
+      throw { code: "REQUEST_SESSION_CHANGED", title: "身份验证状态已变化，请重新加载" };
     const left = Math.ceil(deadline - measurementClock());
     if (left <= 0) throw deadlineProblem();
     return left;
@@ -273,7 +273,7 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
     interrupt = fail;
     try {
       const timeoutMs = remaining();
-      if (authMode === "required" && !token) { beginAuthentication(origin); fail({ status: 401, code: "AUTHENTICATION_REQUIRED", title: "请先完成身份确认" }); return; }
+      if (authMode === "required" && !token) { beginAuthentication(origin); fail({ status: 401, code: "AUTHENTICATION_REQUIRED", title: "请先登录" }); return; }
       transport = sendJsonRequest({ path: options.path, origin: app.globalData.apiBaseUrl, cloud: app.globalData.cloudFunction ?? null,
         method, ...(options.data ? { data: options.data } : method !== "GET" ? { data: {} } : {}), timeoutMs,
         header: { Authorization: token ? `Bearer ${token}` : "", "Idempotency-Key": options.idempotencyKey ?? "", "Content-Type": "application/json", "X-Request-Id": requestId() },
@@ -338,7 +338,7 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
   const monitor = method === "GET" ? setInterval(() => {
     if (commerceContextRevision() !== revision || requestEnvironment() !== environment ||
       app.globalData.sessionToken !== session || app.globalData.privacyRightsToken !== rightsSession || currentRouteUrl() !== origin)
-      task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或会员身份已变化，已取消本页读取" });
+      task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或登录状态已变化，请重新加载" });
   }, 100) : null;
   const promise = task.promise.finally(() => { if (monitor) clearInterval(monitor); });
   const abort = () => { recordClientMetric({ action: metricAction(options.path), stage: "cancel", durationMs: 0 }); task.abort(); };
@@ -372,7 +372,7 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
   }
   if (app.globalData.cloudFunction && authorization.fields.token) {
     const mediaId = authorization.mediaId || /\/v1\/uploads\/([0-9a-f-]{36})$/.exec(authorization.url)?.[1];
-    if (!mediaId) throw new Error("上传编号缺失");
+    if (!mediaId) throw new Error("暂时无法确认上传结果，请重新选择文件");
     const fs = wx.getFileSystemManager();
     const info = await new Promise<WechatMiniprogram.GetFileInfoSuccessCallbackResult>((resolve,reject) => fs.getFileInfo({ filePath, success:resolve, fail:reject }));
     if (!info.size || info.size > 10*1024*1024) throw new Error("文件须在 10 MiB 以内");

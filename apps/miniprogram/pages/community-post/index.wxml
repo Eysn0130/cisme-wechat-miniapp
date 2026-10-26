@@ -13,9 +13,9 @@
       <view class="story-actions"><button data-kind="like" class="{{busy ? 'control--disabled' : ''}}" bindtap="toggleReaction" disabled="{{busy}}" aria-label="{{post.liked ? '取消点赞' : '点赞'}}">{{post.liked ? '已赞' : '点赞'}} · {{post.likeCount}}</button><button data-kind="save" class="{{busy ? 'control--disabled' : ''}}" bindtap="toggleReaction" disabled="{{busy}}" aria-label="{{post.saved ? '取消收藏' : '收藏'}}">{{post.saved ? '已收藏' : '收藏'}} · {{post.saveCount}}</button></view>
       <view class="story-section-title">评论 · {{post.commentsTotal}} 条（已加载 {{post.comments.length}}）</view>
       <view wx:if="{{signedIn && (myComments.length || myCommentsError)}}" class="story-own-comments"><text>我的评论状态</text><text wx:if="{{myCommentsError}}">{{myCommentsError}}</text>
-        <view wx:for="{{myComments}}" wx:key="id" class="story-own-comment"><text class="story-own-comment__status">{{item.stateLabel}}</text><text>{{item.body || '评论正文已删除'}}</text></view></view>
+        <view wx:for="{{myComments}}" wx:key="id" class="story-own-comment"><text class="story-own-comment__status">{{item.stateLabel}}</text><text>{{item.body || '评论已删除'}}</text></view></view>
       <button wx:if="{{signedIn}}" class="text-button story-own-comments-link" bindtap="openMyComments">查看我的全部评论</button>
-      <view wx:if="{{!post.comments.length}}" class="story-empty">还没有公开评论，写下你的想法吧。</view>
+      <view wx:if="{{!post.comments.length}}" class="story-empty">还没有公开评论，欢迎分享你的想法。</view>
       <view wx:for="{{post.comments}}" wx:key="id" class="story-comment"><text class="story-comment__author">{{item.author}}</text><text class="story-comment__body">{{item.body}}</text><button class="text-button" data-id="{{item.id}}" bindtap="chooseReply">回复</button></view>
       <button wx:if="{{post.commentsNextCursor}}" class="text-button {{commentsLoadingMore?'control--disabled':''}}" bindtap="loadMoreComments" disabled="{{commentsLoadingMore}}" loading="{{commentsLoadingMore}}">加载更多评论</button><text wx:if="{{commentsError}}" class="state state--error">{{commentsError}}</text>
       <view wx:if="{{replyTo}}" class="story-comment-reply"><text>回复 {{replyTo.author}}</text><button class="text-button" bindtap="cancelReply">取消回复</button></view>

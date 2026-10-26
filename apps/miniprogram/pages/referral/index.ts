@@ -24,7 +24,7 @@ Page({
     try{const answer=await request<{code:string;sponsorLabel:string;relationState:string;attributionLevel:number}>({
       path:`/v1/me/referral/preview?code=${encodeURIComponent(code)}`});
       if(current())this.setData({preview:answer,busy:false});}
-    catch(error){if(current())this.setData({busy:false,error:(error as {title?:string}).title||"推荐码暂未核实，请重试。"});}
+    catch(error){if(current())this.setData({busy:false,error:(error as {title?:string}).title||"暂时查不到推荐人，请重试。"});}
   },
   async confirm(){
     if(this.data.busy||this.data.confirmed||!this.data.preview)return;
@@ -36,13 +36,13 @@ Page({
     const current=()=>this.data.alive&&token===getApp<IAppOption>().globalData.sessionToken&&
       sessionOwners.get(this)===token&&this.data.code===code&&this.data.key===key&&this.data.preview?.code===preview.code;
     if(preview.relationState==="already_bound_other"){this.setData({error:"你已确认其他直接推荐关系，不能再次绑定。"});return;}
-    const result=await wx.showModal({title:"确认直接推荐关系？",content:`推荐人：${preview.sponsorLabel}（${code}）。确认只建立一级关系，不代表购买或即时收益；已有关系不能改绑。`,confirmText:"确认关系"});
+    const result=await wx.showModal({title:"确认这位推荐人？",content:`推荐人：${preview.sponsorLabel}（${code}）。确认后只建立直接推荐关系，不产生购买或收益。已有推荐关系不能更换。`,confirmText:"确认推荐人"});
     if(!result.confirm||!current())return;
     this.setData({busy:true,error:"",status:""});
     try{if(!current())return;
       const response=await request<{confirmed:boolean;alreadyConfirmed:boolean}>({path:"/v1/me/referral/confirm",method:"POST",data:{code,confirmationKey:key}});
-      if(current())this.setData({busy:false,confirmed:true,status:response.alreadyConfirmed?"这段推荐关系此前已确认。":"直接推荐关系已确认。"});}
-    catch(error){if(current())this.setData({busy:false,error:(error as {title?:string}).title||"确认结果暂不可用，请重试。"});}
+      if(current())this.setData({busy:false,confirmed:true,status:response.alreadyConfirmed?"你已确认过这位推荐人。":"已确认推荐人。"});}
+    catch(error){if(current())this.setData({busy:false,error:(error as {title?:string}).title||"暂时无法确认结果，请重试。"});}
   },
   back(){wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/profile/index"})});}
 });

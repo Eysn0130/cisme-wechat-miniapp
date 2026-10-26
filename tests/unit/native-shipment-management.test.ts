@@ -40,7 +40,7 @@ it('interprets shipment time in Shanghai across UTC days and rejects invalid dat
 it('recovers an ambiguous submit through the authoritative shipment instead of dispatching again',async()=>{
  const page=mount();await page.onShow();page.data.form={...form};calls.dispatch.mockRejectedValue({status:504});
  calls.shipment.mockResolvedValue({id:'saved',orderId:fixture.id,logisticsState:'shipped',wechatSyncState:'verifying'});
- await page.submitShipment();await page.submitShipment();expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(page.data.dispatchMessage).toContain('原订单已记录交寄');expect(page.pendingDispatch).toBeNull();
+ await page.submitShipment();await page.submitShipment();expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(page.data.dispatchMessage).toContain('订单已登记交寄');expect(page.pendingDispatch).toBeNull();
 });
 it('discards mutation responses after page hide and never leaves old parcel details visible',async()=>{
  const page=mount();await page.onShow();page.data.form={...form};let finish!:(x:unknown)=>void;calls.dispatch.mockImplementation(()=>new Promise(r=>{finish=r;}));

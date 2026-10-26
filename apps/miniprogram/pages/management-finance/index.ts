@@ -19,7 +19,7 @@ const sections:[Section,string,Parameters<typeof hasCapability>[1]][]=[
   ["refund","退款申请","commerce.refund.approve"],
   ["fulfillment","履约核验","commerce.fulfillment.manage"],
   ["settlement","结算意向","commission.settlement.approve"],
-  ["cycles","周期候选","commission.settlement.approve"],
+  ["cycles","结算候选","commission.settlement.approve"],
   ["issues","异常任务","commerce.money.reconcile"],
   ["bills","交易账单","commerce.money.reconcile"]
 ];
@@ -27,7 +27,7 @@ const paths:Record<Section,string>={refund:"/v1/management/refund-requests/pendi
   fulfillment:"/v1/management/fulfillment/pending",
   settlement:"/v1/management/commission/settlement-requests/pending",cycles:"",
   issues:"/v1/management/money/issues",bills:"/v1/management/money/trade-bills"};
-const kindNames:Record<string,string>={payment_inbox:"支付事实",refund_inbox:"退款事实",
+const kindNames:Record<string,string>={payment_inbox:"支付记录",refund_inbox:"退款记录",
   refund_submission:"退款提交",transfer:"转账查单",transfer_callback:"转账回调",
   trade_bill:"账单差异"};
 const yesterdayShanghai=()=>new Date(Date.now()+8*60*60*1000-24*60*60*1000).toISOString().slice(0,10);
@@ -67,7 +67,7 @@ Page({
       const status=validateRuntime(runtime),actions=runtimeActions(status),formalMode=status.scope==="formal_commerce";
       if(!current())return;
       this.setData({formalMode,moneyEnabled:actions.money});
-      if(!actions.money&&!actions.recovery){this.setData({loading:false,error:"当前环境没有开放资金核对。"});return;}
+      if(!actions.money&&!actions.recovery){this.setData({loading:false,error:"资金核对暂未开放。"});return;}
       const available=sections.filter(([id,,capability])=>hasCapability(authority,capability)&&(!formalMode||id!=="fulfillment")&&
         (!["settlement","cycles"].includes(id)||status.isolatedTransferAvailable)).map(([id,label])=>({id,label}));
       if(!available.length){this.setData({loading:false,error:"当前账号没有资金核对权限。"});return;}
@@ -123,7 +123,7 @@ Page({
       this.data.items.some(item=>item.id===id&&item.version===version);
     const confirm=await wx.showModal({title:decision==="reject"?"退回这项申请？":"确认核验结果？",
       content:section==="fulfillment"?`凭据 ${row.sourceReference??""} · 摘要 ${row.evidenceSha256?.slice(0,12)??""}。请先核对原件与签收时间。`:
-        `金额 ¥${row.amountLabel}，对象 ${row.orderId??row.memberId??""}。请核对原始事实。`,
+        `金额 ¥${row.amountLabel}，对象 ${row.orderId??row.memberId??""}。请核对原始记录。`,
       editable:true,placeholderText:"输入至少 4 字的处理依据",confirmText:"提交决定"});
     if(!confirm.confirm||!current())return;
     const reason=String(confirm.content??"").trim();if(Array.from(reason).length<4){this.setData({actionError:"请输入至少 4 字的处理依据。"});return;}
@@ -158,7 +158,7 @@ Page({
         this.setData({cycle:{...cycle,members:cycle.members.map(row=>({...row,
           grossLabel:(row.grossCents/100).toFixed(2)}))},busy:false});
     }catch(error){if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false,
-      actionError:(error as {title?:string}).title||"周期候选暂不能核对。"});}
+      actionError:(error as {title?:string}).title||"结算候选暂不能核对。"});}
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   async prepareCycle(){
@@ -167,7 +167,7 @@ Page({
     const periodEnd=cyclePeriodEnd(this.data.cycleMonth);
     if(!periodEnd||this.data.cycleMonth>this.data.latestCycleMonth){
       this.setData({actionError:"请选择已结束的上海自然月。"});return;}
-    const answer=await wx.showModal({title:"核对周期候选？",
+    const answer=await wx.showModal({title:"核对结算候选？",
       content:`${periodEnd} 前释放、目前仍可结算的来源按会员汇总。未满税前 ¥100 结转；生成候选不批准、不发款。每月须到 15 日才可准备。`,confirmText:"读取候选"});
     if(answer.confirm)void this.loadCycle();
   },
@@ -178,7 +178,7 @@ Page({
       !this.data.sections.some(item=>item.id==="cycles")||!cycle||!row||row.requestId)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     const answer=await wx.showModal({title:"独立复核本期候选？",
-      content:`收款人 ${memberId} · 税前 ¥${row.grossLabel} · ${row.orderCount} 笔。仅本机隔离模拟渠道，零扣缴为合成测试口径，绝非真实免税或付款授权。准备人与复核人不能相同。`,
+      content:`收款人 ${memberId} · 税前 ¥${row.grossLabel} · ${row.orderCount} 笔。这是测试批次，零扣缴是模拟值，不代表真实税务结果或付款。准备人与复核人须为不同人员。`,
       editable:true,placeholderText:"输入至少 4 字复核依据",confirmText:"批准测试批次"});
     if(!answer.confirm||!this.data.alive||this.data.epoch!==epoch||
       token!==getApp<IAppOption>().globalData.sessionToken)return;
@@ -194,7 +194,7 @@ Page({
       if(this.data.alive&&this.data.epoch===epoch&&this.data.section==="cycles"){
         const keys={...this.data.cycleDecisionKeys};delete keys[keyId];
         this.setData({busy:false,cycleDecisionKeys:keys,
-          actionStatus:"隔离批次已复核并生成来源预占；渠道确认前不代表已付款。"});
+          actionStatus:"测试批次已复核，相关来源金额已预留。渠道确认前不代表已付款。"});
         await this.loadCycle();}
     }catch(error){if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false,
       actionError:(error as {title?:string}).title||"批次复核未完成，请核对状态。"});}
@@ -210,12 +210,12 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section==="issues"&&
       token===getApp<IAppOption>().globalData.sessionToken&&this.data.items.some(row=>row.id===id);
-    const answer=await wx.showModal({title:action==="redrive"?"重驱原任务？":"按原单号查渠道？",
+    const answer=await wx.showModal({title:action==="redrive"?"重试原任务？":"按原单号查渠道？",
       content:`${item.kindLabel} · ${item.code}。状态必须由渠道核验，不能手工改为成功。`,
-      editable:action==="redrive",placeholderText:"输入至少 8 字的重驱依据",confirmText:action==="redrive"?"确认重驱":"确认查单"});
+      editable:action==="redrive",placeholderText:"输入至少 8 字的重试依据",confirmText:action==="redrive"?"确认重试":"确认查单"});
     if(!answer.confirm||!current())return;
     const reason=String(answer.content??"").trim();
-    if(action==="redrive"&&Array.from(reason).length<8){this.setData({actionError:"请输入至少 8 字的重驱依据。"});return;}
+    if(action==="redrive"&&Array.from(reason).length<8){this.setData({actionError:"请输入至少 8 字的重试依据。"});return;}
     let path="",data:Record<string,unknown>={};
     if(action==="redrive"&&["payment_inbox","refund_inbox"].includes(item.kind)){
       path=`/v1/management/money/inboxes/${item.kind==="payment_inbox"?"payment":"refund"}/${id}/redrive`;data={reason};
@@ -231,7 +231,7 @@ Page({
     this.setData({busy:true,actionError:"",actionStatus:""});
     try{if(!current())return;
       await request({path,method:"POST",data});
-      if(current()){this.setData({busy:false,actionStatus:"已按原单核对或安排重驱，请查看最新状态。"});await this.load();}
+      if(current()){this.setData({busy:false,actionStatus:"已按原单核对或安排重试，请查看最新状态。"});await this.load();}
     }catch(error){if(current())this.setData({busy:false,
       actionError:(error as {title?:string}).title||"操作未完成，请核对后重试。"});}
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}

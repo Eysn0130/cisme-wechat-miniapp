@@ -31,7 +31,7 @@ describe("address draft contract", () => {
 
   it("requires picker-confirmed region codes before saving", () => {
     const unconfirmed = mergeAddressDraft(emptyAddressDraft(1, 0.5), { recipientName: "林女士", phone: "13800000001", region: ["广东省", "深圳市", "南山区"], regionCodes: ["", "", ""], regionNeedsConfirmation: true, detail: "护理路 8 号" });
-    expect(validateAddressDraft(unconfirmed).errors.region).toContain("行政区划");
+    expect(validateAddressDraft(unconfirmed).errors.region).toContain("请重新选择省、市、区县，确认所在地区");
     const confirmed = mergeAddressDraft(unconfirmed, { region: unconfirmed.region, regionCodes: ["440000", "440300", "440305"], regionSource: "picker", regionNeedsConfirmation: false }, false);
     expect(validateAddressDraft(confirmed).valid).toBe(true);
   });

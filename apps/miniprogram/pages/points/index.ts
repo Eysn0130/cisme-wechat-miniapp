@@ -6,16 +6,16 @@ const entryLabels: Record<string, string> = {
   grant_frozen: "奖励已进入冻结期",
   unfreeze: "冻结积分已转为可用",
   expire: "积分已按规则到期",
-  reversal: "积分已完成冲正",
+  reversal: "积分已调整",
   debt_created: "积分欠分已登记",
   debt_offset: "可用积分已冲抵欠分"
 };
 
 function sourceLabel(businessKey: string): string {
   if (businessKey.startsWith("grant:")) return "投稿审核奖励";
-  if (businessKey.startsWith("points-action:")) return "财务复核动作";
-  if (businessKey.startsWith("debt:")) return "账本冲抵规则";
-  return "可追溯业务事实";
+  if (businessKey.startsWith("points-action:")) return "人工复核";
+  if (businessKey.startsWith("debt:")) return "欠分抵扣";
+  return "积分变动";
 }
 
 function pointsInteger(value: unknown, nonnegative = false): number {
@@ -32,7 +32,7 @@ Page({
   onShow() {
     this.data.pageAlive = true;
     if (!retainMemberSnapshot(this)) this.setData({ points: null, balanceClass: "", loading: false, error: "", loadAttempt: this.data.loadAttempt + 1 });
-    if (!requireMemberAccess()) { this.setData({ loading: false, error: "请先确认身份后查看积分账本。" }); return; }
+    if (!requireMemberAccess()) { this.setData({ loading: false, error: "登录后即可查看积分。" }); return; }
     this.setData({ navigating: false });
     void this.load();
   },
@@ -56,12 +56,12 @@ Page({
       points.entries = points.entries.map((entry: any) => {
         const amount = pointsInteger(entry.available_delta ?? 0) + pointsInteger(entry.frozen_delta ?? 0) - pointsInteger(entry.debt_delta ?? 0);
         const businessKey = String(entry.business_key ?? "");
-        return { ...entry, displayTitle: entryLabels[entry.entry_type] ?? "积分账本变更", displaySource: sourceLabel(businessKey), displayAmount: `${amount > 0 ? "+" : ""}${amount}`, displayDate: String(entry.occurred_at ?? "").slice(0, 10) };
+        return { ...entry, displayTitle: entryLabels[entry.entry_type] ?? "积分调整", displaySource: sourceLabel(businessKey), displayAmount: `${amount > 0 ? "+" : ""}${amount}`, displayDate: String(entry.occurred_at ?? "").slice(0, 10) };
       });
       const balanceClass = String(points.projection.available).length >= 8 ? "points-hero__balance--compact" : "";
       if (this.data.pageAlive && this.data.loadAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ points, balanceClass, loading: false, error: "" });
     }
-    catch (error) { if (this.data.pageAlive && this.data.loadAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ points: null, balanceClass: "", loading: false, error: "积分账本暂时无法同步，请检查网络后重试。页面不会显示缓存余额。" }); }
+    catch (error) { if (this.data.pageAlive && this.data.loadAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ points: null, balanceClass: "", loading: false, error: "暂时无法查询积分，请检查网络后重试。" }); }
   },
   openShop() {
     if (this.data.navigating) return;

@@ -58,11 +58,11 @@ function homeView(care: CareView | null, displayName = "CISME 会员", selectedI
     protocolHint: completed ? `${activeStep.cue}，本周期已完成` : activeStep.cue,
     progressStyle: progressStyle(completedStepCount)
   };
-  if (!care) return { greeting, greetingClass, schedule: "日常护理", action: daypart.careAction, actionable: true, signalTitle: "从四步护理开始", signalMeta: "当前护理可以完整进行；专属周期开通后才会生成 D1 等节点记录", signalIcon: "/assets/icons/clipboard-text-muted.svg", steps, ...protocol };
-  if (phase === "planned") return { greeting, greetingClass, schedule: "待你确认开始", action: "确认开始护理周期", actionable: true, signalTitle: "由你决定开始日", signalMeta: "确认后才生成 D1，不会替你自动打卡", signalIcon: "/assets/icons/clock-plum.svg", steps, ...protocol };
-  if (phase === "paused") return { greeting, greetingClass, schedule: "护理周期已暂停", action: "查看周期管理", actionable: true, signalTitle: "已保存记录不会丢失", signalMeta: "恢复后再继续安排后续护理节点", signalIcon: "/assets/icons/clock-plum.svg", steps, ...protocol };
-  if (phase === "terminated") return { greeting, greetingClass, schedule: "护理周期已终止", action: "查看护理记录", actionable: true, signalTitle: "历史护理事实已归档", signalMeta: "你仍可随时回看已完成记录", signalIcon: "/assets/icons/clipboard-text-muted.svg", steps, ...protocol };
-  if (phase === "completed") return { greeting, greetingClass, schedule: "D28 · 周期完成", action: "查看护理记录", actionable: true, signalTitle: "4 条里程碑记录已点亮", signalMeta: "时间、步骤与自我感受均已保存", signalIcon: "/assets/icons/star-active.svg", steps, ...protocol };
+  if (!care) return { greeting, greetingClass, schedule: "日常护理", action: daypart.careAction, actionable: true, signalTitle: "从四步护理开始", signalMeta: "跟随四步指引进行日常护理；周期开通后可保存进度", signalIcon: "/assets/icons/clipboard-text-muted.svg", steps, ...protocol };
+  if (phase === "planned") return { greeting, greetingClass, schedule: "待你确认开始", action: "确认开始护理周期", actionable: true, signalTitle: "开始日由你决定", signalMeta: "确认后，今天将作为 D1", signalIcon: "/assets/icons/clock-plum.svg", steps, ...protocol };
+  if (phase === "paused") return { greeting, greetingClass, schedule: "护理周期已暂停", action: "查看周期管理", actionable: true, signalTitle: "已完成的护理仍可回看", signalMeta: "恢复周期后，可继续后续护理", signalIcon: "/assets/icons/clock-plum.svg", steps, ...protocol };
+  if (phase === "terminated") return { greeting, greetingClass, schedule: "护理周期已终止", action: "查看护理记录", actionable: true, signalTitle: "已完成的护理可在记录中查看", signalMeta: "你仍可随时回看已完成记录", signalIcon: "/assets/icons/clipboard-text-muted.svg", steps, ...protocol };
+  if (phase === "completed") return { greeting, greetingClass, schedule: "D28 · 周期完成", action: "查看护理记录", actionable: true, signalTitle: "已完成本周期四次护理", signalMeta: "时间、步骤与自我感受均已保存", signalIcon: "/assets/icons/star-active.svg", steps, ...protocol };
   const scheduleFact = careHomeSchedule(care, now);
   const milestone = care.due ?? care.next ?? "日常";
   const completedMilestoneCount = Math.max(care.records?.length ?? 0, care.completed?.length ?? 0);
@@ -70,17 +70,17 @@ function homeView(care: CareView | null, displayName = "CISME 会员", selectedI
   if (care.due) return {
     greeting, greetingClass, schedule: scheduleFact.state === "overdue" ? `${milestone} · 待补做` : `${milestone} · 今日护理`,
     action: daypart.careAction, actionable: true,
-    signalTitle: scheduleFact.state === "overdue" ? `完成逾期的 ${milestone} 护理` : `完成后点亮第 ${nextRecordNumber} 条记录`,
+    signalTitle: scheduleFact.state === "overdue" ? `完成待做的 ${milestone} 护理` : `完成后保存第 ${nextRecordNumber} 次护理`,
     signalMeta: "四个步骤与护理后感受会一起保存", signalIcon: "/assets/icons/star-active.svg", steps, ...protocol
   };
   if (scheduleFact.completedToday) return {
     greeting, greetingClass, schedule: scheduleFact.schedule, action: "查看护理进度", actionable: true,
-    signalTitle: "今天的护理事实已保存", signalMeta: care.next ? `下一护理节点为 ${care.next}` : "本周期已没有后续节点",
+    signalTitle: "今天的护理已保存", signalMeta: care.next ? `下次护理：${care.next}` : "本周期的护理已全部完成",
     signalIcon: "/assets/icons/check-circle-plum.svg", steps, ...protocol
   };
   return {
     greeting, greetingClass, schedule: scheduleFact.schedule, action: "查看护理进度", actionable: true,
-    signalTitle: "今天没有待完成节点", signalMeta: care.next ? `到 ${scheduleFact.nextDueOn ?? "计划日期"} 再完成 ${care.next}` : "等待新周期安排",
+    signalTitle: "今天暂无护理安排", signalMeta: care.next ? `到 ${scheduleFact.nextDueOn ?? "计划日期"} 再完成 ${care.next}` : "等待下一周期安排",
     signalIcon: "/assets/icons/clock-plum.svg", steps, ...protocol
   };
 }
@@ -91,7 +91,7 @@ const writeOwners = new WeakMap<object, object>();
 const careSessionTargets = new WeakMap<object, { token: string; cycleId: string | null; version: number | null; due: string | null }>();
 
 function visitorView(selectedIndex = 0) {
-  return { ...homeView(null, "CISME 会员", selectedIndex), greeting: "欢迎来到 CISME", action: "授权身份并开始", signalTitle: "先看看今天的护理方法", signalMeta: "确认身份后可保存你的专属周期与记录" };
+  return { ...homeView(null, "CISME 会员", selectedIndex), greeting: "欢迎来到 CISME", action: "授权身份并开始", signalTitle: "先了解四步护理", signalMeta: "登录后查看你的护理安排与记录" };
 }
 
 Page({
@@ -206,12 +206,12 @@ Page({
       const pending = pendingCareCommands.get(this);
       if (pending?.token === token && careCommandConfirmed(pending, care)) {
         pendingCareCommands.delete(this);
-        this.setData({ mutationState: "confirmed", error: "已在服务器事实中确认保存，可到护理记录回看。" });
+        this.setData({ mutationState: "confirmed", error: pending.path.endsWith("/activate") ? "护理周期已开始，请按今日安排进行护理。" : "护理已保存，可到记录中查看。" });
         if (!this.data.working) this.resetCareSession();
       }
       return true;
     } catch {
-      if (this.isCurrentLoad(attempt, token)) this.setData({ care: null, view: homeView(null), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法同步，请检查网络后重试。页面不会用旧状态开放护理操作。" });
+      if (this.isCurrentLoad(attempt, token)) this.setData({ care: null, view: homeView(null), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法加载，请检查网络后重试。" });
       else this.restoreGuestIfExpired(attempt);
       return false;
     } finally { if (this.isCurrentLoad(attempt, token)) this.setData({ loading: false }); }
@@ -249,7 +249,7 @@ Page({
     const epoch = this.data.lifecycleEpoch, token = getApp<IAppOption>().globalData.sessionToken;
     this.setData({ activationConfirming: true });
     try {
-      const result = await wx.showModal({ title: "从今天开始护理周期？", content: "确认后，今天将记为开始日并开放 D1。护理记录只在你完成四个步骤后保存。", confirmText: "确认开始" });
+      const result = await wx.showModal({ title: "从今天开始护理周期？", content: "今天将作为 D1。完成四步护理并记录感受后，即可保存本次记录。", confirmText: "确认开始" });
       if (!this.isCurrentUi(epoch, token) || !result.confirm) return;
       if (!this.data.care || this.data.care.id !== care.id || this.data.care.version !== care.version) { this.setData({ error: "护理周期状态已变化，请刷新后重新确认。" }); return; }
       await this.act(`/v1/care-cycles/${care.id}/activate`, `care-activate-${care.id}-v${care.version}`, { expectedVersion: care.version });
@@ -263,7 +263,7 @@ Page({
     if (this.data.working || this.data.mutationState === "unknown" || this.data.sessionMounted || (care && !recordable)) return;
     careSessionTargets.set(this, { token: getApp<IAppOption>().globalData.sessionToken, cycleId: care?.id ?? null, version: care?.version ?? null, due: care?.due ?? null });
     this.clearCareSessionCloseTimer();
-    wx.enableAlertBeforeUnload({ message: "本次四步护理尚未保存，离开后需要重新确认未提交的步骤。" });
+    wx.enableAlertBeforeUnload({ message: "本次护理尚未保存，离开后需要重新开始。" });
     this.getTabBar?.()?.setPresentation?.("care-sheet", true);
     this.setData({ sessionMounted: true, sessionOpen: true, sessionVisible: this.data.reducedMotion, sessionClosing: false, sessionRecordable: recordable, sessionLabel: recordable ? `${care!.due} CARE` : "DAILY CARE", sessionSubmitLabel: recordable ? `点亮 ${care!.due} 护理记录` : "完成本次护理", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", selectedProtocolIndex: 0, view: homeView(care, memberIdentity()?.display_name || "CISME 会员", 0), error: "" }, () => {
       if (this.data.reducedMotion) return;
@@ -278,7 +278,7 @@ Page({
     const epoch = this.data.lifecycleEpoch, token = getApp<IAppOption>().globalData.sessionToken, target = careSessionTargets.get(this);
     if (this.data.sessionCompletedCodes.length > 0) {
       try {
-        const result = await wx.showModal({ title: "退出本次护理？", content: this.data.mutationState === "unknown" ? "原操作已发送，结果仍待确认。退出不会撤回服务端处理，返回后请先核对记录。" : "尚未提交的步骤只保存在当前页面，退出后需要重新开始。", confirmText: "确认退出" });
+        const result = await wx.showModal({ title: "退出本次护理？", content: this.data.mutationState === "unknown" ? "保存结果尚未确认。退出后，请先查看护理记录，再决定是否重试。" : "本次护理尚未保存，退出后需要重新开始。", confirmText: "确认退出" });
         if (!this.isCurrentUi(epoch, token) || careSessionTargets.get(this) !== target || !result.confirm) return;
       } catch { if (this.isCurrentUi(epoch, token)) this.setData({ error: "退出确认窗口暂时无法打开，请继续护理或稍后再试。" }); return; }
     }
@@ -327,7 +327,7 @@ Page({
     if (this.data.sessionCompletedCodes.length !== careProtocolSteps.length || !this.data.sessionAssessment || this.data.working || this.data.mutationState === "unknown") return;
     const target = careSessionTargets.get(this), token = getApp<IAppOption>().globalData.sessionToken, epoch = this.data.lifecycleEpoch;
     if (!target || target.token !== token || target.cycleId !== (care?.id ?? null) || target.version !== (care?.version ?? null) || target.due !== (care?.due ?? null)) {
-      this.setData({ error: "护理目标或状态已变化。请退出未提交的步骤，核对记录后重新开始；不会把旧步骤写到新节点。" }); return;
+      this.setData({ error: "护理安排已有更新。请先退出本次步骤，查看最新安排后再开始。" }); return;
     }
     if (!this.data.sessionRecordable) {
       this.resetCareSession();
@@ -363,7 +363,7 @@ Page({
     const result = await this.act(pending.path, pending.key, pending.data, true);
     if (result && this.isCurrentUi(epoch, token)) {
       this.resetCareSession();
-      wx.showToast({ title: "原操作已由服务器确认", icon: "success" });
+      wx.showToast({ title: pending.path.endsWith("/activate") ? "护理周期已开始" : "本次护理已保存", icon: "success" });
     }
   },
   async act<T = Record<string, unknown>>(path: string, idempotencyKey: string, data: WechatMiniprogram.IAnyObject, replay = false): Promise<T | null> {
@@ -374,7 +374,7 @@ Page({
     writeOwners.set(this, owner); pendingCareCommands.set(this, command);
     const current = () => writeOwners.get(this) === owner && this.isCurrentUi(epoch, token);
     this.setData({ working: true, mutationState: "sending", error: "" });
-    wx.enableAlertBeforeUnload({ message: "护理操作已经发送，离开不会撤回服务端处理。返回后请核对服务器记录。" });
+    wx.enableAlertBeforeUnload({ message: "正在提交。离开后，请先查看最新护理安排，再决定是否重试。" });
     try {
       const response = await request<T>({ path, method: "POST", idempotencyKey, data: command.data });
       if (!current()) return null;
@@ -382,7 +382,7 @@ Page({
       this.setData({ mutationState: "confirmed" });
       const refreshed = await this.load(true);
       if (!current()) return null;
-      if (!refreshed) this.setData({ error: "服务端已确认保存，但最新周期暂未同步。请刷新或到护理记录核对。" });
+      if (!refreshed) this.setData({ error: path.endsWith("/activate") ? "护理周期已开始，最新安排暂时无法加载，请稍后刷新。" : "护理已保存，最新进度暂时无法加载。请刷新或查看护理记录。" });
       return refreshed ? response : null;
     } catch (error) {
       if (!current()) return null;
@@ -395,9 +395,9 @@ Page({
       if (this.data.mutationState === "confirmed") {
         this.resetCareSession();
       } else this.setData({ error: rejected
-        ? "请求未被接受。请核对服务器记录与当前周期后再操作，不会覆盖既有护理事实。"
-        : refreshed ? "保存是否成功尚未确认。已同步最新周期，请先核对护理记录，暂勿再次提交。"
-          : "保存结果与最新周期均待确认。请恢复网络后核对原操作；不会显示虚假的成功记录。" });
+        ? "本次操作未完成，请查看最新护理安排后再试。"
+        : refreshed ? "操作结果尚未确认，请先查看最新护理安排，暂勿再次提交。"
+          : "操作结果尚未确认，最新护理安排也暂时无法加载。请恢复网络后核对，暂勿重复提交。" });
       return null;
     } finally {
       if (current()) { writeOwners.delete(this); this.setData({ working: false }); wx.disableAlertBeforeUnload(); }

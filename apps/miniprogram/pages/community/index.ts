@@ -311,7 +311,7 @@ Page({
     if(!row?.postId||this.data.navigating)return;
     this.setData({navigating:true});
     wx.navigateTo({url:`/pages/community-post/index?id=${encodeURIComponent(row.postId)}`,
-      fail:()=>{this.setData({navigating:false});wx.showToast({title:"对象当前不可见，请核对举报摘要",icon:"none"});}});
+      fail:()=>{this.setData({navigating:false});wx.showToast({title:"内容暂不可见，请查看举报摘要",icon:"none"});}});
   },
   async decideFormalReport(event:WechatMiniprogram.TouchEvent){
     if(this.data.reviewBusy||this.data.mode!=="review"||!this.data.canReview)return;
@@ -389,9 +389,9 @@ Page({
     const current = () => token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt;
     this.setData({ reviewBusy: true, teamError: "" });
     try {
-      const title = await wx.showModal({ title: "推荐流标题", editable: true, placeholderText: "输入审核后的标题（最多 60 字）" });
+      const title = await wx.showModal({ title: "发布标题", editable: true, placeholderText: "输入审核后的标题（最多 60 字）" });
       if (!title.confirm || !current()) return;
-      const excerpt = await wx.showModal({ title: "推荐流摘要", editable: true, placeholderText: "输入审核后的摘要（最多 240 字）" });
+      const excerpt = await wx.showModal({ title: "发布摘要", editable: true, placeholderText: "输入审核后的摘要（最多 240 字）" });
       if (!excerpt.confirm || !current()) return;
       const reason = await wx.showModal({ title: "发布复核依据", editable: true, placeholderText: "确认内容与公开展示许可后填写依据" });
       if (!reason.confirm || !current()) return;
@@ -510,7 +510,7 @@ Page({
   openPost(event: WechatMiniprogram.TouchEvent) {
     if (this.data.navigating) return;
     const id = String(event.currentTarget.dataset.id ?? "");
-    if (!id) { wx.showToast({ title: "内容编号缺失，请刷新后重试", icon: "none" }); return; }
+    if (!id) { wx.showToast({ title: "内容链接无效，请刷新后重试", icon: "none" }); return; }
     this.setData({ navigating: true });
     const tab = this.getTabBar?.(); if (tab) tab.setData({ externalBusy: true });
     const item = this.data.feedColumns.flat().find((entry: any) => entry.id === id);

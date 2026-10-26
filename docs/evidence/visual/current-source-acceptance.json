@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "a5b73a96d5d1d528e6ea4b808721aec24476d8f1ba4fcfd6fdbaa08d622773bb",
+  "packageSourceSha256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source dfae3e43: on 2026-10-26 only native care-protocol copy changed, aligning product 02 with hair repair and leaving usage details to product instructions. No historical native screenshot was recollected for this hash. The three order screenshot descriptors and their original source binding remain unchanged in source-acceptance-3c895fb74af4.json; earlier history remains there as recorded. The login concept with null package source remains a visual reference only. Full route/device matrices, real WeChat component evidence, and platform release qualification remain blocked."
+  "note": "Current source 2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f: formal-product copy revision on 2026-10-26. Forty native simulator default/guest first viewports were freshly captured and viewed with source hashes and URL checks bound; 26 routes redirected to Account and were not authenticated-page acceptance. First five pre-navigation timing mismatches are retained explicitly. Partial evidence is recorded separately in docs/evidence/launch-20261026/native-default-2c419820288f-summary.json. No historical screenshot is promoted to this package. Full route/state/device matrices and real WeChat component evidence remain unverified, so this acceptance manifest remains blocked."
 }

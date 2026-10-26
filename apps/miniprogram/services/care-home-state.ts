@@ -54,7 +54,7 @@ export function careHomeSchedule(cycle: CareHomeCycle | null, now = new Date()):
   const nextDate = dueOn(cycle, cycle.next);
   return {
     state: "not_due",
-    schedule: cycle.next ? `下一节点 ${cycle.next}${nextDate ? ` · ${shortDate(nextDate)}` : ""}` : "今天没有待完成节点",
+    schedule: cycle.next ? `下次护理 ${cycle.next}${nextDate ? ` · ${shortDate(nextDate)}` : ""}` : "今天没有待完成的护理",
     completedToday: false,
     nextDueOn: nextDate
   };

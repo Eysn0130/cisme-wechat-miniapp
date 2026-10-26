@@ -137,7 +137,7 @@ Page({
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.memberId===id);
     if(!this.alive||!this.visible||this.data.busy||!row)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
-    const answer=await wx.showModal({title:"解除屏蔽？",content:"解除后，对方公开的内容会再次出现在可见范围内。",confirmText:"解除"}).catch(()=>({confirm:false}));
+    const answer=await wx.showModal({title:"解除屏蔽？",content:"解除后，可再次看到对方的公开内容。",confirmText:"解除"}).catch(()=>({confirm:false}));
     if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.memberId===id))return;
     const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
@@ -153,7 +153,7 @@ Page({
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.id===id);
     if(!this.alive||!this.visible||this.data.busy||!row?.postId||row.state==="deleted")return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
-    const answer=await wx.showModal({title:"删除这条评论？",content:"删除后正文无法恢复，审核事实会保留。",confirmText:"删除"}).catch(()=>({confirm:false}));
+    const answer=await wx.showModal({title:"删除这条评论？",content:"删除后无法恢复，审核记录仍会保留。",confirmText:"删除"}).catch(()=>({confirm:false}));
     if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.id===id))return;
     const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;

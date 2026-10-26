@@ -52,7 +52,7 @@ Page({
       this.setData({ authority, canProduct, canQualify, canInventory });
       await this.load("refresh");
     } catch {
-      if (this.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, refreshing: false, error: "商品权限或详情暂时无法核验。所有写入保持关闭。" });
+      if (this.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, refreshing: false, error: "暂时无法确认商品详情或操作权限，请重新加载后再修改。" });
     }
   },
   onHide() { this.visible = false; this.lifecycleEpoch += 1; },
@@ -158,7 +158,7 @@ Page({
       if (!this.owns(epoch, ownerToken)) return;
       this.applyDraftState(createProductDraftState({ ...product, image: nativeCatalogImage(product.image) }, packagedCatalogImages[0]));
       this.setData({ id: product.productId, error: "", originalImageRetained: hiddenHistoricalCatalogImage(product.image) });
-      wx.showToast({ title: "已由服务端保存", icon: "success" });
+      wx.showToast({ title: "商品资料已保存", icon: "success" });
     } catch (error) {
       if (this.owns(epoch, ownerToken)) {
         const candidate = error as { status?: number; code?: string };
@@ -166,7 +166,7 @@ Page({
           // Refresh the authoritative revision before offering either conflict
           // resolution action. The local draft is retained by load("refresh").
           await this.load("refresh");
-          if (this.owns(epoch, ownerToken)) this.setData({ conflict: true, canSaveDraft: false, error: "商品已被其他操作更新。请先选择保留本地草稿或载入远端版本。" });
+          if (this.owns(epoch, ownerToken)) this.setData({ conflict: true, canSaveDraft: false, error: "商品刚被更新过。请先选择保留当前草稿，或加载最新内容。" });
         } else this.setData({ error: problem(error) });
       }
     } finally { if (this.owns(epoch, ownerToken)) this.setData({ saving: false }); }
@@ -180,13 +180,13 @@ Page({
   async qualify(e: WechatMiniprogram.TouchEvent) {
     if (!this.data.canQualify || !this.data.product || this.data.saving) return;
     const status = String(e.currentTarget.dataset.status);
-    if (status === "eligible" && !this.data.qualificationEvidence.trim()) { wx.showToast({ title: "确认可售须填写证据引用", icon: "none" }); return; }
+    if (status === "eligible" && !this.data.qualificationEvidence.trim()) { wx.showToast({ title: "确认可售前，请填写资质凭证。", icon: "none" }); return; }
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     this.setData({ saving: true });
     try {
       const product = await qualifyProduct(this.data.product.productId, { expectedVersion: this.data.product.version, status, reason: this.data.qualificationReason, evidenceRef: this.data.qualificationEvidence });
-      if (this.owns(epoch, ownerToken)) { this.adoptTrustedProduct(product); this.setData({ qualificationReason: "", qualificationEvidence: "" }); wx.showToast({ title: "资质状态已记录", icon: "success" }); }
+      if (this.owns(epoch, ownerToken)) { this.adoptTrustedProduct(product); this.setData({ qualificationReason: "", qualificationEvidence: "" }); wx.showToast({ title: "商品资质已更新", icon: "success" }); }
     } catch (error) { if (this.owns(epoch, ownerToken)) wx.showToast({ title: problem(error), icon: "none" }); }
     finally { if (this.owns(epoch, ownerToken)) this.setData({ saving: false }); }
   },
@@ -217,7 +217,7 @@ Page({
       if (!this.owns(epoch, ownerToken)) return;
       this.setData({ stockDelta: "", stockReason: "" });
       await this.load("trusted-operation");
-      if (this.owns(epoch, ownerToken)) wx.showToast({ title: "库存已记录", icon: "success" });
+      if (this.owns(epoch, ownerToken)) wx.showToast({ title: "库存调整已保存", icon: "success" });
     } catch (error) { if (this.owns(epoch, ownerToken)) wx.showToast({ title: problem(error), icon: "none" }); }
     finally { if (this.owns(epoch, ownerToken)) this.setData({ saving: false }); }
   },

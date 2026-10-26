@@ -130,7 +130,7 @@ Page({
       title:this.data.title,body:this.data.body,aiUsage:this.data.aiUsage,rightsConfirmed:this.data.rightsConfirmed,
       publicConsentConfirmed:this.data.publicConsentConfirmed,
       mediaIds:this.data.files.filter(file=>file.state==="uploaded"&&!file.id.startsWith("local-")).map(file=>file.id),savedAt:Date.now()};
-    try{writeUgcBackup(backup);}catch{this.setData({notice:"本机暂时无法保存未提交的修改，请先点“保存草稿”。"});}
+    try{writeUgcBackup(backup);}catch{this.setData({notice:"本次修改尚未保存，请点击“保存草稿”。"});}
   },
   async loadList() {
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
@@ -188,7 +188,7 @@ Page({
       aiUsage, aiIndex: Math.max(0, options.indexOf(aiUsage)), rightsConfirmed: backup?.rightsConfirmed??draft.rightsConfirmed,
       publicConsentConfirmed: backup?.publicConsentConfirmed??draft.publicConsentConfirmed,
       files: mediaIds.map(id => ({ id, localPath: "", previewUrl: "", size: 0, state: "uploaded" as const, progress: 100, error: "" })),sorting:false,
-      loading: false, error: "", dirty: Boolean(backup), notice: backup?"已恢复本机未提交的修改；图片若未显示，请确认后保存草稿。":
+      loading: false, error: "", dirty: Boolean(backup), notice: backup?"已恢复未提交的修改；若有图片未显示，请检查后保存草稿。":
         draft.state === "rejected" ? "审核已退回。修改后可以再次提交。" : "" });
     void this.loadMediaPreviews(mediaIds,this.data.epoch,token,draft.id);
   },
@@ -241,7 +241,7 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&
       this.data.drafts.some(row=>row.id===id&&row.version===item.version);
-    const decision=await wx.showModal({title:"删除这篇未公开内容？",content:"服务器上的草稿会删除，无法在小程序内恢复。",confirmText:"删除",confirmColor:"#8c354e"});
+    const decision=await wx.showModal({title:"删除这篇未公开内容？",content:"删除后无法在小程序内恢复。",confirmText:"删除",confirmColor:"#8c354e"});
     if(!decision.confirm||!current())return;
     this.setData({busy:true,error:""});
     try{if(!current())return;
@@ -367,7 +367,7 @@ Page({
   },
   async submit() {
     if (this.data.busy || this.data.uploadBusy || !this.data.postId) return;
-    if(!this.data.publicGateEnabled){this.setData({error:"公开投稿暂未开放；你仍可保存私人草稿。"});return;}
+    if(!this.data.publicGateEnabled){this.setData({error:"社区发布暂未开放，仍可保存仅自己可见的草稿。"});return;}
     if (!this.data.body.trim() && !this.data.files.length) { this.setData({ error: "请写一点内容，或添加至少一张图片。" }); return; }
     if (!this.data.rightsConfirmed || !this.data.publicConsentConfirmed) { this.setData({ error: "请先确认内容权利和公开展示范围。" }); return; }
     const draft = await this.saveDraft(); if (!draft) return;
@@ -377,7 +377,7 @@ Page({
       const sent = await request<Draft>({ path: `/v1/me/ugc/posts/${draft.id}/submit`, method: "POST", data: { expectedVersion: draft.version } });
       if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
         this.setData({ state: sent.state, publicVersionActive: sent.publicVersionActive, version: sent.version,
-          notice: sent.publicVersionActive ? "新版已提交审核。通过前，公开页面仍显示上一版。" : "已提交审核。通过并完成发布复核后，其他人才能看到。" });
+          notice: sent.publicVersionActive ? "新版已提交审核。通过前，公开页面仍显示上一版。" : "已提交审核，审核与发布复核完成后公开。" });
     } catch (error) { if (epoch === this.data.epoch) this.setData({ error: message(error, "提交未完成。草稿已保存，可稍后重试。") }); }
     finally { if (epoch === this.data.epoch) this.setData({ busy: false,operation:"idle" }); }
   },
@@ -385,7 +385,7 @@ Page({
     if(this.data.busy||this.data.uploadBusy)return;
     if (this.data.dirty && this.data.postId) {
       const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-      const options=await wx.showActionSheet({itemList:["保存草稿后离开","继续编辑","不保存本机修改并离开"]}).catch(()=>null);
+      const options=await wx.showActionSheet({itemList:["保存草稿后离开","继续编辑","不保存修改，离开"]}).catch(()=>null);
       if(!options||epoch!==this.data.epoch||(token!==getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision()))return;
       if(options.tapIndex===1)return;
       if(options.tapIndex===0){if(!await this.saveDraft())return;}

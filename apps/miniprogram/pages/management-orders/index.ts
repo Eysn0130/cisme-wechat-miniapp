@@ -24,7 +24,7 @@ Page({
   async load(event?:WechatMiniprogram.TouchEvent){
     if(!this.data.visible||!this.data.pageAlive)return;
     if(event?.type)clearAuthenticationRedirectSuppression();this.syncSession();
-    if(!requireMemberAccess()){this.setData({loading:false,refreshing:false,coreReady:false,items:[],nextCursor:null,error:"请先确认身份后查看订单。"});return;}
+    if(!requireMemberAccess()){this.setData({loading:false,refreshing:false,coreReady:false,items:[],nextCursor:null,error:"请先登录，再查看订单。"});return;}
     cancelPageReads(this);const attempt=++this.data.loadAttempt,token=this.lastToken;
     this.setData({loading:this.data.items.length===0,refreshing:this.data.items.length>0,coreReady:false,loadingMore:false,error:""});
     try{
@@ -35,14 +35,14 @@ Page({
       this.setData({items:this.normalize(page.items),nextCursor:page.nextCursor,loading:false,refreshing:false,coreReady:true});
     }catch(error){if(this.current(attempt,token)){
       const denied=[401,403,404].includes((error as {status?:number})?.status??0);
-      this.setData({loading:false,refreshing:false,coreReady:false,items:denied?[]:this.data.items,nextCursor:denied?null:this.data.nextCursor,error:(error as {title?:string})?.title??"订单暂时无法同步，已显示内容仅供参考，请重试。"});}}
+      this.setData({loading:false,refreshing:false,coreReady:false,items:denied?[]:this.data.items,nextCursor:denied?null:this.data.nextCursor,error:(error as {title?:string})?.title??"暂时无法更新订单，请重试后核对最新状态。"});}}
   },
   async loadMore(){const cursor=this.data.nextCursor;if(!this.canOpen()||this.data.loadingMore||!cursor)return;
     const attempt=this.data.loadAttempt,token=this.lastToken;this.setData({loadingMore:true});
     try{const page=await managementOrders(cursor,this);if(!this.current(attempt,token)||this.data.nextCursor!==cursor)return;
       const seen=new Set(this.data.items.map(item=>item.id));this.setData({items:[...this.data.items,...this.normalize(page.items).filter((item: { id: string })=>!seen.has(item.id))],nextCursor:page.nextCursor});
     }catch(error){if(this.current(attempt,token)){
-      if([401,403,404].includes((error as {status?:number})?.status??0))this.setData({items:[],nextCursor:null,coreReady:false,error:"订单访问权限需重新核验，请重试。"});
+      if([401,403,404].includes((error as {status?:number})?.status??0))this.setData({items:[],nextCursor:null,coreReady:false,error:"暂时无法确认订单访问权限，请重试。"});
       else wx.showToast({title:"更多订单暂时无法加载",icon:"none"});}}
     finally{if(this.current(attempt,token))this.setData({loadingMore:false});}
   },

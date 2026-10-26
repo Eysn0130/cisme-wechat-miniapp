@@ -1,7 +1,7 @@
 <view class="chrome-root" style="{{chromeStyle}}">
 <view class="topbar points-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="points-topbar__copy"><text class="topbar__title">我的积分</text><small class="points-topbar__subtitle">每一笔变化都有来源</small></view></view>
 <view class="page page--stack points-page">
-  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载积分账…</view>
+  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载积分…</view>
   <view wx:if="{{points}}" class="points-hero">
     <text class="points-hero__eyebrow">CISME POINTS</text>
     <strong class="points-hero__balance {{balanceClass}}">{{points.projection.available}}</strong>
@@ -9,10 +9,10 @@
     <view class="points-divider"></view>
     <view class="points-summary">
       <view class="points-summary__stat"><strong class="points-summary__value">{{points.projection.frozen}}</strong><small class="points-summary__label">冻结中</small></view>
-      <view class="points-summary__stat"><strong class="points-summary__value">{{points.projection.debt}}</strong><small class="points-summary__label">待冲抵欠分</small></view>
-      <view class="points-summary__stat"><strong class="points-summary__value">{{points.entries.length}}</strong><small class="points-summary__label">账本笔数</small></view>
+      <view class="points-summary__stat"><strong class="points-summary__value">{{points.projection.debt}}</strong><small class="points-summary__label">欠分</small></view>
+      <view class="points-summary__stat"><strong class="points-summary__value">{{points.entries.length}}</strong><small class="points-summary__label">变动记录</small></view>
     </view>
-    <view class="points-profile">{{points.rulesEnabled ? '积分规则已启用 · 购买服务单独开放' : '积分奖励尚未开放 · 当前不新增积分'}}</view>
+    <view class="points-profile">{{points.rulesEnabled ? '奖励与使用以活动规则为准' : '积分奖励暂未开放'}}</view>
     <button class="points-shop {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}">浏览护理商品</button>
   </view>
 
@@ -27,6 +27,6 @@
     </view>
     <view wx:if="{{!points.entries.length}}" class="glass ledger-empty"><image class="ledger-empty__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><view class="ledger-empty__title">还没有积分记录</view><text class="ledger-empty__meta">产生积分变动后，记录会显示在这里。</text></view>
   </view>
-  <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action {{loading ? 'text-button--disabled' : ''}}" bindtap="load" disabled="{{loading}}">重新加载积分账本</button></view>
+  <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action {{loading ? 'text-button--disabled' : ''}}" bindtap="load" disabled="{{loading}}">重新加载</button></view>
 </view>
 </view>

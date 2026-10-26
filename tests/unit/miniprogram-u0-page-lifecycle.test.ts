@@ -132,7 +132,7 @@ describe("U0 native page lifecycle regressions", () => {
 
     await page.establish();
     expect(page.data).toMatchObject({ formalMode: true, loading: false,
-      error: "当前环境没有开放资金核对。", errorRetryable: false });
+      error: "资金核对暂未开放。", errorRetryable: false });
 
     requestMock.mockRejectedValueOnce(new Error("offline"));
     await page.establish();
@@ -460,7 +460,7 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/support/index");
     const page = mountedPage(capturedPage!);
 
-    expect(page.headerPatch(null, page.data.presence)).toMatchObject({ statusLabel: "随时为你提供帮助", statusTone: "neutral" });
+    expect(page.headerPatch(null, page.data.presence)).toMatchObject({ statusLabel: "欢迎留言，我们会尽快回复", statusTone: "neutral" });
   });
 
   it("allows an image or owned order to reopen a resolved member conversation", async () => {
@@ -584,7 +584,7 @@ describe("U0 native page lifecycle regressions", () => {
     expect(abort).toHaveBeenCalledTimes(1);
     expect(page.data).toMatchObject({ uploadBusy: false, input: "正文继续保留" });
     expect(page.data.selectedImage).toMatchObject({ localPath: "/tmp/member-photo.jpg", status: "failed" });
-    expect(page.data.error).toContain("页面离开时上传已中断");
+    expect(page.data.error).toContain("刚才的图片上传已中断，图片和文字都已保留。");
   });
 
   it("publishes operator offline and stops typing when the assigned chat hides", async () => {
@@ -655,7 +655,7 @@ describe("U0 native page lifecycle regressions", () => {
 
     expect(page.data.input).toBe("我来帮你核对");
     expect(page.data.pendingMessage).toMatchObject({ body: "我来帮你核对", deliveryLabel: "发送失败" });
-    expect(page.data.error).toContain("服务端确认");
+    expect(page.data.error).toContain("回复是否发送成功还未确认，文字已保留。");
     expect(page.data.busy).toBe(false);
   });
 
@@ -703,7 +703,7 @@ describe("U0 native page lifecycle regressions", () => {
     expect(page.data.product.version).toBe(2);
     expect(page.data.name).toBe("本地未保存名称");
     expect(page.data).toMatchObject({ dirty: true, conflict: true, canSaveDraft: false, saving: false });
-    expect(page.data.error).toContain("商品已被其他操作更新");
+    expect(page.data.error).toContain("商品刚被更新过。请先选择保留当前草稿，或加载最新内容。");
   });
 
   it("drops a product save response after the editor changed sessions", async () => {

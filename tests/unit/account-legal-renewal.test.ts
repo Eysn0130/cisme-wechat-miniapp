@@ -59,7 +59,7 @@ describe("explicit current-legal renewal with an existing session",()=>{
  });
  it("explains an in-flight explicit confirmation before leaving and ignores its late response",async()=>{
   await mount();page.data.agreementAccepted=true;const pending=deferred();mocks.accept.mockReturnValueOnce(pending.promise);const one=page.login();wxMock.showModal.mockResolvedValueOnce({confirm:true});await page.back();
-  expect(wxMock.showModal).toHaveBeenCalledWith(expect.objectContaining({title:"协议确认请求已发送"}));pending.resolve();await one;expect(mocks.navigate).not.toHaveBeenCalled();expect(wxMock.navigateBack).toHaveBeenCalledOnce();expect(mocks.token).toBe("existing-session");
+  expect(wxMock.showModal).toHaveBeenCalledWith(expect.objectContaining({title:"协议正在确认"}));pending.resolve();await one;expect(mocks.navigate).not.toHaveBeenCalled();expect(wxMock.navigateBack).toHaveBeenCalledOnce();expect(mocks.token).toBe("existing-session");
  });
  it("does not navigate from a hidden account page when a confirmation response arrives",async()=>{
   await mount();page.data.agreementAccepted=true;const pending=deferred();mocks.accept.mockReturnValueOnce(pending.promise);const one=page.login();page.onHide();pending.resolve();await one;

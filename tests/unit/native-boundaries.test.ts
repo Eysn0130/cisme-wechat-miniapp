@@ -343,7 +343,7 @@ describe("native mini program boundary", () => {
     expect(account).toMatch(/\.account-agreement__label\{[^}]*min-height:44px[;}]/);
     expect(account).toMatch(/\.account-hero\{[^}]*height:100vw;/);
     expect(account).toMatch(/@media \(max-height:700px\)[\s\S]*\.account-phone-note\{margin-top:20rpx\}/);
-    expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxml"), "utf8")).toContain("<text class=\"care-cta__label\">{{working ? '正在保存…' : mutationState === 'unknown' ? '重试原保存' : view.action}}</text>");
+    expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxml"), "utf8")).toContain("<text class=\"care-cta__label\">{{working ? '正在提交…' : mutationState === 'unknown' ? '重试操作' : view.action}}</text>");
     expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxss"), "utf8")).toMatch(/\.care-cta\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s);
     expect(records).toContain(".cycle-button--single { grid-column:1/-1; width:100%; }");
     for (const styles of [task, submit, product]) {

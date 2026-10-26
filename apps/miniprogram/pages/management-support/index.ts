@@ -24,7 +24,7 @@ Page({
     if([401,403,404].includes((error as {status?:number})?.status??0)){
       this.stopPolling();this.setData({items:[],nextCursor:null,coreReady:false,error:"客服访问权限需重新核验，请重试。"});
     }else if(pagination)wx.showToast({title:"更多会话暂时无法加载，请重试",icon:"none"});
-    else{this.stopPolling();this.setData({coreReady:false,error:"客服队列暂时无法同步，已显示内容仅供参考，请重试。"});}
+    else{this.stopPolling();this.setData({coreReady:false,error:"暂时无法更新客服列表，请重试后核对最新消息。"});}
   },
   async load(silent=false){
     if(!this.data.pageAlive||!this.data.visible)return;

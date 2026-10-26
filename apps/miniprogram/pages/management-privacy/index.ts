@@ -82,14 +82,14 @@ Page({
       await request({path:`/v1/management/privacy-requests/${encodeURIComponent(row.id)}/profile-correction`,method:"POST",
         data:{expectedVersion:row.version,expectedProfileVersion:row.profileVersion}});
       if(!this.current(epoch,token))return;
-      this.setData({selected:null,response:"",notice:"资料已更正并读回确认；用户可在受理记录查看结果。"});await this.load();
+      this.setData({selected:null,response:"",notice:"资料已更正并核对，用户可在申请记录中查看结果。"});await this.load();
     }catch(error){
       if(!this.current(epoch,token))return;
       const status=(error as {status?:number})?.status;
       if(status===401||status===403)this.invalidate("权限已失效，更正结果未获确认。请重新核验。");
       else if(status===409){this.setData({busy:false});await this.load();if(this.visible&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({actionError:(error as {title?:string}).title||"请求或资料已变化，请刷新后重试。"});}
       else if(status===422||status===423)this.setData({actionError:(error as {title?:string}).title||"当前资料不能更正，请核对请求。"});
-      else this.setData({actionError:"更正结果未确认，请刷新受理记录和资料版本后核对；不要直接重复提交。",coreReady:false});
+      else this.setData({actionError:"更正结果还未确认，请刷新申请记录和最新资料后核对，不要重复提交。",coreReady:false});
     }finally{if(this.visible&&epoch===this.epoch)this.setData({busy:false});}
   },
  retry(){if(!this.data.busy)void this.load();},

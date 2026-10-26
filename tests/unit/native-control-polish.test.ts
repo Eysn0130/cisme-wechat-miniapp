@@ -42,7 +42,7 @@ describe("targeted native control polish contracts (not visual acceptance)",()=>
   });
   it("shortens commission explanations without hiding financial boundaries",()=>{
     const template=read("commission","wxml");
-    for(const copy of ["仅供隔离测试，不支持真实提现","佣金不是积分","退款争议可能减少下单可用额","与现金佣金、积分分账","购物下单不重复计佣","不要新建重复申请"])assert.ok(template.includes(copy));
+    for(const copy of ["测试记录，不涉及真实结算或提现。","金额随订单、退款和结算结果更新，与积分分别记录。","退款争议可能减少下单可用额","购物权益与佣金、积分分别记录","使用时不重复计算佣金","不要重复申请"])assert.ok(template.includes(copy));
     assert.doesNotMatch(template,/状态由已核验支付、退款、履约和结算事实重建/);
     for(const condition of ["isolatedCredit&&creditFormVisible","isolatedTransfer&&formVisible","busy||!coreReady"])assert.ok(template.includes(condition));
   });

@@ -23,7 +23,7 @@ Page({
     this.lastSessionToken=getApp<IAppOption>().globalData.sessionToken;
     this.setData({signedIn:Boolean(this.lastSessionToken)});
     const id = String(query.id || ""); this.setData({ postId: id });
-    if (id) void this.load(); else this.setData({ loading: false, error: "内容编号缺失，请返回社区重试。" });
+    if (id) void this.load(); else this.setData({ loading: false, error: "内容链接无效，请返回社区重试。" });
   },
   onShow() {
     this.readVisible=true;this.setData({busy:false,commentsLoadingMore:false});
@@ -98,7 +98,7 @@ Page({
         data: { body,...(replyTo?{parentId:replyTo.parentId,replyToId:replyTo.id}:{}) } });
       if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
         {this.setData({ ...(this.data.comment.trim()===body?{comment:"",replyTo:null}:{}), commentKey:key(),commentAttempted:false,
-          notice: created.state==="pending_review"?"评论已提交，审核中；只有你能在此查看状态。":"评论状态已更新。" });
+          notice: created.state==="pending_review"?"评论已提交，审核通过后公开；当前仅自己可见。":"评论状态已更新。" });
           void this.loadMyComments(epoch,token,this.data.postId);}
     } catch (error) { if (epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision())
       this.setData({ error: titleOf(error, "评论未提交，请重试。") }); }

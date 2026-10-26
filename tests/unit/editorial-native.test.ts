@@ -94,7 +94,7 @@ describe("published editorial native contracts",()=>{
  it("keeps a failed licensed image honest and clears the warning only on a fresh content read",async()=>{
   mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();
   page.mediaFailed({currentTarget:{dataset:{src:"https://foreign.invalid/old.jpg"}}});expect(page.data.mediaError).toBe("");
-  page.mediaFailed({currentTarget:{dataset:{src:"https://synthetic.invalid"+mediaPath}}});expect(page.data.mediaError).toContain("图片暂未加载");expect(page.data.item.id).toBe(articleId);
+  page.mediaFailed({currentTarget:{dataset:{src:"https://synthetic.invalid"+mediaPath}}});expect(page.data.mediaError).toBe("图片加载失败，请重新加载。");expect(page.data.item.id).toBe(articleId);
   mocks.request.mockResolvedValueOnce(article());await page.load();expect(page.data.mediaError).toBe("");
  });
  it("shows published featured content while ordinary UGC and preview remain closed",async()=>{

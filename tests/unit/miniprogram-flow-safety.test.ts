@@ -41,8 +41,8 @@ describe("mini program submission flow safety", () => {
     expect(await source("apps/miniprogram/pages/shop/index.ts")).toContain('wx.switchTab({ url: "/pages/community/index" })');
     expect(progress).toContain("statusTitle: view.title, statusSubtitle: view.subtitle, timeline: progressTimeline(status)");
     expect(progress).toContain('reviewState = status === "needs_changes" ? "待补件" : status === "rejected" ? "未通过"');
-    expect(progressView).toContain("返回投稿来源");
-    expect(progressView).toContain("返回社区首页");
+    expect(progressView).toContain("返回活动");
+    expect(progressView).toContain("返回社区");
   });
 
   it("keeps authentication, navigation and draft exits recoverable", async () => {
@@ -72,8 +72,8 @@ describe("mini program submission flow safety", () => {
     expect(account).not.toContain('version: "2026-08-14"');
     expect(account).toContain("if (!this.data.pageAlive || this.data.authAttempt !== attempt) return");
     expect(account).toContain("void attributePendingShare()");
-    expect(task).toContain("投稿页面暂未打开，请点击“继续完成投稿”再次进入");
-    expect(task).toContain("任务正在领取并生成唯一投稿编号");
+    expect(task).toContain("投稿页面未打开，请点击“继续完成投稿”。");
+    expect(task).toContain("正在领取任务，请确认结果后再离开。");
     expect(task).toContain("if (this.data.working) { wx.showToast");
     expect(task).toContain("if (!this.data.pageAlive) return");
     expect(taskView).toContain('disabled="{{working}}"');
@@ -83,10 +83,10 @@ describe("mini program submission flow safety", () => {
     expect(submit).toContain("this.data.working || this.data.uploadingKind");
     expect(submit).toContain("motionDuration(200)");
     expect(layout).toMatch(/export function motionDuration\(_duration: number\): number \{[\s\S]*?return 0;/);
-    expect(submit).toContain("审核进度页暂时无法打开。投稿权威状态不会改变");
+    expect(submit).toContain("审核进度页暂时无法打开，请再次点击“查看审核进度”。");
     expect(submitView).toContain('disabled="{{working || !!uploadingKind || savingDraft || resolvingDraftConflict || navigatingToProgress || confirmingExit}}"');
     expect(submit).toContain("confirmingExit: false");
-    expect(submit).toContain("草稿离开确认窗口暂时无法打开");
+    expect(submit).toContain("暂时无法确认离开，本页未保存的修改仍保留。");
     expect(api).toContain("rememberSubmissionReturn");
     expect(api).toContain("context?.submissionId !== submissionId");
   });
@@ -115,9 +115,9 @@ describe("mini program submission flow safety", () => {
     expect(accountView).toContain('disabled="{{loading || leaving || !legalTextsReady}}"');
     expect(accountView).toContain("暂时无法登录");
     expect(accountView).toContain("协议暂时无法加载，请重试");
-    expect(accountView).toContain("协议加载异常，请稍后重试");
+    expect(accountView).toContain("协议信息暂不可用，请稍后重试");
     expect(accountView).toContain("重新加载协议");
-    expect(accountView).toContain("当前协议尚未发布，请稍后重试");
+    expect(accountView).toContain("协议暂未发布，请稍后重试");
   });
 
   it("keeps public entry APIs public while preventing no-session protected requests", async () => {
@@ -202,8 +202,9 @@ describe("mini program submission flow safety", () => {
     const productView = await source("apps/miniprogram/pages/product/index.wxml");
 
     expect(account).toContain("if (this.data.loading && (this.data.identityCommitStarted||this.data.legalAcceptanceStarted))");
-    expect(account).toContain("身份请求已发送");
-    expect(account).toContain("离开页面不会撤回已提交的身份确认");
+    expect(account).toContain("登录仍在处理中");
+    expect(account).toContain("登录结果尚未确认。返回后请先查看账号状态。");
+    expect(account).toContain("登录仍在处理中。前往社区后，请重新确认登录状态。");
     expect(accountView).toContain('disabled="{{leavePromptOpen || leaving || avatarBusy}}"');
     expect(account).toContain('confirmIdentityLeave(destination: "source" | "community")');
     expect(account).toContain('wx.navigateBack({ delta: 1');
@@ -212,7 +213,7 @@ describe("mini program submission flow safety", () => {
     expect(submit).toContain("this.setData({ uploadAttempt, uploadingKind: kind, lastUploadKind: kind, canSubmit: false");
     expect(submit).toMatch(/if \(!this\.data\.mediaUploadsEnabled\)[\s\S]*?return;[\s\S]*?if \(this\.data\.draftDirty\) await this\.saveDraft\(\)/);
     expect(submitView).toContain('disabled="{{!mediaUploadsEnabled || !editable || working || !!uploadingKind || savingDraft}}"');
-    expect(submitView).toContain("本页不会请求相册或相机权限，也不会上传图片");
+    expect(submitView).toContain("图片上传暂未开放，请稍后再来。");
     expect(submit).toContain("this.setData({ working: true, canSubmit: false");
     expect(submitView).toContain('data-kind="{{lastUploadKind}}"');
     expect(submitView).toContain('disabled="{{working || !!uploadingKind || savingDraft}}"');
@@ -221,7 +222,7 @@ describe("mini program submission flow safety", () => {
     expect(submit).toContain('["SUBMISSION_LOCKED", "SUBMISSION_STATE_INVALID", "SUBMISSION_NOT_FOUND"]');
     expect(submit).toContain('working: true, canSubmit: false, draftRecovery: "", uploadRecovery: "", submitRecovery: ""');
     expect(submit).toContain('uploadingKind: kind, lastUploadKind: kind, canSubmit: false, draftRecovery: "", uploadRecovery: "", submitRecovery: ""');
-    expect(submitView).toContain("重新加载权威投稿状态");
+    expect(submitView).toContain("刷新投稿状态");
 
     expect(task).toContain("continuationSubmissionId");
     expect(task).toContain("this.data.task?.submission_id || this.data.continuationSubmissionId");
@@ -241,7 +242,7 @@ describe("mini program submission flow safety", () => {
     expect(progress).toContain('"APPEAL_STATE_INVALID"');
     expect(progress).toContain("if (this.data.working || this.data.navigatingAway || this.data.appealBlocked || !this.data.appealValid) return");
     expect(progressView).toContain('disabled="{{!appealValid || working || appealBlocked}}"');
-    expect(progressView).toContain("再次打开补件页面");
+    expect(progressView).toContain("再次打开");
     expect(tab).toContain("页面切换失败，请重试");
     expect(tabView).toContain('disabled="{{switching || externalBusy || chromeHidden}}"');
     expect(tab).toContain("this.data.switching || this.data.externalBusy");
@@ -284,13 +285,13 @@ describe("mini program submission flow safety", () => {
     expect(settings).toContain('sessionStatus: "unknown"');
     expect(settings).toContain('problem.status === 401 || problem.code === "MEMBER_NOT_FOUND"');
     expect(settings).toContain("this.data.revokeAttempt !== attempt");
-    expect(settings).toContain("用途许可撤回正在确认");
+    expect(settings).toContain("正在确认撤回结果");
     expect(settings).toContain("confirmingLogout: false");
     expect(settings).toContain('title: "确认退出当前账号？"');
     expect(settings).toContain("this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut");
     expect(settings).toMatch(/logout\(\) \{[\s\S]*?this\.data\.loadAttempt \+= 1;[\s\S]*?setSessionToken\(""\);/);
     expect(settings).toContain('loading: false, consents: [], sessionStatus: "invalid"');
-    expect(settings).toContain("设置快照暂时无法加载，请检查网络后重试。");
+    expect(settings).toContain("设置暂时无法加载，请检查网络后重试。");
     expect(settingsView).toContain('wx:if="{{error}}"');
     expect(settingsView).toContain('disabled="{{!!workingConsentId || confirmingLogout || loggingOut || profileBusy || avatarBusy || phoneBusy || addressBusy || leavePromptOpen}}"');
   });
@@ -323,12 +324,12 @@ describe("mini program submission flow safety", () => {
     expect(taskEntries).toContain("task.claimable === true || Boolean(task.submission_id)");
     expect(communityView).toContain("活动暂未加载，请重试。");
     expect(communityView).toContain('bindtap="loadTasks"');
-    expect(profileView).toContain("同步失败 · 点此重试");
+    expect(profileView).toContain("未能加载 · 点此重试");
     expect(profileView).toContain('wx:if="{{tasksError && member}}"');
     expect(profileView).not.toContain("微信支付与真实配送尚未开放");
     expect(shopView).toContain("全部商品");
     expect(shopView).toContain("catalog && catalog.items.length && !purchaseAvailable");
-    expect(shopView).toContain("商品可浏览，暂不能下单。");
+    expect(shopView).toContain("可先了解商品，下单暂未开放。");
     expect(editorial).toContain("export const editorialStories: EditorialStory[] = []");
     expect(editorial).not.toContain("内容授权尚待确认");
   });
@@ -365,7 +366,7 @@ describe("mini program submission flow safety", () => {
     expect(recordsView).toContain('class="records-operation-status" aria-live="polite"');
     expect(recordsView).toContain('id="records-error-summary"');
     expect(settingsView).toContain('class="settings-operation-status" aria-live="polite"');
-    expect(progress).toContain("申诉正在提交并确认权威状态");
+    expect(progress).toContain("正在提交申诉，请确认结果后再离开。");
     expect(progress).toContain("if (this.data.working || this.data.navigatingToRevision || this.data.navigatingAway) { wx.showToast");
     expect(progress).toContain("if (this.data.pageAlive) await this.load()");
     expect(progress).toContain("onUnload() { this.data.pageAlive = false");
@@ -442,8 +443,8 @@ describe("mini program submission flow safety", () => {
     expect(records.match(/\{\{!writeReady \|\| working \|\| confirmingCycleAction \? 'control--disabled' : ''\}\}/g)).toHaveLength(3);
     expect(records.match(/\{\{working \|\| confirmingCycleAction \? 'control--disabled' : ''\}\}/g)).toHaveLength(3);
     expect(progressLogic).toContain("未找到这份投稿记录");
-    expect(progress).toContain("返回投稿来源");
-    expect(progress).toContain("重新加载审核进度");
+    expect(progress).toContain("返回活动");
+    expect(progress).toContain("重新加载");
     expect(progress).toContain("inline-action-error");
   });
 
@@ -506,7 +507,7 @@ describe("mini program submission flow safety", () => {
     expect(account).toContain('selector: "#account-error-summary"');
     expect(accountView).toContain('id="account-error-summary"');
     expect(progress).toContain('errorAction: "appeal"');
-    expect(progressView).toContain("刷新审核状态后重试申诉");
+    expect(progressView).toContain("刷新审核进度");
     expect(settingsView).toContain("刷新许可状态后重新选择撤回");
   });
 });

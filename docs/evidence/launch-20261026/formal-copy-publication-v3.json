@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-formal-product-copy-publication",
+  "observedAtUtc": "2026-10-26T12:37:17.658841+00:00",
+  "origin": "https://staging-api.cisme.cn",
+  "runtimeSourceHead": "0d3ff1c8d2cb6e2f53233e2cf6ca1efc62280527",
+  "nativePackageSourceSha256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f",
+  "activeLegalVersion": "2026-10-26-v3",
+  "legalCandidateSha256": "77578496b075166c3d47cc33b1a23327f41e0e2138a4e9713cf002d62e98e35f",
+  "articleSourceSha256": "7ebd3f2f339e0732df4d0849ddfcc0b38d6769e4d147cd1613afec9cf2cbe95a",
+  "articlesUpdated": 6,
+  "articleVersion": 2,
+  "originalIdsAuthorMediaRightsPreserved": true,
+  "publicRequestsPassed": 30,
+  "memberConsentCreated": false,
+  "memberAuthenticatedInteractionsTested": false,
+  "newPermissionsGranted": false,
+  "newMemberCreated": false,
+  "engagementCreatedByPublisher": false,
+  "productionDataModified": false,
+  "businessGatesUnchanged": true,
+  "files": [
+    {
+      "file": "copy-v3-runner-install.json",
+      "sha256": "64f976c15c934039af006b2d36e2dc38a2c3e23bda9b064f3eb8277ac069c289",
+      "bytes": 38
+    },
+    {
+      "file": "copy-v3-actual-preflight.json",
+      "sha256": "7baa75540d4e5051a3b2579f47d96b69b0a18fd14c4be247200c98c357d99c79",
+      "bytes": 48
+    },
+    {
+      "file": "copy-v3-actual-prepare.json",
+      "sha256": "d87e3fafcec7febf938eaa22f5c87921272c6dc9010dd74c9934754db1f75f98",
+      "bytes": 78
+    },
+    {
+      "file": "copy-v3-actual-legal-publish.json",
+      "sha256": "0d327a4231a8fb7ac071d24dd11db963525234206e5700e5d0aa93b59fa0b355",
+      "bytes": 68
+    },
+    {
+      "file": "copy-v3-actual-six-publish.json",
+      "sha256": "cab618b5e29599499cec4934fc837abaabac07a9e97aa75004ab79f8754e62ac",
+      "bytes": 356
+    },
+    {
+      "file": "trial-copy-revision-independent-review.json",
+      "sha256": "37e20b26d0f8499ebc43d1e90cd9232ea8fc41d047e43f02b52fb3cd9a97381c",
+      "bytes": 1741
+    },
+    {
+      "file": "editorial-public-readback-product-v3-20261026T123506127692Z.json",
+      "sha256": "370c19627e6e3ee27c8681975b1b518dfbe09d8e921c2477554b0ae06c9c5dbe",
+      "bytes": 7452
+    }
+  ]
+}

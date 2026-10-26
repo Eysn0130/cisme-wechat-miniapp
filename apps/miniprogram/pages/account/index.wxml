@@ -13,7 +13,7 @@
         <view class="account-hero__description" wx:if="{{renewalMode}}"><text>确认新版条款后，继续点赞、收藏与关注。</text><text>暂不确认，仍可阅读公开精选。</text></view>
         <view class="account-hero__description" wx:elif="{{loginStage === 'login'}}">
           <text>登录后查看护理记录与订单。</text>
-          <text>首次登录将自动创建账号。</text>
+          <text>首次登录即创建账号。</text>
         </view>
         <view class="account-hero__description" wx:else>
           <text>登录成功。可选择微信头像，</text>
@@ -35,7 +35,7 @@
           <button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openTerms" disabled="{{loading || leaving}}" aria-label="查看用户协议">《用户协议》</button>
           <button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openPrivacy" disabled="{{loading || leaving}}" aria-label="查看隐私保护指引">《隐私保护指引》</button>
         </view>
-        <text class="account-row__meta {{legalLoadError ? 'account-legal-status--error' : ''}}" aria-live="polite">{{legalAcceptanceStarted ? '协议确认请求已提交，本次同意在结果返回前不可更改' : identityCommitStarted ? '身份请求已提交，本次同意在结果返回前不可更改' : localLegalFixture ? '本地测试协议，仅用于开发验证' : legalTextsReady ? '公开展示与营销授权另行选择' : legalLoading ? '正在读取当前协议…' : legalLoadError === 'invalid' ? '协议加载异常，请稍后重试' : legalLoadError === 'unreachable' ? '协议暂时无法加载，请重试' : '当前协议尚未发布，请稍后重试'}}</text>
+        <text wx:if="{{legalAcceptanceStarted || identityCommitStarted || localLegalFixture || !legalTextsReady}}" class="account-row__meta {{legalLoadError ? 'account-legal-status--error' : ''}}" aria-live="polite">{{legalAcceptanceStarted ? '正在确认协议，请稍候。' : identityCommitStarted ? '登录信息已提交，正在确认。' : localLegalFixture ? '本地测试协议，仅用于开发验证' : legalTextsReady ? '' : legalLoading ? '正在加载协议…' : legalLoadError === 'invalid' ? '协议信息暂不可用，请稍后重试' : legalLoadError === 'unreachable' ? '协议暂时无法加载，请重试' : '协议暂未发布，请稍后重试'}}</text>
         <view wx:if="{{crossBorderRequired && !renewalMode}}" class="account-cross-border">
           <checkbox-group class="account-agreement__selector" bindchange="toggleCrossBorder"><label class="account-agreement__label"><checkbox class="account-checkbox" value="accepted" checked="{{crossBorderAccepted}}" disabled="{{loading || leaving || !legalTextsReady}}" color="#56306f"/><text class="account-row__title">同意个人信息境外存储</text></label></checkbox-group>
           <button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openCrossBorder" disabled="{{loading || leaving}}">查看境外存储告知</button>
@@ -48,10 +48,10 @@
       <view wx:if="{{notice}}" class="account-notice" aria-live="polite">{{notice}}</view>
       <canvas type="2d" id="member-avatar-canvas" class="account-avatar-canvas" aria-hidden="true"/>
       <view wx:if="{{error}}" id="account-error-summary" class="state state--error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text></view>
-      <button wx:if="{{accountHelpAvailable}}" class="text-button account-help {{accountHelpBusy ? 'text-button--disabled' : ''}}" bindtap="openAccountHelp" loading="{{accountHelpBusy}}" disabled="{{accountHelpBusy}}">继续处理历史隐私请求</button>
+      <button wx:if="{{accountHelpAvailable}}" class="text-button account-help {{accountHelpBusy ? 'text-button--disabled' : ''}}" bindtap="openAccountHelp" loading="{{accountHelpBusy}}" disabled="{{accountHelpBusy}}">查看历史隐私请求</button>
       <button wx:if="{{error && loginStage === 'login'}}" class="text-button account-help" open-type="contact">{{renewalMode ? '无法确认？联系微信客服' : '无法登录？联系微信客服'}}</button>
       <button class="primary action-main account-login {{loading || leaving || avatarBusy || ((!pendingDestination || renewalMode) && !renewalComplete && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted && !renewalMode))) ? 'primary--disabled' : ''}}" hover-class="action-pressed" loading="{{loading || avatarBusy}}" disabled="{{loading || leaving || avatarBusy || ((!pendingDestination || renewalMode) && !renewalComplete && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted && !renewalMode)))}}" open-type="{{renewalMode ? '' : loginStage === 'avatar' ? 'chooseAvatar' : phoneBindingEnabled && !pendingDestination ? 'getPhoneNumber' : ''}}" bindtap="loginTap" bindgetphonenumber="loginWithPhone" bindchooseavatar="chooseLoginAvatar"><text class="action-label">{{renewalMode ? renewalComplete ? '返回原文' : loading ? '正在确认…' : '确认并返回' : loginStage === 'avatar' ? '使用微信头像并继续' : pendingDestination ? '继续使用' : loading ? '正在登录…' : legalTextsReady ? localLegalFixture ? '本地测试登录' : '微信登录' : legalLoading ? '正在读取协议…' : '暂时无法登录'}}</text></button>
-      <button class="text-button action-text account-browse {{leavePromptOpen || leaving || avatarBusy ? 'text-button--disabled' : ''}}" hover-class="action-pressed" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving || avatarBusy}}"><text class="action-label">{{renewalMode ? legalAcceptanceStarted ? '停止等待，返回阅读' : '暂不确认，返回阅读' : loginStage === 'avatar' ? '稍后设置，继续使用' : identityCommitStarted ? '身份请求已发送，仍然离开' : loading ? '停止等待，浏览公开社区' : '暂不登录，浏览公开社区'}}</text></button>
+      <button class="text-button action-text account-browse {{leavePromptOpen || leaving || avatarBusy ? 'text-button--disabled' : ''}}" hover-class="action-pressed" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving || avatarBusy}}"><text class="action-label">{{renewalMode ? legalAcceptanceStarted ? '停止等待，返回阅读' : '暂不确认，返回阅读' : loginStage === 'avatar' ? '稍后设置，继续使用' : identityCommitStarted ? '登录处理中，前往社区' : loading ? '停止等待，浏览公开社区' : '暂不登录，浏览公开社区'}}</text></button>
     </view>
   </view>
 </view>

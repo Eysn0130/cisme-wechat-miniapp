@@ -137,7 +137,7 @@ Page({
       error: "发送结果尚未确认，内容已保留，请重试。", errorAction: ""
     });
     const interruptedUpload = this.data.uploadBusy && this.data.selectedImage
-      ? { ...this.data.selectedImage, status: "failed" as const, error: "页面离开时上传已中断，图片和正文仍保留。" }
+      ? { ...this.data.selectedImage, status: "failed" as const, error: "刚才的图片上传已中断，图片和文字都已保留。" }
       : null;
     this.data.visible = false;
     this.lifecycleEpoch += 1;
@@ -195,7 +195,7 @@ Page({
     return presentSupportMessages(messages, { ownSenderType: "user", counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName });
   },
   headerPatch(conversation: Conversation | null, presence: Presence) {
-    if (!conversation) return { statusLabel: "随时为你提供帮助", statusTone: "neutral", presence };
+    if (!conversation) return { statusLabel: "欢迎留言，我们会尽快回复", statusTone: "neutral", presence };
     const header = supportHeaderPresentation({ status: conversation?.status ?? "waiting_human", agentDisplayName: presence.agentDisplayName, operatorOnline: presence.operatorOnline });
     return { statusLabel: header.label, statusTone: header.tone, presence };
   },
@@ -607,7 +607,7 @@ Page({
     try {
       const conversation = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: {}, cacheTags: ["support"] });
       if (this.owns(epoch, ownerToken)) this.setData({ conversation, ...this.headerPatch(conversation, this.data.presence) });
-    } catch { if (this.owns(epoch, ownerToken)) this.setData({ error: "暂时无法提交人工请求，请重试。", errorAction: "handoff" }); }
+    } catch { if (this.owns(epoch, ownerToken)) this.setData({ error: "暂时无法联系人工客服，请重试。", errorAction: "handoff" }); }
     finally { if (this.owns(epoch, ownerToken)) this.setData({ handoffBusy: false }); }
   },
   retryHandoff() { void this.requestHuman(); },

@@ -1,0 +1,12 @@
+{
+  "field": "isolatedApiSourceHead",
+  "line": 8,
+  "valueFormatIsGitCommitSha": true,
+  "valueResolvesToExactCommit": true,
+  "valueCommitEqualsReviewedTrialSource": true,
+  "resolvedTreeEqualsReviewedTrialTree": true,
+  "commitContainedInPublishedOriginMain": true,
+  "classification": "public_git_commit_identifier_false_positive",
+  "containsAuthenticationSecret": false,
+  "matchedValuePrinted": false
+}

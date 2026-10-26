@@ -11,7 +11,7 @@
         <button wx:if="{{!author.isMine && (!editorialSource || articleContextId)}}" class="author-follow {{busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
       </view>
       <text class="author-section">公开故事</text>
-      <view wx:if="{{!items.length && !loading}}" class="state">这位作者目前没有可查看的故事。</view>
+      <view wx:if="{{!items.length && !loading}}" class="state">这位作者还没有公开的故事。</view>
       <button wx:for="{{items}}" wx:key="id" class="author-story {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}">
         <image wx:if="{{item.cover}}" class="author-story__image" src="{{item.cover}}" mode="aspectFill" lazy-load="{{true}}"/>
         <view class="author-story__copy"><text class="author-story__title">{{item.title}}</text><text wx:if="{{item.excerpt}}" class="author-story__excerpt">{{item.excerpt}}</text><text class="author-story__meta">{{item.likeCount}} 赞</text></view>

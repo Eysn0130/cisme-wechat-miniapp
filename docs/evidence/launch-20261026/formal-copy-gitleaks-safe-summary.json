@@ -1,0 +1,20 @@
+{
+  "scanner": "gitleaks 8.30.1",
+  "sourceHead": "c272b6e6be4f44cff1fc7a31086bd7cf65e27bad",
+  "startedAt": "2026-10-26T12:42:22.556553+00:00",
+  "finishedAt": "2026-10-26T12:42:24.733400+00:00",
+  "exitCode": 1,
+  "findings": [
+    {
+      "RuleID": "generic-api-key",
+      "File": "docs/evidence/launch-20261026/application-editorial-0d3ff1c8d2cb-summary.json",
+      "StartLine": 8,
+      "EndLine": 8,
+      "Fingerprint": "c272b6e6be4f44cff1fc7a31086bd7cf65e27bad:docs/evidence/launch-20261026/application-editorial-0d3ff1c8d2cb-summary.json:generic-api-key:8",
+      "Commit": "c272b6e6be4f44cff1fc7a31086bd7cf65e27bad"
+    }
+  ],
+  "findingCount": 1,
+  "redactPercent": 100,
+  "rawMatchesPrinted": false
+}

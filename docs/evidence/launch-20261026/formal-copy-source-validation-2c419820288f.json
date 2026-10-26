@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "kind": "formal-copy-source-validation-not-full-native-or-public-release-acceptance",
+  "observedAtUtc": "2026-10-26T12:29:20.553874+00:00",
+  "nativePackage": {
+    "files": 271,
+    "routes": 40,
+    "totalBytes": 1620180,
+    "mainPackageBytes": 643526,
+    "subpackageBytes": {
+      "pages/task": 17034,
+      "pages/submit": 43714,
+      "pages/progress": 22969,
+      "pages/points": 12202,
+      "pages/post": 41290,
+      "pages/shop": 9153,
+      "pages/product": 16174,
+      "pages/checkout": 25383,
+      "pages/orders": 8815,
+      "pages/order-detail": 81026,
+      "pages/settings": 70852,
+      "pages/invite": 15141,
+      "pages/legal": 3645,
+      "pages/privacy-rights": 53234,
+      "pages/support": 75660,
+      "pages/management": 18366,
+      "pages/management-catalog": 7278,
+      "pages/management-product": 21774,
+      "pages/management-orders": 8747,
+      "pages/management-order-detail": 17487,
+      "pages/management-support": 10700,
+      "pages/management-support-chat": 65850,
+      "pages/management-members": 33754,
+      "pages/management-member": 34557,
+      "pages/referral": 6697,
+      "pages/community-compose": 45531,
+      "pages/community-post": 26259,
+      "pages/community-author": 14383,
+      "pages/community-review": 16814,
+      "pages/community-activity": 19867,
+      "pages/management-finance": 29905,
+      "pages/commission": 36411,
+      "pages/management-privacy": 17783,
+      "pages/aftersale": 33350,
+      "pages/management-fulfillment": 14849
+    },
+    "globalStyleBytes": 8050,
+    "sourceSha256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f"
+  },
+  "unit": {
+    "passed": 1558,
+    "failed": 0,
+    "skipped": 1,
+    "skipScope": "Existing conditional test; no new skip"
+  },
+  "typecheck": true,
+  "build": true,
+  "contracts": true,
+  "nativePackageBudget": true,
+  "nativeRoutes": true,
+  "designQaStructuralManifest": true,
+  "fullDesignQaOrDeviceAcceptance": false,
+  "backendSourceUnchangedFrom": "0d3ff1c8d2cb6e2f53233e2cf6ca1efc62280527",
+  "businessGatesAndDataIsolationUnchanged": true,
+  "scope": "Visible native copy and necessary exact-text assertions. Home activation confirmations distinguish cycle start from actual completed care records. Account ready-state redundant note hidden; agreement checkbox and login gates preserved. Backend, API contracts, lockfile and schema unchanged.",
+  "newLegalVersion": "2026-10-26-v3",
+  "legalPublicationCandidateSha256": "77578496b075166c3d47cc33b1a23327f41e0e2138a4e9713cf002d62e98e35f",
+  "articleRevisionSourceSha256": "7ebd3f2f339e0732df4d0849ddfcc0b38d6769e4d147cd1613afec9cf2cbe95a",
+  "rawLocalCheckReceipts": {
+    "formal-copy-full-unit-final.json": {
+      "sha256": "d665888459c77ca44e79461c5faed7e7b3970d24968476ac64a5644656c47029",
+      "bytes": 558409
+    },
+    "formal-copy-typecheck.log": {
+      "sha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c",
+      "bytes": 106
+    },
+    "formal-copy-build.log": {
+      "sha256": "4751d1fbe9705954b17c3248813b99c7784ec577c81496d79bcf7f3a919f3c6f",
+      "bytes": 1019
+    },
+    "formal-copy-check-0.log": {
+      "sha256": "fc223e2cef8b3857dd4501d8c7fd71a15b16b260db41fa28a37825d5e3858b00",
+      "bytes": 263
+    },
+    "formal-copy-check-1.log": {
+      "sha256": "abbafa5f7915887514a91bc8dacdf35a89eb9c7e4b44dcf80e6df65d76f4032e",
+      "bytes": 1779
+    },
+    "formal-copy-check-2.log": {
+      "sha256": "4292cbd2a6274b2252ec8d037f3df953fc42211087fe76c746ffa977449cd9a6",
+      "bytes": 42389
+    },
+    "formal-copy-check-3.log": {
+      "sha256": "6b99c6aafdad5bded04f0d18dac4b45458ce168321045d7843ada35db8265fd6",
+      "bytes": 3115
+    }
+  }
+}

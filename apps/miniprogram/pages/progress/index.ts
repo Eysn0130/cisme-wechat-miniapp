@@ -12,13 +12,13 @@ function progressLoadFailure(error: unknown): { action: "load" | "missing"; titl
     return {
       action: "missing",
       title: "未找到这份投稿记录",
-      copy: "这份编号不存在、已失效，或不属于当前微信身份。请从原任务或有效邀请重新进入。"
+      copy: "暂时无法查看这份投稿，请从原活动或邀请重新进入。"
     };
   }
   return {
     action: "load",
-    title: "审核进度暂时未同步",
-    copy: "请检查网络后重试。页面不会把加载失败误显示成审核结论。"
+    title: "暂时无法查询审核进度",
+    copy: "请检查网络后重新加载。"
   };
 }
 
@@ -48,13 +48,13 @@ function appealFailure(error: unknown): { blocked: boolean; title: string; copy:
     return {
       blocked: true,
       title: "申诉资格已变化",
-      copy: "审核状态已在其他位置更新。请先刷新权威状态，再决定是否申诉。"
+      copy: "审核状态已有更新。请先刷新进度，再决定是否申诉。"
     };
   }
   return {
     blocked: false,
-    title: "申诉暂未提交",
-    copy: "网络结果尚未确认；可使用同一请求重试，或先刷新审核状态。"
+    title: "申诉结果待确认",
+    copy: "提交结果尚未确认，请先刷新审核进度，再决定是否重试。"
   };
 }
 
@@ -67,7 +67,7 @@ Page({
     if (!retainMemberSnapshot(this)) this.setData({ submission: null, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "",
       timeline: progressTimeline("draft"), appealReason: "", appealValid: false, appealBlocked: false, working: false,
       navigatingToRevision: false, navigatingAway: false, loadAttempt: this.data.loadAttempt + 1, loading: false, errorTitle: "", error: "" });
-    if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "load", errorTitle: "请先确认身份", error: "登录后才能查看自己的审核进度。" }); return; }
+    if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "load", errorTitle: "请先登录", error: "登录后才能查看自己的审核进度。" }); return; }
     void this.load();
   },
   onHide() { this.data.loadAttempt += 1; },
@@ -75,7 +75,7 @@ Page({
   async load(event?: WechatMiniprogram.TouchEvent) {
     if (event?.type) clearAuthenticationRedirectSuppression();
     if (!this.data.submissionId) {
-      this.setData({ submission: null, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), loading: false, errorAction: "missing", errorTitle: "无法打开审核进度", error: "链接中缺少投稿编号，请从有效邀请或投稿记录重新进入。" }, scrollToProgressError);
+      this.setData({ submission: null, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), loading: false, errorAction: "missing", errorTitle: "无法打开审核进度", error: "投稿链接不完整，请从原邀请或投稿记录重新进入。" }, scrollToProgressError);
       return;
     }
     const attempt = this.data.loadAttempt + 1;
@@ -85,12 +85,12 @@ Page({
       const submission = await request<any>({ path: `/v1/submissions/${this.data.submissionId}` });
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
       const views: Record<string, { title: string; subtitle: string }> = {
-        draft: { title: "投稿材料仍在草稿中", subtitle: "提交后才会进入人工审核" },
+        draft: { title: "投稿尚未提交", subtitle: "提交后才会进入人工审核" },
         submitted: { title: "发布证明已提交", subtitle: "已进入人工审核，结果将在站内更新" },
-        needs_changes: { title: "需要补充材料", subtitle: "按审核说明补件后将沿用原编号" },
+        needs_changes: { title: "需要补充材料", subtitle: "请按审核说明补充材料" },
         rejected: { title: "本次审核未通过", subtitle: "可查看原因并提交一次申诉" },
-        appealed: { title: "申诉已进入复核", subtitle: "复核结论会保留完整审计记录" },
-        approved: { title: "真实护理故事已通过", subtitle: "积分与展示仍按各自准入门独立处理" }
+        appealed: { title: "申诉已进入复核", subtitle: "复核结果会在这里更新" },
+        approved: { title: "投稿审核已通过", subtitle: "积分奖励按活动规则发放，精选展示需另行授权" }
       };
       const labels: Record<string, string> = { draft: "草稿", submitted: "审核中", needs_changes: "待补件", rejected: "未通过", appealed: "复核中", approved: "已通过" };
       const status = String(submission.status ?? "");
@@ -113,7 +113,7 @@ Page({
   async appeal() {
     if (this.data.working || this.data.navigatingAway || this.data.appealBlocked || !this.data.appealValid) return;
     this.setData({ working: true, appealBlocked: false, error: "" });
-    wx.enableAlertBeforeUnload({ message: "申诉正在提交并确认权威状态，请等待结果后再离开。" });
+    wx.enableAlertBeforeUnload({ message: "正在提交申诉，请确认结果后再离开。" });
     try {
       await request({ path: `/v1/submissions/${this.data.submissionId}/appeal`, method: "POST", idempotencyKey: `appeal-${this.data.submissionId}-v${this.data.submission.version}`, data: { reason: this.data.appealReason.trim(), expectedVersion: this.data.submission.version } });
       if (this.data.pageAlive) await this.load();
@@ -134,7 +134,7 @@ Page({
     wx.redirectTo({
       url: `/pages/submit/index?id=${this.data.submissionId}`,
       fail: () => {
-        if (this.data.pageAlive) this.setData({ navigatingToRevision: false, errorAction: "revise", errorTitle: "补件页面暂未打开", error: "请再次点击“按补件要求修改”；当前审核状态不会改变。" }, scrollToProgressError);
+        if (this.data.pageAlive) this.setData({ navigatingToRevision: false, errorAction: "revise", errorTitle: "补件页面暂未打开", error: "补充材料页面未打开，请再次点击“补充材料”。" }, scrollToProgressError);
       }
     });
   },

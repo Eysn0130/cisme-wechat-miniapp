@@ -136,7 +136,7 @@ describe("mini-program page behavior", () => {
     await account.syncLegalDocuments();
     expect(account.data).toMatchObject({ legalTextsReady: false, legalLoadError: "unpublished" });
     account.openPrivacy();
-    expect(account.data.error).toBe("当前隐私指引尚未发布，请稍后重试。");
+    expect(account.data.error).toBe("隐私保护指引暂不可用，请稍后重试。");
   });
 
   it("clears task, review, and settings snapshots before a guest can return from login", async () => {
@@ -147,13 +147,13 @@ describe("mini-program page behavior", () => {
     const task = mountedPage(capturedPage!, { task: { id: "previous-task", submission_id: "previous-submission" },
       continuationSubmissionId: "previous-submission", working: true });
     task.onShow();
-    expect(task.data).toMatchObject({ task: null, continuationSubmissionId: "", working: false, errorTitle: "请先确认身份" });
+    expect(task.data).toMatchObject({ task: null, continuationSubmissionId: "", working: false, errorTitle: "请先登录" });
 
     await vi.importActual("../../apps/miniprogram/pages/progress/index");
     const progress = mountedPage(capturedPage!, { submission: { id: "previous-submission", status: "rejected" },
       appealReason: "private appeal", reviewReason: "private review", working: true });
     progress.onShow();
-    expect(progress.data).toMatchObject({ submission: null, appealReason: "", reviewReason: "", working: false, errorTitle: "请先确认身份" });
+    expect(progress.data).toMatchObject({ submission: null, appealReason: "", reviewReason: "", working: false, errorTitle: "请先登录" });
 
     await vi.importActual("../../apps/miniprogram/pages/settings/index");
     const settings = mountedPage(capturedPage!, { memberId: "previous-member", displayName: "上一位会员",
@@ -203,7 +203,7 @@ describe("mini-program page behavior", () => {
     expect(settings.data).toMatchObject({ displayName: "尚未保存的昵称", profileDirty: true,
       authenticated: true, sessionStatus: "valid", phoneMasked: "138****0001", phoneBound: true,
       loading: false, phoneLoading: false, error: "" });
-    expect(settings.data.consents).toEqual([expect.objectContaining({ id: "consent-a", purposeLabel: "安全存储投稿证据" })]);
+    expect(settings.data.consents).toEqual([expect.objectContaining({ id: "consent-a", purposeLabel: "保存投稿资料" })]);
   });
 
   it("recovers settings state after a failed bootstrap without losing an unsaved profile", async () => {
@@ -248,7 +248,7 @@ describe("mini-program page behavior", () => {
       phoneMasked: "138****0000", addresses: [{ id: "previous-address" }], consents: [{ purpose: "private" }] });
     await settings.logout();
     expect(settings.data).toMatchObject({ memberId: "", displayName: "", phoneMasked: "", addresses: [], consents: [], loggingOut: false });
-    expect(settings.data.error).toContain("会话已经安全退出");
+    expect(settings.data.error).toContain("已退出账号，但登录页面暂未打开。请点击下方按钮重新登录。");
   });
 
   it("scrubs member-only points, orders, and invitation data before a guest login overlay", async () => {
@@ -258,7 +258,7 @@ describe("mini-program page behavior", () => {
     await vi.importActual("../../apps/miniprogram/pages/points/index");
     const points = mountedPage(capturedPage!, { points: { projection: { available: 888 } }, balanceClass: "private", loading: false });
     points.onShow();
-    expect(points.data).toMatchObject({ points: null, balanceClass: "", loading: false, error: "请先确认身份后查看积分账本。" });
+    expect(points.data).toMatchObject({ points: null, balanceClass: "", loading: false, error: "登录后即可查看积分。" });
 
     await vi.importActual("../../apps/miniprogram/pages/orders/index");
     const orders = mountedPage(capturedPage!, { items: [{ id: "previous-order" }], nextCursor: "private-cursor", loading: false });
@@ -270,7 +270,7 @@ describe("mini-program page behavior", () => {
       commercialEligible: true, referralCode: "PRIVATE-CODE", history: [{ shareId: "previous-share" }], loading: false });
     invite.onShow();
     expect(invite.data).toMatchObject({ displayName: "CISME 会员", shareId: "", shareCode: "待生成",
-      commercialEligible: false, referralCode: "", history: [], loading: false, error: "请先确认身份后查看邀请资料。" });
+      commercialEligible: false, referralCode: "", history: [], loading: false, error: "登录后即可查看邀请记录。" });
     expect(wxMock.hideShareMenu).toHaveBeenCalled();
     expect(requestMock).not.toHaveBeenCalled();
   });
@@ -299,7 +299,7 @@ describe("mini-program page behavior", () => {
     const invite = mountedPage(capturedPage!, { commercialEligible: true, referralCode: "OLD-CODE", shareId: "old-link", loading: false });
     invite.onShow();
     await vi.waitFor(() => expect(invite.data.loading).toBe(false));
-    expect(invite.data).toMatchObject({ commercialEligible: false, referralCode: "", shareId: "", error: "邀请资料暂时无法同步，请重试。" });
+    expect(invite.data).toMatchObject({ commercialEligible: false, referralCode: "", shareId: "", error: "暂时无法加载邀请记录，请重试。" });
   });
 
   it("preserves the new-draft deep link when guest authentication must restart the page", async () => {
@@ -742,7 +742,7 @@ describe("mini-program page behavior", () => {
 
     page.openCareSession.call(context);
     expect(context.data.sessionStep.code).toBe("00");
-    expect(context.data.view.signalTitle).toBe("完成后点亮第 2 条记录");
+    expect(context.data.view.signalTitle).toBe("完成后保存第 2 次护理");
     for (let index = 0; index < 4; index += 1) page.advanceCareStep.call(context);
     expect(context.data.sessionStage).toBe("assessment");
     expect(context.data.sessionCompletedCodes).toEqual(["00", "01", "02", "03"]);
@@ -828,7 +828,7 @@ describe("mini-program page behavior", () => {
 
     await page.chooseMedia.call(context, { currentTarget: { dataset: { kind: "original" } } });
 
-    expect(context.data.error).toContain("不会请求相册或相机权限");
+    expect(context.data.error).toContain("图片上传暂未开放，请稍后再来。");
     expect(requestMock).not.toHaveBeenCalled();
     expect(wxMock.requirePrivacyAuthorize).not.toHaveBeenCalled();
     expect(wxMock.chooseMedia).not.toHaveBeenCalled();
@@ -1131,7 +1131,7 @@ describe("mini-program page behavior", () => {
       serverLegalDocuments: { privacy: "v1", terms: "v1", localFixture: false } });
     await page.login.call(context);
     expect(requestMock).toHaveBeenCalledTimes(1);
-    expect(context.data.error).toContain("服务端可能已完成核验");
+    expect(context.data.error).toContain("登录结果尚未确认");
     expect(context.data.loading).toBe(false);
     expect(context.data.identityCommitStarted).toBe(false);
   });
@@ -1143,7 +1143,7 @@ describe("mini-program page behavior", () => {
       serverLegalDocuments:{privacy:"v1",terms:"v1",localFixture:false}});
     await page.login.call(context);
     expect(context.data.error).toContain("账号已注销");
-    expect(context.data.error).not.toContain("服务端可能已完成核验");
+    expect(context.data.error).not.toContain("登录结果尚未确认");
     expect(context.data.accountHelpAvailable).toBe(true);
     requestMock.mockResolvedValueOnce({scope:'privacy_rights',sessionToken:'rights-only-token'});
     await page.openAccountHelp.call(context);
@@ -1303,8 +1303,8 @@ describe("mini-program page behavior", () => {
 
     expect(page.data.summary).toMatchObject({ totalRecords: 1, cycleCount: 2, phaseLabel: "待确认开始" });
     expect(page.data.recordGroups.map((group: { label: string }) => group.label)).toEqual(["当前周期", "第 1 个护理周期"]);
-    expect(page.data.records[0]).toMatchObject({ recordKey: "cycle-1:D28", hasDetails: false, assessmentAvailable: false, assessmentLabel: "旧记录未包含护理后感受" });
-    expect(page.data.records[0].stepSummary).toContain("尚未记录分步事实");
+    expect(page.data.records[0]).toMatchObject({ recordKey: "cycle-1:D28", hasDetails: false, assessmentAvailable: false, assessmentLabel: "这条旧记录未保存护理后感受" });
+    expect(page.data.records[0].stepSummary).toContain("没有详细步骤");
   });
 
   it("reveals long care archives in bounded groups without hiding the exact total", async () => {
@@ -1330,7 +1330,7 @@ describe("mini-program page behavior", () => {
     requestMock.mockResolvedValueOnce({ id: "cycle", phase: "paused", startedOn: "2026-09-01", completed: ["D1"], next: "D7", records: [] });
     await page.load();
     expect(page.data.timeline.map((item: { status: string }) => item.status)).toEqual(["已完成", "暂停中", "恢复后安排", "恢复后安排"]);
-    expect(page.data.summary.cycleSummary).toContain("恢复后重新安排");
+    expect(page.data.summary.cycleSummary).toContain("已完成的记录会保留，恢复后继续安排剩余护理");
   });
 
 });

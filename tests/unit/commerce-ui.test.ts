@@ -25,6 +25,6 @@ describe("R4-A native commerce boundary",()=>{
   });
   it("keeps qualification, publication and inventory as separate mobile commands",async()=>{
     const page=await readFile(resolve(root,"apps/miniprogram/pages/management-product/index.ts"),"utf8");for(const command of ["qualifyProduct","publishProduct","adjustInventory","expectedPriceVersion","expectedVersion"])expect(page).toContain(command);
-    expect(page).toContain("确认可售须填写证据引用");expect(page).toContain("服务端保存");
+    expect(page).toContain("确认可售前，请填写资质凭证。");expect(page).toContain("商品资料已保存");
   });
 });

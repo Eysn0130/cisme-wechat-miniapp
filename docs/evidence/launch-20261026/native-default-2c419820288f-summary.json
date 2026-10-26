@@ -1,0 +1,22 @@
+{
+  "observedAtUTC": "2026-10-26T12:35:23.952714+00:00",
+  "sourceSHA256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f",
+  "routes": 40,
+  "screenshots": 40,
+  "visuallyInspected": 40,
+  "accountRedirects": 26,
+  "sourceBindingsMatchAll": true,
+  "urlCheckTrueThroughout": true,
+  "scope": "Official Nightly simulator default/guest first viewports only. No consent checkbox/login/identity/business interaction performed.",
+  "stablePreAndPostRoutes": 35,
+  "firstFivePriorRouteReadRetained": true,
+  "authenticatedAcceptance": false,
+  "realDeviceAcceptance": false,
+  "privacyPlatformOrRealDeviceLegalDomainAcceptance": false,
+  "globalCurrentSourceAcceptanceChanged": false,
+  "defaultLegalScreenshotVersion": "2026-10-26-v2 (historical; supplemental v3 capture follows)",
+  "indexSHA256": "a3c45163f167ba545e68df77139c76b8b8b8b209f4c9b77c9872bab80ea96665",
+  "finalConsoleNetworkSnapshot": "sdk-final-route-sanitized.json",
+  "sanitizedIndexFile": "native-default-2c419820288f-index.json",
+  "sanitizedIndexSha256": "04ecdf01ef1a6cd3526a212577d85df8cf2fe3343860246cf93f3333706673f6"
+}

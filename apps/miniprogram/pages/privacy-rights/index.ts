@@ -7,7 +7,7 @@ const labels=['查阅或复制个人信息','更正个人信息','删除个人�
 const closedKinds=kinds.filter(kind=>kind!=='close_account');
 const closedLabels=labels.filter((_,index)=>kinds[index]!=='close_account');
 const deleteScopes=['清除账户资料','申请处理其他数据'];
-const statuses:Record<string,string>={received:'已受理',verifying:'身份核验中',reviewing:'处理中',approved:'处理中',executing:'处理中',completed:'已完成',partially_completed:'部分完成',failed:'处理未完成',rejected:'暂无法办理',canceled:'已取消',responded:'已回复'};
+const statuses:Record<string,string>={received:'已受理',verifying:'正在核实身份',reviewing:'处理中',approved:'处理中',executing:'处理中',completed:'已完成',partially_completed:'部分完成',failed:'处理未完成',rejected:'暂无法办理',canceled:'已取消',responded:'已回复'};
 const executionStatuses:Record<string,string>={succeeded:'已处理',partially_succeeded:'部分资料已处理',failed:'处理遇到问题',expired:'副本已过期',canceled:'已取消'};
 const deliveryStatuses:Record<string,string>={available:'数据副本可获取',revoked:'资料副本已撤销',expired:'资料副本已过期',removed:'资料副本已清理'};
 const activeExportFiles=new Set<string>();
@@ -242,7 +242,7 @@ Page({
    this.setData({busy:true,error:''});
    const confirmed=await new Promise<boolean>(resolve=>wx.showModal({
     title:scopedWithdrawal?'撤回授权':optionalProfileDelete?'删除账户资料':'注销账号',
-    content:scopedWithdrawal?`确认撤回「${chosenGrant!.label}」？后续使用将停止，历史传播仍需核对。`:optionalProfileDelete?'昵称、手机号、头像和地址将清除；交易及售后记录按必要期限保留。账号仍可使用。':'注销后将退出当前账号。交易及售后记录按必要期限留存；您仍可核验微信身份处理历史隐私申请。',
+    content:scopedWithdrawal?`确认撤回「${chosenGrant!.label}」？后续使用将停止，历史传播仍需核对。`:optionalProfileDelete?'昵称、手机号、头像和地址将清除；交易及售后记录按必要期限保留。账号仍可使用。':'注销后将退出当前账号。交易及售后记录会按必要期限保留；你仍可验证微信身份，处理历史隐私申请。',
     confirmText:scopedWithdrawal?'确认撤回':optionalProfileDelete?'确认删除':'确认注销',confirmColor:'#6b3975',
     success:result=>resolve(result.confirm),fail:()=>resolve(false)}));
    if(!confirmed||!this.data.alive||attempt!==this.data.operationAttempt||token!==privacyToken()){if(this.data.alive&&attempt===this.data.operationAttempt)this.setData({busy:false});return;}
@@ -252,8 +252,8 @@ Page({
    data:{kind,message:kind==='close_account'?'本人申请注销 CISME 账号':optionalProfileDelete?'删除可清除的账户资料':this.data.message,
     ...(optionalProfileDelete?{scopeCode:'member_optional_profile_v1'}:{}),...(chosenGrant?{consentGrantId:chosenGrant.id}:{})}});
    if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken()){
-    if(result.accountClosed){setSessionToken('');this.identityToken='';this.setData({authenticated:false,closedRights:false,records:[],message:'',busy:false,notice:'账号已注销。交易和售后记录按必要期限保留；历史资料仍可核验身份后申请处理。'});return;}
-    this.setData({message:'',notice:result.status==='completed'?'授权或账户资料已处理，可在下方查看结果。':result.status==='partially_completed'?'授权已撤回，历史传播仍需核对。':'申请已受理，可在下方查看进度。'});await this.load();if(scopedWithdrawal)void this.loadConsents();}}
+    if(result.accountClosed){setSessionToken('');this.identityToken='';this.setData({authenticated:false,closedRights:false,records:[],message:'',busy:false,notice:'账号已注销。交易和售后记录会按必要期限保留；验证微信身份后，仍可申请处理历史资料。'});return;}
+    this.setData({message:'',notice:result.status==='completed'?'授权或账号资料已处理，可在下方查看结果。':result.status==='partially_completed'?'授权已撤回，历史传播仍需核对。':'申请已受理，可在下方查看进度。'});await this.load();if(scopedWithdrawal)void this.loadConsents();}}
   catch(e){if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({error:(e as {title?:string}).title||'尚未确认提交结果，请刷新申请进度后再试。'});}
   finally{if(this.data.alive && attempt===this.data.operationAttempt && token===privacyToken())this.setData({busy:false});}
  },
@@ -319,7 +319,7 @@ Page({
    }else if(archive?.scope==='member_profile_only'){
     this.setData({visibleExport:{requestId,displayName:archive.member.displayName,wechatHandle:archive.profile?.wechatHandle||'未填写'}});
    }else throw new Error('EXPORT_SCOPE_UNEXPECTED');
-  }catch(e){if(filePath)clearExportFile(filePath);if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData(shareWasCanceled(e)?{notice:'已取消发送，副本仍可在有效期内获取。'}:{error:(e as {title?:string}).title||'资料副本暂不可读取，请刷新记录后重试。'});}
+  }catch(e){if(filePath)clearExportFile(filePath);if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData(shareWasCanceled(e)?{notice:'已取消发送，副本仍可在有效期内获取。'}:{error:(e as {title?:string}).title||'暂时无法读取资料副本，请刷新记录后重试。'});}
   finally{if(this.data.alive&&attempt===this.data.operationAttempt&&token===privacyToken())this.setData({exportBusy:false,exportRequestId:''});}
  },
  changePart(e:WechatMiniprogram.BaseEvent){

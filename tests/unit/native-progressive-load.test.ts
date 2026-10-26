@@ -113,13 +113,13 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/orders/index" }));
   });
   it.each([
-    ["planned", "护理周期待开始", "待用户确认开始", "下一节点 D1"],
-    ["active", "护理周期进行中", "护理进行中", "下一节点 D1"],
+    ["planned", "护理周期待开始", "等你确认开始", "下一次 D1"],
+    ["active", "护理周期进行中", "护理进行中", "下一次 D1"],
     ["paused", "护理周期已暂停", "护理已暂停", "恢复后继续 D1"],
-    ["terminated", "护理周期已终止", "周期已终止", "历史护理事实已归档"],
-    ["completed", "护理周期已完成", "周期已完成", "护理事实已归档"],
-    ["waiting", "护理周期待确认", "待资格确认", "下一节点 D1"],
-    [null, "护理周期待确认", "待资格确认", "下一节点 待安排"]
+    ["terminated", "护理周期已终止", "周期已终止", "记录仍可查看"],
+    ["completed", "护理周期已完成", "周期已完成", "记录都保存在这里"],
+    ["waiting", "护理周期待确认", "护理资格待确认", "下一次 D1"],
+    [null, "护理周期待确认", "护理资格待确认", "下一次 待安排"]
   ])("populates the WXML care card for %s while auxiliary requests remain pending", async (phase, title, status, copy) => {
     const originalRequest = mocks.request.getMockImplementation()!;
     mocks.request.mockImplementation((options) => options.path === "/v1/bootstrap/profile"
