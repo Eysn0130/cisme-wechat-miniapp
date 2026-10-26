@@ -10,13 +10,13 @@ beforeEach(()=>{
 describe("narrow legal renewal navigation and transport",()=>{
  it("keeps the old session, stores the exact source, and deduplicates the renew page",async()=>{
   const api=await import("../../apps/miniprogram/services/api");api.beginLegalRenewal(source);api.beginLegalRenewal(source);
-  expect(runtime.globalData.sessionToken).toBe("synthetic-existing-session");expect(storage.get("cisme.authReturnUrl")).toBe(source);expect(wxMock.navigateTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:"/pages/account/index?intent=renew"}));expect(wxMock.request).not.toHaveBeenCalled();
+  expect(runtime.globalData.sessionToken).toBe("synthetic-existing-session");expect(storage.get("cisme.authReturnUrl")).toBe(source);expect(wxMock.navigateTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:expect.stringMatching(/^\/pages\/account\/index\?intent=renew&authFlow=[a-z0-9-]+$/)}));expect(wxMock.request).not.toHaveBeenCalled();
  });
  it("falls back to the same explicit renew intent without replacing the token",async()=>{
-  const api=await import("../../apps/miniprogram/services/api");api.beginLegalRenewal(source);wxMock.navigateTo.mock.calls[0][0].fail();expect(wxMock.reLaunch).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/account/index?intent=renew"}));expect(runtime.globalData.sessionToken).toBe("synthetic-existing-session");
+  const api=await import("../../apps/miniprogram/services/api");api.beginLegalRenewal(source);wxMock.navigateTo.mock.calls[0][0].fail();expect(wxMock.reLaunch).toHaveBeenCalledWith(expect.objectContaining({url:expect.stringMatching(/^\/pages\/account\/index\?intent=renew&authFlow=[a-z0-9-]+$/)}));expect(runtime.globalData.sessionToken).toBe("synthetic-existing-session");
  });
  it("uses normal login intent for a truly missing member session",async()=>{
-  runtime.globalData.sessionToken="";const api=await import("../../apps/miniprogram/services/api");api.beginLegalRenewal(source);expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/account/index?intent=login"}));expect(wxMock.request).not.toHaveBeenCalled();
+  runtime.globalData.sessionToken="";const api=await import("../../apps/miniprogram/services/api");api.beginLegalRenewal(source);expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:expect.stringMatching(/^\/pages\/account\/index\?intent=login&authFlow=[a-z0-9-]+$/)}));expect(wxMock.request).not.toHaveBeenCalled();
  });
  it("sends only the two explicit versions to the authenticated acceptance route and does not issue identity or interaction calls",async()=>{
   const api=await import("../../apps/miniprogram/services/api");const consents=[{documentType:"terms" as const,version:"v2"},{documentType:"privacy" as const,version:"v2"}];await api.acceptCurrentLegalDocuments(consents);

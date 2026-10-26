@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "status": "derived_local_unpublished",
+  "sourceProfile": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5",
+  "notes": 14,
+  "images": 20,
+  "videos": 4,
+  "records": [
+    {
+      "noteId": "6a6f2c8c00000000320218eb",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a6f2c8c00000000320218eb-01.webp",
+      "sourceSha256": "fd33b23868eff6e1f99e8ee1c5691429af994b5ffff130cd5d9ab0f1a1c1200d",
+      "files": [
+        {
+          "sha256": "6ee78c2998ab635aa3facff36b8acf0743c6cf65a33a19a97b9945d85c1b3de3",
+          "file": "6ee78c2998ab635aa3facff36b8acf0743c6cf65a33a19a97b9945d85c1b3de3.webp"
+        }
+      ],
+      "media": {
+        "sha256": "6ee78c2998ab635aa3facff36b8acf0743c6cf65a33a19a97b9945d85c1b3de3",
+        "objectKey": "editorial-derived/6ee78c2998ab635aa3facff36b8acf0743c6cf65a33a19a97b9945d85c1b3de3.webp",
+        "sourceSha256": "fd33b23868eff6e1f99e8ee1c5691429af994b5ffff130cd5d9ab0f1a1c1200d",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a6f2c8c00000000320218eb",
+        "bytes": 164218,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a6ca32d00000000220107c3",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a6ca32d00000000220107c3-01.webp",
+      "sourceSha256": "ec85c1c6d6e2986415dfd436d12d91d1079f72af0c5ff55358914559f8956413",
+      "files": [
+        {
+          "sha256": "71a9e0078a980ed144ee785f43ee00652107affc263e673a87aebbe82730ce6c",
+          "file": "71a9e0078a980ed144ee785f43ee00652107affc263e673a87aebbe82730ce6c.webp"
+        }
+      ],
+      "media": {
+        "sha256": "71a9e0078a980ed144ee785f43ee00652107affc263e673a87aebbe82730ce6c",
+        "objectKey": "editorial-derived/71a9e0078a980ed144ee785f43ee00652107affc263e673a87aebbe82730ce6c.webp",
+        "sourceSha256": "ec85c1c6d6e2986415dfd436d12d91d1079f72af0c5ff55358914559f8956413",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a6ca32d00000000220107c3",
+        "bytes": 143738,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a6a902b000000001101c47e",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a6a902b000000001101c47e-01.webp",
+      "sourceSha256": "593f7fe94b123ac95df98b670274c85146dd09bb10a1a4417da89d4cdceed85c",
+      "files": [
+        {
+          "sha256": "51faeb9c4f86f61bbb1c008c5e006bf40c09d4a18ca8ac9a5753b9b1f11f219f",
+          "file": "51faeb9c4f86f61bbb1c008c5e006bf40c09d4a18ca8ac9a5753b9b1f11f219f.webp"
+        }
+      ],
+      "media": {
+        "sha256": "51faeb9c4f86f61bbb1c008c5e006bf40c09d4a18ca8ac9a5753b9b1f11f219f",
+        "objectKey": "editorial-derived/51faeb9c4f86f61bbb1c008c5e006bf40c09d4a18ca8ac9a5753b9b1f11f219f.webp",
+        "sourceSha256": "593f7fe94b123ac95df98b670274c85146dd09bb10a1a4417da89d4cdceed85c",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a6a902b000000001101c47e",
+        "bytes": 137780,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a6a902b000000001101c47e",
+      "index": 2,
+      "kind": "image",
+      "sourceFile": "6a6a902b000000001101c47e-02.webp",
+      "sourceSha256": "9e599b67db83f9c26763b4e4fc927b44125ad1fc68610ec1b1a5bc7bee6b4e26",
+      "files": [
+        {
+          "sha256": "4d181c322eda230325c8aefac80569ee02f363d119e04ec3c3ab0cf130e72476",
+          "file": "4d181c322eda230325c8aefac80569ee02f363d119e04ec3c3ab0cf130e72476.webp"
+        }
+      ],
+      "media": {
+        "sha256": "4d181c322eda230325c8aefac80569ee02f363d119e04ec3c3ab0cf130e72476",
+        "objectKey": "editorial-derived/4d181c322eda230325c8aefac80569ee02f363d119e04ec3c3ab0cf130e72476.webp",
+        "sourceSha256": "9e599b67db83f9c26763b4e4fc927b44125ad1fc68610ec1b1a5bc7bee6b4e26",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a6a902b000000001101c47e",
+        "bytes": 105798,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a682a3a000000001101d411",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a682a3a000000001101d411-01.webp",
+      "sourceSha256": "93a02cad56fcc988f1e9a197223d9a42defdeddbbbdaf7c8b86579bea8b281d2",
+      "files": [
+        {
+          "sha256": "9df29a55435ed386c4ea7a972ce206e7acad910cf8f2b4b82eeef6c0c724e7f7",
+          "file": "9df29a55435ed386c4ea7a972ce206e7acad910cf8f2b4b82eeef6c0c724e7f7.webp"
+        }
+      ],
+      "media": {
+        "sha256": "9df29a55435ed386c4ea7a972ce206e7acad910cf8f2b4b82eeef6c0c724e7f7",
+        "objectKey": "editorial-derived/9df29a55435ed386c4ea7a972ce206e7acad910cf8f2b4b82eeef6c0c724e7f7.webp",
+        "sourceSha256": "93a02cad56fcc988f1e9a197223d9a42defdeddbbbdaf7c8b86579bea8b281d2",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a682a3a000000001101d411",
+        "bytes": 276534,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a66dae5000000001101afde",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a66dae5000000001101afde-01.webp",
+      "sourceSha256": "cc437530b225e3730c59036a2e53be34712df027840175670366cede6f45bfbe",
+      "files": [
+        {
+          "sha256": "3ffdcfc7d286906abd9523947d12bd9106fe1191de9874ddc27241c0b0d78c87",
+          "file": "3ffdcfc7d286906abd9523947d12bd9106fe1191de9874ddc27241c0b0d78c87.webp"
+        }
+      ],
+      "media": {
+        "sha256": "3ffdcfc7d286906abd9523947d12bd9106fe1191de9874ddc27241c0b0d78c87",
+        "objectKey": "editorial-derived/3ffdcfc7d286906abd9523947d12bd9106fe1191de9874ddc27241c0b0d78c87.webp",
+        "sourceSha256": "cc437530b225e3730c59036a2e53be34712df027840175670366cede6f45bfbe",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a66dae5000000001101afde",
+        "bytes": 137792,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a657b7200000000110046ed",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a657b7200000000110046ed-01.webp",
+      "sourceSha256": "76960c3dc066d4d08921d12d7d07daa32aa195c095c90e7e39a7a2a300306b8f",
+      "files": [
+        {
+          "sha256": "9ff29fbf114ac42890feb25abe316a574d9aa58779eb3160664cea873a35c890",
+          "file": "9ff29fbf114ac42890feb25abe316a574d9aa58779eb3160664cea873a35c890.webp"
+        }
+      ],
+      "media": {
+        "sha256": "9ff29fbf114ac42890feb25abe316a574d9aa58779eb3160664cea873a35c890",
+        "objectKey": "editorial-derived/9ff29fbf114ac42890feb25abe316a574d9aa58779eb3160664cea873a35c890.webp",
+        "sourceSha256": "76960c3dc066d4d08921d12d7d07daa32aa195c095c90e7e39a7a2a300306b8f",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a657b7200000000110046ed",
+        "bytes": 166188,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a63563e000000000f02a45e",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a63563e000000000f02a45e-01.webp",
+      "sourceSha256": "49f5769a775cd42a67463fc98ae4a7f983bae5153c55b838080df86ec1efa7cd",
+      "files": [
+        {
+          "sha256": "492f50b609e6b5cf55c6a6c9ccae54c6a51483458afbb150f08278362f6519fb",
+          "file": "492f50b609e6b5cf55c6a6c9ccae54c6a51483458afbb150f08278362f6519fb.webp"
+        }
+      ],
+      "media": {
+        "sha256": "492f50b609e6b5cf55c6a6c9ccae54c6a51483458afbb150f08278362f6519fb",
+        "objectKey": "editorial-derived/492f50b609e6b5cf55c6a6c9ccae54c6a51483458afbb150f08278362f6519fb.webp",
+        "sourceSha256": "49f5769a775cd42a67463fc98ae4a7f983bae5153c55b838080df86ec1efa7cd",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a63563e000000000f02a45e",
+        "bytes": 49582,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a63563e000000000f02a45e",
+      "index": 2,
+      "kind": "image",
+      "sourceFile": "6a63563e000000000f02a45e-02.webp",
+      "sourceSha256": "99fa2ba89745e623ecae3b5267eee5ff7e106307d9168a312392bd09b64c60d0",
+      "files": [
+        {
+          "sha256": "bf4e04649b623af63c292f7aa0cda6807d787fbcf187a08cb9a1a5e6a430aa61",
+          "file": "bf4e04649b623af63c292f7aa0cda6807d787fbcf187a08cb9a1a5e6a430aa61.webp"
+        }
+      ],
+      "media": {
+        "sha256": "bf4e04649b623af63c292f7aa0cda6807d787fbcf187a08cb9a1a5e6a430aa61",
+        "objectKey": "editorial-derived/bf4e04649b623af63c292f7aa0cda6807d787fbcf187a08cb9a1a5e6a430aa61.webp",
+        "sourceSha256": "99fa2ba89745e623ecae3b5267eee5ff7e106307d9168a312392bd09b64c60d0",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a63563e000000000f02a45e",
+        "bytes": 32734,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a63563e000000000f02a45e",
+      "index": 3,
+      "kind": "image",
+      "sourceFile": "6a63563e000000000f02a45e-03.webp",
+      "sourceSha256": "494c6929b5f3d18a4b09044c7b73832a230a07213ea1f89f7f78d31d4d8482ed",
+      "files": [
+        {
+          "sha256": "528f674f21aa3ff530555f31a6cbbc42a404436b5e2cb2f34849511672d0d861",
+          "file": "528f674f21aa3ff530555f31a6cbbc42a404436b5e2cb2f34849511672d0d861.webp"
+        }
+      ],
+      "media": {
+        "sha256": "528f674f21aa3ff530555f31a6cbbc42a404436b5e2cb2f34849511672d0d861",
+        "objectKey": "editorial-derived/528f674f21aa3ff530555f31a6cbbc42a404436b5e2cb2f34849511672d0d861.webp",
+        "sourceSha256": "494c6929b5f3d18a4b09044c7b73832a230a07213ea1f89f7f78d31d4d8482ed",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a63563e000000000f02a45e",
+        "bytes": 35648,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a63563e000000000f02a45e",
+      "index": 4,
+      "kind": "image",
+      "sourceFile": "6a63563e000000000f02a45e-04.webp",
+      "sourceSha256": "3014d655cf990e8e6a6587624fe086babb2a5cfa28afbf73e297ef65f43a30b8",
+      "files": [
+        {
+          "sha256": "9abce3c5ebabae8e155e5ef39e9641a224b3483c01a5b57a463586ebb3383f8b",
+          "file": "9abce3c5ebabae8e155e5ef39e9641a224b3483c01a5b57a463586ebb3383f8b.webp"
+        }
+      ],
+      "media": {
+        "sha256": "9abce3c5ebabae8e155e5ef39e9641a224b3483c01a5b57a463586ebb3383f8b",
+        "objectKey": "editorial-derived/9abce3c5ebabae8e155e5ef39e9641a224b3483c01a5b57a463586ebb3383f8b.webp",
+        "sourceSha256": "3014d655cf990e8e6a6587624fe086babb2a5cfa28afbf73e297ef65f43a30b8",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a63563e000000000f02a45e",
+        "bytes": 51556,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a63563e000000000f02a45e",
+      "index": 5,
+      "kind": "image",
+      "sourceFile": "6a63563e000000000f02a45e-05.webp",
+      "sourceSha256": "b42b3641c35019e6867947885644f5523ca677849168db17ae10bc5015e21d08",
+      "files": [
+        {
+          "sha256": "4d9bb26b9090a33bda97edd586e696024167beb181ec557160f56449b6b7f3fb",
+          "file": "4d9bb26b9090a33bda97edd586e696024167beb181ec557160f56449b6b7f3fb.webp"
+        }
+      ],
+      "media": {
+        "sha256": "4d9bb26b9090a33bda97edd586e696024167beb181ec557160f56449b6b7f3fb",
+        "objectKey": "editorial-derived/4d9bb26b9090a33bda97edd586e696024167beb181ec557160f56449b6b7f3fb.webp",
+        "sourceSha256": "b42b3641c35019e6867947885644f5523ca677849168db17ae10bc5015e21d08",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a63563e000000000f02a45e",
+        "bytes": 48566,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a63563e000000000f02a45e",
+      "index": 6,
+      "kind": "image",
+      "sourceFile": "6a63563e000000000f02a45e-06.webp",
+      "sourceSha256": "78a34c36263bdc1575da1108d18c3ce96c430967de781a2fe4d06e95c9a521eb",
+      "files": [
+        {
+          "sha256": "5abc0807ec1a5213286dadedb5a30886ccd519d89e12fde9aae91f409e885769",
+          "file": "5abc0807ec1a5213286dadedb5a30886ccd519d89e12fde9aae91f409e885769.webp"
+        }
+      ],
+      "media": {
+        "sha256": "5abc0807ec1a5213286dadedb5a30886ccd519d89e12fde9aae91f409e885769",
+        "objectKey": "editorial-derived/5abc0807ec1a5213286dadedb5a30886ccd519d89e12fde9aae91f409e885769.webp",
+        "sourceSha256": "78a34c36263bdc1575da1108d18c3ce96c430967de781a2fe4d06e95c9a521eb",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a63563e000000000f02a45e",
+        "bytes": 32610,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a5f641a000000000f01f1b0",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a5f641a000000000f01f1b0-01.webp",
+      "sourceSha256": "25d42bfc51f7b972e6c6cb495f7814a68acfa87bbfa30637db8c54a1ebf81cad",
+      "files": [
+        {
+          "sha256": "a138759d27c724faf4f87518c49d0a89b1640cf1d99a265e2d740a6887b0f9e3",
+          "file": "a138759d27c724faf4f87518c49d0a89b1640cf1d99a265e2d740a6887b0f9e3.webp"
+        }
+      ],
+      "media": {
+        "sha256": "a138759d27c724faf4f87518c49d0a89b1640cf1d99a265e2d740a6887b0f9e3",
+        "objectKey": "editorial-derived/a138759d27c724faf4f87518c49d0a89b1640cf1d99a265e2d740a6887b0f9e3.webp",
+        "sourceSha256": "25d42bfc51f7b972e6c6cb495f7814a68acfa87bbfa30637db8c54a1ebf81cad",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a5f641a000000000f01f1b0",
+        "bytes": 121024,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a5d82bf00000000110107a3",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a5d82bf00000000110107a3-01.webp",
+      "sourceSha256": "4cb08dbddc921df0dde29769e5d42bfdc289e5c0f037653060af718de44dffc5",
+      "files": [
+        {
+          "sha256": "8cc9b3ecaab89b1e323c58fa94c4f30eb7596cf4e09cf7a666d96c7d2760e418",
+          "file": "8cc9b3ecaab89b1e323c58fa94c4f30eb7596cf4e09cf7a666d96c7d2760e418.webp"
+        }
+      ],
+      "media": {
+        "sha256": "8cc9b3ecaab89b1e323c58fa94c4f30eb7596cf4e09cf7a666d96c7d2760e418",
+        "objectKey": "editorial-derived/8cc9b3ecaab89b1e323c58fa94c4f30eb7596cf4e09cf7a666d96c7d2760e418.webp",
+        "sourceSha256": "4cb08dbddc921df0dde29769e5d42bfdc289e5c0f037653060af718de44dffc5",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a5d82bf00000000110107a3",
+        "bytes": 99892,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a5d82bf00000000110107a3",
+      "index": 2,
+      "kind": "image",
+      "sourceFile": "6a5d82bf00000000110107a3-02.webp",
+      "sourceSha256": "33fbf5999e44ef63a2a04c4d4b68d2706eaf22a7f03b464198066024d80761f4",
+      "files": [
+        {
+          "sha256": "2a4e40f2aa9efeedf0c1e4e9c632f9ec2f4ebf682c6688bdb1b984b60631bfce",
+          "file": "2a4e40f2aa9efeedf0c1e4e9c632f9ec2f4ebf682c6688bdb1b984b60631bfce.webp"
+        }
+      ],
+      "media": {
+        "sha256": "2a4e40f2aa9efeedf0c1e4e9c632f9ec2f4ebf682c6688bdb1b984b60631bfce",
+        "objectKey": "editorial-derived/2a4e40f2aa9efeedf0c1e4e9c632f9ec2f4ebf682c6688bdb1b984b60631bfce.webp",
+        "sourceSha256": "33fbf5999e44ef63a2a04c4d4b68d2706eaf22a7f03b464198066024d80761f4",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a5d82bf00000000110107a3",
+        "bytes": 65770,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a51a9580000000011014ffc",
+      "index": 1,
+      "kind": "image",
+      "sourceFile": "6a51a9580000000011014ffc-01.webp",
+      "sourceSha256": "316288a3e112271936a3265e6ee15389a4fc1f1cddb58897300ca8d1800d832e",
+      "files": [
+        {
+          "sha256": "c20bdbd31cc966ed8181f2485d54084443f111fc2a9d6b69962929142fe3fef0",
+          "file": "c20bdbd31cc966ed8181f2485d54084443f111fc2a9d6b69962929142fe3fef0.webp"
+        }
+      ],
+      "media": {
+        "sha256": "c20bdbd31cc966ed8181f2485d54084443f111fc2a9d6b69962929142fe3fef0",
+        "objectKey": "editorial-derived/c20bdbd31cc966ed8181f2485d54084443f111fc2a9d6b69962929142fe3fef0.webp",
+        "sourceSha256": "316288a3e112271936a3265e6ee15389a4fc1f1cddb58897300ca8d1800d832e",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a51a9580000000011014ffc",
+        "bytes": 246708,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a51a9580000000011014ffc",
+      "index": 2,
+      "kind": "image",
+      "sourceFile": "6a51a9580000000011014ffc-02.webp",
+      "sourceSha256": "8bb677b53f08fa697eea99c4072c5bafe9ef481a216895a42c9482c74c049630",
+      "files": [
+        {
+          "sha256": "528c994209ae45cf3d38fac339b55d05e40c55a56e141127b8c41fab8179e5a7",
+          "file": "528c994209ae45cf3d38fac339b55d05e40c55a56e141127b8c41fab8179e5a7.webp"
+        }
+      ],
+      "media": {
+        "sha256": "528c994209ae45cf3d38fac339b55d05e40c55a56e141127b8c41fab8179e5a7",
+        "objectKey": "editorial-derived/528c994209ae45cf3d38fac339b55d05e40c55a56e141127b8c41fab8179e5a7.webp",
+        "sourceSha256": "8bb677b53f08fa697eea99c4072c5bafe9ef481a216895a42c9482c74c049630",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a51a9580000000011014ffc",
+        "bytes": 276416,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a51a9580000000011014ffc",
+      "index": 3,
+      "kind": "image",
+      "sourceFile": "6a51a9580000000011014ffc-03.webp",
+      "sourceSha256": "5e009d95a8d19198b204a08052ec2ca65f7766efc6c546bd064a51957fb902cf",
+      "files": [
+        {
+          "sha256": "43721a45d46356499e748527ce3aec09711846c7bc9285c4c69cde04ca2e6010",
+          "file": "43721a45d46356499e748527ce3aec09711846c7bc9285c4c69cde04ca2e6010.webp"
+        }
+      ],
+      "media": {
+        "sha256": "43721a45d46356499e748527ce3aec09711846c7bc9285c4c69cde04ca2e6010",
+        "objectKey": "editorial-derived/43721a45d46356499e748527ce3aec09711846c7bc9285c4c69cde04ca2e6010.webp",
+        "sourceSha256": "5e009d95a8d19198b204a08052ec2ca65f7766efc6c546bd064a51957fb902cf",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a51a9580000000011014ffc",
+        "bytes": 176812,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a51a9580000000011014ffc",
+      "index": 4,
+      "kind": "image",
+      "sourceFile": "6a51a9580000000011014ffc-04.webp",
+      "sourceSha256": "ba8bb721b2194be3d0f8544574590a3657da8f08c0ba75bfe383d299f44aea48",
+      "files": [
+        {
+          "sha256": "6599547f05d681b230fc97efc49b3c75b4f48ec3da18ad94258d692efb3c76c4",
+          "file": "6599547f05d681b230fc97efc49b3c75b4f48ec3da18ad94258d692efb3c76c4.webp"
+        }
+      ],
+      "media": {
+        "sha256": "6599547f05d681b230fc97efc49b3c75b4f48ec3da18ad94258d692efb3c76c4",
+        "objectKey": "editorial-derived/6599547f05d681b230fc97efc49b3c75b4f48ec3da18ad94258d692efb3c76c4.webp",
+        "sourceSha256": "ba8bb721b2194be3d0f8544574590a3657da8f08c0ba75bfe383d299f44aea48",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a51a9580000000011014ffc",
+        "bytes": 296532,
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared"
+      }
+    },
+    {
+      "noteId": "6a1598380000000035030f24",
+      "index": 1,
+      "kind": "video",
+      "sourceFile": "6a1598380000000035030f24-original.mp4",
+      "sourceSha256": "7feaae9d4ceccf79edb7a059a740970e092c70e7ab6507a62fe6f811edcf0d63",
+      "files": [
+        {
+          "sha256": "5aaf7f7b7523b22eb09c91f7c3509c1a81014d2c9d9fe53573e87164ae30c5f0",
+          "file": "5aaf7f7b7523b22eb09c91f7c3509c1a81014d2c9d9fe53573e87164ae30c5f0.mp4"
+        },
+        {
+          "sha256": "2ca20e2d725be7124e4ecd9deb749d8eece5004195ef2423e23bcb0a2cc14fd4",
+          "file": "2ca20e2d725be7124e4ecd9deb749d8eece5004195ef2423e23bcb0a2cc14fd4.webp"
+        }
+      ],
+      "media": {
+        "sha256": "5aaf7f7b7523b22eb09c91f7c3509c1a81014d2c9d9fe53573e87164ae30c5f0",
+        "objectKey": "editorial-video/5aaf7f7b7523b22eb09c91f7c3509c1a81014d2c9d9fe53573e87164ae30c5f0.mp4",
+        "sourceSha256": "7feaae9d4ceccf79edb7a059a740970e092c70e7ab6507a62fe6f811edcf0d63",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a1598380000000035030f24",
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared",
+        "bytes": 13161103,
+        "mediaType": "video",
+        "mimeType": "video/mp4",
+        "width": 720,
+        "height": 1280,
+        "durationMs": 48333,
+        "poster": {
+          "sha256": "2ca20e2d725be7124e4ecd9deb749d8eece5004195ef2423e23bcb0a2cc14fd4",
+          "objectKey": "editorial-derived/2ca20e2d725be7124e4ecd9deb749d8eece5004195ef2423e23bcb0a2cc14fd4.webp",
+          "sourceSha256": "7feaae9d4ceccf79edb7a059a740970e092c70e7ab6507a62fe6f811edcf0d63",
+          "rightsRef": "cisme-xhs-owner-migration-20261026:6a1598380000000035030f24",
+          "sourceKind": "owner_authorized_brand_media",
+          "aiUsage": "not_declared",
+          "bytes": 92416
+        }
+      }
+    },
+    {
+      "noteId": "6a1443e6000000003501d11f",
+      "index": 1,
+      "kind": "video",
+      "sourceFile": "6a1443e6000000003501d11f-original.mp4",
+      "sourceSha256": "757a0553d0e4a97532f4d65eaa37bb64563e2f65e52fecfa9d4294d8c0f9123d",
+      "files": [
+        {
+          "sha256": "ad273a8b000503bd734f6d5a6802884e34ea4df1b3ceefbd6febefab559dca36",
+          "file": "ad273a8b000503bd734f6d5a6802884e34ea4df1b3ceefbd6febefab559dca36.mp4"
+        },
+        {
+          "sha256": "e4081035cdd69fd6b7a9401cb5ac431fcd1ab3e30ddd17901c8bfb429c9c34cc",
+          "file": "e4081035cdd69fd6b7a9401cb5ac431fcd1ab3e30ddd17901c8bfb429c9c34cc.webp"
+        }
+      ],
+      "media": {
+        "sha256": "ad273a8b000503bd734f6d5a6802884e34ea4df1b3ceefbd6febefab559dca36",
+        "objectKey": "editorial-video/ad273a8b000503bd734f6d5a6802884e34ea4df1b3ceefbd6febefab559dca36.mp4",
+        "sourceSha256": "757a0553d0e4a97532f4d65eaa37bb64563e2f65e52fecfa9d4294d8c0f9123d",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a1443e6000000003501d11f",
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared",
+        "bytes": 18329875,
+        "mediaType": "video",
+        "mimeType": "video/mp4",
+        "width": 720,
+        "height": 1280,
+        "durationMs": 56767,
+        "poster": {
+          "sha256": "e4081035cdd69fd6b7a9401cb5ac431fcd1ab3e30ddd17901c8bfb429c9c34cc",
+          "objectKey": "editorial-derived/e4081035cdd69fd6b7a9401cb5ac431fcd1ab3e30ddd17901c8bfb429c9c34cc.webp",
+          "sourceSha256": "757a0553d0e4a97532f4d65eaa37bb64563e2f65e52fecfa9d4294d8c0f9123d",
+          "rightsRef": "cisme-xhs-owner-migration-20261026:6a1443e6000000003501d11f",
+          "sourceKind": "owner_authorized_brand_media",
+          "aiUsage": "not_declared",
+          "bytes": 94780
+        }
+      }
+    },
+    {
+      "noteId": "6a12fc6c000000003501eff2",
+      "index": 1,
+      "kind": "video",
+      "sourceFile": "6a12fc6c000000003501eff2-original.mp4",
+      "sourceSha256": "aa2544f554755ad840cff7a2faab1c9c386dc6b998610cd0a41b5680675322c9",
+      "files": [
+        {
+          "sha256": "2d4d859a703edb2b3f7df24d1491c43dc34a7249ac713dedaba85393057a6aa8",
+          "file": "2d4d859a703edb2b3f7df24d1491c43dc34a7249ac713dedaba85393057a6aa8.mp4"
+        },
+        {
+          "sha256": "3e1e080a6215b157b939b8cdd0d30eaa5f3e7279d2de2f89815c94a2cea929b5",
+          "file": "3e1e080a6215b157b939b8cdd0d30eaa5f3e7279d2de2f89815c94a2cea929b5.webp"
+        }
+      ],
+      "media": {
+        "sha256": "2d4d859a703edb2b3f7df24d1491c43dc34a7249ac713dedaba85393057a6aa8",
+        "objectKey": "editorial-video/2d4d859a703edb2b3f7df24d1491c43dc34a7249ac713dedaba85393057a6aa8.mp4",
+        "sourceSha256": "aa2544f554755ad840cff7a2faab1c9c386dc6b998610cd0a41b5680675322c9",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a12fc6c000000003501eff2",
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared",
+        "bytes": 20250573,
+        "mediaType": "video",
+        "mimeType": "video/mp4",
+        "width": 720,
+        "height": 1280,
+        "durationMs": 69467,
+        "poster": {
+          "sha256": "3e1e080a6215b157b939b8cdd0d30eaa5f3e7279d2de2f89815c94a2cea929b5",
+          "objectKey": "editorial-derived/3e1e080a6215b157b939b8cdd0d30eaa5f3e7279d2de2f89815c94a2cea929b5.webp",
+          "sourceSha256": "aa2544f554755ad840cff7a2faab1c9c386dc6b998610cd0a41b5680675322c9",
+          "rightsRef": "cisme-xhs-owner-migration-20261026:6a12fc6c000000003501eff2",
+          "sourceKind": "owner_authorized_brand_media",
+          "aiUsage": "not_declared",
+          "bytes": 76256
+        }
+      }
+    },
+    {
+      "noteId": "6a11232400000000360034c6",
+      "index": 1,
+      "kind": "video",
+      "sourceFile": "6a11232400000000360034c6-original.mp4",
+      "sourceSha256": "c11b5e144e202992fdcec4fdd2aadee51f686061ecd2b8f07c3ee2ee268205b3",
+      "files": [
+        {
+          "sha256": "9d3f239b7db162176829a07665550fd7664f5c840fe422351957ffbcf3987ee7",
+          "file": "9d3f239b7db162176829a07665550fd7664f5c840fe422351957ffbcf3987ee7.mp4"
+        },
+        {
+          "sha256": "dd80fb35b21d0167e70a47d66338620850facd51fd77abeaeb6bcf5f54b52094",
+          "file": "dd80fb35b21d0167e70a47d66338620850facd51fd77abeaeb6bcf5f54b52094.webp"
+        }
+      ],
+      "media": {
+        "sha256": "9d3f239b7db162176829a07665550fd7664f5c840fe422351957ffbcf3987ee7",
+        "objectKey": "editorial-video/9d3f239b7db162176829a07665550fd7664f5c840fe422351957ffbcf3987ee7.mp4",
+        "sourceSha256": "c11b5e144e202992fdcec4fdd2aadee51f686061ecd2b8f07c3ee2ee268205b3",
+        "rightsRef": "cisme-xhs-owner-migration-20261026:6a11232400000000360034c6",
+        "sourceKind": "owner_authorized_brand_media",
+        "aiUsage": "not_declared",
+        "bytes": 10486466,
+        "mediaType": "video",
+        "mimeType": "video/mp4",
+        "width": 720,
+        "height": 1280,
+        "durationMs": 39067,
+        "poster": {
+          "sha256": "dd80fb35b21d0167e70a47d66338620850facd51fd77abeaeb6bcf5f54b52094",
+          "objectKey": "editorial-derived/dd80fb35b21d0167e70a47d66338620850facd51fd77abeaeb6bcf5f54b52094.webp",
+          "sourceSha256": "c11b5e144e202992fdcec4fdd2aadee51f686061ecd2b8f07c3ee2ee268205b3",
+          "rightsRef": "cisme-xhs-owner-migration-20261026:6a11232400000000360034c6",
+          "sourceKind": "owner_authorized_brand_media",
+          "aiUsage": "not_declared",
+          "bytes": 58300
+        }
+      }
+    }
+  ]
+}

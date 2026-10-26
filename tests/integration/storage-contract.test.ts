@@ -1,6 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { createS3Storage, objectKey } from "../../services/api/src/storage";
 import { loadConfig } from "@cisme/config";
+import {createHash} from 'node:crypto';
+import {syntheticEditorialMp4} from '../fixtures/editorial-video';
 
 const runId=process.env.CISME_TEST_RUN_ID,endpoint=process.env.CISME_TEST_S3_ENDPOINT;
 if(!runId||!endpoint||!/^http:\/\/127\.0\.0\.1:[0-9]+$/.test(endpoint)||new URL(endpoint).port==='58333'||
@@ -32,6 +34,14 @@ describe("wx.uploadFile-compatible SeaweedFS contract", () => {
     await storage.delete(key);
     key = "";
   }, 30_000);
+  it('persists only hash-bound AVC MP4 editorial objects and supports exact range reads',async()=>{
+    const sha=createHash('sha256').update(syntheticEditorialMp4).digest('hex');key=`editorial-video/${sha}.mp4`;
+    await storage.writeEditorialVideo!(key,syntheticEditorialMp4);
+    expect(await storage.read(key,64*1024*1024)).toEqual({bytes:syntheticEditorialMp4,mimeType:'video/mp4'});
+    expect(await storage.readRange!(key,4,16)).toEqual(syntheticEditorialMp4.subarray(4,20));
+    await expect(storage.writeEditorialVideo!(`editorial-video/${'0'.repeat(64)}.mp4`,syntheticEditorialMp4)).rejects.toThrow();
+    await storage.delete(key);key='';
+  });
 });
 
 afterAll(async () => { if (key) await storage.delete(key); });

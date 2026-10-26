@@ -26,6 +26,8 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
+  authenticationFlowId:"",
+  authenticationReturnUrl:"/pages/home/index",
   renewalSessionToken:"",
   renewalDestination:"",
   data: { renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, phoneCapabilityKnown:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
@@ -92,7 +94,10 @@ Page({
   },
   onLoad(query: Record<string, string | undefined>) {
     this.data.pageAlive = true;
+    this.authenticationFlowId = query?.authFlow || "";
+    this.authenticationReturnUrl = consumeAuthReturnUrl(this.authenticationFlowId, query?.intent === "renew" ? "renew" : "login");
     if(query?.intent==="renew"){
+      this.renewalDestination = this.authenticationReturnUrl;
       this.renewalSessionToken=getApp<IAppOption>().globalData.sessionToken;
       this.setData({renewalMode:true,renewalComplete:false,loginStage:"login",agreementAccepted:false,crossBorderAccepted:false,pendingDestination:""});
     }
@@ -112,11 +117,19 @@ Page({
     this.setData({reducedMotion,heroMotionActive:!reducedMotion});
     if(this.data.renewalMode){
       if(!token)this.setData({renewalMode:false,renewalComplete:false,pendingDestination:"",notice:"原会话已失效，请重新微信登录确认。"});
-      else if(token!==this.renewalSessionToken){this.renewalSessionToken=token;this.renewalDestination="";this.setData({renewalComplete:false,agreementAccepted:false,crossBorderAccepted:false});}
+      else if(token!==this.renewalSessionToken){this.renewalSessionToken=token;this.renewalDestination="";this.authenticationReturnUrl="/pages/community/index";this.setData({renewalComplete:false,agreementAccepted:false,crossBorderAccepted:false});}
     }
-    if(token&&!this.data.renewalMode)this.setData({pendingDestination:this.data.pendingDestination || "/pages/profile/index"});
+    if(!token&&!this.data.renewalMode)this.revealExpiredLogin();
+    if(token&&!this.data.renewalMode)this.setData({pendingDestination:this.data.pendingDestination || this.authenticationReturnUrl});
     void this.syncLegalDocuments();
     if(!this.data.renewalMode)void this.loadCapabilities();
+  },
+  revealExpiredLogin() {
+    if(!this.data.pageAlive||this.data.leaving||this.data.renewalMode||getApp<IAppOption>().globalData.sessionToken||(!this.data.pendingDestination&&this.data.loginStage!=="avatar"))return false;
+    this.data.authAttempt+=1;this.data.avatarAttempt+=1;
+    this.setData({pendingDestination:"",loginStage:"login",avatarBusy:false,loading:false,identityCommitStarted:false,
+      agreementAccepted:false,crossBorderAccepted:false,avatarUrl:defaultMemberAvatar,error:"",notice:"登录状态已失效，请重新登录。"});
+    return true;
   },
   onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1; this.setData({heroMotionActive:false,...(this.data.avatarBusy?{avatarBusy:false}:{})}); },
   async loadMemberIdentity() {
@@ -137,7 +150,7 @@ Page({
     this.data.avatarAttempt += 1;
     this.data.authAttempt += 1;
     wx.disableAlertBeforeUnload();
-    cancelAuthentication();
+    cancelAuthentication(this.authenticationFlowId);
   },
   toggleAgreement(event: WechatMiniprogram.CheckboxGroupChange) {
     if (!this.data.legalTextsReady || this.data.loading || this.data.leaving) return;
@@ -195,6 +208,7 @@ Page({
   },
   loginTap() {
     if(this.data.renewalMode){void this.login();return;}
+    if(this.revealExpiredLogin())return;
     // Native open-type owns the gesture when enabled. Do not race wx.login
     // against the native authorization result or avatar picker callback.
     if(this.data.loginStage === "avatar" || (this.data.phoneBindingEnabled && !this.data.pendingDestination))return;
@@ -211,7 +225,7 @@ Page({
     if(this.data.renewalMode){await this.confirmLegalRenewal();return;}
     if(!this.data.pageAlive || this.data.leaving || this.data.avatarBusy)return;
     const token=getApp<IAppOption>().globalData.sessionToken;
-    if(!token)return;
+    if(!token){this.revealExpiredLogin();return;}
     this.setData({loading:true,error:""});
     const landed=await navigateAfterAuthentication(this.data.pendingDestination || "/pages/home/index");
     if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({loading:false,error:landed === "target" ? "" : "已登录，请再次点击继续。"});
@@ -220,7 +234,7 @@ Page({
     if(this.data.renewalMode)return;
     if(!this.data.pageAlive || !this.data.pageVisible || this.data.loading || this.data.leaving || this.data.avatarBusy || this.data.loginStage !== "avatar" || !event.detail.avatarUrl)return;
     const token=getApp<IAppOption>().globalData.sessionToken;
-    if(!token)return;
+    if(!token){this.revealExpiredLogin();return;}
     const attempt = ++this.data.avatarAttempt;
     const current = () => this.data.pageAlive && this.data.pageVisible && attempt === this.data.avatarAttempt && token === getApp<IAppOption>().globalData.sessionToken;
     this.setData({avatarBusy:true,error:""});
@@ -242,6 +256,7 @@ Page({
   async login(phoneCode?:string) {
     if (this.data.loading || this.data.leaving || this.data.avatarBusy || !this.data.pageAlive) return;
     if(this.data.renewalMode){await this.confirmLegalRenewal();return;}
+    if(this.revealExpiredLogin())return;
     if (this.data.pendingDestination && getApp<IAppOption>().globalData.sessionToken) {
       const attempt=++this.data.authAttempt;
       this.setData({ loading: true, error: "" });
@@ -307,7 +322,7 @@ Page({
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
       setSessionToken(result.sessionToken);
       void attributePendingShare();
-      const pendingDestination = consumeAuthReturnUrl();
+      const pendingDestination = this.authenticationReturnUrl;
       this.setData({ pendingDestination });
       wx.disableAlertBeforeUnload();
       if(phoneCode) {
@@ -342,7 +357,7 @@ Page({
     if(!this.data.renewalMode||this.data.loading||this.data.leaving||!this.data.pageAlive||!this.data.pageVisible)return;
     const token=getApp<IAppOption>().globalData.sessionToken;
     if(!token){this.setData({renewalMode:false,renewalComplete:false,pendingDestination:"",error:"会话已失效，请重新微信登录确认。"});return;}
-    if(token!==this.renewalSessionToken){this.renewalSessionToken=token;this.renewalDestination="";this.setData({renewalComplete:false,agreementAccepted:false,error:"账号状态已变化，请重新阅读并确认。"});return;}
+    if(token!==this.renewalSessionToken){this.renewalSessionToken=token;this.renewalDestination="";this.authenticationReturnUrl="/pages/community/index";this.setData({renewalComplete:false,agreementAccepted:false,error:"账号状态已变化，请重新阅读并确认。"});return;}
     const documents=this.documents();
     if(!this.data.renewalComplete&&(this.data.legalLoading||!this.data.legalTextsReady||!documents||!this.data.agreementAccepted)){
       this.setData({error:"请先阅读并同意用户协议与隐私保护指引。"},scrollToAccountError);return;
@@ -355,7 +370,7 @@ Page({
         this.setData({legalAcceptanceStarted:true});
         await acceptCurrentLegalDocuments([{documentType:"terms",version:documents!.terms},{documentType:"privacy",version:documents!.privacy}]);
         if(!current())return;
-        this.renewalDestination=consumeAuthReturnUrl();
+        this.renewalDestination=this.renewalDestination || this.authenticationReturnUrl;
         this.setData({renewalComplete:true,legalAcceptanceStarted:false});
         if(legalAttempt!==this.data.legalAttempt){this.setData({notice:"协议已确认，返回后会重新加载最新状态。"});}
       }
@@ -396,10 +411,9 @@ Page({
   },
   stopAuthenticationWait(suppressSourceRedirect = false): string {
     this.data.authAttempt += 1;
-    cancelAuthentication();
-    const returnUrl = this.data.renewalMode&&this.renewalDestination?this.renewalDestination:wx.getStorageSync<string>("cisme.authReturnUrl");
+    cancelAuthentication(this.authenticationFlowId);
+    const returnUrl = this.data.renewalMode && this.renewalDestination ? this.renewalDestination : this.authenticationReturnUrl;
     if (suppressSourceRedirect) suppressAuthenticationRedirectOnce(returnUrl);
-    wx.removeStorageSync("cisme.authReturnUrl");
     wx.disableAlertBeforeUnload();
     if (this.data.pageAlive) this.setData({ loading: false, identityCommitStarted: false,legalAcceptanceStarted:false,leavePromptOpen: false, leaving: true });
     return returnUrl.startsWith("/pages/") && !returnUrl.startsWith("/pages/account/") ? returnUrl : "/pages/home/index";

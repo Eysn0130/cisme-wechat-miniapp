@@ -26,7 +26,9 @@ export async function needsPortableParts(client:DbClient,memberId:string){
       (EXISTS(SELECT 1 FROM submission s WHERE s.id=m.submission_id AND s.member_id=$1)
        OR EXISTS(SELECT 1 FROM support_conversation c WHERE c.id=m.support_conversation_id AND c.member_id=$1)))+
      (SELECT count(*) FROM ugc_media_asset WHERE owner_member_id=$1 AND state IN ('uploaded','scanning','approved','rejected'))+
-     (SELECT COALESCE(sum(jsonb_array_length(media)),0) FROM editorial_article WHERE author_member_id=$1))::text AS media`,
+     (SELECT count(*) FROM editorial_article a CROSS JOIN LATERAL jsonb_array_elements(a.media) m(value)
+       CROSS JOIN LATERAL (SELECT m.value UNION ALL SELECT m.value->'poster' WHERE m.value->>'mediaType'='video') asset(value)
+       WHERE a.author_member_id=$1))::text AS media`,
     [memberId])).rows[0];
   if(Number(account?.addresses??0)>inlineRowLimit||Number(account?.media??0)>0)return true;
   let bytes=0;
@@ -145,9 +147,11 @@ export async function buildPortableParts(client:DbClient,config:AppConfig,addres
       OR EXISTS(SELECT 1 FROM support_conversation c WHERE c.id=m.support_conversation_id AND c.member_id=$1))
     UNION ALL SELECT id::text,object_key,mime_type,size_bytes,'community_upload' AS kind,sha256 AS expected_hash
       FROM ugc_media_asset WHERE owner_member_id=$1 AND state IN ('uploaded','scanning','approved','rejected')
-    UNION ALL SELECT a.id::text||':'||(m.value->>'sha256'),m.value->>'objectKey','image/webp',
-      (m.value->>'bytes')::bigint,'editorial_derived',m.value->>'sha256'
-      FROM editorial_article a CROSS JOIN LATERAL jsonb_array_elements(a.media) m(value) WHERE a.author_member_id=$1
+    UNION ALL SELECT a.id::text||':'||(asset.value->>'sha256'),asset.value->>'objectKey',COALESCE(asset.value->>'mimeType','image/webp'),
+      (asset.value->>'bytes')::bigint,'editorial_derived',asset.value->>'sha256'
+      FROM editorial_article a CROSS JOIN LATERAL jsonb_array_elements(a.media) m(value)
+      CROSS JOIN LATERAL (SELECT m.value UNION ALL SELECT m.value->'poster' WHERE m.value->>'mediaType'='video') asset(value)
+      WHERE a.author_member_id=$1
     ORDER BY id`,memberId,async row=>{
       const size=row.size_bytes===null?null:Number(row.size_bytes);
       if(size===null||!Number.isSafeInteger(size)||size<1||!storage.readRange){

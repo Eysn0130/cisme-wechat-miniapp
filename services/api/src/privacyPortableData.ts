@@ -191,9 +191,11 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       OR EXISTS(SELECT 1 FROM support_conversation c WHERE c.id=m.support_conversation_id AND c.member_id=$1))
     UNION ALL SELECT id::text,object_key,mime_type,size_bytes,'community_upload' AS kind
       FROM ugc_media_asset WHERE owner_member_id=$1 AND state IN ('uploaded','scanning','approved','rejected')
-    UNION ALL SELECT a.id::text||':'||(m.value->>'sha256'),m.value->>'objectKey','image/webp',
-      (m.value->>'bytes')::bigint,'editorial_derived'
-      FROM editorial_article a CROSS JOIN LATERAL jsonb_array_elements(a.media) m(value) WHERE a.author_member_id=$1
+    UNION ALL SELECT a.id::text||':'||(asset.value->>'sha256'),asset.value->>'objectKey',COALESCE(asset.value->>'mimeType','image/webp'),
+      (asset.value->>'bytes')::bigint,'editorial_derived'
+      FROM editorial_article a CROSS JOIN LATERAL jsonb_array_elements(a.media) m(value)
+      CROSS JOIN LATERAL (SELECT m.value UNION ALL SELECT m.value->'poster' WHERE m.value->>'mediaType'='video') asset(value)
+      WHERE a.author_member_id=$1
     ORDER BY id`,[memberId])).rows;
   const uploadedIds=new Set(uploaded.map(row=>row.id));
   const referenced=new Set<string>();

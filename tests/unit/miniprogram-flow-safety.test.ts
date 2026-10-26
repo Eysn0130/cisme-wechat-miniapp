@@ -54,7 +54,7 @@ describe("mini program submission flow safety", () => {
     const submitView = await source("apps/miniprogram/pages/submit/index.wxml");
     const layout = await source("apps/miniprogram/services/layout.ts");
 
-    expect(api).toContain("export function cancelAuthentication()");
+    expect(api).toContain("export function cancelAuthentication(flowId?: string)");
     expect(api).toContain("export function suppressAuthenticationRedirectOnce(returnUrl: string)");
     expect(api).toContain("if (suppressedAuthRedirectPath === authPath)");
     expect(api).toContain("export function resumeAuthentication(returnUrl = currentRouteUrl())");
@@ -343,13 +343,13 @@ describe("mini program submission flow safety", () => {
     expect(profile).toContain("loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true");
     expect(profile).toContain("this.data.loadAttempt === attempt");
     expect(profile).toContain("this.data.tasksAttempt !== attempt");
-    expect(profile).toContain("member:null, points:null, care:null, coreUnavailable:false, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null");
+    expect(profile).toContain("member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null");
     expect(post).toContain("onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(); }");
     expect(post).not.toContain("allowPublicBrowsing");
     expect(post).toContain("this.data.loadAttempt !== attempt");
-    expect(post).toContain('this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], mediaIndex: 0, mediaError:"",shareId: "", loading: true');
+    expect(post).toContain('this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoInitialTime:0,videoEventId:"", mediaIndex: 0, mediaError:"",shareId: "", loading: true');
     expect(post).toContain('currentEditorial(attempt:number,token:string){return this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken;}');
-    expect(post).toContain('onHide() { this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1;');
+    expect(post).toContain('onHide() { this.pauseVideo();this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1;');
     expect(tab).toContain("wx.pageScrollTo({ scrollTop: 0, duration: 0 })");
     expect(tab).toContain("reducedMotion: shouldReduceMotion()");
     expect(tabView).toContain("bar--reduced-motion");

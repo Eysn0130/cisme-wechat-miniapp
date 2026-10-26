@@ -29,7 +29,7 @@
     </view>
 
     <view wx:if="{{authorityState !== 'ready' || commercialState !== 'ready'}}" class="profile-sync-status" aria-live="polite">{{authorityState === 'loading' || commercialState === 'loading' ? '正在更新账号状态…' : '部分账号信息暂未加载，请重试。'}}<button wx:if="{{authorityState === 'error' || commercialState === 'error'}}" class="text-button" bindtap="retryAuxiliary">重试</button></view>
-    <block wx:if="{{authority.managementAvailable}}"><view class="profile-label">管理服务</view><view class="profile-group"><button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openManagement" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>管理中心</strong><small>处理订单、客服与运营事项</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button></view></block>
+    <block wx:if="{{authority.managementAvailable && managementEntryAvailable}}"><view class="profile-label">管理服务</view><view class="profile-group"><button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openManagement" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>管理中心</strong><small>处理订单、客服与运营事项</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button></view></block>
 
     <view class="profile-label">账号与活动</view>
     <view class="profile-group">

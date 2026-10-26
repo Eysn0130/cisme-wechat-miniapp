@@ -36,8 +36,24 @@ export interface PublishedEditorialCard {
   coverUrl:string|null; publishedAt:string; likeCount:number; saveCount:number;
 }
 export interface PublishedEditorialArticle extends PublishedEditorialCard {
-  version:number; body:string; media:Array<{id:string;url:string}>; liked:boolean; saved:boolean;
+  version:number; body:string; media:PublishedEditorialMedia[]; liked:boolean; saved:boolean;
   following:boolean; isMine:boolean; interactionsEnabled:boolean; sourceUrl:string|null; provenanceLabel:string;
+}
+export type PublishedEditorialMedia = {id:string;url:string;type?:"image"} | {
+  id:string;url:string;type:"video";mimeType:"video/mp4";width:number;height:number;durationMs:number;posterUrl:string;
+};
+export interface EditorialVideo { src:string;poster:string;height:number;durationSeconds:number }
+/** Images and videos share the publication-controlled media route. A video
+ * must have its own authorized poster and cannot enter the image gallery. */
+export function editorialDisplayMedia(media:PublishedEditorialMedia[]):{images:string[];video:EditorialVideo|null} {
+  const videos=media.filter(item=>item.type==="video");
+  if(!videos.length)return {images:media.map(item=>editorialMediaSrc(item.url)).filter(Boolean),video:null};
+  const video=videos[0];
+  if(media.length!==1||video?.type!=="video"||video.mimeType!=="video/mp4"||
+    ![video.width,video.height,video.durationMs].every(value=>Number.isSafeInteger(value)&&value>0))throw new Error("EDITORIAL_VIDEO_INVALID");
+  const src=editorialMediaSrc(video.url),poster=editorialMediaSrc(video.posterUrl);
+  if(!src||!poster)throw new Error("EDITORIAL_VIDEO_INVALID");
+  return {images:[],video:{src,poster,height:Math.max(420,Math.min(1000,Math.round(750*video.height/video.width))),durationSeconds:video.durationMs/1000}};
 }
 export interface PublishedEditorialPage { items:PublishedEditorialCard[]; nextCursor:string|null }
 export interface EditorialAuthor { id:string; name:string; avatar:string; postCount:number; following:boolean; isMine:boolean }
@@ -52,7 +68,7 @@ export function expiredEditorialRead(error:unknown,token:string):boolean {
 }
 export const editorialIdentifier = (id:string):boolean => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 function identifier(id:string):string { if(!editorialIdentifier(id))throw new Error("EDITORIAL_ID_INVALID");return encodeURIComponent(id); }
-/** Only the licensed public-media route may become an image URL. Object keys
+/** Only the licensed public-media route may become a media URL. Object keys
  * and external URLs are never treated as an authorized publication. */
 export function editorialMediaSrc(path:string|null|undefined):string {
   if(!path||!/^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/.test(path))return "";

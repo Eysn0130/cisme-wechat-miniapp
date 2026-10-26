@@ -7,6 +7,7 @@
     "wx.chooseMedia",
     "wx.compressImage",
     "wx.createSelectorQuery",
+    "wx.createVideoContext",
     "wx.disableAlertBeforeUnload",
     "wx.downloadFile",
     "wx.enableAlertBeforeUnload",
@@ -581,6 +582,14 @@
       "activation": "具名root操作在确认正式主机/独立cisme_trial/源码制品/关闭能力后，停止并排空体验writer",
       "serverStorage": "pg_dump stdout直管AES-256-GCM，独立root0600随机key与密文在root0700 operation目录；完整认证/hash后仅pg_restore --list结构读取，私有摘要/正文/密钥不外发",
       "currentGate": "只trial，不触及正式库；真实snapshot引用才可migrate up；不执行restore/down、不承诺媒体或远程容灾，最新抑制事实缺失不得恢复相应旧资料"
+    },
+    {
+      "surface": "wx.createVideoContext",
+      "informationType": "社区原帖视频的播放位置与全屏状态",
+      "purpose": "用户主动播放视频；离开页面时暂停，返回后可手动从原位置继续",
+      "activation": "社区精选详情存在已发布视频且用户点击播放",
+      "serverStorage": "播放位置仅在当前页面实例内存保存；不上传播放行为，不采集相册、麦克风或摄像头数据",
+      "currentGate": "仅同源已授权精选媒体路由；无外部视频播放器或第三方统计SDK"
     }
   ],
   "runtimeDataEgress": [
@@ -961,5 +970,13 @@
     "productionChanged": false,
     "restorePerformed": false,
     "businessAdmissionGranted": false
+  },
+  "brandEditorialMediaReview20261026": {
+    "scope": "User-authorized migration of all 14 public CISME brand notes, 20 images and 4 videos; preserve source provenance without copying engagement or asserting that undeclared media are AI-generated.",
+    "runtimeRecipients": "Existing CISME API and isolated object storage only. Native video loads the controlled public-media route and poster; same withdrawal and author-state guards as article reads.",
+    "preparation": "Observed public platform media downloaded without cookies or credentials; local H.264/AAC derivation retains source SHA. Transcoding tools are not installed or invoked by the API runtime.",
+    "identity": "Existing canonical owner binding stays server-side; no nickname-based identity lookup, new account, grant, consent or phone collection.",
+    "storageAndExport": "Video and poster retain accurate MIME and owner-scoped portability; no migration or collection-purpose change.",
+    "nativeDeviceAcceptance": false
   }
 }

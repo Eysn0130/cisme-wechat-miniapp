@@ -11,9 +11,9 @@ describe("role-aware native support UX",()=>{
  });
  it("shows support to members and management only from server authority",async()=>{
   const [view,logic,authority]=await Promise.all([read("apps/miniprogram/pages/profile/index.wxml"),read("apps/miniprogram/pages/profile/index.ts"),read("apps/miniprogram/services/authority.ts")]);
-  expect(view).toContain("客服</strong>");expect(view).toContain('wx:if="{{authority.managementAvailable}}"');expect(view).toContain("管理中心");
+  expect(view).toContain("客服</strong>");expect(view).toContain('wx:if="{{authority.managementAvailable && managementEntryAvailable}}"');expect(view).toContain("管理中心");
   expect(logic).toContain("authorityProjection(this)");expect(authority).toContain('/v1/me/authority');expect(authority).not.toContain("isAdmin");
-  expect(logic).toMatch(/!requireMemberAccess\(\).*authority:null,commercialEligible:false,commercialAccessible:false,supportUnread:null/);
+  expect(logic).toMatch(/!requireMemberAccess\(\).*authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null/);
  });
  it("uses a shared cursor state machine, bounded non-overlapping polling and explicit AI/human labels",async()=>{
   const [userLogic,userView,operatorLogic,operatorView,state]=await Promise.all([read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml"),read("apps/miniprogram/services/support-thread-state.ts")]);

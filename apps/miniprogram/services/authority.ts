@@ -1,8 +1,20 @@
 import { pageRead } from "./page-requests";
 import { request } from "./api";
 
-export type Capability = "support.read" | "support.reply" | "support.assign" | "commerce.product.manage" | "commerce.qualification.manage" | "commerce.inventory.manage" | "commerce.order.read" | "commerce.aftersale.review" | "commerce.return.receive" | "commerce.return.inspect" | "commerce.fulfillment.manage" | "commerce.refund.approve" | "commerce.money.reconcile" | "community.moderate" | "member.support_view" | "member.profile.read" | "member.manage" | "commission.read" | "commission.rate.manage" | "commission.rate.approve" | "commission.settlement.approve" | "privacy.request.manage";
+export type Capability = "support.read" | "support.reply" | "support.assign" | "commerce.product.manage" | "commerce.qualification.manage" | "commerce.inventory.manage" | "commerce.order.read" | "commerce.aftersale.review" | "commerce.return.receive" | "commerce.return.inspect" | "commerce.fulfillment.manage" | "commerce.refund.approve" | "commerce.money.reconcile" | "community.moderate" | "member.support_view" | "member.profile.read" | "member.manage" | "commission.read" | "commission.rate.manage" | "commission.rate.approve" | "commission.settlement.approve" | "privacy.request.manage" | "editorial.manage";
 export interface AuthorityProjection { version: 1; capabilities: Capability[]; managementAvailable: boolean }
+
+const nativeManagementEntries: readonly Capability[] = [
+  "support.read", "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage",
+  "commerce.order.read", "commerce.aftersale.review", "commerce.return.receive", "commerce.return.inspect",
+  "commerce.fulfillment.manage", "member.profile.read", "privacy.request.manage",
+  "commerce.refund.approve", "commission.settlement.approve", "commerce.money.reconcile"
+];
+/** A valid backend grant need not have an editable workspace in this package. */
+export function hasNativeManagementEntry(projection: AuthorityProjection | null | undefined): boolean {
+  return Boolean(projection?.managementAvailable === true && projection.version === 1 && Array.isArray(projection.capabilities)
+    && nativeManagementEntries.some(capability => projection.capabilities.includes(capability)));
+}
 
 export async function authorityProjection(page?: object): Promise<AuthorityProjection> {
   const options = { path:"/v1/me/authority",cacheTags:["member","authority"] };

@@ -73,3 +73,6 @@
 .post-follow,.post-source-link { min-height:44px; }
 .post-copy { display:block; white-space:pre-wrap; }
 .post-editorial-actions .post-bottom-action { flex:1; min-width:48px; }
+
+.post-video-wrap { width:100%; background:#171219; }
+.post-video { display:block; width:100%; }
