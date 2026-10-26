@@ -1,12 +1,12 @@
 {
   "pages": [
+    "pages/account/index",
     "pages/home/index",
     "pages/records/index",
     "pages/community/index",
     "pages/profile/index"
   ],
   "subPackages": [
-    { "root": "pages/account", "pages": ["index"] },
     { "root": "pages/task", "pages": ["index"] },
     { "root": "pages/submit", "pages": ["index"] },
     { "root": "pages/progress", "pages": ["index"] },

@@ -23,9 +23,21 @@ export const CAPABILITIES = [
   "commerce.fulfillment.manage", "commerce.refund.approve", "commerce.money.reconcile",
   "community.moderate", "member.support_view", "member.profile.read", "member.manage",
   "commission.read", "commission.rate.manage", "commission.rate.approve",
-  "commission.settlement.approve", "privacy.request.manage"
+  "commission.settlement.approve", "privacy.request.manage", "editorial.manage"
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
+export interface EditorialCard {
+  id:string;title:string;excerpt:string;authorId:string;author:string;avatar:string;
+  coverUrl:string|null;publishedAt:string;likeCount:number;saveCount:number;
+}
+export interface EditorialDetail extends EditorialCard {
+  version:number;body:string;media:Array<{id:string;url:string}>;liked:boolean;saved:boolean;
+  following:boolean;isMine:boolean;interactionsEnabled:true;sourceUrl:string|null;provenanceLabel:string;
+}
+export interface EditorialPage { items:EditorialCard[];nextCursor:string|null }
+export interface EditorialAuthorPage extends EditorialPage {
+  author:{id:string;name:string;avatar:string;postCount:number;following:boolean;isMine:boolean};
+}
 export type SupportConversationStatus = "ai_active" | "waiting_human" | "human_active" | "resolved";
 export type SupportSenderType = "user" | "ai" | "admin" | "system";
 export type SupportMessageContentType = "text" | "image" | "order" | "mixed" | "system" | "return_instruction";

@@ -136,6 +136,16 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       reports:(await client.query(`SELECT id,target_type,target_id,category,description,state,
         created_at,updated_at FROM ugc_report WHERE reporter_member_id=$1
         ORDER BY created_at,id`,[memberId])).rows},
+    editorial:{articles:(await client.query(`SELECT id,external_ref,author_display_name,title,excerpt,body,
+        source_url,authorization_ref,media,content_sha256,status,version,published_at,created_at,updated_at
+        FROM editorial_article WHERE author_member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      publicationEvidence:(await client.query(`SELECT r.article_id,r.version,r.content_sha256,r.action,
+        r.authorization_sha256,r.rights_sha256,r.created_at FROM editorial_article_revision r JOIN editorial_article a ON a.id=r.article_id
+        WHERE a.author_member_id=$1 OR r.actor_member_id=$1 ORDER BY r.article_id,r.version`,[memberId])).rows,
+      reactions:(await client.query(`SELECT post_id,kind,created_at FROM community_reaction
+        WHERE member_id=$1 AND post_id LIKE 'editorial:%' ORDER BY created_at,post_id,kind`,[memberId])).rows,
+      follows:(await client.query(`SELECT author_id,created_at FROM community_follow
+        WHERE member_id=$1 ORDER BY created_at,author_id`,[memberId])).rows},
     membership:{state:(await client.query(`SELECT state,effective_at,expires_at,updated_at
         FROM commercial_membership WHERE member_id=$1`,[memberId])).rows[0]??null,
       referralCode:(await client.query(`SELECT code,state,created_at,disabled_at
@@ -175,12 +185,15 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       JOIN commerce_order o ON o.id=a.order_id WHERE o.member_id=$1 ORDER BY a.order_id`,[memberId])).rows;
   (sections.commerce as Record<string,unknown>).deliveryAddresses=orderAddresses.map(row=>({orderId:row.order_id,
     address:addresses.openOrderSnapshot(memberId,row.order_id,row.encrypted_payload,row.payload_hmac,row.key_version)}));
-  const uploaded=(await client.query<MediaRow>(`SELECT m.id,m.object_key,m.mime_type,m.size_bytes,'member_upload' AS kind
+  const uploaded=(await client.query<MediaRow>(`SELECT m.id::text,m.object_key,m.mime_type,m.size_bytes,'member_upload' AS kind
     FROM media_object m WHERE m.upload_state='uploaded' AND m.deleted_at IS NULL AND (
       EXISTS(SELECT 1 FROM submission s WHERE s.id=m.submission_id AND s.member_id=$1)
       OR EXISTS(SELECT 1 FROM support_conversation c WHERE c.id=m.support_conversation_id AND c.member_id=$1))
-    UNION ALL SELECT id,object_key,mime_type,size_bytes,'community_upload' AS kind
+    UNION ALL SELECT id::text,object_key,mime_type,size_bytes,'community_upload' AS kind
       FROM ugc_media_asset WHERE owner_member_id=$1 AND state IN ('uploaded','scanning','approved','rejected')
+    UNION ALL SELECT a.id::text||':'||(m.value->>'sha256'),m.value->>'objectKey','image/webp',
+      (m.value->>'bytes')::bigint,'editorial_derived'
+      FROM editorial_article a CROSS JOIN LATERAL jsonb_array_elements(a.media) m(value) WHERE a.author_member_id=$1
     ORDER BY id`,[memberId])).rows;
   const uploadedIds=new Set(uploaded.map(row=>row.id));
   const referenced=new Set<string>();

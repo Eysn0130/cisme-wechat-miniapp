@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "source-review-and-synthetic-reproduction-not-native-acceptance",
+  "date": "2026-10-26",
+  "routesReviewed": 40,
+  "confirmedP1": 0,
+  "confirmedP2": 4,
+  "fixedP2": [
+    "settings-independent-refresh-after-profile-edit",
+    "support-chat-authority-failure-finishes-loading",
+    "catalog-entry-consistent-capability-or",
+    "referral-edit-releases-busy-and-rejects-old-result"
+  ],
+  "sourceReviewSha256": "ec8957b36f76138f7127009da5dfbea65ff09aa885f5db1021ce3fcbba831e07",
+  "fullNativeStateMatrixPassed": false,
+  "physicalDevicePassed": false,
+  "newCommunityPublished": false,
+  "notes": "Current feature source must be frozen and compiled before screenshots or device results can be attached; historical guest screenshots only cover their recorded package hash."
+}

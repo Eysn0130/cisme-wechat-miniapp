@@ -98,6 +98,46 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    // Migration 98 is independently reversible only while editorial evidence
+    // is empty. Preserve the old capability set and all older rollback guards.
+    for(const table of ['editorial_article','editorial_article_revision'])
+      expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
+    const capabilityNames=async()=>{
+      const definition=(await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conrelid='authority_grant'::regclass AND conname='authority_grant_capability_check'")).rows[0].definition as string;
+      return [...definition.matchAll(/'([a-z][a-z_.]+)'/g)].map(match=>match[1]!).sort();
+    };
+    const extendedCapabilities=await capabilityNames();
+    expect(extendedCapabilities).toContain('editorial.manage');
+    const evidenceOwner=(await pool.query("INSERT INTO member(display_name) VALUES('synthetic migration evidence author') RETURNING id")).rows[0].id;
+    const evidence=(await pool.query(`INSERT INTO editorial_article(external_ref,author_member_id,author_display_name,title,excerpt,body,
+      authorization_ref,rights_evidence,content_sha256,status,published_by,published_principal_id)
+      VALUES('synthetic-migration-preservation',$1,'合成测试作者','合成测试标题','','合成测试正文','synthetic-test','{}',$2,'draft',$1,'synthetic-test') RETURNING id`,
+      [evidenceOwner,'a'.repeat(64)])).rows[0].id;
+    await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({
+      stderr:expect.stringContaining('EDITORIAL_EVIDENCE_REQUIRES_DATA_PRESERVATION')
+    });
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    expect((await pool.query('SELECT id FROM editorial_article WHERE id=$1',[evidence])).rowCount).toBe(1);
+    await pool.query('DELETE FROM editorial_article WHERE id=$1',[evidence]);
+    await closePool(pool);
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    for(const table of ['editorial_article','editorial_article_revision'])
+      expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBeNull();
+    expect(await capabilityNames()).toEqual(extendedCapabilities.filter(name=>name!=='editorial.manage'));
+    expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_watch_control') name")).rows[0].name).toBe('commerce_wechat_receipt_watch_control');
+    await closePool(pool);
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
+    pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    for(const table of ['editorial_article','editorial_article_revision'])
+      expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
+    expect(await capabilityNames()).toEqual(extendedCapabilities);
+    await closePool(pool);
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    pool=migrationPool();migrationCount-=1;extensionCount-=1;
+
     // Round-trip the watcher and observation separately before the older
     // catalog migration guard. This fixture has no receipt observations.
     await closePool(pool);
@@ -235,7 +275,10 @@ describe("empty and N-1 database lifecycle", () => {
 
     await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount+2);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.length);
+    for(const table of ['editorial_article','editorial_article_revision'])
+      expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
+    expect(await capabilityNames()).toEqual(extendedCapabilities);
     expect((await pool.query("SELECT to_regclass('public.community_comment') name")).rows[0].name).toBe("community_comment");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_target_type_check'")).rows[0].definition).toContain("invite");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_invite_target_check'")).rows[0].definition).toContain("home");

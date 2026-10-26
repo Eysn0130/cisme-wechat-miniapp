@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "996b879292eb0b85b26bc355959a97e55681504df8c9d4aa874481faa93efdb8",
+  "migrationSetSha256": "f8d5fd24d57efc0d9449ff15fdbfd7c23628c65597c685f8df08a521c40b72ab",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -3622,17 +3622,18 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "member_id",
+      "specialHandling": "Only current member-owned relationships. Editorial reactions use editorial:UUID; author references do not authorize exporting another profile. Self account closure removes own editorial reactions and affected follow relationships; generic table erasure remains disabled.",
+      "exportFields": [
         "author_id",
         "created_at"
+      ],
+      "excludedFields": [
+        "member_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
-      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "community_post_stats",
@@ -3662,18 +3663,19 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
-      "exportFields": [],
-      "excludedFields": [
-        "member_id",
+      "specialHandling": "Only current member-owned relationships. Editorial reactions use editorial:UUID; author references do not authorize exporting another profile. Self account closure removes own editorial reactions and affected follow relationships; generic table erasure remains disabled.",
+      "exportFields": [
         "post_id",
         "kind",
         "created_at"
       ],
+      "excludedFields": [
+        "member_id"
+      ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
-      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "consent_acceptance",
@@ -3880,6 +3882,83 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "editorial_article",
+      "subjectPaths": [
+        [
+          "editorial_article.author_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "published_by",
+        "published_principal_id"
+      ],
+      "specialHandling": "Author and publishing operator are distinct. Public nickname is an explicitly authorized snapshot, never identity proof. Export author-owned article fields and derived media; private operator keys and raw rights_evidence excluded. Withdrawal/inactive author blocks public reads; non-held self-closure redacts live text. Withdrawn media cleanup separately checks current version, holds and references.",
+      "exportFields": [
+        "id",
+        "external_ref",
+        "author_display_name",
+        "title",
+        "excerpt",
+        "body",
+        "source_url",
+        "authorization_ref",
+        "media",
+        "content_sha256",
+        "status",
+        "version",
+        "published_at",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "author_member_id",
+        "rights_evidence",
+        "published_by",
+        "published_principal_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_WITHDRAWAL_AND_MINIMAL_PUBLICATION_PROOF; LEGAL_HOLD_SEPARATE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "editorial_article_revision",
+      "subjectPaths": [
+        [
+          "editorial_article_revision.article_id -> editorial_article.id",
+          "editorial_article.author_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "editorial_article_revision.actor_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "actor_member_id",
+        "actor_principal_id"
+      ],
+      "specialHandling": "Immutable minimal publication proof contains hashes, action, version and necessary actor relation only; no body, nickname or authorization transcript. Export fixed evidence projection only when the member is the author or actor; never expose another actor identity. No general-purpose deletion or full retention signoff.",
+      "exportFields": [
+        "article_id",
+        "version",
+        "content_sha256",
+        "action",
+        "authorization_sha256",
+        "rights_sha256",
+        "created_at"
+      ],
+      "excludedFields": [
+        "actor_member_id",
+        "actor_principal_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_WITHDRAWAL_AND_MINIMAL_PUBLICATION_PROOF; LEGAL_HOLD_SEPARATE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "eligibility_campaign",
@@ -7055,5 +7134,11 @@
   ],
   "formalSelfServiceErasureScope": "member_optional_profile_v1; optional account/contact/address data only; transactions retained; legal holds delay execution",
   "transactionRetentionBusinessBaselineConfirmed": true,
-  "editorialRetirementReview20260925": "Only catalog_product.image_path and its allowlist constraint change; no subject relationship, export field, retention class or production erasure scope changes. Historical order line snapshots remain immutable and the client replaces their retired image paths at display time."
+  "editorialRetirementReview20260925": "Only catalog_product.image_path and its allowlist constraint change; no subject relationship, export field, retention class or production erasure scope changes. Historical order line snapshots remain immutable and the client replaces their retired image paths at display time.",
+  "ownedEditorialReview20261026": {
+    "source": "services/api/src/editorial.ts; privacyPortableQueries.ts; accountClosure.ts",
+    "tableCount": 2,
+    "genericProductionErasureExpanded": false,
+    "scope": "Fixed owner export and specific closure projection; not a global personal-data deletion permission. Rights evidence is private and excluded from raw author export."
+  }
 }

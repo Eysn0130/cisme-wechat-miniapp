@@ -13,7 +13,7 @@ Page({
   onShow(){this.data.alive=true;const token=getApp<IAppOption>().globalData.sessionToken;
     if(sessionOwners.get(this)!==token){sessionOwners.set(this,token);this.setData({key:confirmationKey(),busy:false,confirmed:false,preview:null,error:"",status:""});}},
   onUnload(){this.data.alive=false;},
-  editCode(event:WechatMiniprogram.Input){this.setData({code:normalized(event.detail.value),key:confirmationKey(),confirmed:false,preview:null,error:"",status:""});},
+  editCode(event:WechatMiniprogram.Input){this.setData({code:normalized(event.detail.value),key:confirmationKey(),busy:false,confirmed:false,preview:null,error:"",status:""});},
   async preview(){
     const code=this.data.code;if(!/^CM[A-HJ-NP-Z2-9]{10}$/.test(code)){this.setData({error:"请输入完整的 12 位会员推荐码。"});return;}
     const token=getApp<IAppOption>().globalData.sessionToken;

@@ -48,6 +48,10 @@ describe("account consumes validated legal bootstrap without weakening consent",
     expect(markup).toContain('disabled="{{loading || leaving || !legalTextsReady}}"');
     expect(markup).toContain("account-legal-status--error");
     expect(markup).not.toContain('class="account-row__icon">1</view>');
-    expect(markup).toContain("手机号可稍后绑定。");
+    expect(markup).not.toContain("手机号可稍后绑定");
+    expect(markup).toContain('wx:if="{{!renewalMode && loginStage === \'login\' && phoneCapabilityKnown && phoneBindingEnabled}}" class="account-phone-note"');
+    expect(markup).toContain("可在微信弹窗授权手机号，用于护理服务联系；也可暂不授权。");
+    expect(markup).not.toContain("当前暂未开放手机号授权");
+    expect(markup).not.toContain("微信登录并选择手机号");
   });
 });

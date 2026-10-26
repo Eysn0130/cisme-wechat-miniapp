@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_UNPUBLISHED",
+  "version": "2026-10-26-v2",
+  "sourceCandidateDirectory": "tmp/launch-20261026/trial-legal-2026-10-26-v2",
+  "sourcePublicationSha256": "8d106b24661812dd0b74a3c2eee5399fe596073a53d10f62d6e058302a22a8d6",
+  "reviewAdjustment": "Public author display may use explicitly authorized real operator nickname; no expectation of a separate artificial brand member or avatar.",
+  "serverPublished": false,
+  "memberAcceptanceCreated": false,
+  "files": {
+    "TERMS-CANDIDATE.md": {
+      "sha256": "e3434c8eec6bc4532afe315d53dfa8fa9af0783a89a4e9f18770d7e8e2ef5be1",
+      "bytes": 4469
+    },
+    "PRIVACY-CANDIDATE.md": {
+      "sha256": "8821c9e3240bd7a0a75f823abb8b76e4de68f541dedb94140e09f8a7446f9212",
+      "bytes": 6631
+    },
+    "PUBLICATION-FACTS.json": {
+      "sha256": "7470e7bf4788e4e458c434d87bcb40ba5656ef4d22f2ef5ea28fc3b4db771d16",
+      "bytes": 13205
+    },
+    "publication-candidate.json": {
+      "sha256": "1af2b089242bf7e37aaf0416cd392c680e9909585845c5fa632daa0c1126c6d6",
+      "bytes": 22853
+    }
+  }
+}

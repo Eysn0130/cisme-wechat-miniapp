@@ -184,6 +184,46 @@ describe("mini-program page behavior", () => {
     expect(settings.data.editingAddresses).toBe(true);
   });
 
+  it.each([false, true])("refreshes settings phone and consent state without discarding a dirty profile draft (already dirty: %s)", async (alreadyDirty) => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "member-a" } });
+    let resolveSnapshot!: (value: unknown) => void;
+    requestMock.mockImplementationOnce(() => new Promise(resolve => { resolveSnapshot = resolve; }));
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings = mountedPage(capturedPage!, { pageAlive: true, profileReady: true,
+      displayName: alreadyDirty ? "尚未保存的昵称" : "原昵称", profileDirty: alreadyDirty, phoneMasked: "", consents: [] });
+    settings.profileSessionToken = "member-a";
+    const pending = settings.loadSettingsBootstrap();
+    if (!alreadyDirty) settings.editDisplayName({ detail: { value: "尚未保存的昵称" } });
+    resolveSnapshot({ settings: {
+      profile: { id: "member-a", display_name: "服务端昵称", avatar_data_url: null, profile_revision: 2 },
+      phone: { enabled: true, bound: true, masked: "138****0001" },
+      consents: [{ id: "consent-a", purpose: "content_storage", status: "granted" }]
+    } });
+    await pending;
+    expect(settings.data).toMatchObject({ displayName: "尚未保存的昵称", profileDirty: true,
+      authenticated: true, sessionStatus: "valid", phoneMasked: "138****0001", phoneBound: true,
+      loading: false, phoneLoading: false, error: "" });
+    expect(settings.data.consents).toEqual([expect.objectContaining({ id: "consent-a", purposeLabel: "安全存储投稿证据" })]);
+  });
+
+  it("recovers settings state after a failed bootstrap without losing an unsaved profile", async () => {
+    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "member-a" } });
+    requestMock.mockRejectedValueOnce(new Error("offline"));
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings = mountedPage(capturedPage!, { pageAlive: true, profileReady: true,
+      displayName: "我的草稿", profileDirty: true });
+    await settings.loadSettingsBootstrap();
+    expect(settings.data).toMatchObject({ loading: false, phoneLoading: false, displayName: "我的草稿", profileDirty: true });
+    expect(settings.data.error).toContain("重试");
+    requestMock.mockResolvedValueOnce({ settings: {
+      profile: { id: "member-a", display_name: "旧昵称", avatar_data_url: null },
+      phone: { enabled: false, bound: false, masked: "" }, consents: []
+    } });
+    await settings.loadSettingsBootstrap();
+    expect(settings.data).toMatchObject({ loading: false, phoneLoading: false, sessionStatus: "valid",
+      displayName: "我的草稿", profileDirty: true, phoneEnabled: false, phoneBound: false, consents: [], error: "" });
+  });
+
   it("does not import a previous member's WeChat address after the session changes", async () => {
     let session = "member-a";
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: session } });
@@ -445,6 +485,7 @@ describe("mini-program page behavior", () => {
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: "", apiBaseUrl: "https://synthetic.invalid" } });
     const item = { id: "real-submission", title: "Submitted story", excerpt: "Submitted text", cover_object_key: "private/object.jpg" };
     requestMock.mockImplementation(async ({ path }: { path: string }) => {
+      if (path.startsWith("/v1/editorial/articles?")) return {items:[],nextCursor:null};
       if (path === "/v1/capabilities") return { ugcGoLiveGate: true, communityPreviewEnabled: false };
       if (path === "/v1/ugc/status") return { publicEnabled: true };
       if (path.startsWith("/v1/ugc/posts")) return { items: [], nextCursor: null };
@@ -1086,7 +1127,8 @@ describe("mini-program page behavior", () => {
     requestMock.mockRejectedValueOnce(new Error("response lost after server commit"));
     await vi.importActual("../../apps/miniprogram/pages/account/index");
     const page = capturedPage!;
-    const context = mountedPage(page, { agreementAccepted: true, legalTextsReady: true });
+    const context = mountedPage(page, { agreementAccepted: true, legalTextsReady: true,
+      serverLegalDocuments: { privacy: "v1", terms: "v1", localFixture: false } });
     await page.login.call(context);
     expect(requestMock).toHaveBeenCalledTimes(1);
     expect(context.data.error).toContain("服务端可能已完成核验");
@@ -1097,7 +1139,8 @@ describe("mini-program page behavior", () => {
     requestMock.mockRejectedValueOnce({status:410,code:"ACCOUNT_CLOSED",title:"账号已注销"});
     await vi.importActual("../../apps/miniprogram/pages/account/index");
     const page=capturedPage!;
-    const context=mountedPage(page,{agreementAccepted:true,legalTextsReady:true});
+    const context=mountedPage(page,{agreementAccepted:true,legalTextsReady:true,
+      serverLegalDocuments:{privacy:"v1",terms:"v1",localFixture:false}});
     await page.login.call(context);
     expect(context.data.error).toContain("账号已注销");
     expect(context.data.error).not.toContain("服务端可能已完成核验");

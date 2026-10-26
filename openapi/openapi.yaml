@@ -400,6 +400,78 @@ paths:
         required: true
         content: {application/json: {schema: {type: object, required: [code], properties: {code: {type: string, minLength: 1, maxLength: 512}}}}}
       responses: {'200': {description: Bound and masked number}, '409': {description: Code consumed by another member or phone already bound}, '503': {description: Binding service unavailable}}
+  /v1/me/legal-acceptances:
+    post:
+      operationId: acceptCurrentLegalWithExistingSession
+      security: [{session: []}]
+      description: The current active canonical real WeChat member explicitly confirms exactly the current terms and privacy versions. Keeps the same member/session; never re-authenticates, changes profile, or replays an interaction. Transactionally locks current documents, rejects stale versions, preserves prior acceptances and audits only newly added records. Public reading and unrelated existing functions are not globally blocked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consents]
+              properties:
+                consents:
+                  type: array
+                  minItems: 2
+                  maxItems: 2
+                  items:
+                    type: object
+                    required: [documentType, version]
+                    properties:
+                      documentType: {type: string, enum: [terms, privacy]}
+                      version: {type: string, minLength: 1, maxLength: 100}
+      responses: {'200': {description: Accepted current documents or exact replay for the same member}, '401': {description: Current real active WeChat member required}, '409': {description: CURRENT_LEGAL_CONSENT_REQUIRED; current versions changed or unavailable}, '422': {description: Missing, duplicate or invalid explicit version selection}}
+  /v1/editorial/articles:
+    get:
+      operationId: ownedEditorialPage
+      security: []
+      description: Owner-authorized curated content, independent of ordinary public UGC and development preview gates. Only published articles from active canonical WeChat authors are visible. Optional valid member session personalizes detail, never authorizes publishing.
+      parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}]
+      responses: {'200': {description: Stable timestamp and UUID cursor page with actual stored like/save counts}, '422': {description: Invalid or mismatched cursor}}
+  /v1/editorial/articles/{id}:
+    get:
+      operationId: ownedEditorialDetail
+      security: [{}, {session: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      description: Published original or authorized article, public author snapshot and same-origin media references. Optional valid member session adds own reaction/follow state. Does not expose authorization evidence, source-object keys, contacts or WeChat identifiers.
+      responses: {'200': {description: Article with real counts, own state and provenance label}, '404': {description: Withdrawn, missing or inactive author}}
+  /v1/editorial/authors/{id}:
+    get:
+      operationId: ownedEditorialAuthor
+      security: [{}, {session: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}]
+      description: Public name and article page for a canonical active author with at least one visible owned article. The public author UUID is not a contact identifier or proof of authority.
+      responses: {'200': {description: Public author summary, own following state and stable article page}, '404': {description: No visible articles}, '422': {description: Invalid cursor}}
+  /v1/editorial/media/{id}/{sha}:
+    get:
+      operationId: ownedEditorialMedia
+      security: []
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: sha, in: path, required: true, schema: {type: string, pattern: '^[0-9a-f]{64}$'}}]
+      description: Bounded WebP derivative only after published article and active author checks. Verifies stored length, MIME type and SHA-256. Withdrawal blocks future reads; no arbitrary storage path or external fetch.
+      responses: {'200': {description: Verified WebP bytes with nosniff}, '404': {description: Not attached to a visible article}, '503': {description: Stored media unavailable or corrupt}}
+  /v1/editorial/articles/{id}/reaction:
+    put:
+      operationId: setOwnedEditorialReaction
+      security: [{session: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      description: Canonical active real WeChat member sets desired like/save state idempotently. Separate from ordinary UGC gates and preview adapters; changing state writes minimal actor audit evidence. Does not create engagement on publication.
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [kind, active], properties: {kind: {type: string, enum: [like, save]}, active: {type: boolean}}}}}
+      responses: {'200': {description: Committed own state and actual aggregate counts}, '401': {description: Real active member required}, '404': {description: Article unavailable}, '409': {description: Current terms/privacy confirmation required before new interaction}, '422': {description: Invalid desired state}}
+  /v1/editorial/articles/{id}/follow:
+    put:
+      operationId: setOwnedEditorialFollow
+      security: [{session: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      description: Canonical active real WeChat member sets desired follow state for the visible article author. Self follow is rejected. No ordinary UGC publishing authority is granted.
+      requestBody:
+        required: true
+        content: {application/json: {schema: {type: object, required: [active], properties: {active: {type: boolean}}}}}
+      responses: {'200': {description: Actual author following state}, '401': {description: Real active member required}, '404': {description: Article unavailable}, '409': {description: Current terms/privacy confirmation required before new interaction}, '422': {description: Invalid state or self follow}}
   /v1/me/community-access:
     get:
       operationId: communityCapabilities

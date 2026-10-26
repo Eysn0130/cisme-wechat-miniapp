@@ -1,23 +1,16 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "dfae3e43ee81570d7e48fb0c2accd09cf6e9be62b92ebc96b487b2b9b586a4d2",
+  "packageSourceSha256": "a5b73a96d5d1d528e6ea4b808721aec24476d8f1ba4fcfd6fdbaa08d622773bb",
   "finalResult": "blocked",
-  "evidenceIndex": {
-    "docs/evidence/native-login-deep-plum-20260927/reference-selected.png": {
-      "sha256": "d08bf5380b37d8ea2c32f3ebe557d1082e56e83650c7673adc9579b9ff6a4280",
-      "bytes": 1563801,
-      "mimeType": "image/png",
-      "widthPx": 853,
-      "heightPx": 1844,
-      "kind": "route_reference",
-      "packageSourceSha256": null,
-      "route": "pages/account/index",
-      "state": "selected-third-design",
-      "viewport": "user-approved concept"
-    }
-  },
+  "evidenceIndex": {},
   "devtools": null,
   "routeCoverage": [
+    {
+      "route": "pages/account/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
     {
       "route": "pages/home/index",
       "matrixComplete": false,
@@ -41,14 +34,6 @@
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": []
-    },
-    {
-      "route": "pages/account/index",
-      "matrixComplete": false,
-      "result": "blocked",
-      "evidenceFiles": [
-        "docs/evidence/native-login-deep-plum-20260927/reference-selected.png"
-      ]
     },
     {
       "route": "pages/task/index",

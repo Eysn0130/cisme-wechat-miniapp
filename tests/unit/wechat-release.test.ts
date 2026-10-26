@@ -28,6 +28,17 @@ const completeGates = {
 const exec = promisify(execFile);
 
 describe("WeChat release preflight", () => {
+  it("starts the published package at Account while preserving the four tab destinations",async()=>{
+    const app=JSON.parse(await readFile(resolve("apps/miniprogram/app.json"),"utf8")) as {
+      pages:string[];subPackages:Array<{root:string;pages:string[]}>;tabBar:{list:Array<{pagePath:string}>}
+    };
+    expect(app.pages[0]).toBe("pages/account/index");
+    const declared=[...app.pages,...app.subPackages.flatMap(pack=>pack.pages.map(page=>`${pack.root}/${page}`))];
+    expect(declared.filter(route=>route==="pages/account/index")).toHaveLength(1);
+    expect(app.tabBar.list.map(item=>item.pagePath)).toEqual([
+      "pages/home/index","pages/records/index","pages/community/index","pages/profile/index"
+    ]);
+  });
   it("permits source-only developer upload before trial acceptance while rejecting wrong AppID or unsafe origins",()=>{
     const input={projectAppId:"wx4eac2d4fb11d299b",expectedAppId:"wx4eac2d4fb11d299b",
       privacyCheckEnabled:true,devtoolsCliAvailable:true,trialApiOrigin:"https://staging-api.cisme.cn",
@@ -41,7 +52,7 @@ describe("WeChat release preflight", () => {
     expect(miniProgramApiOrigins.preview).toBe("https://staging-api.cisme.cn");
     expect(miniProgramApiOrigins.trial).toBe("https://staging-api.cisme.cn");
     expect(miniProgramApiOrigins.release).toBe("https://api.cisme.cn");
-    expect(miniProgramApiOrigins.devtools).toMatch(/^http:\/\/127\.0\.0\.1:/);
+    expect(miniProgramApiOrigins.devtools).toBe("https://staging-api.cisme.cn");
   });
 
   it("never uses a development identity or local consent fixture against a cloud function", () => {
@@ -49,10 +60,11 @@ describe("WeChat release preflight", () => {
       expect(shouldUseDevelopmentIdentity("develop", platform, true, true)).toBe(false);
       expect(legalDocumentVersions("develop", platform, true, true)).toBeNull();
     }
-    expect(legalDocumentVersions("develop", "devtools")?.localFixture).toBe(true);
+    expect(legalDocumentVersions("develop", "devtools")).toBeNull();
   });
-  it("uses the development identity only in the simulator or an explicit develop-mode device session", () => {
-    expect(shouldUseDevelopmentIdentity("develop", "devtools")).toBe(true);
+  it("uses real WeChat identity in DevTools and development identity only in an explicit device debug session", () => {
+    expect(shouldUseDevelopmentIdentity("develop", "devtools")).toBe(false);
+    expect(shouldUseDevelopmentIdentity("develop", "devtools", true)).toBe(false);
     expect(shouldUseDevelopmentIdentity("develop", "ios")).toBe(false);
     expect(shouldUseDevelopmentIdentity("develop", "android")).toBe(false);
     expect(shouldUseDevelopmentIdentity("develop", "ios", true)).toBe(true);

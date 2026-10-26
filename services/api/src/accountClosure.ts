@@ -354,6 +354,23 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
       WHERE member_id=$1 AND key_version<>'erased'`,[marker.memberId])).rowCount??0;
   }
 
+  // Closing an author account withdraws its public editorial and media immediately.
+  // Necessary publication proof contains hashes only; live text may be redacted unless held.
+  changed+=(await client.query(`WITH targets AS (
+    SELECT a.id,($2::boolean OR EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+      WHERE h.status='active' AND h.expires_at>now() AND b.object_type='editorial_article' AND b.object_id=a.id::text)) AS held
+    FROM editorial_article a WHERE a.author_member_id=$1
+  ) UPDATE editorial_article a SET status='withdrawn',
+    author_display_name=CASE WHEN t.held THEN a.author_display_name ELSE '已注销用户' END,
+    title=CASE WHEN t.held THEN a.title ELSE '已撤回内容' END,
+    excerpt=CASE WHEN t.held THEN a.excerpt ELSE '' END,
+    body=CASE WHEN t.held THEN a.body ELSE '已撤回内容' END,
+    source_url=CASE WHEN t.held THEN a.source_url ELSE NULL END,
+    rights_evidence=CASE WHEN t.held THEN a.rights_evidence ELSE '{}'::jsonb END,
+    updated_at=now() FROM targets t WHERE a.id=t.id AND (a.status<>'withdrawn' OR NOT t.held AND a.author_display_name<>'已注销用户')`,[marker.memberId,held])).rowCount??0;
+  changed+=(await client.query(`DELETE FROM community_reaction WHERE member_id=$1 AND post_id LIKE 'editorial:%'`,[marker.memberId])).rowCount??0;
+  changed+=(await client.query('DELETE FROM community_follow WHERE member_id=$1::uuid OR author_id=$1::text',[marker.memberId])).rowCount??0;
+
   const previousMembership=(await client.query<{state:string}>(
     'SELECT state FROM commercial_membership WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];
   const membership=(await client.query<{version:number;effective_at:Date;expires_at:Date|null}>(

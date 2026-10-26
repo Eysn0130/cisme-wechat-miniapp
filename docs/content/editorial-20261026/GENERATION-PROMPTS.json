@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "tool": "built-in image_gen.imagegen",
+  "skill": "/Users/mini/.codex/skills/.system/imagegen/SKILL.md",
+  "mode": "built-in only; no CLI fallback, no API key used",
+  "requestedAspectRatio": "3:4 portrait",
+  "requestedResolution": "1536x2048 (actual resolution recorded in manifest)",
+  "transparentBackground": false,
+  "noExternalReferenceImagesUsed": true,
+  "exception": "Theme 4 discarded first revision was an edit of our own generated initial image; selected final theme 4 is fresh generation.",
+  "prompts": [
+    {
+      "number": 1,
+      "slug": "care-notebook-wooden-comb",
+      "prompt": "Use case: photorealistic-natural. Create ONE distinct editorial cover image for a native WeChat hair-care journal, portrait 3:4 aspect ratio, 1536 x 2048. A quiet still life of a closed pale lavender linen-bound care notebook and a real wooden comb on a warm white tabletop, a small corner of white cotton cloth. Natural paper fibers and wood grain, soft window light, understated deep plum detail from the notebook ribbon, authentic slight imperfections. Close editorial photography, calm and spacious composition, no collage. No visible writing, letters, logos, watermarks, branded packaging, people, medical imagery, treatment claims, or before-and-after comparison. Photorealistic materials rather than 3D render."
+    },
+    {
+      "number": 2,
+      "slug": "scalp-and-hair-care-still-life",
+      "prompt": "Use case: photorealistic-natural. Create ONE distinct editorial cover image for a native WeChat hair-care community, portrait 3:4 aspect ratio, 1536 x 2048. A tactile bathroom still life that quietly distinguishes scalp and hair-length care: a soft pale-lavender silicone scalp massager resting beside a plain white ceramic basin edge, and a separate broad-toothed wooden comb on folded white linen. The two care tools are clearly separate objects with usable realistic shapes. Gentle daylight, pale lavender with restrained deep plum accent in a small cloth edge, warm natural wood and white surfaces, intimate editorial photography. No text, letters, logo, branded bottles, product packaging, people, anatomical diagrams, disease, treatment claims, charts, or before-and-after comparison. One coherent photograph, not a collage."
+    },
+    {
+      "number": 3,
+      "slug": "water-droplets-linen-observation",
+      "prompt": "Use case: photorealistic-natural. Create ONE distinct editorial cover image for a native WeChat hair-care observation journal, portrait 3:4 aspect ratio, 1536 x 2048. Close-up still life of a clear glass shower panel with a few natural water droplets and gentle condensation, a softly folded ivory linen towel visible beside it, faint lavender reflections and a tiny deep plum cloth edge. Emphasize believable glass refraction, individual droplets, linen weave and soft diffuse daylight, quiet fresh mood. Balanced editorial composition with no person and no staged product advertisement. No text, numbers, logos, watermarks, bottles or branded packaging, clinical imagery, claims about washing frequency, disease, treatment, or before-and-after comparison. Single image, not collage."
+    },
+    {
+      "number": 4,
+      "slug": "gentle-towel-press-long-hair",
+      "prompt": "Use case: photorealistic-natural. Generate one new 3:4 portrait editorial photograph, 1536 x 2048. Camera is directly behind an anonymous adult with long damp dark hair. Show the BACK OF THE HEAD and both shoulders from behind: the crown and back of the head are clearly visible at the top, no face or front torso anywhere. Long hair lies straight down the center of the back of a plain white cotton T-shirt with a simple rear neckline, no robe, no belt. One anonymous hand enters only from the side edge of the photograph and gently presses a folded white cotton towel against the lower lengths of the hair; a calm blotting gesture without twisting or pulling. Soft window light, natural dark hair strands, tactile white cotton, a pale lavender wall with a small deep plum towel in the background. Quiet real-world editorial quality. No person facing camera, no face, no chest/front neckline, no logo, no text, no packaging, no medical or treatment imagery, no before-and-after, no collage.",
+      "initialPrompt": "Use case: photorealistic-natural. Create ONE distinct editorial cover image for a native WeChat hair-care journal, portrait 3:4 aspect ratio, 1536 x 2048. An anonymous adult seen only from the back in a tightly cropped shoulder-and-long-hair detail, face and head top outside frame, wearing a modest white cotton robe. Two anatomically natural hands gently press a folded white cotton towel around the lower lengths of damp dark hair, a relaxed soft blotting gesture, never twisting or rubbing. Soft natural bathroom daylight, real strands and cotton texture, pale lavender wall with one restrained deep plum fabric accent. Warm calm editorial photo, no glamour retouching or excessive hair shine. No face, identity, nudity, text, logos, branded products, product packaging, medical imagery, disease, treatment claims, before-and-after or collage.",
+      "revisionNotes": "Initial generation and one edit did not show an unambiguous rear view; selected a fresh final generation.",
+      "discardedEditPrompt": "Edit this generated editorial image to correct ONLY the camera/body orientation: show an unmistakable rear view of an anonymous adult's upper back and long damp dark hair, photographed straight from behind. No chest or front of torso, no face, no head top. Hair runs down the center of the back of a modest white cotton robe. One natural hand reaches from the side to softly press a folded white towel against the lower hair lengths at the side of the back; a gentle blotting gesture without twisting or pulling. Retain the realistic dark hair and cotton texture, soft bathroom daylight, subtle lavender and plum palette, intimate editorial feel, no visible text/logos/packaging. A coherent 3:4 portrait photo, 1536 x 2048, not a collage. Do not introduce medical claims or before-and-after."
+    },
+    {
+      "number": 5,
+      "slug": "gentle-drying-wide-tooth-comb",
+      "prompt": "Use case: photorealistic-natural. Create ONE distinct editorial cover image for a native WeChat hair-care community, portrait 3:4 aspect ratio, 1536 x 2048. A quiet practical still life: a simple unbranded matte pale-lavender hair dryer lying safely switched off on a dry ivory linen towel, a broad-toothed natural wooden comb beside it, a small deep plum cloth accent, soft light on a warm white bathroom shelf. Believable dryer handle and cool-setting switch without readable text or numbers, realistic material and linen weave, diffuse window light. Understated editorial photography suggesting gentle drying, no motion effects, no wet electrics, no product advertising. No text, logo, watermark, branded packaging, person, anatomy, disease, treatment claims, before-and-after, charts or collage."
+    },
+    {
+      "number": 6,
+      "slug": "self-reflection-care-diary",
+      "prompt": "Use case: photorealistic-natural. Create ONE distinct editorial cover image for a native WeChat self-reflection hair-care journal, portrait 3:4 aspect ratio, 1536 x 2048. A close, quiet desk still life of an open blank cream-paper diary with natural paper grain, a simple deep-plum pen resting beside the page, a pale lavender linen notebook cover partly visible, soft white cotton at the edge. Different from a closed-book cover: the open pages and pen are the clear central subjects. Gentle morning window light and subtle shadows, warm white background, tactile editorial photography with authentic small imperfections. Pages are truly blank: no handwriting, ruled charts, words, dates, labels, symbols, logos or watermark. No person, branded products, packaging, medical imagery, disease, treatment claims, before-and-after or collage."
+    }
+  ]
+}

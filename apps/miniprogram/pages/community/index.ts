@@ -3,16 +3,16 @@ import { measurementClock, recordClientMetric } from "../../services/performance
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors, prepareFeedPage } from "../../services/member-avatar";
 import { request, resumeAuthentication } from "../../services/api";
-import { editorialStoriesForRuntime } from "../../services/editorial";
+import { editorialStoriesForRuntime, editorialMediaSrc, publishedEditorialArticles, expiredEditorialRead, type PublishedEditorialCard } from "../../services/editorial";
 import { currentChromeStyle } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
 import { consumerTaskEntries } from "../../services/task-entry";
 
-const feedModels = new WeakMap<object, { feed: any[]; following: any[] }>();
+const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[] }>();
 const initialEditorialStories = editorialStoriesForRuntime();
 function feedModel(page: object) {
   let model = feedModels.get(page);
-  if (!model) { model = { feed: [], following: [] }; feedModels.set(page, model); }
+  if (!model) { model = { feed: [], following: [], editorial: [] }; feedModels.set(page, model); }
   return model;
 }
 const chromeHideTravel = 24;
@@ -25,9 +25,11 @@ let scrollDirection: -1 | 0 | 1 = 0;
 let scrollTravel = 0;
 
 Page({
-  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  readVisible:true,
+  data: { mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
+    this.readVisible=true;
     this.resetChromeMotion();
     this.setData({ navigating: false, chromeHidden: false, signedIn: Boolean(getApp<IAppOption>().globalData.sessionToken) });
     const tab = this.getTabBar?.();
@@ -38,6 +40,7 @@ Page({
     void this.load();
   },
   onHide() {
+    this.readVisible=false;
     cancelPageReads(this);
     this.data.feedAttempt += 1;
     this.data.tasksAttempt += 1;
@@ -48,6 +51,7 @@ Page({
     this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [],formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:"",reviewNotice:"" });
   },
   onUnload() {
+    this.readVisible=false;
     cancelPageReads(this); feedModels.delete(this);
     this.data.feedAttempt += 1;
     this.data.tasksAttempt += 1;
@@ -133,6 +137,7 @@ Page({
   },
   async onReachBottom(){
     if(this.data.mode==="review"){if(this.data.reportNextCursor)await this.loadMoreReports();else await this.loadMoreAppeals();return;}
+    if(this.data.mode==="featured"){await this.loadMoreEditorial();return;}
     const mode=this.data.mode,cursor=mode==="following"?this.data.followingNextCursor:this.data.formalNextCursor,
       attempt=this.data.feedAttempt;
     if(!cursor||this.data.formalLoadingMore||this.data.loading||!["recommend","following"].includes(mode)||!this.data.ugcFeedEnabled)return;
@@ -155,6 +160,18 @@ Page({
     }catch{if(attempt===this.data.feedAttempt && token===getApp<IAppOption>().globalData.sessionToken && mode===this.data.mode)this.setData({moreError:"更多内容暂时无法加载，已显示的故事保留。"});}
     finally{if(attempt===this.data.feedAttempt && token===getApp<IAppOption>().globalData.sessionToken && mode===this.data.mode)this.setData({formalLoadingMore:false});}
   },
+  async loadMoreEditorial(){
+    const cursor=this.data.editorialNextCursor,attempt=this.data.feedAttempt,token=getApp<IAppOption>().globalData.sessionToken;
+    if(this.data.mode!=="featured"||!cursor||this.data.loading||this.data.formalLoadingMore)return;
+    this.setData({formalLoadingMore:true,moreError:""});
+    try{const page=await publishedEditorialArticles(this,cursor);
+      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||this.data.mode!=="featured"||cursor!==this.data.editorialNextCursor)return;
+      const model=feedModel(this),seen=new Set(model.editorial.map(item=>item.id));
+      model.editorial=[...model.editorial,...page.items.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true;})];
+      this.setData({editorialNextCursor:page.nextCursor});this.renderFeed();
+    }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.data.mode==="featured")this.setData({moreError:"更多精选暂时无法加载，请重试。"});}
+    finally{if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.data.mode==="featured")this.setData({formalLoadingMore:false});}
+  },
   async selectMode(event: WechatMiniprogram.TouchEvent) {
     const mode = String(event.currentTarget.dataset.mode);
     if (!["featured", "recommend", "following", "review"].includes(mode) || (mode === "review" && !this.data.canReview)) return;
@@ -175,7 +192,8 @@ Page({
     const reviewed = (this.data.mode === "following" ? model.following : model.feed).map((item: any) => item.kind === "formal"
       ? { ...item, avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: `${item.likeCount || 0} 赞` }
       : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
-    const featured = editorialStoriesForRuntime().map(item => ({ ...item, author_id: "brand:cisme" }));
+    const featured = model.editorial.map(item => ({ ...item, kind:"editorial", author_id:item.authorId,
+      image:editorialMediaSrc(item.coverUrl),avatar:defaultMemberAvatar,engagementLabel:`${item.likeCount} 赞` }));
     let items = this.data.mode === "featured" ? featured : this.data.mode === "recommend" ? reviewed : reviewed.concat(featured);
     if (this.data.mode === "following") items = items.filter(item => item.kind==="formal"||this.data.follows.includes(item.author_id));
     const patch = feedColumnPatch(this.data.feedColumns, projectFeedCards(items));
@@ -384,26 +402,40 @@ Page({
     } catch (error) { if (current() && !/cancel/i.test((error as {errMsg?:string}).errMsg || "")) this.setData({ teamError: (error as {title?:string}).title || "发布未确认，请刷新核对后重试" }); }
     finally { if (current()) this.setData({ reviewBusy: false }); }
   },
+  recoverExpiredEditorialRead(attempt:number,token:string,error:unknown){
+    if(!this.readVisible||attempt!==this.data.feedAttempt||!expiredEditorialRead(error,token))return false;
+    this.data.feedAttempt+=1;this.data.tasksAttempt+=1;
+    const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];
+    this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,socialPreviewEnabled:false,canReview:false,follows:[],
+      reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
+      formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reportLoadingMore:false,appealLoadingMore:false,reviewActorId:"",reviewNotice:"",reviewBusy:false,
+      tasks:[],tasksLoading:false,tasksError:"",editorialNextCursor:null,formalNextCursor:null,followingNextCursor:null,formalLoadingMore:false,
+      moreError:"",teamError:"",error:"登录状态已失效，请重新加载公开精选。"});
+    this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);this.renderFeed();return true;
+  },
   async load() {
     cancelPageReads(this);
     this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);
     const session = getApp<IAppOption>().globalData.sessionToken;
     feedModel(this).following = [];
+    feedModel(this).editorial = [];
     const attempt = this.data.feedAttempt + 1;
     const privateMode=this.data.mode==="following"||this.data.mode==="review";
-    this.setData({ feedAttempt: attempt, loading: true, ugcFeedEnabled:false, formalNextCursor:null, followingNextCursor:null,
+    this.setData({ feedAttempt: attempt, loading: true, ugcFeedEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
       follows:[],canReview:false,reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],
       formalLoadingMore:false, moreError:"", reviewBusy: false, teamError: "", error: "",
       ...(privateMode?{feedColumns:[[],[]] as [any[],any[]],displayFeedCount:0}:{}) });
-    const tasksPromise = this.loadTasks();
+    const failedRead=(error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);return {error};};
+    const tasksPromise = this.loadTasks((error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);});
+    const editorialPromise=publishedEditorialArticles(this).then(feed=>({feed}),failedRead);
     const capabilityPromise = Promise.all([request<{ communityPreviewEnabled?: boolean }>({ path: "/v1/capabilities", authMode: "public" }),
       request<{ publicEnabled?: boolean }>({ path: "/v1/ugc/status", authMode: "public" })])
       .then(([health,ugc]) => ({ ugcFeedEnabled: ugc.publicEnabled === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
-      .catch(() => ({ ugcFeedEnabled: false, socialPreviewEnabled: false }));
-    const feedPromise = request<{items:any[];authors?:Record<string,any>}>({ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), error => ({ error }));
+      .catch(error => {failedRead(error);return { ugcFeedEnabled: false, socialPreviewEnabled: false };});
+    const feedPromise = request<{items:any[];authors?:Record<string,any>}>({ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), failedRead);
     const formalQuery=this.data.appliedSearch?`&q=${encodeURIComponent(this.data.appliedSearch)}`:"";
     const formalPromise = request<{items:any[];nextCursor:string|null}>({ path: `/v1/ugc/posts?limit=30${formalQuery}`, authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
-      .then(feed => ({ feed }), error => ({ error }));
+      .then(feed => ({ feed }), failedRead);
     this.setData({ canReview: false, follows: [], reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [] });
     const capabilities = await capabilityPromise;
     if (this.data.feedAttempt !== attempt || session !== getApp<IAppOption>().globalData.sessionToken) return;
@@ -422,11 +454,17 @@ Page({
         ]);
         if (this.data.feedAttempt !== attempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
         this.setData({ canReview: access.canReview === true, follows, mode: this.data.mode === "review" && !access.canReview ? "featured" : this.data.mode });
-      } catch { if (this.data.feedAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ canReview: false, mode: "featured" }); }
+      } catch(error) { failedRead(error);if (this.data.feedAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ canReview: false, mode: "featured" }); }
     } else this.setData({ mode: "featured" });
     try {
-      const [outcome,formalOutcome] = await Promise.all([feedPromise,formalPromise]);
-      if ("error" in outcome && "error" in formalOutcome) throw outcome.error;
+      const [outcome,formalOutcome,editorialOutcome] = await Promise.all([feedPromise,formalPromise,editorialPromise]);
+      if(this.data.feedAttempt!==attempt||session!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(this.data.mode==="featured"&&"error" in editorialOutcome)throw editorialOutcome.error;
+      if(this.data.mode==="featured"&&!capabilities.ugcFeedEnabled&&!capabilities.socialPreviewEnabled&&"feed" in editorialOutcome){
+        feedModel(this).editorial=editorialOutcome.feed.items;
+        this.setData({editorialNextCursor:editorialOutcome.feed.nextCursor,error:""});this.renderFeed();return;
+      }
+      if(this.data.mode!=="featured"&&"error" in outcome&&"error" in formalOutcome)throw outcome.error;
       const preview = !this.data.appliedSearch && "feed" in outcome ? await prepareFeedPage(outcome.feed) : [];
       const origin = getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/, "");
       const formal = "feed" in formalOutcome ? formalOutcome.feed.items.map(item => ({ ...item, kind: "formal", author_id: item.authorId,
@@ -436,18 +474,19 @@ Page({
       // Post covers still require their own authorized media path; author
       // identities come only from the server public-profile allowlist.
       feedModel(this).feed = feed;
-      this.setData({ formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: "" });
+      feedModel(this).editorial = "feed" in editorialOutcome?editorialOutcome.feed.items:[];
+      this.setData({ editorialNextCursor:"feed" in editorialOutcome?editorialOutcome.feed.nextCursor:null,formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: "" });
       this.renderFeed();
       if (this.data.mode === "review") await this.loadReview();
       else if (this.data.mode === "following") await this.loadFollowing();
     } catch (error) {
-      if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = []; this.setData({ error: "社区内容暂时无法加载，请重试。" }); this.renderFeed(); }
+      if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = [];feedModel(this).editorial=[];this.setData({ error: this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。" }); this.renderFeed(); }
     } finally {
       if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) this.setData({ loading: false });
       await tasksPromise;
     }
   },
-  async loadTasks() {
+  async loadTasks(reportFailure?:((error:unknown)=>void)|WechatMiniprogram.TouchEvent) {
     if (!getApp<IAppOption>().globalData.sessionToken) {
       this.data.tasksAttempt += 1;
       this.setData({ tasks: [], tasksLoading: false, tasksError: "" });
@@ -462,6 +501,7 @@ Page({
       const tasks = consumerTaskEntries(taskHistory);
       this.setData({ tasks, tasksError: "" });
     } catch (error) {
+      if(typeof reportFailure==="function")reportFailure(error);
       if (this.data.tasksAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ tasks: [], tasksError: "活动暂未加载，请重试" });
     } finally {
       if (this.data.tasksAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ tasksLoading: false });
@@ -475,7 +515,7 @@ Page({
     const tab = this.getTabBar?.(); if (tab) tab.setData({ externalBusy: true });
     const item = this.data.feedColumns.flat().find((entry: any) => entry.id === id);
     const route = item?.kind === "formal" ? "/pages/community-post/index" : "/pages/post/index";
-    wx.navigateTo({ url: `${route}?id=${encodeURIComponent(id)}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "护理故事暂时无法打开", icon: "none" }); } });
+    wx.navigateTo({ url: `${route}?id=${encodeURIComponent(id)}${item?.kind==="editorial"?"&source=editorial":""}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "护理故事暂时无法打开", icon: "none" }); } });
   },
   openInvite(event: WechatMiniprogram.TouchEvent) {
     if (this.data.tasksLoading || this.data.navigating) return;

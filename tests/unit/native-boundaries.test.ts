@@ -36,6 +36,10 @@ async function pageMarkup(directory: string): Promise<Array<{ path: string; sour
   return markup;
 }
 
+// Detect property access, including optional/computed access, without treating
+// a sentence ending in "document." as a browser DOM dependency.
+const browserGlobalAccess = /\b(?:window|document)\s*(?:(?:\?\.)?\s*\[|(?:\?\.|\.)\s*[A-Za-z_$])/;
+
 function buttonStartTags(source: string): string[] {
   return [...source.matchAll(/<button\b(?:[^>"']|"[^"]*"|'[^']*')*>/g)].map((match) => match[0]!);
 }
@@ -56,10 +60,16 @@ describe("native mini program boundary", () => {
 
   it("contains no React DOM, browser globals or deferred social routes", async () => {
     const source = await sources(resolve("apps/miniprogram"));
-    for (const forbidden of ["react-dom", "window.", "document.", "localStorage", "pages/growth", "pages/messages", "pages/comments", "pages/search", "pages/cart", "pages/coupons"]) expect(source).not.toContain(forbidden);
+    for (const forbidden of ["react-dom", "localStorage", "pages/growth", "pages/messages", "pages/comments", "pages/search", "pages/cart", "pages/coupons"]) expect(source).not.toContain(forbidden);
+    expect(source).not.toMatch(browserGlobalAccess);
     expect(source).toContain("wx.chooseMedia");
     expect(source).toContain("wx.uploadFile");
     expect(source).toContain("wx.login");
+  });
+
+  it("rejects actual browser global access rather than legal-document prose", () => {
+    for (const forbidden of ["document.createElement('div')", "window.location", "document . body", "window?.location", "document['body']", 'window?.["location"]']) expect(forbidden).toMatch(browserGlobalAccess);
+    expect("Never parse HTML supplied by a document. */").not.toMatch(browserGlobalAccess);
   });
 
   it("does not reference packaged WebP assets that can disappear on physical devices", async () => {
@@ -223,7 +233,7 @@ describe("native mini program boundary", () => {
       "management-support": ["back", "open", "retry"],
       "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       points: ["back", "openShop", "load"],
-      post: ["likeComment", "replyComment", "deleteComment", "back", "@share", "toggleFollow", "expandReplies", "load", "back", "loadSocial", "cancelReply", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
+      post: ["likeComment", "replyComment", "deleteComment", "back", "openAuthor", "@share", "load", "toggleFollow", "copySource", "expandReplies", "load", "back", "loadSocial", "cancelReply", "toggleLike", "toggleSave", "@share", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
       "privacy-rights": ["back", "openSupport", "@contact", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login"],
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
       checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
@@ -260,6 +270,15 @@ describe("native mini program boundary", () => {
       const logic = await readFile(resolve(root, route, "index.ts"), "utf8");
       for (const handler of new Set(actions.filter((action) => !action.startsWith("@")))) {
         expect(logic, `${route}.${handler}`).toMatch(new RegExp(`(?:async\\s+)?${handler}\\s*\\(`));
+      }
+      // A native button may bind several callbacks, e.g. tap plus phone/avatar.
+      // Lock its inventory above and verify every bound callback, not just tap.
+      const markup = await readFile(resolve(root, route, "index.wxml"), "utf8");
+      for (const tag of buttonStartTags(markup)) {
+        for (const event of ["bindtap", "catchtap", "bindgetphonenumber", "bindchooseavatar"]) {
+          const handler = attributeValue(tag, event);
+          if (handler) expect(logic, `${route}.${event}:${handler}`).toMatch(new RegExp(`(?:async\\s+)?${handler}\\s*\\(`));
+        }
       }
     }
   });

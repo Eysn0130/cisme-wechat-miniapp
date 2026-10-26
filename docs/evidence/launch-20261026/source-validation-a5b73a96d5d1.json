@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "reviewed-source-candidate-not-deployment-or-full-native-acceptance",
+  "recordedAtUtc": "2026-10-26T10:52:24.007578+00:00",
+  "nativePackageSha256": "a5b73a96d5d1d528e6ea4b808721aec24476d8f1ba4fcfd6fdbaa08d622773bb",
+  "routes": 40,
+  "unit": {
+    "passed": 1558,
+    "skipped": 1,
+    "skip": "Existing conditional test; no new skip introduced"
+  },
+  "integration": {
+    "passed": 940,
+    "files": 59,
+    "scope": "Full disposable backend suite; final subsequent edits only client expiry recovery, icon and reviewed maintenance helper, backend freeze unchanged"
+  },
+  "typecheck": true,
+  "contracts": {
+    "registeredV1Methods": 265,
+    "documentedIncludingHealth": 267,
+    "events": 32
+  },
+  "dependencyAudit": {
+    "vulnerabilities": 0,
+    "scope": "Full production and development dependency tree, unchanged lock"
+  },
+  "backendOwnedFilesUnchangedSinceIntegration": true,
+  "trialUpgradeOfflineTests": 30,
+  "trialStagerOfflineTests": 17,
+  "independentReviews": {
+    "expiryRecovery": "12a2570c89212eabab0392af30243eb251c56cdfaadeed95dc7c648c49e3c333",
+    "buildAndUpgrade": "9697117be9903c6d445fc62874afbb6f4c4ff3c84436f403bc934ad62d69e587"
+  },
+  "newSourceServerDeployed": false,
+  "newCommunityPublished": false,
+  "fullNativeMatrixPassed": false,
+  "physicalDevicePassed": false,
+  "careFulfillmentFactsCreated": false,
+  "memberConsentCreatedByAgent": false
+}

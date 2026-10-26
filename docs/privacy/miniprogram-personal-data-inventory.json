@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-10-13",
+  "inventoryDate": "2026-10-26",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -549,6 +549,38 @@
       "userDeletionOrClosure": "旧数据库归档可能保留删除前资料；本候选不备份媒体或恢复前最新抑制记录，实际恢复须另行验证完整最新体验抑制事实，禁止恢复删除资料为活跃资料",
       "legalHold": "数据库归档轮换不能替代各业务/审计保留和保全判断；不得按 30 天归档策略删除或回滚独立抑制事实",
       "audit": "未来成功回执仅含范围、归档 Key、摘要、字节数、核验布尔值及保留参数；原始 SDK/Pg 错误、私有输入和响应正文不输出；fullRecoveryQualified=false、admissionMayOpen=false"
+    },
+    {
+      "surface": "owned_editorial_publication",
+      "informationType": "真实作者会员关系、公开昵称快照、文章、授权编号、素材来源、AI配图来源摘要和最小发表凭证",
+      "purpose": "按作者明确授权在CISME社区展示自有或逐篇获授权内容",
+      "activation": "当前环境有效editorial.manage操作者逐篇核对真实作者与准备稿后发表",
+      "serverStorage": "独立editorial_article及仅含摘要/必要actor关系的editorial_article_revision；原图与WebP衍生图分开追溯",
+      "currentGate": "普通公众UGC与旧dev preview维持关闭；首次发布待真实身份核对与体验环境升级"
+    },
+    {
+      "surface": "owned_editorial_interactions",
+      "informationType": "会员编号、文章编号、点赞/收藏期望状态、关注作者关系和操作时间",
+      "purpose": "保存用户主动选择，显示真实累计数和本人当前状态",
+      "activation": "真实微信会员主动点击互动按钮；游客仅浏览，登录可返回原文",
+      "serverStorage": "community_reaction以editorial:UUID分区，community_follow保存真实作者UUID；最小审计不含会话或联系人",
+      "currentGate": "幂等设置/撤销，不能关注自己；不会因发表文章生成虚假互动"
+    },
+    {
+      "surface": "owned_editorial_rights",
+      "informationType": "本人的文章、媒体、发表摘要凭证及本人互动投影",
+      "purpose": "本人数据副本、撤回公开展示和注销后停止公开读取",
+      "activation": "既有本人认证的数据权利流程；存储清理由具名受控命令单独检查",
+      "serverStorage": "沿用有界加密副本与抑制机制；法律保全阻止正文清理但不维持公开展示",
+      "currentGate": "撤回立即停止后续文章/媒体读取；非保全注销正文脱敏；不承诺已完成自动物理媒体清理或完整容灾恢复"
+    },
+    {
+      "surface": "trial_application_predeploy_snapshot",
+      "informationType": "独立体验库当时已有数据库资料及migration journal；不含媒体文件或新生成的微信同意",
+      "purpose": "本次唯一98 schema升级前的实际同机数据保护与失败核对",
+      "activation": "具名root操作在确认正式主机/独立cisme_trial/源码制品/关闭能力后，停止并排空体验writer",
+      "serverStorage": "pg_dump stdout直管AES-256-GCM，独立root0600随机key与密文在root0700 operation目录；完整认证/hash后仅pg_restore --list结构读取，私有摘要/正文/密钥不外发",
+      "currentGate": "只trial，不触及正式库；真实snapshot引用才可migrate up；不执行restore/down、不承诺媒体或远程容灾，最新抑制事实缺失不得恢复相应旧资料"
     }
   ],
   "runtimeDataEgress": [
@@ -627,7 +659,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "d9b0394b6c9d07c92cbc96e31feec0388d18a7b08978694ba778a02e4e5f6523",
+  "migrationSetSha256": "3d73913a9bbbe11204255b63bb4241e6ad8ca4b18a11c90bcbd2ce7f06e43ed6",
   "egressSignatureSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -903,5 +935,31 @@
     "businessAdmissionGranted": false,
     "publicOrNativeAcceptanceGranted": false,
     "validation": "39 targeted offline upgrade tests passed; this review does not claim activation or current native/device acceptance."
+  },
+  "ownedEditorialReview20261026": {
+    "date": "2026-10-26",
+    "authorization": "User explicitly authorized CISME community enrichment and publishing under their existing real developer account; no authority inferred from nickname or WeChat handle.",
+    "dataModel": "Two new editorial tables; existing authority capability CHECK adds editorial.manage without removing any previous capability. Original 97 migrations remain unchanged.",
+    "recipients": "CISME current configured HTTPS API and environment-isolated private object storage. Public article reads contain only intended author snapshot/content and derived media; no contact fields or WeChat identifiers. No new third-party runtime endpoint.",
+    "sources": "Six original texts with AAD/CDC reference links and PRD care facts; six original generated covers with prompt/source SHA provenance. Xiaohongshu was read as a reference; no copied engagement, temporary asset links or unverified efficacy claims.",
+    "consent": "Current terms/privacy remain immutable. A consistent new trial version is prepared separately; no server-written substitute for the real user accepting applicable versions.",
+    "retention": "Owner-scoped portable export; withdrawal/inactive author stops public reads; closure redacts live article text without a hold and removes own editorial reactions/follows. Minimal publication proof contains digests and actor keys, not body/nickname/authorization transcript. Explicit withdrawn-media cleanup checks holds and other references; no new automatic purge promise.",
+    "trialDeployment": "Candidate feature pending separately verified application upgrade and actual publication; production currently remains the deployed dependency-patch release.",
+    "wechatInterfacesChanged": false,
+    "publicOrdinaryUgcEnabled": false,
+    "realTradeEnabled": false,
+    "formalPublicationApproved": false,
+    "nativeDeviceFullAcceptance": false
+  },
+  "trialApplicationUpgradeReview20261026": {
+    "source": "infra/tencent/trial-application-upgrade.py",
+    "helperSha256": "2d3a3d3153ff6e6aa1b5a1b2664edd2b75962b0e72353644c7222cfa703408d6",
+    "scope": "Only fixed formal host isolated trial, dbd baseline plus one reviewed additive editorial migration. Old 97 SQL, migrator, package and lock unchanged; all original private inputs/units/drop-ins/markers bound. Explicit real predeploy database-only encrypted snapshot, no plaintext dump on disk; authentication and structure check are not a restore drill. Application-only rollback preserves committed schema/data. Unknown drift fences rather than overwriting.",
+    "recipients": "GitHub exact public repo/main/tree/CI/Contents source only; Tencent instance metadata and local TLS readiness remain existing maintenance uses. No application database content sent to GitHub or new third parties.",
+    "personalDataOutput": "Root-local snapshot/keys/private evidence only. Public output limited to booleans, counts and public source/runtime versions.",
+    "tests": "30 targeted offline boundary/real Node cryptography tests; synthetic pg_dump/pg_restore pipeline stubs. Server activation and real snapshot are separately recorded after actual execution.",
+    "productionChanged": false,
+    "restorePerformed": false,
+    "businessAdmissionGranted": false
   }
 }

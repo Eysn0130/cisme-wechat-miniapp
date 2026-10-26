@@ -29,6 +29,7 @@ import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CloudUpload } from "./cloudUpload.js";
 import { CommunityAccess } from "./communityAccess.js";
 import { CommunityService } from "./communityService.js";
+import { EditorialService } from "./editorial.js";
 import { AuthorityService } from "./authority.js";
 import { SupportService } from "./supportService.js";
 import { CommerceCatalogService } from "./commerceCatalog.js";
@@ -151,6 +152,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const service = new PlatformService(pool, config, storage,undefined,accountClosure);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
+  const editorial = new EditorialService(pool,config,storage,authority);
   const aftersales = new AftersaleService(pool,authority);
   const managementAttention = new ManagementAttentionService(pool,config.env);
   const commercial = new CommercialMembershipService(pool, authority,config.env);
@@ -289,8 +291,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         /^\/v1\/ugc\/media\/[0-9a-f-]+$/i.test(path) || /^\/v1\/ugc\/review-preview\/[0-9a-f-]+$/i.test(path) ||
         /^\/v1\/ugc\/scan-source\/[0-9a-f-]+$/i.test(path) ||
         /^\/v1\/ugc\/own-preview\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(path));
+    const publicEditorialRead = request.method === "GET" && !request.headers.authorization &&
+      (path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
+        /^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if(principal.scope==="privacy_rights"){
@@ -343,6 +348,17 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
 
   app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
+  app.post("/v1/me/legal-acceptances",request=>editorial.acceptCurrentLegal(request.memberId,request.principalId,(request.body??{}) as {consents?:unknown}));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/articles",request=>editorial.list(request.query));
+  app.get<{Params:{id:string}}>("/v1/editorial/articles/:id",request=>editorial.detail(request.memberId,request.params.id));
+  app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/authors/:id",request=>editorial.author(request.memberId,request.params.id,request.query));
+  app.get<{Params:{id:string;sha:string}}>("/v1/editorial/media/:id/:sha",async(request,reply)=>{
+    const object=await editorial.media(request.params.id,request.params.sha);
+    return reply.header('X-Content-Type-Options','nosniff').type('image/webp').send(Buffer.from(object.bytes));
+  });
+  app.put<{Params:{id:string}}>("/v1/editorial/articles/:id/reaction",request=>editorial.react(request.memberId,request.principalId,request.params.id,(request.body??{}) as never));
+  app.put<{Params:{id:string}}>("/v1/editorial/articles/:id/follow",request=>editorial.follow(request.memberId,request.principalId,request.params.id,(request.body as {active?:unknown})?.active));
+
   app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string;following?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
   app.get<{Params:{authorId:string}}>("/v1/ugc/authors/:authorId", async request => formalUgc.publicAuthor(request.memberId,request.params.authorId));
   app.get<{Params:{postId:string}}>("/v1/ugc/posts/:postId", async request => formalUgc.publicPost(request.memberId,request.params.postId));

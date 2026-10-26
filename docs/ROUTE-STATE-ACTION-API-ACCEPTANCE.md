@@ -1,7 +1,72 @@
 # Route × State × Action × API × Acceptance
 
-更新：2026-09-12
-判定：矩阵是候选门禁；`open/blocked` 不能因默认态截图而关闭。
+更新：2026-10-26。需求基线为 [PRD V2.1-R4](product/CISME-产品需求文档-PRD-V2.1-R4.md) §6.3、附录 K（ED-TRIAL-01–06）。
+
+本轮仍是原生微信小程序的 **40 个既有路由**；自有精选复用社区、文章详情和作者页，没有增加路由。当前文档记录已统一应用的源码与验收合同，不表示当前体验包、服务器或真机已完成该变更。下方九月 27 路由资料独立保留为历史，不继承到十月候选。
+
+## 2026-10-26 当前源码检查范围
+
+本地逐页源码审计覆盖 40/40 路由，逐页列明入口、游客/权限、主动作、真实数据来源、关闭能力、加载/空/错误/重试、并发/离开恢复与隐私范围。确认的四项 P2 是设置草稿挡住手机号和许可刷新、客服权限第二次读取失败后永久加载、目录入口与既有管理能力不一致、推荐码请求期间编辑后永久 busy；均有独立本机合成反例和定向修复。它们不能替代原生状态矩阵。
+
+自有精选与协议重新确认已于 2026-10-26 统一应用到 12 个原生源码文件，其中社区 WXML 已与目标字节相同，实际写入 11 个文件。应用前 10 文件 173 项草稿回归通过；首次统一应用后实际源码 `npm run typecheck` 与 12 文件 219 项定向回归通过；后续会话失效修复另有下述检查，不把先前结果自动继承到新源码。检查使用真实源控制流与合成响应，不是真实会员的点赞/收藏/关注，也未生成用户协议同意。原九文件草稿的 19/114 项结果仅作历史，不替代最终源码检查。
+
+本地审计/草稿回执位于 `tmp/launch-20261026/page-interaction-source-audit.json` 和 `tmp/launch-20261026/native-editorial-renew-drafts/actual-source-apply.json`。这些是 ignored 的工作记录，尚未作为发布归档证据；实际源码 SHA 已保存在统一应用回执，最终体验包仍须另行绑定包哈希。当前没有这次新页面的完整原生截图、真机或上线互动通过结论。
+
+## 自有精选当前路由合同
+
+自有或逐篇获授权的精选与普通会员 UGC 分开。只有实际已发布、作者为当前小程序 canonical 活跃微信会员的文章可公开读取；发表由受权 `editorial.manage` 操作者完成，不按昵称创建或合并身份。公开作者快照使用获授权昵称，微信号、手机号、私有对象键和授权全文不作为公开字段。
+
+| 路由/来源 | 必须状态 | 动作与真实数据 | 验收 ID | 当前证据范围 |
+|---|---|---|---|---|
+| `pages/community/index` 的 `featured` | loading、已发布列表、空、网络失败/重试、游标续页、离页/换号迟到响应 | `GET /v1/editorial/articles?limit=20&cursor=…`；打开 `post?id=…&source=editorial`。列表不依赖普通 UGC 或 preview 开关；没有数据时不显示旧打包故事。 | P07、ED-TRIAL-01/02 | 实际 source/unit 已检查；当前包与原生/真机待核验 |
+| `pages/post/index?id=…&source=editorial` | loading、已发布、撤回/缺失 404、请求失败、图片失败、guest、本人/他人作者、互动 pending/失败/确认、离开恢复 | 独立 article detail；点赞/收藏是设置期望状态的 PUT，关注独立 PUT。成功后使用服务器 bool/count；游客登录返回完整 `id&source`；分享使用原生直达路径，不调用旧 feed/share attribution。 | P09、ED-TRIAL-02/03/04/05/06 | 实际源码合成请求验证成功后更新/失败保留/旧响应拒绝；未记录真实互动成功 |
+| `pages/community-author/index?id=…&source=editorial` | loading、作者公开快照、空/续页、404/网络错误、本人隐藏关注、guest、关注失败/成功、离页迟到响应 | 独立 author page；关注使用该作者首篇实际已发布文章作为上下文，空列表不呈现可执行关注；打开同一 editorial 文章来源。 | P10、ME-01、ED-TRIAL-02/03/05 | 实际 source/unit；完整原生与真机未测 |
+| `pages/account/index?intent=renew` | 当前协议读取、默认未勾选、版本变化、失败重试、确认 pending、确认成功返回、取消阅读、session 失效 | 保留有效旧 session，仅显式确认当前版本后提交窄法律接受接口；不走“已有 token 继续使用”捷径，不触发头像、手机号或再次身份授权。 | P02/P20、A21、ED-TRIAL-06 | 原生 renew 分支已应用并有独立单元测试；真实接受/原生与真机未测 |
+
+`source=editorial` 是来源判别，不是授权凭证。普通 UGC 的 `community-post`、发布器和评论仍由既有 UGC 开关守卫，不因精选互动开放而放开。以下五个旧 ID 无论查询来源为何，均在请求前拒绝，绝不复活其文章、封面或人物照片：`brand-scalp-ritual`、`brand-night-routine`、`brand-care-journal`、`brand-roots-check`、`brand-product-ritual`。
+
+## 独立 API 与失败边界
+
+| 方法/路径 | 身份与结果 | 失败/并发边界 |
+|---|---|---|
+| `GET /v1/editorial/articles?limit&cursor` | 游客可读；`items` 仅为已发布 Card，`nextCursor` 不透明，limit 1–30。Card 的赞藏数为真实服务端投影。 | 空不等于错误；游标/身份/页代次变化丢弃旧响应；跨页与页内按 id 去重。 |
+| `GET /v1/editorial/articles/:id` | 游客可读；登录后返回该会员的 liked/saved/following/isMine；纯文本 body、公开媒体链接、来源与 provenance。 | 撤回或作者停用/注销后 404；网络失败不能冒充已撤回；不向客户端下发 objectKey。 |
+| `GET /v1/editorial/authors/:id?limit&cursor` | 公开作者白名单、公开文章和真实 following/isMine。 | 没有可公开文章时不可用；旧会员响应不覆盖新 session；分页不覆盖并发关注结果。 |
+| `GET /v1/editorial/media/:articleId/:sha256` | 同源公开衍生媒体；服务端核对 SHA、字节数和 `image/webp`。 | 仍检查文章/作者可见性；客户端仅接受该路径，不能把对象键或第三方 URL 拼成媒体。 |
+| `PUT /v1/editorial/articles/:id/reaction` | 活跃 canonical 微信会员；body `{kind:'like'或'save',active:boolean}`；返回真实 liked/saved/count。 | 幂等设置状态；无乐观加数；pending 串行；失败保留旧值并重读/重试，迟到结果不跨页/跨号生效。 |
+| `PUT /v1/editorial/articles/:id/follow` | 同上；body `{active:boolean}`；返回 `{authorId,following}`。 | 禁止自关注；成功前不改 UI；作者与返回 authorId 绑定。 |
+| `POST /v1/me/legal-acceptances` | 有效当前微信会员 session；body `{consents:[{documentType:terms或privacy,version}]}`，两类齐全；result `{accepted:true,documents:[{documentType,version}]}`；复用追加接受记录。 | 本轮新增的窄更新方案，见下一节；不会创建会员、旋转 token 或同意可选内容/营销许可。 |
+
+只有后两项新的精选互动 mutation 需要当前条款/隐私接受。缺少当前接受时返回 `409 CURRENT_LEGAL_CONSENT_REQUIRED`，不写入互动或该互动的成功审计；公开阅读、查看协议和原有 session 仍可继续。401 仍按真实会话失效处理；404 是撤回/不可用；422 是无效输入/自关注，不伪装成已保存。
+
+首批六篇正文与媒体来源另见 `docs/content/editorial-20261026/articles.original.json` 及发布素材清单。详情使用服务器真实 provenance 短标签；“AI辅助配图”同时说明仅作阅读示意，不代表实际使用效果。封面不能作为作者头像，也不生成假体验、假赞藏或假关注。心形/收藏/分享复用现有 SVG，选中状态同时有文字与可访问标签；底栏最小点击范围和安全区沿用原生样式，实际窄屏/大字仍待当前包验证。
+
+## 当前协议重新确认：实际源码合同与验证范围
+
+原有 `account.onShow` 在有 token 时设置 `pendingDestination`，`login` 又在协议检查前走继续使用分支；WXML 也用该字段豁免协议禁用状态。本轮以专用 renew 分支隔离这些捷径；仅访问该 URL 不产生接受事实。
+
+本轮采用窄法律接受接口，保留原有效会话：
+
+1. 新精选点赞、收藏或关注在同一数据库事务内核验真实 actor，再锁定当前 active terms/privacy 文档并核对该会员对应版本的接受事实；缺失则返回上述 409。与协议发布锁串行，不能在预读后越过版本切换。
+2. 原页面只有在仍属于当前可见页面、相同 session 和请求代次时才保存完整内部 returnURL 并打开 `account?intent=renew`。409 不等于 session 失效，不清 token；不对普通读取或其他业务的 409 建立全局跳转。
+3. renew 入口始终显示未勾选的当前条款/隐私，明确“确认并返回”；有 token 也不能走继续、头像或手机号分支。取消/返回恢复原公开阅读，保留旧 session。
+4. 用户明确勾选并点击后，接口仅以服务器已验证的 member/principal 记录当前版本。`consent_acceptance` 的唯一键为 member+type+version，重复接受不覆写首份历史；principal 是真实操作者证据，不能从客户端传入。
+5. 确认成功只返回原文/作者页，重新读取真实状态；不自动重放点赞/收藏/关注。用户再次操作时，服务器重新核验当前版本。确认期间又发布新版本则拒绝旧版本、重读文本并清勾选。
+6. session 失效时回到正常明确身份确认；不会凭旧 token 或协议页面访问自动创建接受记录，也不伪造微信登录、手机号或用户点击。
+
+后端变更涉及 `editorial.ts`、`server.ts` 与当前法律接受 helper/测试；原生已应用 `services/api.ts` 的专用 renew 导航、文章与作者的窄 409 处理、`account/index.ts`/WXML 的 renew 分支。所有目标先核对既有源码基线和冻结草稿 SHA，再统一写入，未代用户勾选、登录或创建接受记录。
+
+定向回归覆盖：v1 接受对 v2 新互动返回 409 且零写入；查看不受影响；显式当前接受后才可互动；版本并发/重复提交；有 token 也不可绕过 checkbox；取消保留会话与原文；成功不自动发起互动；离页/换号的迟到 409 不跳转；renew 不调用 `wx.login`、手机号、头像或 `setSessionToken`。
+
+普通身份登录在用户明确同意后，微信身份成功即返回来源（无来源则主页）；没有头像、资料暂时失败或挂起均不得增加登录前置步骤。资料只在后台刷新，头像仍可在设置中按需编辑，保留旧头像恢复路径。已有有效会话的“继续使用”也不再以资料读取或头像设置为前提；目标导航失败可重试而不再次交换微信身份。
+
+精选读取的旧会话过期不能留下永久 loading。本轮补充：仅同一个仍可见的读取代次、原非空 token 已变为空且收到 401 或 `REQUEST_SESSION_CHANGED` 时，清空该页会员相关投影并结束忙态，提示手动重新加载公开内容；不自动重放请求、互动或接受。不同的新非空会话、离页和旧代次仍丢弃。Community 同时观察任务、能力、访问权与内容汇总的并发失败；Author 的后续明确重读重新绑定当前上下文。15 项新测试通过实际 API/coordinator/HTTP 层的合成 `wx.request` 401 回调核验真实 token 清除，包括各并发时序、分页、离页和换号；含既有页面回归共 9 文件 173 项通过，类型检查通过。这仍是合成传输与源码证据，未对真实会员执行注销、同意或互动。
+
+原生默认/游客检查在旧包 `8e9479fb23ab…` 已完成 35/40 路由打开和逐张查看后暂停；返回图标细线可见性问题由当前资产增强修复，旧截图保留为历史，不继承到增强图标或会话修复后的新包。新包须另行绑定并复拍。
+
+## 历史资料：2026-09-12 的 27 路由候选
+
+以下历史包、截图、诊断与 `current` 字样仅指当时快照，不是本轮四十路由或新精选/renew 的证据。其未完成状态不被删除，也不能把已关闭交易/普通 UGC 的全量验收前移为本次授权的自有精选实现条件。
 
 Current package checkpoint `005f03d43a58…` contains 27 routes, including Support, role-aware Management, the R4-A Catalog management list/editor and the isolated R4-B checkout/order pages. Structural/type/API tests pass. An authenticated local DevTools traversal opened 27/27 routes against the isolated API, captured a 484×1048 native frame for each route, and recorded zero matches in the bounded console and network failure filters. The Support slice additionally has 21 deterministic native state frames, two local-API/font-size supplements and four simulator recordings bound to this hash. These are local synthetic/runtime-presentation evidence, not physical-device or formal interaction-matrix acceptance. Every route remains `matrixComplete:false`; physical iOS/Android, system keyboard/media picker, public HTTPS/staging and the formal same-state reference/native/comparison triplets remain open. Active production legal versions remain fail-closed; staging legal status and Support retention remain independent gates. Any row below that names an older hash is historical. Every remaining `open/blocked` state stays binding until its own action/API/current-hash/device evidence exists.
 
