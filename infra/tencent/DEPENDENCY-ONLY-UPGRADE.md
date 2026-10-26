@@ -1,8 +1,13 @@
-# 本次 Fastify / Sharp 依赖补丁的独立升级入口
+# 2026-10-26 Fastify 依赖补丁的独立升级入口
 
-`dependency-only-upgrade.py` 仅承接已审阅的 Fastify `5.12.3 → 5.12.5`、Sharp
-`0.35.4 → 0.35.5` 及对应锁文件树。它不修改 `production-release.py` 的通用升级门禁，
-也不重跑 `production-trial.py` 的首次初始化。当前文档与离线测试不代表服务器已升级。
+`dependency-only-upgrade.py` 本次仅承接已审阅的 Fastify `5.12.5 → 5.12.6`
+及对应精确锁文件树，Sharp 保持 `0.35.5`。旧制品必须为 10 月 13 日已经部署的
+`b7e853e9dcd9f72f3cf7b933707fd477e635d6d7`，source tree 必须为
+`abbf0a257effdc2575c3c6d2706fde4d265a6e7e`，source lock SHA256 必须为
+`d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9`。
+其他旧来源即使应用文件相同也拒绝。此次入口不修改 `production-release.py` 的通用升级门禁，
+也不重跑 `production-trial.py` 的首次初始化。10 月 13 日升级的历史证据仍保留原范围；
+本次文档与离线测试不代表 10 月 26 日服务器已升级。
 
 候选必须来自 GitHub 当前准确 `main`、该 SHA 最新一次成功的 `push` CI，使用
 Linux x64 glibc / Node 24.14.0 在无服务器秘密的独立构建环境运行现有
@@ -12,9 +17,12 @@ Linux x64 glibc / Node 24.14.0 在无服务器秘密的独立构建环境运行�
 
 工具固定核对已独立审阅的源码许可：
 
-- 根 `package.json` SHA256：`64eb8819e2c7ae109586daa3fe6108d3079a21f0bc2f21f719cd970efe5e75f5`。
-- 根 `package-lock.json` SHA256：`d86ed2df5d94478e0a189393dba1ce10207ecf50cd77f0ca0b6f172247399be9`。
-- release package 除上述两项精确版本外逐项相同；release lock 必须是现有打包器对许可锁的原有转换结果。
+- 根 `package.json` SHA256：`c70b97f3ec0e6c339c5c27b0e9067549f9256287cfbfdf32f39ae46fcf54e231`。
+- 根 `package-lock.json` SHA256：`2a14af4f1bfdd86d0108015b43df14d62b2cc6e8eedcd3831446970a26d7d32a`。
+- release package 仅允许上述 Fastify 精确版本变化，其他字段和直接依赖逐项相同；
+  release lock 必须是现有打包器对许可锁的原有转换结果。锁文件含本次审阅的
+  fast-uri `3.1.8 → 3.1.9` / `4.2.2 → 4.2.3`，以及开发依赖 Vite `8.1.3 → 8.1.6`、
+  Vitest `4.1.11 → 4.1.12`；它们不扩大 release package 的直接依赖变更许可。
 - 正在运行的旧制品与候选的 `index.js`、`worker.js`、`worker-once.js`、`migrate.mjs`
   和完整、有序 SQL 文件集逐字节相同。任一变化退出，不能扩展成 schema 或业务源码升级。
 
@@ -56,7 +64,8 @@ trial 的 apply 使用相同参数格式、自己的 environment 与 release。�
 绑定，不授予订单、退款或转账权限；本工具的成功回执不授予真实交易准入。
 工具不修改 env、密钥、配置、监听、存储或网络。
 旧、新两个入口都先以对应服务身份解析实际依赖并用合成 PNG 做 WebP/JPEG 转换，
-验证 Node/平台、实际版本及候选 librsvg；没有处理业务图片。
+验证 Node/平台、Fastify 旧/新版本、两侧 Sharp `0.35.5` 及候选 librsvg `≥ 2.63.2`；
+没有处理业务图片，不再接受本次基线之前的 Sharp `0.35.4`。
 
 切换和每次启动前，工具核对原 unit 的完整字节及有效静态定义。已有 drop-in 仅接受
 该 unit 在 `/etc/systemd/system/<unit>.d` 内的普通 `.conf` 文件；文件单硬链接、目录及全部

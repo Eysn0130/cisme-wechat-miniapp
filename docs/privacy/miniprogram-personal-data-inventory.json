@@ -886,5 +886,22 @@
     "businessAdmissionGranted": false,
     "publicOrNativeAcceptanceGranted": false,
     "configurationBinding": "Trial keeps all capability flags closed. Production preserves existing protocol/fulfillment preparation booleans while core order/simulated payment-transfer/points/public UGC/dev controls stay closed; original full env and actual processes are bound, never rewritten. Existing protected unit-specific drop-ins are preserved byte-for-byte and bound to their complete disk/loaded path sets, static definitions and protected parent metadata; added, removed or changed inputs reject activation or rollback start."
+  },
+  "dependencyUpgradeReview20261026": {
+    "source": "infra/tencent/dependency-only-upgrade.py",
+    "sourceFileSha256": "fd8328947cda8d86cbc1577b0754bf74d6f479f153640bf585c5f1b496747172",
+    "state": "reviewed candidate, not activated",
+    "baselineSourceHead": "b7e853e9dcd9f72f3cf7b933707fd477e635d6d7",
+    "packagePermitSha256": "c70b97f3ec0e6c339c5c27b0e9067549f9256287cfbfdf32f39ae46fcf54e231",
+    "lockPermitSha256": "2a14af4f1bfdd86d0108015b43df14d62b2cc6e8eedcd3831446970a26d7d32a",
+    "changeScope": "Only Fastify 5.12.5 to 5.12.6 and the exact reviewed lock; Sharp 0.35.5 is preserved. All four runtime entries and 97 SQL files must remain byte-identical to the bound b7 release.",
+    "dataFlowReview": "The 20261013 external destinations, root-private snapshots, original configuration/drop-in preservation, closed capabilities and application-only rollback remain unchanged. No new reads, recipients, network calls, member fields, migrations, backup or restore operations were introduced.",
+    "signatureGateChanged": false,
+    "consumerCollectionFieldsChanged": false,
+    "wechatApisAndWxmlChanged": false,
+    "migrationsChanged": false,
+    "businessAdmissionGranted": false,
+    "publicOrNativeAcceptanceGranted": false,
+    "validation": "39 targeted offline upgrade tests passed; this review does not claim activation or current native/device acceptance."
   }
 }
