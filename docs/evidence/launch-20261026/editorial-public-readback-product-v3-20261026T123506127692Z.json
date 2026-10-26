@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 2,
+  "kind": "actual-public-editorial-readback-not-member-or-device-acceptance",
+  "observedFromUtc": "2026-10-26T12:35:01.559242+00:00",
+  "observedAtUtc": "2026-10-26T12:35:06.127252+00:00",
+  "origin": "https://staging-api.cisme.cn",
+  "trustedDefaultTls": true,
+  "publicReadbackPassed": true,
+  "readbackScriptSha256": "6a815073afa37fbd1dcdeecb6ed7f99d4baaad52d0c8dc286bc60da6601980f6",
+  "approvedLegalSha256": "77578496b075166c3d47cc33b1a23327f41e0e2138a4e9713cf002d62e98e35f",
+  "approvedArticlesSha256": "7ebd3f2f339e0732df4d0849ddfcc0b38d6769e4d147cd1613afec9cf2cbe95a",
+  "activeLegalVersion": "2026-10-26-v3",
+  "ordinaryUgcAndCommerceFlagsRemainClosed": true,
+  "phoneBindingRemainsClosed": true,
+  "articles": [
+    {
+      "id": "1a6e1c5e-44a0-475c-b156-bfd9aec5ec98",
+      "slug": "four-step-care-explained",
+      "version": 2,
+      "bodyMatchesApprovedSource": true,
+      "servedMediaSha256": "1db438468655f40d574fdf32211f1ad7599ea9bfeacd4aefc642e373b73551ce",
+      "servedMediaBytes": 180784
+    },
+    {
+      "id": "e9ef4758-e0a4-4469-8df0-c7cc50985910",
+      "slug": "describe-your-care-feeling",
+      "version": 2,
+      "bodyMatchesApprovedSource": true,
+      "servedMediaSha256": "720ae811f22351d9e21042f4914adce3a81f3e5851b378450b0c577ba4d9b20e",
+      "servedMediaBytes": 141578
+    },
+    {
+      "id": "d5e94e77-9e12-4f22-b628-da12d0c8e8e6",
+      "slug": "gentle-after-wash-drying",
+      "version": 2,
+      "bodyMatchesApprovedSource": true,
+      "servedMediaSha256": "42579e54c3f7b260e06a25b87c1527fa4c2f36a38feec07b858135ba28635fdf",
+      "servedMediaBytes": 135030
+    },
+    {
+      "id": "11c35a29-566f-436d-9374-dcb5548f84d5",
+      "slug": "washing-frequency-observation",
+      "version": 2,
+      "bodyMatchesApprovedSource": true,
+      "servedMediaSha256": "fa71442a224c18d4d5ce71a035a4aa2ff5d4fe34e346b6f9f3d71c95371844af",
+      "servedMediaBytes": 215512
+    },
+    {
+      "id": "39256eb6-9078-42b6-8900-7a9a4f1ad440",
+      "slug": "scalp-clean-hair-condition",
+      "version": 2,
+      "bodyMatchesApprovedSource": true,
+      "servedMediaSha256": "7720748c72444071b96a202336eb0a67f0f4df544e1a99c7a517c640cef4267b",
+      "servedMediaBytes": 126632
+    },
+    {
+      "id": "27c84214-15c6-4dcc-8f69-11a3bd1f89c1",
+      "slug": "meet-cisme-care-journal",
+      "version": 2,
+      "bodyMatchesApprovedSource": true,
+      "servedMediaSha256": "7c2433b21aa15747ab525ead6291ad602c7496d6bae307588e21be4f61fade5e",
+      "servedMediaBytes": 276674
+    }
+  ],
+  "singleAuthorNicknameMatches": true,
+  "stableThreePagePagination": true,
+  "anonymousMutationRejected": true,
+  "observedInitialEngagementCountsAllZero": true,
+  "publicLikeSaveCountsUnchangedAcrossAnonymousProbes": true,
+  "followCountChangeNotMeasured": true,
+  "loginOrConsentInvokedByThisProbe": false,
+  "authenticatedRequestsMade": false,
+  "acceptedMemberInteractionsTested": false,
+  "anonymousWriteAttemptsExpectedRejected": 2,
+  "authorIdentityExported": false,
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/health/ready",
+      "status": 200,
+      "bytes": 18
+    },
+    {
+      "method": "GET",
+      "path": "/v1/legal",
+      "status": 200,
+      "bytes": 17945
+    },
+    {
+      "method": "GET",
+      "path": "/v1/capabilities",
+      "status": 200,
+      "bytes": 214
+    },
+    {
+      "method": "GET",
+      "path": "/v1/ugc/status",
+      "status": 200,
+      "bytes": 44
+    },
+    {
+      "method": "GET",
+      "path": "/v1/identity/capabilities",
+      "status": 200,
+      "bytes": 62
+    },
+    {
+      "method": "GET",
+      "path": "/v1/commerce/orders/status",
+      "status": 200,
+      "bytes": 248
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles",
+      "status": 200,
+      "bytes": 2769
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles/1a6e1c5e-44a0-475c-b156-bfd9aec5ec98",
+      "status": 200,
+      "bytes": 1435
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/media/1a6e1c5e-44a0-475c-b156-bfd9aec5ec98/1db438468655f40d574fdf32211f1ad7599ea9bfeacd4aefc642e373b73551ce",
+      "status": 200,
+      "bytes": 180784
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles/e9ef4758-e0a4-4469-8df0-c7cc50985910",
+      "status": 200,
+      "bytes": 1424
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/media/e9ef4758-e0a4-4469-8df0-c7cc50985910/720ae811f22351d9e21042f4914adce3a81f3e5851b378450b0c577ba4d9b20e",
+      "status": 200,
+      "bytes": 141578
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles/d5e94e77-9e12-4f22-b628-da12d0c8e8e6",
+      "status": 200,
+      "bytes": 1368
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/media/d5e94e77-9e12-4f22-b628-da12d0c8e8e6/42579e54c3f7b260e06a25b87c1527fa4c2f36a38feec07b858135ba28635fdf",
+      "status": 200,
+      "bytes": 135030
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles/11c35a29-566f-436d-9374-dcb5548f84d5",
+      "status": 200,
+      "bytes": 1543
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/media/11c35a29-566f-436d-9374-dcb5548f84d5/fa71442a224c18d4d5ce71a035a4aa2ff5d4fe34e346b6f9f3d71c95371844af",
+      "status": 200,
+      "bytes": 215512
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles/39256eb6-9078-42b6-8900-7a9a4f1ad440",
+      "status": 200,
+      "bytes": 1427
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/media/39256eb6-9078-42b6-8900-7a9a4f1ad440/7720748c72444071b96a202336eb0a67f0f4df544e1a99c7a517c640cef4267b",
+      "status": 200,
+      "bytes": 126632
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles/27c84214-15c6-4dcc-8f69-11a3bd1f89c1",
+      "status": 200,
+      "bytes": 1510
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/media/27c84214-15c6-4dcc-8f69-11a3bd1f89c1/7c2433b21aa15747ab525ead6291ad602c7496d6bae307588e21be4f61fade5e",
+      "status": 200,
+      "bytes": 276674
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/authors/{author}",
+      "status": 200,
+      "bytes": 2910
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles",
+      "status": 200,
+      "bytes": 1038
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles",
+      "status": 200,
+      "bytes": 1064
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles",
+      "status": 200,
+      "bytes": 945
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/authors/{author}",
+      "status": 200,
+      "bytes": 1238
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/authors/{author}",
+      "status": 200,
+      "bytes": 1264
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/authors/{author}",
+      "status": 200,
+      "bytes": 1086
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles",
+      "status": 200,
+      "bytes": 2769
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/editorial/articles/1a6e1c5e-44a0-475c-b156-bfd9aec5ec98/reaction",
+      "status": 401,
+      "bytes": 175
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/editorial/articles/1a6e1c5e-44a0-475c-b156-bfd9aec5ec98/follow",
+      "status": 401,
+      "bytes": 175
+    },
+    {
+      "method": "GET",
+      "path": "/v1/editorial/articles",
+      "status": 200,
+      "bytes": 2769
+    }
+  ]
+}

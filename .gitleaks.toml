@@ -67,3 +67,11 @@ condition = "AND"
 paths = ['''^docs/evidence/production-r3-20260926/harness/setup-rehearsal-v3\.py$''']
 regexTarget = "match"
 regexes = ["CONTACT_KEY_VERSION':'r3-synthetic-v1'"]
+
+[[allowlists]]
+description = "Verified deployed isolated API public Git commit identifier, not an API credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^docs/evidence/launch-20261026/application-editorial-0d3ff1c8d2cb-summary\.json$''']
+regexTarget = "match"
+regexes = ['''(?i)ApiSourceHead"\s*:\s*"0d3ff1c8d2cb6e2f53233e2cf6ca1efc62280527''']

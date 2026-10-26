@@ -1,0 +1,36 @@
+{
+  "observedAtUTC": "2026-10-26T12:30:55.486062+00:00",
+  "scope": "Independent source and offline review only; no SSH, database, publication, identity or consent action executed",
+  "files": {
+    "trial-copy-revision.py": "8f14f8e7899b15722774bac5c1a3d2ffbe0c2c6751327b1cf4e104e5eb2ecbaf",
+    "run-copy-revision.py": "4835a88c25aedd08e351160750febfdbc13d2584aad16e44d254ea3e697abd2c",
+    "copy-binding.json": "99b9fb6ff0050355da80cde8c62d09c443b1e589ac4ddf9f596909534ed24fee",
+    "copy-public-inputs.tar.gz": "8035394fcdbf3d9886f8a72bb3fca369cf28fb1f2009277ff669b729dc1b93ea",
+    "test_copy_revision.py": "d16d9f37243b1ddeadf8aefd6a74f41cb0d6e96bc115dcd1c6370a1f0eb23269"
+  },
+  "tests": {
+    "command": "python3 -B tmp/launch-20261026/trial-copy-revision/test_copy_revision.py",
+    "passed": 9,
+    "failed": 0,
+    "seconds": 1.186
+  },
+  "checks": {
+    "fixedTrialHeadTreeAndReviewedOwnerRuntime": true,
+    "reviewedOwner4d8AndOriginalBinding5e1fcd": true,
+    "databaseRoleCanonicalLiveIdentityAndClosedCapabilitiesReused": true,
+    "sixOriginalPublicIdsVersion1AndContentFingerprintsRequired": true,
+    "exactPublicArticlesAndLegalInputsMatchCurrentCandidates": true,
+    "articleRevisionOnlyTitleExcerptBodyAndVersion1To2": true,
+    "sameAuthorSourceRightsMediaAndIdentifiers": true,
+    "legalV3OnlyNoConsentGrantOrNewIdentity": true,
+    "exclusiveStartedMarkersRefuseUnknownReplay": true,
+    "publisherRunsAsServiceUidPrivateRootAndServiceReadablePermissions": true,
+    "strictReviewedSSHStdinOnlyTransportAndSanitizedPublicOutput": true
+  },
+  "blockers": [],
+  "notClaimed": [
+    "actual server preflight or publication success",
+    "actual member consent",
+    "authenticated native or device acceptance"
+  ]
+}

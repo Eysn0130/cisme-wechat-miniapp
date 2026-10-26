@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source 2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f: formal-product copy revision on 2026-10-26 across native pages. No historical screenshot is promoted to evidence for this package. Earlier native default-state and editorial screenshots remain bound to source a5b73a96d5d1 in their original records; prior history is preserved in source-acceptance-a5b73a96d5d1.json and earlier manifests. Full route/state/device matrices and real WeChat component evidence remain unverified; this manifest intentionally does not mark acceptance passed."
+  "note": "Current source 2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f: formal-product copy revision on 2026-10-26. Forty native simulator default/guest first viewports were freshly captured and viewed with source hashes and URL checks bound; 26 routes redirected to Account and were not authenticated-page acceptance. First five pre-navigation timing mismatches are retained explicitly. Partial evidence is recorded separately in docs/evidence/launch-20261026/native-default-2c419820288f-summary.json. No historical screenshot is promoted to this package. Full route/state/device matrices and real WeChat component evidence remain unverified, so this acceptance manifest remains blocked."
 }
