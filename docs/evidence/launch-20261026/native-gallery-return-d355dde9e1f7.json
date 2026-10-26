@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-native-gallery-return-regression-partial",
+  "sourceSha256": "d355dde9e1f76313bf6fbe4f85c003c5804508eadd0567cb207801fd32458eb9",
+  "observedAtUtc": "2026-10-26T17:33:02.225159+00:00",
+  "findingId": "NATIVE-GALLERY-RETURN-01",
+  "actualRootActions": [
+    "官方refresh后打开真实两图精选文章",
+    "真实手势滑到第二张",
+    "真实点击图片打开原生预览2/2",
+    "真实点击预览图关闭后仍是原文章2/2"
+  ],
+  "actualSelectedImagePreserved": true,
+  "routeAndArticlePreserved": true,
+  "rootViewedActualNativeReturnedViewport": true,
+  "captures": [
+    {
+      "action": "open",
+      "atUtc": "20261026T173053308537Z",
+      "actualMediaIndex": 0,
+      "captures": [
+        {
+          "label": "post-top-settling",
+          "actualPage": {
+            "path": "pages/post/index",
+            "query": {
+              "source": "editorial",
+              "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a"
+            }
+          },
+          "screenshotSha256": "36342184d07793b94084cb8a90cadea2ea346204cb8658289c4b44d9a3807ac1"
+        }
+      ]
+    },
+    {
+      "action": "frame",
+      "atUtc": "20261026T173145226930Z",
+      "actualMediaIndex": 1,
+      "captures": [
+        {
+          "label": "gallery-frame-1",
+          "actualPage": {
+            "path": "pages/post/index",
+            "query": {
+              "source": "editorial",
+              "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a"
+            }
+          },
+          "screenshotSha256": "9ada2cbb85d1b8a092b981c34dfad9401391e636144de6baa8b92be27349b29d"
+        }
+      ]
+    },
+    {
+      "action": "preview",
+      "atUtc": "20261026T173154062935Z",
+      "actualMediaIndex": 1,
+      "captures": [
+        {
+          "label": "gallery-preview-1",
+          "actualPage": {
+            "path": "pages/post/index",
+            "query": {
+              "source": "editorial",
+              "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a"
+            }
+          },
+          "screenshotSha256": "878a57aed4e1aeec157423f698fb440e178dfbb88c292076769fb35f6175e685"
+        }
+      ]
+    },
+    {
+      "action": "frame",
+      "atUtc": "20261026T173216841000Z",
+      "actualMediaIndex": 1,
+      "captures": [
+        {
+          "label": "gallery-frame-1",
+          "actualPage": {
+            "path": "pages/post/index",
+            "query": {
+              "source": "editorial",
+              "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a"
+            }
+          },
+          "screenshotSha256": "1baf0a5d9a9a7c2786efe02e9003217eb771b3c0345861ab64ce8fa3d7456641"
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "targetedFiles": 3,
+    "testsPassed": 52,
+    "typecheckPassed": true,
+    "packageGatePassed": true
+  },
+  "prior0a7SourceEvidencePromoted": false,
+  "fullRouteStateDeviceAcceptance": false,
+  "iosOrAndroidDeviceVerified": false,
+  "knownCoverageLimit": "Nightly fullscreen exit stalled the desktop tool during prior-source test; actual phone fullscreen remains unverified. Ordinary public UGC and real commerce remain closed."
+}

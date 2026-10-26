@@ -7,8 +7,11 @@ import { prepareShareLink, registerIncomingShare } from "../../services/share";
 
 import { commentThreads, emptyCommunity, prepareCommentAuthors, type CommunityView } from "../../services/community";
 
+type GalleryRead = { id:string; version:number; media:string[]; ownerToken:string };
+
 Page({
   readVisible:true,
+  galleryRead:null as GalleryRead|null,
   videoPosition:0,
   videoIdentity:"",
   data: { editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoInitialTime:0,videoEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
@@ -19,9 +22,9 @@ Page({
     if (query.source!=="editorial"&&(!isBundledEditorialId(id) || editorialPreviewAllowed())) void registerIncomingShare(query.share_id, "post", id);
     wx.hideShareMenu();
   },
-  onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(); },
+  onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(true); },
   onHide() { this.pauseVideo();this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1; this.setData({ composerFocused: false, keyboardHeight: 0 }); },
-  onUnload() { this.pauseVideo(true);this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
+  onUnload() { this.pauseVideo(true);this.galleryRead=null;this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
   pauseVideo(stop=false) {
     if(!this.data.video)return;
     const context=wx.createVideoContext("editorial-video",this);
@@ -45,11 +48,22 @@ Page({
     wx.hideShareMenu();return true;
   },
   editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}&source=editorial`;},
-  async load() {
+  async load(restoreGallery = false) {
+    const previous=this.galleryRead;
+    // Resume only a same-actor gallery after a fresh, matching server read.
+    // Explicit reloads (including native tap events) do not opt into resume.
+    const gallery=restoreGallery===true && previous && !this.data.video
+      && previous.ownerToken===getApp<IAppOption>().globalData.sessionToken
+      && previous.id===this.data.id && previous.id===this.data.item?.id && previous.version===this.data.item?.version
+      && previous.media.length===this.data.media.length && previous.media.every((src:string,index:number)=>src===this.data.media[index])
+      && Number.isInteger(this.data.mediaIndex) && this.data.mediaIndex>=0 && this.data.mediaIndex<previous.media.length
+      ? {...previous,index:this.data.mediaIndex,height:Number.isFinite(this.data.galleryHeight)&&this.data.galleryHeight>0?this.data.galleryHeight:1000}
+      : null;
+    this.galleryRead=null;
     this.pauseVideo();
     const attempt = this.data.loadAttempt + 1;
     wx.hideShareMenu();
-    this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoInitialTime:0,videoEventId:"", mediaIndex: 0, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
+    this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoInitialTime:0,videoEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
     try {
       const editorial = editorialStory(this.data.id);
       if (!editorial && isBundledEditorialId(this.data.id)) {
@@ -63,12 +77,16 @@ Page({
         try{const article=await publishedEditorialArticle(this.data.id,this);
           if(!this.currentEditorial(attempt,token))return;
           const display=editorialDisplayMedia(article.media);
+          const restored=gallery && !display.video && gallery.id===article.id && gallery.version===article.version
+            && gallery.ownerToken===token && gallery.media.length===display.images.length
+            && gallery.media.every((src:string,index:number)=>src===display.images[index]) ? gallery : null;
+          this.galleryRead=display.video?null:{id:article.id,version:article.version,media:[...display.images],ownerToken:token};
           const videoIdentity=`${article.id}:${article.version}:${display.video?.src||""}`;
           if(this.videoIdentity!==videoIdentity)this.videoPosition=0;
           this.videoIdentity=videoIdentity;
           this.setData({authorId:article.authorId,item:{...article,kind:"editorial",avatar:defaultMemberAvatar,
             publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
-            media:display.images,video:display.video,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",following:article.following,
+            media:display.images,mediaIndex:restored?.index??0,galleryHeight:restored?.height??1000,video:display.video,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",following:article.following,
             socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false});
           wx.showShareMenu({menus:["shareAppMessage"]});
         }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;if(this.currentEditorial(attempt,token)){const missing=(error as {status?:number}).status===404;
