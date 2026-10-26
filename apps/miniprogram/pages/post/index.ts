@@ -1,7 +1,7 @@
 import { defaultMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication, beginLegalRenewal } from "../../services/api";
 import { cancelPageReads } from "../../services/page-requests";
-import { editorialPreviewAllowed, editorialStory, isBundledEditorialId, editorialIdentifier, editorialMediaSrc, publishedEditorialArticle, reactToEditorialArticle, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
+import { editorialPreviewAllowed, editorialStory, isBundledEditorialId, editorialIdentifier, editorialDisplayMedia, type EditorialVideo, publishedEditorialArticle, reactToEditorialArticle, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 import { prepareShareLink, registerIncomingShare } from "../../services/share";
 
@@ -9,7 +9,9 @@ import { commentThreads, emptyCommunity, prepareCommentAuthors, type CommunityVi
 
 Page({
   readVisible:true,
-  data: { editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  videoPosition:0,
+  videoIdentity:"",
+  data: { editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoInitialTime:0,videoEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
@@ -18,22 +20,36 @@ Page({
     wx.hideShareMenu();
   },
   onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(); },
-  onHide() { this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1; this.setData({ composerFocused: false, keyboardHeight: 0 }); },
-  onUnload() { this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
+  onHide() { this.pauseVideo();this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1; this.setData({ composerFocused: false, keyboardHeight: 0 }); },
+  onUnload() { this.pauseVideo(true);this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
+  pauseVideo(stop=false) {
+    if(!this.data.video)return;
+    const context=wx.createVideoContext("editorial-video",this);
+    if(stop)context.stop();else context.pause();
+    context.exitFullScreen();
+  },
+  currentVideoEvent(event:WechatMiniprogram.CustomEvent){return this.readVisible&&this.data.pageAlive&&Boolean(this.data.video)&&event.currentTarget.dataset.videoIdentity===this.data.videoEventId;},
+  videoTimeChanged(event:WechatMiniprogram.CustomEvent) {
+    const current=Number(event.detail.currentTime);
+    if(this.currentVideoEvent(event)&&this.data.video&&Number.isFinite(current)&&current>=0)this.videoPosition=Math.min(current,this.data.video.durationSeconds);
+  },
+  videoEnded(event:WechatMiniprogram.CustomEvent){if(this.currentVideoEvent(event))this.videoPosition=0;},
+  videoFailed(event:WechatMiniprogram.CustomEvent){if(this.currentVideoEvent(event))this.setData({mediaError:"视频暂时无法播放，请重新加载。"});},
   currentEditorial(attempt:number,token:string){return this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken;},
   recoverExpiredEditorialRead(attempt:number,token:string,error:unknown){
     if(!this.readVisible||!this.data.pageAlive||this.data.leaving||attempt!==this.data.loadAttempt||!expiredEditorialRead(error,token))return false;
     this.data.loadAttempt+=1;
-    this.setData({loading:false,item:null,authorId:"",media:[],mediaIndex:0,mediaError:"",shareId:"",socialEnabled:false,socialLoading:false,socialBusy:false,
+    this.setData({loading:false,item:null,authorId:"",media:[],video:null,videoInitialTime:0,videoEventId:"",mediaIndex:0,mediaError:"",shareId:"",socialEnabled:false,socialLoading:false,socialBusy:false,
       social:emptyCommunity,threads:[],following:false,followBusy:false,followError:"",socialError:"",draft:"",replyToId:"",replyToName:"",
       errorKind:"load",errorTitle:"登录状态已失效",error:"请重新加载内容。点赞、收藏和关注前，请重新登录。"});
     wx.hideShareMenu();return true;
   },
   editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}&source=editorial`;},
   async load() {
+    this.pauseVideo();
     const attempt = this.data.loadAttempt + 1;
     wx.hideShareMenu();
-    this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], mediaIndex: 0, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
+    this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoInitialTime:0,videoEventId:"", mediaIndex: 0, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
     try {
       const editorial = editorialStory(this.data.id);
       if (!editorial && isBundledEditorialId(this.data.id)) {
@@ -46,9 +62,13 @@ Page({
         if(!editorialIdentifier(this.data.id)){this.setData({loading:false,errorKind:"missing",errorTitle:"这篇精选不可用",error:"内容链接无效，请返回社区。"});return;}
         try{const article=await publishedEditorialArticle(this.data.id,this);
           if(!this.currentEditorial(attempt,token))return;
+          const display=editorialDisplayMedia(article.media);
+          const videoIdentity=`${article.id}:${article.version}:${display.video?.src||""}`;
+          if(this.videoIdentity!==videoIdentity)this.videoPosition=0;
+          this.videoIdentity=videoIdentity;
           this.setData({authorId:article.authorId,item:{...article,kind:"editorial",avatar:defaultMemberAvatar,
             publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
-            media:article.media.map(item=>editorialMediaSrc(item.url)).filter(Boolean),following:article.following,
+            media:display.images,video:display.video,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",following:article.following,
             socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false});
           wx.showShareMenu({menus:["shareAppMessage"]});
         }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;if(this.currentEditorial(attempt,token)){const missing=(error as {status?:number}).status===404;

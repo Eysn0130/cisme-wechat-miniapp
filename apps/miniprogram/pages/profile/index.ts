@@ -6,7 +6,7 @@ import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 import { consumerTaskEntries } from "../../services/task-entry";
-import { authorityProjection, type AuthorityProjection } from "../../services/authority";
+import { authorityProjection, hasNativeManagementEntry, type AuthorityProjection } from "../../services/authority";
 
 function profileCareView(care: any): { title: string; copy: string; status: string } {
   const completed = care?.completed?.length ?? 0;
@@ -23,10 +23,10 @@ const snapshotOwners = new WeakMap<object, string>();
 type AuxiliaryState = "unknown" | "loading" | "ready" | "error";
 
 Page({
-  data: { memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
+  data: { memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { if (!requireMemberAccess()) { this.setData({member:null,points:null,care:null,coreUnavailable:false,authority:null,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
+  onShow() { if (!requireMemberAccess()) { this.setData({member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
   onHide() { cancelPageReads(this); this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   isCurrentLoad(attempt: number, token: string): boolean {
@@ -36,12 +36,12 @@ Page({
     const auxiliaryAttempt = ++this.data.auxiliaryAttempt;
     const current = () => this.isCurrentLoad(attempt, token) && this.data.auxiliaryAttempt === auxiliaryAttempt;
     // Clearing eligibility is fail-closed, not a statement that it is absent.
-    this.setData({ authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null, authorityState:"loading", commercialState:"loading", supportState:"loading" });
+    this.setData({ authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, authorityState:"loading", commercialState:"loading", supportState:"loading" });
     void (async () => {
       try {
         const authority = await authorityProjection(this);
-        if (current()) this.setData({ authority, authorityState:"ready" });
-      } catch { if (current()) this.setData({ authority:null, authorityState:"error" }); }
+        if (current()) this.setData({ authority, managementEntryAvailable:hasNativeManagementEntry(authority), authorityState:"ready" });
+      } catch { if (current()) this.setData({ authority:null,managementEntryAvailable:false, authorityState:"error" }); }
     })();
     void (async () => {
       try {
@@ -87,7 +87,7 @@ Page({
     if (!sameSession) this.setData({ snapshotVersion:0 });
     this.setData(preserveSnapshot && sameSession
       ? { loadAttempt:attempt, coreUnavailable:false, loading:true, error:"" }
-      : { loadAttempt:attempt, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null, commercialEligible:false, commercialAccessible:false, supportUnread:null, tasks:[], tasksError:"", loading:true, error:"" });
+      : { loadAttempt:attempt, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, tasks:[], tasksError:"", loading:true, error:"" });
     void this.loadTasks(attempt);
     this.loadAuxiliary(attempt, token);
     try {
@@ -151,7 +151,7 @@ Page({
   openShop() { this.openRoute("/pages/shop/index", "navigate", "商品目录暂时无法打开"); },
   openOrders() { this.openRoute("/pages/orders/index", "navigate", "订单暂时无法打开"); },
   openSupport(){this.openRoute("/pages/support/index","navigate","客服暂时无法打开");},
-  openManagement(){if(this.data.authorityState!=="ready"||!this.data.authority?.managementAvailable)return;this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},
+  openManagement(){if(this.data.authorityState!=="ready"||!hasNativeManagementEntry(this.data.authority))return;this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},
   openInvite() { this.openRoute("/pages/invite/index", "navigate", "邀请页面暂时无法打开"); },
   openCommission(){this.openRoute("/pages/commission/index","navigate","商业资格与佣金暂时无法打开");},
   openCommunityActivity(){this.openRoute("/pages/community-activity/index","navigate","社区记录暂时无法打开");},

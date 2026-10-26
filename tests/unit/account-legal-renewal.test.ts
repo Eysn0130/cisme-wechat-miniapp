@@ -35,7 +35,7 @@ describe("explicit current-legal renewal with an existing session",()=>{
  it("serializes confirmation taps and retains the current checkbox during an unknown result",async()=>{
   await mount();page.data.agreementAccepted=true;const pending=deferred();mocks.accept.mockReturnValueOnce(pending.promise);
   const one=page.login();await page.login();page.toggleAgreement({detail:{value:[]}});expect(mocks.accept).toHaveBeenCalledOnce();expect(page.data.agreementAccepted).toBe(true);expect(page.data.loading).toBe(true);
-  pending.reject(new Error("response lost"));await one;expect(page.data).toMatchObject({loading:false,legalAcceptanceStarted:false,renewalComplete:false});expect(page.data.error).toContain("结果尚未收到");expect(mocks.navigate).not.toHaveBeenCalled();expect(mocks.storage.get("cisme.authReturnUrl")).toBe(source);
+  pending.reject(new Error("response lost"));await one;expect(page.data).toMatchObject({loading:false,legalAcceptanceStarted:false,renewalComplete:false});expect(page.data.error).toContain("结果尚未收到");expect(mocks.navigate).not.toHaveBeenCalled();expect(mocks.storage.has("cisme.authReturnUrl")).toBe(false);expect(page.authenticationReturnUrl).toBe(source);
  });
  it("reloads a newly published version and requires a fresh explicit checkbox",async()=>{
   await mount();page.data.agreementAccepted=true;mocks.accept.mockRejectedValueOnce({status:409,code:"LEGAL_VERSION_REQUIRED"});mocks.request.mockResolvedValueOnce(legal("v3"));await page.login();
@@ -51,7 +51,7 @@ describe("explicit current-legal renewal with an existing session",()=>{
   expect(mocks.navigate).not.toHaveBeenCalled();await page.login();expect(mocks.accept).toHaveBeenCalledOnce();expect(page.data.agreementAccepted).toBe(false);expect(page.data.error).toContain("账号状态已变化");
  });
  it("requires normal deliberate login if the session expired without starting it automatically",async()=>{
-  await mount();mocks.token="";page.onShow();await Promise.resolve();expect(page.data.renewalMode).toBe(false);expect(mocks.accept).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.storage.get("cisme.authReturnUrl")).toBe(source);
+  await mount();mocks.token="";page.onShow();await Promise.resolve();expect(page.data.renewalMode).toBe(false);expect(mocks.accept).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.storage.has("cisme.authReturnUrl")).toBe(false);expect(page.authenticationReturnUrl).toBe(source);
  });
  it("does not invoke phone or avatar callbacks in renewal mode",async()=>{
   await mount();page.data.phoneBindingEnabled=true;await page.loginWithPhone({detail:{code:"synthetic-phone-code"}});await page.chooseLoginAvatar({detail:{avatarUrl:"synthetic-avatar"}});
@@ -63,6 +63,6 @@ describe("explicit current-legal renewal with an existing session",()=>{
  });
  it("does not navigate from a hidden account page when a confirmation response arrives",async()=>{
   await mount();page.data.agreementAccepted=true;const pending=deferred();mocks.accept.mockReturnValueOnce(pending.promise);const one=page.login();page.onHide();pending.resolve();await one;
-  expect(mocks.navigate).not.toHaveBeenCalled();expect(page.data.renewalComplete).toBe(false);expect(mocks.storage.get("cisme.authReturnUrl")).toBe(source);expect(mocks.token).toBe("existing-session");
+  expect(mocks.navigate).not.toHaveBeenCalled();expect(page.data.renewalComplete).toBe(false);expect(mocks.storage.has("cisme.authReturnUrl")).toBe(false);expect(page.authenticationReturnUrl).toBe(source);expect(mocks.token).toBe("existing-session");
  });
 });

@@ -353,8 +353,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Params:{id:string}}>("/v1/editorial/articles/:id",request=>editorial.detail(request.memberId,request.params.id));
   app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/authors/:id",request=>editorial.author(request.memberId,request.params.id,request.query));
   app.get<{Params:{id:string;sha:string}}>("/v1/editorial/media/:id/:sha",async(request,reply)=>{
-    const object=await editorial.media(request.params.id,request.params.sha);
-    return reply.header('X-Content-Type-Options','nosniff').type('image/webp').send(Buffer.from(object.bytes));
+    const object=await editorial.media(request.params.id,request.params.sha,request.headers.range);
+    reply.header('X-Content-Type-Options','nosniff').header('Cache-Control','private, no-store').code(object.statusCode);
+    if(object.acceptRanges)reply.header('Accept-Ranges','bytes');
+    if(object.contentRange)reply.header('Content-Range',object.contentRange);
+    return reply.type(object.mimeType).send(Buffer.from(object.bytes));
   });
   app.put<{Params:{id:string}}>("/v1/editorial/articles/:id/reaction",request=>editorial.react(request.memberId,request.principalId,request.params.id,(request.body??{}) as never));
   app.put<{Params:{id:string}}>("/v1/editorial/articles/:id/follow",request=>editorial.follow(request.memberId,request.principalId,request.params.id,(request.body as {active?:unknown})?.active));

@@ -1,0 +1,21 @@
+{
+  "observedAtUtc": "2026-10-26T14:03:06.274146+00:00",
+  "sourcePackageSha256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f",
+  "sameExistingCanonicalOwnerConfirmedByOwnArticle": true,
+  "activeV3LegalRequiredByAcceptedInteraction": true,
+  "realNativeLikeAndSave": [
+    {
+      "kind": "like",
+      "actualTogglePersistedAfterRead": true,
+      "initialStateAndCountRestored": true
+    },
+    {
+      "kind": "save",
+      "actualTogglePersistedAfterRead": true,
+      "initialStateAndCountRestored": true
+    }
+  ],
+  "memberOrPrincipalIdentifiersExported": false,
+  "careOrTransactionFactsCreated": false,
+  "scope": "Actual native like/save toggles and reload confirmation, restored afterward; self-follow button presence was not separately asserted."
+}

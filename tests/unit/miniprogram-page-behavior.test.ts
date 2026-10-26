@@ -1066,11 +1066,12 @@ describe("mini-program page behavior", () => {
     const page = capturedPage!;
     const backContext = mountedPage(page, { pageAlive: true, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false });
 
+    backContext.authenticationReturnUrl = "/pages/home/index";
     await page.back.call(backContext);
 
     expect(cancelAuthenticationMock).toHaveBeenCalledTimes(1);
     expect(suppressAuthenticationRedirectOnceMock).toHaveBeenCalledWith("/pages/home/index");
-    expect(wxMock.removeStorageSync).toHaveBeenCalledWith("cisme.authReturnUrl");
+    expect(cancelAuthenticationMock).toHaveBeenCalledWith("");
     expect(wxMock.navigateBack).toHaveBeenCalledWith(expect.objectContaining({ delta: 1 }));
     expect(wxMock.switchTab).not.toHaveBeenCalled();
     expect(backContext.data.leaving).toBe(true);
@@ -1093,7 +1094,7 @@ describe("mini-program page behavior", () => {
 
     api.resumeAuthentication("/pages/home/index");
     expect(wxMock.setStorageSync).toHaveBeenCalledWith("cisme.authReturnUrl", "/pages/home/index");
-    expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/account/index?intent=login" }));
+    expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({ url: expect.stringMatching(/^\/pages\/account\/index\?intent=login&authFlow=[a-z0-9-]+$/) }));
   });
 
   it("confirms a committed Account exit, serializes taps, and falls back safely when Back has no source", async () => {

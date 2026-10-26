@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import type {FastifyInstance} from 'fastify';
 import {CANONICAL_WECHAT_MINIPROGRAM_APP_ID,loadConfig} from '@cisme/config';
 import {TEST_DATABASE_URL,resetDatabase,testPool} from '@cisme/testkit';
-import {EditorialService,type EditorialPublication} from '../../services/api/src/editorial';
+import {EditorialService,type EditorialPublication,type EditorialVideo} from '../../services/api/src/editorial';
 import {AuthorityService} from '../../services/api/src/authority';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {createApp} from '../../services/api/src/server';
@@ -15,6 +15,7 @@ import {DeliveryAddressService} from '../../services/api/src/deliveryAddress';
 import {collectMemberPortableData} from '../../services/api/src/privacyPortableData';
 import {portableQuerySpecs} from '../../services/api/src/privacyPortableQueries';
 import {buildPortableParts,needsPortableParts} from '../../services/api/src/privacyPortableParts';
+import {syntheticEditorialMp4} from '../fixtures/editorial-video';
 const pool=testPool(),config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'synthetic-editorial-session',UPLOAD_TOKEN_SECRET:'synthetic-editorial-upload',
   CONTACT_ENCRYPTION_KEY:'1'.repeat(64),CONTACT_HASH_KEY:'2'.repeat(64),WECHAT_APP_ID:CANONICAL_WECHAT_MINIPROGRAM_APP_ID,ALLOW_DEV_ADAPTERS:'false',UGC_GO_LIVE_GATE:'false',OBJECT_STORAGE_DRIVER:'api_gateway'});
 const storage=createApiGatewayStorage(config),service=new EditorialService(pool,config,storage,new AuthorityService(pool,'test'));
@@ -160,6 +161,103 @@ describe('independent owner-authorized editorial (synthetic DB only)',()=>{
   const article=await service.publish(author.id,author.principal,{...publication,externalRef:'synthetic-unique-media',media:[{sha256:sha,sourceSha256:sha,objectKey:key,bytes:bytes.length,rightsRef:'synthetic-owned-image',sourceKind:'ai_generated_editorial_artwork',aiUsage:'generated'}]});
   await service.withdraw(author.id,author.principal,article.id,1,'OWNER_AUTHORIZED_WITHDRAWAL');
   expect(await service.purgeWithdrawn(author.id,author.principal,article.id,2)).toMatchObject({removedObjects:1});await expect(storage.read(key,1024)).rejects.toThrow();
+ });
+ it('publishes source-bound ordered brand images without invented AI declarations or public UGC',async()=>{
+  const images=[];
+  for(const color of ['#a05080','#326aac']){
+   const bytes=await sharp({create:{width:12,height:10,channels:3,background:color}}).webp().toBuffer();
+   const sha=createHash('sha256').update(bytes).digest('hex');await storage.writeDerivedImage(`editorial-derived/${sha}.webp`,bytes);
+   images.push({bytes,media:{sha256:sha,objectKey:`editorial-derived/${sha}.webp`,sourceSha256:createHash('sha256').update('synthetic-original:'+color).digest('hex'),
+    rightsRef:'synthetic-brand-owner-authorization',bytes:bytes.length,sourceKind:'owner_authorized_brand_media' as const,aiUsage:'not_declared' as const}});
+  }
+  const content:EditorialPublication={...publication,externalRef:'synthetic-brand-gallery',sourceUrl:'https://www.xiaohongshu.com/explore/synthetic-brand-note',
+   rightsEvidence:{kind:'owner_authorized_brand_republication',sources:[{url:'https://www.xiaohongshu.com/explore/synthetic-brand-note'}]},
+   media:images.slice().reverse().map(image=>image.media)};
+  const article=await service.publish(author.id,author.principal,content);
+  expect(await service.publish(author.id,author.principal,content)).toMatchObject({id:article.id,version:1,replayed:true});
+  const response=await app.inject({method:'GET',url:`/v1/editorial/articles/${article.id}`});expect(response.statusCode).toBe(200);
+  expect(response.json()).toMatchObject({authorId:author.id,provenanceLabel:'品牌原帖配图',likeCount:0,saveCount:0,
+   coverUrl:`/v1/editorial/media/${article.id}/${images[1]!.media.sha256}`,media:content.media.map(image=>({id:image.sha256,url:`/v1/editorial/media/${article.id}/${image.sha256}`}))});
+  expect((await pool.query('SELECT media FROM editorial_article WHERE id=$1',[article.id])).rows[0].media).toEqual(content.media);
+  for(const image of images){
+   const read=await app.inject({method:'GET',url:`/v1/editorial/media/${article.id}/${image.media.sha256}`});
+   expect(read.statusCode).toBe(200);expect(read.headers['content-type']).toMatch(/^image\/webp/);
+   expect(read.headers['x-content-type-options']).toBe('nosniff');expect(read.rawPayload).toEqual(image.bytes);
+  }
+  expect((await app.inject({method:'GET',url:'/v1/ugc/status'})).json().publicEnabled).toBe(false);
+  const copy=await transaction(pool,c=>collectMemberPortableData(c,config,new DeliveryAddressService(pool,config),author.id));
+  const exported=(copy.sections.editorial as any).articles.find((row:any)=>row.id===article.id);expect(exported.media).toEqual(content.media);
+  await expect(service.publish(outsider.id,outsider.principal,{...content,externalRef:'synthetic-unauthorized-brand'})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  await expect(service.publish(author.id,author.principal,{...content,title:'stale edit',expectedVersion:0})).rejects.toMatchObject({code:'EDITORIAL_VERSION_CONFLICT'});
+  await service.withdraw(author.id,author.principal,article.id,1,'OWNER_AUTHORIZED_WITHDRAWAL');
+  expect((await app.inject({method:'GET',url:`/v1/editorial/articles/${article.id}`})).statusCode).toBe(404);
+  for(const image of images)expect((await app.inject({method:'GET',url:`/v1/editorial/media/${article.id}/${image.media.sha256}`})).statusCode).toBe(404);
+ });
+ it('labels mixed and explicitly AI-declared brand galleries accurately without changing legacy AI reads',async()=>{
+  const legacy=publication.media[0]!;
+  const declared={...legacy,sourceKind:'owner_authorized_brand_media' as const,aiUsage:'generated' as const};
+  const article=await service.publish(author.id,author.principal,{...publication,externalRef:'synthetic-declared-brand-ai',media:[declared]});
+  expect((await app.inject({method:'GET',url:`/v1/editorial/articles/${article.id}`})).json().provenanceLabel).toBe('AI辅助配图');
+  const bytes=await sharp({create:{width:7,height:6,channels:3,background:'#567a24'}}).webp().toBuffer();
+  const sha=createHash('sha256').update(bytes).digest('hex');await storage.writeDerivedImage(`editorial-derived/${sha}.webp`,bytes);
+  const mixed=await service.publish(author.id,author.principal,{...publication,externalRef:'synthetic-mixed-brand-ai',media:[
+   {...declared,sha256:sha,objectKey:`editorial-derived/${sha}.webp`,sourceSha256:sha,bytes:bytes.length,aiUsage:'not_declared'},legacy]});
+  expect((await app.inject({method:'GET',url:`/v1/editorial/articles/${mixed.id}`})).json().provenanceLabel).toBe('品牌原帖配图（含AI辅助配图）');
+ });
+ it('serves verified H264 video and poster with bounded single ranges, correct export MIME, and withdrawal protection',async()=>{
+  const sha=createHash('sha256').update(syntheticEditorialMp4).digest('hex');
+  const posterBytes=await sharp({create:{width:32,height:24,channels:3,background:'#23aabb'}}).webp().toBuffer();
+  const posterSha=createHash('sha256').update(posterBytes).digest('hex'),sourceSha=createHash('sha256').update('synthetic-original-video').digest('hex');
+  const provenance={sourceSha256:sourceSha,rightsRef:'synthetic-video-republication',sourceKind:'owner_authorized_brand_media' as const,aiUsage:'not_declared' as const};
+  const media:EditorialVideo={sha256:sha,objectKey:`editorial-video/${sha}.mp4`,bytes:syntheticEditorialMp4.length,...provenance,
+   mediaType:'video',mimeType:'video/mp4',width:32,height:24,durationMs:400,
+   poster:{sha256:posterSha,objectKey:`editorial-derived/${posterSha}.webp`,bytes:posterBytes.length,...provenance}};
+  await storage.writeEditorialVideo!(media.objectKey,syntheticEditorialMp4);await storage.writeDerivedImage(media.poster.objectKey,posterBytes);
+  const content={...publication,externalRef:'synthetic-video-note',media:[media]},article=await service.publish(author.id,author.principal,content);
+  const url=`/v1/editorial/media/${article.id}/${sha}`,posterUrl=`/v1/editorial/media/${article.id}/${posterSha}`;
+  const detail=await app.inject({method:'GET',url:`/v1/editorial/articles/${article.id}`});
+  expect(detail.json()).toMatchObject({coverUrl:posterUrl,provenanceLabel:'品牌原帖视频',media:[{id:sha,url,type:'video',mimeType:'video/mp4',posterUrl,width:32,height:24,durationMs:400}]});
+  const full=await app.inject({method:'GET',url});expect(full.statusCode).toBe(200);expect(full.rawPayload).toEqual(syntheticEditorialMp4);
+  expect(full.headers).toMatchObject({'content-type':'video/mp4','accept-ranges':'bytes','x-content-type-options':'nosniff','cache-control':'private, no-store'});
+  for(const [range,start,end] of [['bytes=0-99',0,99],['bytes=100-',100,syntheticEditorialMp4.length-1],['bytes=-20',syntheticEditorialMp4.length-20,syntheticEditorialMp4.length-1],['bytes=0-999999',0,syntheticEditorialMp4.length-1]] as const){
+   const result=await app.inject({method:'GET',url,headers:{range}});expect(result.statusCode).toBe(206);
+   expect(result.headers['content-range']).toBe(`bytes ${start}-${end}/${syntheticEditorialMp4.length}`);
+   expect(result.rawPayload).toEqual(syntheticEditorialMp4.subarray(start,end+1));
+  }
+  for(const range of ['bytes=0-1,3-4','bytes=999999-','bytes=-0','bytes=3-2','items=0-1','bytes=-','bytes=0-NaN']){
+   const result=await app.inject({method:'GET',url,headers:{range}});expect(result.statusCode).toBe(416);
+   expect(result.headers['content-range']).toBe(`bytes */${syntheticEditorialMp4.length}`);expect(result.rawPayload.length).toBe(0);
+  }
+  const poster=await app.inject({method:'GET',url:posterUrl});expect(poster.statusCode).toBe(200);expect(poster.rawPayload).toEqual(posterBytes);expect(poster.headers['content-type']).toMatch(/^image\/webp/);
+  const corrupt=Buffer.from(syntheticEditorialMp4);corrupt[corrupt.length-1]=corrupt[corrupt.length-1]!^1;
+  const tampered=await createApp({config,pool,storage:{...storage,read:async(key,max)=>key===media.objectKey?{bytes:corrupt,mimeType:'video/mp4'}:storage.read(key,max)}});
+  try{const refused=await tampered.inject({method:'GET',url,headers:{range:'bytes=0-7'}});expect(refused.statusCode).toBe(503);expect(refused.rawPayload).not.toEqual(syntheticEditorialMp4.subarray(0,8));}
+  finally{await tampered.close();}
+  const copy=await transaction(pool,c=>collectMemberPortableData(c,config,new DeliveryAddressService(pool,config),author.id));
+  expect(copy.uploaded.find(item=>item.object_key===media.objectKey)).toMatchObject({mime_type:'video/mp4',size_bytes:String(syntheticEditorialMp4.length)});
+  expect(copy.uploaded.find(item=>item.object_key===media.poster.objectKey)).toMatchObject({mime_type:'image/webp',size_bytes:String(posterBytes.length)});
+  const request=(await pool.query("INSERT INTO privacy_request(member_id,kind,message,due_at) VALUES($1,'access','synthetic video export',now()+interval '30 days') RETURNING id",[author.id])).rows[0].id;
+  const job=(await pool.query("INSERT INTO data_export_job(privacy_request_id,member_id,scope,requested_by) VALUES($1,$2,'{}','synthetic-test') RETURNING id",[request,author.id])).rows[0].id;
+  const key=Buffer.alloc(32,11),parts=await transaction(pool,c=>buildPortableParts(c,config,new DeliveryAddressService(pool,config),storage,job,author.id,key),'REPEATABLE READ',1,30_000);
+  expect(parts.counts.media).toBe(copy.uploaded.length);
+  const rows=(await pool.query('SELECT * FROM privacy_export_part WHERE job_id=$1 ORDER BY part_number',[job])).rows;
+  const exported=Buffer.concat(rows.map(row=>{const d=createDecipheriv('aes-256-gcm',key,row.iv);d.setAuthTag(row.auth_tag);return Buffer.concat([d.update(row.ciphertext),d.final()]);})).toString();
+  expect(exported).toContain('"mimeType":"video/mp4"');expect(exported).toContain(posterSha);
+  let entered!:()=>void,release!:()=>void;const reached=new Promise<void>(resolve=>entered=resolve),waiting=new Promise<void>(resolve=>release=resolve);
+  const slow={...storage,read:async(objectKey:string,max?:number)=>{if(objectKey===media.objectKey){entered();await waiting;}return storage.read(objectKey,max);}};
+  const reading=new EditorialService(pool,config,slow,new AuthorityService(pool,'test')).media(article.id,sha,'bytes=0-7');await reached;
+  const mutator=await pool.connect();try{
+   await mutator.query("SET lock_timeout='75ms'");
+   await expect(mutator.query("UPDATE editorial_article SET status='withdrawn' WHERE id=$1",[article.id])).rejects.toMatchObject({code:'55P03'});
+   await expect(mutator.query("UPDATE member SET status='blocked' WHERE id=$1",[author.id])).rejects.toMatchObject({code:'55P03'});
+  }finally{release();await reading;await mutator.query('RESET lock_timeout');mutator.release();}
+  const shared=await service.publish(author.id,author.principal,{...publication,externalRef:'synthetic-shared-video-poster',media:[media.poster]});
+  await service.withdraw(author.id,author.principal,shared.id,1,'OWNER_WITHDRAW_POSTER');
+  expect(await service.purgeWithdrawn(author.id,author.principal,shared.id,2)).toMatchObject({removedObjects:0});
+  await service.withdraw(author.id,author.principal,article.id,1,'OWNER_WITHDRAW_VIDEO');
+  for(const mediaUrl of [url,posterUrl])expect((await app.inject({method:'GET',url:mediaUrl,headers:{range:'bytes=0-7'}})).statusCode).toBe(404);
+  expect(await service.purgeWithdrawn(author.id,author.principal,article.id,2)).toMatchObject({removedObjects:2});
+  await expect(storage.read(media.objectKey)).rejects.toThrow();await expect(storage.read(media.poster.objectKey)).rejects.toThrow();
  });
  it('account closure withdraws/redacts author text and clears own real reader activity',async()=>{
   await transaction(pool,c=>applyAccountClosure(c,{version:1,memberId:author.id,identityDigest:AccountClosure.identityDigest('wechat_miniprogram',CANONICAL_WECHAT_MINIPROGRAM_APP_ID,author.openid),requestId:randomUUID(),createdAt:new Date().toISOString()}));

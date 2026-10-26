@@ -1,0 +1,40 @@
+{
+  "scope": "real editorial-only member; native refreshed current source; direct Account with existing session returns Home; existing published image regression",
+  "sourceSha256": "21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87",
+  "passed": true,
+  "captures": [
+    {
+      "label": "01-profile-editorial-only",
+      "route": "pages/profile/index",
+      "sourceSha256": "21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87",
+      "screenshot": "tmp/launch-20261026/native-auth-fix-21626946046e/01-profile-editorial-only.jpg",
+      "screenshotSha256": "23094b58a93e1df827055bc753d1e9554b9a548f201c1ba4c5b5b529790e1c51"
+    },
+    {
+      "label": "02-direct-account-continue",
+      "route": "pages/account/index",
+      "sourceSha256": "21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87",
+      "screenshot": "tmp/launch-20261026/native-auth-fix-21626946046e/02-direct-account-continue.jpg",
+      "screenshotSha256": "64f324f6855cc047c4f86175e12470b39dd94b5aaf8d79ea037e0f6b8df3b05a"
+    },
+    {
+      "label": "03-continue-home",
+      "route": "pages/home/index",
+      "sourceSha256": "21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87",
+      "screenshot": "tmp/launch-20261026/native-auth-fix-21626946046e/03-continue-home.jpg",
+      "screenshotSha256": "b4fd26ff000704e8f74701df56fb006fc35e03337fdb994240e9f9d68cdb23cc"
+    },
+    {
+      "label": "04-existing-image-article",
+      "route": "pages/post/index",
+      "sourceSha256": "21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87",
+      "screenshot": "tmp/launch-20261026/native-auth-fix-21626946046e/04-existing-image-article.jpg",
+      "screenshotSha256": "65ecb599cf7e34d57d180546f31cfe6dab4237bef72ba75962a17f1360708cdf"
+    }
+  ],
+  "deviceVerified": false,
+  "newVideoPlaybackVerified": false,
+  "observedAtUtc": "2026-10-26T14:54:26.846971+00:00",
+  "visuallyInspected": true,
+  "refreshTimingNote": "Initial refresh viewport captured separately; acceptance starts after the requested route settled. No old-source screenshot promoted."
+}

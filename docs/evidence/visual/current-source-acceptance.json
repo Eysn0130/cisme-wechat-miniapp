@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f",
+  "packageSourceSha256": "21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -265,5 +265,5 @@
       "status": "blocked"
     }
   ],
-  "note": "Current source 2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f: formal-product copy revision on 2026-10-26. Forty native simulator default/guest first viewports were freshly captured and viewed with source hashes and URL checks bound; 26 routes redirected to Account and were not authenticated-page acceptance. First five pre-navigation timing mismatches are retained explicitly. Partial evidence is recorded separately in docs/evidence/launch-20261026/native-default-2c419820288f-summary.json. No historical screenshot is promoted to this package. Full route/state/device matrices and real WeChat component evidence remain unverified, so this acceptance manifest remains blocked."
+  "note": "Current source 21626946046eb720e82d7ceacde153f396ee23bfda5b4b5ad2395cb8af3dbb87 adds flow-bound login return, native management visibility and brand video playback. Current-source native verification is recorded separately as partial evidence when captured. Prior 2c419820288f and 567b50db6a90 screenshots retain their original source scope; none is promoted to this hash. Full route/state/device matrices remain unverified, so this acceptance manifest remains blocked."
 }

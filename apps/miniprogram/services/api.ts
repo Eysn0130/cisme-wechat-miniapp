@@ -13,6 +13,23 @@ const reads = new RequestCoordinator();
 const privateDownloads = new Set<() => void>();
 let authRedirecting = false;
 let suppressedAuthRedirectPath = "";
+type AuthenticationIntent = "login" | "renew";
+let authenticationSequence = 0;
+let authenticationFlow: { id: string; returnUrl: string; intent: AuthenticationIntent; environment: string; token: string; claimed: boolean } | null = null;
+
+function safeAuthenticationReturn(url: string, fallback = "/pages/home/index"): string {
+  return url.startsWith("/pages/") && !url.startsWith("/pages/account/") ? url : fallback;
+}
+
+function authenticationPage(returnUrl: string, intent: AuthenticationIntent): string {
+  const id = `${Date.now().toString(36)}-${++authenticationSequence}`;
+  authenticationFlow = { id, returnUrl: safeAuthenticationReturn(returnUrl), intent,
+    environment: requestEnvironment(), token: app.globalData.sessionToken, claimed: false };
+  // This legacy key is a compatibility mirror, never the source of a new flow.
+  wx.setStorageSync(authReturnKey, authenticationFlow.returnUrl);
+  authRedirecting = true;
+  return `/pages/account/index?intent=${intent}&authFlow=${encodeURIComponent(id)}`;
+}
 
 function normalizedAuthPath(url: string): string {
   return url.split("?")[0] ?? url;
@@ -55,16 +72,15 @@ export function beginAuthentication(returnUrl = currentRouteUrl()): void {
   if (suppressedAuthRedirectPath === authPath) {
     return;
   }
-  if (returnUrl.startsWith("/pages/") && !returnUrl.startsWith("/pages/account/")) wx.setStorageSync(authReturnKey, returnUrl);
   if (authRedirecting) return;
-  authRedirecting = true;
+  const url = authenticationPage(returnUrl, "login");
   wx.navigateTo({
-    url: "/pages/account/index?intent=login",
+    url,
     fail: () => {
       wx.reLaunch({
-        url: "/pages/account/index?intent=login",
+        url,
         fail: () => {
-          authRedirecting = false;
+          cancelAuthentication();
           wx.showToast({ title: "登录页面暂时无法打开，请重试", icon: "none" });
         }
       });
@@ -77,11 +93,10 @@ export function beginAuthentication(returnUrl = currentRouteUrl()): void {
 export function beginLegalRenewal(returnUrl = currentRouteUrl()): void {
   clearAuthenticationRedirectSuppression();
   if (!app.globalData.sessionToken) { beginAuthentication(returnUrl); return; }
-  if (returnUrl.startsWith("/pages/") && !returnUrl.startsWith("/pages/account/")) wx.setStorageSync(authReturnKey, returnUrl);
   if (authRedirecting) return;
-  authRedirecting = true;
-  wx.navigateTo({ url:"/pages/account/index?intent=renew", fail:()=>wx.reLaunch({
-    url:"/pages/account/index?intent=renew",fail:()=>{authRedirecting=false;wx.showToast({title:"协议确认页暂时无法打开，请重试",icon:"none"});}
+  const url = authenticationPage(returnUrl, "renew");
+  wx.navigateTo({ url, fail:()=>wx.reLaunch({
+    url,fail:()=>{cancelAuthentication();wx.showToast({title:"协议确认页暂时无法打开，请重试",icon:"none"});}
   }) });
 }
 
@@ -130,8 +145,12 @@ export function requireHistoricalCommerceAccess(returnUrl=currentRouteUrl()):boo
   beginAuthentication(returnUrl);return false;
 }
 
-export function cancelAuthentication(): void {
+export function cancelAuthentication(flowId?: string): void {
+  // An unloading old Account must not cancel a newer Account flow.
+  if (flowId !== undefined && authenticationFlow && authenticationFlow.id !== flowId) return;
   authRedirecting = false;
+  authenticationFlow = null;
+  wx.removeStorageSync(authReturnKey);
 }
 
 export function suppressAuthenticationRedirectOnce(returnUrl: string): void {
@@ -148,10 +167,18 @@ export function resumeAuthentication(returnUrl = currentRouteUrl()): void {
   beginAuthentication(returnUrl);
 }
 
-export function consumeAuthReturnUrl(): string {
-  const stored = wx.getStorageSync<string>(authReturnKey);
+export function consumeAuthReturnUrl(flowId = "", intent: AuthenticationIntent = "login"): string {
+  const fallback = intent === "renew" ? "/pages/community/index" : "/pages/home/index";
+  const flow = authenticationFlow;
+  if (!flowId) { cancelAuthentication(); return fallback; }
+  if (!flow) { cancelAuthentication(flowId); return fallback; }
+  if (flow.id !== flowId || flow.claimed) return fallback;
+  if (flow.intent !== intent || flow.environment !== requestEnvironment() || flow.token !== app.globalData.sessionToken) {
+    cancelAuthentication(flowId); return fallback;
+  }
+  flow.claimed = true;
   wx.removeStorageSync(authReturnKey);
-  return stored.startsWith("/pages/") && !stored.startsWith("/pages/account/") ? stored : "/pages/home/index";
+  return flow.returnUrl;
 }
 
 export function navigateAfterAuthentication(url: string): Promise<"target" | "failed"> {

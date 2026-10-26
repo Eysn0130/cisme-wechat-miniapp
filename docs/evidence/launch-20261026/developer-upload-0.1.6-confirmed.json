@@ -1,0 +1,17 @@
+{
+  "observedAtUtc": "2026-10-26T14:00:14.241589+00:00",
+  "officialTaskUpdatedAtEpochMs": 1793021744660,
+  "version": "0.1.6-test.20261026",
+  "sourceHead": "c43535adf3ece9deae98acd2abf069e50d7e0649",
+  "nativePackageSourceSha256": "2c419820288f385e2f262f5c551184a1cb7b420545e1055ef1d8025a2fc93d4f",
+  "officialTool": "Nightly wechatide upload then polling_task_result of original task after explicit user UI confirmation",
+  "officialTaskStatus": "success",
+  "officialExecutionSuccess": true,
+  "resultSha256": "c70527256a7f5dfd477d2dfff1440ff1687fd0ac17847b353bd8e110f9337462",
+  "platformState": "developer_version_uploaded",
+  "experienceVersionAssigned": false,
+  "reviewSubmitted": false,
+  "publicReleasePerformed": false,
+  "originalTaskResubmitted": false,
+  "userConfirmedCurrentV3Login": true
+}

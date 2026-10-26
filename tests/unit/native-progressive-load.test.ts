@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), authority
 vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false, clearAuthenticationRedirectSuppression: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/member-identity", () => ({ memberIdentity: mocks.identity, publishMemberIdentity: mocks.publish }));
 vi.mock("../../apps/miniprogram/services/member-avatar", () => ({ defaultMemberAvatar: "neutral", localMemberAvatar: mocks.avatar }));
-vi.mock("../../apps/miniprogram/services/authority", () => ({ authorityProjection: mocks.authority }));
+vi.mock("../../apps/miniprogram/services/authority", async original => ({ ...await original<typeof import("../../apps/miniprogram/services/authority")>(), authorityProjection: mocks.authority }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/task-entry", () => ({ consumerTaskEntries: (items: unknown) => items }));

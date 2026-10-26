@@ -1,0 +1,527 @@
+{
+  "schema": "cisme.xhs-migration-inventory.v1",
+  "observedDate": "2026-10-26",
+  "sourceProfile": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5",
+  "sourceProfileName": "CISME头皮实验室",
+  "scope": "Current publicly rendered posted-notes list; 14 unique cards reached by scrolling; 35 belongs to offscreen collection subpanel and is not used as published-note total.",
+  "notes": [
+    {
+      "order": 1,
+      "noteId": "6a6f2c8c00000000320218eb",
+      "title": "30岁以后，你的头皮是不是也开始\"闹脾气\"了？",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a6f2c8c00000000320218eb",
+      "dateLabel": "08-02 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 1,
+      "videoDurationSeconds": null,
+      "captionFile": "6a6f2c8c00000000320218eb.json",
+      "captionSha256": "a206eecf06ca1c5f4b1a9cfd7075971b5093e7165fcebd4b22ab3a169adef534",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a6f2c8c00000000320218eb-01.webp",
+          "sha256": "fd33b23868eff6e1f99e8ee1c5691429af994b5ffff130cd5d9ab0f1a1c1200d",
+          "bytes": 170704,
+          "width": 1080,
+          "height": 1575,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 2,
+      "noteId": "6a6ca32d00000000220107c3",
+      "title": "大家都在说头皮养护，我们说怎么养护",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a6ca32d00000000220107c3",
+      "dateLabel": "07-31 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 1,
+      "videoDurationSeconds": null,
+      "captionFile": "6a6ca32d00000000220107c3.json",
+      "captionSha256": "6e6976888cdf03a6b5c207c290a1ad1c888f6fb964c82dcf661d04b4d793bd95",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a6ca32d00000000220107c3-01.webp",
+          "sha256": "ec85c1c6d6e2986415dfd436d12d91d1079f72af0c5ff55358914559f8956413",
+          "bytes": 148524,
+          "width": 1080,
+          "height": 1350,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 3,
+      "noteId": "6a6a902b000000001101c47e",
+      "title": "本世纪最具幸福感的洗头方式！",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a6a902b000000001101c47e",
+      "dateLabel": "07-29 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 2,
+      "videoDurationSeconds": null,
+      "captionFile": "6a6a902b000000001101c47e.json",
+      "captionSha256": "8bb3e309956d7c51e3cb6e95073a50ce1e71870640db82bf6192726cb768362b",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a6a902b000000001101c47e-01.webp",
+          "sha256": "593f7fe94b123ac95df98b670274c85146dd09bb10a1a4417da89d4cdceed85c",
+          "bytes": 141452,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        },
+        {
+          "index": 2,
+          "file": "6a6a902b000000001101c47e-02.webp",
+          "sha256": "9e599b67db83f9c26763b4e4fc927b44125ad1fc68610ec1b1a5bc7bee6b4e26",
+          "bytes": 108388,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 4,
+      "noteId": "6a682a3a000000001101d411",
+      "title": "多数人的洗护，都停留在表层发丝清洁",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a682a3a000000001101d411",
+      "dateLabel": "编辑于 07-27 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 1,
+      "videoDurationSeconds": null,
+      "captionFile": "6a682a3a000000001101d411.json",
+      "captionSha256": "9ce16a4f6867fbb20f6c2f2df25d0e248734928f41f7e8bd5fb75174eb934321",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a682a3a000000001101d411-01.webp",
+          "sha256": "93a02cad56fcc988f1e9a197223d9a42defdeddbbbdaf7c8b86579bea8b281d2",
+          "bytes": 282794,
+          "width": 1080,
+          "height": 1350,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 5,
+      "noteId": "6a66dae5000000001101afde",
+      "title": "洗头，不该只是一项家务",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a66dae5000000001101afde",
+      "dateLabel": "编辑于 07-26 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 1,
+      "videoDurationSeconds": null,
+      "captionFile": "6a66dae5000000001101afde.json",
+      "captionSha256": "21e8aeb169a59161de9b22cbd50696cc057ce2b67e9ba90f503969ca5b5ceca1",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a66dae5000000001101afde-01.webp",
+          "sha256": "cc437530b225e3730c59036a2e53be34712df027840175670366cede6f45bfbe",
+          "bytes": 139948,
+          "width": 1080,
+          "height": 1350,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 6,
+      "noteId": "6a657b7200000000110046ed",
+      "title": "我们想重新定义头皮护理这件事",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a657b7200000000110046ed",
+      "dateLabel": "编辑于 07-27 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 1,
+      "videoDurationSeconds": null,
+      "captionFile": "6a657b7200000000110046ed.json",
+      "captionSha256": "b07d7e5c5aa46bcadc736fe2e380e727a55bb425aee1467196e7ddb554af1756",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a657b7200000000110046ed-01.webp",
+          "sha256": "76960c3dc066d4d08921d12d7d07daa32aa195c095c90e7e39a7a2a300306b8f",
+          "bytes": 172082,
+          "width": 1055,
+          "height": 1491,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 7,
+      "noteId": "6a63563e000000000f02a45e",
+      "title": "有一个品牌，等了五年",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a63563e000000000f02a45e",
+      "dateLabel": "07-24 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 6,
+      "videoDurationSeconds": null,
+      "captionFile": "6a63563e000000000f02a45e.json",
+      "captionSha256": "ad469fa5ab39ce282ab6eb4768ff42aa310ab5c5fd32841a3e94a859d82bc239",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a63563e000000000f02a45e-01.webp",
+          "sha256": "49f5769a775cd42a67463fc98ae4a7f983bae5153c55b838080df86ec1efa7cd",
+          "bytes": 44736,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA locator.downloadMedia visible active image"
+        },
+        {
+          "index": 2,
+          "file": "6a63563e000000000f02a45e-02.webp",
+          "sha256": "99fa2ba89745e623ecae3b5267eee5ff7e106307d9168a312392bd09b64c60d0",
+          "bytes": 30126,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA locator.downloadMedia visible active image"
+        },
+        {
+          "index": 3,
+          "file": "6a63563e000000000f02a45e-03.webp",
+          "sha256": "494c6929b5f3d18a4b09044c7b73832a230a07213ea1f89f7f78d31d4d8482ed",
+          "bytes": 32872,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA locator.downloadMedia visible active image"
+        },
+        {
+          "index": 4,
+          "file": "6a63563e000000000f02a45e-04.webp",
+          "sha256": "3014d655cf990e8e6a6587624fe086babb2a5cfa28afbf73e297ef65f43a30b8",
+          "bytes": 47328,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA locator.downloadMedia visible active image"
+        },
+        {
+          "index": 5,
+          "file": "6a63563e000000000f02a45e-05.webp",
+          "sha256": "b42b3641c35019e6867947885644f5523ca677849168db17ae10bc5015e21d08",
+          "bytes": 50440,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA locator.downloadMedia visible active image"
+        },
+        {
+          "index": 6,
+          "file": "6a63563e000000000f02a45e-06.webp",
+          "sha256": "78a34c36263bdc1575da1108d18c3ce96c430967de781a2fe4d06e95c9a521eb",
+          "bytes": 29166,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA locator.downloadMedia visible active image"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 8,
+      "noteId": "6a5f641a000000000f01f1b0",
+      "title": "染完头头皮爆痛？",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a5f641a000000000f01f1b0",
+      "dateLabel": "07-21 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 1,
+      "videoDurationSeconds": null,
+      "captionFile": "6a5f641a000000000f01f1b0.json",
+      "captionSha256": "a54b75c12df7d2c24c96dcec9a7a7c608ba68f596f1ce3032e02c81b88fa0582",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a5f641a000000000f01f1b0-01.webp",
+          "sha256": "25d42bfc51f7b972e6c6cb495f7814a68acfa87bbfa30637db8c54a1ebf81cad",
+          "bytes": 128868,
+          "width": 1080,
+          "height": 1350,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 9,
+      "noteId": "6a5d82bf00000000110107a3",
+      "title": "每天洗头头皮还是臭",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a5d82bf00000000110107a3",
+      "dateLabel": "07-19 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 2,
+      "videoDurationSeconds": null,
+      "captionFile": "6a5d82bf00000000110107a3.json",
+      "captionSha256": "db78136dfb9ef6cd83ff519a71c47e5b43c9708e214d3c89b21d3d4d00b5202e",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a5d82bf00000000110107a3-01.webp",
+          "sha256": "4cb08dbddc921df0dde29769e5d42bfdc289e5c0f037653060af718de44dffc5",
+          "bytes": 103640,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        },
+        {
+          "index": 2,
+          "file": "6a5d82bf00000000110107a3-02.webp",
+          "sha256": "33fbf5999e44ef63a2a04c4d4b68d2706eaf22a7f03b464198066024d80761f4",
+          "bytes": 60512,
+          "width": 1080,
+          "height": 1440,
+          "kind": "platform_webp_rendition",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 10,
+      "noteId": "6a51a9580000000011014ffc",
+      "title": "洗头是最低成本的变美",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a51a9580000000011014ffc",
+      "dateLabel": "07-10 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "image",
+      "imageCount": 4,
+      "videoDurationSeconds": null,
+      "captionFile": "6a51a9580000000011014ffc.json",
+      "captionSha256": "78cba14f8facece7b994bb96b3dd8d358229b101fbc93c4d1f32b03da9216060",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": null,
+      "downloadedImages": [
+        {
+          "index": 1,
+          "file": "6a51a9580000000011014ffc-01.webp",
+          "sha256": "316288a3e112271936a3265e6ee15389a4fc1f1cddb58897300ca8d1800d832e",
+          "bytes": 222144,
+          "width": 1080,
+          "height": 1442,
+          "kind": "platform_webp_rendition",
+          "acquisition": "CUA pageAssets visible image"
+        },
+        {
+          "index": 2,
+          "file": "6a51a9580000000011014ffc-02.webp",
+          "sha256": "8bb677b53f08fa697eea99c4072c5bafe9ef481a216895a42c9482c74c049630",
+          "bytes": 249824,
+          "width": 1080,
+          "height": 1489,
+          "kind": "platform_webp_rendition",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page"
+        },
+        {
+          "index": 3,
+          "file": "6a51a9580000000011014ffc-03.webp",
+          "sha256": "5e009d95a8d19198b204a08052ec2ca65f7766efc6c546bd064a51957fb902cf",
+          "bytes": 157634,
+          "width": 1080,
+          "height": 1575,
+          "kind": "platform_webp_rendition",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page"
+        },
+        {
+          "index": 4,
+          "file": "6a51a9580000000011014ffc-04.webp",
+          "sha256": "ba8bb721b2194be3d0f8544574590a3657da8f08c0ba75bfe383d299f44aea48",
+          "bytes": 302402,
+          "width": 1080,
+          "height": 1561,
+          "kind": "platform_webp_rendition",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page"
+        }
+      ],
+      "publishedToCisme": false
+    },
+    {
+      "order": 11,
+      "noteId": "6a1598380000000035030f24",
+      "title": "选不对洗发水！油头翻身成“光头”！",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a1598380000000035030f24",
+      "dateLabel": "05-26 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "video",
+      "imageCount": 0,
+      "videoDurationSeconds": 48.3,
+      "captionFile": "6a1598380000000035030f24.json",
+      "captionSha256": "58866b6725ea357e264869c3801672d0315962102be5e9729cf4543abe1262fb",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": false,
+      "downloadedImages": [],
+      "publishedToCisme": false,
+      "downloadedVideos": [
+        {
+          "index": 1,
+          "file": "6a1598380000000035030f24-original.mp4",
+          "sha256": "7feaae9d4ceccf79edb7a059a740970e092c70e7ab6507a62fe6f811edcf0d63",
+          "bytes": 7049418,
+          "width": 1080,
+          "height": 1920,
+          "kind": "platform_video_file",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page",
+          "durationSeconds": 48.3,
+          "codec": "hevc"
+        }
+      ]
+    },
+    {
+      "order": 12,
+      "noteId": "6a1443e6000000003501d11f",
+      "title": "养发馆该怎么选品",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a1443e6000000003501d11f",
+      "dateLabel": "05-25 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "video",
+      "imageCount": 0,
+      "videoDurationSeconds": 56.767,
+      "captionFile": "6a1443e6000000003501d11f.json",
+      "captionSha256": "7750fee83b8c07abe183d11776a71d3302e153f7ed5034b01edbf9b3b24e2e0e",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": false,
+      "downloadedImages": [],
+      "publishedToCisme": false,
+      "downloadedVideos": [
+        {
+          "index": 1,
+          "file": "6a1443e6000000003501d11f-original.mp4",
+          "sha256": "757a0553d0e4a97532f4d65eaa37bb64563e2f65e52fecfa9d4294d8c0f9123d",
+          "bytes": 11871524,
+          "width": 720,
+          "height": 1280,
+          "kind": "platform_video_file",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page",
+          "durationSeconds": 56.766667,
+          "codec": "h264"
+        }
+      ]
+    },
+    {
+      "order": 13,
+      "noteId": "6a12fc6c000000003501eff2",
+      "title": "长期漂染如何选择洗发水？",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a12fc6c000000003501eff2",
+      "dateLabel": "05-24 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "video",
+      "imageCount": 0,
+      "videoDurationSeconds": 69.473,
+      "captionFile": "6a12fc6c000000003501eff2.json",
+      "captionSha256": "8e7d386469d80c81d4ff0c00697f3395e70c50ed7f2792f08c761e7c9c6e0567",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": false,
+      "downloadedImages": [],
+      "publishedToCisme": false,
+      "downloadedVideos": [
+        {
+          "index": 1,
+          "file": "6a12fc6c000000003501eff2-original.mp4",
+          "sha256": "aa2544f554755ad840cff7a2faab1c9c386dc6b998610cd0a41b5680675322c9",
+          "bytes": 9180839,
+          "width": 1080,
+          "height": 1920,
+          "kind": "platform_video_file",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page",
+          "durationSeconds": 69.472653,
+          "codec": "hevc"
+        }
+      ]
+    },
+    {
+      "order": 14,
+      "noteId": "6a11232400000000360034c6",
+      "title": "看洗发水不要再只看营销成分了",
+      "sourceUrl": "https://www.xiaohongshu.com/user/profile/693621dc0000000037005fc5/6a11232400000000360034c6",
+      "dateLabel": "05-22 ",
+      "publicationYear": "not displayed; not inferred",
+      "mediaType": "video",
+      "imageCount": 0,
+      "videoDurationSeconds": 39.078,
+      "captionFile": "6a11232400000000360034c6.json",
+      "captionSha256": "9efb7d1bae2c54d47b77e2c713d9e6c0220a7ea8c66670fa90ae281de6c433c1",
+      "captionFullyExtracted": true,
+      "videoSpeechFullyTranscribed": false,
+      "downloadedImages": [],
+      "publishedToCisme": false,
+      "downloadedVideos": [
+        {
+          "index": 1,
+          "file": "6a11232400000000360034c6-original.mp4",
+          "sha256": "c11b5e144e202992fdcec4fdd2aadee51f686061ecd2b8f07c3ee2ee268205b3",
+          "bytes": 6370272,
+          "width": 720,
+          "height": 1280,
+          "kind": "platform_video_file",
+          "acquisition": "ordinary credential-free HTTPS download of exact resource observed in visible XHS page",
+          "durationSeconds": 39.077732,
+          "codec": "h264"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "publicNotesObserved": 14,
+    "imageNotes": 10,
+    "totalImages": 20,
+    "maxImagesPerNote": 6,
+    "overNineImageNotes": 0,
+    "videoNotes": 4,
+    "downloadedImageFiles": 20,
+    "downloadedVideoFiles": 4,
+    "captionsComplete": 14,
+    "videoContentReview": "captions and selected visible frames only; not full audiovisual transcription"
+  },
+  "acquisitionBoundary": "Rendered DOM/pageAssets/downloadMedia plus credential-free ordinary HTTPS transfer of exactly observed public media URLs; no guessed API, private session export, browser asset navigation or security bypass.",
+  "migrationStatus": "draft_only_not_published"
+}

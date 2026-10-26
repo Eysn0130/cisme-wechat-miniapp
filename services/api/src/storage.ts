@@ -36,6 +36,7 @@ export interface ObjectStorage {
   readRange?(objectKey: string, offset: number, length: number): Promise<Uint8Array>;
   delete(objectKey: string): Promise<void>;
   writeDerivedImage(objectKey: string, bytes: Uint8Array): Promise<void>;
+  writeEditorialVideo?(objectKey: string, bytes: Uint8Array): Promise<void>;
   acceptsGatewayUpload: boolean;
   writeGatewayObject?(input: { token: string; mediaId: string; objectKey: string; bytes: Uint8Array; mimeType: string; now: Date }): Promise<StoredObject>;
 }
@@ -56,6 +57,7 @@ function observeStorage(storage: ObjectStorage): ObjectStorage {
     ...(storage.readRange?{readRange:(key:string,offset:number,length:number)=>timed(()=>storage.readRange!(key,offset,length))}:{}),
     delete: (key) => timed(() => storage.delete(key)),
     writeDerivedImage: (key, bytes) => timed(() => storage.writeDerivedImage(key, bytes)),
+    ...(storage.writeEditorialVideo?{writeEditorialVideo:(key:string,bytes:Uint8Array)=>timed(()=>storage.writeEditorialVideo!(key,bytes))}:{}),
     ...(storage.writeGatewayObject ? { writeGatewayObject: (input: Parameters<NonNullable<ObjectStorage["writeGatewayObject"]>>[0]) => timed(() => storage.writeGatewayObject!(input)) } : {})
   };
 }
@@ -76,6 +78,74 @@ function detectReadableMime(bytes:Uint8Array):ReadableMime {
   // image-only; reading an existing MP4 does not enable a new upload path.
   if(bytes.length>=12&&Buffer.from(bytes.subarray(4,8)).toString("ascii")==="ftyp")return "video/mp4";
   return detectImageMime(bytes);
+}
+
+/** Inspect locally prepared, fast-start AVC baseline / optional AAC-LC MP4.
+ * No transcoder is installed or invoked by the runtime. */
+export function inspectEditorialMp4(input:Uint8Array):{width:number;height:number;durationMs:number}{
+  const bytes=Buffer.from(input.buffer,input.byteOffset,input.byteLength);
+  const invalid=()=>{throw new DomainError('EDITORIAL_VIDEO_INVALID','视频须为经过校验的H.264 MP4',422);};
+  if(bytes.length<32||bytes.length>64*1024*1024)invalid();
+  type Atom={type:string;start:number;end:number};
+  const atoms=(start:number,end:number):Atom[]=>{
+    const result:Atom[]=[];
+    while(start<end){
+      if(end-start<8)invalid();const size=bytes.readUInt32BE(start),type=bytes.toString('ascii',start+4,start+8);
+      if(size<8||size>end-start||result.length>=10000)invalid();
+      result.push({type,start:start+8,end:start+size});start+=size;
+    }
+    return result;
+  };
+  const one=(items:Atom[],type:string)=>{const matches=items.filter(item=>item.type===type);if(matches.length!==1)invalid();return matches[0]!;};
+  const children=(atom:Atom)=>atoms(atom.start,atom.end);
+  const root=atoms(0,bytes.length),ftyp=one(root,'ftyp'),moov=one(root,'moov'),mdat=one(root,'mdat');
+  if(root[0]!==ftyp||ftyp.end-ftyp.start<8||moov.end>mdat.start||mdat.end-mdat.start<1||root.some(atom=>atom.type==='moof'))invalid();
+  if(!['isom','mp41','mp42','avc1'].includes(bytes.toString('ascii',ftyp.start,ftyp.start+4)))invalid();
+  const tracks=children(moov).filter(atom=>atom.type==='trak');if(tracks.length<1||tracks.length>2)invalid();
+  let video:{width:number;height:number;durationMs:number}|undefined,audio=0;
+  for(const track of tracks){
+    const mdia=one(children(track),'mdia'),parts=children(mdia),handler=one(parts,'hdlr'),mdhd=one(parts,'mdhd');
+    if(handler.end-handler.start<12||mdhd.end-mdhd.start<24)invalid();
+    const type=bytes.toString('ascii',handler.start+8,handler.start+12),version=bytes[mdhd.start];
+    if(version!==0&&version!==1)invalid();
+    if(version===1&&mdhd.end-mdhd.start<36)invalid();
+    const scale=bytes.readUInt32BE(mdhd.start+(version===1?20:12));
+    const duration=version===1?Number(bytes.readBigUInt64BE(mdhd.start+24)):bytes.readUInt32BE(mdhd.start+16);
+    if(!scale||!Number.isSafeInteger(duration)||duration<1)invalid();
+    const stbl=one(children(one(parts,'minf')),'stbl'),stsd=one(children(stbl),'stsd');
+    if(stsd.end-stsd.start<8||bytes.readUInt32BE(stsd.start+4)!==1)invalid();
+    const entries=atoms(stsd.start+8,stsd.end);if(entries.length!==1)invalid();const entry=entries[0]!;
+    if(type==='vide'){
+      if(video||entry.type!=='avc1'||entry.end-entry.start<78)invalid();
+      const width=bytes.readUInt16BE(entry.start+24),height=bytes.readUInt16BE(entry.start+26);
+      const avc=one(atoms(entry.start+78,entry.end),'avcC');
+      if(!width||!height||width*height>25_000_000||avc.end-avc.start<8||bytes[avc.start]!==1||bytes[avc.start+1]!==66||(bytes[avc.start+4]!&3)!==3)invalid();
+      let offset=avc.start+6;const count=bytes[avc.start+5]!&31;if(!count)invalid();
+      for(let n=0;n<count;n++){if(offset+2>avc.end)invalid();const size=bytes.readUInt16BE(offset);offset+=2;
+        if(!size||offset+size>avc.end||(bytes[offset]!&31)!==7)invalid();offset+=size;}
+      if(offset>=avc.end)invalid();const pictures=bytes[offset++]!;if(!pictures)invalid();
+      for(let n=0;n<pictures;n++){if(offset+2>avc.end)invalid();const size=bytes.readUInt16BE(offset);offset+=2;
+        if(!size||offset+size>avc.end||(bytes[offset]!&31)!==8)invalid();offset+=size;}
+      if(offset!==avc.end)invalid();video={width,height,durationMs:Math.round(duration/scale*1000)};
+    }else if(type==='soun'){
+      if(++audio>1||entry.type!=='mp4a'||entry.end-entry.start<28)invalid();
+      const channels=bytes.readUInt16BE(entry.start+16);if(channels<1||channels>2)invalid();
+      const esds=one(atoms(entry.start+28,entry.end),'esds');
+      const descriptor=(offset:number)=>{if(offset>=esds.end)invalid();const tag=bytes[offset++]!;let size=0,done=false;
+        for(let n=0;n<4;n++){if(offset>=esds.end)invalid();const v=bytes[offset++]!;size=size*128+(v&127);if(!(v&128)){done=true;break;}}
+        if(!done||offset+size>esds.end)invalid();return {tag,start:offset,end:offset+size};};
+      const es=descriptor(esds.start+4);if(es.tag!==3||es.end-es.start<3||bytes[es.start+2]!==0)invalid();
+      const decoder=descriptor(es.start+3);if(decoder.tag!==4||decoder.end>es.end||decoder.end-decoder.start<13||bytes[decoder.start]!==0x40||(bytes[decoder.start+1]!>>2)!==5)invalid();
+      const specific=descriptor(decoder.start+13);if(specific.tag!==5||specific.end>decoder.end||specific.end-specific.start<2||(bytes[specific.start]!>>3)!==2)invalid();
+    }else invalid();
+  }
+  if(!video||video.durationMs<1)invalid();return video!;
+}
+function checkEditorialVideo(objectKey:string,bytes:Uint8Array){
+  if(!/^editorial-video\/[0-9a-f]{64}\.mp4$/.test(objectKey)||
+    objectKey!==`editorial-video/${createHash('sha256').update(bytes).digest('hex')}.mp4`)
+    throw new DomainError('EDITORIAL_VIDEO_INVALID','视频文件校验无效',422);
+  inspectEditorialMp4(bytes);
 }
 
 function s3Client(config: AppConfig): S3Client {
@@ -253,6 +323,10 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       if (!(objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: objectKey, Body: bytes, ContentType: "image/webp" }), { abortSignal: dependencySignal(30_000) });
+    },
+    async writeEditorialVideo(objectKey,bytes){
+      checkEditorialVideo(objectKey,bytes);
+      await client.send(new PutObjectCommand({Bucket:bucket,Key:objectKey,Body:bytes,ContentType:'video/mp4'}),{abortSignal:dependencySignal(30_000)});
     }
   };
 }
@@ -332,6 +406,10 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
       await mkdir(directory, { recursive: true });
       await writeFile(resolve(directory, objectKey.replaceAll("/", "__")), bytes, { flag: "w", signal: dependencySignal(30_000) });
+    },
+    async writeEditorialVideo(objectKey,bytes){
+      checkEditorialVideo(objectKey,bytes);await mkdir(directory,{recursive:true});
+      await writeFile(resolve(directory,objectKey.replaceAll('/','__')),bytes,{flag:'w',signal:dependencySignal(30_000)});
     },
     async delete(objectKey) {
       try { await unlink(resolve(directory, objectKey.replaceAll("/", "__"))); } catch { /* idempotent */ }
@@ -511,6 +589,9 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
         throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
       await requireNoVersioning();
       await immutablePut(objectKey,bytes,"image/webp");
+    },
+    async writeEditorialVideo(objectKey,bytes){
+      checkEditorialVideo(objectKey,bytes);await requireNoVersioning();await immutablePut(objectKey,bytes,'video/mp4');
     }
   };
 }

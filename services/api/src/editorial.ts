@@ -5,13 +5,17 @@ import type {EditorialCard,EditorialDetail,EditorialPage,EditorialAuthorPage} fr
 import {DomainError} from '@cisme/domain';
 import {AuthorityService} from './authority.js';
 import {readSnapshot,transaction,type DbClient} from './db.js';
-import type {ObjectStorage} from './storage.js';
+import {inspectEditorialMp4,type ObjectStorage} from './storage.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA=/^[0-9a-f]{64}$/;
 function hash(value:string){return createHash('sha256').update(value).digest('hex');}
 const NOT_FOUND=()=>new DomainError('EDITORIAL_NOT_FOUND','这篇精选暂不可见，请返回社区查看其他内容。',404);
-export type EditorialMedia={sha256:string;objectKey:string;sourceSha256:string;rightsRef:string;bytes:number;sourceKind:"ai_generated_editorial_artwork";aiUsage:"generated"};
+export type EditorialImage={sha256:string;objectKey:string;sourceSha256:string;rightsRef:string;bytes:number;
+  sourceKind:"ai_generated_editorial_artwork"|"owner_authorized_brand_media";aiUsage:"generated"|"not_declared"};
+export type EditorialVideo=Omit<EditorialImage,'sourceKind'>&{sourceKind:'owner_authorized_brand_media';mediaType:'video';mimeType:'video/mp4';
+  width:number;height:number;durationMs:number;poster:EditorialImage};
+export type EditorialMedia=EditorialImage|EditorialVideo;
 type Media=EditorialMedia;
 export interface EditorialPublication {
   externalRef:string;authorMemberId:string;author:string;title:string;excerpt:string;body:string;
@@ -49,7 +53,7 @@ function page(input:{limit?:unknown;cursor?:unknown},scope:string){
 }
 function mediaUrl(id:string,sha:string){return `/v1/editorial/media/${id}/${sha}`;}
 function card(a:Article):EditorialCard{return {id:a.id,title:a.title,excerpt:a.excerpt,authorId:a.author_member_id,
-  author:a.author_display_name,avatar:'',coverUrl:a.media[0]?mediaUrl(a.id,a.media[0].sha256):null,
+  author:a.author_display_name,avatar:'',coverUrl:a.media[0]?mediaUrl(a.id,videoMedia(a.media[0])?a.media[0].poster.sha256:a.media[0].sha256):null,
   publishedAt:a.published_at.toISOString(),likeCount:a.like_count,saveCount:a.save_count};}
 function next(rows:Article[],limit:number,scope:string){const row=rows.length>limit?rows[limit-1]:null;
   return row?Buffer.from(JSON.stringify([row.cursor_at,row.id,scope])).toString('base64url'):null;}
@@ -58,6 +62,15 @@ function authorizationRef(value:unknown){
   const ref=text(value,3,200);if(!/^[A-Za-z0-9][A-Za-z0-9:/._-]+$/.test(ref))
     throw new DomainError('EDITORIAL_INPUT_INVALID','授权依据仅填写可追溯的编号',422);return ref;
 }
+export function editorialProvenanceLabel(media:readonly EditorialMedia[]):string{
+  if(!media.length)return 'CISME原创内容';
+  if(media.length===1&&videoMedia(media[0]!))return media[0]!.aiUsage==='generated'?'AI辅助视频':'品牌原帖视频';
+  const generated=media.filter(item=>item.aiUsage==='generated').length;
+  return generated===media.length?'AI辅助配图':generated?'品牌原帖配图（含AI辅助配图）':'品牌原帖配图';
+}
+const videoMedia=(item:EditorialMedia):item is EditorialVideo=>'mediaType'in item&&item.mediaType==='video';
+function mediaObjects(media:EditorialMedia[]):EditorialMedia[]{return [...new Map(media.flatMap(item=>videoMedia(item)?[item,item.poster]:[item])
+  .map(item=>[item.objectKey,item])).values()];}
 export function validateEditorialPublication(input:EditorialPublication){
   if(!input||typeof input!=='object')throw new DomainError('EDITORIAL_INPUT_INVALID','精选内容字段无效',422);
   const sourceUrl=input.sourceUrl===null||input.sourceUrl===undefined?null:text(input.sourceUrl,8,2000);
@@ -68,13 +81,29 @@ export function validateEditorialPublication(input:EditorialPublication){
     throw new DomainError('EDITORIAL_INPUT_INVALID','需要可追溯的正文与素材展示授权',422);
   if(!Array.isArray(input.media)||input.media.length>9)throw new DomainError('EDITORIAL_INPUT_INVALID','最多9张精选图片',422);
   const media=input.media.map(item=>{
-    if(!item||typeof item!=='object'||!SHA.test(item.sha256)||!SHA.test(item.sourceSha256)||item.objectKey!==`editorial-derived/${item.sha256}.webp`)
+    const video=item&&typeof item==='object'&&'mediaType'in item&&item.mediaType==='video';
+    if(!item||typeof item!=='object'||('mediaType'in item&&!video)||!SHA.test(item.sha256)||!SHA.test(item.sourceSha256)||
+      item.objectKey!==(video?`editorial-video/${item.sha256}.mp4`:`editorial-derived/${item.sha256}.webp`))
       throw new DomainError('EDITORIAL_INPUT_INVALID','精选图片来源或衍生文件校验无效',422);
-    if(item.sourceKind!=='ai_generated_editorial_artwork'||item.aiUsage!=='generated')throw new DomainError('EDITORIAL_INPUT_INVALID','需要保留AI配图来源标识',422);
-    if(!Number.isSafeInteger(item.bytes)||item.bytes<1||item.bytes>10*1024*1024)throw new DomainError('EDITORIAL_INPUT_INVALID','精选图片大小无效',422);
-    return {sha256:item.sha256,objectKey:item.objectKey,sourceSha256:item.sourceSha256,rightsRef:text(item.rightsRef,3,500),bytes:item.bytes,sourceKind:item.sourceKind,aiUsage:item.aiUsage};
+    if(!((item.sourceKind==='ai_generated_editorial_artwork'&&item.aiUsage==='generated')||
+      (item.sourceKind==='owner_authorized_brand_media'&&['generated','not_declared'].includes(item.aiUsage))))
+      throw new DomainError('EDITORIAL_INPUT_INVALID','需要保留图片来源与AI声明',422);
+    if(!Number.isSafeInteger(item.bytes)||item.bytes<1||item.bytes>(video?64:10)*1024*1024)throw new DomainError('EDITORIAL_INPUT_INVALID','精选素材大小无效',422);
+    const normalized={sha256:item.sha256,objectKey:item.objectKey,sourceSha256:item.sourceSha256,rightsRef:text(item.rightsRef,3,500),bytes:item.bytes,sourceKind:item.sourceKind,aiUsage:item.aiUsage};
+    if(video&&videoMedia(item)){
+      if(item.sourceKind!=='owner_authorized_brand_media'||item.mimeType!=='video/mp4'||!Number.isSafeInteger(item.width)||item.width<1||
+        !Number.isSafeInteger(item.height)||item.height<1||item.width*item.height>25_000_000||!Number.isSafeInteger(item.durationMs)||item.durationMs<1||
+        !item.poster||'mediaType'in item.poster||item.poster.sourceKind!=='owner_authorized_brand_media'||item.poster.aiUsage!==item.aiUsage||
+        item.poster.sourceSha256!==item.sourceSha256||item.poster.rightsRef!==item.rightsRef)
+        throw new DomainError('EDITORIAL_INPUT_INVALID','视频与封面来源校验无效',422);
+      const poster=validateEditorialPublication({...input,media:[item.poster]}).media[0] as EditorialImage;
+      return {...normalized,sourceKind:'owner_authorized_brand_media' as const,mediaType:'video' as const,mimeType:'video/mp4' as const,
+        width:item.width,height:item.height,durationMs:item.durationMs,poster};
+    }
+    return normalized;
   });
   if(new Set(media.map(x=>x.sha256)).size!==media.length)throw new DomainError('EDITORIAL_INPUT_INVALID','精选图片不能重复',422);
+  if(media.some(videoMedia)&&media.length!==1)throw new DomainError('EDITORIAL_INPUT_INVALID','精选视频须使用独立视频条目',422);
   if(input.expectedVersion!==undefined&&(!Number.isInteger(input.expectedVersion)||input.expectedVersion<0))
     throw new DomainError('EDITORIAL_INPUT_INVALID','精选版本无效',422);
   return {externalRef:text(input.externalRef,3,200),authorMemberId:uuid(input.authorMemberId),author:text(input.author,1,40),
@@ -149,8 +178,9 @@ export class EditorialService{
   }
   async detail(memberId:string|undefined,id:string):Promise<EditorialDetail>{return readSnapshot(this.pool,async client=>{
     const a=await this.article(client,id);return {...card(a),version:a.version,body:a.body,
-      media:a.media.map(x=>({id:x.sha256,url:mediaUrl(a.id,x.sha256)})),...await this.state(client,a,memberId),
-      isMine:memberId===a.author_member_id,interactionsEnabled:true,sourceUrl:a.source_url,provenanceLabel:a.media.length?'AI辅助配图':'CISME原创内容'};
+      media:a.media.map(x=>({id:x.sha256,url:mediaUrl(a.id,x.sha256),...(videoMedia(x)?{type:'video' as const,mimeType:x.mimeType,
+        posterUrl:mediaUrl(a.id,x.poster.sha256),width:x.width,height:x.height,durationMs:x.durationMs}:{})})),...await this.state(client,a,memberId),
+      isMine:memberId===a.author_member_id,interactionsEnabled:true,sourceUrl:a.source_url,provenanceLabel:editorialProvenanceLabel(a.media)};
   });}
   async author(memberId:string|undefined,authorId:string,input:{limit?:unknown;cursor?:unknown}={}):Promise<EditorialAuthorPage>{
     const author=uuid(authorId),p=page(input,`editorial-author:${author}`);return readSnapshot(this.pool,async client=>{
@@ -168,17 +198,29 @@ export class EditorialService{
         items:rows.slice(0,p.limit).map(card),nextCursor:next(rows,p.limit,p.scope)};
     });
   }
-  async media(articleId:string,sha:string){
+  async media(articleId:string,sha:string,range?:string){
     if(!SHA.test(sha))throw NOT_FOUND();return transaction(this.pool,async client=>{
-      const a=await this.article(client,articleId,true),media=a.media.find(x=>x.sha256===sha);if(!media)throw NOT_FOUND();
+      const a=await this.article(client,articleId,true),media=mediaObjects(a.media).find(x=>x.sha256===sha);if(!media)throw NOT_FOUND();
       // The SHARE locks serialize withdrawal and author deactivation with this read.
-      return this.checkedMedia(media);
+      const object=await this.checkedMedia(media);
+      if(!videoMedia(media)||range===undefined)return {...object,statusCode:200,contentRange:null,acceptRanges:videoMedia(media)};
+      const match=/^bytes=(\d*)-(\d*)$/.exec(range),size=object.bytes.length;
+      let start=0,end=size-1,valid=Boolean(match&&(match[1]||match[2]));
+      if(match&&valid){
+        if(match[1]){start=Number(match[1]);if(match[2])end=Number(match[2]);}
+        else{const suffix=Number(match[2]);valid=Number.isSafeInteger(suffix)&&suffix>0;start=Math.max(0,size-suffix);}
+        valid=valid&&Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&start>=0&&start<size&&end>=start;end=Math.min(end,size-1);
+      }
+      return valid?{bytes:object.bytes.subarray(start,end+1),mimeType:object.mimeType,statusCode:206,contentRange:`bytes ${start}-${end}/${size}`,acceptRanges:true}:
+        {bytes:new Uint8Array(),mimeType:object.mimeType,statusCode:416,contentRange:`bytes */${size}`,acceptRanges:true};
     });
   }
   private async checkedMedia(media:Media){
-    const object=await this.storage.read(media.objectKey,10*1024*1024);
-    if(object.bytes.length!==media.bytes||object.mimeType!=='image/webp'||createHash('sha256').update(object.bytes).digest('hex')!==media.sha256)
+    const video=videoMedia(media),object=await this.storage.read(media.objectKey,(video?64:10)*1024*1024);
+    if(object.bytes.length!==media.bytes||object.mimeType!==(video?'video/mp4':'image/webp')||createHash('sha256').update(object.bytes).digest('hex')!==media.sha256)
       throw new DomainError('EDITORIAL_MEDIA_UNAVAILABLE','精选图片暂时无法读取',503);
+    if(video){const facts=inspectEditorialMp4(object.bytes);if(facts.width!==media.width||facts.height!==media.height||facts.durationMs!==media.durationMs)
+      throw new DomainError('EDITORIAL_MEDIA_UNAVAILABLE','精选视频校验失败',503);}
     return object;
   }
   async react(memberId:string|undefined,principalId:string|undefined,id:string,input:{kind?:unknown;active?:unknown}){
@@ -215,7 +257,7 @@ export class EditorialService{
       if(old&&old.author_member_id!==content.authorMemberId)throw new DomainError('EDITORIAL_SOURCE_CONFLICT','该来源已属于另一作者',409);
       if(old?.content_sha256===fingerprint&&old.status==='published')return {id:old.id,version:old.version,status:'published',replayed:true};
       if((old?.version??0)!==(input.expectedVersion??0))throw new DomainError('EDITORIAL_VERSION_CONFLICT','精选版本已变化，请重新核对',409);
-      for(const media of [...content.media].sort((a,b)=>a.sha256.localeCompare(b.sha256))){
+      for(const media of mediaObjects(content.media).sort((a,b)=>a.sha256.localeCompare(b.sha256))){
         await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[media.objectKey]);await this.checkedMedia(media);
       }
       const id=old?.id??randomUUID(),version=(old?.version??0)+1;
@@ -261,9 +303,10 @@ export class EditorialService{
         OR (b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=$2)) LIMIT 1`,[id,a.author_member_id]);
       if(held.rowCount)throw new DomainError('EDITORIAL_HELD','内容受必要保全约束，已保持不公开',409);
       let removed=0;
-      for(const media of [...a.media].sort((x,y)=>x.sha256.localeCompare(y.sha256))){
+      for(const media of mediaObjects(a.media).sort((x,y)=>x.sha256.localeCompare(y.sha256))){
         await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[media.objectKey]);
-        const other=await client.query(`SELECT 1 FROM editorial_article WHERE id<>$1 AND media @> $2::jsonb LIMIT 1`,[id,JSON.stringify([{objectKey:media.objectKey}])]);
+        const other=await client.query(`SELECT 1 FROM editorial_article WHERE id<>$1 AND (media @> $2::jsonb OR media @> $3::jsonb) LIMIT 1`,
+          [id,JSON.stringify([{objectKey:media.objectKey}]),JSON.stringify([{poster:{objectKey:media.objectKey}}])]);
         if(!other.rowCount){await this.storage.delete(media.objectKey);removed++;}
       }
       await client.query(`UPDATE editorial_article SET author_display_name='已撤回作者',title='已撤回内容',excerpt='',body='已撤回内容',

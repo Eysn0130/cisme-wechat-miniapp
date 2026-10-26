@@ -58,7 +58,7 @@ it("clears an expired session when the cloud SDK delivers an HTTP-200 error enve
   options.success({ statusCode: 200, data: { cismeHttpError: { version: 1, statusCode: 401, data: problem } } });
   await expect(pending).rejects.toEqual(problem);
   expect(state.globalData.sessionToken).toBe("");
-  expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/account/index?intent=login" }));
+  expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({ url: expect.stringMatching(/^\/pages\/account\/index\?intent=login&authFlow=[a-z0-9-]+$/) }));
 });
 
 it("preserves a renewed session when an earlier request returns an enveloped 401", async () => {
