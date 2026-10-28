@@ -11,6 +11,7 @@ const uploadAuthorizedMock = vi.hoisted(() => vi.fn());
 const setSessionTokenMock = vi.hoisted(() => vi.fn());
 const setPrivacyRightsTokenMock = vi.hoisted(() => vi.fn());
 const downloadPrivateMediaMock = vi.hoisted(() => vi.fn());
+const submissionReturnUrlMock = vi.hoisted(() => vi.fn((id: string): string => id ? "/pages/task/index?id=task-1" : ""));
 
 vi.mock("../../apps/miniprogram/services/api", () => ({
   historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken || (globalThis as any).getApp().globalData.privacyRightsToken || "",
@@ -31,7 +32,7 @@ vi.mock("../../apps/miniprogram/services/api", () => ({
   setSessionToken: setSessionTokenMock,
   setPrivacyRightsToken: setPrivacyRightsTokenMock,
   downloadPrivateMedia: downloadPrivateMediaMock,
-  submissionReturnUrl: () => "/pages/task/index?id=task-1"
+  submissionReturnUrl: submissionReturnUrlMock
 }));
 
 vi.mock("../../apps/miniprogram/services/layout", () => ({
@@ -60,6 +61,15 @@ function mountedPage(definition: PageDefinition, overrides: Record<string, any> 
   return context;
 }
 
+async function actualSubmissionReturnStorage() {
+  const storage = new Map<string, unknown>();
+  wxMock.getStorageSync!.mockImplementation((key: string) => storage.get(key));
+  wxMock.setStorageSync!.mockImplementation((key: string, value: unknown) => storage.set(key, value));
+  const api = await vi.importActual<typeof import("../../apps/miniprogram/services/api")>("../../apps/miniprogram/services/api");
+  submissionReturnUrlMock.mockImplementation(api.submissionReturnUrl);
+  return { storage, remember: api.rememberSubmissionReturn };
+}
+
 beforeEach(() => {
   vi.resetModules();
   requestMock.mockReset();
@@ -75,6 +85,8 @@ beforeEach(() => {
   setSessionTokenMock.mockReset();
   setPrivacyRightsTokenMock.mockReset();
   downloadPrivateMediaMock.mockReset();
+  submissionReturnUrlMock.mockReset();
+  submissionReturnUrlMock.mockImplementation((id: string): string => id ? "/pages/task/index?id=task-1" : "");
   capturedPage = null;
   wxMock = {
     navigateTo: vi.fn(),
@@ -654,13 +666,86 @@ describe("mini-program page behavior", () => {
     expect(wxMock.navigateBack).not.toHaveBeenCalled();
     expect(wxMock.redirectTo).toHaveBeenCalledTimes(1);
     expect(wxMock.redirectTo).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/task/index?id=task-1" }));
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "正在返回投稿来源", icon: "none" });
+    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "正在返回活动", icon: "none" });
 
     wxMock.redirectTo!.mock.calls[0]![0].fail();
     expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/community/index" }));
     wxMock.switchTab!.mock.calls[0]![0].fail();
     expect(unrelatedContext.data.navigatingAway).toBe(false);
     expect(wxMock.showToast).toHaveBeenCalledWith({ title: "投稿来源暂时无法打开", icon: "none" });
+  });
+
+  it.each(["", "different-submission"])("uses one community destination without a matching submission source: %s", async (submissionId) => {
+    const source = await actualSubmissionReturnStorage();
+    source.remember({ submissionId: "submission-1", taskId: "task-1", returnUrl: "/pages/task/index?id=task-1" });
+    await vi.importActual("../../apps/miniprogram/pages/progress/index");
+    const context = mountedPage(capturedPage!);
+    context.onLoad(submissionId ? { id: submissionId } : {});
+    if (!submissionId) {
+      await context.load();
+      expect(context.data.errorAction).toBe("missing");
+    }
+    expect(context.data.hasActivitySource).toBe(false);
+    (globalThis as any).getCurrentPages = () => [
+      { route: "pages/task/index", options: { id: "task-1" } },
+      { route: "pages/progress/index", options: { id: submissionId } }
+    ];
+    context.back();
+    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
+    expect(wxMock.navigateBack).not.toHaveBeenCalled();
+    expect(wxMock.redirectTo).not.toHaveBeenCalled();
+    expect(requestMock).not.toHaveBeenCalled();
+    const view = await (await import("node:fs/promises")).readFile("apps/miniprogram/pages/progress/index.wxml", "utf8");
+    expect(view).toContain("{{hasActivitySource ? '返回活动' : '返回社区'}}");
+    expect(view).toContain('wx:if="{{hasActivitySource}}" class="progress-community');
+    expect(view).toContain('wx:if="{{hasActivitySource}}" class="text-button progress-error-action');
+  });
+
+  it("projects a stored matching activity source and keeps its original navigation fallback", async () => {
+    const source = await actualSubmissionReturnStorage();
+    source.remember({ submissionId: "submission-1", taskId: "task-1", returnUrl: "/pages/task/index?id=task-1" });
+    await vi.importActual("../../apps/miniprogram/pages/progress/index");
+    const context = mountedPage(capturedPage!);
+    context.onLoad({ id: "submission-1" });
+    expect(context.data.hasActivitySource).toBe(true);
+    (globalThis as any).getCurrentPages = () => [
+      { route: "pages/post/index", options: { id: "unrelated" } },
+      { route: "pages/progress/index", options: { id: "submission-1" } }
+    ];
+    context.back();
+    expect(wxMock.navigateBack).not.toHaveBeenCalled();
+    expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/task/index?id=task-1" }));
+    wxMock.redirectTo!.mock.calls[0]![0].fail();
+    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["invalid", "unavailable"])("does not label an %s stored task source as usable", async (state) => {
+    if (state === "invalid") submissionReturnUrlMock.mockReturnValue("/pages/task/index?id=%E0%A4%A");
+    else submissionReturnUrlMock.mockImplementation(() => { throw new Error("synthetic storage unavailable"); });
+    await vi.importActual("../../apps/miniprogram/pages/progress/index");
+    const context = mountedPage(capturedPage!);
+    expect(() => context.onLoad({ id: "submission-1" })).not.toThrow();
+    expect(context.data.hasActivitySource).toBe(false);
+    context.back();
+    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
+    expect(wxMock.redirectTo).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the visible return label when the stored submission source is no longer available", async () => {
+    const source = await actualSubmissionReturnStorage();
+    source.remember({ submissionId: "submission-1", taskId: "task-1", returnUrl: "/pages/task/index?id=task-1" });
+    await vi.importActual("../../apps/miniprogram/pages/progress/index");
+    const context = mountedPage(capturedPage!);
+    context.onLoad({ id: "submission-1" });
+    expect(context.data.hasActivitySource).toBe(true);
+    source.storage.clear();
+    context.load = vi.fn();
+    context.onShow();
+    expect(context.data.hasActivitySource).toBe(false);
+    context.back();
+    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
+    expect(wxMock.redirectTo).not.toHaveBeenCalled();
   });
 
   it.each(["home", "records"])("does not pass a tap event into %s preserveSnapshot retries", async (route) => {

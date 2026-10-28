@@ -367,7 +367,7 @@ Page({
   },
   async submit() {
     if (this.data.busy || this.data.uploadBusy || !this.data.postId) return;
-    if(!this.data.publicGateEnabled){this.setData({error:"社区发布暂未开放，仍可保存仅自己可见的草稿。"});return;}
+    if(!this.data.publicGateEnabled){this.setData({error:"投稿发布暂未开放，仍可保存仅自己可见的草稿。"});return;}
     if (!this.data.body.trim() && !this.data.files.length) { this.setData({ error: "请写一点内容，或添加至少一张图片。" }); return; }
     if (!this.data.rightsConfirmed || !this.data.publicConsentConfirmed) { this.setData({ error: "请先确认内容权利和公开展示范围。" }); return; }
     const draft = await this.saveDraft(); if (!draft) return;

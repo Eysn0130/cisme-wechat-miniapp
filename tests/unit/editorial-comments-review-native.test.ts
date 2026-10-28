@@ -24,6 +24,27 @@ beforeEach(()=>{
 });
 
 describe("independent editorial moderation Page",()=>{
+ it.each([404,503])("reports a failed initial queue GET%s as a read failure without implying an audit or issuing writes",async(status)=>{
+  m.request.mockRejectedValueOnce({status});await mount();
+  expect(page.data).toMatchObject({loading:false,busy:false,permissionDenied:false,queueItems:[],notice:"",error:"评论审核列表暂时无法加载，请重试。"});
+  expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();expect(writes()).toEqual([]);expect(m.request).toHaveBeenCalledTimes(1);
+ });
+ it("retains already read rows and the same cursor after a next-page GET fails",async()=>{
+  cursor="next_page";await mount();const before=structuredClone(page.data.queueItems);m.request.mockRejectedValueOnce({status:503});
+  await page.loadMoreEditorialQueue();
+  expect(page.data).toMatchObject({loading:false,busy:false,queueItems:before,queueCursor:"next_page",queueHasMore:true,error:"评论审核列表暂时无法加载，请重试。"});
+  expect(writes()).toEqual([]);expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();
+ });
+ it("preserves a server-supplied read explanation and keeps permission denial distinct",async()=>{
+  m.request.mockRejectedValueOnce({status:503,title:"服务维护中，请稍后再试。"});await mount();expect(page.data.error).toBe("服务维护中，请稍后再试。");
+  m.request.mockRejectedValueOnce({status:403,title:"Required capability: private internal detail"});await page.loadEditorialQueue();
+  expect(page.data).toMatchObject({permissionDenied:true,loading:false,busy:false,queueItems:[],error:"当前账号没有这篇文章的评论管理权限。"});expect(writes()).toEqual([]);
+ });
+ it.each(["hide","actor","new-queue"])("does not display a late read-failure fallback after %s changes ownership",async(change)=>{
+  await mount();const pending=deferred();m.request.mockReturnValueOnce(pending.promise);const reading=page.loadEditorialQueue();
+  if(change==="hide")page.onHide();else if(change==="actor")m.token="synthetic-other-moderator";else await page.loadEditorialQueue();
+  const before=patches.length;pending.reject({status:503});await reading;expect(patches.slice(before)).toEqual([]);expect(writes()).toEqual([]);
+ });
  it("reads only the scoped editorial queue and does not invent public-reader fields or ordinary UGC permission",async()=>{
   await mount();expect(m.require).toHaveBeenCalledWith(`/pages/community-review/index?source=editorial&articleId=${articleId}`);
   expect(m.request).toHaveBeenCalledWith({path:`${queuePath}?state=pending&limit=30&articleId=${articleId}`,authMode:"required"});
@@ -46,6 +67,12 @@ describe("independent editorial moderation Page",()=>{
   expect(writes()).toHaveLength(1);expect(page.data.queueItems[0]).toMatchObject({status:"pending",version:3});
   pending.reject({status:503,title:"处理结果尚未确认，请刷新核对"});await first;
   expect(page.data.busy).toBe(false);expect(page.data.queueItems[0].status).toBe("pending");expect(page.data.error).toContain("尚未确认");
+ });
+ it("keeps an unconfirmed POST result distinct from a failed read and never replays that decision",async()=>{
+  await mount();const before=structuredClone(page.data.queueItems);m.request.mockRejectedValueOnce({status:503});await page.reviewEditorial(event());
+  expect(page.data).toMatchObject({busy:false,queueItems:before,error:"审核结果尚未确认，请刷新核对。",notice:""});
+  expect(writes()).toHaveLength(1);expect(writes()[0]).toMatchObject({path:reviewPath,data:{expectedVersion:3}});
+  await Promise.resolve();await Promise.resolve();expect(writes()).toHaveLength(1);
  });
  it.each(["hide","unload","actor","row-version","tab"])("does not submit a modal confirmation after %s changed its context",async(change)=>{
   await mount();const answer=deferred();(globalThis as any).wx.showModal.mockReturnValueOnce(answer.promise);const reviewing=page.reviewEditorial(event());

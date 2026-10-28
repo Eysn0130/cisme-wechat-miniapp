@@ -4,7 +4,7 @@ export const careProtocolSteps = [
     label: "净澈",
     title: "周期净澈",
     eyebrow: "PREPARE",
-    instruction: "按照净澈产品说明完成本次周期净澈，为后续护理做好准备。",
+    instruction: "按产品说明完成本次净澈。",
     cue: "用量、频次及冲洗方式以产品说明为准。"
   },
   {
@@ -20,7 +20,7 @@ export const careProtocolSteps = [
     label: "修护",
     title: "发丝水光修护",
     eyebrow: "REPAIR",
-    instruction: "按照修护产品说明完成发丝护理，使用部位、停留时间及冲洗方式以产品说明为准。",
+    instruction: "用于发丝，用量、停留和冲洗方式按产品说明。",
     cue: "本步骤护理发丝；出现明显不适时停止使用。"
   },
   {

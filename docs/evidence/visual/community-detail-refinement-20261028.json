@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "packageSourceSha256": "d26def43fec70683cf29077b699023dd55e05e6da254babee71650b7984ffcb3",
+  "packageSourceSha256": "2cfb56194797915cb599ee3a7f123906498f193e3ccafa246bd4ce7d28380bca",
   "branch": "codex/formal-release-flow-audit",
-  "baselineHead": "2992fce2a72618a560f4849887a1c2e21a831835",
-  "recordedAtUtc": "2026-10-28T15:36:28.851871+00:00",
+  "baselineHead": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
+  "recordedAtUtc": "2026-10-28T16:49:09.487285+00:00",
   "scope": "Formal-release preparation for40native routes and all currently available business journeys, including mobile-reference community detail and real editorial comments.",
   "prdAcceptanceIds": [
     "ED-MEDIA-01",
@@ -26,6 +26,92 @@
     "Footer comment fallback text now has sufficient bounded width."
   ],
   "verification": {
+    "currentFullUnit": {
+      "passed": 2027,
+      "conditionalSkipped": 1,
+      "failed": 0,
+      "sourceSha256": "2cfb56194797915cb599ee3a7f123906498f193e3ccafa246bd4ce7d28380bca",
+      "log": "tmp/community-refinement-20261028/root-review/unit-2cfb-current.json"
+    },
+    "typecheck": {
+      "passed": true,
+      "log": "tmp/community-refinement-20261028/root-review/typecheck-2cfb-current.log"
+    },
+    "packageGate": {
+      "passed": true,
+      "files": 280,
+      "routes": 40,
+      "totalBytes": 1716416,
+      "mainPackageBytes": 665294,
+      "subpackageBytes": {
+        "pages/task": 17022,
+        "pages/submit": 43714,
+        "pages/progress": 24005,
+        "pages/points": 12037,
+        "pages/post": 96510,
+        "pages/shop": 9153,
+        "pages/product": 16784,
+        "pages/checkout": 28515,
+        "pages/orders": 8815,
+        "pages/order-detail": 81026,
+        "pages/settings": 70852,
+        "pages/invite": 15141,
+        "pages/legal": 3645,
+        "pages/privacy-rights": 53288,
+        "pages/support": 75660,
+        "pages/management": 18107,
+        "pages/management-catalog": 7814,
+        "pages/management-product": 21770,
+        "pages/management-orders": 8747,
+        "pages/management-order-detail": 17490,
+        "pages/management-support": 10700,
+        "pages/management-support-chat": 66025,
+        "pages/management-members": 33884,
+        "pages/management-member": 34560,
+        "pages/referral": 6863,
+        "pages/community-compose": 45531,
+        "pages/community-post": 26259,
+        "pages/community-author": 14383,
+        "pages/community-review": 30656,
+        "pages/community-activity": 19867,
+        "pages/management-finance": 29896,
+        "pages/commission": 36427,
+        "pages/management-privacy": 17783,
+        "pages/aftersale": 33344,
+        "pages/management-fulfillment": 14849
+      },
+      "globalStyleBytes": 8050,
+      "sourceSha256": "2cfb56194797915cb599ee3a7f123906498f193e3ccafa246bd4ce7d28380bca"
+    },
+    "apiMainCI": {
+      "head": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
+      "runId": 40721846769,
+      "event": "push",
+      "conclusion": "success"
+    },
+    "currentNative": "Current2cfb actual pending comment display, Chinese date, owner moderation success and anonymous public commentCount1 verified. Source757 initial creation remains historical. Full40/20article/media/device verification continues."
+  },
+  "result": "Client source fixes checked;trial API upgrade verified;current-source native and real-comment journeys in progress.",
+  "release": {
+    "versionCandidate": "0.1.9",
+    "status": "Trial API da7 active at schema99. Client0.1.9 not uploaded.",
+    "api": "https://staging-api.cisme.cn",
+    "server": "124.223.74.198",
+    "formalReviewOrPublicPublish": false,
+    "dataMigration": "Actual98to99 apply succeeded with authenticated same-host database snapshot;existing20 preserved;production unchanged;not full recovery qualification."
+  },
+  "remaining": [
+    "Current-source native40route and20article verification, real WeChat safety/moderation and available journeys.",
+    "Unavailable business positive states must remain unverified.",
+    "Physical-device pinch zoom, keyboard and video fullscreen exit not passed."
+  ],
+  "historicalEvidence": "community-detail-refinement-fc7468b570f7.json retains old0.1.8 acceptance scope without promoting it.",
+  "legal": {
+    "version": "2026-10-28-v4",
+    "publication": "actual trial atomic publication and private/public exact readback passed before acceptance;oldversions preserved;no fabricated consent",
+    "acceptance": "human confirmed atactiontime;root actual native checkbox and confirmation returned to same article;no original like automatically resent"
+  },
+  "historicalVerificationNotes": {
     "current45TargetedChecks": "passed after footer CSS width correction",
     "prior7ccaTargetedChecks": "379/379; separate historical package scope",
     "fullUnit": "1987passed1conditional skip before sole CSS correction",
@@ -34,26 +120,7 @@
     "packageGate": "passed at current hash;280files40routes1713447bytes",
     "historicalA80Native": "20articles67frames plus actual media and375/390 font26 evidence remain bound to a80 only;not promoted to this package",
     "currentTargetedChecks": "19copy corrections257tests;10new workflow regressions;type/package pass",
-    "currentFullUnit": "1997passed,1existingconditional skip,0fail after current-hash pointer update;149+2 test files"
-  },
-  "result": "source fixes and copy review complete;current-native40route/service/device verification pending",
-  "release": {
-    "versionCandidate": "0.1.9",
-    "status": "not uploaded;2992staging attempt failed before candidate installation at rawGitHub source transport;original services untouched;new strict source transport and operator observability pending exact newmainCI/build",
-    "api": "https://staging-api.cisme.cn",
-    "server": "124.223.74.198",
-    "formalReviewOrPublicPublish": false,
-    "dataMigration": "schema98→99 candidate only;not applied;existing20 preserved"
-  },
-  "remaining": [
-    "New exactmain CI/build/trial-only99 migration and real comment safety/moderation verification.",
-    "Current-source native40route and all currently available journeys;unavailable business positive states cannot be fabricated.",
-    "Physical-device pinch zoom/keyboard/video fullscreen exit not passed."
-  ],
-  "historicalEvidence": "community-detail-refinement-fc7468b570f7.json retains old0.1.8 acceptance scope without promoting it.",
-  "legal": {
-    "version": "2026-10-28-v4",
-    "publication": "actual trial atomic publication and private/public exact readback passed before acceptance;oldversions preserved;no fabricated consent",
-    "acceptance": "human confirmed atactiontime;root actual native checkbox and confirmation returned to same article;no original like automatically resent"
+    "currentFullUnit": "1997passed,1existingconditional skip,0fail after current-hash pointer update;149+2 test files",
+    "scope": "Historical narrative only; earlier counts and screenshots are not current75723 acceptance."
   }
 }

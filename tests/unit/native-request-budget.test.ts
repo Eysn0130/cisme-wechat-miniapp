@@ -89,3 +89,22 @@ it("session changes advance the recovery context even for A to B to A",async()=>
   const initial=commerceContextRevision();setSessionToken("account-b");setSessionToken("account-a");
   expect(commerceContextRevision()).toBe(initial+2);expect(state.globalData.sessionToken).toBe("account-a");
 });
+it.each([undefined,"GET","POST","PUT","DELETE"] as const)("uses method-appropriate deadline wording for %s without changing its budget or replaying it",async(method)=>{
+  const {requestCancelable}=await import("../../apps/miniprogram/services/api");
+  const task=requestCancelable({path:"/v1/copy-budget",budgetMs:50,idempotencyKey:"same-intent",...(method?{method}:{})});
+  const result=task.promise.catch(error=>error);await vi.advanceTimersByTimeAsync(50);
+  expect(await result).toMatchObject({code:"NETWORK_TIMEOUT",title:method===undefined||method==="GET"
+    ?"加载超时，请检查网络后重新加载。":"暂未确认操作结果，请先查看记录，勿重复提交。"});
+  expect(abort).toHaveBeenCalledTimes(1);expect(requests).toHaveLength(1);expect(requests[0].header["Idempotency-Key"]).toBe("same-intent");
+  requests[0].success({statusCode:401,data:{code:"AUTH_INVALID"}});expect(state.globalData.sessionToken).toBe("account-a");
+  await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(1);
+});
+it.each([undefined,"GET","POST","PUT","DELETE"] as const)("uses method-appropriate explicit-cancel wording for %s while aborting only once",async(method)=>{
+  const {requestCancelable}=await import("../../apps/miniprogram/services/api");
+  const task=requestCancelable({path:"/v1/copy-cancel",idempotencyKey:"same-intent",...(method?{method}:{})});
+  const result=task.promise.catch(error=>error);task.abort();task.abort();
+  expect(await result).toMatchObject({code:"REQUEST_ABORTED",title:method===undefined||method==="GET"
+    ?"已停止加载。":"已停止等待。已提交的操作可能仍在处理，请先查看记录。"});
+  expect(abort).toHaveBeenCalledTimes(1);expect(requests).toHaveLength(1);expect(requests[0].header["Idempotency-Key"]).toBe("same-intent");
+  requests[0].success({statusCode:200,data:{stale:true}});await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(1);
+});

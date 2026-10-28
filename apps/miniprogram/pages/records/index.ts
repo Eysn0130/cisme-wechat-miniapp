@@ -24,7 +24,7 @@ const recordDetailExitMs = 240;
 const careMilestones = ["D1", "D7", "D14", "D28"] as const;
 const detailTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
 
-const emptySummary = { completed: 0, totalRecords: 0, cycleCount: 0, recordCountClass: "", headlineLine1: "你的护理档案，", headlineLine2: "等待第一个周期。", phaseLabel: "尚无护理周期", protocol: "", cycleSummary: "" };
+const emptySummary = { completed: 0, totalRecords: 0, cycleCount: 0, recordCountClass: "", headlineLine1: "护理记录", headlineLine2: "", phaseLabel: "尚无护理周期", protocol: "", cycleSummary: "" };
 
 type CarePhase = "planned" | "active" | "paused" | "terminated" | "completed";
 

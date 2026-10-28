@@ -188,7 +188,7 @@ Page({
     try{await executeCommerceCommand({kind:"credit",key,payload:{amountCents,confirmed:true,taxPolicyVersion:"isolated-synthetic-zero-withholding-v1"}},()=>current()&&this.data.visible);
       if(current()){this.setData({busy:false,creditFormVisible:false,creditAmount:"",creditRequestKey:"",
         creditActionStatus:"测试转换已记录，可分别查看原佣金和购物权益记录。"});void this.load();}}
-    catch(error){if(current())this.setData({creditActionError:problem(error,"转换结果不确定；重试会使用同一请求编号。")});}
+    catch(error){if(current())this.setData({creditActionError:problem(error,"转换结果还未确认，请先核对记录，再重试这次操作。")});}
     finally{this.finishAction(epoch,token);}
   },
   async cancelCredit(event:WechatMiniprogram.BaseEvent){

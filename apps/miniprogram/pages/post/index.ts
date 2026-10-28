@@ -370,7 +370,7 @@ Page({
         // An unconfirmed transport result must keep the same body and key.
         this.setData({commentSendUnknown:!Number.isInteger(status)||status>=500});
       }
-      this.editorialCommentFailed(intent,error,"发送结果尚未确认。内容和提交编号已保留，请核对发送。",true);
+      this.editorialCommentFailed(intent,error,"发送结果还未确认，内容已保留。请点“核对发送”继续。",true);
     }finally{this.finishEditorialCommentAction(intent);}
   },
   async likeEditorialComment(event:WechatMiniprogram.TouchEvent) {

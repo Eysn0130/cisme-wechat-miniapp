@@ -255,8 +255,8 @@ function retryDelayMs(error: unknown, options: RequestOptions): number | null {
   return problem?.status === 502 || problem?.status === 503 || problem?.code === "NETWORK_ERROR" || problem?.code === "NETWORK_TIMEOUT"
     ? 40 + Math.floor(Math.random() * 81) : null;
 }
-const cancelledProblem = () => ({ code: "REQUEST_ABORTED", title: "已停止等待。已提交的操作可能仍在处理，请先查看记录。" });
-const deadlineProblem = () => ({ code: "NETWORK_TIMEOUT", title: "暂未确认操作结果，请先查看记录，勿重复提交。" });
+const cancelledProblem = (method: string) => ({ code: "REQUEST_ABORTED", title: method === "GET" ? "已停止加载。" : "已停止等待。已提交的操作可能仍在处理，请先查看记录。" });
+const deadlineProblem = (method: string) => ({ code: "NETWORK_TIMEOUT", title: method === "GET" ? "加载超时，请检查网络后重新加载。" : "暂未确认操作结果，请先查看记录，勿重复提交。" });
 
 function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", authMode = options.authMode ?? "required";
@@ -281,7 +281,7 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const deadline = measurementClock() + budgetMs;
   let stopped: unknown = null, transport: TransportHandle | null = null, interrupt: ((reason: unknown) => void) | null = null;
   const stop = (reason: unknown) => { if (stopped) return; stopped = reason; interrupt?.(reason); transport?.abort(); };
-  const timer = setTimeout(() => stop(deadlineProblem()), budgetMs);
+  const timer = setTimeout(() => stop(deadlineProblem(method)), budgetMs);
   const remaining = () => {
     if (stopped) throw stopped;
     if (commerceContextRevision() !== revision || app.globalData.sessionToken !== session)
@@ -291,7 +291,7 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
     if (token === rightsSession && rightsSession && app.globalData.privacyRightsToken !== rightsSession)
       throw { code: "REQUEST_SESSION_CHANGED", title: "身份验证状态已变化，请重新加载" };
     const left = Math.ceil(deadline - measurementClock());
-    if (left <= 0) throw deadlineProblem();
+    if (left <= 0) throw deadlineProblem(method);
     return left;
   };
   const once = (): Promise<T> => new Promise((resolve, reject) => {
@@ -342,7 +342,7 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
       return once(); // At most one approved safe-GET retry, inside the same budget.
     }
   })().finally(() => { clearTimeout(timer); interrupt = null; });
-  return { promise, abort: () => stop(cancelledProblem()) };
+  return { promise, abort: () => stop(cancelledProblem(method)) };
 }
 
 export function requestCancelable<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
@@ -368,7 +368,7 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
       task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或登录状态已变化，请重新加载" });
   }, 100) : null;
   const promise = task.promise.finally(() => { if (monitor) clearInterval(monitor); });
-  const abort = () => { recordClientMetric({ action: metricAction(options.path), stage: "cancel", durationMs: 0 }); task.abort(); };
+  const abort = () => { recordClientMetric({ action: metricAction(options.path), stage: "cancel", durationMs: 0 }); task.abort(cancelledProblem(method)); };
   options.registerAbort?.(abort);
   return { promise, abort };
 }
