@@ -623,7 +623,7 @@
       "purpose": "通过既有腾讯微信v2内容安全检查取得当前正文hash对应结果",
       "activation": "已提交精选评论，复用受控scan claim与租约/fence",
       "serverStorage": "原正文只存评论表，审核审计不复制正文；结果、正文hash和最小调用事实按现规则处理",
-      "currentGate": "无需公开图像scanBaseURL；仅精选文本分支，不借机开启普通UGC；实际provider验证尚待测试部署"
+      "currentGate": "无需公开图像scanBaseURL；仅精选文本分支，不借机开启普通UGC；独立体验环境已完成真实评论安全检查和原生审核，非全量或真机验收。"
     },
     {
       "surface": "editorial_comment_report_and_block",
@@ -1028,11 +1028,26 @@
     "legalCandidate": "docs/legal/community-comments-20261028/publication-candidate.json",
     "legalCandidateVersion": "2026-10-28-v4",
     "legalPublished": true,
-    "realProviderVerified": false,
+    "realProviderVerified": true,
     "ordinaryPublicUgcOpened": false,
     "businessScopeSource": "PRD K.3/K.4 and explicit user instruction",
     "consentCreatedByPublication": false,
     "legalPublicationScope": "Actual isolated trial atomic publication and exact private/public HTTPS readback; oldversions preserved. Does not assert WeChat platform privacy configuration or public release.",
-    "nativeAcceptance": "One explicit human action-time authorization was followed by actual native checkbox/confirmation and return to the same article; no fabricated acceptance or implication for other users."
+    "nativeAcceptance": "One explicit human action-time authorization was followed by actual native checkbox/confirmation and return to the same article; no fabricated acceptance or implication for other users.",
+    "realProviderVerificationScope": "Actual isolated-trial native owner queue showed current comment text safety passed; approval service enforces current body SHA and trusted wechat_v2 safe result. Three actual comments approved; not all-user or physical-device acceptance.",
+    "personalActivityCorrection": {
+      "scope": "PRD K.5 / ED-ACTIVITY-01..04",
+      "routes": [
+        "GET /v1/me/editorial/activity/:section",
+        "DELETE /v1/me/editorial/saves/:articleId"
+      ],
+      "collectionChange": false,
+      "newRecipient": false,
+      "data": "本人既有精选评论状态、收藏、举报及共享屏蔽关系；仅公开可见文章标题和公开作者资料。已删除/保全删除正文不返回，撤回或不可见文章不返回标题。",
+      "purpose": "在我的社区查看和管理真实个人互动，修复精选记录遗漏；精选与投稿分开分页。",
+      "consent": "本人历史读取和取消本人收藏不强迫新的协议同意；不创建代用户同意或额外权限。",
+      "retention": "沿用既有数据权利、导出、删除和实际保全规则；不新增保留期限。",
+      "nativeAcceptance": "Implementation in progress; current-source native validation pending."
+    }
   }
 }

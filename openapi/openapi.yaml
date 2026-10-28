@@ -1850,6 +1850,20 @@ paths:
       description: Owner-bound report on a visible comment; no new agreement is required to report. A public reason is not invented from a report.
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [category], properties: {category: {type: string, enum: [spam, abuse, privacy, misinformation, rights, other]}, description: {type: string, maxLength: 500}}}}}}
       responses: {'200': {description: Report id and actual open or resolved status}, '404': {description: Comment unavailable}, '422': {description: Invalid category or description}}
+  /v1/me/editorial/activity/{section}:
+    get:
+      operationId: ownEditorialActivity
+      security: [{session: []}]
+      parameters: [{name: section, in: path, required: true, schema: {type: string, enum: [comments, saves, reports, blocks]}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 30}}, {$ref: '#/components/parameters/Cursor'}]
+      description: Canonical active WeChat member reads only their own editorial comments, saves, reports or shared blocks without forcing new legal consent. Owner and section scoped keyset pagination. Unavailable articles have no title; deleted or held-and-deleted comments have no body. Other users' report targets and private profile fields are not projected. Ordinary UGC activity remains separate.
+      responses: {'200': {description: Owner-only items, matchingTotal, loadedCount, hasMore and nextCursor}, '401': {description: Canonical identity required}, '422': {description: Invalid section, limit or owner/section cursor}}
+  /v1/me/editorial/saves/{articleId}:
+    delete:
+      operationId: removeOwnEditorialSave
+      security: [{session: []}]
+      parameters: [{name: articleId, in: path, required: true, schema: {type: string, format: uuid}}]
+      description: Idempotently remove only the current member's editorial save, including unavailable articles, without forcing new consent. Does not remove likes, ordinary UGC saves or another member's relation. Missing and already absent saves return the same result; no article-existence projection.
+      responses: {'200': {description: Requested article id and saved false}, '401': {description: Canonical identity required}, '422': {description: Invalid article id}}
   /v1/editorial/blocks:
     get:
       operationId: listOwnEditorialBlocks

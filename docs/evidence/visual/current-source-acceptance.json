@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "a8393d9b2be4d785ef10cb4881b29dbe6cf139f66947fb436aa636332815e347",
+  "packageSourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": {
@@ -8,7 +8,7 @@
     "version": "2.02.2610272",
     "officialSkillVersion": "0.3.14",
     "baseLibrary": "3.15.2",
-    "packageSourceSha256": "a8393d9b2be4d785ef10cb4881b29dbe6cf139f66947fb436aa636332815e347",
+    "packageSourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0",
     "compileErrors": null,
     "consoleErrors": null,
     "networkFailures": null,
@@ -280,5 +280,5 @@
       "reason": "User broadened scope to all40native routes and business journeys. Real new comments service, full current-source route matrices and authorized physical-device checks remain pending."
     }
   ],
-  "note": "Current a839 adds atomic comment-loading state to2cfb fixes. Native40/20article/real-comment/device matrix incomplete; no earlier-source evidence promoted."
+  "note": "Current5352 includes owner-scoped editorial history, source-separated native management and shared-block settlement reconciliation. Native40/20/device matrix pending; no earlier-source evidence promoted."
 }
