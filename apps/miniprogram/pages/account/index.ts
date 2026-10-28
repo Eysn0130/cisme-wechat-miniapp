@@ -423,7 +423,7 @@ Page({
     if (!this.data.pageAlive || this.data.leaving) return;
     const returnUrl = this.stopAuthenticationWait(true);
     const fail = () => {
-      if (this.data.pageAlive) this.setData({ leaving: false, error: "来源页面暂时无法恢复。身份确认已停止等待，请稍后重试。" }, scrollToAccountError);
+      if (this.data.pageAlive) this.setData({ leaving: false, error: "暂时无法返回，请重试或留在本页查看账号状态。" }, scrollToAccountError);
     };
     const openSource = () => {
       const path = returnUrl.split("?")[0] || "/pages/home/index";
@@ -443,7 +443,7 @@ Page({
     wx.setStorageSync("cisme.guestBrowsing", true);
     this.stopAuthenticationWait();
     wx.switchTab({ url: "/pages/community/index", fail: () => {
-      if (this.data.pageAlive) this.setData({ leaving: false, error: "公开社区暂时无法打开，请稍后重试。身份确认已停止等待。" }, scrollToAccountError);
+      if (this.data.pageAlive) this.setData({ leaving: false, error: "社区暂时无法打开，请重试。" }, scrollToAccountError);
     } });
   }
 });

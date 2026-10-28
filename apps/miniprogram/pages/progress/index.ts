@@ -58,12 +58,32 @@ function appealFailure(error: unknown): { blocked: boolean; title: string; copy:
   };
 }
 
+function progressReturnTarget(submissionId: string): { returnUrl: string; expectedTaskId: string } {
+  if (submissionId) {
+    try {
+      const returnUrl = submissionReturnUrl(submissionId);
+      const target = /^\/pages\/task\/index\?id=([^&#]+)$/.exec(returnUrl);
+      if (target) {
+        const expectedTaskId = decodeURIComponent(target[1]!);
+        if (expectedTaskId) return { returnUrl, expectedTaskId };
+      }
+    } catch { /* Unavailable or invalid local sources use the community fallback. */ }
+  }
+  return { returnUrl: "", expectedTaskId: "" };
+}
+
 Page({
-  data: { chromeStyle: currentChromeStyle(), submissionId: "", submission: null as any, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), appealReason: "", appealValid: false, appealBlocked: false, loading: true, working: false, navigatingToRevision: false, navigatingAway: false, loadAttempt: 0, pageAlive: true, errorAction: "load" as "load" | "missing" | "appeal" | "revise", errorTitle: "", error: "" },
+  data: { chromeStyle: currentChromeStyle(), submissionId: "", hasActivitySource: false, submission: null as any, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "", timeline: progressTimeline("draft"), appealReason: "", appealValid: false, appealBlocked: false, loading: true, working: false, navigatingToRevision: false, navigatingAway: false, loadAttempt: 0, pageAlive: true, errorAction: "load" as "load" | "missing" | "appeal" | "revise", errorTitle: "", error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onLoad(query: Record<string, string | undefined>) { this.setData({ submissionId: query.id ?? "", pageAlive: true }); },
+  onLoad(query: Record<string, string | undefined>) { this.setData({ submissionId: query.id ?? "", pageAlive: true }); this.refreshActivitySource(); },
+  refreshActivitySource() {
+    const target = progressReturnTarget(this.data.submissionId);
+    this.setData({ hasActivitySource: Boolean(target.expectedTaskId) });
+    return target;
+  },
   onShow() {
     this.data.pageAlive = true;
+    this.refreshActivitySource();
     if (!retainMemberSnapshot(this)) this.setData({ submission: null, statusTitle: "", statusSubtitle: "", statusLabel: "", reviewReason: "",
       timeline: progressTimeline("draft"), appealReason: "", appealValid: false, appealBlocked: false, working: false,
       navigatingToRevision: false, navigatingAway: false, loadAttempt: this.data.loadAttempt + 1, loading: false, errorTitle: "", error: "" });
@@ -139,9 +159,8 @@ Page({
     });
   },
   back() {
-    if (this.data.working || this.data.navigatingToRevision || this.data.navigatingAway) { wx.showToast({ title: this.data.working ? "申诉提交中，请稍候" : this.data.navigatingToRevision ? "正在打开补件页面" : "正在返回投稿来源", icon: "none" }); return; }
-    const returnUrl = submissionReturnUrl(this.data.submissionId);
-    const expectedTaskId = decodeURIComponent(returnUrl.match(/[?&]id=([^&]+)/)?.[1] ?? "");
+    if (this.data.working || this.data.navigatingToRevision || this.data.navigatingAway) { wx.showToast({ title: this.data.working ? "申诉提交中，请稍候" : this.data.navigatingToRevision ? "正在打开补件页面" : this.data.hasActivitySource ? "正在返回活动" : "正在返回社区", icon: "none" }); return; }
+    const { returnUrl, expectedTaskId } = this.refreshActivitySource();
     const pages = getCurrentPages();
     const previous = pages[pages.length - 2] as { route?: string; options?: Record<string, string> } | undefined;
     const previousIsSource = returnUrl.startsWith("/pages/task/index") && expectedTaskId && previous?.route === "pages/task/index" && previous.options?.id === expectedTaskId;

@@ -1,21 +1,21 @@
 <view class="chrome-root" style="{{chromeStyle}}">
-  <view class="topbar"><button class="topbar__back {{busy || uploadBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{busy || uploadBusy}}" aria-label="返回社区"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">{{listMode ? '我的内容' : '写护理故事'}}</text></view>
+  <view class="topbar"><button class="topbar__back {{busy || uploadBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{busy || uploadBusy}}" aria-label="返回社区"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">{{listMode ? '我的投稿' : '写护理故事'}}</text></view>
   <view class="page page--stack composer-page">
     <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载…</view>
     <view wx:if="{{error}}" class="state state--error" aria-live="assertive">{{error}}</view>
     <view wx:if="{{notice}}" class="state composer-notice" aria-live="polite">{{notice}}</view>
     <button wx:if="{{error && !loading && !postId}}" class="secondary composer-retry" bindtap="retryLoad">重试加载</button>
     <block wx:if="{{listMode && !loading}}">
-      <text class="composer-intro">{{publicGateEnabled ? '草稿只有你能看到，提交后才进入公开审核。' : publicGateUnknown ? '暂时无法确认发布状态，仍可查看已有内容和草稿。' : publicGateLoaded ? '社区发布暂未开放，仍可查看已有内容和草稿。' : '正在确认发布状态，仍可查看已有内容和草稿。'}}</text>
+      <text class="composer-intro">{{publicGateEnabled ? '草稿只有你能看到，提交后才进入公开审核。' : publicGateUnknown ? '暂时无法确认发布状态，仍可查看已有内容和草稿。' : publicGateLoaded ? '投稿发布暂未开放，仍可查看已有内容和草稿。' : '正在确认发布状态，仍可查看已有内容和草稿。'}}</text>
       <button wx:if="{{publicGateEnabled}}" class="primary composer-new {{busy ? 'primary--disabled' : ''}}" bindtap="startNew" disabled="{{busy}}" loading="{{busy}}">写一篇新故事</button>
-      <view class="composer-list-title">我的内容 · {{listTotal}} 篇（已加载 {{drafts.length}}）</view>
+      <view class="composer-list-title">我的投稿 · {{listTotal}} 篇（已加载 {{drafts.length}}）</view>
       <view wx:if="{{!drafts.length}}" class="state">{{publicGateEnabled ? '还没有保存的内容。写下第一篇护理故事吧。' : '当前没有已保存的内容。'}}</view>
       <view wx:for="{{drafts}}" wx:key="id" class="composer-list-row"><button class="composer-list-row__open" data-id="{{item.id}}" bindtap="openDraft"><view class="composer-list-row__copy"><text class="composer-list-row__title">{{item.title}}</text><text class="composer-list-row__meta">{{item.imageCount}} 张图片</text></view><text class="composer-list-row__status">{{item.status}}</text></button><button wx:if="{{item.state==='draft' || item.state==='rejected'}}" class="composer-list-row__delete" data-id="{{item.id}}" bindtap="deleteListDraft" aria-label="删除{{item.title}}">删除</button></view>
       <button wx:if="{{listCursor}}" class="secondary {{listLoadingMore ? 'secondary--disabled' : ''}}" bindtap="loadMoreList" disabled="{{listLoadingMore}}" loading="{{listLoadingMore}}">加载更多内容</button>
       <text wx:if="{{listMoreError}}" class="state state--error">{{listMoreError}}</text>
     </block>
     <block wx:if="{{!listMode && !loading && postId}}">
-      <view wx:if="{{publicGateLoaded && !publicGateEnabled}}" class="composer-status">{{publicGateUnknown ? '暂时无法确认发布状态。可查看已有内容和草稿，暂不能提交审核。' : '社区发布暂未开放。可以查看已有内容和草稿，暂不能提交审核。'}}</view>
+      <view wx:if="{{publicGateLoaded && !publicGateEnabled}}" class="composer-status">{{publicGateUnknown ? '暂时无法确认发布状态。可查看已有内容和草稿，暂不能提交审核。' : '投稿发布暂未开放。可以查看已有内容和草稿，暂不能提交审核。'}}</view>
       <text class="composer-intro">记录真实护理体验；可以只写文字或只放图片。</text>
       <view wx:if="{{publicVersionActive}}" class="composer-status">原版本仍在公开展示。修改内容仅自己可见，审核发布后才会替换原版本。</view>
       <view wx:elif="{{state === 'pending_review'}}" class="composer-status">正在审核中。若需修改，请等待审核结果。</view>

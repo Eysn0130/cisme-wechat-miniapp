@@ -10,7 +10,7 @@
     <button wx:if="{{appliedSearch}}" class="community-search__clear" bindtap="clearSearch" aria-label="清除搜索并查看全部内容">清除</button>
   </view>
 
-  <view wx:if="{{signedIn && mode !== 'review'}}" class="community-my-content"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openMyPosts" disabled="{{navigating}}">我的内容与草稿 <text>查看 ›</text></button></view>
+  <view wx:if="{{signedIn && mode !== 'review'}}" class="community-my-content"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openMyPosts" disabled="{{navigating}}">我的投稿与草稿 <text>查看 ›</text></button></view>
 
   <view wx:if="{{mode === 'review'}}" class="review-panel">
     <text wx:if="{{reviewBusy}}">正在加载审核列表…</text>
@@ -37,7 +37,7 @@
     <button wx:if="{{appealNextCursor}}" class="text-button {{appealLoadingMore?'control--disabled':''}}" bindtap="loadMoreAppeals" disabled="{{appealLoadingMore}}" loading="{{appealLoadingMore}}">加载更多申诉</button>
     <view wx:if="{{formalReportQueue.length}}" class="review-report-heading">内容举报 · {{reportTotal}} 条待处理</view>
     <view wx:for="{{formalReportQueue}}" wx:key="id" class="glass review-card review-report-card">
-      <text>举报{{item.targetType==='post'?'帖子':item.targetType==='comment'?'评论':'用户'}} · {{item.category}}</text>
+      <text>举报{{item.targetType==='post'?'帖子':item.targetType==='comment'?'评论':'用户'}} · {{reportCategoryLabels[item.category] || '类型待核对'}}</text>
       <text class="review-detail">{{item.targetSummary || '对象当前不可见，请核对举报信息'}}</text>
       <text wx:if="{{item.description}}" class="review-detail">举报说明：{{item.description}}</text>
       <view class="review-report-actions"><button wx:if="{{item.postId}}" data-id="{{item.id}}" bindtap="openReportTarget">查看内容</button>

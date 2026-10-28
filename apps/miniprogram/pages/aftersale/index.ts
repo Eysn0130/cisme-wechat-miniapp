@@ -153,7 +153,7 @@ Page({
    else if([400,404,409,422].includes((error as any)?.status)&&(error as any)?.code!=='TRANSACTION_OUTCOME_UNKNOWN'){
     // Even explicit rejection does not erase a previous uncertain attempt.
     this.setData({notice:(error as any)?.title??'请核对原案件后重试。',needsReconcile:true});this.pending=null;this.setData({locked:false});
-   }else this.setData({notice:'提交结果尚未确认。可用原请求重试；也可刷新案件核对，勿新建重复申请。'});
+   }else this.setData({notice:'提交结果还未确认。请重试上次操作或刷新售后记录，不要重复申请。'});
   }}finally{if(this.visible&&epoch===this.epoch){this.setData({busy:false});if(!this.current(epoch,token))this.deny('身份已变化，请重新核验。');}}
  },
  async reconcile(){if(!this.canAct())return;if(!this.data.reconciliationReady){this.setData({notice:'请先刷新并核对原案件。'});return;}const epoch=this.epoch,token=this.token;this.setData({busy:true});

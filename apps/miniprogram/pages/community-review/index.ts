@@ -8,7 +8,7 @@ type Candidate = { id: string; authorId: string; state: string; revision: number
   aiUsage: string; rightsConfirmed: boolean; publicConsentConfirmed: boolean; moderationState: string;
   media: Array<{ id: string; state: string; scanVerdict: string | null; scanProvider: string | null; position: number }>;
   lastAction: { decision: string; reason: string } | null };
-const failure = (error: unknown) => (error as { title?: string })?.title || "审核操作未完成，请刷新核对。";
+const failure = (error: unknown, fallback = "审核结果尚未确认，请刷新核对。") => (error as { title?: string })?.title || fallback;
 type ReviewContext = { epoch: number; token: string; alive: boolean; shown: boolean };
 type ReviewIntent = { epoch: number; token: string; postId: string; revision: number; version: number };
 const contexts = new WeakMap<object, ReviewContext>();
@@ -35,7 +35,7 @@ const commentReviewConflict=(error:unknown)=>(error as {title?:string})?.title||
 type ReviewRow=EditorialReviewComment&{dateLabel:string;statusLabel:string;safetyLabel:string};
 Page({
   reviewVisible:true,editorialQueueEpoch:0,editorialReviewOwner:0,
-  data: { editorialSource:false,articleId:"",queueState:"pending" as EditorialCommentReviewState,queueItems:[] as ReviewRow[],queueCursor:null as string|null,queueHasMore:false,queueTabs:[{id:"pending",label:"待审核"},{id:"reported",label:"被举报"},{id:"published",label:"已公开"},{id:"rejected",label:"已退回"},{id:"hidden",label:"已隐藏"}],chromeStyle: currentChromeStyle(), postId: "", candidate: null as Candidate | null,
+  data: { candidateStateLabels:{draft:'草稿',pending_review:'待审核',published:'已公开',rejected:'已退回',hidden:'已下架',deleted:'已删除'},mediaStateLabels:{authorized:'待上传',uploaded:'已上传',scanning:'检测中',approved:'已通过',rejected:'已退回',deleting:'删除中',deleted:'已删除'},reviewDecisionLabels:{approve:'通过审核',reject:'退回修改',publish:'公开',hide:'下架',restore:'恢复'},editorialSource:false,articleId:"",queueState:"pending" as EditorialCommentReviewState,queueItems:[] as ReviewRow[],queueCursor:null as string|null,queueHasMore:false,queueTabs:[{id:"pending",label:"待审核"},{id:"reported",label:"被举报"},{id:"published",label:"已公开"},{id:"rejected",label:"已退回"},{id:"hidden",label:"已隐藏"}],chromeStyle: currentChromeStyle(), postId: "", candidate: null as Candidate | null,
     media: [] as Array<{ id: string; state: string; scanVerdict: string; src: string; position: number }>,
     loading: true, busy: false, error: "", notice: "", handled: false, permissionDenied: false },
   onLoad(query: Record<string, string | undefined>) {
@@ -81,7 +81,7 @@ Page({
         this.setData({ candidate, media, loading: false });
     } catch (error) { if (ctx.alive && epoch === ctx.epoch && token === getApp<IAppOption>().globalData.sessionToken && !this.denyCapability(error))
       this.setData({ candidate:null,media:[],loading:false,
-        error:handledElsewhere(error)?"":failure(error),handled:handledElsewhere(error),
+        error:handledElsewhere(error)?"":failure(error,"待审内容暂时无法加载，请重试。"),handled:handledElsewhere(error),
         notice:handledElsewhere(error)?"这篇内容已不在待审队列，可能已撤回或被其他审核员处理。":"" }); }
   },
   editorialReviewReturnUrl() {return `/pages/community-review/index?source=editorial${this.data.articleId?`&articleId=${encodeURIComponent(this.data.articleId)}`:""}`;},
@@ -107,7 +107,7 @@ Page({
     }catch(error){
       if(this.currentEditorialQueue(epoch,token)){
         const denied=Number((error as {status?:number})?.status)===403;
-        this.setData({loading:false,busy:false,...(denied?{queueItems:[],queueCursor:null,queueHasMore:false,permissionDenied:true}:{}),error:denied?"当前账号没有这篇文章的评论管理权限。":failure(error)});
+        this.setData({loading:false,busy:false,...(denied?{queueItems:[],queueCursor:null,queueHasMore:false,permissionDenied:true}:{}),error:denied?"当前账号没有这篇文章的评论管理权限。":failure(error,"评论审核列表暂时无法加载，请重试。")});
       }else if(this.reviewVisible&&epoch===this.editorialQueueEpoch&&token&&getApp<IAppOption>().globalData.sessionToken===""){
         this.editorialQueueEpoch+=1;this.setData({loading:false,busy:false,queueItems:[],queueCursor:null,queueHasMore:false,error:"登录状态已失效，请重新登录后查看。"});
       }

@@ -38,7 +38,7 @@ beforeEach(() => {
     throw new Error(`Unexpected synthetic request: ${path}`);
   });
   (globalThis as any).getApp = () => ({ globalData: { sessionToken: mocks.token } });
-  (globalThis as any).wx = { navigateTo: vi.fn(), showToast: vi.fn(), disableAlertBeforeUnload: vi.fn() };
+  (globalThis as any).wx = { navigateTo: vi.fn(), switchTab: vi.fn(), showToast: vi.fn(), disableAlertBeforeUnload: vi.fn() };
   (globalThis as any).Page = (definition: any) => {
     page = { ...definition, data: structuredClone(definition.data), setData(patch: any, callback?: () => void) { Object.assign(this.data, patch); callback?.(); } };
   };
@@ -117,9 +117,7 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     ["active", "护理周期进行中", "护理进行中", "下一次 D1"],
     ["paused", "护理周期已暂停", "护理已暂停", "恢复后继续 D1"],
     ["terminated", "护理周期已终止", "周期已终止", "记录仍可查看"],
-    ["completed", "护理周期已完成", "周期已完成", "记录都保存在这里"],
-    ["waiting", "护理周期待确认", "护理资格待确认", "下一次 D1"],
-    [null, "护理周期待确认", "护理资格待确认", "下一次 待安排"]
+    ["completed", "护理周期已完成", "周期已完成", "记录都保存在这里"]
   ])("populates the WXML care card for %s while auxiliary requests remain pending", async (phase, title, status, copy) => {
     const originalRequest = mocks.request.getMockImplementation()!;
     mocks.request.mockImplementation((options) => options.path === "/v1/bootstrap/profile"
@@ -128,6 +126,42 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     await loadPage("profile"); void page.load(); await flush();
     expect(page.data).toMatchObject({ loading: false, careTitle: title, careStatus: status, authorityState: "loading", commercialState: "loading", supportState: "loading", avatarState: "loading" });
     expect(page.data.careCopy).toContain(copy);
+    expect(page.data).toMatchObject({hasCareCycle:true,careUnavailable:false,care:{id:care.id,phase}});
+  });
+  it("shows actual null care as no cycle while retaining real points and hiding fabricated cycle progress",async()=>{
+    const original=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation(options=>options.path==="/v1/bootstrap/profile"?Promise.resolve({...snapshot,care:null}):original(options));
+    await loadPage("profile");await page.load();await flush();
+    expect(page.data).toMatchObject({loading:false,member:{id:member.id},points:snapshot.points,care:null,
+      hasCareCycle:false,careUnavailable:false,progressPercent:0,careTitle:"尚无护理周期",careStatus:"尚无护理周期",careCopy:"可先查看日常护理指引。"});
+    expect(page.data.careCopy).not.toMatch(/资格|确认|已完成|下一次/);
+    const view=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
+    expect(view).toContain('<block wx:if="{{member && points}}">');
+    expect(view).toContain('<view wx:if="{{hasCareCycle}}" class="care-progress">');
+    expect(view).toMatch(/可用积分<\/small><\/view><block wx:if="\{\{hasCareCycle\}\}">/);
+    page.openRecords();expect((globalThis as any).wx.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/records/index"}));
+  });
+  it.each([
+    {...care,phase:"waiting"},
+    {...care,phase:"future-unknown"},
+    {...care,id:"",phase:"planned"},
+    {...care,completed:null}
+  ])("does not convert an invalid or unknown cycle shape into absence or a qualification claim: %j",async(value)=>{
+    const original=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation(options=>options.path==="/v1/bootstrap/profile"?Promise.resolve({...snapshot,care:value}):original(options));
+    await loadPage("profile");await page.load();await flush();
+    expect(page.data).toMatchObject({loading:false,member:{id:member.id},points:snapshot.points,hasCareCycle:false,careUnavailable:true,
+      careTitle:"护理状态暂不可用",careStatus:"护理状态暂不可用",careCopy:"请重新加载护理状态。"});
+    expect(page.data.careCopy+page.data.careStatus+page.data.careTitle).not.toMatch(/尚无|资格|待确认/);
+    const view=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
+    expect(view).toMatch(/wx:if="\{\{error \|\| careUnavailable\}\}"[\s\S]*?bindtap="load"/);
+  });
+  it("removes old cycle nodes and progress when a newer snapshot confirms there is no cycle",async()=>{
+    await loadPage("profile");await page.load();expect(page.data.care.id).toBe(care.id);
+    const original=mocks.request.getMockImplementation()!;
+    mocks.request.mockImplementation(options=>options.path==="/v1/bootstrap/profile"?Promise.resolve({...snapshot,care:null,businessVersion:101}):original(options));
+    await page.load(undefined,true);await flush();
+    expect(page.data).toMatchObject({care:null,hasCareCycle:false,careUnavailable:false,progressPercent:0,careStatus:"尚无护理周期",points:snapshot.points});
   });
   it("displays member/points/care before permissions, commercial, support and avatar", async () => {
     await loadPage("profile"); void page.load(); await flush();

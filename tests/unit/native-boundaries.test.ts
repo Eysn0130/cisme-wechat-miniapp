@@ -209,7 +209,7 @@ describe("native mini program boundary", () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
       account: ["back", "openTerms", "openPrivacy", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "@contact", "loginTap", "browseCommunity"],
-      "community-activity": ["back", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
+      "community-activity": ["back", "selectSource", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
       "community-compose": ["back", "retryLoad", "startNew", "openDraft", "deleteListDraft", "loadMoreList", "submitAppeal", "retryPreview", "toggleSorting", "chooseImages", "retryImage", "retryPreview", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],

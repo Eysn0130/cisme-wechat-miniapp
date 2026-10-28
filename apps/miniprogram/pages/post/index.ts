@@ -236,7 +236,7 @@ Page({
           this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:"editorial",avatar:defaultMemberAvatar,
             readingSegments:readingSegments(article.body),publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
             media:display.images,mediaIndex:restored?.index??0,galleryHeight,video:display.video,videoHeightRpx,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",imageEventId:display.images.length?`${attempt}:${article.version}:${article.id}:${galleryHeight}`:"",following:article.following,
-            commentAuthenticated:Boolean(token),socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{
+            commentAuthenticated:Boolean(token),commentsLoading:true,socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{
               void this.loadEditorialComments().then(()=>{
               if(!restoreReading||!nextReading)return;
               wx.nextTick(()=>{
@@ -370,7 +370,7 @@ Page({
         // An unconfirmed transport result must keep the same body and key.
         this.setData({commentSendUnknown:!Number.isInteger(status)||status>=500});
       }
-      this.editorialCommentFailed(intent,error,"发送结果尚未确认。内容和提交编号已保留，请核对发送。",true);
+      this.editorialCommentFailed(intent,error,"发送结果还未确认，内容已保留。请点“核对发送”继续。",true);
     }finally{this.finishEditorialCommentAction(intent);}
   },
   async likeEditorialComment(event:WechatMiniprogram.TouchEvent) {

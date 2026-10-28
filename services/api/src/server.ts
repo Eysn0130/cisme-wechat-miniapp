@@ -31,6 +31,7 @@ import { CommunityAccess } from "./communityAccess.js";
 import { CommunityService } from "./communityService.js";
 import { EditorialService } from "./editorial.js";
 import { EditorialCommentsService } from "./editorialComments.js";
+import { EditorialActivityService } from "./editorialActivity.js";
 import { AuthorityService } from "./authority.js";
 import { SupportService } from "./supportService.js";
 import { CommerceCatalogService } from "./commerceCatalog.js";
@@ -155,6 +156,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const authority = new AuthorityService(pool, config.env);
   const editorial = new EditorialService(pool,config,storage,authority);
   const editorialComments = new EditorialCommentsService(pool,config,editorial,authority);
+  const editorialActivity = new EditorialActivityService(pool,config,editorial);
   const aftersales = new AftersaleService(pool,authority);
   const managementAttention = new ManagementAttentionService(pool,config.env);
   const commercial = new CommercialMembershipService(pool, authority,config.env);
@@ -371,6 +373,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{id:string;commentId:string}}>("/v1/editorial/articles/:id/comments/:commentId/report",request=>editorialComments.report(request.memberId,request.principalId,request.params.id,request.params.commentId,(request.body??{}) as never));
   app.put<{Params:{memberId:string}}>("/v1/editorial/blocks/:memberId",request=>editorialComments.block(request.memberId,request.principalId,request.params.memberId,(request.body as {active?:unknown})?.active));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/blocks",request=>editorialComments.blocks(request.memberId,request.principalId,request.query));
+  app.get<{Params:{section:string};Querystring:{limit?:string;cursor?:string}}>("/v1/me/editorial/activity/:section",
+    request=>editorialActivity.read(request.memberId,request.principalId,request.params.section,request.query));
+  app.delete<{Params:{articleId:string}}>("/v1/me/editorial/saves/:articleId",
+    request=>editorialActivity.removeSave(request.memberId,request.principalId,request.params.articleId));
   app.get<{Querystring:{limit?:string;cursor?:string;state?:string;articleId?:string}}>("/v1/management/editorial/comments",request=>editorialComments.queue(request.memberId,request.principalId,request.query));
   app.post<{Params:{commentId:string}}>("/v1/management/editorial/comments/:commentId/review",request=>editorialComments.review(request.memberId,request.principalId,request.params.commentId,(request.body??{}) as never));
   app.put<{Params:{id:string}}>("/v1/management/editorial/articles/:id/comments-policy",request=>editorialComments.setPolicy(request.memberId,request.principalId,request.params.id,(request.body??{}) as never));

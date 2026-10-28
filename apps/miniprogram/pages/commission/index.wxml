@@ -56,6 +56,6 @@
         <button wx:if="{{nextCursor}}" class="secondary {{loadingMore?'secondary--disabled':''}}" bindtap="more" disabled="{{loadingMore}}" loading="{{loadingMore}}">加载更多</button>
       </view>
     </block>
+    <template wx:if="{{coreReady}}" is="recorded-commands" data="{{recordedGroups}}"/>
   </view>
-<template wx:if="{{coreReady}}" is="recorded-commands" data="{{recordedGroups}}"/>
 </view>

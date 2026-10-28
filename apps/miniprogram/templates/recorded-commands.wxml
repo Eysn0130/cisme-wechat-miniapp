@@ -1,13 +1,13 @@
 <template name="recorded-commands">
   <view class="state" aria-live="polite">
-    <text>历史处理记录</text>
-    <text>这里只显示已保存的处理记录。暂时没有记录，不代表操作未完成；付款、退款和到账结果，请核对相应订单和收款账户。</text>
+    <view>历史处理记录</view>
+    <view>记录为空不代表操作失败，付款、退款或到账情况请核对订单和收款账户。</view>
     <view wx:for="{{recordedGroups}}" wx:key="kind" wx:for-item="group">
-      <text>{{group.title}}</text>
-      <view wx:for="{{group.rows}}" wx:key="id" wx:for-item="fact"><text>{{fact.createdLabel}} · {{fact.label}}</text><text selectable="{{true}}">记录编号 {{fact.id}}</text></view>
+      <view>{{group.title}}</view>
+      <view wx:for="{{group.rows}}" wx:key="id" wx:for-item="fact"><view>{{fact.createdLabel}} · {{fact.label}}</view><text selectable="{{true}}">记录编号 {{fact.id}}</text></view>
       <text wx:if="{{group.loading}}">正在核对…</text>
       <text wx:elif="{{group.error}}">{{group.error}}</text>
-      <text wx:elif="{{!group.rows.length}}">暂时没有处理记录；尚未确认的操作仍需核对。</text>
+      <text wx:elif="{{!group.rows.length}}">暂无记录。</text>
       <button wx:if="{{group.nextCursor}}" class="text-button" data-kind="{{group.kind}}" bindtap="moreRecordedCommands" disabled="{{group.loading}}">继续查看{{group.title}}</button>
     </view>
     <button class="text-button" bindtap="refreshRecordedCommands">刷新历史记录</button>

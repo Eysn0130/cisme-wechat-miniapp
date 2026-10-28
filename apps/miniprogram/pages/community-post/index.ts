@@ -106,7 +106,7 @@ Page({
   },
   openMyComments(){
     if(!this.data.signedIn){resumeAuthentication(`/pages/community-post/index?id=${this.data.postId}`);return;}
-    wx.navigateTo({url:"/pages/community-activity/index?section=comments",
+    wx.navigateTo({url:"/pages/community-activity/index?source=ugc&section=comments",
       fail:()=>wx.showToast({title:"我的评论暂时无法打开",icon:"none"})});
   },
   async toggleReaction(event: WechatMiniprogram.TouchEvent) {

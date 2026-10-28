@@ -20,7 +20,7 @@ function problemCopy(error: unknown): string {
     CATALOG_READ_UNAVAILABLE: "商品资料暂时无法加载，请稍后重试。",
     INVENTORY_NOT_AVAILABLE: "库存不足，请调整数量后重新确认。", QUOTE_STALE: "商品或价格有变化，请重新确认。",
     QUOTE_EXPIRED: "费用已过期，请重新确认。", DELIVERY_ADDRESS_CHANGED: "收货地址有变化，请重新选择并确认费用。",
-    CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "暂时无法下单，请稍后重试。",
+    CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "下单暂未开放，可先查看商品。",
     CREDIT_CHECKOUT_INSUFFICIENT:"可用测试购物权益已变化，请刷新后重新确认费用。",
     CREDIT_CASH_COMPONENT_REQUIRED:"测试订单仍需保留至少 ¥0.01 的模拟支付金额。"
   };
@@ -214,7 +214,7 @@ Page({
     const sku = this.data.selectedSku;
     const address = this.data.addresses.find((item) => item.id === this.data.selectedAddressId);
     if (this.checkoutBlocked() || !sku || !address) return;
-    if (!this.data.runtimeEnabled) { this.setData({ error: "暂时无法下单，请稍后重试。" }); return; }
+    if (!this.data.runtimeEnabled) { this.setData({ error: "下单暂未开放，可先查看商品。" }); return; }
     const credit=this.data.creditInput?creditCents(this.data.creditInput):0;
     if(!Number.isSafeInteger(credit)||credit<0||credit>this.data.creditAvailableCents||
       credit>0&&!this.data.creditEnabled||credit>=sku.priceCents*this.data.quantity){
@@ -249,7 +249,7 @@ Page({
   async confirmOrder() {
     const quote = this.data.quote;
     if (this.checkoutBlocked() || !quote) return;
-    if (!this.data.runtimeEnabled) { this.setData({ error: "暂时无法下单，请稍后重试。" }); return; }
+    if (!this.data.runtimeEnabled) { this.setData({ error: "下单暂未开放，可先查看商品。" }); return; }
     if (this.data.quoteExpired || quoteClockView(this.data.quoteClock ?? createQuoteClock(quote.expiresAt, quote.serverTime)).expired) { this.refreshQuote(); return; }
     const epoch = this.requestEpoch;
     const ownerToken = currentSessionToken();

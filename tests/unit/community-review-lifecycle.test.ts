@@ -40,6 +40,19 @@ it("clears a private candidate on a failed reload and ignores an old-account mod
   expect(page.data.error).toBe("无审核权限");
 });
 
+it("uses read-specific fallback for an unavailable candidate without starting any review",async()=>{
+  const page=mounted();requestMock.mockRejectedValueOnce({status:503});await page.load();
+  expect(page.data).toMatchObject({candidate:null,media:[],loading:false,handled:false,error:"待审内容暂时无法加载，请重试。"});
+  expect(modal).not.toHaveBeenCalled();expect(requestMock.mock.calls.filter(([input])=>input.method==="POST")).toEqual([]);
+});
+
+it("keeps a title-less review submission failure uncertain and preserves its exact candidate",async()=>{
+  const page=mounted(),item=candidate();requestMock.mockResolvedValueOnce(item);await page.load();
+  modal.mockResolvedValueOnce({confirm:true,content:"已核对本次审核依据"});requestMock.mockRejectedValueOnce({status:503});await page.reviewPost({currentTarget:{dataset:{decision:"approve"}}});
+  expect(page.data).toMatchObject({candidate:item,busy:false,handled:false,error:"审核结果尚未确认，请刷新核对。",notice:""});
+  const writes=requestMock.mock.calls.filter(([input])=>input.method==="POST");expect(writes).toHaveLength(1);expect(writes[0]![0].data).toMatchObject({expectedVersion:3});
+});
+
 it("keeps successful rejection and publication as terminal results without re-reading the removed candidate",async()=>{
   const rejectPage=mounted();requestMock.mockResolvedValueOnce(candidate());await rejectPage.load();
   modal.mockResolvedValueOnce({confirm:true,content:"已核对，需要作者修改"});

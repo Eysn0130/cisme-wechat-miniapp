@@ -9,12 +9,13 @@ const rule=(css:string,selector:string)=>{
 };
 
 describe("targeted native control polish contracts (not visual acceptance)",()=>{
-  it("uses one sliding rail with five full-size native tab buttons",()=>{
+  it("uses one sliding rail sized to the selected source with full-size native tab buttons",()=>{
     const template=read("community-activity","wxml"),css=read("community-activity","wxss");
     assert.equal((template.match(/class="activity-tabs__indicator"/g)||[]).length,1);
     assert.match(template,/<button wx:for="{{tabs}}"[\s\S]*?role="tab"/);
     assert.match(template,/aria-selected="{{section===item.key}}"/);
-    assert.match(template,/translateX\(/);for(const step of [100,200,300,400])assert.ok(template.includes(`?${step}`));
+    assert.match(template,/translateX\({{activeTabIndex\*100}}%\)/);assert.match(template,/width:{{100\/tabs.length}}%/);
+    assert.match(template,/data-source="{{item.key}}" bindtap="selectSource"/);
     const tab=rule(css,".activity-tab");for(const style of ["display:flex","align-items:center","justify-content:center","background:transparent","min-height:48px"])assert.ok(tab.includes(style));
     assert.ok(rule(css,".activity-tabs__indicator").includes("width:20%"));
   });
