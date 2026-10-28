@@ -30,7 +30,7 @@ RELEASE_MANIFEST_SHA256 = None  # FINALIZER_RELEASE_MANIFEST_SHA256
 CI_RUN_ID = None  # FINALIZER_CI_RUN_ID
 HELPER_B64_ZLIB = None  # FINALIZER_HELPER
 COMPATIBILITY_B64_ZLIB = None  # FINALIZER_COMPATIBILITY
-REVIEWED_HELPER_SHA256 = '9ac3e49d41cafd634d87b70963eecdc67ae1f425b0edc47509ec8a49c2ef408e'
+REVIEWED_HELPER_SHA256 = '7a67c3b3c6d76b1b2f2ff23fc69f34081ad54b5e1e5e94d5f1b8f9ced28dc99b'
 DEPENDENCIES = 'd9f03813fc808eced42eacb92db4530a2cd0e0824cab5d1beb9c3bdf08144bdd'
 BASELINE_HEAD = '45091a1259c2731eda21db7c367dff28513472bd'
 BASELINE_TREE = 'e367fb91ca0f0442226271e055bb37af8b8b38e7'
@@ -47,6 +47,17 @@ LOCK_PERMIT = '2a14af4f1bfdd86d0108015b43df14d62b2cc6e8eedcd3831446970a26d7d32a'
 MIGRATION = '202610280001_editorial_comments.sql'
 MIGRATION_SHA256 = 'cd945b213a0c546d27ff2a1ef6e7d1a90a232ec25d680415d45aa7113c64f3c1'
 COMPATIBILITY_SHA256 = '2f23b820857ce98fcb916e6848adba796522b9a2c81333c069a50631000137ef'
+PUBLIC_ERROR_PREFIXES = ('STAGE_', 'COMMENTS_', 'NO_SCHEMA_', 'DEPENDENCY_', 'PRODUCTION_', 'GITHUB_')
+PUBLIC_ERROR_EXACT = ('EXACT_MAIN_PUSH_CI_REQUIRED', 'LATEST_MAIN_CI_NOT_SUCCESSFUL')
+PUBLIC_PHASES = ('binding', 'payload', 'target', 'baseline_guard', 'receive_archive', 'unpack',
+                 'validate_extraction', 'candidate_source', 'recheck_target', 'recheck_baseline',
+                 'recheck_candidate', 'copy_candidate', 'validate_candidate', 'install_helper',
+                 'write_compatibility', 'final_fence', 'write_receipt', 'validate_binding', 'write_binding')
+PUBLIC_FUNCTIONS = ('main', 'target', 'metadata', 'redirect_request', 'safe_directory', 'safe_parents',
+                    'read_regular', 'private_write', 'receive_archive', 'member_path', 'tar_members',
+                    'unpack', 'validated_release', 'dependency_digest', 'file_sha', 'helper_payload',
+                    'compatibility_payload', 'baseline_guard', 'validate_release', 'candidate_contract',
+                    'application_binding', 'unique')
 
 class Refused(Exception):
     pass
@@ -54,6 +65,21 @@ class Refused(Exception):
 def need(value, code):
     if not value:
         raise Refused(code)
+
+def public_error_code(value):
+    # Imported guards have their own Refused class. Export only their reviewed
+    # code namespaces, never exception prose, URLs, paths or nested arguments.
+    return value if isinstance(value, str) and re.fullmatch(r'[A-Z][A-Z0-9_]{2,119}', value) and (
+        value.startswith(PUBLIC_ERROR_PREFIXES) or value in PUBLIC_ERROR_EXACT) else None
+
+def failure_location(error, phase):
+    location = {'failurePhase': phase if phase in PUBLIC_PHASES else 'unknown'}
+    trace = error.__traceback__
+    while trace:
+        if trace.tb_frame.f_globals is globals() and trace.tb_frame.f_code.co_name in PUBLIC_FUNCTIONS:
+            location.update(stageFunction=trace.tb_frame.f_code.co_name, stageLine=trace.tb_lineno)
+        trace = trace.tb_next
+    return location
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
@@ -398,6 +424,7 @@ def application_binding(receipt,raw):
 
 
 def main():
+    phase = 'binding'
     try:
         need(isinstance(HEAD,str) and re.fullmatch(r'[a-f0-9]{40}',HEAD) and HEAD!='0'*40
              and isinstance(TREE,str) and re.fullmatch(r'[a-f0-9]{40}',TREE) and TREE!='0'*40
@@ -407,33 +434,48 @@ def main():
              and isinstance(ARCHIVE_SHA256,str) and re.fullmatch(r'[a-f0-9]{64}',ARCHIVE_SHA256)
              and isinstance(RELEASE_MANIFEST_SHA256,str) and re.fullmatch(r'[a-f0-9]{64}',RELEASE_MANIFEST_SHA256),
              'STAGE_FINAL_ARCHIVE_BINDING_REQUIRED')
+        phase = 'payload'
         helper=helper_payload();compatibility=compatibility_payload()
+        phase = 'target'
         target()  # Root, IMDS and every protected parent are checked before writes.
+        phase = 'baseline_guard'
         guard=baseline_guard(helper)
         os.umask(0o077)
         STAGE_BASE.mkdir(mode=0o700,exist_ok=True)
         stage=Path(tempfile.mkdtemp(prefix=HEAD[:12]+'-',dir=STAGE_BASE))
         safe_directory(stage,private=True)
+        phase = 'receive_archive'
         receive_archive(stage/'archive.tar.gz',sys.stdin.buffer)
         output=stage/'extracted';output.mkdir(mode=0o700)
+        phase = 'unpack'
         release=unpack(stage/'archive.tar.gz',output)
+        phase = 'validate_extraction'
         artifact=validate_release(release)
+        phase = 'candidate_source'
         candidate_contract(release,guard,source=True)
+        phase = 'recheck_target'
         target()  # Never overwrite an unknown or partial prior destination.
+        phase = 'recheck_baseline'
         candidate_contract(release,baseline_guard(helper))
+        phase = 'recheck_candidate'
         candidate_contract(release,guard)
+        phase = 'copy_candidate'
         destination=ROOT/'releases'/TOP
         destination.mkdir(mode=0o755);os.chmod(destination,0o755)
         shutil.copytree(release,destination,dirs_exist_ok=True,symlinks=True)
         os.chmod(destination,0o755)
+        phase = 'validate_candidate'
         actual=validate_release(destination)
         need(actual==artifact,'STAGE_COPIED_RELEASE_DRIFT')
+        phase = 'install_helper'
         OPERATIONS.parent.mkdir(mode=0o755,exist_ok=True)
         OPERATIONS.mkdir(mode=0o700)
         helper_path=OPERATIONS/'trial-editorial-comments-upgrade.py'
         private_write(helper_path,helper)
         need(read_regular(helper_path,expected_sha256=REVIEWED_HELPER_SHA256)==helper,'STAGE_INSTALLED_HELPER_DRIFT')
+        phase = 'write_compatibility'
         private_write(stage/'rollback-compatibility.json',compatibility)
+        phase = 'final_fence'
         candidate=candidate_contract(destination,guard)
         receipt={'staged':True,'deployed':False,'instanceId':INSTANCE,'publicIpv4':IP,'sourceHead':HEAD,'sourceTree':TREE,
                  'archiveSha256':ARCHIVE_SHA256,'archiveSize':ARCHIVE_SIZE,**artifact,
@@ -443,19 +485,22 @@ def main():
                  'servicesChanged':False,'databaseChanged':False,'configurationChanged':False,
                  'productionChanged':False,'peerFilesChanged':False}
         raw=(json.dumps(receipt,sort_keys=True)+'\n').encode()
+        phase = 'write_receipt'
         private_write(stage/'stage-receipt.json',raw)
         b=application_binding(receipt,raw)
+        phase = 'validate_binding'
         guard[0].validate_binding(b);guard[0].stage_binding(b,candidate);guard[0].compatibility(b,guard[1])
         binding_raw=(json.dumps(b,sort_keys=True)+'\n').encode()
         binding_path=OPERATIONS/'application-binding.json'
+        phase = 'write_binding'
         private_write(binding_path,binding_raw)
         need(read_regular(binding_path,expected_sha256=sha(binding_raw))==binding_raw,'STAGE_INSTALLED_BINDING_DRIFT')
         print(json.dumps({**receipt,'applicationBindingPath':str(binding_path),
                           'applicationBindingSha256':sha(binding_raw),'stageReceiptSha256':sha(raw)},sort_keys=True))
         return 0
     except Exception as error:
-        print(json.dumps({'ok':False,'code':str(error) if isinstance(error,Refused) else 'STAGE_REVIEW_REQUIRED',
-                          'deployed':False,'privateValuesExported':False}))
+        print(json.dumps({'ok':False,'code':public_error_code(str(error)) or 'STAGE_REVIEW_REQUIRED',
+                          **failure_location(error, phase), 'deployed':False,'privateValuesExported':False}))
         return 1
 
 

@@ -249,7 +249,7 @@ Page({
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section==="bills"&&
       token===getApp<IAppOption>().globalData.sessionToken&&this.data.billDate===date;
     const answer=await wx.showModal({title:this.data.formalMode?"核对微信交易账单？":"导入隔离交易账单？",
-      content:`${date} ${type==="SUCCESS"?"支付":"退款受理"}账单。系统会校验渠道文件摘要并记录差异；不会据此修改资金终态。`,
+      content:`${date} ${type==="SUCCESS"?"支付":"退款受理"}账单。这一步只核对账单并记录差异，不会更改付款或退款状态。`,
       confirmText:"核对账单"});
     if(!answer.confirm||!current())return;
     this.setData({busy:true,actionError:"",actionStatus:""});

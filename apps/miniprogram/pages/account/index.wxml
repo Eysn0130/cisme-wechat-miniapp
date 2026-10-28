@@ -10,7 +10,7 @@
         <text class="account-hero__brand">CISME</text>
         <view class="account-hero__rule" aria-hidden="true"/>
         <text class="account-hero__title">留住每次护理</text>
-        <view class="account-hero__description" wx:if="{{renewalMode}}"><text>确认新版条款后，继续点赞、收藏与关注。</text><text>暂不确认，仍可阅读公开精选。</text></view>
+        <view class="account-hero__description" wx:if="{{renewalMode}}"><text>确认新版条款后，继续点赞、收藏、关注和评论。</text><text>暂不确认，也可继续阅读。</text></view>
         <view class="account-hero__description" wx:elif="{{pendingDestination && loginStage === 'login'}}"><text>已登录，继续查看护理记录与订单。</text></view>
         <view class="account-hero__description" wx:elif="{{loginStage === 'login'}}">
           <text>登录后查看护理记录与订单。</text>

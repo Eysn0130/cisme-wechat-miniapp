@@ -72,7 +72,7 @@ Page({
   async loadGlobalRate(attempt:number,token:string){try{const rate=await pageRead<GlobalRate>(this,{path:"/v1/management/commission-rates/current"});
     if(!this.data.alive||this.data.attempt!==attempt||(token!==getApp<IAppOption>().globalData.sessionToken||this.lastRevision!==commerceContextRevision()))return;
     const rateBasisPoints=rate.rateOptions??[];
-    this.setData({globalRate:rate,globalRateLabel:rate.basisPoints==null?"未配置":`${(rate.basisPoints/100).toFixed(2)}%`,
+    this.setData({globalRate:rate,globalRateLabel:rate.basisPoints==null?"尚未设置":`${(rate.basisPoints/100).toFixed(2)}%`,
       rateBasisPoints,rateOptions:rateBasisPoints.map(value=>`${(value/100).toFixed(2)}%`),globalRateError:""});
   }catch(error){if(this.data.alive&&this.data.attempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision())
     this.setData({globalRateError:(error as {title?:string}).title||"全局费率暂未加载。"});}},

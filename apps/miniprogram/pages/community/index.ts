@@ -410,7 +410,7 @@ Page({
       reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
       formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reportLoadingMore:false,appealLoadingMore:false,reviewActorId:"",reviewNotice:"",reviewBusy:false,
       tasks:[],tasksLoading:false,tasksError:"",editorialNextCursor:null,formalNextCursor:null,followingNextCursor:null,formalLoadingMore:false,
-      moreError:"",teamError:"",error:"登录状态已失效，请重新加载公开精选。"});
+      moreError:"",teamError:"",error:"登录状态已失效，请重新加载社区内容。"});
     this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);this.renderFeed();return true;
   },
   async load() {

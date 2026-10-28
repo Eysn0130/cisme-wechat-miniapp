@@ -443,4 +443,129 @@ class SnapshotPipelineTests(unittest.TestCase):
         record=M.snapshot(self.plan,self.state,'SYNTHETIC-APPROVAL');path=Path(record['encryptedFile']);raw=bytearray(path.read_bytes());raw[100]^=1;path.write_bytes(raw)
         with self.assertRaisesRegex(M.Refused,'SNAPSHOT_CHANGED'):M.validate_snapshot(record,self.state,'SYNTHETIC-APPROVAL')
 
+class SourceNetworkTests(unittest.TestCase):
+    head='a'*40
+    def setUp(self):
+        self.requests=[];self.responses=[]
+        self.fake=types.SimpleNamespace(general=types.SimpleNamespace(REPO='Eysn0130/cisme-wechat-miniapp',
+          observe=types.SimpleNamespace(NoRedirect=lambda:object())))
+    class Response:
+        status=200
+        def __init__(self,body,length=None,error_after_read=None):
+            self.body=body;self.headers={}if length is None else{'Content-Length':str(length)}
+            self.error_after_read=error_after_read;self.reads=0
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def read(self,n):
+            if self.error_after_read and self.reads:raise self.error_after_read
+            self.reads+=1;chunk,self.body=self.body[:n],self.body[n:];return chunk
+    def open(self,request,timeout):
+        self.assertEqual(timeout,12);self.requests.append(request)
+        value=self.responses.pop(0)
+        if isinstance(value,Exception):raise value
+        return value
+    def content(self,body=b'approved source',name='package.json',**changes):
+        value={'type':'file','path':name,'encoding':'base64','size':len(body),
+          'sha':hashlib.sha1(b'blob '+str(len(body)).encode()+b'\0'+body).hexdigest(),
+          'content':M.base64.b64encode(body).decode(),'download_url':'http://127.0.0.1/never-follow'}
+        return{**value,**changes}
+    def run_source(self,name='package.json'):
+        opener=types.SimpleNamespace(open=self.open)
+        with patch.object(M,'D',self.fake),patch.object(M.urllib.request,'build_opener',return_value=opener)as build:
+            result=M.github_source(name,self.head)
+            self.assertEqual(build.call_args.args[0].proxies,{})
+            return result
+    def test_raw_success_does_not_call_another_endpoint_or_supply_credentials(self):
+        self.responses=[self.Response(b'raw bytes',9)]
+        self.assertEqual(self.run_source(),b'raw bytes');self.assertEqual(len(self.requests),1)
+        self.assertEqual(self.requests[0].full_url,'https://raw.githubusercontent.com/Eysn0130/cisme-wechat-miniapp/'+self.head+'/package.json')
+        self.assertIsNone(self.requests[0].get_header('Authorization'))
+    def test_open_timeout_uses_one_exact_commit_contents_response(self):
+        body=b'approved source';self.responses=[TimeoutError(),self.Response(json.dumps(self.content(body)).encode())]
+        self.assertEqual(self.run_source(),body);self.assertEqual(len(self.requests),2)
+        self.assertEqual(self.requests[1].full_url,'https://api.github.com/repos/Eysn0130/cisme-wechat-miniapp/contents/package.json?ref='+self.head)
+        self.assertEqual(self.requests[1].get_header('Accept'),'application/vnd.github+json')
+        self.assertIsNone(self.requests[1].get_header('Authorization'))
+    def test_partial_raw_timeout_discards_partial_body_before_verified_fallback(self):
+        self.responses=[self.Response(b'partial',error_after_read=TimeoutError()),self.Response(json.dumps(self.content()).encode())]
+        self.assertEqual(self.run_source(),b'approved source')
+    def test_wrapped_dns_or_connection_transport_errors_can_fallback(self):
+        errors=[M.urllib.error.URLError(M.socket.gaierror(-3,'synthetic DNS failure')),
+          M.urllib.error.URLError(ConnectionResetError()),ConnectionResetError(),OSError(M.errno.ENETUNREACH,'synthetic unreachable')]
+        for error in errors:
+            with self.subTest(error=type(error).__name__):
+                self.requests=[];self.responses=[error,self.Response(json.dumps(self.content()).encode())]
+                self.assertEqual(self.run_source(),b'approved source');self.assertEqual(len(self.requests),2)
+    def test_http_failures_never_trigger_fallback(self):
+        for status in(403,404,429,503):
+            with self.subTest(status=status):
+                self.requests=[];self.responses=[M.urllib.error.HTTPError('https://raw.githubusercontent.com',status,'synthetic',{},None)]
+                with self.assertRaisesRegex(M.Refused,'SOURCE_HTTP_UNAVAILABLE'):self.run_source()
+                self.assertEqual(len(self.requests),1)
+    def test_tls_and_certificate_failures_never_trigger_fallback(self):
+        errors=[M.ssl.SSLCertVerificationError(1,'synthetic certificate'),M.ssl.SSLError(1,'synthetic TLS')]
+        for error in errors+list(map(M.urllib.error.URLError,errors)):
+            with self.subTest(error=type(error).__name__):
+                self.requests=[];self.responses=[error]
+                with self.assertRaisesRegex(M.Refused,'TLS_VALIDATION_FAILED'):self.run_source()
+                self.assertEqual(len(self.requests),1)
+    def test_nontransport_os_errors_do_not_trigger_fallback(self):
+        self.responses=[OSError(M.errno.EACCES,'synthetic denied')]
+        with self.assertRaisesRegex(M.Refused,'SOURCE_NETWORK_UNAVAILABLE'):self.run_source()
+        self.assertEqual(len(self.requests),1)
+    def test_content_validation_failures_do_not_trigger_fallback(self):
+        for response,code in[(self.Response(b'partial',100),'TRUNCATED'),
+          (self.Response(b'x',1048577),'SOURCE_SIZE'),(self.Response(b'x','invalid'),'SOURCE_LENGTH')]:
+            with self.subTest(code=code):
+                self.requests=[];self.responses=[response]
+                with self.assertRaisesRegex(M.Refused,code):self.run_source()
+                self.assertEqual(len(self.requests),1)
+    def test_contents_metadata_must_describe_one_exact_bounded_file(self):
+        changes=[{'type':'dir'},{'type':'symlink'},{'path':'other.json'},{'encoding':'none'},
+          {'size':True},{'size':0},{'size':1048577},{'sha':'g'*40},{'content':[]}]
+        for change in changes:
+            with self.subTest(change=change):
+                self.requests=[];self.responses=[TimeoutError(),self.Response(json.dumps(self.content(**change)).encode())]
+                with self.assertRaisesRegex(M.Refused,'CONTENTS_METADATA_REQUIRED'):self.run_source()
+                self.assertEqual(len(self.requests),2)
+    def test_contents_encoding_size_blob_and_duplicate_keys_are_verified(self):
+        cases=[(self.content(content='not base64!'),'ENCODING_INVALID'),
+          (self.content(content=M.base64.b64encode(b'changed bytes').decode()),'SIZE_MISMATCH'),
+          (self.content(sha='0'*40),'BLOB_MISMATCH')]
+        for value,code in cases:
+            with self.subTest(code=code):
+                self.responses=[TimeoutError(),self.Response(json.dumps(value).encode())]
+                with self.assertRaisesRegex(M.Refused,code):self.run_source()
+        self.responses=[TimeoutError(),self.Response(b'{"type":"file","type":"dir"}')]
+        with self.assertRaisesRegex(M.Refused,'DUPLICATE_JSON_KEY'):self.run_source()
+    def test_only_standard_base64_line_breaks_are_accepted(self):
+        value=self.content();value['content']=value['content'][:4]+'\r\n'+value['content'][4:]
+        self.responses=[TimeoutError(),self.Response(json.dumps(value).encode())]
+        self.assertEqual(self.run_source(),b'approved source')
+        value['content']=' '+value['content'];self.responses=[TimeoutError(),self.Response(json.dumps(value).encode())]
+        with self.assertRaisesRegex(M.Refused,'ENCODING_INVALID'):self.run_source()
+    def test_contents_response_is_bounded_complete_and_never_recursively_retried(self):
+        for response,code in[(self.Response(b'{}',100),'TRUNCATED'),
+          (self.Response(b'{}',2*1024*1024+1),'SOURCE_SIZE'),(TimeoutError(),'NETWORK_UNAVAILABLE')]:
+            with self.subTest(code=code):
+                self.requests=[];self.responses=[TimeoutError(),response]
+                with self.assertRaisesRegex(M.Refused,code):self.run_source()
+                self.assertEqual(len(self.requests),2)
+    def test_fallback_retains_all_source_permit_hash_and_candidate_checks(self):
+        names=['package.json','package-lock.json','scripts/release-migrate.mjs','db/migrations/'+M.MIGRATION]
+        contents={name:(REPO/name).read_bytes()for name in names}
+        binding={'sourceHead':self.head,'sourceTree':'b'*40,'ciRunId':123}
+        main={'sha':self.head,'tree':'b'*40,'ciRunId':123}
+        candidate={'directory':'/synthetic-reviewed-candidate','files':{'migrate.mjs':contents[names[2]],names[3]:contents[names[3]]}}
+        def fixture(changes={}):
+            self.responses=[]
+            for name in names:self.responses.extend([TimeoutError(),self.Response(json.dumps(self.content(changes.get(name,contents[name]),name)).encode())])
+            self.fake.command=lambda *a,**k:json.dumps({'verified':True,'sourceHead':self.head,'sourceTree':'b'*40,'migrations':99})
+        fixture()
+        with patch.object(M,'D',self.fake),patch.object(M.urllib.request,'build_opener',return_value=types.SimpleNamespace(open=self.open)):
+            M.source_permit(binding,candidate,main)
+        fixture({'package.json':b'self-consistent API metadata cannot replace approved source'})
+        with patch.object(M,'D',self.fake),patch.object(M.urllib.request,'build_opener',return_value=types.SimpleNamespace(open=self.open)):
+            with self.assertRaisesRegex(M.Refused,'SOURCE_DEPENDENCY_INPUT_CHANGED'):M.source_permit(binding,candidate,main)
+
 if __name__=='__main__':unittest.main()

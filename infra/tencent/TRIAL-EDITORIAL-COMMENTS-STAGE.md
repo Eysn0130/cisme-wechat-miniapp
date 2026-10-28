@@ -34,6 +34,16 @@ python3 -I -B /absolute/new-directory/run-stage.py \
 
 runner 仅允许此固定主机，强制已固定 known host、BatchMode、独立认证路径；不读取或打印私钥。stdin 仅发送已经验证的归档缓冲。helper 和兼容回执嵌入经过哈希绑定的 installer，不与归档 stdin 混装。
 
+## 失败定位与私有证据
+
+新模板绑定升级 helper SHA `7a67c3b3c6d76b1b2f2ff23fc69f34081ad54b5e1e5e94d5f1b8f9ced28dc99b`。三个 helper pin 以及 finalizer 内模板/runner pin 必须一起核对；模板和 runner 不引用 finalizer 自身哈希，不形成循环绑定。它们仍须来自后续准确已提交 main 的实际构建。旧 `2992fce2a726` 的失败 stage、原归档和诊断独立保留，不能按新工具成功收据使用。
+
+暂存脚本按固定阶段返回失败位置，仅接受完整大写码及已知命名空间 `STAGE_`、`COMMENTS_`、`NO_SCHEMA_`、`DEPENDENCY_`、`PRODUCTION_`、`GITHUB_`，另允许两项已有 main CI 稳定码。跨模块 `Refused` 不再因 Python 类不同丢失码。未知异常正文、路径、URL、秘密或非白名单错误仍统一为 `STAGE_REVIEW_REQUIRED`；位置仅包括预定阶段、本暂存脚本函数名和行号，不返回异常栈。
+
+runner 在 SSH 前验证本地输出父目录为当前用户或 root 拥有的 0700 目录。每次 SSH 结束或超时，都先新建 `stage-attempt-<random>/` 0700 子目录，以 `O_EXCL`/no-follow 写入 0600 的 `stdout.bin`、`stderr.bin`、`transport.json`，再解释远端结果。原始输出只在这个私有目录；元数据记录实际退出码、超时、输出长度/哈希、固定来源与归档绑定，不包含认证参数、私钥内容或环境。该传输元数据在解析前不可变保存，不是部署成功凭证。
+
+非零退出也会安全解析有界、无重复键的失败 JSON；公开输出只有允许的错误码、阶段/函数/行号、私有证据目录位置和需核查标记。HTTP 正文、SSH stderr、任意异常正文及额外 JSON 字段不会透传。退出码为零但收据不完整仍拒绝；超时或未知结果不声明服务器未写入，也不重试或自动重放。必须先只读核对实例、原服务及残留，再决定后续新操作，禁止覆盖未知候选和旧证据。
+
 服务器执行前必须 root、固定 IMDS/hostname 映射到 `lhins-61ikz4mi / 124.223.74.198`。通过新 99 helper 的 `load_primitives(True)`，只读认证当前真实 45091/schema98 上下文；不调用旧 0d/6 篇门禁、新 helper 的迁移入口或任何部署 apply。核对当前 20 篇的版本、媒体、作者及发布者归属，保持正式 dbd/schema97、单元、配置、私有输入和六类密钥隔离。当前公开 main/tree/成功 push CI 须与绑定一致。
 
 唯一新增目标：
@@ -54,4 +64,4 @@ runner 仅允许此固定主机，强制已固定 known host、BatchMode、独�
 python3 -I -B infra/tencent/test_trial_editorial_comments_stage.py
 ```
 
-测试自包含合成 tar/归档、假命令适配和临时文件；不导入 ignored tmp 历史测试，不连接 SSH、数据库或外部网络。它们不代替最终新 main 的真实构建、实际暂存和原生验收。
+测试自包含合成 tar/归档、假命令适配和临时文件，并覆盖跨模块稳定码、私有消息不导出、非零远端真码、超时局部输出、无覆盖证据和严格 SSH。它们不导入 ignored tmp 历史测试，不连接 SSH、数据库或外部网络，不代替最终新 main 的真实构建、实际暂存和原生验收。

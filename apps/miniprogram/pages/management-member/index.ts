@@ -95,7 +95,7 @@ Page({
       this.setData({detail,sections,section:sections.some(item=>item.id===this.data.section)?this.data.section:"overview",
         orderMode,effectiveLabel:dateLabel(detail.member.effectiveAt),expiresLabel:dateLabel(detail.member.expiresAt),
         expiryDate:"",expiryMinDate,
-        rateLabel:detail.rate?.basisPoints==null?"未配置":`${(detail.rate.basisPoints/100).toFixed(2)}% · ${detail.rate.source==="member_override"?"单独设置":"继承全局"}`,
+        rateLabel:detail.rate?.basisPoints==null?"尚未设置":`${(detail.rate.basisPoints/100).toFixed(2)}% · ${detail.rate.source==="member_override"?"单独设置":"继承全局"}`,
         rateBasisPoints,rateOptions:rateBasisPoints.map(value=>`${(value/100).toFixed(2)}%`),
         loading:false});
       if(this.data.section!=="overview")void this.showSection();

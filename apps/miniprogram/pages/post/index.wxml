@@ -41,13 +41,13 @@
     </view>
     <view wx:if="{{socialEnabled && !editorialSource}}" id="post-comments" class="post-comments">
       <view class="post-comments-count">共 {{social.commentCount}} 条评论</view>
-      <text wx:if="{{socialLoading}}" class="comment-empty">正在同步交流…</text>
+      <text wx:if="{{socialLoading}}" class="comment-empty">正在加载评论…</text>
       <view wx:for="{{threads}}" wx:key="id" class="comment-thread">
         <template is="community-comment" data="{{comment:item,nested:false,busy:socialBusy}}"/>
         <view class="comment-replies"><view wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id"><template is="community-comment" data="{{comment:reply,nested:true,busy:socialBusy}}"/></view><button hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80" wx:if="{{item.replyCount > 1}}" class="comment-expand" data-id="{{item.id}}" bindtap="expandReplies">{{item.expanded ? '收起回复' : '展开其余 ' + item.hiddenCount + ' 条回复'}}</button></view>
       </view>
       <view wx:if="{{!socialLoading && !socialError && !threads.length}}" class="comment-empty">还没有评论，聊聊你的护理感受吧</view>
-      <text wx:if="{{social.truncated}}" class="comment-empty">当前展示前 500 条交流</text>
+      <text wx:if="{{social.truncated}}" class="comment-empty">仅显示前 500 条评论</text>
       <text wx:if="{{previewRuntime}}" class="community-preview-note">互动测试预览 · 新评论审核后才会公开</text>
     </view>
   </view>
@@ -57,7 +57,7 @@
   <button hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80" wx:if="{{socialError}}" class="post-social-error {{socialBusy || socialLoading ? 'control--disabled' : ''}}" bindtap="loadSocial" disabled="{{socialBusy || socialLoading}}">{{socialError}}{{editorialSource ? ' · 重新核对' : ''}}</button>
   <view wx:if="{{replyToName && (!editorialSource || composerOpen)}}" class="post-reply-context"><text>回复 {{replyToName}}</text><button hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80" bindtap="cancelReply" class="comment-text-action {{editorialSource && (commentsBusy || commentSendUnknown) ? 'control--disabled' : ''}}" disabled="{{editorialSource && (commentsBusy || commentSendUnknown)}}">取消回复</button></view>
   <view wx:if="{{editorialSource && composerOpen}}" class="post-editorial-composer">
-    <text wx:if="{{commentSendUnknown && !commentsBusy}}" class="comment-notice">发送结果尚未确认，内容和提交编号已保留。</text>
+    <text wx:if="{{commentSendUnknown && !commentsBusy}}" class="comment-notice">发送结果还未确认，内容已保留。请点“核对发送”继续。</text>
     <text class="post-draft-count {{draftLength > 180 ? 'is-over-limit' : ''}}" aria-live="polite">{{draftLength}}/180</text><view class="post-composer-row"><textarea class="post-comment-textarea {{commentsBusy || commentSendUnknown || commentsEnabled !== true ? 'control--disabled' : ''}}" value="{{draft}}" maxlength="360" auto-height="{{true}}" placeholder="{{replyToName ? '回复 ' + replyToName : '说点什么…'}}" focus="{{composerFocused}}" disabled="{{commentsBusy || commentSendUnknown || commentsEnabled !== true}}" bindinput="inputComment" bindfocus="focusComment" bindblur="blurComment" bindkeyboardheightchange="keyboardChanged" adjust-position="{{false}}" show-confirm-bar="{{false}}" cursor-spacing="16" aria-label="写评论"/><button class="post-send {{commentsBusy || commentsEnabled !== true || draftLength < 2 || draftLength > 180 ? 'control--disabled' : ''}}" bindtap="sendComment" disabled="{{commentsBusy || commentsEnabled !== true || draftLength < 2 || draftLength > 180}}" hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80">{{commentsBusy ? '发送中' : commentSendUnknown ? '核对发送' : '发送'}}</button><button class="comment-text-action post-composer-close" bindtap="closeComposer" aria-label="收起评论编辑" hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80">收起</button></view>
   </view>
   <view wx:elif="{{editorialSource}}" class="post-bottom-actions post-editorial-actions">

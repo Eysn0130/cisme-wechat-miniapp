@@ -6,19 +6,23 @@ No production switch, database restore/down, credentials or business writes.
 """
 import argparse
 import base64
+import errno
 import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import socket
+import ssl
 import stat
 import subprocess
 import sys
 import time
 import types
 import urllib.request
-from urllib.parse import unquote,urlsplit
+import urllib.error
+from urllib.parse import quote,unquote,urlsplit
 
 sys.dont_write_bytecode=True
 ROOT=Path('/opt/cisme-trial')
@@ -114,14 +118,14 @@ def artifact_contract(old,candidate,b):
     need(sha(candidate['files'].get('db/migrations/'+MIGRATION,b''))==MIGRATION_SHA,'COMMENTS_SQL99_HASH_REQUIRED')
     need(old['dependenciesSha256']==candidate['dependenciesSha256']==DEPENDENCIES,'COMMENTS_FULL_DEPENDENCY_TREE_CHANGED')
 
-def github_source(name,head):
+def source_path(name,head):
     need(name in ('package.json','package-lock.json','scripts/release-migrate.mjs','db/migrations/'+MIGRATION)
       and re.fullmatch(r'[0-9a-f]{40}',head or ''),'COMMENTS_SOURCE_PATH_REQUIRED')
-    req=urllib.request.Request('https://raw.githubusercontent.com/'+D.general.REPO+'/'+head+'/'+name,
-      headers={'Cache-Control':'no-cache','User-Agent':'cisme-editorial-comments-preflight'})
-    with urllib.request.build_opener(D.general.observe.NoRedirect()).open(req,timeout=12) as response:
+
+def source_response(opener,request,limit):
+    with opener.open(request,timeout=12) as response:
         need(response.status==200,'COMMENTS_SOURCE_UNAVAILABLE')
-        length=response.headers.get('Content-Length');limit=1024*1024
+        length=response.headers.get('Content-Length')
         need(length is None or re.fullmatch(r'[0-9]+',length),'COMMENTS_SOURCE_LENGTH_REQUIRED')
         expected=int(length)if length is not None else None
         need(expected is None or 0<expected<=limit,'COMMENTS_SOURCE_SIZE_REFUSED')
@@ -130,6 +134,54 @@ def github_source(name,head):
             raw.extend(chunk);need(len(raw)<=limit,'COMMENTS_SOURCE_TOO_LARGE')
         need(raw and (expected is None or len(raw)==expected),'COMMENTS_SOURCE_TRUNCATED')
     return bytes(raw)
+
+def source_transport_error(error):
+    if isinstance(error,urllib.error.HTTPError):return False
+    reason=error.reason if isinstance(error,urllib.error.URLError)else error
+    if isinstance(reason,ssl.SSLError):return False
+    return isinstance(reason,(TimeoutError,ConnectionError,socket.gaierror))or(
+      isinstance(reason,OSError)and reason.errno in (errno.ETIMEDOUT,errno.ECONNRESET,errno.ECONNREFUSED,
+        errno.ENETDOWN,errno.ENETUNREACH,errno.EHOSTDOWN,errno.EHOSTUNREACH))
+
+def source_failure(error):
+    if isinstance(error,urllib.error.HTTPError):
+        try:error.close()
+        finally:raise Refused('COMMENTS_SOURCE_HTTP_UNAVAILABLE')from error
+    reason=error.reason if isinstance(error,urllib.error.URLError)else error
+    need(not isinstance(reason,ssl.SSLError),'COMMENTS_SOURCE_TLS_VALIDATION_FAILED')
+    raise Refused('COMMENTS_SOURCE_NETWORK_UNAVAILABLE')from error
+
+def github_contents_source(name,head,opener):
+    source_path(name,head)
+    # The official exact-commit response is decoded locally. Never follow its
+    # download_url, accept redirects, supply credentials or reuse partial bytes.
+    request=urllib.request.Request('https://api.github.com/repos/'+D.general.REPO+'/contents/'+quote(name,safe='/')+'?ref='+head,
+      headers={'Accept':'application/vnd.github+json','Cache-Control':'no-cache','User-Agent':'cisme-editorial-comments-preflight'})
+    try:raw=source_response(opener,request,2*1024*1024)
+    except (urllib.error.URLError,OSError)as error:source_failure(error)
+    value=parse(raw)
+    need(isinstance(value,dict)and value.get('type')=='file'and value.get('path')==name
+      and value.get('encoding')=='base64'and type(value.get('size'))is int and 0<value['size']<=1024*1024
+      and isinstance(value.get('sha'),str)and re.fullmatch(r'[0-9a-f]{40}',value['sha'])
+      and isinstance(value.get('content'),str),'COMMENTS_SOURCE_CONTENTS_METADATA_REQUIRED')
+    try:decoded=base64.b64decode(value['content'].replace('\r','').replace('\n',''),validate=True)
+    except (ValueError,TypeError):raise Refused('COMMENTS_SOURCE_CONTENTS_ENCODING_INVALID')from None
+    need(len(decoded)==value['size'],'COMMENTS_SOURCE_CONTENTS_SIZE_MISMATCH')
+    blob=hashlib.sha1(b'blob '+str(len(decoded)).encode()+b'\0'+decoded).hexdigest()
+    need(blob==value['sha'],'COMMENTS_SOURCE_CONTENTS_BLOB_MISMATCH')
+    return decoded
+
+def github_source(name,head):
+    source_path(name,head)
+    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),D.general.observe.NoRedirect())
+    request=urllib.request.Request('https://raw.githubusercontent.com/'+D.general.REPO+'/'+head+'/'+name,
+      headers={'Cache-Control':'no-cache','User-Agent':'cisme-editorial-comments-preflight'})
+    try:return source_response(opener,request,1024*1024)
+    except (urllib.error.URLError,OSError)as error:
+        # Only transport failures may use the independent official endpoint.
+        # HTTP, certificate and all content-validation failures stay fail-closed.
+        if not source_transport_error(error):source_failure(error)
+    return github_contents_source(name,head,opener)
 
 def source_permit(b,candidate,main):
     need(main.get('sha')==b['sourceHead'] and main.get('tree')==b['sourceTree'] and main.get('ciRunId')==b['ciRunId'],'COMMENTS_LATEST_MAIN_PUSH_CI_REQUIRED')

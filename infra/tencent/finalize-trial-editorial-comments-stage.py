@@ -18,9 +18,9 @@ import zlib
 
 HERE=Path(__file__).resolve().parent
 PROJECT=next(parent for parent in HERE.parents if (parent/'scripts/release-migrate.mjs').is_file() and (parent/'.git').exists())
-TEMPLATE_SHA='650a04a3f27c48ca2e1633e42c4fa887c8051061eb8fb99853f332f2cc8a7be1'
-RUNNER_SHA='cecc243e0b745c309f8e0b840cd517d6eb727bb0943da8ebc7e206ef073bcf4b'
-HELPER_SHA='9ac3e49d41cafd634d87b70963eecdc67ae1f425b0edc47509ec8a49c2ef408e'
+TEMPLATE_SHA='99a2c97bb429c56149c615396810899a5e13bc5c5d2500040aec33e69327e0f5'
+RUNNER_SHA='bf2aafcdb1344aa68707f957ef725d4cb30a2f32a118f3823bc697f4abae51fe'
+HELPER_SHA='7a67c3b3c6d76b1b2f2ff23fc69f34081ad54b5e1e5e94d5f1b8f9ced28dc99b'
 PACKAGE_SHA='c70b97f3ec0e6c339c5c27b0e9067549f9256287cfbfdf32f39ae46fcf54e231'
 LOCK_SHA='2a14af4f1bfdd86d0108015b43df14d62b2cc6e8eedcd3831446970a26d7d32a'
 BASELINE='45091a1259c2731eda21db7c367dff28513472bd'

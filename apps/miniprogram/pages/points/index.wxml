@@ -1,5 +1,5 @@
 <view class="chrome-root" style="{{chromeStyle}}">
-<view class="topbar points-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="points-topbar__copy"><text class="topbar__title">我的积分</text><small class="points-topbar__subtitle">每一笔变化都有来源</small></view></view>
+<view class="topbar points-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="points-topbar__copy"><text class="topbar__title">我的积分</text></view></view>
 <view class="page page--stack points-page">
   <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载积分…</view>
   <view wx:if="{{points}}" class="points-hero">
@@ -25,7 +25,7 @@
       <view class="ledger-copy"><strong class="ledger-copy__title">{{item.displayTitle}}</strong><small class="ledger-copy__meta">{{item.displayDate}} · {{item.displaySource}}</small></view>
       <text class="ledger-row__amount {{item.displayAmount[0] === '+' ? 'is-positive' : ''}}">{{item.displayAmount}}</text>
     </view>
-    <view wx:if="{{!points.entries.length}}" class="glass ledger-empty"><image class="ledger-empty__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><view class="ledger-empty__title">还没有积分记录</view><text class="ledger-empty__meta">产生积分变动后，记录会显示在这里。</text></view>
+    <view wx:if="{{!points.entries.length}}" class="glass ledger-empty"><image class="ledger-empty__icon" src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><view class="ledger-empty__title">还没有积分记录</view></view>
   </view>
   <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action {{loading ? 'text-button--disabled' : ''}}" bindtap="load" disabled="{{loading}}">重新加载</button></view>
 </view>
