@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "packageSourceSha256": "2cfb56194797915cb599ee3a7f123906498f193e3ccafa246bd4ce7d28380bca",
+  "packageSourceSha256": "a8393d9b2be4d785ef10cb4881b29dbe6cf139f66947fb436aa636332815e347",
   "branch": "codex/formal-release-flow-audit",
   "baselineHead": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
-  "recordedAtUtc": "2026-10-28T16:49:09.487285+00:00",
+  "recordedAtUtc": "2026-10-28T17:23:19.194551+00:00",
   "scope": "Formal-release preparation for40native routes and all currently available business journeys, including mobile-reference community detail and real editorial comments.",
   "prdAcceptanceIds": [
     "ED-MEDIA-01",
@@ -27,28 +27,30 @@
   ],
   "verification": {
     "currentFullUnit": {
-      "passed": 2027,
+      "passed": 2031,
       "conditionalSkipped": 1,
       "failed": 0,
-      "sourceSha256": "2cfb56194797915cb599ee3a7f123906498f193e3ccafa246bd4ce7d28380bca",
-      "log": "tmp/community-refinement-20261028/root-review/unit-2cfb-current.json"
+      "testSuites": 284,
+      "sourceSha256": "a8393d9b2be4d785ef10cb4881b29dbe6cf139f66947fb436aa636332815e347",
+      "log": "tmp/community-refinement-20261028/root-review/unit-a839-final.json"
     },
     "typecheck": {
       "passed": true,
-      "log": "tmp/community-refinement-20261028/root-review/typecheck-2cfb-current.log"
+      "sourceSha256": "a8393d9b2be4d785ef10cb4881b29dbe6cf139f66947fb436aa636332815e347",
+      "log": "tmp/community-refinement-20261028/root-review/typecheck-a839-final.log"
     },
     "packageGate": {
       "passed": true,
       "files": 280,
       "routes": 40,
-      "totalBytes": 1716416,
+      "totalBytes": 1716437,
       "mainPackageBytes": 665294,
       "subpackageBytes": {
         "pages/task": 17022,
         "pages/submit": 43714,
         "pages/progress": 24005,
         "pages/points": 12037,
-        "pages/post": 96510,
+        "pages/post": 96531,
         "pages/shop": 9153,
         "pages/product": 16784,
         "pages/checkout": 28515,
@@ -81,7 +83,7 @@
         "pages/management-fulfillment": 14849
       },
       "globalStyleBytes": 8050,
-      "sourceSha256": "2cfb56194797915cb599ee3a7f123906498f193e3ccafa246bd4ce7d28380bca"
+      "sourceSha256": "a8393d9b2be4d785ef10cb4881b29dbe6cf139f66947fb436aa636332815e347"
     },
     "apiMainCI": {
       "head": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
@@ -89,7 +91,14 @@
       "event": "push",
       "conclusion": "success"
     },
-    "currentNative": "Current2cfb actual pending comment display, Chinese date, owner moderation success and anonymous public commentCount1 verified. Source757 initial creation remains historical. Full40/20article/media/device verification continues."
+    "currentNative": "a839 current-source native verification pending after atomic comment-loading correction. 2cfb real comment actions remain accurately source-bound historical evidence.",
+    "historical2cfbFullUnit": {
+      "passed": 2027,
+      "conditionalSkipped": 1,
+      "failed": 0,
+      "sourceSha256": "2cfb56194797915cb599ee3a7f123906498f193e3ccafa246bd4ce7d28380bca",
+      "log": "tmp/community-refinement-20261028/root-review/unit-2cfb-current.json"
+    }
   },
   "result": "Client source fixes checked;trial API upgrade verified;current-source native and real-comment journeys in progress.",
   "release": {

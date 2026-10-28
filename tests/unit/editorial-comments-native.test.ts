@@ -26,6 +26,12 @@ function commentPage(){return {comments:structuredClone(rows),authors:{[authorId
 function calls(method?:string){return mocks.request.mock.calls.map(([input])=>input).filter(input=>!method||(input.method??"GET")===method);}
 function patch(target:any,key:string,value:any){const parts=key.replace(/\[(\d+)\]/g,".$1").split(".");let node=target;for(const [i,name]of parts.entries())if(i===parts.length-1)node[name!]=structuredClone(value);else node=node[name!]??=(/^\d+$/.test(parts[i+1]!)?[]:{});}
 async function mount(){await import("../../apps/miniprogram/pages/post/index");page.onLoad({id:articleId,source:"editorial"});await page.load();await vi.waitFor(()=>expect(page.data.commentsLoading).toBe(false));return page;}
+async function mountWithDelayedBridge(){
+ await import("../../apps/miniprogram/pages/post/index");page.onLoad({id:articleId,source:"editorial"});
+ const apply=page.setData.bind(page);
+ page.setData=(update:any,done?:()=>void)=>{apply(update);if(done)setTimeout(done,20);};
+ await page.load();
+}
 beforeEach(()=>{
  vi.resetModules();mocks.request.mockReset();mocks.resume.mockReset();mocks.renew.mockReset();mocks.token="actor-a";
  rows=[row()];enabled=true;moderator=false;policyVersion=3;nextCursor=null;patches=[];blockReads=[];
@@ -44,6 +50,38 @@ beforeEach(()=>{
 });
 
 describe("published editorial comment Page reads",()=>{
+ it.each(["success","failure"] as const)("keeps the article/count bridge window loading until comments settle with %s",async(outcome)=>{
+  vi.useFakeTimers();
+  try{
+   rows=[row(),row(replyId)];const pending=deferred();
+   mocks.request.mockResolvedValueOnce({...article(),commentCount:2}).mockReturnValueOnce(pending.promise);
+   await mountWithDelayedBridge();
+   expect(page.data).toMatchObject({loading:false,item:{id:articleId},commentCount:2,commentsLoading:true,commentsError:"",threads:[]});
+   const articlePatch=patches.find(value=>value.item?.id===articleId);
+   expect(articlePatch).toMatchObject({commentCount:2,commentsLoading:true});
+   expect(calls().filter(input=>input.path.startsWith(base+"?"))).toHaveLength(0);
+   await vi.advanceTimersByTimeAsync(19);expect(calls().filter(input=>input.path.startsWith(base+"?"))).toHaveLength(0);expect(page.data.commentsLoading).toBe(true);
+   await vi.advanceTimersByTimeAsync(1);expect(calls().filter(input=>input.path.startsWith(base+"?"))).toHaveLength(1);expect(page.data.commentsLoading).toBe(true);
+   if(outcome==="success")pending.resolve(commentPage());else pending.reject({status:503,title:"评论暂时无法读取"});
+   await vi.waitFor(()=>expect(page.data.commentsLoading).toBe(false));
+   expect(page.data.item.id).toBe(articleId);expect(page.data.commentCount).toBe(2);
+   if(outcome==="success"){expect(page.data.threads).toHaveLength(2);expect(page.data.commentsError).toBe("");}
+   else {expect(page.data.threads).toEqual([]);expect(page.data.commentsError).toBe("评论暂时无法读取");}
+   expect(calls("POST")).toEqual([]);
+  }finally{vi.useRealTimers();}
+ });
+ it.each(["success","failure"] as const)("does not apply a late comments %s after the delayed bridge has started a read and the page hides",async(outcome)=>{
+  vi.useFakeTimers();
+  try{
+   const pending=deferred();mocks.request.mockResolvedValueOnce({...article(),commentCount:2}).mockReturnValueOnce(pending.promise);
+   await mountWithDelayedBridge();await vi.advanceTimersByTimeAsync(20);
+   expect(calls().filter(input=>input.path.startsWith(base+"?"))).toHaveLength(1);
+   page.onHide();const before=patches.length;
+   if(outcome==="success")pending.resolve(commentPage());else pending.reject({status:503});
+   await vi.advanceTimersByTimeAsync(0);
+   expect(patches.slice(before)).toEqual([]);expect(page.data.commentsLoading).toBe(false);expect(page.data.threads).toEqual([]);
+  }finally{vi.useRealTimers();}
+ });
  it("loads public comments independently without replacing real article reactions or its body",async()=>{
   mocks.token="";await mount();expect(page.data).toMatchObject({commentCount:1,commentsEnabled:true,commentsLoading:false,commentsError:"",commentAuthenticated:false});
   expect(page.data.threads[0]).toMatchObject({id:rootId,body:"已审核的评论",likeCount:3});
