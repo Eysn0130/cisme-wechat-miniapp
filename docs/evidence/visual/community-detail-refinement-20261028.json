@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
-  "branch": "codex/formal-release-flow-audit",
+  "branch": "main",
   "baselineHead": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
-  "recordedAtUtc": "2026-10-28T18:11:44.507124+00:00",
+  "recordedAtUtc": "2026-10-28T19:05:56.357538+00:00",
   "scope": "Formal-release preparation for40native routes and all currently available business journeys, including mobile-reference community detail and real editorial comments.",
   "prdAcceptanceIds": [
     "ED-MEDIA-01",
@@ -92,12 +92,12 @@
       "sourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a"
     },
     "apiMainCI": {
-      "head": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
-      "runId": 40721846769,
+      "head": "f8dbc55df6c002289005c65969ef68966d206968",
+      "runId": 40744875172,
       "event": "push",
       "conclusion": "success"
     },
-    "currentNative": "07b final-source native verification in progress;5352 remains independent historical review only. New private activity API application update pending.",
+    "currentNative": "Fresh07b simulator evidence:40 entry attempts/88frames (38requested pages reached,2permission redirects) and20articles/68frames independently reviewed. Scoped gallery, video, large-font and guest/login-return observations are recorded below; complete business state matrices and physical-device acceptance remain unverified.",
     "historical2cfbFullUnit": {
       "passed": 2027,
       "conditionalSkipped": 1,
@@ -134,19 +134,19 @@
       "finding": "Missing submission target return CTA misleading; root then audited and corrected8 history-first error page labels. P3 layout observations retained."
     }
   },
-  "result": "Current-source personal editorial history repaired in code; native verification and isolated trial API update pending.",
+  "result": "Current07b visible-state and scoped interaction evidence reviewed; f8 trial API application update active at schema99. Formal release acceptance remains blocked by incomplete route/business matrices and physical-device coverage.",
   "release": {
     "versionCandidate": "0.1.9",
-    "status": "Trial API da7 active at schema99. Client0.1.9 not uploaded.",
+    "status": "Trial API f8dbc55 active at schema99 after application-only update. Client0.1.9 not uploaded.",
     "api": "https://staging-api.cisme.cn",
     "server": "124.223.74.198",
     "formalReviewOrPublicPublish": false,
-    "dataMigration": "Actual98to99 apply succeeded with authenticated same-host database snapshot;existing20 preserved;production unchanged;not full recovery qualification."
+    "dataMigration": "Historical98to99 apply retained existing20 articles with authenticated same-host database snapshot. Current f8 update is99to99 application-only: no schema change or database restore, comments database and existing20 preserved, production unchanged. Neither operation establishes full recovery qualification."
   },
   "remaining": [
-    "Current-source native40route and20article verification, real WeChat safety/moderation and available journeys.",
-    "Unavailable business positive states must remain unverified.",
-    "Physical-device pinch zoom, keyboard and video fullscreen exit not passed."
+    "Complete route state matrices and available positive care-cycle, order/payment and additional management-permission journeys; unavailable qualifications or permissions remain unverified.",
+    "Complete any unobserved comment/reply/report/block/moderation and failure-recovery journeys; scoped observed actions do not establish all write states.",
+    "Authorized physical-device pinch zoom, keyboard and video fullscreen/exit remain unverified."
   ],
   "historicalEvidence": "community-detail-refinement-fc7468b570f7.json retains old0.1.8 acceptance scope without promoting it.",
   "legal": {
@@ -165,5 +165,91 @@
     "currentTargetedChecks": "19copy corrections257tests;10new workflow regressions;type/package pass",
     "currentFullUnit": "1997passed,1existingconditional skip,0fail after current-hash pointer update;149+2 test files",
     "scope": "Historical narrative only; earlier counts and screenshots are not current75723 acceptance."
+  },
+  "observedEvidence": {
+    "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
+    "acceptanceRecord": "docs/evidence/visual/current-source-acceptance.json",
+    "routeEntrySweep": {
+      "entryAttempts": 40,
+      "frames": 88,
+      "requestedPagesReached": 38,
+      "permissionRedirects": 2,
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-A/review-first12.json",
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-A/review-middle12.json",
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-A/review-last8.json",
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-conditional-A/review-all8.json"
+      ]
+    },
+    "articleReadSweep": {
+      "articles": 20,
+      "frames": 68,
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native-07b24e1d-A/review-first10.json",
+        "tmp/community-refinement-20261028/root-review/native-07b24e1d-A/review-last10.json"
+      ]
+    },
+    "galleryInteractions": {
+      "performedBy": "root",
+      "method": "Actual CUA gestures in the official simulator",
+      "groups": 4,
+      "imageStates": 14,
+      "nativePreviewAndArticleReturn": "Observed native preview6/6 and article return retained6/6 after fresh GET.",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/manifest-manual-final.json",
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/review-current.json",
+        "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/review-remaining-current.json"
+      ],
+      "failedSDKCoordinateAttempt": {
+        "manifestFile": "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-A/manifest-gallery.json",
+        "status": "failed",
+        "countedAsPassed": false
+      },
+      "physicalPinchAndFramePacingMeasured": false
+    },
+    "videoInteractions": {
+      "performedBy": "root",
+      "videosPlayedAndPaused": 4,
+      "representativeShareCancelResume": "One video paused at16s, opened share, cancelled without sending, returned through fresh GET and resumed by manual Play.",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-video-07b24e1d-A/manifest-manual-final.json",
+      "scope": "Root-observed simulator playback/pause and one share-cancel/resume path; no full-duration, audio or fullscreen-exit acceptance."
+    },
+    "compactLargeFont": {
+      "performedBy": "root",
+      "simulatorWidth": 375,
+      "fontSizeSetting": 26,
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-375-font26-07b24-A/manifest-manual-final.json",
+      "scope": "Article top, comments, footer and empty composer observed without clipping/overlap in this configuration; empty Send disabled. Physical keyboard and all-device font coverage are not established."
+    },
+    "guestAndLoginReturn": {
+      "performedBy": "root",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-guest-07b24-A/manifest-manual-final.json",
+      "scope": "Guest Home remained visible; public article opened; comment intent reached Account and cancelling returned to the same article. After human-confirmed current-v4 consent and real login, the same article returned without automatically sending the original comment."
+    },
+    "apiActiveEvidenceFiles": [
+      "tmp/community-refinement-20261028/schema99-application-update/f8dbc55df6c0-actual/active-actual.stdout.json",
+      "tmp/community-refinement-20261028/schema99-application-update/f8dbc55df6c0-actual/apply-actual.stdout.json"
+    ],
+    "limits": "Observations are tied to07b and the cited current evidence. Root action reports and independent still-image review are distinct scopes; no old screenshot inheritance, complete route/business acceptance or physical-device pass is claimed.",
+    "rootDeliverySummaryFile": "tmp/community-refinement-20261028/root-review/final-delivery-current.json",
+    "additionalIndependentVisualReviewFile": "tmp/community-refinement-20261028/root-review/final-additional-visual-review.json",
+    "personalActivity": {
+      "performedBy": "root",
+      "realCommentRows": 4,
+      "pendingCommentRows": 1,
+      "sourceSwitch": "精选 → 投稿 empty state with5 tabs → 精选",
+      "savedItemJourney": "Save0→1 → personal history1 → open the correct editorial article → Back preserves source and tab → native-confirmed own-save removal → empty history/public saveCount0.",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-07b24-personal-activity/manifest-manual-final.json",
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/review-remaining-current.json"
+      ],
+      "scope": "Root observed the actual new-API journey. Independent review covers four corroborating stills; comment-history first viewport only, not all row controls or pagination. No deletion, report/block or all-role management pass is inferred."
+    },
+    "commentLikeInteraction": {
+      "performedBy": "root",
+      "observedSequence": "One real comment like0→1→0, restored.",
+      "rootReportFile": "tmp/community-refinement-20261028/root-review/final-delivery-current.json",
+      "scope": "Representative comment-like interaction only; no full comment/moderation or permission matrix is claimed."
+    }
   }
 }
