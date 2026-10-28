@@ -31,7 +31,8 @@ export interface EditorialCard {
   coverUrl:string|null;publishedAt:string;likeCount:number;saveCount:number;
 }
 export interface EditorialDetail extends EditorialCard {
-  version:number;body:string;media:Array<{id:string;url:string;type?:'video';mimeType?:'video/mp4';posterUrl?:string;width?:number;height?:number;durationMs?:number}>;liked:boolean;saved:boolean;
+  version:number;body:string;media:Array<{id:string;url:string;aiUsage:'generated'|'not_declared';type?:'video';mimeType?:'video/mp4';posterUrl?:string;width?:number;height?:number;durationMs?:number}>;liked:boolean;saved:boolean;
+  commentsEnabled:boolean;commentsPolicyVersion:number;commentCount:number;canModerate:boolean;
   following:boolean;isMine:boolean;interactionsEnabled:true;sourceUrl:string|null;provenanceLabel:string;
 }
 export interface EditorialPage { items:EditorialCard[];nextCursor:string|null }

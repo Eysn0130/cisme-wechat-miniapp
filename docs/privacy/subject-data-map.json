@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "f8d5fd24d57efc0d9449ff15fdbfd7c23628c65597c685f8df08a521c40b72ab",
+  "migrationSetSha256": "769ec6661a9e282c3b17da8d60bb491da4c964b0755e86e007a8259bb153103d",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -3961,6 +3961,164 @@
       "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
+      "table": "editorial_comment",
+      "subjectPaths": [
+        [
+          "editorial_comment.author_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
+      "specialHandling": "Only author-owned comments enter portable copies. Pending/rejected/hidden comments remain private. Delete stops disclosure immediately; non-held text is cleared. No fake UGC post relationship.",
+      "exportFields": [
+        "id",
+        "article_id",
+        "parent_id",
+        "reply_to_id",
+        "body",
+        "state",
+        "version",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "author_member_id",
+        "operation_id",
+        "request_sha256",
+        "deleted_at"
+      ]
+    },
+    {
+      "table": "editorial_comment_like",
+      "subjectPaths": [
+        [
+          "editorial_comment_like.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
+      "specialHandling": "Export only the subject's own comment likes; public counts never reveal liker identities.",
+      "exportFields": [
+        "comment_id",
+        "created_at"
+      ],
+      "excludedFields": [
+        "member_id"
+      ]
+    },
+    {
+      "table": "editorial_comment_policy",
+      "subjectPaths": [
+        [
+          "editorial_comment_policy.article_id -> editorial_article.id",
+          "editorial_article.author_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
+      "specialHandling": "Article-level public configuration; an editorial owner cannot administer someone else's article. Not an author identity proof.",
+      "exportFields": [],
+      "excludedFields": [
+        "article_id",
+        "enabled",
+        "version",
+        "updated_at"
+      ]
+    },
+    {
+      "table": "editorial_comment_report",
+      "subjectPaths": [
+        [
+          "editorial_comment_report.reporter_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
+      "specialHandling": "Export reporter-owned reports only. Never disclose reporter identity or complaint text to the reported author.",
+      "exportFields": [
+        "id",
+        "comment_id",
+        "category",
+        "description",
+        "state",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "reporter_member_id"
+      ]
+    },
+    {
+      "table": "editorial_comment_safety_scan",
+      "subjectPaths": [
+        [
+          "editorial_comment_safety_scan.comment_id -> editorial_comment.id",
+          "editorial_comment.author_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
+      "specialHandling": "Immutable minimal provider verdict and body digest, not raw comment text, provider detail or OpenID. Operational security proof is excluded from direct member exports.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "comment_id",
+        "body_sha256",
+        "provider",
+        "state",
+        "result",
+        "created_at"
+      ]
+    },
+    {
+      "table": "editorial_comment_scan_claim",
+      "subjectPaths": [
+        [
+          "editorial_comment_scan_claim.comment_id -> editorial_comment.id",
+          "editorial_comment.author_member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
+      "specialHandling": "Private fenced worker lease and bounded retry state; no public identity or export authority.",
+      "exportFields": [],
+      "excludedFields": [
+        "comment_id",
+        "body_sha256",
+        "state",
+        "lease_token",
+        "lease_until",
+        "next_attempt_at",
+        "attempt_count",
+        "last_error",
+        "updated_at"
+      ]
+    },
+    {
       "table": "eligibility_campaign",
       "subjectPaths": [],
       "actorColumns": [
@@ -7140,5 +7298,11 @@
     "tableCount": 2,
     "genericProductionErasureExpanded": false,
     "scope": "Fixed owner export and specific closure projection; not a global personal-data deletion permission. Rights evidence is private and excluded from raw author export."
+  },
+  "editorialCommentsReview20261028": {
+    "source": "services/api/src/editorialComments.ts; ugcSafety.ts; privacyPortableQueries.ts; accountClosure.ts",
+    "tableCount": 6,
+    "genericProductionErasureExpanded": false,
+    "scope": "Independent authorized editorial comments; fixed owner export and specific self-deletion/account-closure suppression. Ordinary public UGC remains gated. Safety records exclude text, OpenID and raw provider details."
   }
 }

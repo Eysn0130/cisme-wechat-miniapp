@@ -1,6 +1,7 @@
 import { defaultMemberAvatar, localMemberAvatar } from "./member-avatar";
 export interface CommunityComment {
-  authorId?:string; avatar?:string; id: string; body: string; status: "pending" | "published" | "rejected" | "deleted"; parentId: string | null;
+  authorId?:string; avatar?:string; id: string; body: string; status: "pending" | "published" | "rejected" | "hidden" | "deleted"; parentId: string | null;
+  version?:number;replyRootId?:string;
   replyToId: string | null; replyToName: string | null; authorName: string; isMine: boolean; createdAt: string; likeCount: number; liked: boolean;
 }
 export interface CommunityView {
@@ -8,7 +9,7 @@ export interface CommunityView {
   preview: boolean; liked: boolean; saved: boolean; likeCount: number; saveCount: number; commentCount: number; aggregateVersion: number; truncated: boolean; comments: CommunityComment[];
 }
 export const emptyCommunity: CommunityView = { preview: true, liked: false, saved: false, likeCount: 0, saveCount: 0, commentCount: 0, aggregateVersion: 0, truncated: false, comments: [] };
-const decorate = (comment: CommunityComment) => ({ ...comment, dateLabel: new Date(comment.createdAt).toLocaleDateString(), statusLabel: comment.status === "pending" ? "审核中 · 仅本人可见" : comment.status === "rejected" ? "审核未通过 · 仅本人可见" : "" });
+const decorate = (comment: CommunityComment) => ({ ...comment, dateLabel: new Date(comment.createdAt).toLocaleDateString(), statusLabel: comment.status === "pending" ? "审核中 · 仅本人可见" : comment.status === "rejected" ? "审核未通过 · 仅本人可见" : comment.status === "hidden" ? "已隐藏 · 仅本人可见" : "" });
 export function commentThreads(comments: CommunityComment[], expanded: string[]) {
   const ids = new Set(comments.map(comment => comment.id));
   return comments.filter(comment => !comment.parentId || !ids.has(comment.parentId)).map(root => {

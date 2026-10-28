@@ -38,9 +38,10 @@ export interface PublishedEditorialCard {
 export interface PublishedEditorialArticle extends PublishedEditorialCard {
   version:number; body:string; media:PublishedEditorialMedia[]; liked:boolean; saved:boolean;
   following:boolean; isMine:boolean; interactionsEnabled:boolean; sourceUrl:string|null; provenanceLabel:string;
+  commentsEnabled?:boolean; commentCount?:number; canModerate?:boolean; commentsPolicyVersion?:number;
 }
-export type PublishedEditorialMedia = {id:string;url:string;type?:"image"} | {
-  id:string;url:string;type:"video";mimeType:"video/mp4";width:number;height:number;durationMs:number;posterUrl:string;
+export type PublishedEditorialMedia = {id:string;url:string;type?:"image";aiUsage?:"generated"|"not_declared"} | {
+  id:string;url:string;type:"video";mimeType:"video/mp4";width:number;height:number;durationMs:number;posterUrl:string;aiUsage?:"generated"|"not_declared";
 };
 export interface EditorialVideo { src:string;poster:string;height:number;durationSeconds:number }
 /** Images and videos share the publication-controlled media route. A video
@@ -59,6 +60,11 @@ export interface PublishedEditorialPage { items:PublishedEditorialCard[]; nextCu
 export interface EditorialAuthor { id:string; name:string; avatar:string; postCount:number; following:boolean; isMine:boolean }
 export interface EditorialAuthorPage extends PublishedEditorialPage { author:EditorialAuthor }
 export interface EditorialReaction { kind:"like"|"save"; active:boolean; count:number; liked:boolean; saved:boolean; likeCount:number; saveCount:number }
+export function editorialAiLabel(article:Pick<PublishedEditorialArticle,"media"|"provenanceLabel">,index=0):string {
+  const usage=article.media[index]?.aiUsage;
+  if(usage!==undefined)return usage==="generated"?"AI生成":"";
+  return ["AI辅助配图","AI辅助视频"].includes(article.provenanceLabel)?"AI生成":"";
+}
 /** A current read may recover to a guest retry only after its own expired
  * session was cleared. A different signed-in actor is never that transition. */
 export function expiredEditorialRead(error:unknown,token:string):boolean {
@@ -66,7 +72,7 @@ export function expiredEditorialRead(error:unknown,token:string):boolean {
   return Boolean(token)&&getApp<IAppOption>().globalData.sessionToken===""&&
     (problem?.status===401||problem?.code==="REQUEST_SESSION_CHANGED");
 }
-export const editorialIdentifier = (id:string):boolean => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+export const editorialIdentifier = (id:string):boolean => typeof id==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 function identifier(id:string):string { if(!editorialIdentifier(id))throw new Error("EDITORIAL_ID_INVALID");return encodeURIComponent(id); }
 /** Only the licensed public-media route may become a media URL. Object keys
  * and external URLs are never treated as an authorized publication. */

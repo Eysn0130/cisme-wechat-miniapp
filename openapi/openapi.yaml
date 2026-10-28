@@ -1813,6 +1813,81 @@ paths:
         '409': {description: State, version or idempotency conflict}
         '422': {description: Invalid bounded input}
         '503': {description: Return destination or money authorization unavailable}
+  /v1/editorial/articles/{id}/comments:
+    parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+    get:
+      operationId: readEditorialComments
+      security: [{}, {session: []}]
+      description: Published article comments with viewer-specific blocks and root visibility. Pending, rejected and hidden comments are visible only to their author. Cursor is bound to article and viewer; this is independent of ordinary public UGC and legacy preview gates.
+      parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50}}, {name: cursor, in: query, schema: {type: string, maxLength: 600}}]
+      responses: {'200': {description: Actual comment page and public count, content policy and effective moderation permission, content: {application/json: {schema: {$ref: '#/components/schemas/EditorialCommentsPage'}}}}, '404': {description: Article unavailable}, '422': {description: Invalid viewer or article cursor}}
+    post:
+      operationId: createEditorialComment
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      description: Canonical active WeChat member with current legal consent. Creates a private pending comment; real WeChat content checks and authorized review precede publication. Same key and normalized content replay the original fact, including deletion, without recreating it. Root is derived from a visible reply target.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [body], properties: {body: {type: string, minLength: 2, maxLength: 180, description: Unicode code points}, replyToId: {type: string, format: uuid}}}}}}
+      responses: {'200': {description: id, actual status, version and replayed}, '401': {description: Real WeChat identity required}, '409': {description: Consent, policy, reply or idempotency conflict}, '422': {description: Invalid body}, '429': {description: Rate limit}}
+  /v1/editorial/articles/{id}/comments/{commentId}:
+    parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/CommentId'}]
+    delete:
+      operationId: deleteOwnEditorialComment
+      security: [{session: []}]
+      description: Delete only one's own comment without forcing new consent. Clears unnecessary body and like facts subject to an actual hold; a deleted root removes its replies from public reads and counts. Never deletes the article.
+      responses: {'200': {description: Deleted id and status}, '401': {description: Canonical identity required}, '404': {description: No owner-scoped target}}
+  /v1/editorial/articles/{id}/comments/{commentId}/like:
+    parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/CommentId'}]
+    put:
+      operationId: setEditorialCommentLike
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [active], properties: {active: {type: boolean}}}}}}
+      responses: {'200': {description: id, actual liked state and likeCount}, '404': {description: Comment or root unavailable}, '409': {description: Consent or comments policy changed}}
+  /v1/editorial/articles/{id}/comments/{commentId}/report:
+    parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/CommentId'}]
+    post:
+      operationId: reportEditorialComment
+      security: [{session: []}]
+      description: Owner-bound report on a visible comment; no new agreement is required to report. A public reason is not invented from a report.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [category], properties: {category: {type: string, enum: [spam, abuse, privacy, misinformation, rights, other]}, description: {type: string, maxLength: 500}}}}}}
+      responses: {'200': {description: Report id and actual open or resolved status}, '404': {description: Comment unavailable}, '422': {description: Invalid category or description}}
+  /v1/editorial/blocks:
+    get:
+      operationId: listOwnEditorialBlocks
+      security: [{session: []}]
+      parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50}}, {name: cursor, in: query, schema: {type: string, maxLength: 600}}]
+      description: Persisted owner-scoped block list with approved public author projection. Inactive targets use a generic label and remain removable. Cursor cannot be transferred to another member.
+      responses: {'200': {description: items with authorId/name/avatar/avatarRevision, loadedCount, hasMore and nextCursor}, '401': {description: Canonical identity required}, '422': {description: Invalid owner cursor}}
+  /v1/editorial/blocks/{memberId}:
+    parameters: [{$ref: '#/components/parameters/MemberId'}]
+    put:
+      operationId: setOwnEditorialBlock
+      security: [{session: []}]
+      description: Reversible member block relation; does not open ordinary UGC. Unblocking a stored inactive target remains possible without new consent.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [active], properties: {active: {type: boolean}}}}}}
+      responses: {'200': {description: authorId and actual blocked state}, '401': {description: Canonical identity required}, '422': {description: Invalid or self target}}
+  /v1/management/editorial/comments:
+    get:
+      operationId: editorialCommentReviewQueue
+      security: [{session: []}]
+      description: Effective community.moderate permission, or editorial.manage limited to one's own articles. Real safety state, report count and CAS version accompany each item. No authority is derived from a nickname or client isMine.
+      parameters: [{name: state, in: query, schema: {type: string, enum: [pending, published, rejected, hidden, reported]}}, {name: articleId, in: query, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50}}, {name: cursor, in: query, schema: {type: string, maxLength: 600}}]
+      responses: {'200': {description: Review items, approved public authors and bounded cursor page}, '403': {description: No effective moderation capability}, '422': {description: Invalid state or scope cursor}}
+  /v1/management/editorial/comments/{commentId}/review:
+    parameters: [{$ref: '#/components/parameters/CommentId'}]
+    post:
+      operationId: reviewEditorialComment
+      security: [{session: []}]
+      description: Authorized explicit review with current version and reason; approve requires a trusted safe WeChat result bound to the current body hash. Audit contains minimal facts, not a copy of the comment body. Hidden roots hide public replies and counts.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason, expectedVersion], properties: {decision: {type: string, enum: [approve, reject, hide]}, reason: {type: string, minLength: 4, maxLength: 500}, expectedVersion: {type: integer, minimum: 1}}}}}}
+      responses: {'200': {description: id, actual status and new version}, '403': {description: Permission revoked or target outside authority}, '409': {description: Stale version or missing current safe fact}, '422': {description: Invalid review decision or reason}}
+  /v1/management/editorial/articles/{id}/comments-policy:
+    parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+    put:
+      operationId: setEditorialCommentsPolicy
+      security: [{session: []}]
+      description: Authorized CAS update for this article only. Closing new comments and comment likes preserves reads and owner deletion. Uses commentsPolicyVersion separately from the article content version.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, expectedVersion], properties: {enabled: {type: boolean}, expectedVersion: {type: integer, minimum: 0}}}}}}
+      responses: {'200': {description: commentsEnabled and commentsPolicyVersion}, '403': {description: No effective permission}, '409': {description: Stale policy version}}
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
@@ -1920,3 +1995,37 @@ components:
     ShareInput: {type: object, required: [targetType, targetRef], properties: {targetType: {type: string, enum: [post, product, invite]}, targetRef: {type: string, minLength: 1, maxLength: 200}}}
     ShareVisitInput: {type: object, required: [visitKey], properties: {visitKey: {type: string, minLength: 16, maxLength: 100}}}
     Problem: {type: object, required: [type, title, status, code, trace_id], properties: {type: {type: string, format: uri}, title: {type: string}, status: {type: integer}, code: {type: string}, trace_id: {type: string}}}
+    EditorialComment:
+      type: object
+      required: [id, version, body, status, parentId, replyRootId, replyToId, createdAt, authorId, authorName, replyToName, isMine, likeCount, liked]
+      properties:
+        id: {type: string, format: uuid}
+        version: {type: integer, minimum: 1}
+        body: {type: string}
+        status: {type: string, enum: [pending, published, rejected, hidden]}
+        parentId: {type: [string, 'null'], format: uuid}
+        replyRootId: {type: string, format: uuid}
+        replyToId: {type: [string, 'null'], format: uuid}
+        createdAt: {type: string, format: date-time}
+        authorId: {type: string, format: uuid}
+        authorName: {type: string}
+        replyToName: {type: [string, 'null']}
+        isMine: {type: boolean}
+        likeCount: {type: integer, minimum: 0}
+        liked: {type: boolean}
+    EditorialCommentsPage:
+      type: object
+      required: [comments, authors, commentCount, commentsEnabled, commentsPolicyVersion, canModerate, loadedCount, hasMore, nextCursor, truncated, preview, asOf]
+      properties:
+        comments: {type: array, items: {$ref: '#/components/schemas/EditorialComment'}}
+        authors: {type: object, description: Existing approved public member name/avatar/avatarRevision projection}
+        commentCount: {type: integer, minimum: 0, description: Viewer-visible published comments only}
+        commentsEnabled: {type: boolean}
+        commentsPolicyVersion: {type: integer, minimum: 0}
+        canModerate: {type: boolean}
+        loadedCount: {type: integer, minimum: 0}
+        hasMore: {type: boolean}
+        nextCursor: {type: [string, 'null']}
+        truncated: {type: boolean}
+        preview: {const: false}
+        asOf: {type: string, format: date-time}

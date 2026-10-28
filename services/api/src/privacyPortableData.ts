@@ -145,7 +145,13 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       reactions:(await client.query(`SELECT post_id,kind,created_at FROM community_reaction
         WHERE member_id=$1 AND post_id LIKE 'editorial:%' ORDER BY created_at,post_id,kind`,[memberId])).rows,
       follows:(await client.query(`SELECT author_id,created_at FROM community_follow
-        WHERE member_id=$1 ORDER BY created_at,author_id`,[memberId])).rows},
+        WHERE member_id=$1 ORDER BY created_at,author_id`,[memberId])).rows,
+      comments:(await client.query(`SELECT id,article_id,parent_id,reply_to_id,body,state,version,created_at,updated_at
+        FROM editorial_comment WHERE author_member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      commentLikes:(await client.query(`SELECT comment_id,created_at FROM editorial_comment_like
+        WHERE member_id=$1 ORDER BY created_at,comment_id`,[memberId])).rows,
+      commentReports:(await client.query(`SELECT id,comment_id,category,description,state,created_at,updated_at
+        FROM editorial_comment_report WHERE reporter_member_id=$1 ORDER BY created_at,id`,[memberId])).rows},
     membership:{state:(await client.query(`SELECT state,effective_at,expires_at,updated_at
         FROM commercial_membership WHERE member_id=$1`,[memberId])).rows[0]??null,
       referralCode:(await client.query(`SELECT code,state,created_at,disabled_at

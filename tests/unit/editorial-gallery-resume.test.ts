@@ -9,21 +9,21 @@ const article=()=>({id,version:3,authorId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 const delayed=()=>{let resolve!:(v:any)=>void,reject!:(v:any)=>void;const promise=new Promise<any>((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
 let page:any,wxMock:any;
 async function mount(){await import('../../apps/miniprogram/pages/post/index');page.onLoad({id,source:'editorial'});await page.load();return page;}
-function chooseSecond(){page.onMediaChange({detail:{current:1}});page.mediaLoaded({currentTarget:{dataset:{index:0}},detail:{width:750,height:900}});expect(page.data.mediaIndex).toBe(1);expect(page.data.galleryHeight).toBe(900);}
+function chooseSecond(){page.onMediaChange({detail:{current:1},currentTarget:{dataset:{imageIdentity:page.data.imageEventId}}});page.mediaLoaded({currentTarget:{dataset:{index:0,src:page.data.media[0],imageIdentity:page.data.imageEventId}},detail:{width:750,height:900}});expect(page.data.mediaIndex).toBe(1);expect(page.data.galleryHeight).toBe(1000);}
 async function resume(){page.onHide();page.onShow();await vi.waitFor(()=>expect(page.data.loading).toBe(false));}
 beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='synthetic-member-a';m.request.mockResolvedValue(article());
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token,apiBaseUrl:'https://synthetic.invalid'}});
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(values:any){Object.assign(this.data,structuredClone(values));}};};
- wxMock={hideShareMenu:vi.fn(),showShareMenu:vi.fn(),showToast:vi.fn(),previewImage:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),
+ wxMock={getWindowInfo:vi.fn(()=>({windowWidth:390})),getAppBaseInfo:vi.fn(()=>({fontSizeSetting:16})),getImageInfo:vi.fn((options:any)=>options.success({width:1080,height:1440,orientation:'up'})),hideShareMenu:vi.fn(),showShareMenu:vi.fn(),showToast:vi.fn(),previewImage:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),
   createVideoContext:vi.fn(()=>({pause:m.pause,exitFullScreen:m.exit,stop:m.stop}))};(globalThis as any).wx=wxMock;
 });
 
 describe('candidate: native image-preview return retains only a newly revalidated matching gallery',()=>{
- it('reproduces second-image preview/close/onShow and restores 2/2 plus height after the fresh GET',async()=>{
-  await mount();chooseSecond();const selected=page.data.media[1];await page.previewMedia({currentTarget:{dataset:{src:selected}}});
+ it('reproduces second-image preview/close/onShow and restores 2/2 in the verified first-image canvas',async()=>{
+  await mount();chooseSecond();const selected=page.data.media[1];await page.previewMedia({currentTarget:{dataset:{src:selected,index:1,imageIdentity:page.data.imageEventId}}});
   expect(wxMock.previewImage).toHaveBeenCalledWith(expect.objectContaining({current:selected,urls:page.data.media}));
   await resume();expect(m.request).toHaveBeenCalledTimes(2);expect(m.request.mock.calls.every(([o])=>o.path===`/v1/editorial/articles/${id}`&&o.authMode==='optional')).toBe(true);
-  expect(page.data).toMatchObject({mediaIndex:1,galleryHeight:900,item:{id,version:3},loading:false,error:''});
+  expect(page.data).toMatchObject({mediaIndex:1,galleryHeight:1000,item:{id,version:3},loading:false,error:''});
  });
  it('also resumes the same validated article on ordinary hide/show without changing the route or share path',async()=>{
   await mount();chooseSecond();await resume();expect(page.data.mediaIndex).toBe(1);
@@ -50,8 +50,15 @@ describe('candidate: native image-preview return retains only a newly revalidate
  it.each([-1,2,1.5])('rejects an invalid saved index %s instead of clamping it onto an unrelated image',async(index)=>{
   await mount();chooseSecond();page.setData({mediaIndex:index});await resume();expect(page.data.mediaIndex).toBe(0);
  });
- it('keeps a valid second image but falls back to the normal height when the previous height is invalid',async()=>{
-  await mount();chooseSecond();page.setData({galleryHeight:NaN});await resume();expect(page.data).toMatchObject({mediaIndex:1,galleryHeight:1000});
+ it.each([NaN,-1,900,2000])('ignores an unverified canvas height %s and uses verified first-image geometry',async(height)=>{
+  await mount();chooseSecond();page.setData({galleryHeight:height});await resume();expect(page.data).toMatchObject({mediaIndex:1,galleryHeight:1000});
+ });
+ it('keeps the first-image canvas for later wide and tall loads without changing the selected image',async()=>{
+  await mount();chooseSecond();
+  for(const detail of [{width:1800,height:400},{width:400,height:2400}]){
+   page.mediaLoaded({currentTarget:{dataset:{index:1,src:page.data.media[1],imageIdentity:page.data.imageEventId}},detail});
+   expect(page.data).toMatchObject({mediaIndex:1,galleryHeight:1000});
+  }
  });
  it('clears selection on a failed refresh and never revives it on an explicit retry',async()=>{
   await mount();chooseSecond();m.request.mockRejectedValue(new Error('offline'));await resume();

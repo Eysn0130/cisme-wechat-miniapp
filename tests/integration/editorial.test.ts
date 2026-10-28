@@ -97,7 +97,9 @@ describe('independent owner-authorized editorial (synthetic DB only)',()=>{
   const rows=(await pool.query('SELECT * FROM privacy_export_part WHERE job_id=$1 ORDER BY part_number',[job])).rows;
   const exported=Buffer.concat(rows.map(row=>{const d=createDecipheriv('aes-256-gcm',key,row.iv);d.setAuthTag(row.auth_tag);return Buffer.concat([d.update(row.ciphertext),d.final()]);})).toString();
   expect(exported).toContain('editorial_derived');expect(exported).toContain(mediaSha);expect(exported).toContain(publication.body.replaceAll('\n','\\n'));
-  for(const spec of portableQuerySpecs.filter(s=>s.section==='editorial')){
+  // This fixture predates comments; its four existing populated collections
+  // remain exact. New owned comment collections are covered independently.
+  for(const spec of portableQuerySpecs.filter(s=>s.section==='editorial'&&!['comments','commentLikes','commentReports'].includes(s.collection))){
    const rows=(await pool.query(spec.sql,[spec.collection==='articles'||spec.collection==='publicationEvidence'?author.id:reader.id])).rows;
    expect(rows.length).toBeGreaterThan(0);
   }

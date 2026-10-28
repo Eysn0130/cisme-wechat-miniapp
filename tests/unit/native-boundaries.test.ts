@@ -214,7 +214,7 @@ describe("native mini program boundary", () => {
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
       "community-compose": ["back", "retryLoad", "startNew", "openDraft", "deleteListDraft", "loadMoreList", "submitAppeal", "retryPreview", "toggleSorting", "chooseImages", "retryImage", "retryPreview", "moveImage", "moveImage", "removeImage", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
-      "community-review": ["back", "back", "load", "back", "reviewMedia", "reviewMedia", "reviewPost", "reviewPost", "publish"],
+      "community-review": ["back", "back", "load", "back", "selectEditorialQueue", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "loadMoreEditorialQueue", "reviewMedia", "reviewMedia", "reviewPost", "reviewPost", "publish"],
       community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "openMyPosts", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "openFormalReview", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "load", "loadTasks", "openInvite", "openPost", "onReachBottom"],
       home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "retryCareMutation", "closeCareSession", "retryLoad", "retryCareMutation", "advanceCareStep", "selectAssessment", "submitCareSession"],
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
@@ -233,7 +233,7 @@ describe("native mini program boundary", () => {
       "management-support": ["back", "open", "retry"],
       "management-support-chat": ["back", "openContext", "loadOlder", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       points: ["back", "openShop", "load"],
-      post: ["likeComment", "replyComment", "deleteComment", "back", "openAuthor", "@share", "load", "toggleFollow", "copySource", "expandReplies", "load", "back", "loadSocial", "cancelReply", "toggleLike", "toggleSave", "@share", "sendComment", "toggleLike", "toggleSave", "showComments", "@share"],
+      post: ["likeComment", "replyComment", "deleteComment", "commentMore", "back", "load", "openAuthor", "toggleFollow", "openPostMore", "loadEditorialComments", "loadEditorialComments", "expandReplies", "loadMoreEditorialComments", "openCommentReview", "undoEditorialBlock", "expandReplies", "load", "backToCommunity", "loadSocial", "cancelReply", "sendComment", "closeComposer", "startComment", "toggleLike", "toggleSave", "showComments", "@share", "sendComment", "toggleLike", "toggleSave", "showComments", "@share", "closeEditorialBlocks", "loadEditorialBlocks", "unblockEditorialAuthor", "loadMoreEditorialBlocks"],
       "privacy-rights": ["back", "openSupport", "@contact", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login"],
       product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
       checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
@@ -351,7 +351,16 @@ describe("native mini program boundary", () => {
       expect(styles).toContain("min-height:50px");
     }
     expect(customTab).toContain('font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif');
-    expect(post).toMatch(/\.post-action \{[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:48px;[^}]*font-size:var\(--cisme-text-small\);[^}]*line-height:1\.5;/);
+    expect(post).toMatch(/\.post-action \{[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;/);
+    expect(post).toMatch(/\.post-bottom-action \{[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-width:44px;[^}]*min-height:44px;/);
+    expect(post).toMatch(/\.post-interaction-icon \{[^}]*width:24px;[^}]*height:24px;/);
+    expect(post).toMatch(/\.post-comment-entry \{[^}]*min-height:44px;/);
+    for(const selector of ["post-action","post-comment-entry"]){
+      const rule=post.match(new RegExp(`\\.${selector} \\{([^}]*)\\}`))?.[1];
+      const size=rule?.match(/font-size:\s*([\d.]+)(px|rem);/);
+      expect(size,`${selector} default font`).toBeDefined();
+      expect(Number(size![1])*(size![2]==="rem"?16:1)).toBe(14);
+    }
     expect(profile).toContain(".profile-row{display:flex;align-items:center");
     expect(profile).toContain(".profile-row__copy strong{color:#403545;font-size:27rpx;font-weight:500}");
     expect(points).toMatch(/\.points-shop \{[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;[^}]*font-size:var\(--cisme-text-small\);/);

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-10-26",
+  "inventoryDate": "2026-10-28",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -13,9 +13,11 @@
     "wx.enableAlertBeforeUnload",
     "wx.env",
     "wx.getAccountInfoSync",
+    "wx.getAppBaseInfo",
     "wx.getClipboardData",
     "wx.getDeviceInfo",
     "wx.getFileSystemManager",
+    "wx.getImageInfo",
     "wx.getMenuButtonBoundingClientRect",
     "wx.getPerformance",
     "wx.getStorageSync",
@@ -590,14 +592,54 @@
       "activation": "社区精选详情存在已发布视频且用户点击播放",
       "serverStorage": "播放位置仅在当前页面实例内存保存；不上传播放行为，不采集相册、麦克风或摄像头数据",
       "currentGate": "仅同源已授权精选媒体路由；无外部视频播放器或第三方统计SDK"
+    },
+    {
+      "surface": "wx.getAppBaseInfo",
+      "informationType": "微信运行基础信息中的系统字号与缩放值",
+      "purpose": "根据实际微信字号计算阅读布局和返回位置；不用于指纹或画像",
+      "activation": "读取文章布局时",
+      "serverStorage": "仅当前页面私有内存；不上传或记录基础信息",
+      "currentGate": "只选fontSizeSetting/fontSizeScaleFactor，缺值保守不恢复旧坐标"
+    },
+    {
+      "surface": "wx.getImageInfo",
+      "informationType": "已发布文章同源受控图片及其尺寸和旋转方向",
+      "purpose": "展示完整图片并固定同组画布，避免正文位置跳动",
+      "activation": "打开公开文章首图时",
+      "serverStorage": "沿用原受控公开媒体，微信管理本机图片缓存；不新增用户上传或服务器资料",
+      "currentGate": "2500ms预检有界，迟到结果忽略；未声称可取消微信底层下载"
+    },
+    {
+      "surface": "editorial_comment",
+      "informationType": "本人评论和回复、文章/回复关系、作者账号、实际状态和必要操作版本",
+      "purpose": "公开文章交流、内容检查与审核、点赞删除和准确统计",
+      "activation": "当前有效真实微信身份主动发布，具备当前协议和隐私告知",
+      "serverStorage": "独立editorial_comment及其赞/扫描/举报/开关；沿用体验库隔离和本人导出、删除/注销及实际保全规则",
+      "currentGate": "用户明确要求开放精选评论；普通投稿总开关仍关闭；未公开/退回/隐藏仅本人和授权治理人员可见"
+    },
+    {
+      "surface": "editorial_comment_safety_scan",
+      "informationType": "必要评论文本和对应小程序微信OpenID",
+      "purpose": "通过既有腾讯微信v2内容安全检查取得当前正文hash对应结果",
+      "activation": "已提交精选评论，复用受控scan claim与租约/fence",
+      "serverStorage": "原正文只存评论表，审核审计不复制正文；结果、正文hash和最小调用事实按现规则处理",
+      "currentGate": "无需公开图像scanBaseURL；仅精选文本分支，不借机开启普通UGC；实际provider验证尚待测试部署"
+    },
+    {
+      "surface": "editorial_comment_report_and_block",
+      "informationType": "举报分类及自愿说明、目标评论/账号、处理结果与本人屏蔽关系",
+      "purpose": "处理不当内容并支持本人持久查看和解除屏蔽",
+      "activation": "真实微信身份主动操作；管理员按现环境真实权限处理",
+      "serverStorage": "本人关系及受限治理记录，公开页不展示举报人或私有联系资料，沿用导出/清理规则",
+      "currentGate": "举报和解除屏蔽不强迫新同意，个人屏蔽列表required-auth，管理队列不依赖昵称或isMine"
     }
   ],
   "runtimeDataEgress": [
     {
       "recipient": "微信接口 api.weixin.qq.com",
-      "data": "登录/手机号授权 code、服务端 AppID/Secret；正式 UGC 启用后待审昵称、正文、评论、带签名的私有图片临时 URL、作者 OpenID",
-      "purpose": "code2Session、手机号解密；生产配置齐备后调用微信内容安全文字/图片检测",
-      "state": "identity_implemented_ugc_scan_config_gated"
+      "data": "既有登录/手机号授权字段；精选评论检查仅必要文本和对应OpenID；普通UGC图像/昵称扫描仍受原总开关和配置约束",
+      "purpose": "既有微信身份、能力及内容安全服务；新增用户主动发布的精选评论文本检查",
+      "state": "editorial_comment_implemented_pending_isolated_trial_live_validation"
     },
     {
       "recipient": "CISME 自有 HTTPS API",
@@ -668,7 +710,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "3d73913a9bbbe11204255b63bb4241e6ad8ca4b18a11c90bcbd2ce7f06e43ed6",
+  "migrationSetSha256": "de2d2637c59d7ad45cee40bebb70e726533951782a4a1f8f2a2e2ba4b8a050a7",
   "egressSignatureSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -978,5 +1020,17 @@
     "identity": "Existing canonical owner binding stays server-side; no nickname-based identity lookup, new account, grant, consent or phone collection.",
     "storageAndExport": "Video and poster retain accurate MIME and owner-scoped portability; no migration or collection-purpose change.",
     "nativeDeviceAcceptance": false
+  },
+  "editorialCommentsAndMobileReadingReview20261028": {
+    "date": "2026-10-28",
+    "scope": "用户明确开放精选评论与手机阅读适配；99只增6表，旧98SQL不改；新增两个微信方法不读取相册、手机号或通讯录",
+    "newRecipient": false,
+    "legalCandidate": "docs/legal/community-comments-20261028/publication-candidate.json",
+    "legalCandidateVersion": "2026-10-28-v4",
+    "legalPublished": false,
+    "consentCreated": false,
+    "realProviderVerified": false,
+    "ordinaryPublicUgcOpened": false,
+    "businessScopeSource": "PRD K.3/K.4 and explicit user instruction"
   }
 }

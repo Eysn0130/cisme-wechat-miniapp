@@ -170,6 +170,7 @@ export class UgcSafetyService{
   }
 
   async scanPendingBatch(baseUrl:string,limit=2){
+    if(!baseUrl)return this.scanEditorialPendingBatch(limit);
     const candidates=await this.pool.query(`SELECT p.id,p.author_member_id FROM ugc_post p
       JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
       WHERE ${pendingReviewRevisionSql}
@@ -185,6 +186,7 @@ export class UgcSafetyService{
           OR claim.next_attempt_at>clock_timestamp()))
       ORDER BY c.created_at,c.id LIMIT $1`,[limit]);
     for(const row of comments.rows){try{await this.scanComment(row.id);}catch{/* Comment stays private for retry. */}}
+    const editorialCount=await this.scanEditorialPendingBatch(limit);
     const nicknames=await this.pool.query(`SELECT p.member_id FROM member_profile p JOIN member m ON m.id=p.member_id
       WHERE p.community_visible AND p.public_status='pending' AND m.status='active'
         AND NOT EXISTS(SELECT 1 FROM ugc_nickname_safety_scan s WHERE s.member_id=p.member_id
@@ -192,7 +194,19 @@ export class UgcSafetyService{
             OR s.lease_until>clock_timestamp() OR s.next_attempt_at>clock_timestamp()))
       ORDER BY p.updated_at,p.member_id LIMIT $1`,[limit]);
     for(const row of nicknames.rows){try{await this.scanNickname(row.member_id);}catch{/* Keep pending public profile private. */}}
-    return (candidates.rowCount??0)+(comments.rowCount??0)+(nicknames.rowCount??0);
+    return (candidates.rowCount??0)+(comments.rowCount??0)+editorialCount+(nicknames.rowCount??0);
+  }
+
+  async scanEditorialPendingBatch(limit=2){
+    const editorialComments=await this.pool.query(`SELECT c.id FROM editorial_comment c
+      JOIN editorial_article a ON a.id=c.article_id AND a.status='published'
+      JOIN member author ON author.id=a.author_member_id AND author.status='active'
+      JOIN member commenter ON commenter.id=c.author_member_id AND commenter.status='active'
+      WHERE c.state='pending_review' AND NOT EXISTS(SELECT 1 FROM editorial_comment_scan_claim claim WHERE claim.comment_id=c.id AND
+        (claim.state IN ('completed','quarantined') OR claim.lease_until>clock_timestamp() OR claim.next_attempt_at>clock_timestamp()))
+      ORDER BY c.created_at,c.id LIMIT $1`,[limit]);
+    for(const row of editorialComments.rows){try{await this.scanEditorialComment(row.id);}catch{/* Remains private; no synthetic safe fallback. */}}
+    return editorialComments.rowCount??0;
   }
 
   async scanNickname(memberId:string){
@@ -250,12 +264,17 @@ export class UgcSafetyService{
     }
   }
 
-  async scanComment(commentId:string){
+  async scanComment(commentId:string){return this.scanTextComment(commentId,'ugc');}
+  async scanEditorialComment(commentId:string){return this.scanTextComment(commentId,'editorial');}
+  private async scanTextComment(commentId:string,kind:'ugc'|'editorial'){
+    // Table identifiers are selected only from these two compile-time constants.
+    const tables=kind==='ugc'?{comment:'ugc_comment',claim:'ugc_comment_scan_claim',scan:'ugc_comment_safety_scan'}:
+      {comment:'editorial_comment',claim:'editorial_comment_scan_claim',scan:'editorial_comment_safety_scan'};
     const id=validId(commentId);
-    const row=(await this.pool.query(`SELECT c.body,i.openid FROM ugc_comment c
+    const row=(await this.pool.query(`SELECT c.body,i.openid FROM ${tables.comment} c
       LEFT JOIN LATERAL (SELECT openid FROM wechat_identity WHERE member_id=c.author_member_id
-        AND provider='wechat_miniprogram' AND app_id=$2 ORDER BY created_at DESC LIMIT 1) i ON true
-      WHERE c.id=$1 AND c.state='pending_review'`,[id,this.config.wechat.appId??""])).rows[0];
+        AND provider='wechat_miniprogram' AND app_id=$2 ${kind==='editorial'?"AND adapter='wechat'":''} ORDER BY created_at DESC LIMIT 1) i ON true
+      WHERE c.id=$1 AND c.state='pending_review' ${kind==='editorial'?`AND EXISTS(SELECT 1 FROM member m WHERE m.id=c.author_member_id AND m.status='active') AND EXISTS(SELECT 1 FROM editorial_article a JOIN member author ON author.id=a.author_member_id AND author.status='active' WHERE a.id=c.article_id AND a.status='published')`:''}`,[id,this.config.wechat.appId??""])).rows[0];
     if(!row||!row.body)throw new DomainError("UGC_COMMENT_SCAN_CONFLICT","评论已变化",409);
     if(!row.openid)throw new DomainError("UGC_SCAN_UNAVAILABLE","评论作者需先完成微信登录",409);
     const fingerprint=digest(row.body);
@@ -263,18 +282,18 @@ export class UgcSafetyService{
     // second worker (or a retry while the first worker is alive) cannot send
     // the same body concurrently. Failures remain private and retry with a
     // bounded budget; they never become a publishable scan fact.
-    const claim=(await this.pool.query<{lease_token:string}>(`INSERT INTO ugc_comment_scan_claim
+    const claim=(await this.pool.query<{lease_token:string}>(`INSERT INTO ${tables.claim}
       (comment_id,body_sha256) VALUES($1,$2)
       ON CONFLICT(comment_id) DO UPDATE SET
         body_sha256=EXCLUDED.body_sha256,lease_token=gen_random_uuid(),
         lease_until=clock_timestamp()+interval '30 seconds',updated_at=clock_timestamp(),
         state='pending',last_error=NULL,
-        attempt_count=CASE WHEN ugc_comment_scan_claim.body_sha256<>EXCLUDED.body_sha256 THEN 1
-          ELSE ugc_comment_scan_claim.attempt_count+1 END
-      WHERE ugc_comment_scan_claim.body_sha256<>EXCLUDED.body_sha256 OR
-        (ugc_comment_scan_claim.state='pending' AND ugc_comment_scan_claim.attempt_count<7
-          AND ugc_comment_scan_claim.lease_until<=clock_timestamp()
-          AND ugc_comment_scan_claim.next_attempt_at<=clock_timestamp())
+        attempt_count=CASE WHEN ${tables.claim}.body_sha256<>EXCLUDED.body_sha256 THEN 1
+          ELSE ${tables.claim}.attempt_count+1 END
+      WHERE ${tables.claim}.body_sha256<>EXCLUDED.body_sha256 OR
+        (${tables.claim}.state='pending' AND ${tables.claim}.attempt_count<7
+          AND ${tables.claim}.lease_until<=clock_timestamp()
+          AND ${tables.claim}.next_attempt_at<=clock_timestamp())
       RETURNING lease_token`,[id,fingerprint])).rows[0];
     if(!claim)return {id,state:"pending"};
     try{
@@ -282,30 +301,30 @@ export class UgcSafetyService{
       const state=verdict(response);
       if(state==="error")throw new DomainError("UGC_COMMENT_SCAN_UNDECIDED","评论安全检测未给出可信结论",503);
       return transaction(this.pool,async client=>{
-        const fence=(await client.query(`SELECT lease_token FROM ugc_comment_scan_claim
+        const fence=(await client.query(`SELECT lease_token FROM ${tables.claim}
           WHERE comment_id=$1 FOR UPDATE`,[id])).rows[0];
         if(fence?.lease_token!==claim.lease_token)return {id,state:"pending"};
-        const current=(await client.query(`SELECT body,state FROM ugc_comment WHERE id=$1 FOR UPDATE`,[id])).rows[0];
+        const current=(await client.query(`SELECT body,state FROM ${tables.comment} WHERE id=$1 FOR UPDATE`,[id])).rows[0];
         if(current?.state!=="pending_review"||digest(current.body??"")!==fingerprint){
-          await client.query(`UPDATE ugc_comment_scan_claim SET state='obsolete',lease_until=clock_timestamp(),
+          await client.query(`UPDATE ${tables.claim} SET state='obsolete',lease_until=clock_timestamp(),
             updated_at=clock_timestamp() WHERE comment_id=$1 AND lease_token=$2`,[id,claim.lease_token]);
           return {id,state:"obsolete"};
         }
-        await client.query(`INSERT INTO ugc_comment_safety_scan(comment_id,body_sha256,provider,state,result)
-          VALUES($1,$2,'wechat_v2',$3,$4)`,[id,fingerprint,state,response]);
-        await client.query(`UPDATE ugc_comment_scan_claim SET state='completed',lease_until=clock_timestamp(),
+        await client.query(`INSERT INTO ${tables.scan}(comment_id,body_sha256,provider,state,result)
+          VALUES($1,$2,'wechat_v2',$3,$4)`,[id,fingerprint,state,kind==='editorial'?{errcode:response.errcode,suggest:response.result?.suggest,label:response.result?.label}:response]);
+        await client.query(`UPDATE ${tables.claim} SET state='completed',lease_until=clock_timestamp(),
           updated_at=clock_timestamp() WHERE comment_id=$1 AND lease_token=$2`,[id,claim.lease_token]);
         return {id,state};
       });
     }catch(error){
       const code=error instanceof DomainError?error.code:"UGC_SCAN_UNAVAILABLE";
       await transaction(this.pool,async client=>{
-        const fence=(await client.query(`SELECT lease_token,attempt_count FROM ugc_comment_scan_claim
+        const fence=(await client.query(`SELECT lease_token,attempt_count FROM ${tables.claim}
           WHERE comment_id=$1 FOR UPDATE`,[id])).rows[0];
         if(fence?.lease_token!==claim.lease_token)return;
-        await client.query(`INSERT INTO ugc_comment_safety_scan(comment_id,body_sha256,provider,state,result)
+        await client.query(`INSERT INTO ${tables.scan}(comment_id,body_sha256,provider,state,result)
           VALUES($1,$2,'wechat_v2','error',$3)`,[id,fingerprint,{error:code}]);
-        await client.query(`UPDATE ugc_comment_scan_claim SET state=CASE WHEN attempt_count>=7
+        await client.query(`UPDATE ${tables.claim} SET state=CASE WHEN attempt_count>=7
           THEN 'quarantined' ELSE 'pending' END,lease_until=clock_timestamp(),
           next_attempt_at=clock_timestamp()+LEAST(1800,5*POWER(2,attempt_count-1)) * interval '1 second',
           last_error=$3,updated_at=clock_timestamp() WHERE comment_id=$1 AND lease_token=$2`,[id,claim.lease_token,code]);

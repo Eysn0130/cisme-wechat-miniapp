@@ -6,6 +6,7 @@ import {DomainError} from '@cisme/domain';
 import {AuthorityService} from './authority.js';
 import {readSnapshot,transaction,type DbClient} from './db.js';
 import {inspectEditorialMp4,type ObjectStorage} from './storage.js';
+import {editorialCommentSummary} from './editorialComments.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA=/^[0-9a-f]{64}$/;
@@ -150,6 +151,17 @@ export class EditorialService{
     if(documents.some(d=>!acceptance.some(a=>a.document_type===d.document_type&&a.document_version===d.version)))
       throw new DomainError('CURRENT_LEGAL_CONSENT_REQUIRED','请阅读并同意当前用户协议和隐私指引后再互动',409);
   }
+  /** The independent editorial comment surface shares the exact canonical
+   * identity, legal and article visibility contract with editorial reactions. */
+  async commentActor(client:DbClient,memberId:string|undefined,principalId:string|undefined,requireLegal=true){
+    const owner=await this.actor(client,memberId,principalId);
+    if(requireLegal)await this.requireCurrentLegal(client,owner);
+    return owner;
+  }
+  async commentArticle(client:DbClient,id:string,lock=false){
+    const article=await this.article(client,id,lock);
+    return {id:article.id,authorMemberId:article.author_member_id};
+  }
   async acceptCurrentLegal(memberId:string|undefined,principalId:string|undefined,input:{consents?:unknown}){
     const consents=input.consents;
     if(!Array.isArray(consents)||consents.length!==2||new Set(consents.map(c=>c?.documentType)).size!==2||
@@ -178,8 +190,9 @@ export class EditorialService{
   }
   async detail(memberId:string|undefined,id:string):Promise<EditorialDetail>{return readSnapshot(this.pool,async client=>{
     const a=await this.article(client,id);return {...card(a),version:a.version,body:a.body,
-      media:a.media.map(x=>({id:x.sha256,url:mediaUrl(a.id,x.sha256),...(videoMedia(x)?{type:'video' as const,mimeType:x.mimeType,
+      media:a.media.map(x=>({id:x.sha256,url:mediaUrl(a.id,x.sha256),aiUsage:x.aiUsage,...(videoMedia(x)?{type:'video' as const,mimeType:x.mimeType,
         posterUrl:mediaUrl(a.id,x.poster.sha256),width:x.width,height:x.height,durationMs:x.durationMs}:{})})),...await this.state(client,a,memberId),
+      ...await editorialCommentSummary(client,this.config.env,a.id,a.author_member_id,memberId),
       isMine:memberId===a.author_member_id,interactionsEnabled:true,sourceUrl:a.source_url,provenanceLabel:editorialProvenanceLabel(a.media)};
   });}
   async author(memberId:string|undefined,authorId:string,input:{limit?:unknown;cursor?:unknown}={}):Promise<EditorialAuthorPage>{

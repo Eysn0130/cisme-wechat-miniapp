@@ -44,7 +44,7 @@ function principalMax(request: FastifyRequest, rules: Rules): number {
   if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return rules.memberMax;
   if (route.startsWith("/v1/admin/") || route.startsWith("/v1/management/")) return rules.adminWriteMax;
   if (/(?:orders|payments|refund|settlement|commission|transfer)/.test(route)) return rules.moneyWriteMax;
-  if (/(?:ugc|community|submissions|media\/authorize)/.test(route)) return rules.ugcWriteMax;
+  if (/(?:ugc|community|editorial|submissions|media\/authorize)/.test(route)) return rules.ugcWriteMax;
   return rules.memberMax;
 }
 

@@ -21,7 +21,23 @@ beforeAll(async()=>{
   app=await createApp({config,pool:accesses as unknown as pg.Pool,storage:{} as ObjectStorage});await app.ready();
 });
 afterAll(async()=>{await app?.close();});
-it("retains the explicit authentication denominator",()=>{expect(routes).toHaveLength(229);});
+it("retains the explicit authentication denominator",()=>{
+  expect(routes).toHaveLength(238);
+  // Nine new protected methods accompany the independently reviewed optional
+  // GET comments read. Blocks are member-private, never an anonymous exception.
+  for(const operation of [
+    {method:"POST",path:"/v1/editorial/articles/{id}/comments"},
+    {method:"DELETE",path:"/v1/editorial/articles/{id}/comments/{commentId}"},
+    {method:"PUT",path:"/v1/editorial/articles/{id}/comments/{commentId}/like"},
+    {method:"POST",path:"/v1/editorial/articles/{id}/comments/{commentId}/report"},
+    {method:"PUT",path:"/v1/editorial/blocks/{memberId}"},
+    {method:"GET",path:"/v1/editorial/blocks"},
+    {method:"GET",path:"/v1/management/editorial/comments"},
+    {method:"POST",path:"/v1/management/editorial/comments/{commentId}/review"},
+    {method:"PUT",path:"/v1/management/editorial/articles/{id}/comments-policy"},
+  ])expect(routes).toContainEqual(operation);
+  expect(routes).not.toContainEqual({method:"GET",path:"/v1/editorial/articles/{id}/comments"});
+});
 it.each(routes)("rejects missing and invalid authentication before data access: $method $path",async({method,path})=>{
   const index=routes.findIndex(r=>r.method===method&&r.path===path);
   const url=path.replace(/\{[^}]+\}/g,"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");

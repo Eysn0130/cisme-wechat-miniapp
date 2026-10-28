@@ -370,6 +370,17 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
     updated_at=now() FROM targets t WHERE a.id=t.id AND (a.status<>'withdrawn' OR NOT t.held AND a.author_display_name<>'已注销用户')`,[marker.memberId,held])).rowCount??0;
   changed+=(await client.query(`DELETE FROM community_reaction WHERE member_id=$1 AND post_id LIKE 'editorial:%'`,[marker.memberId])).rowCount??0;
   changed+=(await client.query('DELETE FROM community_follow WHERE member_id=$1::uuid OR author_id=$1::text',[marker.memberId])).rowCount??0;
+  // Comment text follows the same account closure suppression as authored
+  // editorial. A protected dispute keeps evidence private, never readable.
+  changed+=(await client.query(`WITH targets AS (
+    SELECT c.id,($2::boolean OR EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+      WHERE h.status='active' AND h.expires_at>now() AND b.object_type='editorial_comment' AND b.object_id=c.id::text)) AS held
+    FROM editorial_comment c WHERE c.author_member_id=$1 AND c.state<>'deleted'
+  ) UPDATE editorial_comment c SET state=CASE WHEN t.held THEN 'hidden' ELSE 'deleted' END,
+    body=CASE WHEN t.held THEN c.body ELSE NULL END,deleted_at=CASE WHEN t.held THEN NULL ELSE COALESCE(c.deleted_at,now()) END,
+    version=c.version+1,updated_at=now() FROM targets t WHERE c.id=t.id`,[marker.memberId,held])).rowCount??0;
+  changed+=(await client.query('DELETE FROM editorial_comment_like WHERE member_id=$1 OR comment_id IN (SELECT id FROM editorial_comment WHERE author_member_id=$1)',[marker.memberId])).rowCount??0;
+  if(!held)changed+=(await client.query('UPDATE editorial_comment_report SET description=NULL WHERE reporter_member_id=$1 AND description IS NOT NULL',[marker.memberId])).rowCount??0;
 
   const previousMembership=(await client.query<{state:string}>(
     'SELECT state FROM commercial_membership WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];

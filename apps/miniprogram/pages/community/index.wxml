@@ -61,8 +61,8 @@
   <view wx:elif="{{tasks.length}}" class="glass community-task-list"><view class="community-task-list__head"><strong class="community-task-list__title">邀请活动</strong><small class="community-task-list__count">{{tasks.length}} 项</small></view><button wx:for="{{tasks}}" wx:key="id" class="community-task-row {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openInvite" disabled="{{navigating}}" aria-label="{{item.name || '邀请活动'}}，{{item.statusLabel}}，{{item.actionLabel}}"><view class="community-task-row__copy"><strong class="community-task-row__title">{{item.name || '护理邀请活动'}}</strong><small class="community-task-row__status">{{item.statusLabel}}</small></view><text class="community-task-row__action">{{item.actionLabel}}</text></button></view>
   <view class="feed-grid">
     <view wx:for="{{feedColumns}}" wx:for-item="column" wx:key="index" class="feed-column">
-    <button wx:for="{{column}}" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}">
-      <image wx:if="{{item.image}}" class="feed-card__image {{item.compactImage ? 'feed-card__image--compact' : ''}}" src="{{item.image}}" mode="aspectFill" lazy-load="{{true}}" />
+    <button wx:for="{{column}}" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}，作者{{item.author}}">
+      <image wx:if="{{item.image}}" class="feed-card__image" src="{{item.image}}" mode="widthFix" lazy-load="{{true}}" />
       <view class="feed-card__body"><view class="card-title feed-card__title">{{item.title}}</view><view class="feed-card__meta"><image wx:if="{{item.avatar}}" class="feed-card__avatar" src="{{item.avatar}}" mode="aspectFill" lazy-load="{{true}}"/><text class="feed-card__author">{{item.author}}</text><image class="feed-card__meta-icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text class="feed-card__engagement">{{item.engagementLabel}}</text></view></view>
     </button>
     </view>
