@@ -1,9 +1,23 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "d355dde9e1f76313bf6fbe4f85c003c5804508eadd0567cb207801fd32458eb9",
+  "packageSourceSha256": "a80ea189cebc49e9c5b354d8a56cc2eaf1b74b742e02063bfa49678c8cb1ad63",
   "finalResult": "blocked",
   "evidenceIndex": {},
-  "devtools": null,
+  "devtools": {
+    "application": "/Applications/wechatwebdevtools.app",
+    "version": "2.02.2610272",
+    "officialSkillVersion": "0.3.14",
+    "baseLibrary": "3.15.2",
+    "packageSourceSha256": "a80ea189cebc49e9c5b354d8a56cc2eaf1b74b742e02063bfa49678c8cb1ad63",
+    "compileErrors": null,
+    "consoleErrors": null,
+    "networkFailures": null,
+    "compileEvidenceFiles": [],
+    "consoleEvidenceFiles": [],
+    "networkEvidenceFiles": [],
+    "routeRuntimeHealthFiles": [],
+    "physicalDeviceValidated": false
+  },
   "routeCoverage": [
     {
       "route": "pages/account/index",
@@ -260,10 +274,11 @@
   ],
   "findings": [
     {
-      "id": "CURRENT_SOURCE_DEVICE_AND_STATE_MATRIX_REQUIRED",
+      "id": "CURRENT_SOURCE_NATIVE_COMMENT_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
-      "status": "blocked"
+      "status": "blocked",
+      "reason": "New real comments/author placement candidate awaits isolated test backend and current-source native evidence;historical images retained under their original package hashes."
     }
   ],
-  "note": "Current source d355dde9e1f76313bf6fbe4f85c003c5804508eadd0567cb207801fd32458eb9 preserves a freshly revalidated gallery selection on native image-preview return. Partial regression captures are recorded separately. Earlier 0a7b459dbc4b, 21626946046e, 2c419820288f and 567b50db6a90 screenshots retain their original source and state scope; none is promoted to this hash. Full route/state/device matrices remain unverified; this manifest remains blocked."
+  "note": "Current a80ea189 candidate adds real editorial comments and flowing author below media;45 targeted checks rerun after the sole footer label-width correction, prior7cca379 checks remain historical scope. Native first-frame screenshot exists but does not satisfy full post state matrix; no inherited screenshot/device pass. Current comments service cutover and all40route/device matrices remain pending."
 }

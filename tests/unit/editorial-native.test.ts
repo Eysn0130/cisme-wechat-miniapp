@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),token:"",share:vi.fn(),incoming:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:mocks.request,resumeAuthentication:mocks.resume,beginLegalRenewal:mocks.renew,clearAuthenticationRedirectSuppression:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:unknown)=>mocks.request(options),cancelPageReads:vi.fn()}));
+// Comment transport has its own actual-Page and real-HTTP suites. These
+// media/article tests isolate that independent read with its valid empty DTO.
+vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:{path:string})=>
+ /\/editorial\/articles\/[^/]+\/comments\?/.test(options.path)?Promise.resolve({comments:[],authors:{},commentCount:0,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:0,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-28T00:00:00Z"}):mocks.request(options),cancelPageReads:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
 vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:mocks.share,registerIncomingShare:mocks.incoming}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",secondId="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
@@ -26,8 +29,13 @@ beforeEach(()=>{
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(updates:any,callback?:()=>void){for(const [key,value]of Object.entries(updates))patch(this.data,key,value);callback?.();}};};
  (globalThis as any).wx={hideShareMenu:vi.fn(),showShareMenu:vi.fn(),showToast:vi.fn(),navigateTo:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),setClipboardData:vi.fn(),getStorageSync:vi.fn(),pageScrollTo:vi.fn()};
 });
+const imageEvent=(src=page.data.media[0],identity=page.data.imageEventId,index=0)=>({currentTarget:{dataset:{src,imageIdentity:identity,index}},detail:{width:750,height:1000}});
 
 describe("published editorial native contracts",()=>{
+ it.each([["generated","AI生成"],["not_declared",""]] as const)("uses the stored selected-media AI flag %s for its short label",async(aiUsage,label)=>{
+  const {editorialAiLabel}=await import("../../apps/miniprogram/services/editorial");
+  expect(editorialAiLabel({media:[{id:"d".repeat(64),url:mediaPath,aiUsage}],provenanceLabel:"AI辅助配图"})).toBe(label);
+ });
  it("uses optional public reads and required authenticated writes on the independent API",async()=>{
   const api=await import("../../apps/miniprogram/services/editorial");mocks.request.mockResolvedValue({items:[],nextCursor:null});
   await api.publishedEditorialArticles(undefined,"opaque cursor");await api.publishedEditorialArticle(articleId);await api.publishedEditorialAuthor(authorId);
@@ -57,6 +65,7 @@ describe("published editorial native contracts",()=>{
   mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();
   expect(mocks.request).toHaveBeenCalledOnce();expect(mocks.request).toHaveBeenCalledWith({path:`/v1/editorial/articles/${articleId}`,authMode:"optional"});
   expect(page.data).toMatchObject({loading:false,editorialSource:true,authorId,socialEnabled:true,media:["https://synthetic.invalid"+mediaPath],item:{kind:"editorial",author:"公开作者名",body:"第一段正文\n第二段正文"},social:{likeCount:0,saveCount:0,liked:false,saved:false,comments:[]}});
+  expect(page.data.item.readingSegments.map((segment:{text:string})=>segment.text).join("")).toBe(page.data.item.body);
   expect(mocks.incoming).not.toHaveBeenCalled();expect(mocks.share).not.toHaveBeenCalled();expect(page.onShareAppMessage().path).toBe(`/pages/post/index?id=${articleId}&source=editorial`);
  });
  it("returns guests to the same editorial article before like, save, or follow",async()=>{
@@ -71,6 +80,25 @@ describe("published editorial native contracts",()=>{
   pending.resolve({kind:"like",active:true,count:1,liked:true,saved:false,likeCount:1,saveCount:0});await first;
   expect(page.data.social).toMatchObject({liked:true,likeCount:1,saved:false,saveCount:0});
   mocks.request.mockRejectedValueOnce(new Error("offline"));await page.toggleSave();expect(page.data.social.saved).toBe(false);expect(page.data.social.saveCount).toBe(0);expect(page.data.socialBusy).toBe(false);expect(page.data.socialError).toContain("尚未确认");
+ });
+ it("displays server-owned reaction totals rather than synthesizing an increment",async()=>{
+  mocks.token="member-a";mocks.request.mockResolvedValueOnce({...article(),likeCount:17,saveCount:9});
+  await mount("post",{id:articleId,source:"editorial"});await page.load();
+  expect(page.data.social).toMatchObject({liked:false,saved:false,likeCount:17,saveCount:9});
+  const pending=delayed();mocks.request.mockReturnValueOnce(pending.promise);const request=page.toggleLike();
+  expect(page.data.social).toMatchObject({liked:false,likeCount:17,saveCount:9});
+  pending.resolve({kind:"like",active:true,count:25,liked:true,saved:false,likeCount:25,saveCount:9});await request;
+  expect(page.data.social).toMatchObject({liked:true,saved:false,likeCount:25,saveCount:9});
+  mocks.request.mockResolvedValueOnce({kind:"save",active:true,count:14,liked:true,saved:true,likeCount:25,saveCount:14});await page.toggleSave();
+  expect(page.data.social).toMatchObject({liked:true,saved:true,likeCount:25,saveCount:14});
+ });
+ it.each(["","member-a"])("shows public comments without creating a write or starting authentication for session %j",async(token)=>{
+  mocks.token=token;mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();
+  mocks.request.mockClear();mocks.resume.mockClear();mocks.renew.mockClear();const before=structuredClone(page.data.social);
+  await page.showComments();
+  expect((globalThis as any).wx.showToast).not.toHaveBeenCalled();
+  expect(mocks.request).not.toHaveBeenCalled();expect(mocks.resume).not.toHaveBeenCalled();expect(mocks.renew).not.toHaveBeenCalled();
+  expect((globalThis as any).wx.pageScrollTo).toHaveBeenCalledWith({selector:"#post-comments",duration:0});expect(page.data.composerFocused).toBe(false);expect(page.data.draft).toBe("");expect(page.data.social).toEqual(before);
  });
  it("does not revive an old operator's reaction or follow result after leaving",async()=>{
   mocks.token="member-a";mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();
@@ -93,9 +121,37 @@ describe("published editorial native contracts",()=>{
  });
  it("keeps a failed licensed image honest and clears the warning only on a fresh content read",async()=>{
   mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();
-  page.mediaFailed({currentTarget:{dataset:{src:"https://foreign.invalid/old.jpg"}}});expect(page.data.mediaError).toBe("");
-  page.mediaFailed({currentTarget:{dataset:{src:"https://synthetic.invalid"+mediaPath}}});expect(page.data.mediaError).toBe("图片加载失败，请重新加载。");expect(page.data.item.id).toBe(articleId);
+  page.mediaFailed(imageEvent("https://foreign.invalid/old.jpg"));expect(page.data.mediaError).toBe("");
+  page.mediaFailed(imageEvent());expect(page.data.mediaError).toBe("图片加载失败，请重新加载。");expect(page.data.item.id).toBe(articleId);
+  page.mediaLoaded(imageEvent());expect(page.data.mediaError).toBe("图片加载失败，请重新加载。");
   mocks.request.mockResolvedValueOnce(article());await page.load();expect(page.data.mediaError).toBe("");
+ });
+ it("ignores a prior image error with the same URL after a new content read",async()=>{
+  mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();const stale=imageEvent();
+  const pending=delayed();mocks.request.mockReturnValueOnce(pending.promise);const read=page.load();
+  expect(page.data.imageEventId).toBe("");page.mediaFailed(stale);expect(page.data.mediaError).toBe("");
+  pending.resolve(article());await read;expect(page.data.imageEventId).not.toBe(stale.currentTarget.dataset.imageIdentity);
+  page.mediaFailed(stale);expect(page.data.mediaError).toBe("");
+  page.mediaFailed(imageEvent());expect(page.data.mediaError).toBe("图片加载失败，请重新加载。");
+ });
+ it.each(["onHide","onUnload"])("ignores image load and error callbacks after %s",async(lifecycle)=>{
+  mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();const event=imageEvent();
+  page[lifecycle]();const before=structuredClone(page.data);page.mediaFailed(event);page.mediaLoaded(event);expect(page.data).toEqual(before);expect(page.data.mediaError).toBe("");
+ });
+ it.each(["member-b",""])("rejects an image callback after its owning member-a session becomes %j",async(token)=>{
+  mocks.token="member-a";mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();const event=imageEvent();
+  mocks.token=token;page.mediaFailed(event);expect(page.data.mediaError).toBe("");
+ });
+ it("does not apply old-publication image errors when the new version reuses the same URL",async()=>{
+  mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();const old=imageEvent();
+  mocks.request.mockResolvedValueOnce({...article(),version:2});await page.load();page.mediaFailed(old);
+  expect(page.data.item.version).toBe(2);expect(page.data.mediaError).toBe("");page.mediaFailed(imageEvent());expect(page.data.mediaError).toBe("图片加载失败，请重新加载。");
+ });
+ it("checks the current image URL in addition to its read identity after media replacement",async()=>{
+  mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();const oldSrc=page.data.media[0];
+  const hash="e".repeat(64);mocks.request.mockResolvedValueOnce({...article(),media:[{id:hash,url:`/v1/editorial/media/${articleId}/${hash}`}]});await page.load();
+  expect(page.data.media[0]).not.toBe(oldSrc);page.mediaFailed(imageEvent(oldSrc));expect(page.data.mediaError).toBe("");
+  page.mediaFailed(imageEvent());expect(page.data.mediaError).toBe("图片加载失败，请重新加载。");
  });
  it("shows published featured content while ordinary UGC and preview remain closed",async()=>{
   mocks.request.mockImplementation(({path}:any)=>{

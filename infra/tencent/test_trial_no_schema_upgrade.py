@@ -20,7 +20,9 @@ HELPER=HERE/'trial-no-schema-upgrade.py'
 
 def artifact_fixture():
     # Synthetic public fixture: no production receipt, credentials, tmp files or network.
-    migrations=sorted(path.name for path in (ROOT/'db/migrations').glob('*.sql'))
+    # This fixture describes the immutable historical schema98 baseline.
+    migrations=sorted(path.name for path in (ROOT/'db/migrations').glob('*.sql')
+                      if path.name<='202610260001_owned_editorial.sql')
     assert len(migrations)==98 and migrations[-1]=='202610260001_owned_editorial.sql'
     names=['index.js','worker.js','worker-once.js','migrate.mjs','package.json','package-lock.json']
     names+=['db/migrations/'+name for name in migrations]

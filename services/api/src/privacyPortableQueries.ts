@@ -114,6 +114,12 @@ export const portableQuerySpecs = [
         WHERE member_id=$1 AND post_id LIKE 'editorial:%' ORDER BY created_at,post_id,kind`},
   {section:'editorial',collection:'follows',single:false,sql:`SELECT author_id,created_at FROM community_follow
         WHERE member_id=$1 ORDER BY created_at,author_id`},
+  {section:'editorial',collection:'comments',single:false,sql:`SELECT id,article_id,parent_id,reply_to_id,body,state,version,created_at,updated_at
+        FROM editorial_comment WHERE author_member_id=$1 ORDER BY created_at,id`},
+  {section:'editorial',collection:'commentLikes',single:false,sql:`SELECT comment_id,created_at FROM editorial_comment_like
+        WHERE member_id=$1 ORDER BY created_at,comment_id`},
+  {section:'editorial',collection:'commentReports',single:false,sql:`SELECT id,comment_id,category,description,state,created_at,updated_at
+        FROM editorial_comment_report WHERE reporter_member_id=$1 ORDER BY created_at,id`},
   {section:'membership',collection:'state',single:true,sql:`SELECT state,effective_at,expires_at,updated_at
         FROM commercial_membership WHERE member_id=$1`},
   {section:'membership',collection:'referralCode',single:true,sql:`SELECT code,state,created_at,disabled_at

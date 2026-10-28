@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "fc7468b570f72dd2349dab2aab77ba9aafe46ef5c99196c26eb5470923ee32d0",
+  "branch": "codex/community-reading-polish",
+  "baselineHead": "bf5e0e1103b184ccbce473f0ea9b15ebadd99335",
+  "recordedAtUtc": "2026-10-28T10:55:14.754177+00:00",
+  "scope": "Native CISME editorial post details; user clarified no new view counter.",
+  "prdAcceptanceIds": [
+    "ED-TRIAL-01",
+    "ED-TRIAL-02",
+    "ED-TRIAL-03",
+    "ED-BRAND-01",
+    "ED-BRAND-02",
+    "ED-BRAND-03",
+    "ED-BRAND-06",
+    "ED-DETAIL-01",
+    "ED-DETAIL-02",
+    "ED-DETAIL-03",
+    "ED-DETAIL-04",
+    "ED-DETAIL-05"
+  ],
+  "changes": [
+    "Reference white reading surface, exact measured type/spacing/colors, one author bar, half-width media and external dots.",
+    "Seven exact original SVG geometries/state fills; five footer groups with true counts and honest closed comments.",
+    "Linear text segmentation preserves approved body; no inferred heading emphasis.",
+    "Same-version/gallery owner safeguards retained; late image errors now bound to current read identity.",
+    "Single canvas background and bounded footer numbers prevent double tint and overflow."
+  ],
+  "verified": {
+    "tests": 165,
+    "testFiles": 8,
+    "typecheck": "passed",
+    "packageGate": "passed",
+    "articles": 20,
+    "nativeReadingFrames": 56,
+    "bodyIntegrity": "20 exact approved bodies",
+    "independentVisualReview": "All56 native reading frames individually viewed across root and independent read-only agents.",
+    "nativeMeasures": "18/600/25.2 title;16/400/24 body;#333 text;#13386c topics;16px side;padding;64px header;390x195 media;24px icons;50px footer bottom with34px safe area.",
+    "actualInteractions": "Real account like/save persisted and restored0/0; self-follow absent; guest cancel/login return;4/6/2/2 gallery swipes;2/4 and6/6 previews return same index;author20 stories;source copy;native share dialog cancelled;4 videos actual play/pause;video1 leave/return/manual resume29.038925."
+  },
+  "result": "partial-native-verified; physical-device and fullscreen acceptance open",
+  "remaining": [
+    "No physical-device pass claimed.",
+    "Official IDE fullscreen attempt rejected by document permissions policy; console grep API returned empty while actual CUA displayed the renderer error; an empty grep result does not prove absence of that error.",
+    "No native 320px or large-system-font validation; 375/390/412 simulator geometry reviewed.",
+    "All published posts belong to the authorized owner; a genuine other-author follow mutation was unavailable and was not fabricated.",
+    "No real contact share sent; IDE virtual-friend dialog was opened and cancelled.",
+    "XHS video source page was not accessible; a safety restriction was recorded, not bypassed. Reference layout evidence is the accessible mobile-size website, not a native XHS App inspection.",
+    "Source/account data, closed comments and WeChat native chrome intentionally reflect actual CISME/platform facts; no false claim of every pixel/business state being identical."
+  ],
+  "release": {
+    "uploadVersionCandidate": "0.1.8",
+    "status": "uploaded developer version0.1.8;official task execution_success;experience selection not verified",
+    "formalReviewOrPublicPublish": false,
+    "api": "https://staging-api.cisme.cn",
+    "server": "124.223.74.198",
+    "dataMigration": "none; existing20 retained",
+    "receipt": "tmp/community-refinement-20261028/root-review/upload-0.1.8-result.json",
+    "uploadCompletedAtUtc": "2026-10-28T11:01:45.770770+00:00",
+    "uploadedPackageBytes": 1548061,
+    "uploadedMainPackageBytes": 591385
+  },
+  "evidence": [
+    {
+      "file": "tmp/community-refinement-20261028/root-review/full-replication-contract.json",
+      "sha256": "e16debba9c44dbb5e1f0bee6a81df19584b206f977e6804d6b270803d6de9e8a"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/content-integrity-20.json",
+      "sha256": "6698bf48e7cc1eb8edfbca4ea739c8465914bcd4bf1e06aa0033497cbbdac794"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/final-checks-fc7468b5.json",
+      "sha256": "618a68a21fe086f8ea97563d940e50e21fcbf8887328072feed654644ec31b63"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/visual-review-first3.json",
+      "sha256": "e5fbc1455b85afdcaf5e20e8686b5b4d2224936bd5f69917099a2cb8f3263a24"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/visual-review-15-20.json",
+      "sha256": "63814cb0fe707926e5f5cde14c73b98da8522db22499a037c39db893153347c7"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/native-fc7468b5/visual-review-04-08.json",
+      "sha256": "2b5a4cfc31e9ca1081bd5eeacf57cc019f37b1676f77544b8fc2ada858328b7b"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/native-fc7468b5/visual-review-root-09-14.json",
+      "sha256": "5c2f9a4a40786a28532e9664dc0751ac63438d80fbdd006e0da6b6f477f1ef3e"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/native-fc7468b5/manifest-0.json",
+      "sha256": "a41edec4e6a42d20ffec02ddfedf656de011e9b1b301a83ca81a636f830b91c3"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/native-fc7468b5/measured-native.json",
+      "sha256": "a8c9a0e680ce0fd6b57082056f94c400c11fe25147fa5086d6f27d9653d47f85"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/native-fc7468b5/interaction-check.json",
+      "sha256": "e227963f1a6a48a66b8e382932d3795aa537eae293c482fc3e822081b4071f05"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/provenance-label-375-independent-review.json",
+      "sha256": "10a894d9aecf34fe035abdad86cf29d0ad13f59481b08dd8539d2c8680b53436"
+    },
+    {
+      "file": "tmp/community-refinement-20261028/root-review/upload-0.1.8-pending.json",
+      "sha256": "2649b2a94e3463e692c7df4c2677467508fdc6da62dc8460b59048d8ebad27ba"
+    }
+  ],
+  "latestUserSteering": "Continue meticulous button-position/detail audit after successful0.1.8 upload;review remains active."
+}

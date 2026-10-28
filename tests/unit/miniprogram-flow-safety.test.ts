@@ -352,9 +352,10 @@ describe("mini program submission flow safety", () => {
     expect(post).toContain("gallery.ownerToken===token && gallery.media.length===display.images.length");
     expect(post).not.toContain("allowPublicBrowsing");
     expect(post).toContain("this.data.loadAttempt !== attempt");
-    expect(post).toContain('this.setData({ loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoInitialTime:0,videoEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true');
+    expect(post).toContain('loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true');
     expect(post).toContain('currentEditorial(attempt:number,token:string){return this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken;}');
-    expect(post).toContain('onHide() { this.pauseVideo();this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1;');
+    expect(post.slice(post.indexOf("onHide()"),post.indexOf("onUnload()"))).toContain('this.pauseVideo();');
+    expect(post).toContain('this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1;');
     expect(tab).toContain("wx.pageScrollTo({ scrollTop: 0, duration: 0 })");
     expect(tab).toContain("reducedMotion: shouldReduceMotion()");
     expect(tabView).toContain("bar--reduced-motion");
@@ -406,9 +407,15 @@ describe("mini program submission flow safety", () => {
     expect(appStyle).toMatch(/\.page--stack\s*\{[^}]*padding-top:\s*var\(--cisme-stack-top/s);
     for (const style of [postStyle, productStyle]) {
       expect(style).not.toContain("padding:calc(env(safe-area-inset-top) + 188rpx)");
-      expect(style).toContain("padding-top:var(--cisme-stack-top");
       expect(style).toContain("var(--cisme-safe-bottom,env(safe-area-inset-bottom))");
     }
+    expect(productStyle).toContain("padding-top:var(--cisme-stack-top");
+    // The author now belongs to document flow below media, while only native
+    // navigation reserves the measured capsule row.
+    const authorStyle=postStyle.match(/\.post-authorbar\s*\{([^}]*)\}/)?.[1];
+    expect(authorStyle).toBeDefined();expect(authorStyle).not.toMatch(/position\s*:\s*fixed|top\s*:/);
+    expect(postStyle).toMatch(/\.post-page\s*\{[^}]*padding:var\(--cisme-topbar-height\)/);
+    expect(postStyle).not.toContain(".post-page--with-author");
     expect(submitStyle).toContain("var(--cisme-safe-bottom,env(safe-area-inset-bottom))");
   });
 

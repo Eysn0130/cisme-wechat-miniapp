@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "a80ea189cebc49e9c5b354d8a56cc2eaf1b74b742e02063bfa49678c8cb1ad63",
+  "branch": "codex/community-reading-polish",
+  "baselineHead": "bf5e0e1103b184ccbce473f0ea9b15ebadd99335",
+  "recordedAtUtc": "2026-10-28T14:05:14.923033+00:00",
+  "scope": "Actual XHS mobile website reference; WeChat native navigation, media preview and keyboard adaptation; real editorial comments per latest user instruction.",
+  "prdAcceptanceIds": [
+    "ED-MEDIA-01",
+    "ED-MEDIA-02",
+    "ED-MEDIA-03",
+    "ED-MEDIA-04",
+    "ED-MEDIA-05",
+    "ED-COMMENT-01",
+    "ED-COMMENT-02",
+    "ED-COMMENT-03",
+    "ED-COMMENT-04",
+    "ED-COMMENT-05"
+  ],
+  "changes": [
+    "Full-width natural image canvas; first image dimensions with bounded fallback and stable gallery.",
+    "One flowing author row below media above title. Native capsule/navigation remains separate.",
+    "Mobile reference title18/500/28 and body16/400/26; topic#133667; original SVG geometries retained.",
+    "Real editorial comment/reply/like/delete/report/block and moderation, actor/read/operation guards.",
+    "Removed generic image-disclaimer/provenance clutter; only six known generated images use short AI生成 label.",
+    "Footer comment fallback text now has sufficient bounded width."
+  ],
+  "verification": {
+    "current45TargetedChecks": "passed after footer CSS width correction",
+    "prior7ccaTargetedChecks": "379/379; separate historical package scope",
+    "fullUnit": "1987passed1conditional skip before sole CSS correction",
+    "fullIntegration": "983/984 passed in full run; repaired historical migration fixture independently passed; not one all-green full run",
+    "typecheck": "passed before sole CSS correction",
+    "packageGate": "passed at current hash;280files40routes1713447bytes",
+    "nativeFirstFrame": {
+      "path": "tmp/community-refinement-20261028/root-review/author-below-a80-first.jpg",
+      "sha256": "cd36541cb0f7f3c2107a6c40997d6e21fd4f47060b8af9e5bf238f9d45fe8a0a",
+      "width": 390,
+      "height": 844,
+      "format": "JPEG",
+      "verified": "flow author below520px image; native nav/capsule; complete footer comment text",
+      "notVerified": "new real comment API, full20 reading/interaction/device state matrix"
+    }
+  },
+  "result": "implementation-and-local-regression-complete;trial-cutover-and-current-native-matrix-pending",
+  "release": {
+    "versionCandidate": "0.1.9",
+    "status": "not uploaded",
+    "api": "https://staging-api.cisme.cn",
+    "server": "124.223.74.198",
+    "formalReviewOrPublicPublish": false,
+    "dataMigration": "schema98→99 candidate only;not applied;existing20 preserved"
+  },
+  "remaining": [
+    "Exact-main CI and safely staged Linux candidate required before trial-only99 migration.",
+    "V4 legal candidate not yet published or accepted.",
+    "Actual WeChat text safety result and real comment flow not yet verified.",
+    "No current physical-device pinch zoom or video fullscreen exit pass.",
+    "All40route release matrix remains blocked; current work is community detail scope."
+  ],
+  "historicalEvidence": "community-detail-refinement-fc7468b570f7.json retains old0.1.8 acceptance scope without promoting it."
+}

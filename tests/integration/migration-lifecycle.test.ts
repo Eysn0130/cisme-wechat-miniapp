@@ -98,8 +98,9 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
-    // Migration 98 is independently reversible only while editorial evidence
-    // is empty. Preserve the old capability set and all older rollback guards.
+    // Migration99 is independent from the existing98 article facts. Verify
+    // its empty round-trip, then its comment preservation refusal, before
+    // testing the older article-evidence rollback guard.
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     const capabilityNames=async()=>{
@@ -113,6 +114,37 @@ describe("empty and N-1 database lifecycle", () => {
       authorization_ref,rights_evidence,content_sha256,status,published_by,published_principal_id)
       VALUES('synthetic-migration-preservation',$1,'合成测试作者','合成测试标题','','合成测试正文','synthetic-test','{}',$2,'draft',$1,'synthetic-test') RETURNING id`,
       [evidenceOwner,'a'.repeat(64)])).rows[0].id;
+    const commentTables=['editorial_comment','editorial_comment_like','editorial_comment_policy','editorial_comment_report','editorial_comment_safety_scan','editorial_comment_scan_claim'];
+    for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
+    await closePool(pool);
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBeNull();
+    expect((await pool.query('SELECT body FROM editorial_article WHERE id=$1',[evidence])).rows[0].body).toBe('合成测试正文');
+    expect(await capabilityNames()).toEqual(extendedCapabilities);
+    await closePool(pool);
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
+    pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
+    const comment=(await pool.query(`INSERT INTO editorial_comment(article_id,author_member_id,body,operation_id,request_sha256)
+      VALUES($1,$2,'需要保留的合成评论',$3,$4) RETURNING id`,[evidence,evidenceOwner,randomUUID(),'b'.repeat(64)])).rows[0].id;
+    await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({
+      stderr:expect.stringContaining('EDITORIAL_COMMENT_ROLLBACK_REQUIRES_DATA_PRESERVATION')
+    });
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    expect((await pool.query('SELECT body,state FROM editorial_comment WHERE id=$1',[comment])).rows[0]).toEqual({body:'需要保留的合成评论',state:'pending_review'});
+    expect((await pool.query('SELECT id FROM editorial_article WHERE id=$1',[evidence])).rowCount).toBe(1);
+    // Only explicit disposable-fixture cleanup makes the empty99 down valid.
+    await pool.query('DELETE FROM editorial_comment WHERE id=$1',[comment]);await closePool(pool);
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    pool=migrationPool();migrationCount-=1;extensionCount-=1;
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBeNull();
+    expect(await capabilityNames()).toEqual(extendedCapabilities);
+    // Now the latest remaining migration is98: its original article evidence
+    // must still prevent rollback exactly as before99 was introduced.
     await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({
       stderr:expect.stringContaining('EDITORIAL_EVIDENCE_REQUIRES_DATA_PRESERVATION')
     });
@@ -129,6 +161,9 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_watch_control') name")).rows[0].name).toBe('commerce_wechat_receipt_watch_control');
     await closePool(pool);
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
+    // up reapplies the full latest set (98+99); remove only empty99 before
+    // checking the independently restored98 tables/capability set below.
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     for(const table of ['editorial_article','editorial_article_revision'])

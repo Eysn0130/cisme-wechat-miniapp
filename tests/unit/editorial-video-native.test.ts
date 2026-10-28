@@ -17,7 +17,7 @@ beforeEach(()=>{
  vi.resetModules();vi.clearAllMocks();
  (globalThis as any).getApp=()=>({globalData:{sessionToken:"",apiBaseUrl:"https://synthetic.invalid"}});
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(updates:any){Object.assign(this.data,structuredClone(updates));}};};
- (globalThis as any).wx={hideShareMenu:vi.fn(),showShareMenu:vi.fn(),createVideoContext:vi.fn(()=>({pause:mocks.pause,stop:mocks.stop,exitFullScreen:mocks.exit}))};
+ (globalThis as any).wx={hideShareMenu:vi.fn(),showShareMenu:vi.fn(),getImageInfo:vi.fn(),createVideoContext:vi.fn(()=>({pause:mocks.pause,stop:mocks.stop,exitFullScreen:mocks.exit}))};
 });
 
 describe("published editorial video in the native post page",()=>{
@@ -26,6 +26,11 @@ describe("published editorial video in the native post page",()=>{
   expect(page.data.media).toEqual([]);
   expect(page.data.video).toEqual({src:"https://synthetic.invalid"+videoPath,poster:"https://synthetic.invalid"+posterPath,height:1000,durationSeconds:69.473});
   expect(page.data.videoInitialTime).toBe(0);expect(mocks.pause).not.toHaveBeenCalled();
+ });
+ it.each([[1080,1920,1000],[1920,1080,421.875],[1000,1000,750],[2000,500,375],[500,2000,1000]])("sizes a valid%ix%i video to%srpx from its own metadata",async(width,height,expected)=>{
+  mocks.request.mockResolvedValue({...article(),media:[{...video(),width,height}]});await mount();
+  expect(page.data.videoHeightRpx).toBeCloseTo(expected);expect(page.data.media).toEqual([]);expect(page.data.video.src).toBe("https://synthetic.invalid"+videoPath);
+  expect((globalThis as any).wx.getImageInfo).not.toHaveBeenCalled();
  });
  it("pauses and exits full screen on hide, retains the position, and never auto-plays on return",async()=>{
   mocks.request.mockResolvedValue(article());await mount();page.videoTimeChanged(event({currentTime:12.75}));
@@ -56,10 +61,13 @@ describe("published editorial video in the native post page",()=>{
   {posterUrl:"https://foreign.invalid/poster.webp"},
   {mimeType:"video/unknown"},
   {durationMs:0},
-  {width:-1}
+  {width:-1},
+  {height:0},
+  {width:Infinity}
  ])("fails closed for malformed video metadata %j",async(patch)=>{
   mocks.request.mockResolvedValue({...article(),media:[{...video(),...patch}]});await mount();
   expect(page.data.item).toBeNull();expect(page.data.video).toBeNull();expect(page.data.errorKind).toBe("load");
+  expect(Number.isFinite(page.data.videoHeightRpx)).toBe(true);expect(page.data.videoHeightRpx).toBeGreaterThanOrEqual(375);expect(page.data.videoHeightRpx).toBeLessThanOrEqual(1000);
  });
  it("keeps existing image order and rejects a mixed video/image publication",async()=>{
   const {editorialDisplayMedia}=await import("../../apps/miniprogram/services/editorial");

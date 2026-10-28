@@ -1228,8 +1228,13 @@ describe("mini-program page behavior", () => {
     callbacks[0].success();
     await pending;
     expect(previewImage).not.toHaveBeenCalled();
-    const failed = page.previewMedia({ currentTarget: { dataset: { src: "/assets/one.jpg" } } });
-    page.onHide();
+    // A hidden page correctly refuses to begin another copy. Exercise the
+    // separate failure race from a new visible Page, not that hidden instance.
+    await page.previewMedia({ currentTarget: { dataset: { src: "/assets/one.jpg" } } });
+    expect(callbacks).toHaveLength(1);
+    const failedPage = mountedPage(capturedPage!, { media: ["/assets/one.jpg"], loadAttempt: 1 });
+    const failed = failedPage.previewMedia({ currentTarget: { dataset: { src: "/assets/one.jpg" } } });
+    failedPage.onHide();
     callbacks[1].fail({ errMsg: "copy failed" });
     await failed;
     expect(wxMock.showToast).not.toHaveBeenCalled();
