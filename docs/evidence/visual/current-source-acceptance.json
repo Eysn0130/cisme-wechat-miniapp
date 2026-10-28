@@ -277,8 +277,120 @@
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "User broadened scope to all40native routes and business journeys. Real new comments service, full current-source route matrices and authorized physical-device checks remain pending."
+      "reason": "Fresh07b simulator evidence covers40 entry attempts/88frames and20articles/68frames, with scoped media and login-return observations. Full route state matrices, positive care/order/management-permission journeys and authorized physical-device checks remain incomplete."
     }
   ],
-  "note": "Final source changes8 history-first error-page return labels only after5352 independent40route/20article visual review. New-source native evidence pending; old screenshots not promoted."
+  "note": "Current07b captures and independent reviews are recorded only as observedEvidence. The f8 trial API is active at schema99 after an application-only update. Historical screenshots are not promoted; finalResult remains blocked, all route matrices remain incomplete and formal evidence/device gates are unchanged.",
+  "observedEvidence": {
+    "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
+    "scope": "Fresh current-source simulator observations only. Independent reviewers inspected the cited original frames; root performed the cited gestures and account actions. Historical screenshots are not inherited.",
+    "apiRuntime": {
+      "sourceHead": "f8dbc55df6c002289005c65969ef68966d206968",
+      "sourceTree": "ec3014e066434b988fef7005344dc539c6e1a2b3",
+      "migrationCount": 99,
+      "activeVerified": true,
+      "mainPushCI": {
+        "runId": 40744875172,
+        "conclusion": "success"
+      },
+      "evidenceFiles": [
+        "tmp/community-refinement-20261028/schema99-application-update/f8dbc55df6c0-actual/active-actual.stdout.json",
+        "tmp/community-refinement-20261028/schema99-application-update/f8dbc55df6c0-actual/apply-actual.stdout.json",
+        "tmp/community-refinement-20261028/root-review/continuation-state.json"
+      ],
+      "schemaChanged": false,
+      "databaseRestored": false,
+      "existing20ArticlesPreserved": true,
+      "productionChanged": false
+    },
+    "routeEntrySweep": {
+      "entryAttempts": 40,
+      "frames": 88,
+      "requestedPagesReached": 38,
+      "permissionRedirects": 2,
+      "manifestFiles": [
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-A/manifest-readonly.json",
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-conditional-A/manifest-readonly.json"
+      ],
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-A/review-first12.json",
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-A/review-middle12.json",
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-A/review-last8.json",
+        "tmp/community-refinement-20261028/root-review/native40-07b24e1d-conditional-A/review-all8.json"
+      ],
+      "scope": "Current visible entry, missing-parameter, empty, error and permission states. The two guarded entries are not accepted as rendered requested pages; complete state matrices and positive business journeys are not established."
+    },
+    "articleReadSweep": {
+      "articles": 20,
+      "frames": 68,
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-07b24e1d-A/manifest-0.json",
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native-07b24e1d-A/review-first10.json",
+        "tmp/community-refinement-20261028/root-review/native-07b24e1d-A/review-last10.json"
+      ],
+      "scope": "Fresh text-scroll frames inspected individually for visible body, author, media/poster, footer and comments states. Static frames do not establish playback or comment write/moderation completion."
+    },
+    "galleryInteractions": {
+      "performedBy": "root",
+      "method": "Actual CUA gestures in the official simulator",
+      "groups": 4,
+      "imageStates": 14,
+      "nativePreviewAndArticleReturn": "Observed native preview6/6 and article return retained6/6 after fresh GET.",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/manifest-manual-final.json",
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/review-current.json",
+        "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/review-remaining-current.json"
+      ],
+      "failedSDKCoordinateAttempt": {
+        "manifestFile": "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-A/manifest-gallery.json",
+        "status": "failed",
+        "countedAsPassed": false
+      },
+      "physicalPinchAndFramePacingMeasured": false
+    },
+    "videoInteractions": {
+      "performedBy": "root",
+      "videosPlayedAndPaused": 4,
+      "representativeShareCancelResume": "One video paused at16s, opened share, cancelled without sending, returned through fresh GET and resumed by manual Play.",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-video-07b24e1d-A/manifest-manual-final.json",
+      "scope": "Root-observed simulator playback/pause and one share-cancel/resume path; no full-duration, audio or fullscreen-exit acceptance."
+    },
+    "compactLargeFont": {
+      "performedBy": "root",
+      "simulatorWidth": 375,
+      "fontSizeSetting": 26,
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-375-font26-07b24-A/manifest-manual-final.json",
+      "scope": "Article top, comments, footer and empty composer observed without clipping/overlap in this configuration; empty Send disabled. Physical keyboard and all-device font coverage are not established."
+    },
+    "guestAndLoginReturn": {
+      "performedBy": "root",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-guest-07b24-A/manifest-manual-final.json",
+      "scope": "Guest Home remained visible; public article opened; comment intent reached Account and cancelling returned to the same article. After human-confirmed current-v4 consent and real login, the same article returned without automatically sending the original comment."
+    },
+    "remaining": [
+      "Authorized physical-device pinch/zoom, keyboard and video fullscreen/exit remain unverified.",
+      "All40 route state matrices and positive care-cycle, order/payment and additional management-permission journeys remain incomplete; unavailable qualifications or permissions were not fabricated.",
+      "Observed simulator actions do not populate the formal evidenceIndex, compile/console/network gates or physical-device acceptance."
+    ],
+    "rootDeliverySummaryFile": "tmp/community-refinement-20261028/root-review/final-delivery-current.json",
+    "additionalIndependentVisualReviewFile": "tmp/community-refinement-20261028/root-review/final-additional-visual-review.json",
+    "personalActivity": {
+      "performedBy": "root",
+      "realCommentRows": 4,
+      "pendingCommentRows": 1,
+      "sourceSwitch": "精选 → 投稿 empty state with5 tabs → 精选",
+      "savedItemJourney": "Save0→1 → personal history1 → open the correct editorial article → Back preserves source and tab → native-confirmed own-save removal → empty history/public saveCount0.",
+      "manifestFile": "tmp/community-refinement-20261028/root-review/native-07b24-personal-activity/manifest-manual-final.json",
+      "independentReviewFiles": [
+        "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/review-remaining-current.json"
+      ],
+      "scope": "Root observed the actual new-API journey. Independent review covers four corroborating stills; comment-history first viewport only, not all row controls or pagination. No deletion, report/block or all-role management pass is inferred."
+    },
+    "commentLikeInteraction": {
+      "performedBy": "root",
+      "observedSequence": "One real comment like0→1→0, restored.",
+      "rootReportFile": "tmp/community-refinement-20261028/root-review/final-delivery-current.json",
+      "scope": "Representative comment-like interaction only; no full comment/moderation or permission matrix is claimed."
+    }
+  }
 }
