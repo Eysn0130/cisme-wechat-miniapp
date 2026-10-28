@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "a80ea189cebc49e9c5b354d8a56cc2eaf1b74b742e02063bfa49678c8cb1ad63",
+  "packageSourceSha256": "d26def43fec70683cf29077b699023dd55e05e6da254babee71650b7984ffcb3",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": {
@@ -8,7 +8,7 @@
     "version": "2.02.2610272",
     "officialSkillVersion": "0.3.14",
     "baseLibrary": "3.15.2",
-    "packageSourceSha256": "a80ea189cebc49e9c5b354d8a56cc2eaf1b74b742e02063bfa49678c8cb1ad63",
+    "packageSourceSha256": "d26def43fec70683cf29077b699023dd55e05e6da254babee71650b7984ffcb3",
     "compileErrors": null,
     "consoleErrors": null,
     "networkFailures": null,
@@ -274,11 +274,11 @@
   ],
   "findings": [
     {
-      "id": "CURRENT_SOURCE_NATIVE_COMMENT_AND_DEVICE_ACCEPTANCE_PENDING",
+      "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "New real comments/author placement candidate awaits isolated test backend and current-source native evidence;historical images retained under their original package hashes."
+      "reason": "User broadened scope to all40native routes and business journeys. Real new comments service, full current-source route matrices and authorized physical-device checks remain pending."
     }
   ],
-  "note": "Current a80ea189 candidate adds real editorial comments and flowing author below media;45 targeted checks rerun after the sole footer label-width correction, prior7cca379 checks remain historical scope. Native first-frame screenshot exists but does not satisfy full post state matrix; no inherited screenshot/device pass. Current comments service cutover and all40route/device matrices remain pending."
+  "note": "Current formal-preparation source d26def43 includes real editorial comments, author below media, legal409 return recovery, referral modal rejection recovery and19 copy corrections. Full40-route business walk is pending current-source native validation; no old package screenshots or device pass are inherited."
 }

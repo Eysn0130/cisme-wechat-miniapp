@@ -13,6 +13,14 @@
 
 新 head/tree、最新成功 main push CI、实际 Linux x64 glibc 归档及本 helper SHA 必须在真实构建后填写，不从 PR head 或历史构建推断。新 runner、binding、compatibility receipt 和 stage 都只能新建；未知既存路径不覆盖。
 
+## 官方源码读取与失败边界
+
+当前候选 helper SHA 为 `7a67c3b3c6d76b1b2f2ff23fc69f34081ad54b5e1e5e94d5f1b8f9ced28dc99b`。它只读取固定公开仓库、准确 40 位 commit 和四个白名单源路径：根 package/lock、迁移器及唯一99 SQL。默认 TLS 校验、禁止重定向、无代理/凭据，按64KiB分块完整读取并核对 Content-Length（如有）。
+
+仅 raw GitHub 的明确连接、DNS或超时类传输失败允许一次官方 Contents API 后备；HTTP、证书、长度、大小、内容和哈希验证失败不触发后备，也不拼接失败请求的部分字节。后备固定同仓库/路径和 `ref=<准确commit>`，JSON 上限2MiB，解码文件上限1MiB；拒绝重复键，核对 `type/path/encoding/size`、严格 Base64、实际字节数及 Git blob SHA-1。之后仍执行原 package/lock SHA256、迁移器/99与候选逐字比较、准确 main/tree/最新成功 push CI 和完整迁移器 `verify`。不跟随 `download_url`，不以缓存或旧源替代真实返回。官方能力依据：[Contents API](https://docs.github.com/en/rest/repos/contents#get-repository-content)。
+
+后备只是来源传输路径，不授予暂存、迁移或服务切换权限。stage/runner 对跨模块已知稳定码和位置作脱敏输出；原始传输结果只保存在新本地私有目录，见 [暂存与失败定位](TRIAL-EDITORIAL-COMMENTS-STAGE.md)。网络超时和未知失败先核查，不自动重放。旧2992失败记录与其基线服务保持历史事实，不能据新工具源码宣称旧操作成功。
+
 ## Binding 合同
 
 root0700 的新 runner 目录内，helper 与 binding 均为 root0600。绑定 JSON 包含：

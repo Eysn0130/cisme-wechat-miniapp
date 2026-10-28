@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "packageSourceSha256": "a80ea189cebc49e9c5b354d8a56cc2eaf1b74b742e02063bfa49678c8cb1ad63",
-  "branch": "codex/community-reading-polish",
-  "baselineHead": "bf5e0e1103b184ccbce473f0ea9b15ebadd99335",
-  "recordedAtUtc": "2026-10-28T14:05:14.923033+00:00",
-  "scope": "Actual XHS mobile website reference; WeChat native navigation, media preview and keyboard adaptation; real editorial comments per latest user instruction.",
+  "packageSourceSha256": "d26def43fec70683cf29077b699023dd55e05e6da254babee71650b7984ffcb3",
+  "branch": "codex/formal-release-flow-audit",
+  "baselineHead": "2992fce2a72618a560f4849887a1c2e21a831835",
+  "recordedAtUtc": "2026-10-28T15:36:28.851871+00:00",
+  "scope": "Formal-release preparation for40native routes and all currently available business journeys, including mobile-reference community detail and real editorial comments.",
   "prdAcceptanceIds": [
     "ED-MEDIA-01",
     "ED-MEDIA-02",
@@ -32,31 +32,28 @@
     "fullIntegration": "983/984 passed in full run; repaired historical migration fixture independently passed; not one all-green full run",
     "typecheck": "passed before sole CSS correction",
     "packageGate": "passed at current hash;280files40routes1713447bytes",
-    "nativeFirstFrame": {
-      "path": "tmp/community-refinement-20261028/root-review/author-below-a80-first.jpg",
-      "sha256": "cd36541cb0f7f3c2107a6c40997d6e21fd4f47060b8af9e5bf238f9d45fe8a0a",
-      "width": 390,
-      "height": 844,
-      "format": "JPEG",
-      "verified": "flow author below520px image; native nav/capsule; complete footer comment text",
-      "notVerified": "new real comment API, full20 reading/interaction/device state matrix"
-    }
+    "historicalA80Native": "20articles67frames plus actual media and375/390 font26 evidence remain bound to a80 only;not promoted to this package",
+    "currentTargetedChecks": "19copy corrections257tests;10new workflow regressions;type/package pass",
+    "currentFullUnit": "1997passed,1existingconditional skip,0fail after current-hash pointer update;149+2 test files"
   },
-  "result": "implementation-and-local-regression-complete;trial-cutover-and-current-native-matrix-pending",
+  "result": "source fixes and copy review complete;current-native40route/service/device verification pending",
   "release": {
     "versionCandidate": "0.1.9",
-    "status": "not uploaded",
+    "status": "not uploaded;2992staging attempt failed before candidate installation at rawGitHub source transport;original services untouched;new strict source transport and operator observability pending exact newmainCI/build",
     "api": "https://staging-api.cisme.cn",
     "server": "124.223.74.198",
     "formalReviewOrPublicPublish": false,
     "dataMigration": "schema98→99 candidate only;not applied;existing20 preserved"
   },
   "remaining": [
-    "Exact-main CI and safely staged Linux candidate required before trial-only99 migration.",
-    "V4 legal candidate not yet published or accepted.",
-    "Actual WeChat text safety result and real comment flow not yet verified.",
-    "No current physical-device pinch zoom or video fullscreen exit pass.",
-    "All40route release matrix remains blocked; current work is community detail scope."
+    "New exactmain CI/build/trial-only99 migration and real comment safety/moderation verification.",
+    "Current-source native40route and all currently available journeys;unavailable business positive states cannot be fabricated.",
+    "Physical-device pinch zoom/keyboard/video fullscreen exit not passed."
   ],
-  "historicalEvidence": "community-detail-refinement-fc7468b570f7.json retains old0.1.8 acceptance scope without promoting it."
+  "historicalEvidence": "community-detail-refinement-fc7468b570f7.json retains old0.1.8 acceptance scope without promoting it.",
+  "legal": {
+    "version": "2026-10-28-v4",
+    "publication": "actual trial atomic publication and private/public exact readback passed before acceptance;oldversions preserved;no fabricated consent",
+    "acceptance": "human confirmed atactiontime;root actual native checkbox and confirmation returned to same article;no original like automatically resent"
+  }
 }

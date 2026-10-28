@@ -29,7 +29,7 @@
       <view class="cycle-summary">{{summary.cycleSummary}}</view>
       </view>
       <view wx:if="{{care.phase === 'planned' || care.phase === 'active' || care.phase === 'paused'}}" class="cycle-controls">
-        <view class="cycle-controls__head"><view><view class="cycle-controls__title">周期管理</view><view class="cycle-controls__copy">{{care.phase === 'planned' ? '由你确认开始，再记录开始日与 D1。' : care.phase === 'paused' ? '恢复后，按暂停天数顺延未完成的阶段。' : '暂停会保留记录；终止后不再安排后续护理。'}}</view></view><text wx:if="{{care.phase === 'active' && !care.pausePolicy.enabled}}" class="cycle-policy-note">暂停暂不可用</text></view>
+        <view class="cycle-controls__head"><view><view class="cycle-controls__title">周期管理</view><view class="cycle-controls__copy">{{care.phase === 'planned' ? '确认开始后，会记录开始日并安排 D1 护理。' : care.phase === 'paused' ? '恢复后，按暂停天数顺延未完成的阶段。' : '暂停会保留记录；终止后不再安排后续护理。'}}</view></view><text wx:if="{{care.phase === 'active' && !care.pausePolicy.enabled}}" class="cycle-policy-note">暂停暂不可用</text></view>
         <view class="cycle-controls__actions {{care.phase === 'active' && !care.pausePolicy.enabled ? 'cycle-controls__actions--single' : ''}}">
           <button wx:if="{{care.phase === 'planned'}}" class="cycle-button cycle-button--single {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}">前往确认开始</button>
           <button wx:elif="{{care.phase === 'active' && care.pausePolicy.enabled}}" class="cycle-button {{!writeReady || working || confirmingCycleAction ? 'control--disabled' : ''}}" data-action="pause" loading="{{workingAction === 'pause'}}" disabled="{{!writeReady || working || confirmingCycleAction}}" bindtap="changeCycle">暂停周期</button>
@@ -39,7 +39,7 @@
       </view>
     </view>
 
-    <view wx:elif="{{authorityAvailable && !care}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">尚无护理周期</view><text class="records-empty__copy">可先到首页了解护理服务。完成护理并提交后，就能在这里回看步骤和感受。</text><view class="records-empty__facts"><text class="records-empty__fact">护理阶段</text><text class="records-empty__fact records-empty__fact--divided">四步护理</text><text class="records-empty__fact records-empty__fact--divided">护理后感受</text></view><button class="secondary records-empty__action" bindtap="goHome" aria-label="返回护理首页查看服务状态">查看护理首页</button></view>
+    <view wx:elif="{{authorityAvailable && !care}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">尚无护理周期</view><text class="records-empty__copy">可先到首页查看护理安排。周期内完成护理并提交后，可在这里回看步骤和感受。</text><view class="records-empty__facts"><text class="records-empty__fact">护理阶段</text><text class="records-empty__fact records-empty__fact--divided">四步护理</text><text class="records-empty__fact records-empty__fact--divided">护理后感受</text></view><button class="secondary records-empty__action" bindtap="goHome" aria-label="返回护理首页查看服务状态">查看护理首页</button></view>
 
     <view wx:if="{{authorityAvailable && care}}" class="record-list">
       <view class="record-list__head"><view><text class="record-list__title">护理记录</text><text class="record-list__subtitle">按周期查看护理记录</text></view><text class="record-list__count">{{records.length}} 条</text></view>

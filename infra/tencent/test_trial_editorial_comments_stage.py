@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -340,5 +341,144 @@ class ContractTests(unittest.TestCase):
         args=['tool','--host','ubuntu@124.223.74.198','--identity-file','/not-read','--known-hosts','/not-read']
         with patch.multiple(r,HERE=self.root,HEAD=head,TREE=tree),patch.object(r,'read_verified',side_effect=read),patch.object(r.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=json.dumps(receipt).encode()))as run,patch('sys.argv',args),contextlib.redirect_stdout(io.StringIO()):self.assertEqual(r.main(),0)
         self.assertEqual(run.call_args.kwargs['input'],data);self.assertIn('StrictHostKeyChecking=yes',run.call_args.args[0]);self.assertIn('/usr/bin/python3 -I -B',run.call_args.args[0][-1])
+
+class ObservationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name).resolve();self.root.chmod(0o700)
+        self.head='a'*40;self.tree='b'*40;self.data=b'synthetic archive bytes\x00\xff'
+        archive=self.root/'archive';archive.write_bytes(self.data);archive.chmod(0o600)
+        stager=self.root/'root-installer-final.py';stager.write_bytes(b'# inert fixture');stager.chmod(0o600)
+        self.command={'sourceHead':self.head,'sourceTree':self.tree,'helperSha256':r.HELPER_SHA256,
+          'compatibilitySha256':r.COMPATIBILITY_SHA256,'archivePath':str(archive),'archiveSha256':m.sha(self.data),
+          'archiveSize':len(self.data),'stagerPath':str(stager),'stagerSha256':m.sha(stager.read_bytes()),
+          'releaseManifestSha256':'c'*64,'serverWriteExecuted':False,'deployed':False}
+        (self.root/'stage-command.json').write_text(json.dumps(self.command));(self.root/'stage-command.json').chmod(0o600)
+        self.args=['tool','--host','ubuntu@124.223.74.198','--identity-file','/synthetic-key','--known-hosts','/synthetic-known-hosts']
+
+    def run_runner(self,result=None,error=None):
+        output=io.StringIO()
+        with patch.multiple(r,HERE=self.root,HEAD=self.head,TREE=self.tree),patch('sys.argv',self.args),\
+             patch.object(r.subprocess,'run',return_value=result,side_effect=error)as run,contextlib.redirect_stdout(output):
+            status=r.main()
+        return status,json.loads(output.getvalue()),run
+
+    def stage_error(self,error):
+        fields={'HEAD':self.head,'TREE':self.tree,'TOP':'tencent-release-'+self.head[:12],'CI_RUN_ID':123,
+          'ARCHIVE_SIZE':10,'ARCHIVE_SHA256':'c'*64,'RELEASE_MANIFEST_SHA256':'d'*64}
+        output=io.StringIO()
+        with patch.multiple(m,**fields),patch.object(m,'helper_payload',return_value=b'fixture'),\
+             patch.object(m,'compatibility_payload',return_value=b'fixture'),patch.object(m,'target'),\
+             patch.object(m,'baseline_guard',side_effect=error),patch.object(m.tempfile,'mkdtemp')as create,contextlib.redirect_stdout(output):
+            self.assertEqual(m.main(),1)
+        create.assert_not_called()
+        return output.getvalue(),json.loads(output.getvalue())
+
+    def test_cross_module_refusals_retain_only_reviewed_codes_and_local_locations(self):
+        self.assertNotIsInstance(u.Refused('COMMENTS_SOURCE_NETWORK_UNAVAILABLE'),m.Refused)
+        for code in ('COMMENTS_SOURCE_NETWORK_UNAVAILABLE','NO_SCHEMA_PRODUCTION_DRIFT','DEPENDENCY_FILE_UNSAFE',
+                     'GITHUB_PROVENANCE_UNAVAILABLE','PRODUCTION_COMMAND_FAILED','EXACT_MAIN_PUSH_CI_REQUIRED','LATEST_MAIN_CI_NOT_SUCCESSFUL'):
+            with self.subTest(code=code):
+                raw,value=self.stage_error(u.Refused(code))
+                self.assertEqual(value['code'],code);self.assertEqual(value['failurePhase'],'baseline_guard')
+                self.assertEqual(value['stageFunction'],'main');self.assertIs(type(value['stageLine']),int)
+                self.assertFalse(value['deployed']);self.assertFalse(value['privateValuesExported'])
+
+    def test_exception_prose_unknown_namespaces_and_oversize_codes_never_export(self):
+        for secret in ('COMMENTS_SOURCE_UNAVAILABLE https://private.invalid/?token=PRIVATE_SECRET',
+                       'COMMENTS_SECRET\nPRIVATE_SECRET','PRIVATE_SECRET_VALUE','COMMENTS_'+('A'*121)):
+            with self.subTest(secret=secret):
+                raw,value=self.stage_error(u.Refused(secret));self.assertEqual(value['code'],'STAGE_REVIEW_REQUIRED')
+                self.assertNotIn('PRIVATE_SECRET',raw);self.assertNotIn('https://',raw)
+        self.assertEqual(m.PUBLIC_ERROR_PREFIXES,r.PUBLIC_ERROR_PREFIXES)
+        self.assertEqual(m.PUBLIC_ERROR_EXACT,r.PUBLIC_ERROR_EXACT)
+        self.assertEqual(m.PUBLIC_PHASES,r.PUBLIC_PHASES);self.assertEqual(m.PUBLIC_FUNCTIONS,r.PUBLIC_FUNCTIONS)
+
+    def test_nonzero_remote_code_is_parsed_only_after_private_evidence_is_complete(self):
+        stdout=json.dumps({'ok':False,'deployed':False,'privateValuesExported':False,'code':'COMMENTS_SOURCE_NETWORK_UNAVAILABLE',
+          'failurePhase':'candidate_source','stageFunction':'candidate_contract','stageLine':413,'ignoredPrivate':'PRIVATE_SECRET'}).encode()
+        stderr=b'PRIVATE_STDERR_KEY_AND_ID'
+        original=r.remote_failure
+        def inspect(data):
+            directories=list(self.root.glob('stage-attempt-*'));self.assertEqual(len(directories),1)
+            self.assertEqual((directories[0]/'stdout.bin').read_bytes(),stdout)
+            self.assertEqual((directories[0]/'stderr.bin').read_bytes(),stderr)
+            self.assertEqual(json.loads((directories[0]/'transport.json').read_bytes())['sshReturnCode'],1)
+            return original(data)
+        with patch.object(r,'remote_failure',side_effect=inspect):
+            status,value,run=self.run_runner(SimpleNamespace(returncode=1,stdout=stdout,stderr=stderr))
+        self.assertEqual(status,1);self.assertEqual(run.call_count,1)
+        self.assertEqual(value['code'],'COMMENTS_SOURCE_NETWORK_UNAVAILABLE');self.assertEqual(value['failurePhase'],'candidate_source')
+        self.assertEqual(value['stageFunction'],'candidate_contract');self.assertEqual(value['stageLine'],413)
+        self.assertFalse(value['automaticReplay']);self.assertTrue(value['resultRequiresReview'])
+        self.assertNotIn('PRIVATE_',json.dumps(value));directory=Path(value['localEvidenceDirectory'])
+        self.assertEqual(directory.parent,self.root);self.assertEqual(stat.S_IMODE(directory.stat().st_mode),0o700)
+        self.assertEqual({p.name for p in directory.iterdir()},{'stdout.bin','stderr.bin','transport.json'})
+        for path in directory.iterdir():
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode),0o600);self.assertEqual(path.stat().st_nlink,1)
+        metadata=json.loads((directory/'transport.json').read_bytes())
+        self.assertEqual(metadata['stdoutSha256'],m.sha(stdout));self.assertEqual(metadata['stderrSha256'],m.sha(stderr))
+
+    def test_attempt_evidence_never_overwrites_a_previous_failure(self):
+        one=self.run_runner(SimpleNamespace(returncode=1,stdout=b'private first',stderr=b'first stderr'))[1]
+        first=Path(one['localEvidenceDirectory']);before={p.name:p.read_bytes()for p in first.iterdir()}
+        two=self.run_runner(SimpleNamespace(returncode=255,stdout=b'private second',stderr=b'second stderr'))[1]
+        self.assertNotEqual(first,Path(two['localEvidenceDirectory']))
+        self.assertEqual(before,{p.name:p.read_bytes()for p in first.iterdir()});self.assertEqual(len(list(self.root.glob('stage-attempt-*'))),2)
+
+    def test_malformed_private_or_duplicate_remote_failure_fields_are_not_exported(self):
+        base={'ok':False,'deployed':False,'privateValuesExported':False,'code':'COMMENTS_SOURCE_UNAVAILABLE'}
+        cases=[b'PRIVATE_TOKEN_STDOUT',json.dumps({**base,'code':'COMMENTS_PRIVATE /secret/key'}).encode(),
+          json.dumps({**base,'deployed':True}).encode(),json.dumps({**base,'privateValuesExported':True}).encode(),
+          b'{"ok":false,"ok":true,"deployed":false,"privateValuesExported":false,"code":"COMMENTS_SOURCE_UNAVAILABLE"}',
+          b'PRIVATE_SECRET'+b'x'*65536]
+        for stdout in cases:
+            with self.subTest(length=len(stdout)):
+                status,value,run=self.run_runner(SimpleNamespace(returncode=1,stdout=stdout,stderr=b'PRIVATE_STDERR'))
+                self.assertEqual(status,1);self.assertEqual(value['code'],'SSH_STAGE_REVIEW_REQUIRED')
+                self.assertEqual(value['failurePhase'],'unknown');self.assertNotIn('PRIVATE_',json.dumps(value));self.assertEqual(run.call_count,1)
+                self.assertEqual((Path(value['localEvidenceDirectory'])/'stdout.bin').read_bytes(),stdout)
+
+    def test_only_allowlisted_remote_locations_and_real_integer_line_are_exported(self):
+        value=r.remote_failure(json.dumps({'ok':False,'deployed':False,'privateValuesExported':False,'code':'COMMENTS_SOURCE_UNAVAILABLE',
+          'failurePhase':'/private/secret','stageFunction':'PRIVATE_SECRET','stageLine':True}).encode())
+        self.assertEqual(value,{'code':'COMMENTS_SOURCE_UNAVAILABLE','failurePhase':'unknown'})
+
+    def test_transport_timeout_preserves_partial_output_and_never_replays_or_claims_a_verified_result(self):
+        error=subprocess.TimeoutExpired('synthetic ssh',600,output=b'PRIVATE_PARTIAL_STDOUT',stderr=b'PRIVATE_PARTIAL_STDERR')
+        with patch.object(r,'remote_failure')as parse:
+            status,value,run=self.run_runner(error=error)
+        self.assertEqual(status,1);self.assertEqual(run.call_count,1);parse.assert_not_called()
+        self.assertEqual(value['code'],'SSH_STAGE_TRANSPORT_TIMEOUT');self.assertFalse(value['automaticReplay']);self.assertTrue(value['resultRequiresReview'])
+        directory=Path(value['localEvidenceDirectory']);metadata=json.loads((directory/'transport.json').read_bytes())
+        self.assertTrue(metadata['timedOut']);self.assertIsNone(metadata['sshReturnCode'])
+        self.assertEqual((directory/'stdout.bin').read_bytes(),b'PRIVATE_PARTIAL_STDOUT')
+        self.assertEqual((directory/'stderr.bin').read_bytes(),b'PRIVATE_PARTIAL_STDERR');self.assertNotIn('PRIVATE_',json.dumps(value))
+
+    def test_launch_failure_does_not_export_exception_arguments(self):
+        status,value,run=self.run_runner(error=FileNotFoundError('/PRIVATE_SECRET_KEY'))
+        self.assertEqual(status,1);self.assertEqual(run.call_count,1);self.assertEqual(value['code'],'SSH_STAGE_TRANSPORT_FAILED')
+        self.assertNotIn('PRIVATE_',json.dumps(value));metadata=json.loads((Path(value['localEvidenceDirectory'])/'transport.json').read_bytes())
+        self.assertTrue(metadata['launchFailed']);self.assertIsNone(metadata['sshReturnCode'])
+
+    def test_zero_exit_invalid_receipt_is_private_and_requires_review_without_replay(self):
+        status,value,run=self.run_runner(SimpleNamespace(returncode=0,stdout=b'{"private":"PRIVATE_SECRET"}',stderr=b'private warning'))
+        self.assertEqual(status,1);self.assertEqual(run.call_count,1);self.assertEqual(value['code'],'SSH_STAGE_RESPONSE_INVALID')
+        self.assertEqual(value['failurePhase'],'response_validation');self.assertNotIn('PRIVATE_',json.dumps(value))
+
+    def test_nonprivate_evidence_parent_refuses_before_ssh(self):
+        self.root.chmod(0o755)
+        with patch.multiple(r,HERE=self.root,HEAD=self.head,TREE=self.tree),patch('sys.argv',self.args),\
+             patch.object(r.subprocess,'run')as run,self.assertRaises(ValueError):r.main()
+        run.assert_not_called();self.assertEqual(list(self.root.glob('stage-attempt-*')),[])
+
+    def test_strict_ssh_and_single_buffer_flags_are_unchanged_on_failure(self):
+        status,value,run=self.run_runner(SimpleNamespace(returncode=255,stdout=b'',stderr=b'private ssh failure'))
+        self.assertEqual(status,1);self.assertEqual(run.call_count,1);args=run.call_args.args[0]
+        for flag in ('BatchMode=yes','StrictHostKeyChecking=yes','ConnectTimeout=10','PasswordAuthentication=no',
+                     'KbdInteractiveAuthentication=no','IdentitiesOnly=yes','UserKnownHostsFile=/synthetic-known-hosts'):
+            self.assertIn(flag,args)
+        self.assertEqual(args[-2],'ubuntu@124.223.74.198');self.assertIn('sudo -n /usr/bin/env -i',args[-1])
+        self.assertIn('/usr/bin/python3 -I -B',args[-1]);self.assertEqual(run.call_args.kwargs['input'],self.data)
 
 if __name__=='__main__':unittest.main()

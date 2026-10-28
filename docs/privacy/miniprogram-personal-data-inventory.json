@@ -1027,10 +1027,12 @@
     "newRecipient": false,
     "legalCandidate": "docs/legal/community-comments-20261028/publication-candidate.json",
     "legalCandidateVersion": "2026-10-28-v4",
-    "legalPublished": false,
-    "consentCreated": false,
+    "legalPublished": true,
     "realProviderVerified": false,
     "ordinaryPublicUgcOpened": false,
-    "businessScopeSource": "PRD K.3/K.4 and explicit user instruction"
+    "businessScopeSource": "PRD K.3/K.4 and explicit user instruction",
+    "consentCreatedByPublication": false,
+    "legalPublicationScope": "Actual isolated trial atomic publication and exact private/public HTTPS readback; oldversions preserved. Does not assert WeChat platform privacy configuration or public release.",
+    "nativeAcceptance": "One explicit human action-time authorization was followed by actual native checkbox/confirmation and return to the same article; no fabricated acceptance or implication for other users."
   }
 }

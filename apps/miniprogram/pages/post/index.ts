@@ -67,6 +67,7 @@ Page({
   commentActionOwner:0,
   commentDraftToken:null as string|null,
   commentDraftArticle:"",
+  editorialSocialRefusal:null as string|null,
   data: { blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.cancelGallerySizing?.();this.readingRead=null;this.pendingReadingRestore=null;this.readingScrollRevision+=1;this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
@@ -228,7 +229,11 @@ Page({
             &&scrollRevision===this.readingScrollRevision&&reading.scrollTop>0);
           this.readingRead=nextReading;
           if(restoreReading&&nextReading&&reading){nextReading.scrollTop=reading.scrollTop;this.pendingReadingRestore=nextReading;}
-          this.setData({aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:"editorial",avatar:defaultMemberAvatar,
+          // A legal409 confirmed that no interaction was accepted. A current
+          // successful read may retire that old refusal, never an unknown write.
+          const clearSocialRefusal=this.editorialSocialRefusal!==null&&this.data.socialError===this.editorialSocialRefusal;
+          if(clearSocialRefusal)this.editorialSocialRefusal=null;
+          this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:"editorial",avatar:defaultMemberAvatar,
             readingSegments:readingSegments(article.body),publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
             media:display.images,mediaIndex:restored?.index??0,galleryHeight,video:display.video,videoHeightRpx,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",imageEventId:display.images.length?`${attempt}:${article.version}:${article.id}:${galleryHeight}`:"",following:article.following,
             commentAuthenticated:Boolean(token),socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{
@@ -600,12 +605,16 @@ Page({
     const token=getApp<IAppOption>().globalData.sessionToken;
     if(!token){resumeAuthentication(this.editorialReturnUrl());return;}
     const attempt=this.data.loadAttempt;
+    this.editorialSocialRefusal=null;
     this.interruptReadingRestore();this.setData({socialBusy:true,socialError:""});
     try{const result=await reactToEditorialArticle(this.data.id,kind,!(kind==="like"?this.data.social.liked:this.data.social.saved));
       if(this.currentEditorial(attempt,token))this.setData({social:{...this.data.social,liked:result.liked,saved:result.saved,likeCount:result.likeCount,saveCount:result.saveCount}});
     }catch(error){if(this.currentEditorial(attempt,token)){
-      if((error as {status?:number;code?:string}).status===409&&(error as {code?:string}).code==="CURRENT_LEGAL_CONSENT_REQUIRED")beginLegalRenewal(this.editorialReturnUrl());
-      this.setData({socialError:(error as {title?:string}).title||"互动结果尚未确认，请先重新加载查看，再决定是否重试。"});}}
+      const consentRequired=(error as {status?:number;code?:string}).status===409&&(error as {code?:string}).code==="CURRENT_LEGAL_CONSENT_REQUIRED";
+      const message=(error as {title?:string}).title||(consentRequired?"请确认当前用户协议和隐私指引后再互动。":"互动结果尚未确认，请先重新加载查看，再决定是否重试。");
+      this.editorialSocialRefusal=consentRequired?message:null;
+      this.setData({socialError:message});
+      if(consentRequired)beginLegalRenewal(this.editorialReturnUrl());}}
     finally{if(this.currentEditorial(attempt,token))this.setData({socialBusy:false});}
   },
   toggleLike() { if(this.data.editorialSource)return this.mutateEditorialReaction("like");return this.mutateSocial("/reaction", "PUT", { kind: "like", active: !this.data.social.liked }); },

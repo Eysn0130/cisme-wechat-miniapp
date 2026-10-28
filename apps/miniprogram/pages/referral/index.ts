@@ -36,7 +36,9 @@ Page({
     const current=()=>this.data.alive&&token===getApp<IAppOption>().globalData.sessionToken&&
       sessionOwners.get(this)===token&&this.data.code===code&&this.data.key===key&&this.data.preview?.code===preview.code;
     if(preview.relationState==="already_bound_other"){this.setData({error:"你已确认其他直接推荐关系，不能再次绑定。"});return;}
-    const result=await wx.showModal({title:"确认这位推荐人？",content:`推荐人：${preview.sponsorLabel}（${code}）。确认后只建立直接推荐关系，不产生购买或收益。已有推荐关系不能更换。`,confirmText:"确认推荐人"});
+    let result:WechatMiniprogram.ShowModalSuccessCallbackResult;
+    try{result=await wx.showModal({title:"确认这位推荐人？",content:`推荐人：${preview.sponsorLabel}（${code}）。确认后只建立直接推荐关系，不产生购买或收益。已有推荐关系不能更换。`,confirmText:"确认推荐人"});}
+    catch{if(current())this.setData({error:"确认窗口暂时无法打开，请重试。"});return;}
     if(!result.confirm||!current())return;
     this.setData({busy:true,error:"",status:""});
     try{if(!current())return;
