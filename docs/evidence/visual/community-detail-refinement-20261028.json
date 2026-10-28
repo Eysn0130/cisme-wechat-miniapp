@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "packageSourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0",
+  "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
   "branch": "codex/formal-release-flow-audit",
   "baselineHead": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
-  "recordedAtUtc": "2026-10-28T17:49:05.501208+00:00",
+  "recordedAtUtc": "2026-10-28T18:11:44.507124+00:00",
   "scope": "Formal-release preparation for40native routes and all currently available business journeys, including mobile-reference community detail and real editorial comments.",
   "prdAcceptanceIds": [
     "ED-MEDIA-01",
@@ -28,7 +28,8 @@
     "Real editorial comment/reply/like/delete/report/block and moderation, actor/read/operation guards.",
     "Removed generic image-disclaimer/provenance clutter; only six known generated images use short AI生成 label.",
     "Footer comment fallback text now has sufficient bounded width.",
-    "My community separates real editorial activity from ordinary UGC; own unavailable saved content can be removed without a new consent."
+    "My community separates real editorial activity from ordinary UGC; own unavailable saved content can be removed without a new consent.",
+    "History-first error-page buttons say 返回, preserving specific labels only when the handler reaches that destination. No navigation or leave-draft guards changed."
   ],
   "verification": {
     "currentFullUnit": {
@@ -36,31 +37,31 @@
       "conditionalSkipped": 1,
       "failed": 0,
       "testSuites": 287,
-      "sourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0",
-      "log": "tmp/community-refinement-20261028/root-review/unit-5352-final.json"
+      "sourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
+      "log": "tmp/community-refinement-20261028/root-review/unit-07b24-final.json"
     },
     "typecheck": {
       "passed": true,
-      "sourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0",
-      "log": "tmp/community-refinement-20261028/root-review/typecheck-5352-final.log"
+      "sourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
+      "log": "tmp/community-refinement-20261028/root-review/typecheck-07b24-final.log"
     },
     "packageGate": {
       "passed": true,
       "files": 280,
       "routes": 40,
-      "totalBytes": 1720633,
+      "totalBytes": 1720502,
       "mainPackageBytes": 665294,
       "subpackageBytes": {
         "pages/task": 17022,
-        "pages/submit": 43714,
+        "pages/submit": 43708,
         "pages/progress": 24005,
         "pages/points": 12037,
         "pages/post": 96531,
         "pages/shop": 9153,
-        "pages/product": 16784,
+        "pages/product": 16772,
         "pages/checkout": 28515,
         "pages/orders": 8815,
-        "pages/order-detail": 81026,
+        "pages/order-detail": 81014,
         "pages/settings": 70852,
         "pages/invite": 15141,
         "pages/legal": 3645,
@@ -70,16 +71,16 @@
         "pages/management-catalog": 7814,
         "pages/management-product": 21770,
         "pages/management-orders": 8747,
-        "pages/management-order-detail": 17490,
+        "pages/management-order-detail": 17478,
         "pages/management-support": 10700,
         "pages/management-support-chat": 66025,
         "pages/management-members": 33884,
-        "pages/management-member": 34560,
+        "pages/management-member": 34548,
         "pages/referral": 6863,
         "pages/community-compose": 45531,
-        "pages/community-post": 26270,
-        "pages/community-author": 14383,
-        "pages/community-review": 30656,
+        "pages/community-post": 26258,
+        "pages/community-author": 14377,
+        "pages/community-review": 30597,
         "pages/community-activity": 24052,
         "pages/management-finance": 29896,
         "pages/commission": 36427,
@@ -88,7 +89,7 @@
         "pages/management-fulfillment": 14849
       },
       "globalStyleBytes": 8050,
-      "sourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0"
+      "sourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a"
     },
     "apiMainCI": {
       "head": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
@@ -96,7 +97,7 @@
       "event": "push",
       "conclusion": "success"
     },
-    "currentNative": "5352 final-source native screenshot sweep in progress against still-active da7/schema99; new editorial activity private endpoints await application update and must be retried natively after it. No prior-source screenshots promoted.",
+    "currentNative": "07b final-source native verification in progress;5352 remains independent historical review only. New private activity API application update pending.",
     "historical2cfbFullUnit": {
       "passed": 2027,
       "conditionalSkipped": 1,
@@ -111,6 +112,26 @@
       "testSuites": 284,
       "sourceSha256": "a8393d9b2be4d785ef10cb4881b29dbe6cf139f66947fb436aa636332815e347",
       "log": "tmp/community-refinement-20261028/root-review/unit-a839-final.json"
+    },
+    "historical5352FullUnit": {
+      "passed": 2075,
+      "conditionalSkipped": 1,
+      "failed": 0,
+      "testSuites": 287,
+      "sourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0",
+      "log": "tmp/community-refinement-20261028/root-review/unit-5352-final.json"
+    },
+    "historical5352Native": {
+      "sourceSha256": "5352f0fdeb8adf0d852f7adf0dacf874772f38ac565819e2a7fd8b6d13008fb0",
+      "routes": 40,
+      "frames": 88,
+      "reached": 38,
+      "guardRedirects": 2,
+      "articles": 20,
+      "articleFrames": 68,
+      "independentReviewed": true,
+      "businessAndPhysicalAcceptance": false,
+      "finding": "Missing submission target return CTA misleading; root then audited and corrected8 history-first error page labels. P3 layout observations retained."
     }
   },
   "result": "Current-source personal editorial history repaired in code; native verification and isolated trial API update pending.",
