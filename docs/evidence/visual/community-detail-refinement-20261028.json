@@ -3,7 +3,7 @@
   "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
   "branch": "main",
   "baselineHead": "da7f4c9ac858e557d2876349fb169dade45cf1b2",
-  "recordedAtUtc": "2026-10-28T19:05:56.357538+00:00",
+  "recordedAtUtc": "2026-10-29T00:37:04.069217+00:00",
   "scope": "Formal-release preparation for40native routes and all currently available business journeys, including mobile-reference community detail and real editorial comments.",
   "prdAcceptanceIds": [
     "ED-MEDIA-01",
@@ -134,10 +134,10 @@
       "finding": "Missing submission target return CTA misleading; root then audited and corrected8 history-first error page labels. P3 layout observations retained."
     }
   },
-  "result": "Current07b visible-state and scoped interaction evidence reviewed; f8 trial API application update active at schema99. Formal release acceptance remains blocked by incomplete route/business matrices and physical-device coverage.",
+  "result": "Current07b scoped native evidence reviewed; f8 trial API active at schema99; official0.1.9 code upload succeeded and the single human-approved pending reply was removed through ordinary UI. Formal release acceptance remains blocked by incomplete route/business matrices and physical-device coverage.",
   "release": {
     "versionCandidate": "0.1.9",
-    "status": "Trial API f8dbc55 active at schema99 after application-only update. Client0.1.9 not uploaded.",
+    "status": "Trial API f8dbc55 active at schema99 after application-only update. Official0.1.9 code upload succeeded on the original confirmed task; experience-version selection is unverified.",
     "api": "https://staging-api.cisme.cn",
     "server": "124.223.74.198",
     "formalReviewOrPublicPublish": false,
@@ -146,7 +146,8 @@
   "remaining": [
     "Complete route state matrices and available positive care-cycle, order/payment and additional management-permission journeys; unavailable qualifications or permissions remain unverified.",
     "Complete any unobserved comment/reply/report/block/moderation and failure-recovery journeys; scoped observed actions do not establish all write states.",
-    "Authorized physical-device pinch zoom, keyboard and video fullscreen/exit remain unverified."
+    "Authorized physical-device pinch zoom, keyboard and video fullscreen/exit remain unverified.",
+    "Experience-version selection and physical-phone feedback remain unverified; official source-upload success is not formal platform publication."
   ],
   "historicalEvidence": "community-detail-refinement-fc7468b570f7.json retains old0.1.8 acceptance scope without promoting it.",
   "legal": {
@@ -243,13 +244,80 @@
       "independentReviewFiles": [
         "tmp/community-refinement-20261028/root-review/native-gallery-07b24e1d-manual-A/review-remaining-current.json"
       ],
-      "scope": "Root observed the actual new-API journey. Independent review covers four corroborating stills; comment-history first viewport only, not all row controls or pagination. No deletion, report/block or all-role management pass is inferred."
+      "scope": "Root observed the actual new-API journey. Independent review covers four corroborating stills; comment-history first viewport only, not all row controls or pagination. No deletion, report/block or all-role management pass is inferred.",
+      "observationPhase": "before-cleanup",
+      "countBoundary": "Four real comment rows including one pending, the source switch and saved-item journey describe the earlier before-cleanup observation. They are not current post-deletion row totals; no new personal-history total is inferred."
     },
     "commentLikeInteraction": {
       "performedBy": "root",
       "observedSequence": "One real comment like0→1→0, restored.",
       "rootReportFile": "tmp/community-refinement-20261028/root-review/final-delivery-current.json",
       "scope": "Representative comment-like interaction only; no full comment/moderation or permission matrix is claimed."
+    },
+    "recordedAtUtc": "2026-10-29T00:37:04.069217+00:00",
+    "officialCodeUpload": {
+      "versionFromPreflight": "0.1.9",
+      "packageSourceSha256FromPreflight": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
+      "sourceHeadFromPreflight": "f8dbc55df6c002289005c65969ef68966d206968",
+      "preflight": {
+        "file": "tmp/community-refinement-20261028/root-review/upload-preflight-019.json",
+        "sha256": "7438ee97e2c5a1ab51df6fc04cd357fb993d80890a6bc5b013fb4201ba9bf526"
+      },
+      "originalTaskReceipt": {
+        "file": "tmp/community-refinement-20261028/root-review/upload-019-official-receipt.json",
+        "sha256": "4784cae7109407dd540cde278c1d937a6967a76099b925c8cfe5f17430d5c0ee",
+        "status": "pending"
+      },
+      "sameOriginalTaskVerified": true,
+      "terminalReceipt": {
+        "file": "tmp/community-refinement-20261028/root-review/upload-019-confirmed-poll-1.json",
+        "sha256": "37892211bbdde61b4bda143e1a729abdcc15258e4009221f937bf88a21de159f"
+      },
+      "status": "success",
+      "executionDetail": "execution_success",
+      "resultSuccess": true,
+      "compiledTotalBytes": 1620432,
+      "completedAtUtc": "2026-10-29T00:28:12.906000+00:00",
+      "bindingBoundary": "The platform terminal receipt does not echo version or source hash. Version0.1.9 and07b are associated through the verified local preflight and the same original task receipt chain.",
+      "acceptanceBoundary": "Code upload success does not establish experience-version selection, platform review/formal publication or physical-device acceptance.",
+      "reportedSizeEntries": 37,
+      "totalSummaryIncluded": true,
+      "reportedPackageEntriesExcludingTotal": 36
+    },
+    "targetedReplyCleanup": {
+      "performedBy": "root",
+      "humanConfirmed": true,
+      "nativeConfirmed": true,
+      "targetedPendingReplyDeleted": true,
+      "targetScope": "Only the single pending reply explicitly approved by the human and identified in the cited before/after evidence.",
+      "publicCommentCountAfter": 2,
+      "publicRootAndPublishedReplyRetained": true,
+      "otherCommentsPreserved": true,
+      "articleBodiesChanged": false,
+      "manifest": {
+        "file": "tmp/community-refinement-20261028/root-review/native-final-delete-019/manifest.json",
+        "sha256": "aa772c3293d153d305d8382f25fb666995ab4e110acc47fb4ffa48bfc1c95d7e"
+      },
+      "beforePhoto": {
+        "file": "tmp/community-refinement-20261028/root-review/native-final-delete-019/01-target-before.jpg",
+        "sha256": "e0a269a98911c84d75ad6d6488e62ad58f3490afbcce314b1cdd5c9b92f8a38f"
+      },
+      "afterPhoto": {
+        "file": "tmp/community-refinement-20261028/root-review/native-final-delete-019/02-deleted-others-retained.jpg",
+        "sha256": "ef7efa1c4a2487f63954a970aa5dc51dd308346d2e2ac36338cc7378ef3b4fab"
+      },
+      "scope": "Root observed the ordinary native Delete confirmation, deletion notice and retained public root/reply in the trial simulator. No API bypass, further deletion or direct-DB verification is claimed. Subsequent extra refresh was not executed after focus changed; no action was replayed.",
+      "beforeCleanupCountsNotReplaced": true,
+      "physicalDeviceAcceptance": false,
+      "publicRetentionEvidenceFile": "tmp/community-refinement-20261028/root-review/native-final-delete-019/public-after-delete.json",
+      "publicRetentionEvidenceSha256": "e0a2e2b934899dd1c54c671965db36027a47437001d83eb0a61ba8a02d5f717b",
+      "publicRetentionBoundary": "Subsequent anonymous comments GET200 corroborates that the two published bodies, parent relationship and zero like counts were retained. This public read does not by itself prove deletion of the previously private pending reply.",
+      "recordedAtUtc": "2026-10-29T00:35:36.668055+00:00",
+      "actionTimeWindowUtc": {
+        "afterBeforeScreenshot": "2026-10-29T00:31:56.984636+00:00",
+        "beforeAfterScreenshot": "2026-10-29T00:32:20.425993+00:00"
+      },
+      "outcomeObservedAtUtc": "2026-10-29T00:32:20.425993+00:00"
     }
   }
 }
