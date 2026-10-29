@@ -35,6 +35,7 @@ function respond(options:any){
 }
 async function settled(){await vi.waitFor(()=>expect(page.data.loading||page.data.commentsLoading).toBe(false));}
 async function mount(){await import("../../apps/miniprogram/pages/post/index");page.onLoad({id,source:"editorial"});await page.load();await settled();}
+function input(value:string){if(!page.data.composerOpen)page.startComment();page.inputComment({detail:{value},currentTarget:{dataset:{composerId:page.data.composerEventId}}});}
 beforeEach(()=>{
  vi.resetModules();vi.clearAllMocks();requests=[];held=[];storage=new Map();reactionMode="legal";articleMode="ready";commentMode="unknown";
  runtime={globalData:{sessionToken:"synthetic-member-session",privacyRightsToken:"",sessionStorageKey:"synthetic.session",apiBaseUrl:"https://synthetic.invalid"}};
@@ -71,10 +72,10 @@ describe("editorial legal refusal recovery on a fresh native Page read",()=>{
   page.onHide();page.onShow();await settled();expect(page.data.socialError).toBe(warning);expect(calls("PUT",`${articlePath}/reaction`)).toHaveLength(2);
  });
  it("preserves an unknown comment body and submission key across renewal-style reentry and verifies only on the next explicit send",async()=>{
-  await mount();page.inputComment({detail:{value:"需要核对发送结果的评论"}});await page.sendComment();
+  await mount();input("需要核对发送结果的评论");await page.sendComment();
   const key=page.data.draftOperation;expect(key).not.toBe("");expect(page.data.commentSendUnknown).toBe(true);
   page.onHide();page.onShow();await settled();expect(page.data).toMatchObject({draft:"需要核对发送结果的评论",draftOperation:key,commentSendUnknown:true});
-  page.inputComment({detail:{value:"不能覆盖未知提交"}});expect(page.data.draft).toBe("需要核对发送结果的评论");expect(calls("POST",commentsPath)).toHaveLength(1);
+  input("不能覆盖未知提交");expect(page.data.draft).toBe("需要核对发送结果的评论");expect(calls("POST",commentsPath)).toHaveLength(1);
   commentMode="confirmed";await page.sendComment();
   const sends=calls("POST",commentsPath);expect(sends).toHaveLength(2);expect(sends.map(options=>[options.header["Idempotency-Key"],options.data])).toEqual([[key,{body:"需要核对发送结果的评论"}],[key,{body:"需要核对发送结果的评论"}]]);
   expect(page.data.commentSendUnknown).toBe(false);expect(page.data.draftOperation).toBe("");

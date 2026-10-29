@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "kind": "community-reading-controls-native-candidate",
+  "recordedAtUtc": "2026-10-29T02:12:17.992358+00:00",
+  "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+  "versionCandidate": "0.1.10",
+  "finalResult": "blocked",
+  "scope": "Current native WeChat reading-control refinement. Source tests and the cited local simulator observations have distinct scopes; full route/business and physical-device acceptance remain incomplete.",
+  "changes": [
+    "Keep the author-row follow control for guests and nonself readers with the real self-follow guard.",
+    "Remove article-meta More and permanent comments Refresh/healthy Load More; keep direct original-link, role-scoped moderation and report/block paths.",
+    "Load comments on entry/return and confirmed changes; native pull-down reads comments only, reach-end appends, and failed pagination retries its original cursor.",
+    "Use a flat gray native comment textarea with separate Send/Cancel controls; cancel/reopen retains the local draft.",
+    "Bind input, focus and keyboard events to the active composer instance; measure its footer instead of using a fixed320px spacer.",
+    "Explicit interaction-error recheck reuses the existing fresh-read/reading-restoration path, preserving unknown comment body/key without replaying writes.",
+    "Move personal submissions/drafts to My while keeping My Community and existing activity routing distinct.",
+    "Tighten feed whitespace and use an independent24x2px active-channel marker below its label."
+  ],
+  "reference": {
+    "surface": "Actual logged-in Xiaohongshu mobile website, not the native Xiaohongshu App",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "evidenceFiles": [
+      {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/references/xhs-post-390-top.jpg",
+        "sha256": "435caa58d2bb8647c252c63dc48a7bb32e170f23c1a24cd616fc323dca6780ab"
+      },
+      {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/references/xhs-composer-390-open-empty.jpg",
+        "sha256": "d63a25ac133c1ea277ded8454f3fa9c408a4a7dde37128260ad70c02c738f26a"
+      },
+      {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/references/xhs-idle-measurements.json",
+        "sha256": "a3dd8a8400f48a07acf54d3170fadfb1dd468c0cfc01cedb14b6501ad07326e7"
+      },
+      {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/references/xhs-composer-measurements.json",
+        "sha256": "97899ff7efde26a7a5764d05caf9ca15d4cc8ec1deec3d7d8d8d694c1a2c8c97"
+      }
+    ],
+    "measuredComposer": {
+      "fontPx": 16,
+      "lineHeightPx": 22,
+      "minHeightPx": 40,
+      "paddingPx": "9 16",
+      "radiusPx": 20,
+      "background": "rgba(0,0,0,0.03)",
+      "boxShadow": "none",
+      "webCollapsedFooterHeightPx": 56,
+      "webExpandedFooterHeightPx": 104
+    },
+    "nativeAdaptation": "Preserve WeChat capsule/safe-area metrics and44px targets; use native textarea, keyboard-height events and per-instance guards. Web footer geometry is a visual reference, not a native-device pass.",
+    "interactionContract": {
+      "file": "tmp/community-refinement-20261028/reading-polish-v010/interaction-contract.json",
+      "sha256": "70fdeacb244a157c766a6c8f6babb57848c1935b584804166f12520bf241c20c"
+    }
+  },
+  "verification": {
+    "fullUnit": {
+      "sourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+      "passed": 2097,
+      "conditionalSkipped": 1,
+      "failed": 0,
+      "testSuites": 289,
+      "evidence": {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/unit-current.json",
+        "sha256": "877c1b522055c96d7fde1ca8065590ed4b413c1e97258e0674254bb41be1850a"
+      },
+      "executionNote": "An earlier run failed the stale acceptance-source pointer. The pointer was corrected and the final same-path rerun succeeded; this record reports that final result."
+    },
+    "typecheck": {
+      "sourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+      "passed": true,
+      "exitCodeObservedByRoot": 0,
+      "evidence": {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/typecheck-current.log",
+        "sha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c"
+      }
+    },
+    "packageGate": {
+      "sourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+      "passed": true,
+      "files": 280,
+      "routes": 40,
+      "totalBytes": 1724646,
+      "mainPackageBytes": 666140,
+      "globalStyleBytes": 8115,
+      "evidence": {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/package-tab-correction-final.json",
+        "sha256": "7b01df1489d5b88416e67c1156e829948c71a7537fb0b3568839ed9a07858933"
+      }
+    }
+  },
+  "nativeControls": {
+    "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+    "performedBy": "root",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "fontSizeSetting": 16
+    },
+    "officialRefreshObserved": true,
+    "evidenceManifest": {
+      "file": "tmp/community-refinement-20261028/reading-polish-v010/native-controls-manifest.json",
+      "sha256": "98742b5076f162ec067aa6ecd3c5fd154457e55c4cfbafc98a7e415143c7cc5c"
+    },
+    "frames": [
+      {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/native-tab-correction-compiled-390.jpg",
+        "sha256": "7362fb7ace597f1ea5d5b15d87a604f2f866d3af1ba01d9e860614d20000fe25"
+      },
+      {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/02-composer-empty-390.jpg",
+        "sha256": "d7c30335963ab9fd6f110bf3b9b66b5dbb5efe9abcbb337d58256f610a3f1c97"
+      },
+      {
+        "file": "tmp/community-refinement-20261028/reading-polish-v010/03-composer-typed-390.jpg",
+        "sha256": "ca2252ee2de9cff96d3fce37ce58d0a5fe1d1b3cdad5962dbb452ca020d160ab"
+      }
+    ],
+    "tabMarker": {
+      "status": "independently_reviewed",
+      "reportedBy": "root",
+      "scope": "Compiled current-source390px community screenshot; visible active marker and spacing. No navigation or physical-device acceptance inferred.",
+      "geometry": {
+        "markerLeft": 30,
+        "markerTop": 125.375,
+        "markerHeight": 2,
+        "feedTop": 139,
+        "labelTop": 102.625,
+        "markerLabelSpacingCssPx": 4,
+        "tabTouchArea": {
+          "width": 46,
+          "height": 44
+        },
+        "evidence": "Officialreadonly elementoffset/size receipts7989cf4d,5900052a,02ac3960,7baf4e7c; markerheightCSSdeclared; no Web measurement used."
+      }
+    },
+    "composer": {
+      "observedBy": "root",
+      "actions": [
+        "Empty composer opens with Send disabled.",
+        "Local typing enables Send.",
+        "Cancel collapses the composer; reopening visibly restores the same local draft.",
+        "Native local input is cleared, Send becomes disabled, then the composer is collapsed."
+      ],
+      "commentPostPerformed": false,
+      "scope": "Ordinary local simulator input/cancel/reopen/clear only; no Send action or new comment submission. Still frames and root action observations have separate scope."
+    }
+  },
+  "nativeCapture": {
+    "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+    "status": "completed",
+    "targetArticles": 20,
+    "manifestFile": "tmp/community-refinement-20261028/root-review/native-9ec57eb3-A/manifest-0.json",
+    "finalManifestSha256": "aa20d01a0a1a1f7ff8ad75256c6b8c32457b385df1eedb397323483116d97668",
+    "finalArticleCount": 20,
+    "finalFrameCount": 66,
+    "independentReviewStatus": "completed",
+    "limits": "20 current-source articles,66 native still frames independently viewed; full body character equality and comments reads verified. Four video posters and multi-image first states alone do not establish gestures, playback or physical acceptance.",
+    "independentReviews": [
+      {
+        "file": "tmp/community-refinement-20261028/root-review/native-9ec57eb3-A/review-first10.json",
+        "sha256": "b9c05c0397eea5bb5b2c070744a6c36544a74dd0b4382b68df62bcb048a947e3"
+      },
+      {
+        "file": "tmp/community-refinement-20261028/root-review/native-9ec57eb3-A/review-last10.json",
+        "sha256": "1c6aefb3c74a2f0381a08039551f92377aac188d134fe504ecd0fa0b42fd7f16"
+      }
+    ]
+  },
+  "historicalBoundary": "The0.1.9 upload and targeted pending-reply deletion belong to07b history. They do not prove upload, native acceptance or new actions for9ec; the old task was not replayed.",
+  "remaining": [
+    "Authorized physical-device pinch/zoom, keyboard and video fullscreen/exit remain unverified.",
+    "Full40-route state matrices and positive care/order/additional-permission journeys remain blocked where unavailable or untested.",
+    "Current0.1.10 upload/experience selection remains pending;0.1.9humanselection is historical."
+  ],
+  "physicalDeviceValidated": false,
+  "all40BusinessAcceptancePassed": false,
+  "formalReleaseReady": false,
+  "additionalNativeActions": {
+    "performedBy": "root",
+    "manifestFile": "tmp/community-refinement-20261028/reading-polish-v010/native-actions-final.json",
+    "manifestSha256": "71199f85751ed85bc7a23efefe99ab1b7d3bbf25fe54ac07a4b5fc9d35537cf6",
+    "newControlsReview": {
+      "file": "tmp/community-refinement-20261028/reading-polish-v010/new-controls-review.json",
+      "sha256": "06f441347f37e56be0cef3bb4b995a77eeaf1005d6a630d736ec924f4912f3f5"
+    },
+    "scope": "Myentry/guestself/localdraft/375font26/representativegallery+previewreturn/4videoPlayPause+shareCancelResume/rolemanagementmenuCancel; no submission, delete or policywrites repeated.",
+    "mediaIndependentReview": {
+      "status": "completed-scoped",
+      "file": "tmp/community-refinement-20261028/reading-polish-v010/media-controls-review.json",
+      "sha256": "3647bfc68b68a59f008d84daec8d665c0eafd181a821ce2a9f193c220ce79de8"
+    },
+    "limits": "NativeSDK screenshot19 shows dimmedarticle only, not platformactionsheet options; root actualAX observation+Cancel confirms menu path. No physical/FPS/fullscreen proof."
+  }
+}

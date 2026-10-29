@@ -75,7 +75,7 @@ describe("native detail presentation preserves the authorized comments and sourc
   it("keeps the reference type sizes at16px while text scales with the system root",()=>{
     const typography:[string,number,number?][]=[
       [".post-title",18,28],[".post-copy",16,26],[".post-copy__topic",16,26],
-      [".post-action-count",14,16.1],[".post-comment-label",14,16.1],[".post-comment-entry__label",14,16.1],
+      [".post-action-count",14,16.1],[".post-comment-label",14,16.1],[".post-comment-entry__label",16,22],
       [".post-ai-label",12,18],[".post-published",14,16.8],
       [".post-page .state",12,19.2],[".post-page .text-button",14,20]
     ];
@@ -162,7 +162,7 @@ describe("native detail presentation preserves the authorized comments and sourc
     const extra=(root:number)=>remainder.split("+").map(value=>value.trim()).filter(Boolean).reduce((sum,value)=>sum+sizePx(value,root),0);
     for(const root of [16,20,24]){
       const rowHeight=Math.max(sizePx(row.height!,root),sizePx(row["min-height"]!,root));
-      expect(rowHeight).toBeGreaterThanOrEqual(40);expect(extra(root)-rowHeight).toBeCloseTo(72);
+      expect(rowHeight).toBeGreaterThanOrEqual(40);expect(extra(root)-rowHeight).toBeCloseTo(32);
     }
     expect(sizePx(row.height!)).toBe(40);expect(sizePx(row.height!,20)).toBe(50);
   });
@@ -202,7 +202,7 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(stylesFor(".post-gallery-dot")).toMatch(/height\s*:\s*6px\s*;/);
   });
 
-  it("renders exact text segments without automatic bold or rich HTML and retains the short AI label and explicit source-menu entry",()=>{
+  it("renders exact text segments without automatic bold or rich HTML and retains the short AI label and direct source entry",()=>{
     const body=markup.match(/<text wx:if="\{\{editorialSource\}\}" class="post-copy">([\s\S]*?)<\/text><\/text>/)?.[1];
     expect(body).toBeDefined();expect(body).toContain('wx:for="{{item.readingSegments}}"');expect(body).toContain("{{item.text}}");
     expect(body).not.toMatch(/<(?:strong|b|rich-text)\b/);
@@ -210,9 +210,10 @@ describe("native detail presentation preserves the authorized comments and sourc
     for(const selector of [".post-copy",".post-copy__body",".post-copy__heading",".post-copy__topic"])
       expect(stylesFor(selector)).toMatch(/font-weight\s*:\s*400\s*;/);
     expect(markup).toMatch(/<text\b[^>]*wx:if="\{\{editorialSource && aiLabel\}\}"[^>]*class="post-ai-label">\{\{aiLabel\}\}<\/text>/);
-    expect(markup).toMatch(/<button\b[^>]*bindtap="openPostMore"[^>]*aria-label="文章更多操作"/);
+    expect(markup).not.toContain('bindtap="openPostMore"');
+    expect(markup).toMatch(/<button\b[^>]*bindtap="copySource"[^>]*aria-label="复制原文链接"/);
     const logic=readFileSync(new URL("../../apps/miniprogram/pages/post/index.ts",import.meta.url),"utf8");
-    expect(logic).toContain('if(this.data.item.sourceUrl)actions.push({label:"复制原文链接",run:()=>this.copySource()});');
+    expect(markup).toContain('wx:if="{{editorialSource && item.sourceUrl}}"');
     expect(logic).toContain('if(typeof url==="string"&&/^https:\\/\\//.test(url))wx.setClipboardData({data:url});');
   });
 });

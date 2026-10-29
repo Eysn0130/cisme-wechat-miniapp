@@ -44,6 +44,11 @@ button::after {
   border: 0;
 }
 
+.post-comment-entry::after {
+  border: 0;
+  box-shadow: none;
+}
+
 image {
   display: block;
 }

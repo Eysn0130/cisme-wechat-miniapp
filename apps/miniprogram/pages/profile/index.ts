@@ -160,6 +160,11 @@ Page({
   openInvite() { this.openRoute("/pages/invite/index", "navigate", "邀请页面暂时无法打开"); },
   openCommission(){this.openRoute("/pages/commission/index","navigate","商业资格与佣金暂时无法打开");},
   openCommunityActivity(){this.openRoute("/pages/community-activity/index","navigate","社区记录暂时无法打开");},
+  openMyPosts(){
+    const url="/pages/community-compose/index";
+    if(this.data.navigating||!requireMemberAccess(url))return;
+    this.openRoute(url,"navigate","投稿与草稿暂时无法打开");
+  },
   openTasks() {
     if (this.data.tasksLoading || this.data.navigating) return;
     if (this.data.tasksError) { void this.loadTasks(); return; }
