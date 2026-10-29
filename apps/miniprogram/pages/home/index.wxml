@@ -1,3 +1,4 @@
+<page-meta root-font-size="system"/>
 <view class="home-page {{reducedMotion ? 'home-page--reduced' : ''}}" style="{{chromeStyle}}">
   <button class="home-support {{accountOpening || sessionMounted ? 'control--disabled' : ''}}" bindtap="openSupport" disabled="{{accountOpening || sessionMounted}}" aria-hidden="{{sessionMounted}}" aria-label="打开 CISME 客服{{supportState === 'ready' ? (supportUnread ? '，有 ' + supportUnread + ' 条未读消息' : '，没有未读消息') : supportState === 'error' ? '，未读数量暂未确认' : '，未读数量同步中'}}"><image src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><text wx:if="{{supportUnread}}" class="home-support__badge">{{supportUnread > 99 ? '99+' : supportUnread}}</text></button>
   <image class="home-background" src="/assets/cisme/cisme-home-background-v1.jpg" mode="aspectFill" />

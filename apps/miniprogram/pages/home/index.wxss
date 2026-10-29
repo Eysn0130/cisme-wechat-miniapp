@@ -1,3 +1,4 @@
+page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body:.875rem; --cisme-text-action:1rem; }
 .home-page {
   position: fixed;
   z-index: 1;

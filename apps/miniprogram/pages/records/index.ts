@@ -54,6 +54,7 @@ interface CareCycleApi {
 }
 
 interface RecordView {
+  source?: "daily";
   recordKey: string;
   milestone: string;
   index: string;
@@ -85,7 +86,7 @@ const emptyDaily = { dailyRecords: [] as RecordView[], dailyReady: false, dailyL
 function dailyRecordView(record: DailyCareRecord): RecordView {
   const completion = zonedCompletion(record.completedAt, record.timezone);
   const assessment = careSelfAssessments.find(item => item.value === record.selfAssessment)!;
-  return { recordKey: `daily:${record.id}`, milestone: "日常", index: "日", completedAt: completion.short,
+  return { source: record.source, recordKey: `daily:${record.id}`, milestone: "日常", index: "日", completedAt: completion.short,
     completedDate: completion.date, completedTime: completion.time, assessmentLabel: assessment.label,
     assessmentNote: assessment.note, assessmentAvailable: true, assessmentIcon: "/assets/icons/check-circle-plum.svg",
     steps: careProtocolSteps.map(step => ({ code: step.code, label: step.label, title: step.title })), stepSummary: "",

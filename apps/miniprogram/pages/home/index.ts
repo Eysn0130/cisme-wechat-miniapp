@@ -341,7 +341,7 @@ Page({
       if (!completed || !this.isCurrentUi(epoch, token)) return;
       this.resetCareSession();
       lightHaptic(this.data.reducedMotion);
-      wx.showToast({ title: "本次日常护理已保存", icon: "success" });
+      wx.showToast({ title: "护理已保存", icon: "success" });
       return;
     }
     if (!care || !care.due) return;

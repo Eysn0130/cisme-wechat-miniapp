@@ -1,3 +1,4 @@
+page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body:.875rem; --cisme-text-action:1rem; }
 .records-page { min-height:100vh; padding-top:calc(var(--cisme-status-bar,20px) + 16rpx); padding-bottom:calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 150rpx); background:radial-gradient(circle at 82% 0,rgba(209,190,224,.46),transparent 24%),linear-gradient(180deg,#f8f4f9,#f3edf6); }
 .records-hero { position:relative; min-height:444rpx; padding:44rpx 36rpx 34rpx; overflow:hidden; color:#fff; background:linear-gradient(145deg,#6d5481 0%,#3f2b50 60%,#2d2138); }
 .records-hero-status { position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:center; flex-direction:column; min-height:350rpx; gap:26rpx; }
