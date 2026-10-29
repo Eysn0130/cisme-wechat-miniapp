@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
+  "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": {
@@ -8,7 +8,7 @@
     "version": "2.02.2610272",
     "officialSkillVersion": "0.3.14",
     "baseLibrary": "3.15.2",
-    "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
+    "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
     "compileErrors": null,
     "consoleErrors": null,
     "networkFailures": null,
@@ -277,11 +277,11 @@
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "Fresh07b simulator evidence covers40 entry attempts/88frames and20articles/68frames, with scoped media and login-return observations. Full route state matrices, positive care/order/management-permission journeys and authorized physical-device checks remain incomplete."
+      "reason": "Current9ec57 scoped native review covers20articles/66frames and reading controls; full40 route state matrices, unavailable positive care/order/permissions and physical-device acceptance remain incomplete."
     }
   ],
-  "note": "Current07b captures, independent reviews, successful0.1.9 code-upload task and the human-approved pending-reply cleanup are scoped observedEvidence only. The f8 trial API remains active at schema99. Historical counts retain before-cleanup scope. Formal route matrices, evidence/device gates and finalResult remain blocked; experience-version selection and physical-phone checks are unverified.",
-  "observedEvidence": {
+  "note": "Current K.6 source9ec57:20articles/66native stillframes independently reviewed plus scoped controls,guest/self and375font26 observations. Prior07b delivery/native/upload/cleanup is historical only. Formal state matrices, physical pinch/keyboard/fullscreen and finalResult remain blocked.",
+  "historicalObservedEvidence07b": {
     "packageSourceSha256": "07b24e1d4f8b4ee71d3cc9900deff8ad41d26ce2199d7eda96aca6b6fb88212a",
     "scope": "Fresh current-source simulator observations only. Independent reviewers inspected the cited original frames; root performed the cited gestures and account actions. Historical screenshots are not inherited.",
     "apiRuntime": {
@@ -460,5 +460,15 @@
       },
       "outcomeObservedAtUtc": "2026-10-29T00:32:20.425993+00:00"
     }
+  },
+  "observedEvidence": {
+    "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+    "scope": "Current-source scoped native observations only; final business/physical acceptance remains blocked.",
+    "recordFile": "docs/evidence/visual/community-reading-controls-20261028-v010.json",
+    "nativeCapturePending": false,
+    "articles": 20,
+    "articleFrames": 66,
+    "independentlyReviewed": true,
+    "physicalDeviceValidated": false
   }
 }

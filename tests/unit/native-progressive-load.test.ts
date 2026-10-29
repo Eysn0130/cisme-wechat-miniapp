@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 
-const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), authority: vi.fn(), avatar: vi.fn(), publish: vi.fn(), identity: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false, clearAuthenticationRedirectSuppression: vi.fn() }));
+const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), authority: vi.fn(), avatar: vi.fn(), publish: vi.fn(), identity: vi.fn(), access:vi.fn() }));
+vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: (url?:string) => {mocks.access(url);return Boolean(mocks.token);}, retainMemberSnapshot: () => false, clearAuthenticationRedirectSuppression: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/member-identity", () => ({ memberIdentity: mocks.identity, publishMemberIdentity: mocks.publish }));
 vi.mock("../../apps/miniprogram/services/member-avatar", () => ({ defaultMemberAvatar: "neutral", localMemberAvatar: mocks.avatar }));
 vi.mock("../../apps/miniprogram/services/authority", async original => ({ ...await original<typeof import("../../apps/miniprogram/services/authority")>(), authorityProjection: mocks.authority }));
@@ -97,6 +97,45 @@ describe("PERF-01/03: native Home progressive, session-bound facts", () => {
 });
 
 describe("PERF-02/09: native Profile consistent core, independent auxiliary states", () => {
+  it("keeps interaction history, personal posts and invitation activities as distinct My-page entries",()=>{
+    const community=readFileSync("apps/miniprogram/pages/community/index.wxml","utf8"),profile=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
+    expect(community).not.toContain('bindtap="openMyPosts"');expect(community).not.toContain("我的投稿与草稿");
+    for(const [handler,label]of [["openCommunityActivity","我的社区"],["openMyPosts","投稿与草稿"],["openTasks","我的活动"]]){
+      expect(profile.match(new RegExp(`bindtap="${handler}"`,"g"))).toHaveLength(1);expect(profile).toContain(`<strong>${label}</strong>`);
+    }
+    expect(profile).not.toContain("<strong>投稿与活动</strong>");
+  });
+  it("opens only the existing personal-post list without creating a draft or waiting for activities",async()=>{
+    await loadPage("profile");page.data.tasksLoading=true;page.data.coreUnavailable=true;page.openMyPosts();page.openMyPosts();
+    expect(mocks.access).toHaveBeenCalledWith("/pages/community-compose/index");
+    expect((globalThis as any).wx.navigateTo).toHaveBeenCalledTimes(1);
+    expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/community-compose/index"}));
+    expect(page.data.navigating).toBe(true);expect(mocks.request).not.toHaveBeenCalled();
+  });
+  it("requires membership for the personal-post list and retains the exact read-only return route",async()=>{
+    mocks.token="";await loadPage("profile");page.openMyPosts();
+    expect(mocks.access).toHaveBeenCalledWith("/pages/community-compose/index");
+    expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();expect(page.data.navigating).toBe(false);
+  });
+  it("unlocks the personal-post entry and tab bar after navigation fails, allowing an explicit retry",async()=>{
+    await loadPage("profile");const tab={setData:vi.fn()};page.getTabBar=()=>tab;page.openMyPosts();
+    expect(tab.setData).toHaveBeenCalledWith({externalBusy:true});
+    (globalThis as any).wx.navigateTo.mock.calls[0][0].fail();
+    expect(page.data.navigating).toBe(false);expect(tab.setData).toHaveBeenCalledWith({externalBusy:false});
+    expect((globalThis as any).wx.showToast).toHaveBeenCalledWith({title:"投稿与草稿暂时无法打开",icon:"none"});
+    page.openMyPosts();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledTimes(2);expect(mocks.request).not.toHaveBeenCalled();
+  });
+  it.each([
+    {tasks:[],mode:"switchTab",url:"/pages/community/index"},
+    {tasks:[{id:"task-a"}],mode:"navigateTo",url:"/pages/task/index?id=task-a"},
+    {tasks:[{id:"task-a"},{id:"task-b"}],mode:"switchTab",url:"/pages/community/index"}
+  ])("retains the existing invitation activity route for $tasks",async({tasks,mode,url})=>{
+    await loadPage("profile");page.data.tasks=tasks;page.openTasks();
+    expect((globalThis as any).wx[mode]).toHaveBeenCalledWith(expect.objectContaining({url}));expect(mocks.request).not.toHaveBeenCalled();
+  });
+  it("keeps My community pointed at real interaction history",async()=>{
+    await loadPage("profile");page.openCommunityActivity();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/community-activity/index"}));expect(mocks.request).not.toHaveBeenCalled();
+  });
   it("keeps ordinary service routes reachable when the profile snapshot fails", async () => {
     mocks.request.mockImplementation(async ({ path }) => {
       if (path === "/v1/bootstrap/profile") throw new Error("synthetic profile outage");
