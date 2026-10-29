@@ -69,7 +69,9 @@ describe('cold business-session recovery and explicit logout',()=>{
   await vi.waitFor(()=>expect(page.data.sessionRestoreFailed).toBe(true));
   expect(runtime.globalData.sessionToken).toBe('synthetic-existing-session');expect(wxMock.switchTab).not.toHaveBeenCalled();
   meFailure='';await page.login();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));
-  expect(paths().every(path=>path==='/v1/me')).toBe(true);expect(wxMock.login).not.toHaveBeenCalled();
+  expect(paths().every(path=>path==='/v1/me'||path==='/v1/identity/capabilities')).toBe(true);
+  expect(paths().filter(path=>path==='/v1/identity/capabilities')).toHaveLength(1);
+  expect(requests.every(request=>(request.method??'GET')==='GET')).toBe(true);expect(wxMock.login).not.toHaveBeenCalled();
  });
  it('only clears an unverified retained session after the user explicitly chooses another login',async()=>{
   runtime.globalData.sessionToken='synthetic-existing-session';meFailure='network';await mount({});

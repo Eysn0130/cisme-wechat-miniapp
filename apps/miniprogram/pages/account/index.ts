@@ -117,7 +117,12 @@ Page({
     this.setData({loading:true,restoringSession:true,sessionRestoreFailed:false,pendingDestination:this.authenticationReturnUrl,error:""});
     try {
       const me=await request<{id:string}>({path:"/v1/me",authMode:"optional"});
-      if(!current()){if(this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.authAttempt&&!getApp<IAppOption>().globalData.sessionToken)this.revealExpiredLogin();return;}
+      if(!current()){
+        if(this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.authAttempt&&!getApp<IAppOption>().globalData.sessionToken&&this.revealExpiredLogin()){
+          void this.syncLegalDocuments();void this.loadCapabilities();
+        }
+        return;
+      }
       if(!me||typeof me.id!=="string"||!me.id)throw new Error("MEMBER_RESTORE_RESPONSE_INVALID");
       this.setData({leaving:true});
       wx.switchTab({url:"/pages/home/index",fail:()=>{
@@ -125,10 +130,16 @@ Page({
       }});
     } catch {
       if(!this.data.pageAlive||!this.data.pageVisible||attempt!==this.data.authAttempt)return;
-      if(!getApp<IAppOption>().globalData.sessionToken){this.revealExpiredLogin();return;}
+      if(!getApp<IAppOption>().globalData.sessionToken){
+        if(this.revealExpiredLogin()){void this.syncLegalDocuments();void this.loadCapabilities();}
+        return;
+      }
       if(current())this.setData({sessionRestoreFailed:true,error:"暂时无法连接，原登录状态已保留。请重新连接，或选择重新登录。"});
     } finally {
-      if(this.data.pageAlive&&attempt===this.data.authAttempt)this.setData({loading:false,restoringSession:false});
+      if(this.data.pageAlive&&attempt===this.data.authAttempt){
+        this.setData({loading:false,restoringSession:false});
+        if(current()&&!this.data.leaving){void this.syncLegalDocuments();void this.loadCapabilities();}
+      }
     }
   },
   restartLogin() {
@@ -148,8 +159,12 @@ Page({
     }
     if(!token&&!this.data.renewalMode)this.revealExpiredLogin();
     if(token&&!this.data.renewalMode)this.setData({pendingDestination:this.data.pendingDestination || this.authenticationReturnUrl});
-    void this.syncLegalDocuments();
-    if(!this.data.renewalMode)void this.loadCapabilities();
+    // The retained-session verdict may change the request context. Start the
+    // public login bootstrap after that verdict, rather than aborting it on401.
+    if(!this.data.restoringSession){
+      void this.syncLegalDocuments();
+      if(!this.data.renewalMode)void this.loadCapabilities();
+    }
   },
   revealExpiredLogin() {
     if(!this.data.pageAlive||this.data.leaving||this.data.renewalMode||getApp<IAppOption>().globalData.sessionToken||(!this.data.pendingDestination&&this.data.loginStage!=="avatar"))return false;

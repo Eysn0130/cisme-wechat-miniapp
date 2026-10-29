@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729",
+  "packageSourceSha256": "0dbe01dd9388b3409116a1a341045630299dd304e8606cfb38a721d746c19e7b",
   "finalResult": "blocked",
   "evidenceIndex": {},
   "devtools": null,
@@ -457,12 +457,20 @@
     "independentlyReviewed": true,
     "physicalDeviceValidated": false
   },
-  "observedEvidence": {
+  "historicalCareAuthorityEd6d": {
     "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729",
-    "scope": "Current ed6d scoped management/login/guest native observations; daily integration awaits schema100 deployment and final acceptance remains blocked.",
+    "scope": "Historical ed6d native management/login/guest observations; invalid local session also exposed a public-legal bootstrap race, corrected afterward.",
     "nativeCapturePending": true,
     "independentlyReviewed": false,
     "physicalDeviceValidated": false,
     "recordFile": "docs/evidence/care-authority-session-20261029/review.json"
+  },
+  "observedEvidence": {
+    "packageSourceSha256": "0dbe01dd9388b3409116a1a341045630299dd304e8606cfb38a721d746c19e7b",
+    "scope": "Current0dbe controlled-invalid-session legal bootstrap recovered, ordinary login and retained-session fresh compilation reach Home; care awaits API100, full native acceptance remains blocked.",
+    "nativeCapturePending": true,
+    "independentlyReviewed": false,
+    "physicalDeviceValidated": false,
+    "recordFile": "docs/evidence/care-authority-session-20261029/cold-session-correction.json"
   }
 }
