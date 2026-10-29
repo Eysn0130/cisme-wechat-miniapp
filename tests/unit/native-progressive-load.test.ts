@@ -84,6 +84,12 @@ describe("PERF-01/03: native Home progressive, session-bound facts", () => {
     page.data.snapshotVersion = 101; const newerCare = { ...care, version: 2 }; page.data.care = newerCare;
     await page.load(true); expect(page.data.care).toEqual(newerCare);
   });
+  it.each([null, { ...care, id: "cycle-b", version: 1 }])("accepts a lower version when the current cycle changes to %j", async nextCare => {
+    await loadPage("home"); await page.load(); page.data.snapshotVersion = 5; page.data.care = { ...care, version: 5 };
+    mocks.request.mockImplementation(async ({ path }) => path === "/v1/bootstrap/home" ? { ...snapshot, care: nextCare, businessVersion: 1 } : support.promise);
+    await page.load(true); expect(page.data.care).toEqual(nextCare); expect(page.data.snapshotVersion).toBe(1);
+    expect(page.data.loading).toBe(false); expect(page.data.authorityAvailable).toBe(true);
+  });
   it("restores guest semantics after an expired session without automatic navigation", async () => {
     mocks.request.mockImplementation(async ({ path, authMode }) => {
       expect(authMode).toBe("optional");

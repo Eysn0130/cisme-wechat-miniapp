@@ -1,23 +1,9 @@
 {
   "schemaVersion": 2,
-  "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
+  "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729",
   "finalResult": "blocked",
   "evidenceIndex": {},
-  "devtools": {
-    "application": "/Applications/wechatwebdevtools.app",
-    "version": "2.02.2610272",
-    "officialSkillVersion": "0.3.14",
-    "baseLibrary": "3.15.2",
-    "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
-    "compileErrors": null,
-    "consoleErrors": null,
-    "networkFailures": null,
-    "compileEvidenceFiles": [],
-    "consoleEvidenceFiles": [],
-    "networkEvidenceFiles": [],
-    "routeRuntimeHealthFiles": [],
-    "physicalDeviceValidated": false
-  },
+  "devtools": null,
   "routeCoverage": [
     {
       "route": "pages/account/index",
@@ -461,14 +447,22 @@
       "outcomeObservedAtUtc": "2026-10-29T00:32:20.425993+00:00"
     }
   },
-  "observedEvidence": {
+  "historicalReadingControls010": {
     "packageSourceSha256": "9ec57eb32f8a5954d11f4510455edd6f07576ae32884ab6f46b11d095cce6f6f",
-    "scope": "Current-source scoped native observations only; final business/physical acceptance remains blocked.",
+    "scope": "Historical9ec scoped observations only. Do not promote to current care/authority/session source.",
     "recordFile": "docs/evidence/visual/community-reading-controls-20261028-v010.json",
     "nativeCapturePending": false,
     "articles": 20,
     "articleFrames": 66,
     "independentlyReviewed": true,
     "physicalDeviceValidated": false
+  },
+  "observedEvidence": {
+    "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729",
+    "scope": "Current ed6d scoped management/login/guest native observations; daily integration awaits schema100 deployment and final acceptance remains blocked.",
+    "nativeCapturePending": true,
+    "independentlyReviewed": false,
+    "physicalDeviceValidated": false,
+    "recordFile": "docs/evidence/care-authority-session-20261029/review.json"
   }
 }

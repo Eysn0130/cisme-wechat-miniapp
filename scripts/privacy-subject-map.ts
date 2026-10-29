@@ -4,8 +4,9 @@ const input=process.argv[2];if(!input)throw new Error('EXPLICIT_SYNTHETIC_SCHEMA
 const schema=JSON.parse(await readFile(input,'utf8')) as {kind:string;migrationSetSha256:string;tables:Table[]};
 if(schema.kind!=='synthetic-migrated-schema-only-NOT-personal-data-export')throw new Error('SCHEMA_METADATA_ONLY');
 const tables=new Map(schema.tables.map(t=>[t.table,t]));
-const allow:Record<string,string[]>={member:['id','display_name','created_at'],member_profile:['wechat_handle','updated_at']};
+const allow:Record<string,string[]>={member:['id','display_name','created_at'],member_profile:['wechat_handle','updated_at'],daily_care_record:['id','completed_at','timezone','protocol_version','step_codes','self_assessment']};
 const special:Record<string,string>={
+ daily_care_record:'Member-owned independent daily care facts, not a cycle/qualification/reward. Export only unsuppressed owner facts; exclude member_id, operation_id, request_sha256 and suppressed_at. Account closure deletes unheld facts, isolates held facts and replays deletion after backup restore or hold release.',
  commerce_aftersale_case:'member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, reason and exception_evidence_reference are private. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.',
  commerce_aftersale_event:'case_id identifies buyer; actor_member_id is the customer or a separately authorized operator. Notes may contain third-party data. Immutable history is not a blanket retention approval.',
  commerce_aftersale_return_instruction:'case_id identifies buyer; issued_by is a separate operator. The recipient, phone, region and address may identify a third party. Each version is immutable and must be projected to the case owner only; do not export all versions as a general member profile or delete while return/dispute duties remain.',
@@ -45,7 +46,7 @@ const result={schemaVersion:1,migrationSetSha256:schema.migrationSetSha256,scope
   actorColumns:t.columns.filter(c=>/principal|created_by|updated_by|approved_by|requested_by|decided_by|reviewed_by/.test(c.name)).map(c=>c.name),
   specialHandling:special[t.table]??(paths(t.table).length?'Follow each distinct subject role; shared rows require field-specific projection.':'No FK path to member; examine operator text fields/config/reference purpose before deciding non-personal.'),
   exportFields:allow[t.table]??[],excludedFields:t.columns.map(c=>c.name).filter(name=>!(allow[t.table]??[]).includes(name)),
-  syntheticErasureFields:t.table==='member_profile'?['wechat_handle']:[],productionErasure:'DISABLED',
+  syntheticErasureFields:t.table==='member_profile'?['wechat_handle']:[],productionErasure:t.table==='daily_care_record'?'ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION':'DISABLED',
   retention:['support_conversation','support_message'].includes(t.table)
     ?'ORDINARY_SUPPORT_FINITE_POLICY_AND_AUTO_GATE; TRANSACTION_LINKED_EXCLUDED'
     :'POLICY_PENDING_NO_AUTOMATIC_DELETION',

@@ -30,7 +30,7 @@ Page({
   authenticationReturnUrl:"/pages/home/index",
   renewalSessionToken:"",
   renewalDestination:"",
-  data: { renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, phoneCapabilityKnown:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  data: { restoringSession:false,sessionRestoreFailed:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, phoneCapabilityKnown:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
     const attempt=++this.data.authAttempt;
@@ -104,12 +104,39 @@ Page({
     // The first route is a lightweight entry gate; explicit account visits stay here.
     if (!query?.intent && getCurrentPages().length === 1) {
       const token = getApp<IAppOption>().globalData.sessionToken;
-      const guest = wx.getStorageSync<boolean>("cisme.guestBrowsing");
-      if (token || guest) {
-        this.data.leaving = true;
-        wx.switchTab({ url: token ? "/pages/home/index" : "/pages/community/index", fail: () => { this.setData({leaving:false}); void this.syncLegalDocuments(); } });
-      }
+      if (token) void this.restoreRetainedSession();
     }
+  },
+  async restoreRetainedSession() {
+    if(!this.data.pageAlive||!this.data.pageVisible||this.data.leaving||this.data.restoringSession)return;
+    const token=getApp<IAppOption>().globalData.sessionToken;
+    if(!token){this.revealExpiredLogin();return;}
+    const attempt=++this.data.authAttempt;
+    const current=()=>this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.authAttempt
+      &&token===getApp<IAppOption>().globalData.sessionToken;
+    this.setData({loading:true,restoringSession:true,sessionRestoreFailed:false,pendingDestination:this.authenticationReturnUrl,error:""});
+    try {
+      const me=await request<{id:string}>({path:"/v1/me",authMode:"optional"});
+      if(!current()){if(this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.authAttempt&&!getApp<IAppOption>().globalData.sessionToken)this.revealExpiredLogin();return;}
+      if(!me||typeof me.id!=="string"||!me.id)throw new Error("MEMBER_RESTORE_RESPONSE_INVALID");
+      this.setData({leaving:true});
+      wx.switchTab({url:"/pages/home/index",fail:()=>{
+        if(current())this.setData({leaving:false,sessionRestoreFailed:true,error:"登录仍保留，首页暂时无法打开，请重试。"});
+      }});
+    } catch {
+      if(!this.data.pageAlive||!this.data.pageVisible||attempt!==this.data.authAttempt)return;
+      if(!getApp<IAppOption>().globalData.sessionToken){this.revealExpiredLogin();return;}
+      if(current())this.setData({sessionRestoreFailed:true,error:"暂时无法连接，原登录状态已保留。请重新连接，或选择重新登录。"});
+    } finally {
+      if(this.data.pageAlive&&attempt===this.data.authAttempt)this.setData({loading:false,restoringSession:false});
+    }
+  },
+  restartLogin() {
+    if(!this.data.pageAlive||!this.data.pageVisible||this.data.loading||this.data.leaving||!this.data.sessionRestoreFailed||this.data.renewalMode)return;
+    this.data.authAttempt+=1;
+    setSessionToken("");
+    this.setData({sessionRestoreFailed:false,restoringSession:false,pendingDestination:"",loginStage:"login",agreementAccepted:false,crossBorderAccepted:false,error:"",notice:"请重新确认微信身份。"});
+    void this.syncLegalDocuments();
   },
   onShow() {
     this.data.pageVisible = true;if(this.data.leaving)return;
@@ -127,11 +154,11 @@ Page({
   revealExpiredLogin() {
     if(!this.data.pageAlive||this.data.leaving||this.data.renewalMode||getApp<IAppOption>().globalData.sessionToken||(!this.data.pendingDestination&&this.data.loginStage!=="avatar"))return false;
     this.data.authAttempt+=1;this.data.avatarAttempt+=1;
-    this.setData({pendingDestination:"",loginStage:"login",avatarBusy:false,loading:false,identityCommitStarted:false,
+    this.setData({pendingDestination:"",loginStage:"login",avatarBusy:false,loading:false,restoringSession:false,sessionRestoreFailed:false,identityCommitStarted:false,
       agreementAccepted:false,crossBorderAccepted:false,avatarUrl:defaultMemberAvatar,error:"",notice:"登录状态已失效，请重新登录。"});
     return true;
   },
-  onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1; this.setData({heroMotionActive:false,...(this.data.avatarBusy?{avatarBusy:false}:{})}); },
+  onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1;if(this.data.restoringSession){this.data.authAttempt+=1;this.setData({loading:false,restoringSession:false,sessionRestoreFailed:true});} this.setData({heroMotionActive:false,...(this.data.avatarBusy?{avatarBusy:false}:{})}); },
   async loadMemberIdentity() {
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (!token) return;
@@ -256,6 +283,7 @@ Page({
   async login(phoneCode?:string) {
     if (this.data.loading || this.data.leaving || this.data.avatarBusy || !this.data.pageAlive) return;
     if(this.data.renewalMode){await this.confirmLegalRenewal();return;}
+    if(this.data.sessionRestoreFailed&&getApp<IAppOption>().globalData.sessionToken){await this.restoreRetainedSession();return;}
     if(this.revealExpiredLogin())return;
     if (this.data.pendingDestination && getApp<IAppOption>().globalData.sessionToken) {
       const attempt=++this.data.authAttempt;

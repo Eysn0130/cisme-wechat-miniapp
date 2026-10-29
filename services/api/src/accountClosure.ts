@@ -308,7 +308,11 @@ export class AccountClosure {
             OR EXISTS(SELECT 1 FROM member_contact WHERE member_id=m.id)
             OR EXISTS(SELECT 1 FROM phone_authorization WHERE member_id=m.id)
             OR EXISTS(SELECT 1 FROM member_profile WHERE member_id=m.id)
-            OR EXISTS(SELECT 1 FROM member_delivery_address WHERE member_id=m.id AND key_version<>'erased')))))
+            OR EXISTS(SELECT 1 FROM member_delivery_address WHERE member_id=m.id AND key_version<>'erased')
+            OR EXISTS(SELECT 1 FROM daily_care_record d WHERE d.member_id=m.id AND NOT EXISTS(
+              SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+              WHERE h.status='active' AND h.expires_at>clock_timestamp()
+                AND b.object_type='daily_care_record' AND b.object_id=d.id::text))))))
         AS pending`,[memberId])).rows[0]?.pending;
       if(pending){await this.replayMember(pool,memberId);repaired++;}
     }
@@ -353,6 +357,15 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
       key_version='erased',is_default=false,deleted_at=COALESCE(deleted_at,now()),updated_at=now()
       WHERE member_id=$1 AND key_version<>'erased'`,[marker.memberId])).rowCount??0;
   }
+
+  // Daily care is private member data. Held facts stay suppressed, never public
+  // or recoverable through member reads; released evidence is deleted on replay.
+  changed+=(await client.query(`DELETE FROM daily_care_record d WHERE d.member_id=$1 AND NOT $2::boolean
+    AND NOT EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+      WHERE h.status='active' AND h.expires_at>now() AND b.object_type='daily_care_record' AND b.object_id=d.id::text)`,
+    [marker.memberId,held])).rowCount??0;
+  changed+=(await client.query('UPDATE daily_care_record SET suppressed_at=now() WHERE member_id=$1 AND suppressed_at IS NULL',
+    [marker.memberId])).rowCount??0;
 
   // Closing an author account withdraws its public editorial and media immediately.
   // Necessary publication proof contains hashes only; live text may be redacted unless held.

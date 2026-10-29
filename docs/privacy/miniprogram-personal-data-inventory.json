@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-10-28",
+  "inventoryDate": "2026-10-29",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -632,6 +632,14 @@
       "activation": "真实微信身份主动操作；管理员按现环境真实权限处理",
       "serverStorage": "本人关系及受限治理记录，公开页不展示举报人或私有联系资料，沿用导出/清理规则",
       "currentGate": "举报和解除屏蔽不强迫新同意，个人屏蔽列表required-auth，管理队列不依赖昵称或isMine"
+    },
+    {
+      "surface": "daily-care-records",
+      "informationType": "本人日常护理四步、护理后感受及完成时间",
+      "purpose": "用户完成后主动保存、本人回看与幂等结果恢复",
+      "activation": "已登录会员完成四步并选择感受后明确提交",
+      "serverStorage": "独立daily_care_record按真实会员归属；不生成周期、权益、邀请或积分；注销删除/必要保全隔离/恢复抑制沿现有流程",
+      "currentGate": "源码新增待测试与实际部署，不声明已在现网可用或真机验收"
     }
   ],
   "runtimeDataEgress": [
@@ -710,7 +718,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "de2d2637c59d7ad45cee40bebb70e726533951782a4a1f8f2a2e2ba4b8a050a7",
+  "migrationSetSha256": "7c121e9902488a76afced15562ae2fce1901e045f3fb1e9384fdf6460b32a15a",
   "egressSignatureSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1049,5 +1057,31 @@
       "retention": "沿用既有数据权利、导出、删除和实际保全规则；不新增保留期限。",
       "nativeAcceptance": "Implementation in progress; current-source native validation pending."
     }
+  },
+  "dailyCareRecordsReview20261029": {
+    "scope": "Explicit user request: save completed daily care for authenticated members without inventing a cycle or qualification. Migration100 adds only daily_care_record.",
+    "routes": [
+      "POST /v1/me/daily-care-records",
+      "GET /v1/me/daily-care-records"
+    ],
+    "data": [
+      "owner member FK",
+      "ordered four step codes",
+      "post-care self-assessment",
+      "server completion time",
+      "fixed timezone and protocol version",
+      "private idempotency operation ID and request hash",
+      "suppression timestamp"
+    ],
+    "purpose": "Save and retrieve the member's own completed daily care; exact-key recovery prevents duplicate facts.",
+    "newRecipient": false,
+    "cycleOrRewardCreated": false,
+    "serverOnlyOwner": true,
+    "export": "Existing bounded v1/v2 portable care projection includes unsuppressed owner id/time/timezone/protocol/steps/self-assessment only; no operation key, hash or other member IDs.",
+    "erasure": "Existing account closure and external suppression marker replay delete unheld daily facts, retain held evidence suppressed and remove it after hold release. Optional-profile deletion does not silently delete care history.",
+    "newRetentionPeriod": false,
+    "newConsentCreated": false,
+    "deployed": false,
+    "nativeOrPhysicalAcceptance": false
   }
 }

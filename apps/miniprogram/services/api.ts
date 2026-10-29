@@ -16,6 +16,7 @@ let suppressedAuthRedirectPath = "";
 type AuthenticationIntent = "login" | "renew";
 let authenticationSequence = 0;
 let authenticationFlow: { id: string; returnUrl: string; intent: AuthenticationIntent; environment: string; token: string; claimed: boolean } | null = null;
+let rejectedSession: { token: string; environment: string } | null = null;
 
 function safeAuthenticationReturn(url: string, fallback = "/pages/home/index"): string {
   return url.startsWith("/pages/") && !url.startsWith("/pages/account/") ? url : fallback;
@@ -36,6 +37,7 @@ function normalizedAuthPath(url: string): string {
 }
 
 export function setSessionToken(token: string): void {
+  rejectedSession = null;
   for (const release of privateDownloads) release();
   invalidateCommerceRecoveryContext();
   if(!token){clearAllUgcBackups();try{redactCommerceCommandPayloads();}catch{/* Keep malformed recovery records fail-closed; never retain the auth session. */}}
@@ -47,6 +49,7 @@ export function setSessionToken(token: string): void {
   wx.setStorageSync(app.globalData.sessionStorageKey || "cisme.sessionToken", token);
   wx.removeStorageSync(`${app.globalData.sessionStorageKey || "cisme.sessionToken"}.privacyRightsToken`);
   if (token) {
+    wx.removeStorageSync("cisme.guestBrowsing");
     authRedirecting = false;
     suppressedAuthRedirectPath = "";
   }
@@ -258,6 +261,11 @@ function retryDelayMs(error: unknown, options: RequestOptions): number | null {
 const cancelledProblem = (method: string) => ({ code: "REQUEST_ABORTED", title: method === "GET" ? "已停止加载。" : "已停止等待。已提交的操作可能仍在处理，请先查看记录。" });
 const deadlineProblem = (method: string) => ({ code: "NETWORK_TIMEOUT", title: method === "GET" ? "加载超时，请检查网络后重新加载。" : "暂未确认操作结果，请先查看记录，勿重复提交。" });
 
+function redirectRejectedSession(session:string,environment:string,origin:string,authMode:string):void {
+  if(authMode==="required"&&session&&!app.globalData.sessionToken&&rejectedSession?.token===session
+    &&rejectedSession.environment===environment&&requestEnvironment()===environment&&currentRouteUrl()===origin)beginAuthentication(origin);
+}
+
 function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abort(): void } {
   const method = options.method ?? "GET", authMode = options.authMode ?? "required";
   const session = app.globalData.sessionToken, revision = commerceContextRevision(), environment = requestEnvironment();
@@ -284,8 +292,10 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const timer = setTimeout(() => stop(deadlineProblem(method)), budgetMs);
   const remaining = () => {
     if (stopped) throw stopped;
-    if (commerceContextRevision() !== revision || app.globalData.sessionToken !== session)
+    if (commerceContextRevision() !== revision || app.globalData.sessionToken !== session) {
+      redirectRejectedSession(session,environment,origin,authMode);
       throw { code: "REQUEST_SESSION_CHANGED", title: "登录状态已变化，请重新加载" };
+    }
     if (requestEnvironment() !== environment)
       throw { code: "REQUEST_ENVIRONMENT_CHANGED", title: "连接已变化，请刷新后核对操作结果" };
     if (token === rightsSession && rightsSession && app.globalData.privacyRightsToken !== rightsSession)
@@ -312,8 +322,10 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
           // AUTH_REVOKED identifies this session. MEMBER_NOT_ACTIVE can refer
           // to an admin's target member and must not sign the admin out.
           const accountUnavailable=problem?.code === "AUTH_REVOKED";
-          if ((response.statusCode === 401 || problem?.code === "MEMBER_NOT_FOUND") && token && app.globalData.sessionToken === token) {
+          const ownMemberMissing=response.statusCode===404&&path==="/v1/me"&&problem?.code === "MEMBER_NOT_FOUND";
+          if ((response.statusCode === 401 || ownMemberMissing) && token && app.globalData.sessionToken === token) {
             setSessionToken("");
+            if(!accountUnavailable)rejectedSession={token,environment};
             if (!accountUnavailable && authMode === "required" && currentRouteUrl() === origin) beginAuthentication(origin);
           }else if(response.statusCode===401&&token&&app.globalData.privacyRightsToken===token){
             setPrivacyRightsToken("");
@@ -364,8 +376,10 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
   // another page's shared retry. Lifecycle owners can cancel immediately.
   const monitor = method === "GET" ? setInterval(() => {
     if (commerceContextRevision() !== revision || requestEnvironment() !== environment ||
-      app.globalData.sessionToken !== session || app.globalData.privacyRightsToken !== rightsSession || currentRouteUrl() !== origin)
+      app.globalData.sessionToken !== session || app.globalData.privacyRightsToken !== rightsSession || currentRouteUrl() !== origin) {
+      redirectRejectedSession(session,environment,origin,options.authMode??"required");
       task.abort({ code: "REQUEST_CONTEXT_CHANGED", title: "页面或登录状态已变化，请重新加载" });
+    }
   }, 100) : null;
   const promise = task.promise.finally(() => { if (monitor) clearInterval(monitor); });
   const abort = () => { recordClientMetric({ action: metricAction(options.path), stage: "cancel", durationMs: 0 }); task.abort(cancelledProblem(method)); };

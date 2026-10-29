@@ -845,27 +845,30 @@ describe("mini-program page behavior", () => {
     expect(wxMock.vibrateShort).toHaveBeenCalledTimes(6);
   });
 
-  it("starts a complete non-recordable care session when no dedicated cycle exists", async () => {
+  it("saves a complete daily care intent without creating a dedicated cycle", async () => {
     await vi.importActual("../../apps/miniprogram/pages/home/index");
     const page = capturedPage!;
     const context = mountedPage(page, { pageAlive: true, care: null, authorityAvailable: true, loading: false, working: false });
     const resetCareSession = vi.fn(page.resetCareSession.bind(context));
     context.resetCareSession = resetCareSession;
+    const act = vi.fn().mockResolvedValue({ record: { source: "daily" }, replayed: false });
+    context.act = act;
 
     await page.primaryAction.call(context);
 
     expect(context.data.sessionOpen).toBe(true);
-    expect(context.data.sessionRecordable).toBe(false);
+    expect(context.data.sessionRecordable).toBe(true);
     expect(context.data.sessionLabel).toBe("DAILY CARE");
-    expect(context.data.sessionSubmitLabel).toBe("完成本次护理");
+    expect(context.data.sessionSubmitLabel).toBe("保存本次护理");
     expect(wxMock.navigateTo).not.toHaveBeenCalled();
     for (let index = 0; index < 4; index += 1) page.advanceCareStep.call(context);
     page.selectAssessment.call(context, { currentTarget: { dataset: { value: "comfortable" } } });
     await page.submitCareSession.call(context);
 
     expect(resetCareSession).toHaveBeenCalledTimes(1);
-    expect(requestMock).not.toHaveBeenCalled();
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "四步练习已完成，未生成记录", icon: "none" });
+    expect(act).toHaveBeenCalledWith("/v1/me/daily-care-records", expect.stringMatching(/^daily-care-/), { stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" });
+    expect(act).toHaveBeenCalledTimes(1);
+    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "本次日常护理已保存", icon: "success" });
   });
 
   it("requires explicit confirmation before activating a planned Home care cycle", async () => {

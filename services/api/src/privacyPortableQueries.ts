@@ -12,6 +12,8 @@ export const portableQuerySpecs = [
         FROM member_profile WHERE member_id=$1`},
   {section:'care',collection:'cycles',single:false,sql:`SELECT id,phase,started_on,timezone,protocol_version,created_at,updated_at
         FROM care_cycle WHERE member_id=$1 ORDER BY created_at,id`},
+  {section:'care',collection:'dailyRecords',single:false,sql:`SELECT id,completed_at,timezone,protocol_version,step_codes,self_assessment
+        FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NULL ORDER BY completed_at,id`},
   {section:'care',collection:'qualifications',single:false,sql:`SELECT id,source,external_ref,occurred_at,created_at
         FROM qualification_fact WHERE member_id=$1 ORDER BY occurred_at,id`},
   {section:'care',collection:'pauses',single:false,sql:`SELECT p.cycle_id,p.reason_code,p.paused_at,p.paused_on,

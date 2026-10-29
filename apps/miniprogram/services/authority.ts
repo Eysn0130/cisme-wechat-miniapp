@@ -8,7 +8,8 @@ const nativeManagementEntries: readonly Capability[] = [
   "support.read", "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage",
   "commerce.order.read", "commerce.aftersale.review", "commerce.return.receive", "commerce.return.inspect",
   "commerce.fulfillment.manage", "member.profile.read", "privacy.request.manage",
-  "commerce.refund.approve", "commission.settlement.approve", "commerce.money.reconcile"
+  "commerce.refund.approve", "commission.settlement.approve", "commerce.money.reconcile",
+  "editorial.manage", "community.moderate"
 ];
 /** A valid backend grant need not have an editable workspace in this package. */
 export function hasNativeManagementEntry(projection: AuthorityProjection | null | undefined): boolean {

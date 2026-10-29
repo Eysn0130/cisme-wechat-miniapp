@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-29T18:52:31.841390+00:00",
+  "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729",
+  "sourceBaseHead": "6a36d17fd75bf33bfd1f5ec422967d15319140e4",
+  "scope": "Care persistence, existing management entry and business-session restoration. Native observations are scoped; full route/physical acceptance remains blocked.",
+  "requirements": [
+    "CARE-DAILY-01",
+    "CARE-DAILY-02",
+    "CARE-DAILY-03",
+    "CARE-DAILY-04",
+    "MGMT-ENTRY-01",
+    "AUTH-RESTORE-01",
+    "AUTH-RESTORE-02",
+    "AUTH-RESTORE-03",
+    "CARE-AUTH-QA-01"
+  ],
+  "checks": {
+    "unitPassed": 2201,
+    "unitSkipped": 1,
+    "integrationFiles": 62,
+    "integrationPassed": 1017,
+    "typecheck": true,
+    "package": true,
+    "contracts": true,
+    "contractMethodsIncludingHealth": 281,
+    "sessionProtectedMethods": 242,
+    "routeSourceAudit": true,
+    "designGateStructure": true,
+    "releaseReady": false,
+    "schema100UpgradeOffline": 36,
+    "strictStageOffline": 25
+  },
+  "independentCorrections": [
+    "Records empty state waits for a confirmed empty daily read, not loading/error.",
+    "Rejected session redirect requires the currently selected API environment.",
+    "Stage binding includes the pinned unique migration hash.",
+    "Rollback to the old app is refused after any new daily facts exist."
+  ],
+  "native": {
+    "officialApplication": "/Applications/wechatwebdevtools.app",
+    "version": "2.02.2610292",
+    "skill": "0.3.14",
+    "actualTrialAccount": true,
+    "capabilities": [
+      "editorial.manage"
+    ],
+    "permissionGrantedForTests": false,
+    "observed": [
+      "Fresh no-session Account remains login despite an old guest preference.",
+      "Authorized current-v4 login reaches Home and clears guest preference.",
+      "My -> Management -> Editorial comments opens the real queue; original published comments remain.",
+      "Fresh simulator compilation with retained session returns to Home.",
+      "Normal Settings logout confirmation returns to Account intent=login with no session or guest preference.",
+      "Explicit browse then Home remains guest with 授权身份并开始."
+    ],
+    "screenshots": [
+      {
+        "file": "docs/evidence/care-authority-session-20261029/05-editorial-review.jpg",
+        "sha256": "8d87225881b013deb6b7b1fe8099f5eacbe983b09d39e057eaccf510a7f84cbc",
+        "bytes": 11514,
+        "viewport": "390x844",
+        "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729"
+      },
+      {
+        "file": "docs/evidence/care-authority-session-20261029/08-explicit-logout-account.jpg",
+        "sha256": "b4048b6c4f39b2b5b388841bd81cc644f2945bf897fe67c3466219d9cc5cb8c4",
+        "bytes": 32350,
+        "viewport": "390x844",
+        "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729"
+      },
+      {
+        "file": "docs/evidence/care-authority-session-20261029/09-guest-home-stays.jpg",
+        "sha256": "c40c994164e6e34ba12dd88e04e30c04b1b5d3684cba19f238a6504ba316fcbb",
+        "bytes": 48166,
+        "viewport": "390x844",
+        "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729"
+      }
+    ],
+    "remaining": [
+      "Daily care save -> record -> details -> re-entry awaits schema100 trial API deployment.",
+      "Native expiry/network failure recovery is not yet exercised; isolated tests cover these branches.",
+      "Physical pinch, keyboard and fullscreen exit remain unverified.",
+      "All40 route state matrices and unavailable qualification/order/extra-permission journeys remain incomplete."
+    ]
+  },
+  "deployment": {
+    "candidateSchema": 100,
+    "executed": false,
+    "productionChanged": false,
+    "tradeOrdinaryPublicUgcPhoneOpened": false
+  },
+  "prior010Upload": "Human confirmed; task memory was lost after IDE restart. Outcome unknown; not replayed."
+}
