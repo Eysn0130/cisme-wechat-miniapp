@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "769ec6661a9e282c3b17da8d60bb491da4c964b0755e86e007a8259bb153103d",
+  "migrationSetSha256": "09874f40de34fe388801fbeb80e61fb16a38470712fc773202862dc20a7fd0f1",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -3764,6 +3764,35 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "daily_care_record",
+      "subjectPaths": [
+        [
+          "daily_care_record.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Member-owned independent daily care facts, not cycle, qualification or reward. Read/export only unsuppressed owner facts. Account closure deletes unheld facts, suppresses typed-held facts and replays after backup restoration or hold release. Operation IDs and request hashes remain internal to service recovery, not in portable data copies.",
+      "exportFields": [
+        "id",
+        "completed_at",
+        "timezone",
+        "protocol_version",
+        "step_codes",
+        "self_assessment"
+      ],
+      "excludedFields": [
+        "member_id",
+        "operation_id",
+        "request_sha256",
+        "suppressed_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION",
+      "retention": "EXISTING_CARE_PURPOSE_AND_LEGAL_HOLD_NO_NEW_AUTOMATIC_PURGE_PERIOD",
+      "fullSubjectResolverStatus": "OWNER_SCOPED_DAILY_CARE_V1"
     },
     {
       "table": "data_erasure_job",

@@ -5,6 +5,26 @@ export const CARE_PROTOCOL_STEPS = ["00", "01", "02", "03"] as const;
 export type CareProtocolStep = (typeof CARE_PROTOCOL_STEPS)[number];
 export const CARE_SELF_ASSESSMENTS = ["comfortable", "neutral", "attention"] as const;
 export type CareSelfAssessment = (typeof CARE_SELF_ASSESSMENTS)[number];
+export const DAILY_CARE_PROTOCOL_VERSION = "daily-care-v1" as const;
+export interface DailyCareRecordInput {
+  stepCodes: CareProtocolStep[];
+  selfAssessment: CareSelfAssessment;
+}
+export interface DailyCareRecordView extends DailyCareRecordInput {
+  id: string;
+  source: "daily";
+  operationId: string;
+  completedAt: string;
+  timezone: "Asia/Shanghai";
+  protocolVersion: string;
+}
+export interface DailyCareRecordResult { record: DailyCareRecordView; replayed: boolean }
+export interface DailyCareRecordPage {
+  items: DailyCareRecordView[];
+  loadedCount: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+}
 
 export type SubmissionStatus =
   | "draft"

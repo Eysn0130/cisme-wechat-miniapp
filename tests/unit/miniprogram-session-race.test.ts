@@ -77,6 +77,68 @@ describe("native delayed authentication responses", () => {
     await expect(result).rejects.toMatchObject({code:"MEMBER_NOT_ACTIVE"});
     expect(state.globalData.sessionToken).toBe("old-session");
   });
+  it.each([403,404])("keeps the operator session for target-resource MEMBER_NOT_FOUND at %s",async(status)=>{
+    const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const result=api.request({path:"/v1/management/members/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"});
+    wxMock.request.mock.calls[0]![0].success({statusCode:status,data:{code:"MEMBER_NOT_FOUND"}});
+    await expect(result).rejects.toMatchObject({status,code:"MEMBER_NOT_FOUND"});
+    expect(state.globalData.sessionToken).toBe("old-session");expect(wxMock.navigateTo).not.toHaveBeenCalled();
+  });
+  it("clears an explicitly missing current identity from me",async()=>{
+    const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const result=api.request({path:"/v1/me",authMode:"optional"});
+    wxMock.request.mock.calls[0]![0].success({statusCode:404,data:{code:"MEMBER_NOT_FOUND"}});
+    await expect(result).rejects.toMatchObject({status:404});expect(state.globalData.sessionToken).toBe("");
+    expect(wxMock.navigateTo).not.toHaveBeenCalled();
+  });
+  it("retains a successful login instead of an earlier guest preference",async()=>{
+    const api=await vi.importActual<any>("../../apps/miniprogram/services/api");api.setSessionToken("new-session");
+    expect(wxMock.removeStorageSync).toHaveBeenCalledWith("cisme.guestBrowsing");
+  });
+  it("opens the protected current source when an optional401 wins a concurrent read",async()=>{
+    const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const optional=api.request({path:"/v1/me/profile",authMode:"optional"});
+    const required=api.request({path:"/v1/bootstrap/profile"});
+    wxMock.request.mock.calls[0]![0].success({statusCode:401,data:{code:"AUTH_EXPIRED"}});
+    await expect(optional).rejects.toMatchObject({status:401});expect(wxMock.navigateTo).not.toHaveBeenCalled();
+    wxMock.request.mock.calls[1]![0].success({statusCode:401,data:{code:"AUTH_EXPIRED"}});
+    await expect(required).rejects.toMatchObject({code:"REQUEST_SESSION_CHANGED"});
+    expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
+    const flow=new URL("https://synthetic.invalid"+wxMock.navigateTo.mock.calls[0]![0].url).searchParams.get("authFlow");
+    expect(api.consumeAuthReturnUrl(flow)).toBe("/pages/records/index");
+  });
+  it("also recovers the protected source when the remaining transport never returns",async()=>{
+    vi.useFakeTimers();
+    try {
+      const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+      const optional=api.request({path:"/v1/me/profile",authMode:"optional"}).catch((e:unknown)=>e);
+      const required=api.request({path:"/v1/bootstrap/profile"}).catch((e:unknown)=>e);
+      wxMock.request.mock.calls[0]![0].success({statusCode:401,data:{code:"AUTH_EXPIRED"}});await optional;
+      await vi.advanceTimersByTimeAsync(101);await expect(required).resolves.toMatchObject({code:"REQUEST_CONTEXT_CHANGED"});
+      expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);expect(taskAbort).toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+  });
+  it("does not carry an earlier environment rejection into a new environment login",async()=>{
+    vi.useFakeTimers();
+    try {
+      const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+      const optional=api.request({path:"/v1/me/profile",authMode:"optional"}).catch((e:unknown)=>e);
+      const required=api.request({path:"/v1/bootstrap/profile"}).catch((e:unknown)=>e);
+      wxMock.request.mock.calls[0]![0].success({statusCode:401,data:{code:"AUTH_EXPIRED"}});await optional;
+      state.globalData.apiBaseUrl="https://other-environment.test";
+      await vi.advanceTimersByTimeAsync(101);await expect(required).resolves.toMatchObject({code:"REQUEST_CONTEXT_CHANGED"});
+      expect(wxMock.navigateTo).not.toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+  });
+  it.each(["logout","revoked"])("does not turn an intentional%s clear into a concurrent login loop",async(reason)=>{
+    const api=await vi.importActual<any>("../../apps/miniprogram/services/api");
+    const optional=api.request({path:"/v1/me/profile",authMode:"optional"}).catch((e:unknown)=>e);
+    const required=api.request({path:"/v1/bootstrap/profile"}).catch((e:unknown)=>e);
+    if(reason==="logout"){api.setSessionToken("");wxMock.request.mock.calls[0]![0].success({statusCode:200,data:{}});}
+    else wxMock.request.mock.calls[0]![0].success({statusCode:401,data:{code:"AUTH_REVOKED"}});
+    await optional;wxMock.request.mock.calls[1]![0].success({statusCode:401,data:{code:"AUTH_EXPIRED"}});await required;
+    expect(wxMock.navigateTo).not.toHaveBeenCalled();
+  });
 });
 
 it('rejects old successful member data after an account switch',async()=>{

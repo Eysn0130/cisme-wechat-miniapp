@@ -114,6 +114,18 @@ describe("empty and N-1 database lifecycle", () => {
       authorization_ref,rights_evidence,content_sha256,status,published_by,published_principal_id)
       VALUES('synthetic-migration-preservation',$1,'合成测试作者','合成测试标题','','合成测试正文','synthetic-test','{}',$2,'draft',$1,'synthetic-test') RETURNING id`,
       [evidenceOwner,'a'.repeat(64)])).rows[0].id;
+    expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBe('daily_care_record');
+    const daily=(await pool.query(`INSERT INTO daily_care_record(member_id,operation_id,request_sha256,protocol_version,step_codes,self_assessment)
+      VALUES($1,$2,$3,'daily-care-v1',ARRAY['00','01','02','03'],'comfortable') RETURNING id`,[evidenceOwner,randomUUID(),'c'.repeat(64)])).rows[0].id;
+    await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({stderr:expect.stringContaining('DAILY_CARE_RECORDS_EXIST')});
+    expect((await pool.query('SELECT step_codes FROM daily_care_record WHERE id=$1',[daily])).rows[0].step_codes).toEqual(['00','01','02','03']);
+    await pool.query('DELETE FROM daily_care_record WHERE id=$1',[daily]);await closePool(pool);
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
+    expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBeNull();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});pool=migrationPool();
+    expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBe('daily_care_record');
+    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();migrationCount-=1;extensionCount-=1;
     const commentTables=['editorial_comment','editorial_comment_like','editorial_comment_policy','editorial_comment_report','editorial_comment_safety_scan','editorial_comment_scan_claim'];
     for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     await closePool(pool);
@@ -125,6 +137,8 @@ describe("empty and N-1 database lifecycle", () => {
     expect(await capabilityNames()).toEqual(extendedCapabilities);
     await closePool(pool);
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
+    // Keep the independent99 rollback assertions below targeted at99.
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
@@ -161,8 +175,9 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_watch_control') name")).rows[0].name).toBe('commerce_wechat_receipt_watch_control');
     await closePool(pool);
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
-    // up reapplies the full latest set (98+99); remove only empty99 before
+    // up reapplies the full latest set (98+99+100); remove empty100 and99 before
     // checking the independently restored98 tables/capability set below.
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);

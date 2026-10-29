@@ -44,6 +44,8 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       phone:openContact(config,memberId,contact),addresses:addressRows},
     care:{cycles:(await client.query(`SELECT id,phase,started_on,timezone,protocol_version,created_at,updated_at
         FROM care_cycle WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
+      dailyRecords:(await client.query(`SELECT id,completed_at,timezone,protocol_version,step_codes,self_assessment
+        FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NULL ORDER BY completed_at,id`,[memberId])).rows,
       qualifications:(await client.query(`SELECT id,source,external_ref,occurred_at,created_at
         FROM qualification_fact WHERE member_id=$1 ORDER BY occurred_at,id`,[memberId])).rows,
       pauses:(await client.query(`SELECT p.cycle_id,p.reason_code,p.paused_at,p.paused_on,

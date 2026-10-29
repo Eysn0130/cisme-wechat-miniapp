@@ -4,6 +4,7 @@ import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication } from "../../services/api";
 import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../services/layout";
 import { careProtocolSteps, careSelfAssessments, type CareSelfAssessmentValue } from "../../services/care-protocol";
+import { readDailyCareRecords, type DailyCareRecord } from "../../services/daily-care";
 
 function scrollToRecordsError() {
   wx.pageScrollTo({ selector: "#records-error-summary", duration: motionDuration(200) });
@@ -11,7 +12,7 @@ function scrollToRecordsError() {
 
 function isAuthenticationFailure(error: unknown): boolean {
   const problem = error as { status?: number; statusCode?: number; code?: string };
-  return [401, 403, 404].includes(problem.status ?? problem.statusCode ?? 0) || problem.code === "AUTHENTICATION_REQUIRED" || problem.code === "MEMBER_NOT_FOUND";
+  return (problem.status ?? problem.statusCode) === 401 || problem.code === "AUTHENTICATION_REQUIRED" || problem.code === "MEMBER_NOT_FOUND";
 }
 
 function syncedAtLabel(): string {
@@ -77,6 +78,18 @@ interface RecordGroupView {
   phaseLabel: string;
   records: RecordView[];
   emptyCopy: string;
+}
+
+const emptyDaily = { dailyRecords: [] as RecordView[], dailyReady: false, dailyLoading: false, dailyError: "", dailyCursor: null as string | null, dailyHasMore: false, dailyRetryAppend: false };
+
+function dailyRecordView(record: DailyCareRecord): RecordView {
+  const completion = zonedCompletion(record.completedAt, record.timezone);
+  const assessment = careSelfAssessments.find(item => item.value === record.selfAssessment)!;
+  return { recordKey: `daily:${record.id}`, milestone: "日常", index: "日", completedAt: completion.short,
+    completedDate: completion.date, completedTime: completion.time, assessmentLabel: assessment.label,
+    assessmentNote: assessment.note, assessmentAvailable: true, assessmentIcon: "/assets/icons/check-circle-plum.svg",
+    steps: careProtocolSteps.map(step => ({ code: step.code, label: step.label, title: step.title })), stepSummary: "",
+    hasDetails: true, cycleLabel: "日常护理", protocolVersion: record.protocolVersion };
 }
 
 function addCalendarDays(date: string, days: number): string {
@@ -197,6 +210,7 @@ Page({
   lastSessionToken: undefined as string | undefined,
   lastSessionRevision: 0,
   data: {
+    ...emptyDaily, dailyAttempt: 0, loadedRecordCount: 0, loadedRecordCountClass: "",
     care: null as any,
     timeline: [] as Array<{ milestone: string; done: boolean; current: boolean; status: string }>,
     records: [] as RecordView[],
@@ -231,11 +245,12 @@ Page({
   syncSession() {
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     if (this.lastSessionToken !== undefined && (this.lastSessionToken !== token || this.lastSessionRevision !== revision)) {
-      cancelPageReads(this); this.data.loadAttempt += 1; this.dismissRecordDetailImmediately();
+      cancelPageReads(this); this.data.loadAttempt += 1; this.data.dailyAttempt += 1; this.dismissRecordDetailImmediately();
       this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [],
         visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null,
         working: false, workingAction: "", confirmingCycleAction: false, writeReady: false,
-        authorityAvailable: false, accessRequired: !token, operationStatus: "", error: "", lastSyncedLabel: "" });
+        authorityAvailable: false, accessRequired: !token, operationStatus: "", error: "", lastSyncedLabel: "",
+        ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "" });
       this.getTabBar?.()?.setData({ externalBusy: false }); wx.disableAlertBeforeUnload();
     }
     this.lastSessionToken = token; this.lastSessionRevision = revision;
@@ -262,6 +277,7 @@ Page({
   },
   onHide() {
     this.data.visible = false; this.data.loadAttempt += 1; this.data.refreshOnShow = true;
+    this.data.dailyAttempt += 1; this.setData({ dailyLoading: false });
     cancelPageReads(this); this.dismissRecordDetailImmediately();
     this.getTabBar?.()?.setData({ externalBusy: false });
     this.setData({ writeReady: false, confirmingCycleAction: false });
@@ -281,13 +297,14 @@ Page({
   async load(preserveSnapshot = false, failClosed = false): Promise<boolean> {
     this.syncSession();
     if (!this.data.pageAlive || !this.data.visible || this.data.working && !failClosed) { this.data.refreshOnShow = true; return false; }
-    cancelPageReads(this); this.data.refreshOnShow = false;
+    cancelPageReads(this); this.data.refreshOnShow = false; this.data.dailyAttempt += 1; this.setData({ dailyLoading: false });
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     this.setData({ writeReady: false, confirmingCycleAction: false }); this.dismissRecordDetailImmediately();
     const attempt = this.data.loadAttempt + 1;
     this.setData(preserveSnapshot && this.data.authorityAvailable
       ? { loadAttempt: attempt, loading: true, refreshing: true, accessRequired: false, error: "" }
-      : { loadAttempt: attempt, care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, loading: true, refreshing: false, authorityAvailable: false, accessRequired: false, error: "" });
+      : { loadAttempt: attempt, care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, loading: true, refreshing: false, authorityAvailable: false, accessRequired: false, loadedRecordCount: this.data.dailyRecords.length, loadedRecordCountClass: recordCountClass(this.data.dailyRecords.length), error: "" });
+    if (token) void this.loadDailyRecords();
     try {
       const care = await pageRead<CareCycleApi | null>(this, { path: "/v1/me/care" });
       if (!this.sameSession(token, revision) || !this.data.visible || this.data.loadAttempt !== attempt) return false;
@@ -303,22 +320,60 @@ Page({
       const archive = care ? recordGroups(care) : { groups: [], records: [] };
       const cycleCount = care ? archive.groups.length : 0;
       const visibleCycleCount = Math.min(cycleCount, Math.max(archivePageSize, this.data.visibleCycleCount || archivePageSize));
-      this.setData({ care, timeline, records: archive.records, recordGroups: archive.groups, visibleRecordGroups: archive.groups.slice(0, visibleCycleCount), visibleCycleCount, hiddenCycleCount: Math.max(0, cycleCount - visibleCycleCount), selectedRecord: null, recordDetailOpen: false, summary: { completed: completed.length, totalRecords: archive.records.length, cycleCount, recordCountClass: recordCountClass(archive.records.length), headlineLine1: headline[0], headlineLine2: headline[1], phaseLabel: currentPhaseLabel, protocol: care?.protocolVersion ?? "", cycleSummary: care ? cycleSummary(care) : "" }, authorityAvailable: true, writeReady: true, accessRequired: false, lastSyncedLabel: syncedAtLabel(), error: "" });
+      const loadedRecordCount = archive.records.length + this.data.dailyRecords.length;
+      this.setData({ care, timeline, records: archive.records, recordGroups: archive.groups, visibleRecordGroups: archive.groups.slice(0, visibleCycleCount), visibleCycleCount, hiddenCycleCount: Math.max(0, cycleCount - visibleCycleCount), selectedRecord: null, recordDetailOpen: false, summary: { completed: completed.length, totalRecords: archive.records.length, cycleCount, recordCountClass: recordCountClass(archive.records.length), headlineLine1: headline[0], headlineLine2: headline[1], phaseLabel: currentPhaseLabel, protocol: care?.protocolVersion ?? "", cycleSummary: care ? cycleSummary(care) : "" }, loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), authorityAvailable: true, writeReady: true, accessRequired: false, lastSyncedLabel: syncedAtLabel(), error: "" });
       return true;
     }
     catch (error) {
+      if (this.recordReadAuthenticationFailed(error, token, revision, attempt)) return false;
       if (!this.sameSession(token, revision) || !this.data.visible || this.data.loadAttempt !== attempt) return false;
-      if (isAuthenticationFailure(error)) {
-        this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, accessRequired: true, error: "" });
+      if ((error as { status?: number })?.status === 403) {
+        this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, accessRequired: false, loadedRecordCount: this.data.dailyRecords.length, loadedRecordCountClass: recordCountClass(this.data.dailyRecords.length), error: "当前账号暂时无法查看护理周期，请稍后重试。" });
       } else if (preserveSnapshot && this.data.authorityAvailable && !failClosed) {
         this.setData({ error: `暂时无法更新护理档案。下方保留${this.data.lastSyncedLabel || "上次确认"}的记录，请检查网络后重试。` }, scrollToRecordsError);
       } else {
-        this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, accessRequired: false, error: "护理档案暂未加载，请检查网络后重试，再查看当前周期进度。" }, scrollToRecordsError);
+        this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, accessRequired: false, loadedRecordCount: this.data.dailyRecords.length, loadedRecordCountClass: recordCountClass(this.data.dailyRecords.length), error: "护理档案暂未加载，请检查网络后重试，再查看当前周期进度。" }, scrollToRecordsError);
       }
       return false;
     }
     finally { if (this.sameSession(token, revision) && this.data.visible && this.data.loadAttempt === attempt) this.setData({ loading: false, refreshing: false }); }
   },
+  recordReadAuthenticationFailed(error: unknown, token: string, revision: number, attempt: number, daily = false): boolean {
+    const currentToken = getApp<IAppOption>().globalData.sessionToken;
+    if (!isAuthenticationFailure(error) || !this.data.pageAlive || !this.data.visible
+      || (daily ? this.data.dailyAttempt : this.data.loadAttempt) !== attempt
+      || (!this.sameSession(token, revision) && currentToken !== "")) return false;
+    this.syncSession(); cancelPageReads(this); this.data.loadAttempt += 1; this.data.dailyAttempt += 1; this.dismissRecordDetailImmediately();
+    this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], summary: emptySummary,
+      selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, writeReady: false, accessRequired: true,
+      loading: false, refreshing: false, error: "", ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "" });
+    return true;
+  },
+  async loadDailyRecords(more = false) {
+    if (!this.data.pageAlive || !this.data.visible || this.data.dailyLoading || (more && (!this.data.dailyHasMore || !this.data.dailyCursor))) return;
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
+    if (!token || this.lastSessionToken !== token || this.lastSessionRevision !== revision) return;
+    const attempt = ++this.data.dailyAttempt, cursor = more ? this.data.dailyCursor : null;
+    const current = () => this.sameSession(token, revision) && this.data.visible && this.data.dailyAttempt === attempt;
+    this.setData({ dailyLoading: true, dailyError: "", dailyRetryAppend: more });
+    try {
+      const result = await readDailyCareRecords(this, cursor);
+      if (!current()) return;
+      const byId = new Map<string, RecordView>((more ? this.data.dailyRecords : []).map(record => [record.recordKey, record]));
+      result.items.forEach(record => byId.set(`daily:${record.id}`, dailyRecordView(record)));
+      const dailyRecords = [...byId.values()], loadedRecordCount = this.data.records.length + dailyRecords.length;
+      this.setData({ dailyRecords, dailyReady: true, dailyCursor: result.nextCursor, dailyHasMore: result.hasMore, dailyRetryAppend: false,
+        loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount) });
+    } catch (error) {
+      if (this.recordReadAuthenticationFailed(error, token, revision, attempt, true)) return;
+      if (!current()) return;
+      if ((error as { status?: number })?.status === 403) {
+        this.setData({ ...emptyDaily, loadedRecordCount: this.data.records.length, loadedRecordCountClass: recordCountClass(this.data.records.length), dailyError: "当前账号暂时无法查看日常护理记录，请稍后重试。" });
+      } else this.setData({ dailyError: "日常护理记录暂时无法加载，请重试。" });
+    } finally { if (current()) this.setData({ dailyLoading: false }); }
+  },
+  retryDailyRecords() { void this.loadDailyRecords(this.data.dailyRetryAppend); },
+  loadMoreDailyRecords() { void this.loadDailyRecords(true); },
   retryLoad() { if (!this.data.visible) return; clearAuthenticationRedirectSuppression(); if (this.data.accessRequired) { this.authenticate(); return; } if (this.data.authorityAvailable) void this.load(true); else void this.load(); },
   authenticate() { resumeAuthentication("/pages/records/index"); },
   showEarlierCycles() {
@@ -331,7 +386,7 @@ Page({
       !this.sameSession(this.lastSessionToken, this.lastSessionRevision)) return;
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = this.data.loadAttempt;
     const recordKey = String(event.currentTarget.dataset.key || "");
-    const record = this.data.records.find((item) => item.recordKey === recordKey);
+    const record = [...this.data.records, ...this.data.dailyRecords].find((item) => item.recordKey === recordKey);
     if (!record) return;
     this.clearRecordDetailCloseTimer();
     this.getTabBar?.()?.setPresentation?.("record-detail", true);

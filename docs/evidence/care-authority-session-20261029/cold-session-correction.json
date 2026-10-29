@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-29T19:02:53.154564+00:00",
+  "packageSourceSha256": "0dbe01dd9388b3409116a1a341045630299dd304e8606cfb38a721d746c19e7b",
+  "requirements": [
+    "AUTH-RESTORE-01",
+    "AUTH-RESTORE-02",
+    "AUTH-RESTORE-03"
+  ],
+  "problem": "Native controlled-invalid-session replay exposed cancellation of the concurrent public legal bootstrap after the retained session was rejected.",
+  "change": "Finish retained-session verification before starting public login bootstrap. Refetch current legal/capability reads only while the same page/identity owns the recovery; no silent identity creation or legal acceptance.",
+  "before": {
+    "packageSourceSha256": "ed6d8ffe2fdd91983e04d77ec78fa7f12bfe09b1ce0b2abea37d2d139fe92729",
+    "legalFailureCode": "REQUEST_CONTEXT_CHANGED",
+    "oldSourceRegression": {
+      "failed": 3,
+      "passed": 6
+    },
+    "nativeFile": "tmp/community-refinement-20261029/native-business-ed6d8ffe/10-invalid-local-session-login.jpg"
+  },
+  "verification": {
+    "unitPassed": 2210,
+    "unitSkipped": 1,
+    "newRaces": 9,
+    "typecheck": true,
+    "package": true,
+    "backendSourceUnchangedFrom1017Integration": true,
+    "nativeControlledLocalInvalidToken": true,
+    "actualServerSessionRejection": true,
+    "localSessionCleared": true,
+    "legalTextsReady": true,
+    "legalReadFailure": "",
+    "humanPreviouslyAuthorizedV4Only": true,
+    "rootToggledAgreementAndLoginEnabled": true,
+    "ordinaryLoginReturnedHome": true,
+    "retainedSessionFreshCompileReturnedHome": true
+  },
+  "screenshots": [
+    {
+      "file": "docs/evidence/care-authority-session-20261029/02-invalid-session-settled.jpg",
+      "sha256": "f71fe45c50025f0279b194ef5518b13446f65ecabcbc360113fca4403cbe8372",
+      "bytes": 34447,
+      "viewport": "390x844",
+      "packageSourceSha256": "0dbe01dd9388b3409116a1a341045630299dd304e8606cfb38a721d746c19e7b"
+    },
+    {
+      "file": "docs/evidence/care-authority-session-20261029/03-invalid-session-login-enabled.jpg",
+      "sha256": "ed28324dc2388d4a03caabda2bba7d9c91b725aacf596804566246e7b69d21df",
+      "bytes": 36210,
+      "viewport": "390x844",
+      "packageSourceSha256": "0dbe01dd9388b3409116a1a341045630299dd304e8606cfb38a721d746c19e7b"
+    }
+  ],
+  "boundaries": [
+    "Invalid local token is an explicit fault injection, not observation of a natural12-hour expiry.",
+    "No server session lifetime was extended, permissions granted or identity facts fabricated.",
+    "Management/login/guest ed6d screenshots remain historical. New complete care workflow awaits trial API100.",
+    "All40 route matrices and physicaldevice keyboard/pinch/fullscreen remain blocked."
+  ],
+  "releaseReady": false
+}

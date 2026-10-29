@@ -33,14 +33,15 @@ it('keeps a fresh cold launch on Account without starting identity or phone auth
  expect(page.data.leaving).toBe(false);expect(wxMock.switchTab).not.toHaveBeenCalled();
  expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
 });
-it('restores an existing session to Home without starting a second login',()=>{
+it('verifies an existing business session before restoring Home without a second login',async()=>{
  mocks.token='retained-member-session';page.onLoad({});
- expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/home/index'}));
+ await vi.waitFor(()=>expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/home/index'})));
+ expect(mocks.request).toHaveBeenCalledWith({path:'/v1/me',authMode:'optional'});
  expect(page.data.leaving).toBe(true);expect(wxMock.login).not.toHaveBeenCalled();
 });
-it('honours an explicit retained guest choice without forcing a login loop',()=>{
+it('keeps a new cold visit on Account despite an old stored guest choice',()=>{
  wxMock.getStorageSync.mockReturnValue(true);page.onLoad({});
- expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/community/index'}));
+ expect(wxMock.switchTab).not.toHaveBeenCalled();expect(page.data.leaving).toBe(false);
  expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
 });
 it('keeps an explicit Account visit open even when a member session exists',()=>{
@@ -49,7 +50,7 @@ it('keeps an explicit Account visit open even when a member session exists',()=>
 });
 it('recovers the Account consent screen when restoring the destination fails',async()=>{
  mocks.token='retained-member-session';wxMock.switchTab.mockImplementation(({fail}:any)=>fail());
- page.onLoad({});await Promise.resolve();
+ page.onLoad({});await vi.waitFor(()=>expect(page.data.sessionRestoreFailed).toBe(true));
  expect(page.data.leaving).toBe(false);expect(page.data.legalTextsReady).toBe(true);
  expect(wxMock.login).not.toHaveBeenCalled();
 });

@@ -2,11 +2,11 @@
   <view class="records-surface" aria-hidden="{{recordDetailMounted}}">
   <view class="records-hero">
     <view class="records-hero__orb"></view>
-    <block wx:if="{{authorityAvailable}}">
+    <block wx:if="{{authorityAvailable || dailyReady}}">
     <view class="records-kicker"><text class="records-wordmark">CISME CARE</text><text class="records-archive">护理档案</text></view>
-    <view class="record-streak {{summary.recordCountClass}}" aria-label="共保存 {{summary.totalRecords}} 条护理记录"><strong class="record-streak__count">{{summary.totalRecords}}</strong><view class="record-streak__copy"><text class="record-streak__label">护理记录</text><small class="record-streak__meta">CARE RECORDS</small></view></view>
+    <view class="record-streak {{loadedRecordCountClass}}" aria-label="已加载 {{loadedRecordCount}} 条护理记录"><strong class="record-streak__count">{{loadedRecordCount}}</strong><view class="record-streak__copy"><text class="record-streak__label">已加载记录</text><small class="record-streak__meta">CARE RECORDS</small></view></view>
     <view class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text class="records-headline__line">{{summary.headlineLine2}}</text></view>
-    <view class="records-subline">{{care ? summary.completed + ' / 4 个当前周期阶段护理，' + summary.phaseLabel : '开始护理后，可在这里查看记录'}}<text wx:if="{{lastSyncedLabel}}" class="records-sync-label"> · {{refreshing ? '正在更新' : lastSyncedLabel}}</text></view>
+    <view class="records-subline">{{care ? summary.completed + ' / 4 个当前周期阶段护理，' + summary.phaseLabel : dailyRecords.length ? '日常护理的步骤与感受已保存' : '完成护理并保存后，可在这里查看记录'}}<text wx:if="{{lastSyncedLabel}}" class="records-sync-label"> · {{refreshing ? '正在更新' : lastSyncedLabel}}</text></view>
     </block>
     <view wx:elif="{{accessRequired}}" class="records-hero-status"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">登录后查看护理档案</strong></view>
     <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">正在加载护理档案…</strong></view>
@@ -39,7 +39,18 @@
       </view>
     </view>
 
-    <view wx:elif="{{authorityAvailable && !care}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">尚无护理周期</view><text class="records-empty__copy">可先到首页查看护理安排。周期内完成护理并提交后，可在这里回看步骤和感受。</text><view class="records-empty__facts"><text class="records-empty__fact">护理阶段</text><text class="records-empty__fact records-empty__fact--divided">四步护理</text><text class="records-empty__fact records-empty__fact--divided">护理后感受</text></view><button class="secondary records-empty__action" bindtap="goHome" aria-label="返回护理首页查看服务状态">查看护理首页</button></view>
+    <view wx:elif="{{authorityAvailable && !care && dailyReady && !dailyLoading && !dailyError && !dailyRecords.length}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">还没有护理记录</view><text class="records-empty__copy">到首页完成四步护理并记录感受，保存后就能在这里回看。</text><view class="records-empty__facts"><text class="records-empty__fact">完成时间</text><text class="records-empty__fact records-empty__fact--divided">四步护理</text><text class="records-empty__fact records-empty__fact--divided">护理后感受</text></view><button class="secondary records-empty__action" bindtap="goHome" aria-label="返回护理首页开始护理">前往护理首页</button></view>
+
+    <view wx:if="{{!accessRequired && (dailyReady || dailyLoading || dailyError)}}" class="record-list">
+      <view class="record-list__head"><view><text class="record-list__title">日常护理</text><text class="record-list__subtitle">按完成时间查看</text></view><text class="record-list__count">已加载 {{dailyRecords.length}} 条</text></view>
+      <view wx:if="{{dailyError}}" class="state state--error" aria-live="assertive"><text>{{dailyError}}</text><button class="text-button {{dailyLoading ? 'control--disabled' : ''}}" bindtap="retryDailyRecords" disabled="{{dailyLoading}}">重新加载日常记录</button></view>
+      <text wx:if="{{dailyLoading}}" class="state" aria-live="polite">正在加载日常护理记录…</text>
+      <view class="record-group">
+        <button wx:for="{{dailyRecords}}" wx:key="recordKey" class="record-row" data-key="{{item.recordKey}}" bindtap="openRecordDetail" aria-label="查看 {{item.completedDate}} {{item.completedTime}} 日常护理详情"><text class="record-index">{{item.index}}</text><view class="record-row__copy"><strong class="record-row__title">日常护理</strong><small class="record-row__meta">{{item.assessmentLabel}}</small></view><view class="record-row__time"><text>{{item.completedAt}}</text><image class="record-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></view></button>
+        <view wx:if="{{dailyReady && !dailyLoading && !dailyError && !dailyRecords.length}}" class="record-row record-row--pending"><text class="record-index record-index--pending">待</text><view class="record-row__copy"><strong class="record-row__title">尚无日常护理记录</strong><small class="record-row__meta">完成四步并保存后，会显示在这里。</small></view></view>
+      </view>
+      <button wx:if="{{dailyHasMore}}" class="records-earlier {{dailyLoading ? 'control--disabled' : ''}}" bindtap="loadMoreDailyRecords" disabled="{{dailyLoading}}">加载更多日常记录</button>
+    </view>
 
     <view wx:if="{{authorityAvailable && care}}" class="record-list">
       <view class="record-list__head"><view><text class="record-list__title">护理记录</text><text class="record-list__subtitle">按周期查看护理记录</text></view><text class="record-list__count">{{records.length}} 条</text></view>

@@ -58,8 +58,7 @@
           </view>
         </view>
         <button class="session-primary {{!sessionAssessment || working || mutationState === 'unknown' ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{!sessionAssessment || working || mutationState === 'unknown'}}" bindtap="submitCareSession">{{working ? '正在保存…' : mutationState === 'unknown' ? '保存结果待确认' : sessionSubmitLabel}}</button>
-        <text wx:if="{{sessionRecordable}}" class="session-footnote">完成时间、四个步骤和本次感受将保存到护理记录。积分以对应护理任务的规则为准。</text>
-        <text wx:else class="session-footnote">日常指引不会保存为护理记录。开始护理周期后，可记录每次的步骤与感受。</text>
+        <text class="session-footnote">完成时间、四个步骤和本次感受将保存到护理记录。<text wx:if="{{care}}">积分以对应护理任务的规则为准。</text></text>
       </block>
     </view>
   </view>

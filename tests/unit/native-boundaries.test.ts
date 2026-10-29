@@ -208,7 +208,7 @@ describe("native mini program boundary", () => {
   it("locks the per-route button action inventory and verifies every handler exists", async () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
-      account: ["back", "openTerms", "openPrivacy", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "@contact", "loginTap", "browseCommunity"],
+      account: ["back", "openTerms", "openPrivacy", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "@contact", "restartLogin", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSource", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
@@ -221,7 +221,7 @@ describe("native mini program boundary", () => {
       legal: ["back", "load", "privacyRights"],
       "management-member": ["back", "back", "load", "selectSection", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
       "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "selectFilter", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
-      management: ["back", "retry", "retryRuntime", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "openSupport", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openMembers", "openPrivacy", "openFinance"],
+      management: ["back", "retry", "retryRuntime", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "openEditorialComments", "openSupport", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openMembers", "openPrivacy", "openFinance"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
@@ -241,7 +241,7 @@ describe("native mini program boundary", () => {
       "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
       profile: ["openAccount", "openSettings", "openRecords", "load", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openTasks", "openSettings", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
-      records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],
+      records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "retryDailyRecords", "openRecordDetail", "loadMoreDailyRecords", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],
       referral: ["back", "preview", "confirm"],
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],

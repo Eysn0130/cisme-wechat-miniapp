@@ -12,3 +12,6 @@
 # isolated profile-erasure test, not an API credential. Keep the exception tied
 # to the exact committed finding; all other scan rules and history remain active.
 a80040cab5a17e632af3470ff0e55b0ade7f78d5:tests/integration/privacy-rights.test.ts:generic-api-key:212
+# Reviewed 2026-10-29: fixed daily-care operation identifier in a mocked unit
+# test, not an authentication credential. Exact historical finding only.
+016261b640764dddc39139119a8f3cc3a55da323:tests/unit/native-daily-care.test.ts:generic-api-key:66

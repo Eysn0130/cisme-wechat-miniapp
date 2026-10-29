@@ -463,10 +463,11 @@ Page({
   },
   async logout() {
     if (!this.data.pageAlive || this.data.leaving) return;
+    const token=getApp<IAppOption>().globalData.sessionToken;
     if (this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) { wx.showToast({ title: this.data.loggingOut ? "正在退出当前账号" : this.data.confirmingLogout ? "请先完成退出确认" : "正在确认操作，请稍等", icon: "none" }); return; }
     if (this.data.profileDirty && !await this.confirmProfileLeave()) return;
     if (this.data.addressDirty && !await this.confirmAddressLeave()) return;
-    if (!this.data.pageAlive || this.data.leaving) return;
+    if (!this.data.pageAlive || this.data.leaving || token!==getApp<IAppOption>().globalData.sessionToken) return;
     this.setData({ confirmingLogout: true, error: "" });
     let confirmation: { confirm: boolean };
     try {
@@ -476,14 +477,15 @@ Page({
       return;
     }
     if (this.data.pageAlive) this.setData({ confirmingLogout: false });
-    if (!confirmation.confirm || !this.data.pageAlive) return;
+    if (!confirmation.confirm || !this.data.pageAlive || token!==getApp<IAppOption>().globalData.sessionToken) return;
     this.data.loadAttempt += 1;
     this.clearAddressDraftRecovery();
     setSessionToken("");
+    wx.removeStorageSync("cisme.guestBrowsing");
     this.clearMemberSnapshot();
     this.setData({ loggingOut: true, loading: false, consents: [], sessionStatus: "invalid", operationStatus: "正在安全退出当前账号…", error: "" });
     wx.reLaunch({
-      url: "/pages/account/index",
+      url: "/pages/account/index?intent=login",
       fail: () => {
         if (this.data.pageAlive) this.setData({ loggingOut: false, operationStatus: "", errorAction: "auth", error: "已退出账号，但登录页面暂未打开。请点击下方按钮重新登录。" }, scrollToSettingsError);
       }

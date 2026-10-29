@@ -1,8 +1,9 @@
 import { requireActiveUploadOwner } from "./uploadAuthority.js";
+import { requireCareRecordDetails } from "./careRecordDetails.js";
 import { communityAuthors } from './memberProfile.js';
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
-import { CARE_PROTOCOL_STEPS, CARE_SELF_ASSESSMENTS, type CareMilestone, type CareMilestoneCommandInput, type CarePhase, type CareVersionCommandInput, type EmergencySwitchKey, type ReviewDecision, type ReviewResult, type ShareTargetType, type TaskClaimView, type UploadAuthorization, type WorkerQueue } from "@cisme/contracts";
+import { type CareMilestone, type CareMilestoneCommandInput, type CarePhase, type CareVersionCommandInput, type EmergencySwitchKey, type ReviewDecision, type ReviewResult, type ShareTargetType, type TaskClaimView, type UploadAuthorization, type WorkerQueue } from "@cisme/contracts";
 import { assertMilestone, assertTimezone, deriveDueMilestone, DomainError, milestoneDueOn } from "@cisme/domain";
 import type { AppConfig } from "@cisme/config";
 import { readSnapshot, transaction, type DbClient } from "./db.js";
@@ -72,17 +73,6 @@ function requireExpectedVersion(input: CareVersionCommandInput | undefined): num
     throw new DomainError("EXPECTED_VERSION_INVALID", "expectedVersion must be a positive integer", 422);
   }
   return input!.expectedVersion;
-}
-
-function requireCareRecordDetails(input: CareMilestoneCommandInput | undefined): Pick<CareMilestoneCommandInput, "stepCodes" | "selfAssessment"> {
-  const stepCodes = input?.stepCodes;
-  if (!Array.isArray(stepCodes) || stepCodes.length !== CARE_PROTOCOL_STEPS.length || stepCodes.some((step, index) => step !== CARE_PROTOCOL_STEPS[index])) {
-    throw new DomainError("CARE_PROTOCOL_STEPS_INCOMPLETE", "All care protocol steps must be completed in order", 422);
-  }
-  if (!CARE_SELF_ASSESSMENTS.includes(input?.selfAssessment as (typeof CARE_SELF_ASSESSMENTS)[number])) {
-    throw new DomainError("CARE_SELF_ASSESSMENT_REQUIRED", "A supported post-care self-assessment is required", 422);
-  }
-  return { stepCodes: [...stepCodes], selfAssessment: input!.selfAssessment };
 }
 
 function requestHash(value: unknown): string {

@@ -593,6 +593,27 @@ paths:
       responses: {'200': {$ref: '#/components/responses/Care'}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/me/care:
     get: {tags: [Care], operationId: getCare, security: [{session: []}], responses: {'200': {$ref: '#/components/responses/Care'}}}
+  /v1/me/daily-care-records:
+    get:
+      tags: [Care]
+      operationId: listDailyCareRecords
+      security: [{session: []}]
+      parameters:
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
+        - {name: cursor, in: query, schema: {type: string, maxLength: 600}}
+      responses:
+        '200': {description: Member-owned daily care records in descending completion order, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordPage'}}}}
+        '422': {$ref: '#/components/responses/Problem'}
+    post:
+      tags: [Care]
+      operationId: createDailyCareRecord
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordInput'}}}}
+      responses:
+        '200': {description: Daily facts saved or exact same-key replay; creates no cycle or reward, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordResult'}}}}
+        '409': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
   /v1/me/addresses:
     get:
       tags: [Member]
@@ -1989,6 +2010,22 @@ components:
     SupportMessageView: {type: object, additionalProperties: false, required: [id, sequence, senderType, body, contentType, attachments, orderCard, deliveryState, createdAt], properties: {id: {$ref: '#/components/schemas/Uuid'}, sequence: {type: integer, minimum: 1}, senderType: {type: string, enum: [user, ai, admin, system]}, body: {type: string}, contentType: {type: string, enum: [text, image, order, mixed, system]}, attachments: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/SupportMessageAttachment'}}, orderCard: {oneOf: [{$ref: '#/components/schemas/SupportOrderCard'}, {type: 'null'}]}, deliveryState: {type: string, enum: [server_accepted, read], description: server_accepted never claims transport delivery or recipient reading; read is derived from the opposite authoritative read cursor.}, createdAt: {type: string, format: date-time}}}
     CareVersionCommandInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
     CarePhaseCommandInput: {type: object, additionalProperties: false, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}
+    DailyCareRecordInput: {type: object, additionalProperties: false, required: [stepCodes, selfAssessment], properties: {stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}}}
+    DailyCareRecord:
+      type: object
+      additionalProperties: false
+      required: [id, source, operationId, completedAt, timezone, protocolVersion, stepCodes, selfAssessment]
+      properties:
+        id: {type: string, format: uuid}
+        source: {const: daily}
+        operationId: {type: string, minLength: 8, maxLength: 200}
+        completedAt: {type: string, format: date-time}
+        timezone: {const: Asia/Shanghai}
+        protocolVersion: {type: string}
+        stepCodes: {$ref: '#/components/schemas/DailyCareRecordInput/properties/stepCodes'}
+        selfAssessment: {$ref: '#/components/schemas/DailyCareRecordInput/properties/selfAssessment'}
+    DailyCareRecordResult: {type: object, required: [record, replayed], properties: {record: {$ref: '#/components/schemas/DailyCareRecord'}, replayed: {type: boolean}}}
+    DailyCareRecordPage: {type: object, required: [items, loadedCount, hasMore, nextCursor], properties: {items: {type: array, items: {$ref: '#/components/schemas/DailyCareRecord'}}, loadedCount: {type: integer, minimum: 0}, hasMore: {type: boolean}, nextCursor: {type: [string, 'null']}}}
     CareMilestoneCommandInput: {type: object, additionalProperties: false, required: [expectedVersion, stepCodes, selfAssessment], properties: {expectedVersion: {type: integer, minimum: 1}, stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}}}
     Uuid: {type: string, format: uuid}
     Id: {type: object, required: [id], properties: {id: {$ref: '#/components/schemas/Uuid'}}}

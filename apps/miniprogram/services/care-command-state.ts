@@ -1,8 +1,15 @@
+import type { DailyCareRecord } from "./daily-care";
 interface CareFact { id: string; version: number; startedOn?: string | null; records?: { milestone: string; completedAt?: string; stepCodes?: string[]; selfAssessment?: string | null }[] }
 export interface CareCommand { path: string; key: string; data: WechatMiniprogram.IAnyObject; token: string }
 /** Desired facts in a fresh server snapshot can confirm a lost response. An
  * absent record is NOT proof that a write was never executed. */
-export function careCommandConfirmed(command: CareCommand, care: CareFact | null): boolean {
+export function careCommandConfirmed(command: CareCommand, care: CareFact | null, dailyRecords: readonly DailyCareRecord[] = []): boolean {
+  if (command.path === "/v1/me/daily-care-records") return dailyRecords.some(record => record.source === "daily"
+    && record.operationId === command.key && record.protocolVersion === "daily-care-v1" && record.timezone === "Asia/Shanghai"
+    && typeof record.completedAt === "string" && Number.isFinite(Date.parse(record.completedAt))
+    && Array.isArray(record.stepCodes) && record.stepCodes.length === 4 && record.stepCodes.every((code, index) => code === ["00", "01", "02", "03"][index])
+    && Array.isArray(command.data.stepCodes) && command.data.stepCodes.length === 4 && command.data.stepCodes.every((code, index) => code === ["00", "01", "02", "03"][index])
+    && record.selfAssessment === command.data.selfAssessment);
   if (!care) return false;
   const activate = /^\/v1\/care-cycles\/([^/]+)\/activate$/.exec(command.path);
   if (activate) return care.id === activate[1] && typeof care.startedOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(care.startedOn)

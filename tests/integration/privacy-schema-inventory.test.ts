@@ -51,7 +51,7 @@ it("exports only migrated schema metadata as a complete policy-review denominato
   for(const table of tables){
     const policy=subjectMap.tables.find(t=>t.table===table.table)!;
     expect([...policy.exportFields,...policy.excludedFields].sort(),table.table).toEqual(table.columns.map(c=>c.name).sort());
-    expect(policy.productionErasure).toBe(optionalProfileErasure.has(table.table)?'SELF_OPTIONAL_PROFILE_V1':'DISABLED');
+    expect(policy.productionErasure).toBe(table.table==='daily_care_record'?'ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION':optionalProfileErasure.has(table.table)?'SELF_OPTIONAL_PROFILE_V1':'DISABLED');
   }
   for(const name of ['audit_log','commerce_order','commerce_refund_request','support_message'])
     expect(subjectMap.tables.find(t=>t.table===name)?.productionErasure).toBe('DISABLED');
