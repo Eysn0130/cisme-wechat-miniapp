@@ -868,7 +868,7 @@ describe("mini-program page behavior", () => {
     expect(resetCareSession).toHaveBeenCalledTimes(1);
     expect(act).toHaveBeenCalledWith("/v1/me/daily-care-records", expect.stringMatching(/^daily-care-/), { stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" });
     expect(act).toHaveBeenCalledTimes(1);
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "本次日常护理已保存", icon: "success" });
+    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "护理已保存", icon: "success" });
   });
 
   it("requires explicit confirmation before activating a planned Home care cycle", async () => {

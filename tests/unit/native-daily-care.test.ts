@@ -78,7 +78,7 @@ describe("Home actual daily write and unknown-result ownership", () => {
     expect(page.data).toMatchObject({ care: null, mutationState: "confirmed", sessionMounted: false });
     expect(page.data.view.steps.every((step: any) => !step.done)).toBe(true);
     expect(gets.some(url => url.startsWith(path))).toBe(false);
-    expect(wx.showToast).toHaveBeenCalledWith({ title: "本次日常护理已保存", icon: "success" });
+    expect(wx.showToast).toHaveBeenCalledWith({ title: "护理已保存", icon: "success" });
   });
   it("does not submit incomplete steps or an absent assessment", async () => {
     await home(); page.openCareSession(); page.advanceCareStep(); await page.submitCareSession();

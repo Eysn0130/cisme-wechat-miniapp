@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "0e29b68cbca6708b6e2db7c7af50a7dbe5e65b0dcfb6e1f50129b10c69af583d",
+  "purpose": "CISME0.1.11 scoped care/records/session/management trial preparation",
+  "implementation": {
+    "businessCodePR": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/42",
+    "businessSourceHead": "a1899adc59f448b28be52211a9f09dc60393733a",
+    "dailyCare": "Owner-scoped ordered four-step facts and assessment persist without an allocated cycle; once-save readback and later reentry retain the same operation.",
+    "management": "Expose existing editorial.manage without granting extra capabilities or mapping developer membership to all business permissions.",
+    "session": "Verify retained business token with /v1/me; real rejection clears stale local identity and restores login. Public legal bootstrap waits for retained-session verdict. Explicit guest Home remains allowed.",
+    "polish": [
+      "Success toast fits the native success-title limit",
+      "Daily detail kicker no longer duplicates milestone",
+      "Home/Records scoped token text follows system root size; fixed branding text and44px targets preserved"
+    ]
+  },
+  "deployedTrial": {
+    "sourceHead": "a1899adc59f448b28be52211a9f09dc60393733a",
+    "migrationCount": 100,
+    "activeVerified": true,
+    "snapshotAuthenticated": true,
+    "existing20ArticlesPreserved": true,
+    "productionChanged": false,
+    "credentialsChanged": false,
+    "configurationChanged": false,
+    "authorityGranted": false,
+    "applicationUpdatedOnce": true,
+    "frontendOnlyFollowupNeedsBackendRedeploy": false,
+    "privateReceiptDirectory": "tmp/community-refinement-20261029/schema100-stage/a1899adc59f4-actual"
+  },
+  "nativeObserved": {
+    "sourceSha256": "0e29b68cbca6708b6e2db7c7af50a7dbe5e65b0dcfb6e1f50129b10c69af583d",
+    "rootPerformed": true,
+    "softwareTestInputsNotPhysicalCareClaims": true,
+    "fourStepsAndAssessment": true,
+    "onceSaveShortToastVisible": true,
+    "previousRecordRetained": true,
+    "reentryFactsUnchanged": true,
+    "detailMatchesLatestSavedRecord": true,
+    "factsVerified": {
+      "orderedSteps": true,
+      "neutralTestChoice": true,
+      "timezone": true,
+      "protocolVersion": true
+    },
+    "fontConfigurations": [
+      {
+        "width": 375,
+        "height": 812,
+        "fontSetting": 26,
+        "measuredRecordTitlePx": 19.5
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "fontSetting": 16,
+        "measuredRecordTitlePx": 12
+      }
+    ],
+    "defaultDeviceAndFontRestored": true,
+    "existingEditorialManagementEntry": true,
+    "privateRawEvidence": "tmp/community-refinement-20261029/native-care-0e29b68c/manifest-private.json",
+    "privateManifestSha256": "627f956a103ec6e2af446b6ad8e9ac4d61e6c39704ad9cc6857794d68119cb2b",
+    "rawPersonalRecordsOrScreenshotsPublished": false,
+    "independentStaticReview": {
+      "agent": "trial_backup_prepare",
+      "frames": [
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15"
+      ],
+      "noVisualP1P2": true,
+      "scope": "Actual stills and8file diff read-only; root action and API receipts independently distinguished; no physical acceptance."
+    }
+  },
+  "previousSourceEvidence": {
+    "sourceSha256": "0dbe01dd9388b3409116a1a341045630299dd304e8606cfb38a721d746c19e7b",
+    "record": "docs/evidence/care-authority-session-20261029/cold-session-correction.json",
+    "scope": "Controlled invalid local business-token recovery and normal login/logout/guest/management; earlier daily-care save. Historical source evidence is not relabeled as current."
+  },
+  "checks": {
+    "businessBackendIntegration": {
+      "passed": 1017,
+      "files": 62,
+      "scope": "PR42 backend code, unchanged by this frontend-only followup"
+    },
+    "unit": {
+      "passed": 2210,
+      "failed": 0,
+      "conditionalSkipped": 1,
+      "files": 155
+    },
+    "typecheck": true,
+    "packageGate": true,
+    "diffCheck": true,
+    "designQa": {
+      "ok": true,
+      "releaseReady": false,
+      "structuralErrors": []
+    },
+    "privateReceipt": "tmp/community-refinement-20261029/frontend-polish-checks/final-receipt.json",
+    "initialBindingFailure": "Preserved initial failed receipt; full unit rerun passed only after honest current-source pointer rebinding."
+  },
+  "officialUpload": {
+    "version": "0.1.11",
+    "status": "not-started"
+  },
+  "releaseAcceptance": {
+    "finalResult": "blocked",
+    "all40RouteStateMatricesComplete": false,
+    "physicalDeviceValidated": false,
+    "missing": [
+      "Physical pinch/zoom and return",
+      "Physical keyboard avoidance",
+      "Physical video fullscreen exit",
+      "Qualified cycle/order and additional-permission positive journeys"
+    ],
+    "formalReviewOrPublicReleaseStarted": false
+  },
+  "requirements": [
+    "PRD附录L CARE-DAILY-01至04",
+    "MGMT-ENTRY-01",
+    "AUTH-RESTORE-01至03",
+    "CARE-AUTH-QA-01"
+  ]
+}
