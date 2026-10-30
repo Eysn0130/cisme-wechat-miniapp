@@ -1190,8 +1190,16 @@
     "publicUgcOpened": false,
     "realCommerceOpened": false,
     "liveProviderConnectivityVerified": true,
-    "deployed": false,
+    "deployed": true,
     "nativeAcceptance": false,
-    "physicalAcceptance": false
+    "physicalAcceptance": false,
+    "deploymentScope": {
+      "environment": "isolated-trial",
+      "sourceHead": "0caed61677dfc874f5162d99854a9bd54a199b7b",
+      "schema": 103,
+      "activeVerified": true
+    },
+    "nativeAcceptanceScope": "Read-only simulator management entry, comments with current saved profile and existing waiting-human queue; no real conversation details or writes, no physical-device acceptance.",
+    "evidence": "docs/evidence/comment-support-20261030/source-review.json"
   }
 }

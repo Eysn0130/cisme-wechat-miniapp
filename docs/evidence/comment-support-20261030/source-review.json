@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-30",
+  "recordedAtUtc": "2026-10-30T18:26:57.201456+00:00",
+  "scope": "PRD Appendix N comments and AI/human support, exact committed source and isolated trial runtime. Not formal release or physical-device acceptance.",
+  "pullRequest": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/52",
+  "sourceHead": "0caed61677dfc874f5162d99854a9bd54a199b7b",
+  "sourceTree": "21fe1201068ee570088fbc8ffec6993d55859adc",
+  "packageSourceSha256": "0ddfbcb69ba1bdd288431c04507c80829272c8ef0d32f7518ba4f7159d190b50",
+  "requirements": [
+    "COMMENT-DIRECT-01",
+    "COMMENT-ADMIN-01",
+    "COMMENT-PROFILE-01",
+    "COMMENT-MGMT-01",
+    "SUPPORT-AI-01",
+    "SUPPORT-HANDOFF-01",
+    "SUPPORT-FAILURE-01",
+    "COMMENT-SUPPORT-QA-01"
+  ],
+  "rootCauses": [
+    "editorial comments explicitly inserted pending_review",
+    "comment identity projection depended on separate public-profile approval",
+    "management queue defaulted to pending",
+    "support provider was disabled with no knowledge and no automatic persisted reply",
+    "existing exact trial administrator lacked all three support capabilities"
+  ],
+  "checks": {
+    "typecheck": "passed",
+    "contracts": "283 registered v1 /285 documented including health;246 protected methods",
+    "unitFiles": 163,
+    "unitPassed": 2399,
+    "unitSkipped": 1,
+    "unitFailed": 0,
+    "disposableIntegrationFiles": 8,
+    "disposableIntegrationPassed": 80,
+    "upgradeOfflineTestsPassed": 15,
+    "packageGate": "passed",
+    "trackedProvidedSecretMatches": 0
+  },
+  "realProviderIsolatedEndToEnd": {
+    "passed": true,
+    "model": "deepseek-flash",
+    "realProviderCalls": 2,
+    "firstAnswerPersisted": true,
+    "citationsVerified": true,
+    "exactReplayDidNotCallProvider": true,
+    "humanQueueClaimReplyMemberRead": true,
+    "realInFlightAiDiscardedAfterHandoff": true,
+    "realAccountsUsed": false,
+    "disposableResourcesRemoved": true
+  },
+  "deployment": {
+    "aiConfigured": true,
+    "applicationRollbackExecuted": false,
+    "databaseRestored": false,
+    "deployed": true,
+    "environment": "trial",
+    "fullRecoveryQualified": false,
+    "migrationCountAfter": 103,
+    "migrationCountBefore": 101,
+    "model": "deepseek-flash",
+    "previousActiveHistoryPreserved": true,
+    "privateValuesExported": false,
+    "productionChanged": false,
+    "snapshotAuthenticated": true,
+    "snapshotScope": "same-host-database-only",
+    "sourceHead": "0caed61677dfc874f5162d99854a9bd54a199b7b",
+    "versions": {
+      "fastify": "5.12.6",
+      "rsvg": "2.63.2",
+      "sharp": "0.35.5",
+      "vips": "8.18.7"
+    },
+    "instanceId": "lhins-61ikz4mi",
+    "publicIpv4": "124.223.74.198",
+    "database": "cisme_trial",
+    "sourceTree": "21fe1201068ee570088fbc8ffec6993d55859adc",
+    "archiveSha256": "3391aa04af68fd17179cebdec4ec2da5c17186b753d586e613ea78b83e6b18e1",
+    "archiveBytes": 25649825,
+    "manifestSha256": "97af96c44f69a4590b3500b75a1877c3fe78fd2f414b68f3a1ce7152f7347940",
+    "bindingSha256": "d6b22836ac36e4536f6ec04bea42a548610b468fb088709a4db911a0a2991f34",
+    "activeVerified": true,
+    "ordinaryPublicUgcOpened": false,
+    "realCommerceOpened": false,
+    "previousBusinessCoreFencePreserved": true,
+    "eligiblePendingCommentPublicationIsRequestedChange": true
+  },
+  "runtimeConnectivity": {
+    "serverRuntimeAiEnabled": true,
+    "providerChatHttp": 200,
+    "model": "deepseek-flash",
+    "elapsedMs": 608,
+    "answer": "连接成功",
+    "businessDataCreated": false,
+    "publicTrialHttpsStatus": 200,
+    "tlsVerifyResult": 0
+  },
+  "authority": {
+    "applied": true,
+    "target": "the unique preexisting active canonical WeChat trial editorial administrator",
+    "addedCapabilities": [
+      "support.read",
+      "support.reply",
+      "support.assign"
+    ],
+    "allPriorAuthorityRowsUnchanged": true,
+    "grantExpiryInherited": true,
+    "auditTriggerVerified": true,
+    "privateBeforeSnapshotRetained": true,
+    "productionAuthorityChanged": false
+  },
+  "nativeReadOnly": {
+    "tool": "official wechatide 0.3.14",
+    "width": 390,
+    "height": 844,
+    "managementEntryObserved": true,
+    "currentSavedCommentNamesAndAvatarsObserved": true,
+    "coloredAdministratorDeleteObserved": true,
+    "existingWaitingHumanQueueObserved": true,
+    "supportAiStatus": "READY",
+    "businessWriteToolsEnabled": false,
+    "newRealAccountTestComments": 0,
+    "newRealAccountTestMessages": 0,
+    "conversationDetailsOpened": false,
+    "templateCompilation": "post WXML/WXSS; community-review WXML/WXSS; support WXML/WXSS; management WXML successful. Earlier frequency-limit responses retained separately.",
+    "currentProfileProjectionComparison": {
+      "ownPublishedComments": 4,
+      "nicknameMatches": true,
+      "avatarMatches": true,
+      "avatarRevisionMatches": true
+    },
+    "evidence": "docs/evidence/comment-support-20261030/native-read-only.json"
+  },
+  "pending": {
+    "miniProgramUploadVersion": "0.1.14",
+    "uploadAuthorizedThisRequest": false,
+    "uploaded": false,
+    "physicalDeviceAcceptance": false,
+    "full40RouteStateMatrixAcceptance": false
+  },
+  "privacy": "No provided API key, session token, member identifier, private URL or real chat body included. Key remains in server private environment and local ignored private storage. No synthetic test data created in real account."
+}
