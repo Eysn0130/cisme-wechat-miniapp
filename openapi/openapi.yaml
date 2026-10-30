@@ -609,11 +609,48 @@ paths:
       operationId: createDailyCareRecord
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordInput'}}}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareCreateInput'}}}}
       responses:
-        '200': {description: Daily facts saved or exact same-key replay; creates no cycle or reward, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordResult'}}}}
+        '200': {description: First current record of the server day or exact same-key acknowledgement; same-day creation conflicts and creates no cycle or reward, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordResult'}}}}
         '409': {$ref: '#/components/responses/Problem'}
         '422': {$ref: '#/components/responses/Problem'}
+  /v1/me/daily-care-records/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+    put:
+      tags: [Care]
+      operationId: updateDailyCareRecord
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareUpdateInput'}}}}
+      responses:
+        '200': {description: Explicit versioned replacement of today's owner record; replay acknowledges original action without restoring old state, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordResult'}}}}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+    delete:
+      tags: [Care]
+      operationId: deleteDailyCareRecord
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareVersionInput'}}}}
+      responses:
+        '200': {description: Recoverable owner deletion; precise visibility marker survives backup restoration, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordResult'}}}}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /v1/me/daily-care-records/{id}/restore:
+    post:
+      tags: [Care]
+      operationId: restoreDailyCareRecord
+      security: [{session: []}]
+      parameters:
+        - {name: id, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareVersionInput'}}}}
+      responses:
+        '200': {description: Restore exact deleted version unless another current record occupies the day; suppressed facts never restored, content: {application/json: {schema: {$ref: '#/components/schemas/DailyCareRecordResult'}}}}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
   /v1/me/addresses:
     get:
       tags: [Member]
@@ -2014,18 +2051,25 @@ components:
     DailyCareRecord:
       type: object
       additionalProperties: false
-      required: [id, source, operationId, completedAt, timezone, protocolVersion, stepCodes, selfAssessment]
+      required: [id, source, operationId, completedAt, timezone, protocolVersion, stepCodes, selfAssessment, careDay, version, updatedAt, deleted]
       properties:
         id: {type: string, format: uuid}
         source: {const: daily}
+        careDay: {type: string, format: date, description: Asia/Shanghai calendar day determined by the server}
+        version: {type: integer, minimum: 1}
+        updatedAt: {type: string, format: date-time}
+        deleted: {type: boolean}
         operationId: {type: string, minLength: 8, maxLength: 200}
         completedAt: {type: string, format: date-time}
         timezone: {const: Asia/Shanghai}
         protocolVersion: {type: string}
         stepCodes: {$ref: '#/components/schemas/DailyCareRecordInput/properties/stepCodes'}
         selfAssessment: {$ref: '#/components/schemas/DailyCareRecordInput/properties/selfAssessment'}
-    DailyCareRecordResult: {type: object, required: [record, replayed], properties: {record: {$ref: '#/components/schemas/DailyCareRecord'}, replayed: {type: boolean}}}
-    DailyCareRecordPage: {type: object, required: [items, loadedCount, hasMore, nextCursor], properties: {items: {type: array, items: {$ref: '#/components/schemas/DailyCareRecord'}}, loadedCount: {type: integer, minimum: 0}, hasMore: {type: boolean}, nextCursor: {type: [string, 'null']}}}
+    DailyCareCreateInput: {type: object, additionalProperties: false, required: [stepCodes, selfAssessment], properties: {careDay: {type: string, format: date}, stepCodes: {$ref: '#/components/schemas/DailyCareRecordInput/properties/stepCodes'}, selfAssessment: {$ref: '#/components/schemas/DailyCareRecordInput/properties/selfAssessment'}}}
+    DailyCareUpdateInput: {type: object, additionalProperties: false, required: [careDay, expectedVersion, stepCodes, selfAssessment], properties: {careDay: {type: string, format: date}, expectedVersion: {type: integer, minimum: 1}, stepCodes: {$ref: '#/components/schemas/DailyCareRecordInput/properties/stepCodes'}, selfAssessment: {$ref: '#/components/schemas/DailyCareRecordInput/properties/selfAssessment'}}}
+    DailyCareVersionInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
+    DailyCareRecordResult: {type: object, required: [record, replayed, current], properties: {current: {type: boolean, description: False when this acknowledged operation was superseded; never applies the old content again}, record: {$ref: '#/components/schemas/DailyCareRecord'}, replayed: {type: boolean}}}
+    DailyCareRecordPage: {type: object, required: [items, loadedCount, hasMore, nextCursor, serverDay, today, totalCount], properties: {serverDay: {type: string, format: date}, today: {oneOf: [{$ref: '#/components/schemas/DailyCareRecord'}, {type: 'null'}]}, totalCount: {type: integer, minimum: 0}, items: {type: array, items: {$ref: '#/components/schemas/DailyCareRecord'}}, loadedCount: {type: integer, minimum: 0}, hasMore: {type: boolean}, nextCursor: {type: [string, 'null']}}}
     CareMilestoneCommandInput: {type: object, additionalProperties: false, required: [expectedVersion, stepCodes, selfAssessment], properties: {expectedVersion: {type: integer, minimum: 1}, stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}}}
     Uuid: {type: string, format: uuid}
     Id: {type: object, required: [id], properties: {id: {$ref: '#/components/schemas/Uuid'}}}

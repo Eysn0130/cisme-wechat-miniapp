@@ -37,6 +37,7 @@ function runtimeLabel(): string {
 
 Page({
   profileSessionToken: "",
+  profileVisible: true,
   requestedAddressSection: false,
   addressRecoverySnapshot: null as StoredAddressDraft | null,
   clipboardAttempt: 0,
@@ -47,6 +48,7 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.data.pageAlive = true;
+    this.profileVisible = true;
     const memberChanged = !retainMemberSnapshot(this);
     if (memberChanged) this.clearMemberSnapshot();
     if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "auth", error: "登录后可查看和修改个人设置。" }); return; }
@@ -54,6 +56,9 @@ Page({
     void this.loadSettingsBootstrap(); void this.loadAddresses(); void this.loadManagementAccess();
   },
   onHide() {
+    this.profileVisible = false;
+    this.data.profileAttempt += 1;
+    if(this.data.profileBusy)this.setData({profileBusy:false,profileError:"资料保存结果尚未确认，请重新加载后核对。"});
     this.clipboardAttempt = (this.clipboardAttempt ?? 0) + 1;
     this.addressImportAttempt = (this.addressImportAttempt ?? 0) + 1;
     this.avatarAttempt = (this.avatarAttempt ?? 0) + 1;
@@ -84,6 +89,8 @@ Page({
   async loadManagementAccess() { const token=getApp<IAppOption>().globalData.sessionToken; try { const projection=await authorityProjection(); if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({canManageMembers:hasCapability(projection,"member.profile.read")}); } catch { if(this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({canManageMembers:false}); } },
   onUnload() {
     this.data.pageAlive = false;
+    this.profileVisible = false;
+    this.data.profileAttempt += 1;
     this.clipboardAttempt = (this.clipboardAttempt ?? 0) + 1;
     this.addressImportAttempt = (this.addressImportAttempt ?? 0) + 1;
     this.avatarAttempt = (this.avatarAttempt ?? 0) + 1;
@@ -105,14 +112,9 @@ Page({
         consents:snapshot.settings.consents.map((item:any)=>({...item,purposeLabel:consentPurposeLabels[item.purpose] ?? "其他已记录用途许可"})),sessionStatus:"valid" });
       snapshotReceived = true;
       if (this.data.profileDirty) return;
-      const avatarUrl = await localMemberAvatar(profile.avatar_data_url, profile.avatar_revision);
-      if (!this.data.pageAlive || token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.loadAttempt || this.data.profileDirty) return;
-      this.profileSessionToken = token;
-      publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision || 0,completed_at:profile.completed_at,public_status:profile.public_status});
-      this.setData({ displayName:profile.display_name, wechatHandle:profile.wechat_handle || "", avatarUrl, memberId:profile.id, memberCode:String(profile.id || "").slice(0,8).toUpperCase(),
-        avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,
-        publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true
-      },()=>this.checkAddressDraftRecovery(profile.id));
+      const current=()=>this.data.pageAlive && this.profileVisible && !this.data.leaving && token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.loadAttempt;
+      if(!current() || !this.acceptProfileSnapshot(profile,token))return;
+      await this.loadProfileAvatar(profile,token,current);
     } catch (error) {
       if (!this.data.pageAlive || attempt !== this.data.loadAttempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
       if (snapshotReceived) { this.setData({profileError:"头像暂未加载，请重新加载资料。手机号和授权信息已更新。"}); return; }
@@ -129,13 +131,36 @@ Page({
     if (!token) { this.profileSessionToken=""; this.setData({profileDirty:false,avatarUrl:defaultMemberAvatar}); return; }
     try {
       const profile = await request<any>({path:"/v1/me/profile", authMode:"optional"});
-      const avatarUrl = await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);
-      if (this.data.pageAlive && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken && !this.data.profileDirty) { this.profileSessionToken=token; publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision || 0,completed_at:profile.completed_at,public_status:profile.public_status}); this.setData({
-        displayName:profile.display_name, wechatHandle:profile.wechat_handle || "", avatarUrl, memberId:profile.id, memberCode:String(profile.id || "").slice(0,8).toUpperCase(),
-        avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0, profileCompleted:Boolean(profile.completed_at),
-        communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true
-      },()=>this.checkAddressDraftRecovery(profile.id)); }
+      const current=()=>this.data.pageAlive && this.profileVisible && !this.data.leaving && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken;
+      if(!current() || !this.acceptProfileSnapshot(profile,token))return;
+      await this.loadProfileAvatar(profile,token,current);
     } catch { if(this.data.pageAlive && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken)this.setData({profileError:"会员资料暂未加载，请重试。"}); }
+  },
+  acceptProfileSnapshot(profile:any,token:string):boolean {
+    if(this.data.profileDirty)return false;
+    const known=memberIdentity();
+    if(known && known.id === profile.id && known.profile_revision > (profile.profile_revision || 0)){
+      this.profileSessionToken=token;
+      this.setData({displayName:known.display_name,avatarUrl:known.avatarUrl,profileVersion:known.profile_revision,profileReady:false,profileError:"资料已有更新，已显示最新昵称，请重新加载后继续修改。"});
+      return false;
+    }
+    if(this.profileSessionToken === token && profile.profile_revision < this.data.profileVersion)return false;
+    const sameMember=this.profileSessionToken === token && this.data.memberId === profile.id;
+    const avatarUrl=!profile.avatar_data_url ? defaultMemberAvatar : sameMember ? this.data.avatarUrl : known && known.id === profile.id ? known.avatarUrl : defaultMemberAvatar;
+    this.profileSessionToken=token;
+    publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision || 0,completed_at:profile.completed_at,public_status:profile.public_status});
+    this.setData({displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",avatarUrl,memberId:profile.id,memberCode:String(profile.id || "").slice(0,8).toUpperCase(),avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true,nicknameInvalid:false},()=>this.checkAddressDraftRecovery(profile.id));
+    return true;
+  },
+  async loadProfileAvatar(profile:any,token:string,current:()=>boolean) {
+    try {
+      const avatarUrl=await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);
+      if(!current() || this.data.profileDirty || this.data.memberId !== profile.id || this.data.profileVersion !== (profile.profile_revision || 0))return;
+      const known=memberIdentity();if(known && known.id === profile.id && known.profile_revision > (profile.profile_revision || 0))return;
+      if(avatarUrl === defaultMemberAvatar && profile.avatar_data_url)throw new Error("PROFILE_AVATAR_UNAVAILABLE");
+      publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision || 0,completed_at:profile.completed_at,public_status:profile.public_status});
+      this.setData({avatarUrl});
+    } catch { if(current() && !this.data.profileDirty && this.data.profileVersion === (profile.profile_revision || 0))this.setData({profileError:"会员资料已加载，头像暂未显示，请重新加载资料。"}); }
   },
   markProfileDirty() {
     this.setData({profileDirty:true,profileError:""});
@@ -175,18 +200,42 @@ Page({
     this.setData({profileDirty:false});this.syncUnloadGuard();await this.loadProfile();
   },
   async saveProfile(event?:WechatMiniprogram.CustomEvent) {
-    if(this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut || this.data.leavePromptOpen || this.data.phoneBusy || this.data.profileBusy || !this.data.profileReady || this.data.avatarBusy || this.data.nicknameInvalid) return;
+    if(!this.profileVisible || this.data.leaving || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut || this.data.leavePromptOpen || this.data.phoneBusy || this.data.profileBusy || !this.data.profileReady || this.data.avatarBusy || this.data.nicknameInvalid) return;
     const submittedName = event?.detail?.value?.nickname;
     if(typeof submittedName === "string")this.setData({displayName:submittedName});
     const token = getApp<IAppOption>().globalData.sessionToken;
+    const memberId = this.data.memberId;
+    const version = this.data.profileVersion;
+    const attempt = ++this.data.profileAttempt;
+    const current = () => this.data.pageAlive && this.profileVisible && !this.data.leaving && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken;
     this.setData({profileBusy:true, profileError:""});
     try {
-      await request({path:"/v1/me/profile", method:"PUT", data:{displayName:this.data.displayName,wechatHandle:this.data.wechatHandle,communityVisible:this.data.communityVisible,expectedVersion:this.data.profileVersion,...(this.data.avatarChanged ? {avatarDataUrl:this.data.avatarPayload} : {})}});
-      if(!this.data.pageAlive || token !== getApp<IAppOption>().globalData.sessionToken)return;
-      this.setData({profileDirty:false});this.syncUnloadGuard();await this.loadProfile();
+      const profile = await request<any>({path:"/v1/me/profile", method:"PUT", data:{displayName:this.data.displayName,wechatHandle:this.data.wechatHandle,communityVisible:this.data.communityVisible,expectedVersion:version,...(this.data.avatarChanged ? {avatarDataUrl:this.data.avatarPayload} : {})}});
+      if(!current())return;
+      if(profile?.id !== memberId || typeof profile.display_name !== "string" || !profile.display_name.trim() || !Number.isSafeInteger(profile.profile_revision) || profile.profile_revision <= version)throw new Error("INVALID_SAVED_PROFILE");
+      this.profileSessionToken=token;
+      const known=memberIdentity();
+      if(known && known.id === profile.id && known.profile_revision > profile.profile_revision){
+        this.setData({displayName:known.display_name,avatarUrl:known.avatarUrl,profileVersion:known.profile_revision,profileDirty:false,profileBusy:false,profileReady:false,avatarPayload:null,avatarChanged:false,profileError:"资料已有更新，已显示最新昵称，请重新加载后继续修改。"});
+        this.syncUnloadGuard();return;
+      }
+      const fallbackAvatar=!profile.avatar_data_url ? defaultMemberAvatar : this.data.avatarChanged ? this.data.avatarUrl : known && known.id === profile.id ? known.avatarUrl : this.data.avatarUrl;
+      const publish = (avatarUrl:string) => publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision,completed_at:profile.completed_at,public_status:profile.public_status});
+      // The server receipt owns the saved name and revision. Local avatar work
+      // must not delay them or turn a successful save into a stale edit.
+      publish(fallbackAvatar);
+      this.setData({displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",memberId:profile.id,profileVersion:profile.profile_revision,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileDirty:false,profileReady:true,profileBusy:false,nicknameInvalid:false,avatarPayload:null,avatarChanged:false,avatarUrl:fallbackAvatar});
+      this.syncUnloadGuard();
       wx.showToast({title:"会员资料已保存",icon:"success"});
-    } catch(error) { if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken)this.setData({profileError:(error as {title?:string}).title || "资料未保存，请重试"}); }
-    finally { if(this.data.pageAlive)this.setData({profileBusy:false}); }
+      try {
+        const avatarUrl=await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);
+        if(!current() || this.data.profileVersion !== profile.profile_revision || this.data.profileDirty)return;
+        const known=memberIdentity();if(known && known.id === profile.id && known.profile_revision > profile.profile_revision)return;
+        if(avatarUrl === defaultMemberAvatar && profile.avatar_data_url){this.setData({profileError:"资料已保存，头像暂未加载，请重新加载资料。"});return;}
+        publish(avatarUrl);this.setData({avatarUrl});
+      } catch { if(current() && this.data.profileVersion === profile.profile_revision)this.setData({profileError:"资料已保存，头像暂未加载，请重新加载资料。"}); }
+    } catch(error) { if(current())this.setData({profileError:(error as {title?:string}).title || "资料尚未确认，请重新加载后核对。"}); }
+    finally { if(this.data.pageAlive && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken)this.setData({profileBusy:false}); }
   },
   async loadPhone() {
     const token = getApp<IAppOption>().globalData.sessionToken;

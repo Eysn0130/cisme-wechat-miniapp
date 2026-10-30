@@ -16,6 +16,7 @@
   </block>
 
   <view wx:if="{{error || careUnavailable}}" class="state state--error" aria-live="assertive"><text wx:if="{{error}}">{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
+  <view wx:if="{{dailyStatusError && member && !hasCareCycle}}" class="state state--error" aria-live="polite"><text>{{dailyStatusError}}</text><button class="text-button {{dailyStatusLoading ? 'control--disabled' : ''}}" bindtap="retryDailyStatus" disabled="{{dailyStatusLoading}}">重新加载日常记录</button></view>
 
   <block wx:if="{{member || coreUnavailable}}">
     <view class="profile-label">常用服务</view>

@@ -717,3 +717,11 @@
 .aftersale-sheet__case button{min-height:44px;margin:0;background:#efe7f2;color:#56306f;border-radius:22px;font-size:24rpx}
 .aftersale-sheet__form input,.aftersale-sheet__form textarea,.aftersale-sheet__form .choice{box-sizing:border-box;width:100%;min-height:44px;padding:14rpx 18rpx;border:1rpx solid #e7dfea;border-radius:14rpx;background:#fff;font-size:25rpx}
 .aftersale-sheet__form textarea{min-height:110rpx}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-mask,
+  .context-sheet,
+  .operator-typing__dot { animation: none; }
+  .operator-send { transition: none; }
+  .operator-send--active:active { transform: none; }
+}

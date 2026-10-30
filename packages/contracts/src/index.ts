@@ -10,6 +10,9 @@ export interface DailyCareRecordInput {
   stepCodes: CareProtocolStep[];
   selfAssessment: CareSelfAssessment;
 }
+export interface DailyCareCreateInput extends DailyCareRecordInput { careDay?: string }
+export interface DailyCareUpdateInput extends DailyCareRecordInput { careDay: string; expectedVersion: number }
+export interface DailyCareVersionInput { expectedVersion: number }
 export interface DailyCareRecordView extends DailyCareRecordInput {
   id: string;
   source: "daily";
@@ -17,13 +20,20 @@ export interface DailyCareRecordView extends DailyCareRecordInput {
   completedAt: string;
   timezone: "Asia/Shanghai";
   protocolVersion: string;
+  careDay: string;
+  version: number;
+  updatedAt: string;
+  deleted: boolean;
 }
-export interface DailyCareRecordResult { record: DailyCareRecordView; replayed: boolean }
+export interface DailyCareRecordResult { record: DailyCareRecordView; replayed: boolean; current: boolean }
 export interface DailyCareRecordPage {
   items: DailyCareRecordView[];
   loadedCount: number;
   hasMore: boolean;
   nextCursor: string | null;
+  serverDay: string;
+  today: DailyCareRecordView | null;
+  totalCount: number;
 }
 
 export type SubmissionStatus =

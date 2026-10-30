@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "09874f40de34fe388801fbeb80e61fb16a38470712fc773202862dc20a7fd0f1",
+  "migrationSetSha256": "cc630befba428f7c4c0e2668f852b15d55bb5c7f06b8ce44fb55db7d80637226",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -3774,25 +3774,64 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Member-owned independent daily care facts, not cycle, qualification or reward. Read/export only unsuppressed owner facts. Account closure deletes unheld facts, suppresses typed-held facts and replays after backup restoration or hold release. Operation IDs and request hashes remain internal to service recovery, not in portable data copies.",
+      "specialHandling": "Member-owned daily current projection, one live record per Asia/Shanghai day. Export only nondeleted, nonsuperseded, unsuppressed owner facts. Exclude member_id, operation keys, request hash and internal visibility markers. Versioned update and recoverable deletion do not create a cycle, qualification or reward. Exact record visibility markers replay after backup restore; account closure deletes unheld facts and isolates held facts until hold release.",
       "exportFields": [
         "id",
         "completed_at",
         "timezone",
         "protocol_version",
         "step_codes",
-        "self_assessment"
+        "self_assessment",
+        "care_day",
+        "version",
+        "updated_at"
       ],
       "excludedFields": [
         "member_id",
         "operation_id",
         "request_sha256",
-        "suppressed_at"
+        "suppressed_at",
+        "latest_operation_id",
+        "deleted_at",
+        "superseded_by"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION",
-      "retention": "EXISTING_CARE_PURPOSE_AND_LEGAL_HOLD_NO_NEW_AUTOMATIC_PURGE_PERIOD",
-      "fullSubjectResolverStatus": "OWNER_SCOPED_DAILY_CARE_V1"
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
+    },
+    {
+      "table": "daily_care_record_revision",
+      "subjectPaths": [
+        [
+          "daily_care_record_revision.member_id -> daily_care_record.member_id",
+          "daily_care_record.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "daily_care_record_revision.record_id -> daily_care_record.id",
+          "daily_care_record.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner-scoped care revisions and original100 source facts. Snapshot/source_fact JSON contain private care data and internal operation IDs/hashes; never raw-export. Portable owner history projects care fields only and excludes deleted/suppressed records and operations. Account closure cascades unheld revisions, suppresses held records and removes revisions when the hold releases. No permanent-retention trigger or separate user permission.",
+      "exportFields": [],
+      "excludedFields": [
+        "record_id",
+        "member_id",
+        "version",
+        "action",
+        "operation_id",
+        "request_sha256",
+        "snapshot",
+        "source_fact",
+        "recorded_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "TYPED_RESOLVER_REQUIRED"
     },
     {
       "table": "data_erasure_job",
@@ -3998,10 +4037,6 @@
         ]
       ],
       "actorColumns": [],
-      "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
-      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
-      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
       "specialHandling": "Only author-owned comments enter portable copies. Pending/rejected/hidden comments remain private. Delete stops disclosure immediately; non-held text is cleared. No fake UGC post relationship.",
       "exportFields": [
         "id",
@@ -4019,7 +4054,11 @@
         "operation_id",
         "request_sha256",
         "deleted_at"
-      ]
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "editorial_comment_like",
@@ -4030,10 +4069,6 @@
         ]
       ],
       "actorColumns": [],
-      "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
-      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
-      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
       "specialHandling": "Export only the subject's own comment likes; public counts never reveal liker identities.",
       "exportFields": [
         "comment_id",
@@ -4041,7 +4076,11 @@
       ],
       "excludedFields": [
         "member_id"
-      ]
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "editorial_comment_policy",
@@ -4053,10 +4092,6 @@
         ]
       ],
       "actorColumns": [],
-      "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
-      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
-      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
       "specialHandling": "Article-level public configuration; an editorial owner cannot administer someone else's article. Not an author identity proof.",
       "exportFields": [],
       "excludedFields": [
@@ -4064,7 +4099,11 @@
         "enabled",
         "version",
         "updated_at"
-      ]
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "editorial_comment_report",
@@ -4075,10 +4114,6 @@
         ]
       ],
       "actorColumns": [],
-      "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
-      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
-      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
       "specialHandling": "Export reporter-owned reports only. Never disclose reporter identity or complaint text to the reported author.",
       "exportFields": [
         "id",
@@ -4091,7 +4126,11 @@
       ],
       "excludedFields": [
         "reporter_member_id"
-      ]
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "editorial_comment_safety_scan",
@@ -4103,10 +4142,6 @@
         ]
       ],
       "actorColumns": [],
-      "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
-      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
-      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
       "specialHandling": "Immutable minimal provider verdict and body digest, not raw comment text, provider detail or OpenID. Operational security proof is excluded from direct member exports.",
       "exportFields": [],
       "excludedFields": [
@@ -4117,7 +4152,11 @@
         "state",
         "result",
         "created_at"
-      ]
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "editorial_comment_scan_claim",
@@ -4129,10 +4168,6 @@
         ]
       ],
       "actorColumns": [],
-      "syntheticErasureFields": [],
-      "productionErasure": "DISABLED",
-      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
-      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED",
       "specialHandling": "Private fenced worker lease and bounded retry state; no public identity or export authority.",
       "exportFields": [],
       "excludedFields": [
@@ -4145,7 +4180,11 @@
         "attempt_count",
         "last_error",
         "updated_at"
-      ]
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; EXPLICIT_SELF_DELETE_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "eligibility_campaign",

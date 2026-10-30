@@ -7,8 +7,9 @@ import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { registerIncomingShare } from "../../services/share";
 import { careDaypart, careGreeting, careProtocolSteps, careSelfAssessments, type CareProtocolStepView, type CareSelfAssessmentValue } from "../../services/care-protocol";
 import { careHomeSchedule } from "../../services/care-home-state";
-import { createDailyCareRecord, dailyCarePath, readDailyCareRecords, type DailyCareInput } from "../../services/daily-care";
+import { saveDailyCareRecord, dailyCarePath, readDailyCareRecords, dailyCareCommandConfirmed, isDailyCarePath, type DailyCareInput, type DailyCareRecord, type DailyCarePage } from "../../services/daily-care";
 import { clientOperationKey } from "../../services/orders";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 
 interface CareRecord { milestone: string; completedAt: string; stepCodes?: string[]; selfAssessment?: CareSelfAssessmentValue | null }
 interface CareView { id: string; version: number; phase: string; startedOn: string | null; timezone: string; due: string | null; next: string | null; completed: string[]; records: CareRecord[]; scheduleOffsetDays: number }
@@ -88,9 +89,10 @@ function homeView(care: CareView | null, displayName = "CISME 会员", selectedI
 }
 
 const snapshotOwners = new WeakMap<object, string>();
-const pendingCareCommands = new WeakMap<object, CareCommand>();
+type HomeCareCommand = CareCommand & { method?: "POST" | "PUT" };
+const pendingCareCommands = new WeakMap<object, HomeCareCommand>();
 const writeOwners = new WeakMap<object, object>();
-const careSessionTargets = new WeakMap<object, { token: string; cycleId: string | null; version: number | null; due: string | null; dailyOperationKey?: string }>();
+const careSessionTargets = new WeakMap<object, { token: string; cycleId: string | null; version: number | null; due: string | null; dailyOperationKey?: string; careDay?: string; dailyRecord?: DailyCareRecord | null }>();
 
 function visitorView(selectedIndex = 0) {
   return { ...homeView(null, "CISME 会员", selectedIndex), greeting: "欢迎来到 CISME", action: "授权身份并开始", signalTitle: "先了解四步护理", signalMeta: "登录后查看你的护理安排与记录" };
@@ -98,6 +100,7 @@ function visitorView(selectedIndex = 0) {
 
 Page({
   data: {
+    dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null as DailyCareRecord | null, dailyAttempt: 0,
     chromeStyle: currentChromeStyle(), accountOpening: false, supportUnread: null as number | null, supportState: "unknown" as "unknown" | "loading" | "ready" | "error", care: null as CareView | null, view: homeView(null), selectedProtocolIndex: 0,
     loading: true, working: false, activationConfirming: false, authorityAvailable: false, needsAuthentication: false,
     loadAttempt: 0, snapshotVersion: 0, pageAlive: true, pageVisible: true, lifecycleEpoch: 0, mutationState: "idle" as "idle" | "sending" | "unknown" | "confirmed", error: "", reducedMotion: shouldReduceMotion(),
@@ -106,6 +109,31 @@ Page({
   },
   onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; void registerIncomingShare(query.share_id, "invite", "home"); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
+  syncDailyHomeView() {
+    if (this.data.care || this.data.needsAuthentication || !this.data.authorityAvailable) return;
+    const today = this.data.dailyToday;
+    const projection = this.data.dailyLoading ? { action: "正在读取今日记录…", actionable: false, signalTitle: "正在读取日常护理记录", signalMeta: "" }
+      : !this.data.dailyReady ? { action: "重新加载今日记录", actionable: true, signalTitle: "今日记录暂未确认", signalMeta: "请重新加载后开始护理" }
+      : today ? { schedule: "今日已记录", action: "调整今日记录", actionable: true, signalTitle: "今天的护理已记录", signalMeta: `${careSelfAssessments.find(item => item.value === today.selfAssessment)!.label}，再次保存会更新今天的记录`, signalIcon: "/assets/icons/check-circle-plum.svg" }
+      : { schedule: "日常护理", action: careDaypart(new Date(), "Asia/Shanghai").careAction, actionable: true, signalTitle: "今天还未记录", signalMeta: "完成四步并记录感受，保存今天的护理", signalIcon: "/assets/icons/clipboard-text-muted.svg" };
+    this.setData({ view: { ...this.data.view, ...projection } });
+  },
+  async loadDailyCare(attempt?: number, token = getApp<IAppOption>().globalData.sessionToken): Promise<DailyCarePage | null> {
+    const loadAttempt = attempt ?? this.data.loadAttempt;
+    const revision = commerceContextRevision();
+    const dailyAttempt = ++this.data.dailyAttempt;
+    const current = () => this.isCurrentLoad(loadAttempt, token) && this.data.dailyAttempt === dailyAttempt && commerceContextRevision() === revision;
+    this.setData({ dailyLoading: true, dailyError: "" }); this.syncDailyHomeView();
+    try {
+      const result = await readDailyCareRecords(this);
+      if (!current()) return null;
+      this.setData({ dailyReady: true, dailyLoading: false, serverDay: result.serverDay, dailyToday: result.today }); this.syncDailyHomeView();
+      return result;
+    } catch {
+      if (current()) { this.setData({ dailyReady: false, dailyLoading: false, dailyError: "日常护理记录暂未加载，请重试。" }); this.syncDailyHomeView(); }
+      return null;
+    }
+  },
   onShow() {
     const pending = pendingCareCommands.get(this);
     this.setData({ pageVisible: true, accountOpening: false, working: false, activationConfirming: false,
@@ -114,6 +142,7 @@ Page({
     tab?.setPresentation?.("care-sheet", this.data.sessionMounted);
     const identity = memberIdentity();
     if (identity) this.setData({ view: homeView(this.data.care, identity.display_name, this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
+    this.syncDailyHomeView();
     this.startDaypartClock();
     void this.load(retainMemberSnapshot(this));
   },
@@ -141,6 +170,7 @@ Page({
     if (!this.data.pageAlive || this.data.loading) return;
     const identity = memberIdentity();
     this.setData({ view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, identity?.display_name || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
+    this.syncDailyHomeView();
   },
   isCurrentUi(epoch: number, token: string): boolean {
     return this.data.pageAlive && this.data.pageVisible && this.data.lifecycleEpoch === epoch && getApp<IAppOption>().globalData.sessionToken === token;
@@ -178,7 +208,7 @@ Page({
       wx.disableAlertBeforeUnload();
       this.getTabBar?.()?.setPresentation?.("care-sheet", false);
       this.finishCareSessionClose();
-      this.setData({ snapshotVersion: 0 });
+      this.setData({ snapshotVersion: 0, dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null });
     }
     this.setData(preserveSnapshot && sameSession && this.data.authorityAvailable
       ? { loadAttempt: attempt, loading: true, error: "" }
@@ -186,6 +216,7 @@ Page({
     if (!token) { this.restoreGuestIfExpired(attempt); return false; }
     // Unread is independent: it must neither hold the care snapshot nor invent zero.
     void this.loadSupport(attempt, token);
+    const dailyRead = this.loadDailyCare(attempt, token);
     try {
       const snapshot = await pageRead<{ member: MemberView; care: CareView | null; businessVersion: number }>(this, { path: "/v1/bootstrap/home", authMode: "optional", cacheTags: ["member", "care"] });
       if (!this.isCurrentLoad(attempt, token)) { this.restoreGuestIfExpired(attempt); return false; }
@@ -205,13 +236,16 @@ Page({
           recordClientMetric({ action: "home", stage: "critical_ready", durationMs: measurementClock() - loadStarted });
         }
       });
+      this.syncDailyHomeView();
       const pending = pendingCareCommands.get(this);
-      let dailyRecords;
-      if (pending?.token === token && pending.path === dailyCarePath) {
-        try { dailyRecords = (await readDailyCareRecords(this)).items; } catch { /* Absence or a failed read cannot disprove a write. */ }
+      let dailyPage: DailyCarePage | null = null;
+      if (pending?.token === token && isDailyCarePath(pending.path)) {
+        dailyPage = await dailyRead;
         if (!this.isCurrentLoad(attempt, token)) { this.restoreGuestIfExpired(attempt); return false; }
       }
-      if (pending?.token === token && careCommandConfirmed(pending, care, dailyRecords)) {
+      if (pending?.token === token && (isDailyCarePath(pending.path)
+        ? dailyCareCommandConfirmed(pending.key, pending.data as DailyCareInput, dailyPage ? [...dailyPage.items, ...(dailyPage.today ? [dailyPage.today] : [])] : [], pending.path === dailyCarePath ? undefined : pending.path.slice(dailyCarePath.length + 1))
+        : careCommandConfirmed(pending, care))) {
         pendingCareCommands.delete(this);
         this.setData({ mutationState: "confirmed", error: pending.path.endsWith("/activate") ? "护理周期已开始，请按今日安排进行护理。" : "护理已保存，可到记录中查看。" });
         if (!this.data.working) this.resetCareSession();
@@ -239,13 +273,15 @@ Page({
     if (this.data.sessionOpen) return;
     const index = boundedStepIndex(Number(event.currentTarget.dataset.index));
     this.setData({ selectedProtocolIndex: index, view: this.data.needsAuthentication ? visitorView(index) : homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", index, new Date(), this.data.sessionCompletedCodes) });
+    this.syncDailyHomeView();
   },
   async primaryAction() {
+    if (!this.data.pageAlive || !this.data.pageVisible) return;
     if (this.data.needsAuthentication) { this.openAccount(); return; }
     if (this.data.mutationState === "unknown") { void this.retryCareMutation(); return; }
     if (this.data.loading || !this.data.authorityAvailable) { wx.showToast({ title: "护理状态尚未确认，请重试", icon: "none" }); return; }
     const care = this.data.care;
-    if (!care) { this.openCareSession(); return; }
+    if (!care) { if (this.data.dailyLoading || !this.data.dailyReady && !(await this.loadDailyCare())) return; this.openCareSession(); return; }
     if (care.phase === "planned") { await this.confirmCycleStart(); return; }
     if (care.phase === "active" && care.due) { this.openCareSession(); return; }
     wx.switchTab({ url: "/pages/records/index", fail: () => wx.showToast({ title: "护理记录页暂时无法打开", icon: "none" }) });
@@ -265,14 +301,16 @@ Page({
     } finally { if (this.isCurrentUi(epoch, token)) this.setData({ activationConfirming: false }); }
   },
   openCareSession() {
+    if (!this.data.pageAlive || !this.data.pageVisible) return;
     const care = this.data.care;
     const recordable = Boolean(care && care.phase === "active" && care.due);
     if (this.data.working || this.data.mutationState === "unknown" || this.data.sessionMounted || (care && !recordable)) return;
-    careSessionTargets.set(this, { token: getApp<IAppOption>().globalData.sessionToken, cycleId: care?.id ?? null, version: care?.version ?? null, due: care?.due ?? null, ...(!care ? { dailyOperationKey: clientOperationKey("daily-care") } : {}) });
+    if (!care && (!this.data.dailyReady || this.data.dailyLoading || !this.data.serverDay)) return;
+    careSessionTargets.set(this, { token: getApp<IAppOption>().globalData.sessionToken, cycleId: care?.id ?? null, version: care?.version ?? null, due: care?.due ?? null, ...(!care ? { dailyOperationKey: clientOperationKey("daily-care"), careDay: this.data.serverDay, dailyRecord: this.data.dailyToday } : {}) });
     this.clearCareSessionCloseTimer();
     wx.enableAlertBeforeUnload({ message: "本次护理尚未保存，离开后需要重新开始。" });
     this.getTabBar?.()?.setPresentation?.("care-sheet", true);
-    this.setData({ sessionMounted: true, sessionOpen: true, sessionVisible: this.data.reducedMotion, sessionClosing: false, sessionRecordable: true, sessionLabel: recordable ? `${care!.due} CARE` : "DAILY CARE", sessionSubmitLabel: recordable ? `点亮 ${care!.due} 护理记录` : "保存本次护理", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", selectedProtocolIndex: 0, view: homeView(care, memberIdentity()?.display_name || "CISME 会员", 0), error: "" }, () => {
+    this.setData({ sessionMounted: true, sessionOpen: true, sessionVisible: this.data.reducedMotion, sessionClosing: false, sessionRecordable: true, sessionLabel: recordable ? `${care!.due} CARE` : "DAILY CARE", sessionSubmitLabel: recordable ? `点亮 ${care!.due} 护理记录` : this.data.dailyToday ? "更新今日记录" : "保存今日记录", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", selectedProtocolIndex: 0, view: homeView(care, memberIdentity()?.display_name || "CISME 会员", 0), error: "" }, () => {
       if (this.data.reducedMotion) return;
       wx.nextTick(() => {
         if (this.data.sessionMounted && !this.data.sessionClosing) this.setData({ sessionVisible: true });
@@ -308,6 +346,7 @@ Page({
     careSessionTargets.delete(this);
     this.clearCareSessionCloseTimer();
     this.setData({ sessionMounted: false, sessionOpen: false, sessionVisible: false, sessionClosing: false, sessionRecordable: false, sessionLabel: "DAILY CARE", sessionSubmitLabel: "完成本次护理", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", this.data.selectedProtocolIndex) });
+    this.syncDailyHomeView();
   },
   advanceCareStep() {
     if (!this.data.sessionOpen || this.data.sessionStage !== "steps" || this.data.working) return;
@@ -337,7 +376,7 @@ Page({
       this.setData({ error: "护理安排已有更新。请先退出本次步骤，查看最新安排后再开始。" }); return;
     }
     if (!care && target.dailyOperationKey) {
-      const completed = await this.act(dailyCarePath, target.dailyOperationKey, { stepCodes: this.data.sessionCompletedCodes, selfAssessment: this.data.sessionAssessment });
+      const completed = await this.act(dailyCarePath + (target.dailyRecord ? "/" + target.dailyRecord.id : ""), target.dailyOperationKey, { careDay: target.careDay, stepCodes: this.data.sessionCompletedCodes, selfAssessment: this.data.sessionAssessment, ...(target.dailyRecord ? { expectedVersion: target.dailyRecord.version } : {}) }, false, target.dailyRecord ? "PUT" : "POST");
       if (!completed || !this.isCurrentUi(epoch, token)) return;
       this.resetCareSession();
       lightHaptic(this.data.reducedMotion);
@@ -366,34 +405,34 @@ Page({
     if (!pending || pending.token !== getApp<IAppOption>().globalData.sessionToken || this.data.working) return;
     const epoch = this.data.lifecycleEpoch, token = pending.token;
     const refreshed = await this.load(true);
-    if (!this.isCurrentUi(epoch, token) || (!refreshed && pending.path !== dailyCarePath) || pendingCareCommands.get(this) !== pending) return;
+    if (!this.isCurrentUi(epoch, token) || (!refreshed && !isDailyCarePath(pending.path)) || pendingCareCommands.get(this) !== pending) return;
     // Explicit user action replays exactly the original key and payload. It
     // never invents a new write intent after a lost response.
-    const result = await this.act(pending.path, pending.key, pending.data, true);
+    const result = await this.act(pending.path, pending.key, pending.data, true, pending.method);
     if (result && this.isCurrentUi(epoch, token)) {
       this.resetCareSession();
       wx.showToast({ title: pending.path.endsWith("/activate") ? "护理周期已开始" : "本次护理已保存", icon: "success" });
     }
   },
-  async act<T = Record<string, unknown>>(path: string, idempotencyKey: string, data: WechatMiniprogram.IAnyObject, replay = false): Promise<T | null> {
-    const dailyReplay = replay && path === dailyCarePath && pendingCareCommands.get(this)?.key === idempotencyKey;
+  async act<T = Record<string, unknown>>(path: string, idempotencyKey: string, data: WechatMiniprogram.IAnyObject, replay = false, method: "POST" | "PUT" = "POST"): Promise<T | null> {
+    const dailyReplay = replay && isDailyCarePath(path) && pendingCareCommands.get(this)?.key === idempotencyKey;
     if (this.data.working || (!this.data.authorityAvailable && !dailyReplay) || (this.data.mutationState === "unknown" && !replay)) return null;
     const epoch = this.data.lifecycleEpoch, token = getApp<IAppOption>().globalData.sessionToken;
     if (!token || !this.isCurrentUi(epoch, token)) return null;
-    const owner = {}, command: CareCommand = { path, key: idempotencyKey, data: { ...data, ...(Array.isArray(data.stepCodes) ? { stepCodes: [...data.stepCodes] } : {}) }, token };
+    const owner = {}, command: HomeCareCommand = { path, key: idempotencyKey, method, data: { ...data, ...(Array.isArray(data.stepCodes) ? { stepCodes: [...data.stepCodes] } : {}) }, token };
     writeOwners.set(this, owner); pendingCareCommands.set(this, command);
     const current = () => writeOwners.get(this) === owner && this.isCurrentUi(epoch, token);
     this.setData({ working: true, mutationState: "sending", error: "" });
     wx.enableAlertBeforeUnload({ message: "正在提交。离开后，请先查看最新护理安排，再决定是否重试。" });
     try {
-      const response = path === dailyCarePath ? await createDailyCareRecord(command.data as DailyCareInput, idempotencyKey) as T : await request<T>({ path, method: "POST", idempotencyKey, data: command.data });
+      const response = isDailyCarePath(path) ? await saveDailyCareRecord(command.data as DailyCareInput, idempotencyKey, method === "PUT" ? { id: path.slice(dailyCarePath.length + 1), version: data.expectedVersion } : undefined) as T : await request<T>({ path, method: "POST", idempotencyKey, data: command.data });
       if (!current()) return null;
       pendingCareCommands.delete(this);
       this.setData({ mutationState: "confirmed" });
       const refreshed = await this.load(true);
       if (!current()) return null;
       if (!refreshed) this.setData({ error: path.endsWith("/activate") ? "护理周期已开始，最新安排暂时无法加载，请稍后刷新。" : "护理已保存，最新进度暂时无法加载。请刷新或查看护理记录。" });
-      return refreshed || path === dailyCarePath ? response : null;
+      return refreshed || isDailyCarePath(path) ? response : null;
     } catch (error) {
       if (!current()) return null;
       const status = (error as { status?: number } | null)?.status;
@@ -405,7 +444,7 @@ Page({
       if (this.data.mutationState === "confirmed") {
         this.resetCareSession();
       } else this.setData({ error: rejected
-        ? "本次操作未完成，请查看最新护理安排后再试。"
+        ? isDailyCarePath(path) ? (error as { code?: string }).code === "DAILY_CARE_DAY_CHANGED" ? "日期已更新，请退出本次步骤，重新查看今天的护理记录。" : "记录已有变化，请退出本次步骤，查看最新记录后再操作。" : "本次操作未完成，请查看最新护理安排后再试。"
         : refreshed ? "操作结果尚未确认，请先查看最新护理安排，暂勿再次提交。"
           : "操作结果尚未确认，最新护理安排也暂时无法加载。请恢复网络后核对，暂勿重复提交。" });
       return null;

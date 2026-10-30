@@ -182,10 +182,10 @@ Page({
     try{if(!current())return;
       const answer=await request<{id:string;state:string}>({path:"/v1/management/commission-rates",method:"POST",idempotencyKey:command.key,
         data:{memberId:command.memberId,action:command.action,...(command.action==="override"?{basisPoints:command.basisPoints}:{}),effectiveAt:command.effectiveAt,reason:command.reason}});
-      if(current()){this.rateCommand=null;this.setData({rateFormVisible:false,actionStatus:`费率提议 ${answer.id.slice(0,8)} 已记录，等待另一名管理者复核。`});}}
+      if(current()){this.rateCommand=null;this.setData({busy:false,rateFormVisible:false,actionStatus:`费率提议 ${answer.id.slice(0,8)} 已记录，等待另一名管理者复核。`});}}
     catch(error){if(!current())return;
       try{const existing=await request<{id:string}>({path:`/v1/management/commission-rates/by-request/${command.key}`});
-        if(current()){this.rateCommand=null;this.setData({rateFormVisible:false,actionStatus:`原提议 ${existing.id.slice(0,8)} 已记录，等待复核。`});}}
+        if(current()){this.rateCommand=null;this.setData({busy:false,rateFormVisible:false,actionStatus:`原提议 ${existing.id.slice(0,8)} 已记录，等待复核。`});}}
       catch{if(current())this.setData({actionError:(error as {title?:string}).title||"结果还未确认。再次点击会先查询，再重试原提议。"});}}
     finally{if(current())this.setData({busy:false});}
   },

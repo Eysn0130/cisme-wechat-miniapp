@@ -69,6 +69,7 @@ jobs:
           python3 -W error::ResourceWarning -m unittest discover -s infra/tencent -p 'test_trial_editorial_comments_upgrade.py' -v
           python3 -I -B infra/tencent/test_trial_schema99_application_update.py
           python3 -I -B infra/tencent/test_trial_daily_care_upgrade.py
+          python3 -I -B infra/tencent/test_trial_daily_day_upgrade.py
           python3 -I -B infra/tencent/test_trial_editorial_comments_stage.py
           trial_backup_test_venv="$RUNNER_TEMP/trial-backup-test-venv"
           python3 -m venv "$trial_backup_test_venv"

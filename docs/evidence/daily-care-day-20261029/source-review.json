@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "scope": "PRD Appendix M, source and isolated checks before actual101 deployment; native pending",
+  "packageSourceSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd",
+  "implementation": [
+    "canonical nickname immediate propagation independent of avatar IO",
+    "server Shanghai day single live owner record with explicit versioned update",
+    "recoverable swipe/detail delete and undo with same-intent recovery",
+    "profile actual daily/cycle states, independent error recovery"
+  ],
+  "independentReview": {
+    "backend": "ownership/versions/privacy/markers reviewed; remote durability and cross-record replay corrected",
+    "client": "late delete confirmation after hide/show corrected and regression tested",
+    "operations": "15 offline upgrade guards;53 offline build/stage guards; no server action yet"
+  },
+  "existingFacts": "Migration fences original100 fields; existing suppression never participates or restores. No test care data will be left on real account.",
+  "nativeCapturePending": true,
+  "physicalDeviceValidated": false,
+  "releaseReady": false,
+  "deployed": false,
+  "uploaded": false,
+  "buttonSourceAudit": {
+    "distinctRoutes": 40,
+    "nativeButtonTemplateSites": 543,
+    "otherTapTemplateSites": 22,
+    "dynamicInstancesCounted": false,
+    "nativeAcceptance": false,
+    "fixes": [
+      "capsule reveal only, explicit confirm/delete/undo",
+      "shared relative typography and press/reduced feedback",
+      "specific44px minima and plain-button center alignment",
+      "customer/operator reduced motion",
+      "two management command busy leases release after acknowledgement without permitting stale callback effects"
+    ]
+  },
+  "localChecks": {
+    "unitFiles": 159,
+    "unitPassed": 2323,
+    "existingSkipped": 1,
+    "typecheck": "passed",
+    "package": "passed",
+    "globalWxssBytes": 8190,
+    "globalWxssBudget": 8192,
+    "contracts": "282 registered v1 /284 documented including health;245 protected session methods",
+    "opsOffline": 15,
+    "buildStageOffline": 53,
+    "disposableTargeted": "23 daily HTTP/DB cases plus pure schema inventory; closure, holds, portable parts and migration lifecycle also exercised separately"
+  }
+}

@@ -100,7 +100,7 @@ describe("native mini program boundary", () => {
       "--cisme-text-action: 16px",
       "--cisme-hit-target: 44px"
     ]) expect(appStyle).toContain(token);
-    expect(appStyle).toContain("min-height: var(--cisme-hit-target)");
+    expect(appStyle).toMatch(/min-height:\s*var\(--cisme-hit-target\)/);
 
     const styles = await pageStyles(resolve("apps/miniprogram/pages"));
     const undersized = styles.flatMap(({ path, source }) => [
@@ -239,9 +239,9 @@ describe("native mini program boundary", () => {
       checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
-      profile: ["openAccount", "openSettings", "openRecords", "load", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openTasks", "openSettings", "retryTasks"],
+      profile: ["openAccount", "openSettings", "openRecords", "load", "retryDailyStatus", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openTasks", "openSettings", "retryTasks"],
       progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
-      records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "retryDailyRecords", "openRecordDetail", "loadMoreDailyRecords", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail"],
+      records: ["authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "retryDailyMutation", "retryDailyRecords", "undoDailyDelete", "retryDailyRecords", "deleteDailyRecord", "openRecordDetail", "loadMoreDailyRecords", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail", "deleteDailyRecord"],
       referral: ["back", "preview", "confirm"],
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
@@ -324,8 +324,8 @@ describe("native mini program boundary", () => {
     const customTab = await readFile(resolve("apps/miniprogram/custom-tab-bar/index.wxss"), "utf8");
 
     expect(appStyle).toMatch(/button\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;[^}]*font-weight:\s*400;[^}]*line-height:\s*1\.25;/s);
-    expect(appStyle).toMatch(/\.primary,\s*\.secondary\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*min-height:\s*50px;[^}]*font-family:\s*-apple-system[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*line-height:\s*20px;/s);
-    expect(appStyle).toMatch(/\.action-label\s*\{[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*font-weight:\s*400;[^}]*line-height:\s*20px;/s);
+    expect(appStyle).toMatch(/\.primary,\s*\.secondary\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*min-height:\s*50px;[^}]*font-family:\s*-apple-system[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*line-height:\s*1\.25;/s);
+    expect(appStyle).toMatch(/\.action-label\s*\{[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*font-weight:\s*400;[^}]*line-height:\s*1\.25;/s);
     expect(appStyle).not.toMatch(/\.action-label\s*\{[^}]*transform:/s);
     expect(account).toContain('@import "../../styles/action-hierarchy.wxss"');
     expect(actionStyles).toMatch(/\.action-main,\.action-secondary\{[^}]*min-height:50px;/);

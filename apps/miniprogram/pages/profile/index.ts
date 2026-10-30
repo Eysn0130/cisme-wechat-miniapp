@@ -7,6 +7,8 @@ import { clearAuthenticationRedirectSuppression } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 import { consumerTaskEntries } from "../../services/task-entry";
 import { authorityProjection, hasNativeManagementEntry, type AuthorityProjection } from "../../services/authority";
+import { readDailyCareRecords, type DailyCarePage } from "../../services/daily-care";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 
 function profileCareView(care: any): { title: string; copy: string; status: string; hasCycle: boolean; unavailable: boolean } {
   if (care === null) return { title: "尚无护理周期", copy: "可先查看日常护理指引。", status: "尚无护理周期", hasCycle: false, unavailable: false };
@@ -29,10 +31,38 @@ const snapshotOwners = new WeakMap<object, string>();
 type AuxiliaryState = "unknown" | "loading" | "ready" | "error";
 
 Page({
-  data: { memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
+  dailySnapshot: null as DailyCarePage | null,
+  dailyStatusAttempt: 0,
+  projectDailyCare() {
+    if (!this.data.member || this.data.hasCareCycle || this.data.careUnavailable || this.data.care !== null) return;
+    const daily = this.dailySnapshot;
+    if (this.data.dailyStatusError) this.setData({ careTitle: "日常护理记录暂未更新", careCopy: "", careStatus: "日常记录待更新" });
+    else if (!daily || this.data.dailyStatusLoading) this.setData({ careTitle: "正在读取日常护理记录…", careCopy: "", careStatus: "正在更新日常记录" });
+    else if (daily.today) this.setData({ careTitle: "今日日常护理已记录", careCopy: "四步与感受已保存，点击查看记录。", careStatus: "今日已记录" });
+    else {
+      const day = daily.items[0]?.careDay, parts = day?.split("-");
+      const label = parts ? `${parts[0] === daily.serverDay.slice(0, 4) ? "" : parts[0] + "年"}${Number(parts[1])}月${Number(parts[2])}日` : "";
+      this.setData({ careTitle: "今天还未记录", careStatus: "今日日常护理未记录", careCopy: label ? `最近一次日常护理：${label}` : "完成四步并保存后，可在记录中查看。" });
+    }
+  },
+  async loadDailyStatus(attempt: number, token: string) {
+    const dailyAttempt = ++this.dailyStatusAttempt;
+    const revision = commerceContextRevision();
+    const current = () => this.isCurrentLoad(attempt, token) && this.dailyStatusAttempt === dailyAttempt && commerceContextRevision() === revision;
+    this.setData({ dailyStatusError: "", dailyStatusLoading: true }); this.projectDailyCare();
+    try {
+      const result = await readDailyCareRecords(this);
+      if (!current()) return;
+      this.dailySnapshot = result; this.setData({ dailyStatusLoading: false }); this.projectDailyCare();
+    } catch {
+      if (current()) { this.setData({ dailyStatusLoading: false, dailyStatusError: "日常护理记录暂时无法加载，请重试。" }); this.projectDailyCare(); }
+    }
+  },
+  retryDailyStatus() { const token = getApp<IAppOption>().globalData.sessionToken; if (token && this.data.member) void this.loadDailyStatus(this.data.loadAttempt, token); },
+  data: { dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { if (!requireMemberAccess()) { this.setData({hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
+  onShow() { if (!requireMemberAccess()) { this.dailySnapshot=null; this.dailyStatusAttempt++; this.setData({dailyStatusError:"",dailyStatusLoading:false,hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
   onHide() { cancelPageReads(this); this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
   isCurrentLoad(attempt: number, token: string): boolean {
@@ -90,12 +120,13 @@ Page({
     const token = getApp<IAppOption>().globalData.sessionToken;
     const sameSession = snapshotOwners.get(this) === token;
     snapshotOwners.set(this, token);
-    if (!sameSession) this.setData({ snapshotVersion:0 });
+    if (!sameSession) { this.dailySnapshot = null; this.setData({ snapshotVersion:0, dailyStatusError: "" }); }
     this.setData(preserveSnapshot && sameSession
       ? { loadAttempt:attempt, coreUnavailable:false, loading:true, error:"" }
       : { hasCareCycle:false, careUnavailable:false, loadAttempt:attempt, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, tasks:[], tasksError:"", loading:true, error:"" });
     void this.loadTasks(attempt);
     this.loadAuxiliary(attempt, token);
+    void this.loadDailyStatus(attempt, token);
     try {
       const snapshot = await pageRead<any>(this, { path: "/v1/bootstrap/profile", cacheTags: ["member", "care", "points"] });
       if (!this.isCurrentLoad(attempt, token)) return;
@@ -106,9 +137,11 @@ Page({
       const known = memberIdentity();
       const normalizedMember = known && known.id === member.id && known.profile_revision > member.profile_revision ? { ...member, ...known } : member;
       const { avatar_data_url: _rawAvatar, ...visibleMember } = normalizedMember;
+      const currentAvatar = known && known.id === member.id ? known.avatarUrl : defaultMemberAvatar;
+      publishMemberIdentity({ id: member.id, display_name: normalizedMember.display_name, profile_revision: normalizedMember.profile_revision, avatarUrl: currentAvatar });
       const careView = profileCareView(care);
       // One authoritative core snapshot; local file work is never on this path.
-      const core = { member:visibleMember, memberAvatar:defaultMemberAvatar, avatarState:"loading" as AuxiliaryState, points, care:care??null, hasCareCycle:careView.hasCycle, careUnavailable:careView.unavailable, coreUnavailable:false, snapshotVersion:snapshot.businessVersion, progressPercent:careView.hasCycle?Math.min(100, care.completed.length * 25):0, pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, loading:false };
+      const core = { member:visibleMember, memberAvatar:currentAvatar, avatarState:"loading" as AuxiliaryState, points, care:care??null, hasCareCycle:careView.hasCycle, careUnavailable:careView.unavailable, coreUnavailable:false, snapshotVersion:snapshot.businessVersion, progressPercent:careView.hasCycle?Math.min(100, care.completed.length * 25):0, pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, loading:false };
       recordClientMetric({ action: "profile", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
       this.setData(core, () => {
@@ -117,6 +150,7 @@ Page({
           recordClientMetric({ action: "profile", stage: "critical_ready", durationMs: measurementClock() - loadStarted });
         }
       });
+      this.projectDailyCare();
       void this.loadAvatar(member, attempt, token, snapshot.businessVersion);
     } catch {
       if (this.isCurrentLoad(attempt, token)) {

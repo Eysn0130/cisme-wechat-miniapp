@@ -6,6 +6,7 @@ import { DomainError } from '@cisme/domain';
 import { transaction, type DbClient } from './db.js';
 import { enqueue } from './outbox.js';
 import { applySupportMessageSuppression } from './supportMessageSuppression.js';
+import { applyDailyCareVisibility, latestDailyCareVisibility } from './dailyCare.js';
 
 export type ClosureMarker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
 export type ProfileErasureMarker={version:2;memberId:string;identityDigest:string;requestId:string;createdAt:string;
@@ -17,7 +18,10 @@ export type ConsentWithdrawalMarker={version:4;memberId:string;identityDigest:st
 export type SupportMessageMarker={version:5;memberId:string;conversationId:string;batchId:string;
   messageIds:string[];mediaIds:string[];memberCreatedAt:string;createdAt:string;
   scope:'support_retention_messages_v1';policyCode:string;removeConversation:boolean};
-export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker|ConsentWithdrawalMarker|SupportMessageMarker;
+export type DailyCareVisibilityMarker={version:6;scope:'daily_care_record_visibility_v1';memberId:string;recordId:string;
+  requestId:string;identityDigest:string;recordVersion:number;action:'delete'|'restore';operationId:string;
+  requestSha256:string;factsSha256:string;createdAt:string};
+export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker|ConsentWithdrawalMarker|SupportMessageMarker|DailyCareVisibilityMarker;
 export interface SuppressionRemote {
   put(marker:Marker):Promise<void>;
   list():Promise<Marker[]>;
@@ -29,6 +33,7 @@ const profileMarker=/^([0-9a-f-]{36})\.profile\.([0-9a-f-]{36})\.json$/i;
 const addressMarker=/^([0-9a-f-]{36})\.address\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 const consentMarker=/^([0-9a-f-]{36})\.consent\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 const supportMarker=/^([0-9a-f-]{36})\.support\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
+const dailyMarker=/^([0-9a-f-]{36})\.daily\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
@@ -40,7 +45,8 @@ export class AccountClosure {
     row.version===2?`${row.memberId}.profile.${row.requestId}.json`:
     row.version===3?`${row.memberId}.address.${row.addressId}.${row.requestId}.json`:
     row.version===4?`${row.memberId}.consent.${row.grantId}.${row.requestId}.json`:
-    `${row.memberId}.support.${row.conversationId}.${row.batchId}.json`;}
+    row.version===5?`${row.memberId}.support.${row.conversationId}.${row.batchId}.json`:
+    `${row.memberId}.daily.${row.recordId}.${row.requestId}.json`;}
   private markerPath(row:Marker){return join(this.directory!,this.markerFilename(row));}
   static identityDigest(provider:string,appId:string,openid:string) {
     return createHash('sha256').update(JSON.stringify([provider,appId,openid])).digest('hex');
@@ -93,15 +99,54 @@ export class AccountClosure {
       !row.mediaIds.every(value=>uuid.test(value)))throw new Error('SUPPORT_SUPPRESSION_MARKER_INVALID');
     return row;
   }
+  private validDaily(row:DailyCareVisibilityMarker,memberId:string,recordId:string,requestId:string){
+    if(row.version!==6||row.scope!=='daily_care_record_visibility_v1'||row.memberId!==memberId||row.recordId!==recordId||row.requestId!==requestId
+      ||![memberId,recordId,requestId].every(v=>uuid.test(v))||!digest.test(row.identityDigest)||!digest.test(row.factsSha256)
+      ||!digest.test(row.requestSha256)||!Number.isSafeInteger(row.recordVersion)||row.recordVersion<2
+      ||!['delete','restore'].includes(row.action)||typeof row.operationId!=='string'||row.operationId.length<8||row.operationId.length>200
+      ||!Number.isFinite(Date.parse(row.createdAt)))throw new Error('DAILY_CARE_VISIBILITY_MARKER_INVALID');
+    return row;
+  }
+  async dailyCareMarkers(memberId:string):Promise<DailyCareVisibilityMarker[]>{
+    if(!this.directory)return [];
+    await this.requireDirectory();const rows:DailyCareVisibilityMarker[]=[];
+    for(const filename of await readdir(this.directory)){
+      const match=dailyMarker.exec(filename);if(match?.[1]!==memberId)continue;
+      const row=await this.readFilename(filename) as DailyCareVisibilityMarker;
+      try{await this.remote?.put(row);}catch{throw new DomainError('DAILY_CARE_RECOVERY_PENDING','操作结果尚未确认，请稍后核对记录',503);}
+      rows.push(row);
+    }
+    return latestDailyCareVisibility(rows);
+  }
+  async recordDailyCareVisibility(input:Omit<DailyCareVisibilityMarker,'version'|'scope'>){
+    await this.requireDirectory();
+    const row=this.validDaily({version:6,scope:'daily_care_record_visibility_v1',...input},input.memberId,input.recordId,input.requestId);
+    await this.writeLocal(row);
+    try{await this.remote?.put(row);}catch{throw new DomainError('DAILY_CARE_RECOVERY_PENDING','操作结果尚未确认，请稍后核对记录',503);}
+    return row;
+  }
+  private async replayDailyCare(pool:pg.Pool,rows:DailyCareVisibilityMarker[]):Promise<number>{
+    const groups=new Map<string,DailyCareVisibilityMarker[]>();
+    for(const row of latestDailyCareVisibility(rows)){
+      const group=groups.get(row.memberId)??[];group.push(row);groups.set(row.memberId,group);
+    }
+    let changed=0;
+    for(const group of groups.values())changed+=await transaction(pool,async client=>{
+      let count=0;for(const row of group)if(await applyDailyCareVisibility(client,row))count++;
+      return count;
+    });
+    return changed;
+  }
   private async readFilename(filename:string):Promise<Marker>{
     await this.requireDirectory();
-    const match=profileMarker.exec(filename),address=addressMarker.exec(filename),consent=consentMarker.exec(filename),support=supportMarker.exec(filename);
-    if(!match&&!address&&!consent&&!support&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
+    const match=profileMarker.exec(filename),address=addressMarker.exec(filename),consent=consentMarker.exec(filename),support=supportMarker.exec(filename),daily=dailyMarker.exec(filename);
+    if(!match&&!address&&!consent&&!support&&!daily&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
     const row=JSON.parse(await readFile(join(this.directory!,filename),'utf8')) as Marker;
     return match?this.validProfile(row as ProfileErasureMarker,match[1]!,match[2]!):
       address?this.validAddress(row as AddressErasureMarker,address[1]!,address[2]!,address[3]!):
       consent?this.validConsent(row as ConsentWithdrawalMarker,consent[1]!,consent[2]!,consent[3]!):
       support?this.validSupport(row as SupportMessageMarker,support[1]!,support[2]!,support[3]!):
+      daily?this.validDaily(row as DailyCareVisibilityMarker,daily[1]!,daily[2]!,daily[3]!):
       this.valid(row,filename.slice(0,-5));
   }
   private async marker(memberId:string):Promise<ClosureMarker|null> {
@@ -201,11 +246,13 @@ export class AccountClosure {
         else if(row.version===2)this.validProfile(row,row.memberId,row.requestId);
         else if(row.version===3)this.validAddress(row,row.memberId,row.addressId,row.requestId);
         else if(row.version===4)this.validConsent(row,row.memberId,row.grantId,row.requestId);
-        else this.validSupport(row,row.memberId,row.conversationId,row.batchId);
+        else if(row.version===5)this.validSupport(row,row.memberId,row.conversationId,row.batchId);
+        else this.validDaily(row,row.memberId,row.recordId,row.requestId);
         await this.writeLocal(row);
       }
     }
     const supportToFinalize:SupportMessageMarker[]=[];
+    const dailyToReplay:DailyCareVisibilityMarker[]=[];
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
       const row=await this.readFilename(filename);
@@ -222,11 +269,13 @@ export class AccountClosure {
         }
       }
       else if(row.version===4)await transaction(pool,client=>applyConsentWithdrawal(client,row));
+      else if(row.version===6)dailyToReplay.push(row);
       else {await transaction(pool,client=>applySupportMessageSuppression(client,row));
         if(row.removeConversation)supportToFinalize.push(row);}
     }
     for(const row of supportToFinalize)
       await transaction(pool,client=>applySupportMessageSuppression(client,row));
+    await this.replayDailyCare(pool,dailyToReplay);
   }
   async replayMember(pool:pg.Pool,memberId:string) {
     const row=await this.marker(memberId);
@@ -241,9 +290,15 @@ export class AccountClosure {
     if(!this.directory)return 0;
     await this.requireDirectory();
     let repaired=0;
+    const dailyToReplay:DailyCareVisibilityMarker[]=[];
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
       const marker=await this.readFilename(filename);
+      if(marker.version===6){
+        try{await this.remote?.put(marker);}catch{throw new DomainError('DAILY_CARE_RECOVERY_PENDING','操作结果尚未确认，请稍后核对记录',503);}
+        dailyToReplay.push(marker);
+        continue;
+      }
       if(marker.version===3){
         const pending=(await pool.query<{pending:boolean}>(`SELECT EXISTS(SELECT 1 FROM member_delivery_address
           WHERE id=$1 AND member_id=$2 AND key_version<>'erased' AND payload_hmac=$3
@@ -316,6 +371,7 @@ export class AccountClosure {
         AS pending`,[memberId])).rows[0]?.pending;
       if(pending){await this.replayMember(pool,memberId);repaired++;}
     }
+    repaired+=await this.replayDailyCare(pool,dailyToReplay);
     return repaired;
   }
 }

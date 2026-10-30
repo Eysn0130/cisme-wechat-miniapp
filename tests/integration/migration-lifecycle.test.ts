@@ -114,6 +114,26 @@ describe("empty and N-1 database lifecycle", () => {
       authorization_ref,rights_evidence,content_sha256,status,published_by,published_principal_id)
       VALUES('synthetic-migration-preservation',$1,'合成测试作者','合成测试标题','','合成测试正文','synthetic-test','{}',$2,'draft',$1,'synthetic-test') RETURNING id`,
       [evidenceOwner,'a'.repeat(64)])).rows[0].id;
+    //101 preserves every original100 column while selecting only one live
+    // record per owner/day; already suppressed QA/privacy rows stay excluded.
+    expect((await pool.query("SELECT to_regclass('public.daily_care_record_revision') name")).rows[0].name).toBe('daily_care_record_revision');
+    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
+    migrationCount-=1;extensionCount-=1;
+    const legacy=[];
+    for(let n=0;n<4;n++)legacy.push((await pool.query(`INSERT INTO daily_care_record(member_id,operation_id,request_sha256,completed_at,
+      protocol_version,step_codes,self_assessment,suppressed_at) VALUES($1,$2,$3,$4,'daily-care-v1',ARRAY['00','01','02','03'],'neutral',$5)
+      RETURNING to_jsonb(daily_care_record) AS row`,[evidenceOwner,randomUUID(),'d'.repeat(64),new Date(Date.UTC(2026,9,29,n)),n>=2?new Date('2026-10-29T05:00:00Z'):null])).rows[0].row);
+    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});pool=migrationPool();
+    const migrated=(await pool.query(`SELECT to_jsonb(d)-ARRAY['care_day','version','updated_at','latest_operation_id','deleted_at','superseded_by'] AS row
+      FROM daily_care_record d WHERE member_id=$1 ORDER BY completed_at,id`,[evidenceOwner])).rows.map(r=>r.row);
+    expect(migrated).toEqual(legacy);
+    expect((await pool.query('SELECT count(*)::int n FROM daily_care_record_revision WHERE member_id=$1',[evidenceOwner])).rows[0].n).toBe(4);
+    const current=(await pool.query('SELECT id FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NULL AND superseded_by IS NULL',[evidenceOwner])).rows;
+    expect(current).toEqual([{id:legacy[1].id}]);
+    expect((await pool.query('SELECT id FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NOT NULL ORDER BY completed_at',[evidenceOwner])).rows.map(r=>r.id)).toEqual([legacy[2].id,legacy[3].id]);
+    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
+    expect((await pool.query('SELECT to_jsonb(d) AS row FROM daily_care_record d WHERE member_id=$1 ORDER BY completed_at,id',[evidenceOwner])).rows.map(r=>r.row)).toEqual(legacy);
+    await pool.query('DELETE FROM daily_care_record WHERE member_id=$1',[evidenceOwner]);
     expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBe('daily_care_record');
     const daily=(await pool.query(`INSERT INTO daily_care_record(member_id,operation_id,request_sha256,protocol_version,step_codes,self_assessment)
       VALUES($1,$2,$3,'daily-care-v1',ARRAY['00','01','02','03'],'comfortable') RETURNING id`,[evidenceOwner,randomUUID(),'c'.repeat(64)])).rows[0].id;
@@ -123,7 +143,7 @@ describe("empty and N-1 database lifecycle", () => {
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
     expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBeNull();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
-    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});pool=migrationPool();
+    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
     expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBe('daily_care_record');
     await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();migrationCount-=1;extensionCount-=1;
     const commentTables=['editorial_comment','editorial_comment_like','editorial_comment_policy','editorial_comment_report','editorial_comment_safety_scan','editorial_comment_scan_claim'];
@@ -137,6 +157,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect(await capabilityNames()).toEqual(extendedCapabilities);
     await closePool(pool);
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     // Keep the independent99 rollback assertions below targeted at99.
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     pool=migrationPool();
@@ -175,8 +196,9 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_watch_control') name")).rows[0].name).toBe('commerce_wechat_receipt_watch_control');
     await closePool(pool);
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
-    // up reapplies the full latest set (98+99+100); remove empty100 and99 before
+    // up reapplies the full latest set (98+99+100+101); remove empty101/100/99 before
     // checking the independently restored98 tables/capability set below.
+    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
     pool=migrationPool();
