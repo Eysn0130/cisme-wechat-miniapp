@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "PRD Appendix M, source and isolated checks before actual101 deployment; native pending",
+  "scope": "PRD Appendix M, source/isolated checks and actual schema101 isolated-trial deployment; current-source native capture and upload pending",
   "packageSourceSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd",
   "implementation": [
     "canonical nickname immediate propagation independent of avatar IO",
@@ -11,13 +11,13 @@
   "independentReview": {
     "backend": "ownership/versions/privacy/markers reviewed; remote durability and cross-record replay corrected",
     "client": "late delete confirmation after hide/show corrected and regression tested",
-    "operations": "15 offline upgrade guards;53 offline build/stage guards; no server action yet"
+    "operations": "23 offline upgrade guards and53 offline build/stage guards reviewed; fixed snapshot helper and exact new-main schema101 apply/active verified. The earlier failed-before-migration attempt remains recorded separately."
   },
   "existingFacts": "Migration fences original100 fields; existing suppression never participates or restores. No test care data will be left on real account.",
   "nativeCapturePending": true,
   "physicalDeviceValidated": false,
   "releaseReady": false,
-  "deployed": false,
+  "deployed": true,
   "uploaded": false,
   "buttonSourceAudit": {
     "distinctRoutes": 40,
@@ -42,8 +42,48 @@
     "globalWxssBytes": 8190,
     "globalWxssBudget": 8192,
     "contracts": "282 registered v1 /284 documented including health;245 protected session methods",
-    "opsOffline": 15,
+    "opsOffline": 23,
     "buildStageOffline": 53,
     "disposableTargeted": "23 daily HTTP/DB cases plus pure schema inventory; closure, holds, portable parts and migration lifecycle also exercised separately"
-  }
+  },
+  "deployment": {
+    "environment": "isolated-trial",
+    "sourceHead": "a4afe72b4b3a55c246cc5690390a80bf323b5e42",
+    "sourceTree": "39d2a6e1f4a9d732f92ea9626b9a3825db1e5dd6",
+    "mainCiRunId": 41014147584,
+    "mainCiResult": "success",
+    "helperSha256": "5394c9f4719319b0ca534c63ca65bcb3b003c6331585901ddea0aee348c3d8e2",
+    "archiveSha256": "fe95c3eb9f6059833f8ead5568aa8ecde34bf21df31eb2d58d2c43f9f1c6e9e6",
+    "manifestSha256": "027ce926faf38f7bf3d58842ccd2a12cbf74b8e63ab79aece9d0fb54fb52008a",
+    "migrationCountBefore": 100,
+    "migrationCountAfter": 101,
+    "activeVerified": true,
+    "snapshotAuthenticated": true,
+    "fullRecoveryQualified": false,
+    "applicationRollbackAllowed": false,
+    "existing20ArticlesPreserved": true,
+    "productionChanged": false,
+    "configurationChanged": false,
+    "credentialsChanged": false,
+    "databaseRestored": false,
+    "authorityGranted": false,
+    "consentCreated": false,
+    "businessDataSeeded": false,
+    "evidence": "Root actual apply receipt and separate read-only active verification; public fields only. Native login QR remains pending and is not native or upload evidence."
+  },
+  "deploymentAttemptHistory": [
+    {
+      "sourceHeadPrefix": "e00c",
+      "result": "failed-before-migration",
+      "cause": "Retained snapshot authenticated; an isolated same-size early-consumer regression reproduced rejection in the old direct decrypt pipe and passed with the full-drain fix. Original inner stderr was not retained.",
+      "migrationCountBefore": 100,
+      "migrationCountAfter": 100,
+      "migrationApplied": false,
+      "original100ApplicationRestarted": true,
+      "databaseRestored": false,
+      "originalFactsUnchanged": true,
+      "configurationChanged": false,
+      "productionChanged": false
+    }
+  ]
 }

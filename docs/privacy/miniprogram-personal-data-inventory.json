@@ -1090,9 +1090,9 @@
     "routes": [
       "GET /v1/me/daily-care-records",
       "POST /v1/me/daily-care-records",
-      "PUT /v1/me/daily-care-records/:recordId",
-      "DELETE /v1/me/daily-care-records/:recordId",
-      "POST /v1/me/daily-care-records/:recordId/restore"
+      "PUT /v1/me/daily-care-records/:id",
+      "DELETE /v1/me/daily-care-records/:id",
+      "POST /v1/me/daily-care-records/:id/restore"
     ],
     "data": [
       "server Asia/Shanghai calendar day",
@@ -1109,8 +1109,16 @@
     "export": "Only approved owner care-field projection of live current records and necessary prior care versions; no raw snapshot, source_fact, internal key/hash or other member identity. Deleted and previously suppressed records do not return through portable projections.",
     "erasure": "Versioned delete/restore is reversible visibility, separate from account closure and QA suppression. Precise visibility markers replay after backup restore and never restore suppressed rows or remove a later new record. Closure and hold-release cover revision copies.",
     "migration": "101 candidate consolidates same-day visible projection by latest server completedAt/id, without changing original100 facts or unsuppressing isolated records. The deployment must fence original fields across migration.",
-    "deployed": false,
+    "deployed": true,
     "currentSourceNativeAcceptance": false,
-    "physicalAcceptance": false
+    "physicalAcceptance": false,
+    "deploymentScope": {
+      "environment": "isolated-trial",
+      "sourceHead": "a4afe72b4b3a55c246cc5690390a80bf323b5e42",
+      "schema": 101,
+      "activeVerified": true,
+      "evidence": "docs/evidence/daily-care-day-20261029/source-review.json",
+      "nativeOrUploadAcceptanceGranted": false
+    }
   }
 }
