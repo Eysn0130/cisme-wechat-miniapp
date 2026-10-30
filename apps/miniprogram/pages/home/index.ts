@@ -89,6 +89,28 @@ function homeView(care: CareView | null, displayName = "CISME 会员", selectedI
 }
 
 const snapshotOwners = new WeakMap<object, string>();
+interface HomeMemberName { token: string; contextRevision: number; id: string; profileRevision: number; displayName: string }
+const homeMemberNames = new WeakMap<object, HomeMemberName>();
+// Bootstrap carries a canonical name, but not the full avatar/profile identity.
+// Retain only its owner-scoped name so clock and sheet redraws need no profile IO.
+function homeDisplayName(page: object, member?: MemberView): string {
+  const token = getApp<IAppOption>().globalData.sessionToken;
+  const contextRevision = commerceContextRevision();
+  let previous = homeMemberNames.get(page);
+  if (!token || previous?.token !== token || previous.contextRevision !== contextRevision) {
+    homeMemberNames.delete(page); previous = undefined;
+  }
+  if (!token) return "CISME 会员";
+  let selected = member?.id ? { token, contextRevision, id: member.id,
+    profileRevision: member.profile_revision || 0, displayName: member.display_name } : previous;
+  if (selected && previous?.id === selected.id && previous.profileRevision > selected.profileRevision) selected = previous;
+  const known = memberIdentity();
+  if (known && (!selected || known.id === selected.id) && (!selected || known.profile_revision > selected.profileRevision)) {
+    selected = { token, contextRevision, id: known.id, profileRevision: known.profile_revision, displayName: known.display_name };
+  }
+  if (selected) homeMemberNames.set(page, selected);
+  return selected?.displayName || "CISME 会员";
+}
 type HomeCareCommand = CareCommand & { method?: "POST" | "PUT" };
 const pendingCareCommands = new WeakMap<object, HomeCareCommand>();
 const writeOwners = new WeakMap<object, object>();
@@ -141,7 +163,7 @@ Page({
     const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 0 }); tab?.syncActive?.(0);
     tab?.setPresentation?.("care-sheet", this.data.sessionMounted);
     const identity = memberIdentity();
-    if (identity) this.setData({ view: homeView(this.data.care, identity.display_name, this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
+    if (identity) this.setData({ view: homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
     this.startDaypartClock();
     void this.load(retainMemberSnapshot(this));
@@ -156,6 +178,7 @@ Page({
     if (this.data.sessionClosing) this.finishCareSessionClose();
   },
   onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.pageVisible = false; this.data.lifecycleEpoch++; writeOwners.delete(this);
+    homeMemberNames.delete(this);
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
     this.clearCareSessionCloseTimer();
@@ -168,8 +191,7 @@ Page({
   stopDaypartClock() { if (daypartTimer) clearInterval(daypartTimer); daypartTimer = null; },
   refreshDaypart() {
     if (!this.data.pageAlive || this.data.loading) return;
-    const identity = memberIdentity();
-    this.setData({ view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, identity?.display_name || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
+    this.setData({ view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
   },
   isCurrentUi(epoch: number, token: string): boolean {
@@ -180,6 +202,7 @@ Page({
   },
   restoreGuestIfExpired(attempt: number) {
     if (!this.data.pageAlive || this.data.loadAttempt !== attempt || getApp<IAppOption>().globalData.sessionToken) return;
+    homeMemberNames.delete(this);
     this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "" });
   },
   async loadSupport(attempt: number, token: string) {
@@ -202,6 +225,7 @@ Page({
     const sameSession = snapshotOwners.get(this) === token;
     snapshotOwners.set(this, token);
     if (!sameSession) {
+      homeMemberNames.delete(this);
       this.data.lifecycleEpoch++;
       writeOwners.delete(this); pendingCareCommands.delete(this); careSessionTargets.delete(this);
       this.setData({ working: false, activationConfirming: false, mutationState: "idle" });
@@ -212,7 +236,7 @@ Page({
     }
     this.setData(preserveSnapshot && sameSession && this.data.authorityAvailable
       ? { loadAttempt: attempt, loading: true, error: "" }
-      : { loadAttempt: attempt, care: null, supportUnread: null, supportState: "unknown", view: token ? homeView(null, memberIdentity()?.display_name, this.data.selectedProtocolIndex) : visitorView(this.data.selectedProtocolIndex), loading: true, authorityAvailable: false, needsAuthentication: !token, error: "" });
+      : { loadAttempt: attempt, care: null, supportUnread: null, supportState: "unknown", view: token ? homeView(null, homeDisplayName(this), this.data.selectedProtocolIndex) : visitorView(this.data.selectedProtocolIndex), loading: true, authorityAvailable: false, needsAuthentication: !token, error: "" });
     if (!token) { this.restoreGuestIfExpired(attempt); return false; }
     // Unread is independent: it must neither hold the care snapshot nor invent zero.
     void this.loadSupport(attempt, token);
@@ -225,8 +249,7 @@ Page({
       if (snapshot.care && snapshot.care.id === this.data.care?.id && snapshot.businessVersion < this.data.snapshotVersion) return this.data.authorityAvailable;
       const processingStarted = measurementClock();
       const { member, care } = snapshot;
-      const known = memberIdentity();
-      const displayName = known && known.id === member.id && known.profile_revision > (member.profile_revision || 0) ? known.display_name : member.display_name;
+      const displayName = homeDisplayName(this, member);
       const core = { care, snapshotVersion: snapshot.businessVersion, view: homeView(care, displayName || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes), authorityAvailable: true, needsAuthentication: false, loading: false };
       recordClientMetric({ action: "home", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
@@ -252,7 +275,7 @@ Page({
       }
       return true;
     } catch {
-      if (this.isCurrentLoad(attempt, token)) this.setData({ care: null, view: homeView(null), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法加载，请检查网络后重试。" });
+      if (this.isCurrentLoad(attempt, token)) this.setData({ care: null, view: homeView(null, homeDisplayName(this)), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法加载，请检查网络后重试。" });
       else this.restoreGuestIfExpired(attempt);
       return false;
     } finally { if (this.isCurrentLoad(attempt, token)) this.setData({ loading: false }); }
@@ -272,7 +295,7 @@ Page({
   selectProtocolStep(event: WechatMiniprogram.TouchEvent) {
     if (this.data.sessionOpen) return;
     const index = boundedStepIndex(Number(event.currentTarget.dataset.index));
-    this.setData({ selectedProtocolIndex: index, view: this.data.needsAuthentication ? visitorView(index) : homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", index, new Date(), this.data.sessionCompletedCodes) });
+    this.setData({ selectedProtocolIndex: index, view: this.data.needsAuthentication ? visitorView(index) : homeView(this.data.care, homeDisplayName(this), index, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
   },
   async primaryAction() {
@@ -310,7 +333,7 @@ Page({
     this.clearCareSessionCloseTimer();
     wx.enableAlertBeforeUnload({ message: "本次护理尚未保存，离开后需要重新开始。" });
     this.getTabBar?.()?.setPresentation?.("care-sheet", true);
-    this.setData({ sessionMounted: true, sessionOpen: true, sessionVisible: this.data.reducedMotion, sessionClosing: false, sessionRecordable: true, sessionLabel: recordable ? `${care!.due} CARE` : "DAILY CARE", sessionSubmitLabel: recordable ? `点亮 ${care!.due} 护理记录` : this.data.dailyToday ? "更新今日记录" : "保存今日记录", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", selectedProtocolIndex: 0, view: homeView(care, memberIdentity()?.display_name || "CISME 会员", 0), error: "" }, () => {
+    this.setData({ sessionMounted: true, sessionOpen: true, sessionVisible: this.data.reducedMotion, sessionClosing: false, sessionRecordable: true, sessionLabel: recordable ? `${care!.due} CARE` : "DAILY CARE", sessionSubmitLabel: recordable ? `点亮 ${care!.due} 护理记录` : this.data.dailyToday ? "更新今日记录" : "保存今日记录", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", selectedProtocolIndex: 0, view: homeView(care, homeDisplayName(this), 0), error: "" }, () => {
       if (this.data.reducedMotion) return;
       wx.nextTick(() => {
         if (this.data.sessionMounted && !this.data.sessionClosing) this.setData({ sessionVisible: true });
@@ -345,7 +368,7 @@ Page({
   finishCareSessionClose() {
     careSessionTargets.delete(this);
     this.clearCareSessionCloseTimer();
-    this.setData({ sessionMounted: false, sessionOpen: false, sessionVisible: false, sessionClosing: false, sessionRecordable: false, sessionLabel: "DAILY CARE", sessionSubmitLabel: "完成本次护理", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", this.data.selectedProtocolIndex) });
+    this.setData({ sessionMounted: false, sessionOpen: false, sessionVisible: false, sessionClosing: false, sessionRecordable: false, sessionLabel: "DAILY CARE", sessionSubmitLabel: "完成本次护理", sessionStage: "steps", sessionStepIndex: 0, sessionStep: careProtocolSteps[0], sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [], sessionAssessment: "", view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex) });
     this.syncDailyHomeView();
   },
   advanceCareStep() {
@@ -355,11 +378,11 @@ Page({
     const completedCode = careProtocolSteps[index]!.code;
     lightHaptic(this.data.reducedMotion);
     if (index === careProtocolSteps.length - 1) {
-      this.setData({ sessionCompletedCodes: completedCodes, sessionSteps: sessionRail(index, completedCodes.length, true, completedCode), sessionProgressStyle: progressStyle(completedCodes.length), sessionProgressLabel: "4 / 4", sessionStage: "assessment", view: homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", index, new Date(), completedCodes, completedCode) });
+      this.setData({ sessionCompletedCodes: completedCodes, sessionSteps: sessionRail(index, completedCodes.length, true, completedCode), sessionProgressStyle: progressStyle(completedCodes.length), sessionProgressLabel: "4 / 4", sessionStage: "assessment", view: homeView(this.data.care, homeDisplayName(this), index, new Date(), completedCodes, completedCode) });
       return;
     }
     const nextIndex = index + 1;
-    this.setData({ sessionCompletedCodes: completedCodes, sessionStepIndex: nextIndex, sessionStep: careProtocolSteps[nextIndex] ?? careProtocolSteps[0], sessionSteps: sessionRail(nextIndex, completedCodes.length, false, completedCode), sessionProgressStyle: progressStyle(completedCodes.length), sessionProgressLabel: `${completedCodes.length} / 4`, selectedProtocolIndex: nextIndex, view: homeView(this.data.care, memberIdentity()?.display_name || "CISME 会员", nextIndex, new Date(), completedCodes, completedCode) });
+    this.setData({ sessionCompletedCodes: completedCodes, sessionStepIndex: nextIndex, sessionStep: careProtocolSteps[nextIndex] ?? careProtocolSteps[0], sessionSteps: sessionRail(nextIndex, completedCodes.length, false, completedCode), sessionProgressStyle: progressStyle(completedCodes.length), sessionProgressLabel: `${completedCodes.length} / 4`, selectedProtocolIndex: nextIndex, view: homeView(this.data.care, homeDisplayName(this), nextIndex, new Date(), completedCodes, completedCode) });
   },
   selectAssessment(event: WechatMiniprogram.TouchEvent) {
     if (this.data.working || this.data.mutationState === "unknown") return;

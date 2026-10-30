@@ -144,7 +144,7 @@ describe("mini program submission flow safety", () => {
     expect(community).toContain('if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = [];feedModel(this).editorial=[];this.setData({ error: this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。" }); this.renderFeed(); }');
     expect(community).toContain("this.data.feedAttempt === attempt");
     expect(home).toContain("authorityAvailable: false");
-    expect(home).toContain("care: null, view: homeView(null)");
+    expect(home).toContain("care: null, view: homeView(null, homeDisplayName(this)), authorityAvailable: false");
     expect(home).toContain("onUnload() { cancelPageReads(this); this.data.pageAlive = false");
     expect(home).toContain("const refreshed = await this.load(true)");
     expect(homeView).toContain('disabled="{{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable}}"');

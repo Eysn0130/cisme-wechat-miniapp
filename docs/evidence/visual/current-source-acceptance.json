@@ -257,25 +257,25 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "e63344352ad6f11581562efdb0f84ce93124e7cebe73d97e4811ed1961619b97",
+  "packageSourceSha256": "12c04828fc5243d05ee8c0518cdc5b41af0bbbde62b54d586c7f441d578be6b9",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "The active gesture-corrected source has only scoped Records native verification. All40-state matrices, physical-device and real qualified-cycle positive flows remain incomplete. Five layout alternatives await the user selection."
+      "reason": "The current selected-calendar source has scoped Records native validation. All40-state matrices, physical-device and real qualified-cycle positive flows remain incomplete."
     }
   ],
-  "note": "User requested five native design alternatives before selecting a layout. Alternatives were rendered locally from distinct preview packages and all remain unselected. Active source contains only the swipe correction and has been restored byte-for-byte after previews; no candidate was uploaded. Scoped swipe checks do not establish all40-state, physical-device or full business acceptance.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-da065de2e4f2.json",
+  "note": "User-selected A calendar, swipe correction and Home canonical-name preservation were independently reviewed on current source in390/font16 and375/font26. Date selection, known empty/future states, stable swipe/readback, detail, native Cancel and recoverable delete/Undo were verified; same original record and facts restored. This scope is not full40, physical-device or full business acceptance.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-e63344352ad6.json",
   "observedEvidence": {
-    "packageSourceSha256": "e63344352ad6f11581562efdb0f84ce93124e7cebe73d97e4811ed1961619b97",
-    "scope": "Records390/font16 scoped native gesture correction: rapid CUA leftswipe, native end-only event sequence, same-record API read retains expanded action, right close, next normal tap opens detail, normal confirmation cancelled, exact API readbacks unchanged.",
-    "recordFile": "docs/evidence/records-rework-20261030/source-review.json",
+    "packageSourceSha256": "12c04828fc5243d05ee8c0518cdc5b41af0bbbde62b54d586c7f441d578be6b9",
+    "scope": "Current12c calendar and Home nickname:12 independently reviewed native frames,390/font16 and375/font26; date filter, knownempty/future, stable swipe/readback, detail, Cancel and precise delete/Undo with original facts restored.",
+    "recordFile": "docs/evidence/records-calendar-20261030/source-review.json",
     "nativeCapturePending": false,
     "independentlyReviewed": true,
     "physicalDeviceValidated": false,
-    "layoutSelected": false,
+    "layoutSelected": true,
     "unselectedAlternativesUploaded": false
   },
   "pendingSourceRebind": false

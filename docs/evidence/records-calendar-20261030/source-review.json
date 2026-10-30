@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "12c04828fc5243d05ee8c0518cdc5b41af0bbbde62b54d586c7f441d578be6b9",
+  "layout": "User selected A calendar",
+  "sourceReview": {
+    "independentReviewComplete": true,
+    "hiddenDayStaleDeleteGuard": true,
+    "contract": "docs/evidence/records-calendar-20261030/interaction-contract.md",
+    "meaningfulNewCalendarAndScopeTests": 31,
+    "coldHomeCanonicalNameGuard": true,
+    "homeIdentityNewTests": 10
+  },
+  "nativeScope": {
+    "status": "scoped passed",
+    "viewports": [
+      "390x844/font16",
+      "375x812/font26"
+    ],
+    "independentlyReviewedFrames": 12,
+    "dateFilterAndReturnRecent": true,
+    "coveredEmptyDayCorrect": true,
+    "futureTapIgnored": true,
+    "detailReturnsToSameSelection": true,
+    "rapidCuaSwipeRevealOnly": true,
+    "sameVersionRealReadPreservesSwipe": true,
+    "rightSwipeCloses": true,
+    "confirmationCancelApiExactlyUnchanged": true,
+    "recoverableDeleteAndUndoCountCalendarListSynced": true,
+    "sameOriginalIdAndCareFactsRestored": true,
+    "recordVersionAdvancedBy": 2,
+    "newCareIdsCreated": 0,
+    "smallCalendarMinimumTargetPx": [
+      45.28125,
+      83.234375
+    ],
+    "closeSizePx": [
+      64,
+      44
+    ],
+    "all40StateMatricesComplete": false,
+    "realQualifiedCyclePositiveFlow": false,
+    "physicalDeviceValidated": false,
+    "fpsValidated": false,
+    "canonicalNameAfterColdStartClockProtocolAndSheet": true
+  },
+  "deliveryBoundary": {
+    "statusAtSourceReview": "Current-source scoped native verification and independent review complete; ready for exact-head CI and authorized official0.1.14 upload. Upload has not been invoked at this review.",
+    "previousExperienceVersion": "0.1.13",
+    "apiChanged": false,
+    "schema": 101,
+    "productionChanged": false,
+    "all40StateMatricesComplete": false,
+    "formalReleaseReady": false
+  },
+  "privacy": "Raw native screenshots, event/API facts stay in private ignored TMP; public evidence is aggregate only.",
+  "scope": "Selected A calendar integration and stable reveal-only swipe, native scoped review",
+  "sourceFixes": [
+    "Read-only weekly projection from authenticated server care day and canonical owner rows",
+    "Selected-day filtering retains full loaded list, cursor and true total",
+    "Unknown/future/stale days cannot masquerade as empty; cross-day or changed cursor chain restarts once from head",
+    "Acknowledged delete/undo atomically updates visible record, day marker and count",
+    "A delayed hidden-row delete event is rejected after a date-scope change",
+    "Prior gesture terminal ownership, end-point recognition and same-version offset preservation retained",
+    "Home retains owner-scoped canonical name and newer profile revision across clock, protocol and care-sheet redraws; account/context expiry clears it"
+  ],
+  "checks": {
+    "unitFiles": 161,
+    "unitPassed": 2378,
+    "existingSkipped": 1,
+    "failed": 0,
+    "typecheck": "passed",
+    "package": "passed",
+    "contracts": "passed",
+    "diffHygiene": "passed"
+  }
+}
