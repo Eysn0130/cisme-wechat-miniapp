@@ -4,7 +4,7 @@ import type {AppConfig} from '@cisme/config';
 import {DomainError} from '@cisme/domain';
 import {AuthorityService} from './authority.js';
 import type {EditorialService} from './editorial.js';
-import {communityAuthors} from './memberProfile.js';
+import {communityAuthors,editorialCommentAuthors} from './memberProfile.js';
 import {readSnapshot,transaction,type DbClient} from './db.js';
 import {finishPage,pageLimit,pageScope,readPageCursor} from './keysetPage.js';
 
@@ -91,7 +91,7 @@ export class EditorialCommentsService{
       const targets=rows.flatMap(row=>[row.author_member_id]);
       const replyIds=rows.map(row=>row.reply_to_id).filter(Boolean);
       const replies=replyIds.length?(await client.query<{id:string;author_member_id:string}>(`SELECT id,author_member_id FROM editorial_comment WHERE id=ANY($1::uuid[])`,[replyIds])).rows:[];
-      const authors=await communityAuthors(client,[...targets,...replies.map(row=>row.author_member_id)]);
+      const authors=await editorialCommentAuthors(client,[...targets,...replies.map(row=>row.author_member_id)]);
       const page=finishPage(rows.map(row=>({...row,cursorAt:row.cursor_at})),limit,scope);
       return {...summary,preview:false,asOf:asOf.toISOString(),authors,
         nextCursor:page.nextCursor,truncated:page.hasMore,hasMore:page.hasMore,loadedCount:page.loadedCount,
@@ -118,17 +118,20 @@ export class EditorialCommentsService{
         if(error instanceof DomainError&&error.code==='COMMENT_NOT_FOUND')throw new DomainError('COMMENT_REPLY_UNAVAILABLE','回复对象已不可见，请刷新后重试',409);
         throw error;
       }
-      const created=(await client.query<Comment>(`INSERT INTO editorial_comment(article_id,author_member_id,parent_id,reply_to_id,body,operation_id,request_sha256)
-        VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[id,owner,reply?.parent_id??reply?.id??null,replyId,body,operationId,fingerprint])).rows[0]!;
+      const created=(await client.query<Comment>(`INSERT INTO editorial_comment(article_id,author_member_id,parent_id,reply_to_id,body,operation_id,request_sha256,state)
+        VALUES($1,$2,$3,$4,$5,$6,$7,'published') RETURNING *`,[id,owner,reply?.parent_id??reply?.id??null,replyId,body,operationId,fingerprint])).rows[0]!;
       await this.audit(client,principalId!,'editorial.comment_submit',created.id,{articleId:id,version:1});
-      return {id:created.id,status:'pending',version:1,replayed:false};
+      return {id:created.id,status:'published',version:1,replayed:false};
     });
   }
   async remove(memberId:string|undefined,principalId:string|undefined,articleId:string,commentId:string){
     return transaction(this.pool,async client=>{
-      const owner=await this.editorial.commentActor(client,memberId,principalId,false);
-      const row=(await client.query<Comment>('SELECT * FROM editorial_comment WHERE id=$1 AND article_id=$2 AND author_member_id=$3 FOR UPDATE',[uuid(commentId),uuid(articleId),owner])).rows[0];
+      const target=(await client.query<{author_member_id:string}>('SELECT author_member_id FROM editorial_article WHERE id=$1',[uuid(articleId)])).rows[0];
+      if(!target)throw missing();
+      await this.moderator(client,memberId,principalId,target.author_member_id);
+      const row=(await client.query<Comment>('SELECT * FROM editorial_comment WHERE id=$1 AND article_id=$2 FOR UPDATE',[uuid(commentId),uuid(articleId)])).rows[0];
       if(!row)throw missing();
+      const owner=row.author_member_id;
       if(row.state!=='deleted'){
         await client.query('LOCK TABLE legal_hold IN SHARE MODE');await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
         const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
@@ -164,7 +167,7 @@ export class EditorialCommentsService{
     return transaction(this.pool,async client=>{
       const owner=await this.editorial.commentActor(client,memberId,principalId,false),id=uuid(articleId);
       await this.editorial.commentArticle(client,id,true);const comment=await this.available(client,id,owner,uuid(commentId),true);
-      if(comment.author_member_id===owner)throw new DomainError('COMMENT_REPORT_INVALID','本人的评论可直接删除',422);
+      if(comment.author_member_id===owner)throw new DomainError('COMMENT_REPORT_INVALID','不能举报本人的评论',422);
       const created=(await client.query<{id:string;state:string}>(`INSERT INTO editorial_comment_report(comment_id,reporter_member_id,category,description)
         VALUES($1,$2,$3,$4) ON CONFLICT(comment_id,reporter_member_id) DO UPDATE SET comment_id=EXCLUDED.comment_id RETURNING id,state`,[comment.id,owner,category,description])).rows[0]!;
       return {id:created.id,status:created.state};
@@ -196,7 +199,7 @@ export class EditorialCommentsService{
     });
   }
   async queue(memberId:string|undefined,principalId:string|undefined,input:{limit?:unknown;cursor?:unknown;state?:unknown;articleId?:unknown}={}){
-    const state=input.state??'pending';if(typeof state!=='string'||!['pending','published','rejected','hidden','reported'].includes(state))throw new DomainError('COMMENT_REVIEW_INVALID','审核队列类型无效',422);
+    const state=input.state??'published';if(typeof state!=='string'||!['pending','published','rejected','hidden','reported'].includes(state))throw new DomainError('COMMENT_REVIEW_INVALID','审核队列类型无效',422);
     const articleId=input.articleId==null?null:uuid(input.articleId);
     const limit=pageLimit(input.limit,30,50),scope=pageScope(['editorial-review',memberId,state,articleId]),cursor=readPageCursor(input.cursor,scope);
     return transaction(this.pool,async client=>{
@@ -210,7 +213,7 @@ export class EditorialCommentsService{
            OR $3<>'reported' AND c.state=$4)
         AND ($5::timestamptz IS NULL OR (c.created_at,c.id)>($5::timestamptz,$6::uuid)) ORDER BY c.created_at,c.id LIMIT $7`,
       [permission.all,permission.owner,state,state==='pending'?'pending_review':state,cursor?.at??null,cursor?.id??null,limit+1,articleId])).rows;
-      const authors=await communityAuthors(client,rows.map(row=>row.author_member_id));
+      const authors=await editorialCommentAuthors(client,rows.map(row=>row.author_member_id));
       const page=finishPage(rows.map(row=>({id:row.id,cursorAt:row.cursor_at,articleId:row.article_id,articleTitle:row.article_title,
         authorId:row.author_member_id,authorName:authors[row.author_member_id]?.name??'CISME 会员',body:row.body,status:status(row.state),version:row.version,
         parentId:row.parent_id,replyToId:row.reply_to_id,replyRootId:row.parent_id??row.id,createdAt:row.created_at,safetyState:row.safety_state??'pending',reportCount:row.report_count})),limit,scope);

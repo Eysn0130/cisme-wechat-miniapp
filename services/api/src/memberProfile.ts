@@ -102,3 +102,16 @@ export async function communityAuthors(pool: pg.Pool | pg.PoolClient, memberIds:
     FROM member m LEFT JOIN member_profile p ON p.member_id=m.id WHERE m.id=ANY($1::uuid[]) AND m.status='active'`,[ids]);
   return Object.fromEntries(result.rows.map((row,index)=>[row.id,{name:row.name,avatar:index < 50 ? row.avatar || '' : '',avatarRevision:index < 50 ? row.revision || null : null}]));
 }
+
+// Publishing a comment explicitly displays this small identity next to it.
+// It does not opt the member into a public profile or expose contact fields.
+export async function editorialCommentAuthors(pool: pg.Pool | pg.PoolClient, memberIds: string[]) {
+  const ids = [...new Set(memberIds)].filter(Boolean).slice(0,500);
+  if (!ids.length) return {} as Record<string,{name:string;avatar:string;avatarRevision:string|null}>;
+  const result=await pool.query(`SELECT m.id,m.display_name AS name,p.avatar_data_url AS avatar,p.avatar_revision AS revision
+    FROM member m LEFT JOIN member_profile p ON p.member_id=m.id
+    WHERE m.id=ANY($1::uuid[]) AND m.status='active'`,[ids]);
+  const avatarIds=new Set(ids.slice(0,51));
+  return Object.fromEntries(result.rows.map(row=>[row.id,{name:row.name||'CISME 会员',
+    avatar:avatarIds.has(row.id)?row.avatar||'':'',avatarRevision:avatarIds.has(row.id)?row.revision||null:null}]));
+}

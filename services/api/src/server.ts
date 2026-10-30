@@ -61,7 +61,7 @@ import { formalPaymentProtocol } from "./formalPaymentProtocol.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { FormalUgcService } from "./formalUgc.js";
 import { UgcSafetyService, startUgcSafetyLoop } from "./ugcSafety.js";
-import { ApprovedKnowledgeRegistry, DisabledSupportAiProvider, SupportAiBoundary } from "./supportAiBoundary.js";
+import { createSupportAiBoundary } from "./deepseekSupportAi.js";
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
 import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
@@ -164,8 +164,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
-  const support = new SupportService(pool, authority, service, storage, accountClosure);
-  const supportAi = new SupportAiBoundary(new DisabledSupportAiProvider(), new ApprovedKnowledgeRegistry([]));
+  const supportAi = createSupportAiBoundary(config.supportAi);
+  const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi);
   const access = new CommunityAccess(pool, config, authority);
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
@@ -642,6 +642,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return support.sendMember(request.memberId,request.principalId,input,request.id,request.authScope==='privacy_rights');
   });
   app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId));
+  app.post("/v1/me/support/resume-ai", async request => support.resumeAi(request.memberId, request.principalId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
   app.post("/v1/me/support/presence", async request => support.touchMemberPresence(request.memberId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
   app.post("/v1/me/support/media/authorize", async request => {

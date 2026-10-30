@@ -22,10 +22,11 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();});
 it("retains the explicit authentication denominator",()=>{
-  expect(routes).toHaveLength(245);
+  expect(routes).toHaveLength(246);
   // Nine new protected methods accompany the independently reviewed optional
   // GET comments read. Blocks are member-private, never an anonymous exception.
   for(const operation of [
+    {method:"POST",path:"/v1/me/support/resume-ai"},
     {method:"POST",path:"/v1/editorial/articles/{id}/comments"},
     {method:"DELETE",path:"/v1/editorial/articles/{id}/comments/{commentId}"},
     {method:"PUT",path:"/v1/editorial/articles/{id}/comments/{commentId}/like"},

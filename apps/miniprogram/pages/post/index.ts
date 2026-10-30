@@ -405,7 +405,7 @@ Page({
   },
   async deleteEditorialComment(event:WechatMiniprogram.TouchEvent) {
     const comment=this.data.editorialCommentItems.find(item=>item.id===event.currentTarget.dataset.id);
-    if(!comment?.isMine)return;
+    if(!comment||!this.data.canModerate)return;
     const intent=this.beginEditorialCommentAction();if(!intent)return;
     try{
       const answer=await wx.showModal({title:"删除这条评论？",content:"删除后将不再展示。",confirmText:"删除",confirmColor:"#d83b4e"});

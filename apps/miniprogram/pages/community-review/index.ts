@@ -1,8 +1,9 @@
 import { request, requireMemberAccess } from "../../services/api";
 import { cancelPageReads } from "../../services/page-requests";
 import { editorialIdentifier } from "../../services/editorial";
-import { editorialCommentReviewQueue,reviewEditorialComment,type EditorialReviewComment,type EditorialCommentReviewState } from "../../services/editorial-comments";
+import { deleteEditorialComment,editorialCommentReviewQueue,reviewEditorialComment,type EditorialReviewComment,type EditorialCommentReviewState } from "../../services/editorial-comments";
 import { currentChromeStyle } from "../../services/layout";
+import { localMemberAvatar } from "../../services/member-avatar";
 
 type Candidate = { id: string; authorId: string; state: string; revision: number; publishedRevision: number | null; version: number; title: string; body: string;
   aiUsage: string; rightsConfirmed: boolean; publicConsentConfirmed: boolean; moderationState: string;
@@ -32,10 +33,10 @@ const handledElsewhere = (error: unknown) => [404, 409].includes(Number((error a
 const reviewStatusLabel=(status:string)=>({pending:"待审核",published:"已公开",rejected:"已退回",hidden:"已隐藏"}[status]||status);
 const reviewSafetyLabel=(state:string)=>({pending:"检查中",safe:"已通过",review:"需核对",risky:"未通过",error:"检查未完成"}[state]||"未完成");
 const commentReviewConflict=(error:unknown)=>(error as {title?:string})?.title||"评论状态已变化，请刷新核对后再操作。";
-type ReviewRow=EditorialReviewComment&{dateLabel:string;statusLabel:string;safetyLabel:string};
+type ReviewRow=EditorialReviewComment&{dateLabel:string;statusLabel:string;safetyLabel:string;avatar:string;initial:string};
 Page({
   reviewVisible:true,editorialQueueEpoch:0,editorialReviewOwner:0,
-  data: { candidateStateLabels:{draft:'草稿',pending_review:'待审核',published:'已公开',rejected:'已退回',hidden:'已下架',deleted:'已删除'},mediaStateLabels:{authorized:'待上传',uploaded:'已上传',scanning:'检测中',approved:'已通过',rejected:'已退回',deleting:'删除中',deleted:'已删除'},reviewDecisionLabels:{approve:'通过审核',reject:'退回修改',publish:'公开',hide:'下架',restore:'恢复'},editorialSource:false,articleId:"",queueState:"pending" as EditorialCommentReviewState,queueItems:[] as ReviewRow[],queueCursor:null as string|null,queueHasMore:false,queueTabs:[{id:"pending",label:"待审核"},{id:"reported",label:"被举报"},{id:"published",label:"已公开"},{id:"rejected",label:"已退回"},{id:"hidden",label:"已隐藏"}],chromeStyle: currentChromeStyle(), postId: "", candidate: null as Candidate | null,
+  data: { candidateStateLabels:{draft:'草稿',pending_review:'待审核',published:'已公开',rejected:'已退回',hidden:'已下架',deleted:'已删除'},mediaStateLabels:{authorized:'待上传',uploaded:'已上传',scanning:'检测中',approved:'已通过',rejected:'已退回',deleting:'删除中',deleted:'已删除'},reviewDecisionLabels:{approve:'通过审核',reject:'退回修改',publish:'公开',hide:'下架',restore:'恢复'},editorialSource:false,articleId:"",queueState:"published" as EditorialCommentReviewState,queueItems:[] as ReviewRow[],queueCursor:null as string|null,queueHasMore:false,queueTabs:[{id:"published",label:"已公开"},{id:"reported",label:"被举报"},{id:"pending",label:"历史待审"},{id:"rejected",label:"已退回"},{id:"hidden",label:"已隐藏"}],chromeStyle: currentChromeStyle(), postId: "", candidate: null as Candidate | null,
     media: [] as Array<{ id: string; state: string; scanVerdict: string; src: string; position: number }>,
     loading: true, busy: false, error: "", notice: "", handled: false, permissionDenied: false },
   onLoad(query: Record<string, string | undefined>) {
@@ -97,17 +98,21 @@ Page({
     const epoch=++this.editorialQueueEpoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.editorialReviewOwner+=1;context(this).token=token;
     this.setData({loading:true,busy:false,error:"",permissionDenied:false,...(!more?{queueItems:[],queueCursor:null,queueHasMore:false}: {})});
-    if(!token){this.setData({loading:false,error:"请先登录后查看评论审核。"});requireMemberAccess(this.editorialReviewReturnUrl());return;}
+    if(!token){this.setData({loading:false,error:"请先登录后查看评论管理。"});requireMemberAccess(this.editorialReviewReturnUrl());return;}
     try{
       const result=await editorialCommentReviewQueue(this,{state:this.data.queueState,cursor:more?this.data.queueCursor:null,...(this.data.articleId?{articleId:this.data.articleId}:{})});
       if(!this.currentEditorialQueue(epoch,token))return;
       const byId=new Map((more?this.data.queueItems:[]).map(item=>[item.id,item]));
-      for(const item of result.items)byId.set(item.id,{...item,dateLabel:new Date(item.createdAt).toLocaleString("zh-CN"),statusLabel:reviewStatusLabel(item.status),safetyLabel:reviewSafetyLabel(item.safetyState)});
+      for(const item of result.items){
+        const author=result.authors[item.authorId],name=author?.name||item.authorName;
+        byId.set(item.id,{...item,authorName:name,avatar:await localMemberAvatar(author?.avatar,author?.avatarRevision),initial:Array.from(name)[0]||"C",dateLabel:new Date(item.createdAt).toLocaleString("zh-CN"),statusLabel:reviewStatusLabel(item.status),safetyLabel:reviewSafetyLabel(item.safetyState)});
+      }
+      if(!this.currentEditorialQueue(epoch,token))return;
       this.setData({queueItems:[...byId.values()],queueCursor:result.nextCursor,queueHasMore:result.hasMore,loading:false});
     }catch(error){
       if(this.currentEditorialQueue(epoch,token)){
         const denied=Number((error as {status?:number})?.status)===403;
-        this.setData({loading:false,busy:false,...(denied?{queueItems:[],queueCursor:null,queueHasMore:false,permissionDenied:true}:{}),error:denied?"当前账号没有这篇文章的评论管理权限。":failure(error,"评论审核列表暂时无法加载，请重试。")});
+        this.setData({loading:false,busy:false,...(denied?{queueItems:[],queueCursor:null,queueHasMore:false,permissionDenied:true}:{}),error:denied?"当前账号没有这篇文章的评论管理权限。":failure(error,"评论列表暂时无法加载，请重试。")});
       }else if(this.reviewVisible&&epoch===this.editorialQueueEpoch&&token&&getApp<IAppOption>().globalData.sessionToken===""){
         this.editorialQueueEpoch+=1;this.setData({loading:false,busy:false,queueItems:[],queueCursor:null,queueHasMore:false,error:"登录状态已失效，请重新登录后查看。"});
       }
@@ -145,6 +150,29 @@ Page({
       const status=Number((error as {status?:number})?.status);
       if(status===403){this.editorialQueueEpoch+=1;this.setData({busy:false,queueItems:[],queueCursor:null,queueHasMore:false,permissionDenied:true,error:"评论管理权限已变化，请返回文章。"});}
       else this.setData({error:status===409?commentReviewConflict(error):failure(error)});
+    }finally{if(current())this.setData({busy:false});}
+  },
+  async deleteEditorial(event:WechatMiniprogram.TouchEvent) {
+    if(this.data.busy||this.data.loading||!this.reviewVisible)return;
+    const row=this.data.queueItems.find(item=>item.id===event.currentTarget.dataset.id);
+    if(!row)return;
+    const epoch=this.editorialQueueEpoch,token=getApp<IAppOption>().globalData.sessionToken,owner=++this.editorialReviewOwner;
+    const current=()=>owner===this.editorialReviewOwner&&this.currentEditorialQueue(epoch,token)
+      &&this.data.queueItems.some(item=>item.id===row.id&&item.version===row.version&&item.status===row.status);
+    if(!current())return;
+    this.setData({busy:true,error:"",notice:""});
+    try{
+      const answer=await wx.showModal({title:"删除这条评论？",content:row.parentId?"删除后这条回复将不再显示，处理记录会保留。":"删除后这条评论及其回复将不再显示，处理记录会保留。",confirmText:"删除",confirmColor:"#a8324a"});
+      if(!answer.confirm||!current())return;
+      await deleteEditorialComment(row.articleId,row.id);
+      if(!current())return;
+      this.setData({notice:"评论已删除。"});
+      await this.loadEditorialQueue();
+    }catch(error){
+      if(!current())return;
+      const status=Number((error as {status?:number})?.status);
+      if(status===403){this.editorialQueueEpoch+=1;this.setData({busy:false,queueItems:[],queueCursor:null,queueHasMore:false,permissionDenied:true,error:"评论管理权限已变化，请返回管理中心。"});}
+      else this.setData({error:failure(error,"删除结果尚未确认，请刷新核对。")});
     }finally{if(current())this.setData({busy:false});}
   },
   openEditorialArticle(event:WechatMiniprogram.TouchEvent) {

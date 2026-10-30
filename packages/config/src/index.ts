@@ -21,6 +21,7 @@ export interface AppConfig {
   privacy: { syntheticExportKey: string | null; formalExportKey: string | null; suppressionDirectory: string | null;
     suppressionBucket: string | null };
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
+  supportAi: { enabled: boolean; apiKey: string | null; model: "deepseek-flash"; timeoutMs: number };
   wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean;
     messageToken: string | null; messageAesKey: string | null; plaintextCallbackTestOnly: boolean };
   objectStorage: {
@@ -109,6 +110,16 @@ export function assertPointsRedemptionReady(env: NodeJS.ProcessEnv, selectedTran
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   migrationReadOnly(env);
+  const supportAiEnabledRaw = env.SUPPORT_AI_ENABLED;
+  if (supportAiEnabledRaw !== undefined && supportAiEnabledRaw !== "true" && supportAiEnabledRaw !== "false")
+    throw new Error("CONFIG_INVALID:SUPPORT_AI_ENABLED");
+  const supportAiEnabled = supportAiEnabledRaw === "true";
+  const deepseekApiKey = env.DEEPSEEK_API_KEY?.trim() || null;
+  const deepseekModel = env.DEEPSEEK_MODEL?.trim() || "deepseek-flash";
+  if (deepseekModel !== "deepseek-flash") throw new Error("CONFIG_INVALID:DEEPSEEK_MODEL");
+  if (supportAiEnabled && !deepseekApiKey) throw new Error("FAIL_CLOSED:DEEPSEEK_API_KEY_REQUIRED");
+  if (deepseekApiKey && /[\r\n\0]/.test(deepseekApiKey)) throw new Error("CONFIG_INVALID:DEEPSEEK_API_KEY");
+  const supportAiTimeoutMs = integer("SUPPORT_AI_TIMEOUT_MS", env.SUPPORT_AI_TIMEOUT_MS, 4_000, 250, 5_000);
   const appEnv = (env.APP_ENV ?? "development") as AppEnvironment;
   if (!["development", "test", "staging", "production"].includes(appEnv)) throw new Error("CONFIG_INVALID:APP_ENV");
   const allowDevAdapters = bool(env.ALLOW_DEV_ADAPTERS, appEnv !== "production" && appEnv !== "staging");
@@ -323,6 +334,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionSecret: required("APP_SESSION_SECRET", env.APP_SESSION_SECRET),
     privacy: { syntheticExportKey, formalExportKey, suppressionDirectory, suppressionBucket },
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
+    supportAi: { enabled: supportAiEnabled, apiKey: deepseekApiKey, model: deepseekModel, timeoutMs: supportAiTimeoutMs },
     wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null,
       phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null,
       messageAesKey:env.WECHAT_MESSAGE_AES_KEY??null,plaintextCallbackTestOnly },

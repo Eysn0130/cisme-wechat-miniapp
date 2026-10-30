@@ -1,0 +1,68 @@
+{
+  "scope": "real DeepSeek + local createApp injection + one disposable synthetic database",
+  "realAccountsUsed": false,
+  "productionDatabaseUsed": false,
+  "firstAiStatus": "replied",
+  "firstConversationStatus": "ai_active",
+  "ai": {
+    "senderType": "ai",
+    "messageSequence": 2,
+    "text": "护理四步顺序为：00 净澈 → 01 清洁 → 02 修护 → 03 精护。完成后填写护理后自我感受，并明确点击保存。周期护理从 planned 开始，需你明确确认开始；到期护理须完成四步及感受。保存个人记录需要授权身份，游客只能查看指引。具体用量、频次和停留时间以当前产品说明及页面指引为准。",
+    "textSha256": "0fc84a4ae4a4d605d5d18f531035fbcf7fba80c6b0569c877e83b605350e4a94",
+    "citations": [
+      {
+        "version": "2026-10-30",
+        "sourceId": "cisme.care-guide"
+      }
+    ],
+    "confidence": 0.95,
+    "providerId": "deepseek-flash"
+  },
+  "memberReplay": {
+    "replayed": true,
+    "sameMessage": true,
+    "realProviderCallsAfterReplay": 1
+  },
+  "manual": {
+    "handoffStatus": "waiting_human",
+    "queueVisible": true,
+    "claimedStatus": "human_active",
+    "memberIncrementalRead": true,
+    "adminReplyReplayedOnce": true,
+    "memberReadSenderTypes": [
+      "user",
+      "system",
+      "admin"
+    ]
+  },
+  "lateAi": {
+    "inFlightAtHandoff": true,
+    "providerResponseReceivedAtHandoff": false,
+    "droppedAfterHandoff": true,
+    "persistedAiCount": 1
+  },
+  "messageCounts": [
+    {
+      "sender_type": "admin",
+      "count": 1
+    },
+    {
+      "sender_type": "ai",
+      "count": 1
+    },
+    {
+      "sender_type": "system",
+      "count": 1
+    },
+    {
+      "sender_type": "user",
+      "count": 2
+    }
+  ],
+  "pass": true,
+  "cleanup": {
+    "disposableDatabaseContainerRemoved": true,
+    "disposableObjectContainerRemoved": true,
+    "remainingOwnedContainers": 0
+  }
+}

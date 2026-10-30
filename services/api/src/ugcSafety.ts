@@ -202,10 +202,10 @@ export class UgcSafetyService{
       JOIN editorial_article a ON a.id=c.article_id AND a.status='published'
       JOIN member author ON author.id=a.author_member_id AND author.status='active'
       JOIN member commenter ON commenter.id=c.author_member_id AND commenter.status='active'
-      WHERE c.state='pending_review' AND NOT EXISTS(SELECT 1 FROM editorial_comment_scan_claim claim WHERE claim.comment_id=c.id AND
+      WHERE c.state IN ('pending_review','published') AND c.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM editorial_comment_scan_claim claim WHERE claim.comment_id=c.id AND
         (claim.state IN ('completed','quarantined') OR claim.lease_until>clock_timestamp() OR claim.next_attempt_at>clock_timestamp()))
       ORDER BY c.created_at,c.id LIMIT $1`,[limit]);
-    for(const row of editorialComments.rows){try{await this.scanEditorialComment(row.id);}catch{/* Remains private; no synthetic safe fallback. */}}
+    for(const row of editorialComments.rows){try{await this.scanEditorialComment(row.id);}catch{/* Retry a real safety check; never invent a safe verdict. */}}
     return editorialComments.rowCount??0;
   }
 
@@ -274,7 +274,7 @@ export class UgcSafetyService{
     const row=(await this.pool.query(`SELECT c.body,i.openid FROM ${tables.comment} c
       LEFT JOIN LATERAL (SELECT openid FROM wechat_identity WHERE member_id=c.author_member_id
         AND provider='wechat_miniprogram' AND app_id=$2 ${kind==='editorial'?"AND adapter='wechat'":''} ORDER BY created_at DESC LIMIT 1) i ON true
-      WHERE c.id=$1 AND c.state='pending_review' ${kind==='editorial'?`AND EXISTS(SELECT 1 FROM member m WHERE m.id=c.author_member_id AND m.status='active') AND EXISTS(SELECT 1 FROM editorial_article a JOIN member author ON author.id=a.author_member_id AND author.status='active' WHERE a.id=c.article_id AND a.status='published')`:''}`,[id,this.config.wechat.appId??""])).rows[0];
+      WHERE c.id=$1 AND ${kind==='editorial'?"c.state IN ('pending_review','published') AND c.deleted_at IS NULL":"c.state='pending_review'"} ${kind==='editorial'?`AND EXISTS(SELECT 1 FROM member m WHERE m.id=c.author_member_id AND m.status='active') AND EXISTS(SELECT 1 FROM editorial_article a JOIN member author ON author.id=a.author_member_id AND author.status='active' WHERE a.id=c.article_id AND a.status='published')`:''}`,[id,this.config.wechat.appId??""])).rows[0];
     if(!row||!row.body)throw new DomainError("UGC_COMMENT_SCAN_CONFLICT","评论已变化",409);
     if(!row.openid)throw new DomainError("UGC_SCAN_UNAVAILABLE","评论作者需先完成微信登录",409);
     const fingerprint=digest(row.body);
@@ -305,7 +305,7 @@ export class UgcSafetyService{
           WHERE comment_id=$1 FOR UPDATE`,[id])).rows[0];
         if(fence?.lease_token!==claim.lease_token)return {id,state:"pending"};
         const current=(await client.query(`SELECT body,state FROM ${tables.comment} WHERE id=$1 FOR UPDATE`,[id])).rows[0];
-        if(current?.state!=="pending_review"||digest(current.body??"")!==fingerprint){
+        if(!(kind==='editorial'?["pending_review","published"].includes(current?.state):current?.state==="pending_review")||digest(current?.body??"")!==fingerprint){
           await client.query(`UPDATE ${tables.claim} SET state='obsolete',lease_until=clock_timestamp(),
             updated_at=clock_timestamp() WHERE comment_id=$1 AND lease_token=$2`,[id,claim.lease_token]);
           return {id,state:"obsolete"};
@@ -314,6 +314,11 @@ export class UgcSafetyService{
           VALUES($1,$2,'wechat_v2',$3,$4)`,[id,fingerprint,state,kind==='editorial'?{errcode:response.errcode,suggest:response.result?.suggest,label:response.result?.label}:response]);
         await client.query(`UPDATE ${tables.claim} SET state='completed',lease_until=clock_timestamp(),
           updated_at=clock_timestamp() WHERE comment_id=$1 AND lease_token=$2`,[id,claim.lease_token]);
+        if(kind==='editorial'&&current.state==='published'&&(state==='review'||state==='risky')){
+          await client.query("UPDATE editorial_comment SET state='hidden',version=version+1,updated_at=now() WHERE id=$1",[id]);
+          await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+            VALUES('worker:content-safety','editorial.comment_safety_hide','editorial_comment',$1,'AUTOMATED_COMMENT_SAFETY',$2,gen_random_uuid()::text)`,[id,{state:'hidden',safetyState:state}]);
+        }
         return {id,state};
       });
     }catch(error){

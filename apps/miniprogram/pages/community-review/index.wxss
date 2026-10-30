@@ -23,3 +23,8 @@
 .review-page--editorial button { transition:opacity 120ms ease-out; }
 .review-control--pressed { opacity:.65; }
 .review-page--editorial .control--disabled { opacity:.45; }
+
+.review-comment-identity { display:flex; align-items:center; gap:8px; min-width:0; }
+.review-comment-identity text { flex:1; min-width:0; overflow-wrap:anywhere; }
+.review-comment-avatar { flex:none; width:32px; height:32px; border-radius:50%; }
+.review-comment-actions .review-comment-delete { color:#a8324a; border-color:transparent; }
