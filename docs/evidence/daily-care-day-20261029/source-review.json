@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "scope": "PRD Appendix M, source/isolated checks and actual schema101 isolated-trial deployment; current-source native capture and upload pending",
-  "packageSourceSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd",
+  "scope": "PRD Appendix M source/isolated checks, actual a4 schema101 trial deployment and scoped current-da native verification; all40 state matrices, physical devices and qualified-cycle overall acceptance remain blocked",
+  "packageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
   "implementation": [
     "canonical nickname immediate propagation independent of avatar IO",
     "server Shanghai day single live owner record with explicit versioned update",
@@ -14,7 +14,7 @@
     "operations": "23 offline upgrade guards and53 offline build/stage guards reviewed; fixed snapshot helper and exact new-main schema101 apply/active verified. The earlier failed-before-migration attempt remains recorded separately."
   },
   "existingFacts": "Migration fences original100 fields; existing suppression never participates or restores. No test care data will be left on real account.",
-  "nativeCapturePending": true,
+  "nativeCapturePending": false,
   "physicalDeviceValidated": false,
   "releaseReady": false,
   "deployed": true,
@@ -31,7 +31,8 @@
       "specific44px minima and plain-button center alignment",
       "customer/operator reduced motion",
       "two management command busy leases release after acknowledgement without permitting stale callback effects"
-    ]
+    ],
+    "sourcePackageSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd"
   },
   "localChecks": {
     "unitFiles": 159,
@@ -44,7 +45,36 @@
     "contracts": "282 registered v1 /284 documented including health;245 protected session methods",
     "opsOffline": 23,
     "buildStageOffline": 53,
-    "disposableTargeted": "23 daily HTTP/DB cases plus pure schema inventory; closure, holds, portable parts and migration lifecycle also exercised separately"
+    "disposableTargeted": "23 daily HTTP/DB cases plus pure schema inventory; closure, holds, portable parts and migration lifecycle also exercised separately",
+    "previousSourceUnitRun": {
+      "packageSourceSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd",
+      "unitFiles": 159,
+      "unitPassed": 2323,
+      "existingSkipped": 1
+    },
+    "unitStatus": "passed",
+    "lastUnitRun": {
+      "packageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
+      "files": 159,
+      "passed": 2323,
+      "failed": 0,
+      "skipped": 1,
+      "result": "passed"
+    },
+    "validationSourcePackageSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
+    "historicalUnitRuns": [
+      {
+        "packageSourceSha256": "768aeac5c4ac93e1612c95ca9c3eefaba2671df9e60e5666f33d695c42d6a52f",
+        "passed": 2317,
+        "failed": 2,
+        "failedSuites": 1,
+        "skippedReported": 5,
+        "existingConditionalSkip": 1,
+        "fourSuiteTestsNotRun": 4,
+        "cause": "CURRENT_NATIVE_SOURCE_MANIFEST_MISMATCH plus design-QA and route-audit failures while the manifest still bound85f. This is not a passing768 run."
+      }
+    ],
+    "designStructure": "passed"
   },
   "deployment": {
     "environment": "isolated-trial",
@@ -69,7 +99,7 @@
     "authorityGranted": false,
     "consentCreated": false,
     "businessDataSeeded": false,
-    "evidence": "Root actual apply receipt and separate read-only active verification; public fields only. Native login QR remains pending and is not native or upload evidence."
+    "evidence": "Root actual apply receipt and separate read-only active verification; public fields only. Current-da scoped native observations are recorded separately; deployment does not establish upload, physical-device or overall native acceptance."
   },
   "deploymentAttemptHistory": [
     {
@@ -85,5 +115,140 @@
       "configurationChanged": false,
       "productionChanged": false
     }
-  ]
+  ],
+  "packageSourceBindingStatus": "Current final-da client source is frozen and bound to the scoped native observations. Prior85f/fa5/3a/768 captures retain their historical source and are not inherited.",
+  "sourceFixes": [
+    "Settings avatar hint and recovery action use separate rows to prevent the observed overlap.",
+    "Records removes repeated empty blocks and gives deletion undo precedence.",
+    "Records functional text uses system sans and coherent rem hierarchy; brand wordmark decoration may retain its face.",
+    "Record details omit the internal protocol-version row and generalized disclaimer at the user request; server facts, versions and portable data remain unchanged.",
+    "Records compact native header uses real statistics and chrome/capsule alignment; functional text is coherent system sans/rem, with redundant detail and empty-state copy removed."
+  ],
+  "nativeValidation": {
+    "history": [
+      {
+        "packageSourceSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd",
+        "currentVisualAcceptanceInherited": false,
+        "scope": "Historical Settings profile save and readback from85f; no bodily-care save claim. It is not a fresh current-da Settings save or visual acceptance.",
+        "actualSettingsSaveAndReadbackObservedByRoot": true
+      },
+      {
+        "packageSourceSha256": "fa5d5b067a70b26128d9d4cdf0cc05b7d9b88366d915abf21cc909f14979b246",
+        "actualDeleteAndUndoObservedByRoot": true,
+        "currentVisualAcceptanceInherited": false,
+        "scope": "Historical exact-record delete/restore workflow, not final layout acceptance."
+      },
+      {
+        "packageSourceSha256": "3a094e4e45eef18bc3e703aae9f2890a10b44a535f6f06f399ffbb697b96c2f3",
+        "uiAccepted": false,
+        "reason": "User rejected the serif treatment of functional text.",
+        "currentVisualAcceptanceInherited": false
+      },
+      {
+        "packageSourceSha256": "768aeac5c4ac93e1612c95ca9c3eefaba2671df9e60e5666f33d695c42d6a52f",
+        "capturedByRoot": [
+          "Records list375/font16",
+          "Records detail375/font16"
+        ],
+        "independentlyReviewed": false,
+        "status": "Historical intermediate source; superseded by final-da compact header. No visual acceptance inherited.",
+        "currentVisualAcceptanceInherited": false
+      }
+    ],
+    "unchangedBusinessLogic": {
+      "scope": "Exact current file hashes match the independently frozen business-logic files. Logic continuity does not establish new WXML/WXSS rendering or fresh interactions.",
+      "files": [
+        {
+          "path": "apps/miniprogram/pages/home/index.ts",
+          "sha256": "3b8ce4a4f603bc3d54e88ee0c11b619f93f007c2bedbd52286dbd4ea36ee6ac2"
+        },
+        {
+          "path": "apps/miniprogram/pages/profile/index.ts",
+          "sha256": "19b229a817144106cf289ed3be93120aadcf62d39b4d74c9d988c53990a8634d"
+        },
+        {
+          "path": "apps/miniprogram/pages/records/index.ts",
+          "sha256": "87c286cbfc1e30b7830f0959807d4ceac88e0048755517b1520b6db3c8fd70ac"
+        },
+        {
+          "path": "apps/miniprogram/services/daily-care.ts",
+          "sha256": "24f9c2fa98e62f005ccc2cf01ab3fea1e38b9181dd68c19dcb4385a205b524cf"
+        }
+      ]
+    },
+    "finalCandidate": {
+      "packageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
+      "status": "scoped-native-complete",
+      "nativeCapturePending": false,
+      "independentlyReviewed": true,
+      "independentReviewScope": {
+        "viewportConfigurations": [
+          "375x812/font16",
+          "375x812/font26",
+          "390x844/font16"
+        ],
+        "framesReviewed": 11,
+        "noBlockingFindings": true,
+        "reviewed390Font16": true,
+        "boundary": "Scoped current native frames; no physical-device or all40-state acceptance."
+      },
+      "rootObservedScope": {
+        "viewportConfigurations": [
+          "375x812/font16",
+          "375x812/font26",
+          "390x844/font16"
+        ],
+        "pages": [
+          "Home",
+          "Records list/detail",
+          "Profile",
+          "Settings"
+        ],
+        "currentRuntimeViewportVerified": true,
+        "currentNicknameConsistentAfterColdRestartAcrossHomeMySettings": true,
+        "freshSettingsSavePerformed": false
+      },
+      "rootMeasuredControls390Font16": {
+        "detailClose": {
+          "widthPx": 64,
+          "heightPx": 44
+        },
+        "detailDelete": {
+          "widthPx": 358,
+          "heightPx": 44
+        },
+        "swipeDeleteCapsule": {
+          "widthPx": 64,
+          "heightPx": 44
+        }
+      },
+      "currentDeleteUndo": {
+        "baselineVisibleRecords": 1,
+        "deletedVisibleRecords": 0,
+        "deletedTodayIsNull": true,
+        "restoredVisibleRecords": 1,
+        "sameRecordIdentityAndOriginalCareFieldsRestored": true,
+        "versionAdvanced": 2,
+        "newCareIdsCreated": 0,
+        "originalRecordRestored": true
+      },
+      "factsBoundary": "Actual software/API/native workflow checks do not establish bodily-care outcomes. Personal record identity, content, dates/times and raw screenshots remain private.",
+      "overallNativeAcceptance": false,
+      "physicalDeviceValidated": false,
+      "all40StateMatricesComplete": false,
+      "qualifiedCycleOverallAcceptance": false,
+      "upload013Started": false,
+      "formalPublicationApproved": false,
+      "currentSwipeCancel": {
+        "cuaFullSwipeRevealsOnly": true,
+        "apiUnchangedAfterSwipe": true,
+        "explicitConfirmationObserved": true,
+        "cancelPreservesExactResponse": true,
+        "remainingVisibleRecords": 1
+      }
+    },
+    "privacy": "Raw screenshots, personal page/API snapshots and exact record comparisons remain only in private TMP. Public evidence contains no personal identifiers, care dates/times or private-fact hashes."
+  },
+  "pendingSourceRebind": false,
+  "finalCandidatePackageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2"
 }

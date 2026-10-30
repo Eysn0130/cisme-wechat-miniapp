@@ -1,17 +1,16 @@
 <page-meta root-font-size="system"/>
 <view class="records-page" style="{{chromeStyle}}">
-  <view class="records-surface" aria-hidden="{{recordDetailMounted}}">
+  <view class="records-surface {{recordDetailMounted ? 'records-surface--inert' : ''}}" aria-hidden="{{recordDetailMounted}}">
   <view class="records-hero">
-    <view class="records-hero__orb"></view>
+    <view class="records-nav"><view class="records-nav__row"><text class="records-wordmark">CISME</text><text class="records-nav__title">护理记录</text></view></view>
     <block wx:if="{{authorityAvailable || dailyReady}}">
-    <view class="records-kicker"><text class="records-wordmark">CISME CARE</text><text class="records-archive">护理档案</text></view>
-    <view class="record-streak {{loadedRecordCountClass}}" aria-label="已加载 {{loadedRecordCount}} 条护理记录"><strong class="record-streak__count">{{loadedRecordCount}}</strong><view class="record-streak__copy"><text class="record-streak__label">已加载记录</text><small class="record-streak__meta">CARE RECORDS</small></view></view>
-    <view class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text class="records-headline__line">{{summary.headlineLine2}}</text></view>
+    <view wx:if="{{care}}" class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text wx:if="{{summary.headlineLine2}}" class="records-headline__line">{{summary.headlineLine2}}</text></view>
+    <view class="records-summary"><text wx:if="{{care}}" class="records-summary__count">可查看 {{loadedRecordCount}} 条记录</text><text wx:elif="{{dailyReady && !dailyLoading && !dailyError}}" class="records-summary__count">已记录 {{dailyTotalCount}} 天</text><text wx:elif="{{dailyLoading}}" class="records-summary__status">正在加载日常记录…</text><text wx:elif="{{dailyError}}" class="records-summary__status">日常记录暂未更新</text></view>
     <view class="records-subline">{{care ? summary.completed + ' / 4 个当前周期阶段护理，' + summary.phaseLabel : dailyRecords.length ? '日常护理的步骤与感受已保存' : '完成护理并保存后，可在这里查看记录'}}<text wx:if="{{lastSyncedLabel}}" class="records-sync-label"> · {{refreshing ? '正在更新' : lastSyncedLabel}}</text></view>
     </block>
-    <view wx:elif="{{accessRequired}}" class="records-hero-status"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">登录后查看护理档案</strong></view>
-    <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">正在加载护理档案…</strong></view>
-    <view wx:else class="records-hero-status" aria-live="assertive"><text class="records-wordmark">CISME CARE</text><strong class="records-hero-status__title">护理档案暂不可用</strong></view>
+    <view wx:elif="{{accessRequired}}" class="records-hero-status"><strong class="records-hero-status__title">登录后查看护理档案</strong></view>
+    <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><strong class="records-hero-status__title">正在加载护理档案…</strong></view>
+    <view wx:else class="records-hero-status" aria-live="assertive"><strong class="records-hero-status__title">护理档案暂不可用</strong></view>
   </view>
 
   <view class="records-content">
@@ -40,9 +39,9 @@
       </view>
     </view>
 
-    <view wx:elif="{{authorityAvailable && !care && dailyReady && !dailyLoading && !dailyError && !dailyRecords.length}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">还没有护理记录</view><text class="records-empty__copy">到首页完成四步护理并记录感受，保存后就能在这里回看。</text><view class="records-empty__facts"><text class="records-empty__fact">完成时间</text><text class="records-empty__fact records-empty__fact--divided">四步护理</text><text class="records-empty__fact records-empty__fact--divided">护理后感受</text></view><button class="secondary records-empty__action" bindtap="goHome" aria-label="返回护理首页开始护理">前往护理首页</button></view>
+    <view wx:elif="{{authorityAvailable && !care && dailyReady && !dailyLoading && !dailyError && !dailyRecords.length && !undoAvailable && !dailyMutationError && dailyMutationState === 'idle'}}" class="glass records-empty"><image class="records-empty__icon" src="/assets/icons/clipboard-text-muted.svg" mode="aspectFit"/><view class="records-empty__title">还没有护理记录</view><text class="records-empty__copy">到首页完成四步护理并记录感受，保存后就能在这里回看。</text><view class="records-empty__facts"><text class="records-empty__fact">完成时间</text><text class="records-empty__fact records-empty__fact--divided">四步护理</text><text class="records-empty__fact records-empty__fact--divided">护理后感受</text></view><button class="secondary records-empty__action" bindtap="goHome" aria-label="返回护理首页开始护理">前往护理首页</button></view>
 
-    <view wx:if="{{!accessRequired && (dailyReady || dailyLoading || dailyError)}}" class="record-list">
+    <view wx:if="{{!accessRequired && (dailyReady || dailyLoading || dailyError) && (care || dailyRecords.length || !authorityAvailable || dailyLoading || dailyError || dailyMutationError || undoAvailable || dailyMutationState !== 'idle')}}" class="record-list">
       <view class="record-list__head"><view><text class="record-list__title">日常护理</text><text class="record-list__subtitle">按日查看</text></view><text wx:if="{{dailyReady && !dailyLoading && !dailyError}}" class="record-list__count">已加载 {{dailyRecords.length}} / {{dailyTotalCount}} 天</text></view>
       <view wx:if="{{dailyMutationState === 'sending'}}" class="records-operation-status" aria-live="polite">正在确认操作…</view>
       <view wx:if="{{dailyMutationError}}" class="state state--error" aria-live="polite"><text>{{dailyMutationError}}</text><button wx:if="{{dailyMutationState === 'unknown'}}" class="text-button" bindtap="retryDailyMutation">重试这次操作</button><button wx:elif="{{dailyMutationState === 'idle'}}" class="text-button" bindtap="retryDailyRecords">重新加载记录</button></view>
@@ -54,7 +53,7 @@
           <view class="record-swipe__actions"><button class="record-swipe__delete {{openDailyKey !== item.recordKey || dailyMutationState !== 'idle' || confirmingDailyDelete ? 'control--disabled' : ''}}" data-key="{{item.recordKey}}" catchtap="deleteDailyRecord" disabled="{{openDailyKey !== item.recordKey || dailyMutationState !== 'idle' || confirmingDailyDelete}}" aria-hidden="{{openDailyKey !== item.recordKey}}" aria-label="删除这条日常护理记录" hover-class="record-swipe__delete--pressed" hover-start-time="0" hover-stay-time="80">删除</button></view>
           <button class="record-row record-row--sliding" style="{{item.swipeStyle}}" data-key="{{item.recordKey}}" bindtap="openRecordDetail" bindtouchstart="dailyTouchStart" bindtouchmove="dailyTouchMove" bindtouchend="dailyTouchEnd" bindtouchcancel="dailyTouchCancel" aria-label="查看 {{item.completedDate}} {{item.completedTime}} 日常护理详情"><text class="record-index">{{item.index}}</text><view class="record-row__copy"><strong class="record-row__title">日常护理</strong><small class="record-row__meta">{{item.assessmentLabel}}</small></view><view class="record-row__time"><text>{{item.completedAt}}</text><image class="record-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></view></button>
         </view>
-        <view wx:if="{{dailyReady && !dailyLoading && !dailyError && !dailyRecords.length}}" class="record-row record-row--pending"><text class="record-index record-index--pending">待</text><view class="record-row__copy"><strong class="record-row__title">尚无日常护理记录</strong><small class="record-row__meta">完成四步并保存后，会显示在这里。</small></view></view>
+        <view wx:if="{{dailyReady && !dailyLoading && !dailyError && !dailyRecords.length && !undoAvailable}}" class="record-row record-row--pending"><text class="record-index record-index--pending">待</text><view class="record-row__copy"><strong class="record-row__title">尚无日常护理记录</strong><small class="record-row__meta">完成四步并保存后，会显示在这里。</small></view></view>
       </view>
       <button wx:if="{{dailyHasMore}}" class="records-earlier {{dailyLoading ? 'control--disabled' : ''}}" bindtap="loadMoreDailyRecords" disabled="{{dailyLoading}}">加载更多日常记录</button>
     </view>
@@ -86,8 +85,6 @@
         <view wx:if="{{selectedRecord.stepSummary}}" class="record-detail__legacy">{{selectedRecord.stepSummary}}</view>
       </view>
       <view class="record-detail__section"><text class="record-detail__label">护理后感受</text><view class="record-detail__assessment {{selectedRecord.assessmentAvailable ? '' : 'record-detail__assessment--legacy'}}"><image class="record-detail__assessment-icon" src="{{selectedRecord.assessmentIcon}}" mode="aspectFit"/><view><strong class="record-detail__assessment-label">{{selectedRecord.assessmentLabel}}</strong><small class="record-detail__assessment-note">{{selectedRecord.assessmentNote}}</small></view></view></view>
-      <view class="record-detail__protocol"><text>护理方案版本</text><text class="record-detail__protocol-value">{{selectedRecord.protocolVersion}}</text></view>
-      <text class="record-detail__footnote">记录来自你的填写，不构成医学判断。</text>
       <button wx:if="{{selectedRecord.source === 'daily'}}" class="record-detail__delete {{dailyMutationState !== 'idle' || confirmingDailyDelete ? 'control--disabled' : ''}}" data-key="{{selectedRecord.recordKey}}" bindtap="deleteDailyRecord" disabled="{{dailyMutationState !== 'idle' || confirmingDailyDelete}}">删除这条记录</button>
     </view>
   </view>
