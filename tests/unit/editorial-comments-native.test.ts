@@ -143,11 +143,11 @@ describe("published editorial comment Page commands",()=>{
  it("serializes send taps and only clears the draft after a confirmed receipt",async()=>{
   await mount();input("确认发送的评论");const pending=deferred();mocks.request.mockReturnValueOnce(pending.promise);
   const first=page.sendComment();await page.sendComment();expect(calls("POST")).toHaveLength(1);expect(page.data.draft).toBe("确认发送的评论");
-  const key=page.data.draftOperation;expect(key).not.toBe("");rows=[row(replyId,{status:"pending",isMine:true,version:1})];
-  pending.resolve({id:replyId,status:"pending",version:1,replayed:false});await first;
+  const key=page.data.draftOperation;expect(key).not.toBe("");rows=[row(replyId,{status:"published",isMine:true,version:1})];
+  pending.resolve({id:replyId,status:"published",version:1,replayed:false});await first;
   expect(page.data).toMatchObject({commentsBusy:false,draft:"",draftOperation:"",commentSendUnknown:false,composerOpen:false});
-  expect(page.data.commentsNotice).toContain("审核");expect(page.data.editorialCommentItems[0]).toMatchObject({id:replyId,status:"pending"});
-  expect(page.data.commentCount).toBe(0);expect(calls("POST")[0]).toMatchObject({path:base,idempotencyKey:key,data:{body:"确认发送的评论"}});
+  expect(page.data.commentsNotice).toBe("评论已发布。");expect(page.data.editorialCommentItems[0]).toMatchObject({id:replyId,status:"published"});
+  expect(page.data.commentCount).toBe(1);expect(calls("POST")[0]).toMatchObject({path:base,idempotencyKey:key,data:{body:"确认发送的评论"}});
  });
  it("retains an unknown command's body, reply and key and uses that same command for explicit verification",async()=>{
   await mount();page.replyComment(event());input("尚待确认的回复");
@@ -181,11 +181,15 @@ describe("published editorial comment Page commands",()=>{
   expect(page.data.editorialCommentItems[0]).toMatchObject({liked:true,likeCount:8});expect(page.data.social).toMatchObject({liked:false,likeCount:17,saved:true,saveCount:9});
  });
  it("does not issue a delete after its confirmation dialog belongs to a different actor",async()=>{
-  rows=[row(rootId,{isMine:true})];await mount();const modal=deferred();(globalThis as any).wx.showModal.mockReturnValueOnce(modal.promise);
+  rows=[row(rootId,{isMine:false})];moderator=true;await mount();const modal=deferred();(globalThis as any).wx.showModal.mockReturnValueOnce(modal.promise);
   const deleting=page.deleteComment(event());mocks.token="actor-b";modal.resolve({confirm:true});await deleting;expect(calls("DELETE")).toEqual([]);
  });
- it("permits own deletion while comments are closed and reloads actual rows instead of inventing a count",async()=>{
-  rows=[row(rootId,{isMine:true})];enabled=false;await mount();mocks.request.mockImplementationOnce(async()=>{rows=[];return {id:rootId,status:"deleted"};});await page.deleteComment(event());
+ it("refuses a normal author's delete even when the row isMine",async()=>{
+  rows=[row(rootId,{isMine:true})];await mount();await page.deleteComment(event());
+  expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();expect(calls("DELETE")).toEqual([]);
+ });
+ it("permits administrator deletion while comments are closed and reloads actual rows instead of inventing a count",async()=>{
+  rows=[row(rootId,{isMine:false})];moderator=true;enabled=false;await mount();mocks.request.mockImplementationOnce(async()=>{rows=[];return {id:rootId,status:"deleted"};});await page.deleteComment(event());
   expect(calls("DELETE")[0]).toMatchObject({path:`${base}/${rootId}`,method:"DELETE"});expect(page.data.editorialCommentItems).toEqual([]);expect(page.data.commentCount).toBe(0);
  });
  it("does not expose governance just because an article isMine, and uses true canModerate for its scoped entry",async()=>{

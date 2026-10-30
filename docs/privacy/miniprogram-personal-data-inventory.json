@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-10-29",
+  "inventoryDate": "2026-10-30",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -330,17 +330,18 @@
     },
     {
       "surface": "support_ai_suggested_reply",
-      "informationType": "未来可能传入的最小客服会话投影与版本化知识来源；当前无批准 Provider、无批准知识源、无外部传输",
-      "purpose": "为已接管会话的人工客服生成可审阅建议回复草稿",
-      "activation": "当前禁用；未来须由具备 support.reply 且当前持有会话的客服主动触发",
-      "serverStorage": "当前不存储 AI 草稿，不创建 AI 消息或 AI job",
-      "currentGate": "PROVIDER INTEGRATION PENDING; approved hashed sources only; readonly allowlist tools; no auto-send",
-      "authority": "人工客服仍是发送 Authority；模型参数不能决定 member scope 或业务权限",
-      "visibleTo": "未来仅当前人工处理人；当前小程序显示 Provider 待接入",
-      "retention": "NOT APPLICABLE while disabled；外部 Provider 启用前须另行批准数据传输与保留规则",
-      "userDeletionOrClosure": "当前无外部推理数据或持久 AI 草稿",
-      "legalHold": "真正接入前随客服会话政策单独评估",
-      "audit": "当前仅状态读取；离线 fixture 不使用真实聊天"
+      "informationType": "最多20条经过规则遮盖的客服文本及版本化产品知识；不传会话ID、微信标识、会员资料、附件、订单卡片或工具权限。明确标签姓名/地址及常见联系方式/凭据会遮盖，不能保证识别用户自由文本中的全部个人信息。",
+      "purpose": "解释护理及小程序客服流程，支持用户转人工；人工工作台仍可显式请求建议。",
+      "activation": "仅服务端显式启用并配置私有密钥时；会员主动发送文本，或等待人工时主动选择继续AI。已接待会话不自动切回AI。",
+      "serverStorage": "AI回复作为同一support_message的ai类型持久化；引用、置信度及错误码进入最小审计，无正文/凭据进入audit/outbox。",
+      "currentGate": "固定DeepSeek官方HTTPS端点、deepseek-flash、4秒默认超时、64KiB响应、哈希知识、引用校验、低置信及故障转人工；模型无业务写工具。",
+      "authority": "服务端会话归属/能力/版本校验；人工接管或新发言使迟到模型结果失效。",
+      "visibleTo": "本人和具support.read的管理员可读同一会话，人工回复另需support.reply及持有会话。客服页明示DeepSeek并保留人工路径。",
+      "retention": "CISME内沿用客服既有实际保留与法律保全策略，不新增期限；不虚构供应商零保留或训练退出承诺。",
+      "userDeletionOrClosure": "既有客服会话数据权利及注销流程适用持久AI消息，外部供应商处理仍需按其实际条款及权利流程核对。",
+      "legalHold": "持久消息沿用现有member/support_conversation保全，本文不新增保全依据。",
+      "audit": "support.ai.reply/handoff仅记录引用、置信度、消息ID和稳定失败码，禁止API密钥、上游响应原文及聊天正文。",
+      "recipient": "DeepSeek / https://api.deepseek.com/chat/completions"
     },
     {
       "surface": "ugc_post_revision",
@@ -718,8 +719,8 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "72d9832c3381b97a168252e903cadc9110f9d72cd69658d5f897d9b209592b06",
-  "egressSignatureSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
+  "migrationSetSha256": "97744c12238ed0b3d9b9eb961784c80980a2742e1b241e94aec241666af769f3",
+  "egressSignatureSha256": "eef2c6f170f4b2e8f42f99ac0c4aeff28ecaaab85bce55774556d83cc1190a94",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -1172,5 +1173,25 @@
     "newConsent": false,
     "onIdentityChange": "Discard on token/context change, authentication expiry or page unload; late old responses cannot restore it",
     "evidence": "docs/evidence/records-calendar-20261030/source-review.json"
+  },
+  "commentSupportReview20261030": {
+    "scope": "PRD Appendix N: COMMENT-DIRECT-01, COMMENT-ADMIN-01, COMMENT-PROFILE-01, COMMENT-MGMT-01, SUPPORT-AI-01, SUPPORT-HANDOFF-01, SUPPORT-FAILURE-01",
+    "newRecipient": true,
+    "recipient": "DeepSeek official API, selected explicitly by Owner",
+    "comments": "Existing member saved display_name and server re-encoded avatar only, read live beside published editorial comments; public-profile flags do not suppress comment identity. No contact fields. Only authorized administrators remove; existing privacy erasure remains separate.",
+    "migration102": "Publishes eligible preexisting pending editorial comments with audit, retaining risky/review/hidden/deleted/inactive facts. Changes default only; no new personal-data column or retention period.",
+    "migration103": "Allows waiting_human to ai_active only through the locked explicit member resume action; no message body or recipient is added by the transition.",
+    "externalDataMinimization": "Only redacted recent text and source knowledge; no identifiers, private media, order snapshots, raw member context or credentials. Rule redaction is bounded and cannot prove all free-form PII absent.",
+    "workflow": "AI text is persisted in existing immutable support_message; human handoff, admin queue/claim/reply and member delta reads share one source. API post-commit failures return accepted/pending; exact replay can recover without duplicate messages.",
+    "secrets": "Server-only private environment, excluded from git/package/miniprogram; no secret value or key fingerprint in public evidence.",
+    "authority": "Existing exact trial administrator may receive support.read/support.reply/support.assign with audited grants under this explicit user request. No nickname-based grant and no production authority change.",
+    "retentionChange": false,
+    "newConsentCreated": false,
+    "publicUgcOpened": false,
+    "realCommerceOpened": false,
+    "liveProviderConnectivityVerified": true,
+    "deployed": false,
+    "nativeAcceptance": false,
+    "physicalAcceptance": false
   }
 }

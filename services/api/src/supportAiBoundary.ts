@@ -55,8 +55,8 @@ export class DisabledSupportAiProvider implements SupportAiProvider {
 }
 
 export class SupportAiBoundary {
-  constructor(private readonly provider: SupportAiProvider, private readonly knowledge: ApprovedKnowledgeRegistry, private readonly timeoutMs = 4_000) {}
-  status() { return { status: SUPPORT_AI_STATUS, providerId: this.provider.id, providerAvailable: this.provider.available, approvedKnowledgeSources: this.knowledge.list().map(({ id, version, title, sha256 }) => ({ id, version, title, sha256 })), autoSendEnabled: false, businessWriteToolsEnabled: false }; }
+  constructor(private readonly provider: SupportAiProvider, private readonly knowledge: ApprovedKnowledgeRegistry, private readonly timeoutMs = 4_000, private readonly autoSend = false) {}
+  status() { const ready = this.provider.available && this.knowledge.list().length > 0; return { status: ready ? "READY" : SUPPORT_AI_STATUS, providerId: this.provider.id, providerAvailable: this.provider.available, approvedKnowledgeSources: this.knowledge.list().map(({ id, version, title, sha256 }) => ({ id, version, title, sha256 })), autoSendEnabled: ready && this.autoSend, businessWriteToolsEnabled: false }; }
   async suggestedReply(conversation: ModelSafeSupportProjection): Promise<SupportAiSuggestion> {
     if (!this.provider.available) throw new DomainError("SUPPORT_AI_PROVIDER_PENDING", SUPPORT_AI_STATUS, 503);
     const knowledge = this.knowledge.list();
@@ -68,7 +68,8 @@ export class SupportAiBoundary {
       const text=typeof output.text==="string"?output.text.trim():"";
       if (!text || Array.from(text).length>4000) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI suggestion output is invalid", 502);
       if (!Number.isFinite(output.confidence)||output.confidence<0||output.confidence>1) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI confidence is invalid", 502);
-      if (!Array.isArray(output.citations)||!output.citations.length||output.citations.some((citation)=>!this.knowledge.has(citation))) throw new DomainError("SUPPORT_AI_UNGROUNDED", "AI suggestion lacks an approved source; use human handling", 409);
+      if (!Array.isArray(output.citations)||!output.citations.length||output.citations.some((citation)=>!citation||typeof citation.sourceId!=="string"||typeof citation.version!=="string"||!this.knowledge.has(citation))) throw new DomainError("SUPPORT_AI_UNGROUNDED", "AI suggestion lacks an approved source; use human handling", 409);
+      if (output.handoffReason !== null && output.handoffReason !== undefined && (typeof output.handoffReason !== "string" || output.handoffReason.length > 200)) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI handoff reason is invalid", 502);
       return { text, citations: output.citations, confidence: output.confidence, handoffReason: output.handoffReason??null };
     } finally { if(timer)clearTimeout(timer); }
   }

@@ -68,7 +68,7 @@ Page({
   data: {
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
-    pendingMessage: null as Message | null, loading: true, loadingOlder: false, sending: false, handoffBusy: false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
+    pendingMessage: null as Message | null, loading: true, loadingOlder: false, sending: false, handoffBusy: false, supportAiAvailable:false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
@@ -253,7 +253,7 @@ Page({
       const messages = this.normalize(page.messages || []);
       const state = createSupportThreadState(this.present(messages, page.conversation, presence), page.latestCursor || 0);
       this.applyThreadState(state, { conversation: page.conversation, olderCursor: page.olderCursor ?? null, loading: false, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
-        anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "", ...this.headerPatch(page.conversation, presence) });
+        anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "", supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(page.conversation, presence) });
       this.downloadMedia(messages);
       await this.markRead();
       void this.publishPresence(true, Boolean(this.data.input.trim()), true);
@@ -281,7 +281,7 @@ Page({
       if (freshCount || presence.operatorTyping) this.lastActivityAt = Date.now();
       this.applyThreadState(state, {
         conversation: page.conversation ?? this.data.conversation,
-        ...this.headerPatch(page.conversation ?? this.data.conversation, presence),
+        supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(page.conversation ?? this.data.conversation, presence),
         anchor: freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
         newMessagesBelowCount: shouldFollow ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
         newMessagesBelow: shouldFollow ? false : this.data.newMessagesBelow || freshCount > 0
@@ -390,13 +390,15 @@ Page({
       if (!this.owns(epoch, ownerToken)) return;
       const normalized = this.normalize([result.message], this.data.selectedImage);
       if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
+      if(Array.isArray(result.aiMessages)&&result.aiMessages.length)this.append(this.normalize(result.aiMessages));
       const clearInput = this.inputRevision === draftRevision && this.data.input.trim() === body;
       const clearImage = this.data.selectedImage?.mediaId === mediaIds[0];
       const clearOrder = !this.data.closedRights && this.data.selectedOrder?.id === linkedOrderId;
       this.setData({ ...(clearInput ? { input: "", composerCapped: false, composerLineCount: 1 } : {}),
         ...(clearImage ? { selectedImage: null } : {}), ...(clearOrder ? { selectedOrder: null } : {}),
         sendAttempt: null, composerSendEnabled: false, pendingMessage: null,
-        conversation: result.conversation, ...this.headerPatch(result.conversation, this.data.presence) });
+        conversation: result.conversation, ...this.headerPatch(result.conversation, this.data.presence),
+        ...(result.aiStatus==='pending'?{error:"消息已收到，AI 回复暂未确认。你可以继续留言，或联系人工客服。",errorAction:"handoff"}:{}) });
       if (clearInput) {
         this.inputRevision += 1;
         // Clearing a sent card must not silently reattach the route order.
@@ -609,6 +611,20 @@ Page({
       if (this.owns(epoch, ownerToken)) this.setData({ conversation, ...this.headerPatch(conversation, this.data.presence) });
     } catch { if (this.owns(epoch, ownerToken)) this.setData({ error: "暂时无法联系人工客服，请重试。", errorAction: "handoff" }); }
     finally { if (this.owns(epoch, ownerToken)) this.setData({ handoffBusy: false }); }
+  },
+  async resumeAi() {
+    if(this.data.closedRights||!this.data.supportAiAvailable||this.data.handoffBusy||this.data.sending||this.data.conversation?.status!=="waiting_human")return;
+    const epoch=this.lifecycleEpoch,ownerToken=sessionToken(),expectedVersion=this.data.conversation.version;
+    this.setData({handoffBusy:true,error:"",errorAction:""});
+    try{
+      const answer=await wx.showModal({title:"继续 AI 咨询？",content:"将退出当前人工等待队列。需要人工时可再次申请；已有聊天记录会保留。",confirmText:"继续 AI"});
+      if(!answer.confirm||!this.owns(epoch,ownerToken)||this.data.conversation?.version!==expectedVersion)return;
+      const conversation=await request<Conversation>({path:"/v1/me/support/resume-ai",method:"POST",data:{expectedVersion},cacheTags:["support"]});
+      if(!this.owns(epoch,ownerToken))return;
+      this.setData({conversation,...this.headerPatch(conversation,this.data.presence)});
+      await this.load();this.startPolling();
+    }catch{if(this.owns(epoch,ownerToken))this.setData({error:"暂时无法切换，请刷新会话后重试；人工等待记录会保留。",errorAction:"sync"});}
+    finally{if(this.owns(epoch,ownerToken))this.setData({handoffBusy:false});}
   },
   retryHandoff() { void this.requestHuman(); },
   retry() { void this.load(); if(this.linkedOrderId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },

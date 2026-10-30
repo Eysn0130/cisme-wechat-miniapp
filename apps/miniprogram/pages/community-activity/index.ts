@@ -2,7 +2,7 @@ import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, requireMemberAccess } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
-import { deleteEditorialComment, setEditorialBlock } from "../../services/editorial-comments";
+import { setEditorialBlock } from "../../services/editorial-comments";
 
 type Source="editorial"|"ugc";
 type Section="comments"|"saves"|"reports"|"appeals"|"blocks";
@@ -174,15 +174,14 @@ Page({
   },
   async deleteComment(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id||""),row=this.data.items.find(item=>item.id===id);
-    if(!this.alive||!this.visible||this.data.busy||!row?.postId||row.state==="deleted"||event.currentTarget.dataset.source&&event.currentTarget.dataset.source!==this.data.source)return;
+    if(this.data.source==="editorial"||!this.alive||!this.visible||this.data.busy||!row?.postId||row.state==="deleted"||event.currentTarget.dataset.source&&event.currentTarget.dataset.source!==this.data.source)return;
     const epoch=this.data.epoch,source=this.data.source,token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
     const answer=await wx.showModal({title:"删除这条评论？",content:"删除后无法恢复，审核记录仍会保留。",confirmText:"删除"}).catch(()=>({confirm:false}));
     if(!answer.confirm||this.data.busy||!this.isCurrent(epoch,token,revision)||
       !this.data.items.some(item=>item.id===id))return;
     const serial=++this.mutationSerial;this.mutationPending=true;let succeeded=false;
     this.setData({busy:true,error:""});
-    try{if(source==="editorial")await deleteEditorialComment(row.postId,id);
-      else await request({path:`/v1/ugc/posts/${row.postId}/comments/${id}`,method:"DELETE"});
+    try{await request({path:`/v1/ugc/posts/${row.postId}/comments/${id}`,method:"DELETE"});
       succeeded=true;
       if(this.isCurrent(epoch,token,revision)){this.setData({notice:"评论已删除。"});}
     }catch(error){if(this.isCurrent(epoch,token,revision))

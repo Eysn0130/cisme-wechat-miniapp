@@ -24,15 +24,36 @@ beforeEach(()=>{
 });
 
 describe("independent editorial moderation Page",()=>{
+ it("opens published comments by default and displays the current author projection",async()=>{
+  items=[row({status:"published",authorName:"旧昵称"})];await mount();
+  expect(page.data.queueState).toBe("published");expect(page.data.queueTabs[0]).toMatchObject({id:"published"});
+  expect(page.data.queueItems[0]).toMatchObject({authorName:"公开昵称",avatar:"/assets/icons/user-circle-plum.svg"});
+ });
+ it("deletes the selected comment only after confirmation and reloads the actual queue",async()=>{
+  items=[row({status:"published"})];await mount();
+  m.request.mockImplementationOnce(async(input:any)=>{expect(input).toMatchObject({method:"DELETE",path:`/v1/editorial/articles/${articleId}/comments/${commentId}`});items=[];return {id:commentId,status:"deleted"};});
+  await page.deleteEditorial(event());expect(page.data.queueItems).toEqual([]);expect(page.data.notice).toBe("评论已删除。");
+ });
+ it.each(["hide","actor","tab"])("does not delete after %s changes the confirmation context",async(change)=>{
+  items=[row({status:"published"})];await mount();const answer=deferred();(globalThis as any).wx.showModal.mockReturnValueOnce(answer.promise);const pending=page.deleteEditorial(event());
+  if(change==="hide")page.onHide();else if(change==="actor")m.token="synthetic-other";else {page.selectEditorialQueue({currentTarget:{dataset:{state:"hidden"}}});await vi.waitFor(()=>expect(page.data.loading).toBe(false));}
+  answer.resolve({confirm:true});await pending;
+  expect(m.request.mock.calls.filter(([input])=>input.method==="DELETE")).toEqual([]);
+ });
+ it("keeps the comment visible when deletion outcome is uncertain",async()=>{
+  items=[row({status:"published"})];await mount();m.request.mockRejectedValueOnce({status:503});await page.deleteEditorial(event());
+  expect(page.data.queueItems[0].id).toBe(commentId);expect(page.data.error).toContain("删除结果尚未确认");expect(page.data.busy).toBe(false);
+ });
+
  it.each([404,503])("reports a failed initial queue GET%s as a read failure without implying an audit or issuing writes",async(status)=>{
   m.request.mockRejectedValueOnce({status});await mount();
-  expect(page.data).toMatchObject({loading:false,busy:false,permissionDenied:false,queueItems:[],notice:"",error:"评论审核列表暂时无法加载，请重试。"});
+  expect(page.data).toMatchObject({loading:false,busy:false,permissionDenied:false,queueItems:[],notice:"",error:"评论列表暂时无法加载，请重试。"});
   expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();expect(writes()).toEqual([]);expect(m.request).toHaveBeenCalledTimes(1);
  });
  it("retains already read rows and the same cursor after a next-page GET fails",async()=>{
   cursor="next_page";await mount();const before=structuredClone(page.data.queueItems);m.request.mockRejectedValueOnce({status:503});
   await page.loadMoreEditorialQueue();
-  expect(page.data).toMatchObject({loading:false,busy:false,queueItems:before,queueCursor:"next_page",queueHasMore:true,error:"评论审核列表暂时无法加载，请重试。"});
+  expect(page.data).toMatchObject({loading:false,busy:false,queueItems:before,queueCursor:"next_page",queueHasMore:true,error:"评论列表暂时无法加载，请重试。"});
   expect(writes()).toEqual([]);expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();
  });
  it("preserves a server-supplied read explanation and keeps permission denial distinct",async()=>{
@@ -47,7 +68,7 @@ describe("independent editorial moderation Page",()=>{
  });
  it("reads only the scoped editorial queue and does not invent public-reader fields or ordinary UGC permission",async()=>{
   await mount();expect(m.require).toHaveBeenCalledWith(`/pages/community-review/index?source=editorial&articleId=${articleId}`);
-  expect(m.request).toHaveBeenCalledWith({path:`${queuePath}?state=pending&limit=30&articleId=${articleId}`,authMode:"required"});
+  expect(m.request).toHaveBeenCalledWith({path:`${queuePath}?state=published&limit=30&articleId=${articleId}`,authMode:"required"});
   expect(page.data.queueItems[0]).toMatchObject({articleId,articleTitle:"实际精选标题",body:"实际待审正文",version:3,safetyState:"safe"});
   expect(page.data.queueItems[0]).not.toHaveProperty("isMine");expect(page.data.queueItems[0]).not.toHaveProperty("likeCount");
   expect(m.request.mock.calls.some(([input])=>input.path.includes("/ugc/"))).toBe(false);
@@ -78,7 +99,7 @@ describe("independent editorial moderation Page",()=>{
   await mount();const answer=deferred();(globalThis as any).wx.showModal.mockReturnValueOnce(answer.promise);const reviewing=page.reviewEditorial(event());
   if(change==="hide")page.onHide();else if(change==="unload")page.onUnload();else if(change==="actor")m.token="synthetic-other-moderator";
   else if(change==="row-version")page.setData({queueItems:[{...page.data.queueItems[0],version:4}]});
-  else {page.selectEditorialQueue({currentTarget:{dataset:{state:"published"}}});await vi.waitFor(()=>expect(page.data.loading).toBe(false));}
+  else {page.selectEditorialQueue({currentTarget:{dataset:{state:"hidden"}}});await vi.waitFor(()=>expect(page.data.loading).toBe(false));}
   answer.resolve({confirm:true,content:"旧弹窗不能提交新上下文"});await reviewing;expect(writes()).toEqual([]);
  });
  it.each(["hide","actor","new-queue"])("does not adopt an old review result after %s",async(change)=>{
@@ -100,7 +121,7 @@ describe("independent editorial moderation Page",()=>{
  it("deduplicates paged items and keeps the selected state/article in every query",async()=>{
   cursor="next_page";await mount();items=[row(),row({id:secondId,replyRootId:secondId})];cursor=null;await page.loadMoreEditorialQueue();
   expect(page.data.queueItems.map((item:any)=>item.id)).toEqual([commentId,secondId]);
-  expect(m.request.mock.calls.at(-1)?.[0]).toMatchObject({path:`${queuePath}?state=pending&limit=30&cursor=next_page&articleId=${articleId}`});
+  expect(m.request.mock.calls.at(-1)?.[0]).toMatchObject({path:`${queuePath}?state=published&limit=30&cursor=next_page&articleId=${articleId}`});
  });
  it("discards an older queue read after the selected state changes",async()=>{
   await mount();const pending=deferred();m.request.mockReturnValueOnce(pending.promise);const old=page.loadEditorialQueue();

@@ -1324,10 +1324,13 @@ paths:
       tags: [Support]
       operationId: sendOwnSupportMessage
       security: [{session: []}]
+      description: Persists the member message before optional grounded AI work. Enabled text conversations may include persisted aiMessages and aiStatus replied, handed_off, or pending. Pending confirms the member message was accepted; exact clientMessageId replay can resume an unfinished latest AI reply. Human waiting or active conversations do not receive automatic replies.
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupportMessageInput'}}}}
       responses: {'200': {description: Persisted message or exact client retry}, '409': {description: clientMessageId reused with different text}}
   /v1/me/support/handoff:
     post: {tags: [Support], operationId: requestHumanSupport, security: [{session: []}], responses: {'200': {description: Idempotent transition to waiting_human; never allows AI to reply after human_active}}}
+  /v1/me/support/resume-ai:
+    post: {tags: [Support], security: [{session: []}], summary: 会员明确退出人工等待并继续 AI 咨询, operationId: resumeSupportAi, x-release-stage: R0_GATED, x-transaction-profile: MAKE, x-required-gates: [SUPPORT_AI_PROVIDER], x-authority: member-session-owner, x-idempotency: expectedVersion-and-current-status, x-state-guards: "waiting_human or resolved; expectedVersion; provider available; human_active forbidden", requestBody: {required: true, content: {application/json: {schema: {type: object, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: 会话已切换 AI 且历史保留}, '409': {description: 会话已变化或人工已接管}, '503': {description: AI 不可用，继续等待人工}}}
   /v1/me/support/read:
     post:
       tags: [Support]
@@ -1487,14 +1490,14 @@ paths:
       tags: [Support, Authority]
       operationId: supportAiStatus
       security: [{session: []}]
-      description: Requires support.read. Runtime remains PROVIDER INTEGRATION PENDING with no approved source, external transfer, business-write tool or auto-send.
+      description: Requires support.read. Reports actual server-only provider configuration, versioned knowledge and automatic reply availability. Disabled configuration remains fail-closed; no business-write tools are enabled.
       responses: {'200': {description: Provider, approved knowledge and safety-gate status}, '403': {$ref: '#/components/responses/Problem'}}
   /v1/management/support/conversations/{conversationId}/suggested-reply:
     post:
       tags: [Support, Authority]
       operationId: supportSuggestedReply
       security: [{session: []}]
-      description: Requires support.reply and current human ownership. Returns only a cited draft for operator review; never persists or sends it. Currently returns PROVIDER INTEGRATION PENDING.
+      description: Requires support.reply and current human ownership. Returns only a cited draft for operator review; this endpoint never persists or sends the draft. Disabled provider, invalid output or timeout fails closed.
       parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
       responses: {'200': {description: Cited suggested-reply draft when a provider and approved knowledge are separately enabled}, '409': {description: ownership conflict or ungrounded output}, '503': {description: provider, knowledge or timeout pending}}
 
@@ -1883,16 +1886,16 @@ paths:
       operationId: createEditorialComment
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
-      description: Canonical active WeChat member with current legal consent. Creates a private pending comment; real WeChat content checks and authorized review precede publication. Same key and normalized content replay the original fact, including deletion, without recreating it. Root is derived from a visible reply target.
+      description: Canonical active WeChat member with current legal consent. Publishes directly without administrator pre-review; asynchronous WeChat safety patrol can hide unsafe comments. Same key and normalized content replay the original fact, including deletion, without recreating it. Root is derived from a visible reply target.
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [body], properties: {body: {type: string, minLength: 2, maxLength: 180, description: Unicode code points}, replyToId: {type: string, format: uuid}}}}}}
       responses: {'200': {description: id, actual status, version and replayed}, '401': {description: Real WeChat identity required}, '409': {description: Consent, policy, reply or idempotency conflict}, '422': {description: Invalid body}, '429': {description: Rate limit}}
   /v1/editorial/articles/{id}/comments/{commentId}:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/CommentId'}]
     delete:
-      operationId: deleteOwnEditorialComment
+      operationId: deleteEditorialComment
       security: [{session: []}]
-      description: Delete only one's own comment without forcing new consent. Clears unnecessary body and like facts subject to an actual hold; a deleted root removes its replies from public reads and counts. Never deletes the article.
-      responses: {'200': {description: Deleted id and status}, '401': {description: Canonical identity required}, '404': {description: No owner-scoped target}}
+      description: Requires community.moderate, or editorial.manage scoped to the article owner. Ordinary members, including the comment author, cannot delete. Clears unnecessary body and like facts subject to an actual hold; a deleted root removes its replies from public reads and counts. Never deletes the article.
+      responses: {'200': {description: Deleted id and status}, '401': {description: Canonical identity required}, '403': {description: No effective administrator permission}, '404': {description: Comment or article unavailable}}
   /v1/editorial/articles/{id}/comments/{commentId}/like:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/CommentId'}]
     put:
@@ -1942,8 +1945,8 @@ paths:
       operationId: editorialCommentReviewQueue
       security: [{session: []}]
       description: Effective community.moderate permission, or editorial.manage limited to one's own articles. Real safety state, report count and CAS version accompany each item. No authority is derived from a nickname or client isMine.
-      parameters: [{name: state, in: query, schema: {type: string, enum: [pending, published, rejected, hidden, reported]}}, {name: articleId, in: query, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50}}, {name: cursor, in: query, schema: {type: string, maxLength: 600}}]
-      responses: {'200': {description: Review items, approved public authors and bounded cursor page}, '403': {description: No effective moderation capability}, '422': {description: Invalid state or scope cursor}}
+      parameters: [{name: state, in: query, schema: {type: string, default: published, enum: [pending, published, rejected, hidden, reported]}}, {name: articleId, in: query, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50}}, {name: cursor, in: query, schema: {type: string, maxLength: 600}}]
+      responses: {'200': {description: Comment items, current saved author display names and avatars, and bounded cursor page}, '403': {description: No effective moderation capability}, '422': {description: Invalid state or scope cursor}}
   /v1/management/editorial/comments/{commentId}/review:
     parameters: [{$ref: '#/components/parameters/CommentId'}]
     post:
@@ -1957,7 +1960,7 @@ paths:
     put:
       operationId: setEditorialCommentsPolicy
       security: [{session: []}]
-      description: Authorized CAS update for this article only. Closing new comments and comment likes preserves reads and owner deletion. Uses commentsPolicyVersion separately from the article content version.
+      description: Authorized CAS update for this article only. Closing new comments and comment likes preserves reads and administrator deletion. Uses commentsPolicyVersion separately from the article content version.
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, expectedVersion], properties: {enabled: {type: boolean}, expectedVersion: {type: integer, minimum: 0}}}}}}
       responses: {'200': {description: commentsEnabled and commentsPolicyVersion}, '403': {description: No effective permission}, '409': {description: Stale policy version}}
 components:
@@ -2113,7 +2116,7 @@ components:
       required: [comments, authors, commentCount, commentsEnabled, commentsPolicyVersion, canModerate, loadedCount, hasMore, nextCursor, truncated, preview, asOf]
       properties:
         comments: {type: array, items: {$ref: '#/components/schemas/EditorialComment'}}
-        authors: {type: object, description: Existing approved public member name/avatar/avatarRevision projection}
+        authors: {type: object, description: Current saved active member display name and safe re-encoded avatar with avatarRevision; no contact fields or WeChat identifiers}
         commentCount: {type: integer, minimum: 0, description: Viewer-visible published comments only}
         commentsEnabled: {type: boolean}
         commentsPolicyVersion: {type: integer, minimum: 0}

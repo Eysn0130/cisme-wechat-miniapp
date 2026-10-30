@@ -17,7 +17,7 @@
     <block wx:if="{{section==='comments'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
       <view class="activity-row__top"><text class="activity-row__title">{{item.postTitle || '内容暂不可见'}}</text><text class="activity-status">{{item.stateLabel}}</text></view>
       <text class="activity-row__body">{{item.body || '评论已删除'}}</text><text class="activity-row__time">{{item.createdLabel}}</text>
-      <view class="activity-row__actions"><button wx:if="{{item.postTitle && (source==='ugc' || item.available)}}" data-id="{{item.postId}}" data-source="{{source}}" bindtap="openPost">查看内容</button><button wx:if="{{item.state!=='deleted'}}" data-id="{{item.id}}" data-source="{{source}}" bindtap="deleteComment" class="{{busy?'control--disabled':''}}" disabled="{{busy}}">删除评论</button></view>
+      <view class="activity-row__actions"><button wx:if="{{item.postTitle && (source==='ugc' || item.available)}}" data-id="{{item.postId}}" data-source="{{source}}" bindtap="openPost">查看内容</button><button wx:if="{{source==='ugc' && item.state!=='deleted'}}" data-id="{{item.id}}" data-source="{{source}}" bindtap="deleteComment" class="{{busy?'control--disabled':''}}" disabled="{{busy}}">删除评论</button></view>
     </view></block>
     <block wx:if="{{section==='saves'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
       <view class="activity-row__top"><text class="activity-row__title">{{item.available?item.title:'内容已下架或暂不可见'}}</text></view>

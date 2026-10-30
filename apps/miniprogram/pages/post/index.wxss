@@ -129,3 +129,5 @@ page,
 
 .post-draft-count { display:block; flex:none; margin-right:auto; color:#707070; font-size:.75rem; line-height:1.125rem; text-align:left; }
 .post-draft-count.is-over-limit { color:#b33d4c; }
+
+.comment-delete-action { color:#b03348; }

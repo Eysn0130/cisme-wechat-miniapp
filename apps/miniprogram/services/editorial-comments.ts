@@ -93,7 +93,7 @@ export async function readEditorialBlocks(page?:object,cursor?:string|null):Prom
     ||!validPage(result,result.items.length))throw new Error("EDITORIAL_BLOCKS_RESPONSE_INVALID");return result;
 }
 export async function editorialCommentReviewQueue(page?:object,input:{state?:EditorialCommentReviewState;cursor?:string|null;articleId?:string}={}):Promise<EditorialCommentReviewPage> {
-  const result=await read<EditorialCommentReviewPage>(page,"/v1/management/editorial/comments"+query({state:input.state??"pending",limit:"30",cursor:input.cursor??undefined,articleId:input.articleId}),"required");
+  const result=await read<EditorialCommentReviewPage>(page,"/v1/management/editorial/comments"+query({state:input.state??"published",limit:"30",cursor:input.cursor??undefined,articleId:input.articleId}),"required");
   if(!result||!Array.isArray(result.items)||!result.items.every(item=>editorialIdentifier(item.id)&&editorialIdentifier(item.articleId)&&nonnegative(item.version)&&item.version>0&&validStatus(item.status)
     &&typeof item.body==="string"&&typeof item.articleTitle==="string"&&editorialIdentifier(item.authorId)&&typeof item.authorName==="string"
     &&(item.parentId===null||editorialIdentifier(item.parentId))&&(item.replyToId===null||editorialIdentifier(item.replyToId))&&editorialIdentifier(item.replyRootId)
