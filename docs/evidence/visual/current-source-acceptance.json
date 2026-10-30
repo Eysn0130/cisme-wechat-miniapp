@@ -257,39 +257,26 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
+  "packageSourceSha256": "e63344352ad6f11581562efdb0f84ce93124e7cebe73d97e4811ed1961619b97",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "Scoped current-da Appendix M native verification is recorded; all40 state matrices, physical devices and qualified-cycle positive overall journeys remain incomplete."
+      "reason": "The active gesture-corrected source has only scoped Records native verification. All40-state matrices, physical-device and real qualified-cycle positive flows remain incomplete. Five layout alternatives await the user selection."
     }
   ],
-  "note": "Prior85f acceptance record is archived byte-for-byte;85f/fa5 business observations and3a/768 intermediate UI frames retain their original source. Final-da scoped native frames at375/font16+26 and390/font16 have been independently reviewed. All40 state matrices, physical devices, qualified-cycle overall acceptance and formal release remain incomplete.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-85f9259e9e91.json",
+  "note": "User requested five native design alternatives before selecting a layout. Alternatives were rendered locally from distinct preview packages and all remain unselected. Active source contains only the swipe correction and has been restored byte-for-byte after previews; no candidate was uploaded. Scoped swipe checks do not establish all40-state, physical-device or full business acceptance.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-da065de2e4f2.json",
   "observedEvidence": {
-    "packageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
-    "scope": "Current-da scoped native Records list/detail, full swipe/reveal/cancel and delete/undo verified; canonical nickname read consistently after cold restart across Home/My/Settings. Eleven fresh frames independently reviewed at375/font16+26 and390/font16. All40/physical/qualified-cycle overall acceptance remains incomplete.",
-    "recordFile": "docs/evidence/daily-care-day-20261029/source-review.json",
+    "packageSourceSha256": "e63344352ad6f11581562efdb0f84ce93124e7cebe73d97e4811ed1961619b97",
+    "scope": "Records390/font16 scoped native gesture correction: rapid CUA leftswipe, native end-only event sequence, same-record API read retains expanded action, right close, next normal tap opens detail, normal confirmation cancelled, exact API readbacks unchanged.",
+    "recordFile": "docs/evidence/records-rework-20261030/source-review.json",
     "nativeCapturePending": false,
     "independentlyReviewed": true,
     "physicalDeviceValidated": false,
-    "independentReviewScope": {
-      "viewportConfigurations": [
-        "375x812/font16",
-        "375x812/font26",
-        "390x844/font16"
-      ],
-      "framesReviewed": 11,
-      "reviewed390Font16": true
-    },
-    "officialUpload": {
-      "version": "0.1.13",
-      "status": "success",
-      "recordFile": "docs/evidence/daily-care-day-20261029/upload-013.json",
-      "formalOrPhysicalAcceptance": false
-    }
+    "layoutSelected": false,
+    "unselectedAlternativesUploaded": false
   },
   "pendingSourceRebind": false
 }

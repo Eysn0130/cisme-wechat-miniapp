@@ -29,8 +29,23 @@ type DailyMutation = { kind: "delete" | "restore"; record: DailyCareRecord; key:
 const dailyMutations = new WeakMap<object, DailyMutation>();
 const dailyDeleteConfirmations = new WeakMap<object, object>();
 const dailyUndo = new WeakMap<object, { record: DailyCareRecord; token: string; revision: number }>();
-const rowGestures = new WeakMap<object, { key: string; token: string; revision: number; x: number; y: number; initial: number; offset: number; axis: "pending" | "horizontal" | "vertical"; moved: boolean; endedAt?: number }>();
+type RowGesture = { key: string; token: string; revision: number; version: number; attempt: number; touchId: number | null; scrollTop: number;
+  x: number; y: number; initial: number; offset: number; axis: "pending" | "horizontal" | "vertical"; moved: boolean; canceled: boolean; endedAt?: number };
+const rowGestures = new WeakMap<object, RowGesture>();
+const pageScrollPositions = new WeakMap<object, number>();
 const dailyActionWidth = 72;
+const dailyGestureThreshold = 12;
+
+function sampleDailyGesture(gesture: RowGesture, touch: { clientX: number; clientY: number }): void {
+  const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
+  if (gesture.axis === "vertical" || gesture.canceled) return;
+  if (gesture.axis === "pending") {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < dailyGestureThreshold) return;
+    gesture.moved = true;
+    gesture.axis = Math.abs(dx) < Math.abs(dy) * 1.3 ? "vertical" : "horizontal";
+  }
+  if (gesture.axis === "horizontal") gesture.offset = Math.max(0, Math.min(dailyActionWidth, gesture.initial - dx));
+}
 
 const emptySummary = { completed: 0, totalRecords: 0, cycleCount: 0, recordCountClass: "", headlineLine1: "护理记录", headlineLine2: "", phaseLabel: "尚无护理周期", protocol: "", cycleSummary: "" };
 
@@ -270,7 +285,7 @@ Page({
   sameSession(token: string, revision: number) {
     return this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken && revision === commerceContextRevision();
   },
-  onLoad() { this.data.pageAlive = true; },
+  onLoad() { this.data.pageAlive = true; pageScrollPositions.set(this, 0); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
   onShow() {
     this.data.pageAlive = true; this.data.visible = true; this.syncSession();
@@ -315,6 +330,7 @@ Page({
   async load(preserveSnapshot = false, failClosed = false): Promise<boolean> {
     this.syncSession();
     if (!this.data.pageAlive || !this.data.visible || this.data.working && !failClosed) { this.data.refreshOnShow = true; return false; }
+    this.dailyTouchCancel();
     cancelPageReads(this); this.data.refreshOnShow = false; this.data.dailyAttempt += 1; this.setData({ dailyLoading: false });
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     dailyDeleteConfirmations.delete(this);
@@ -378,14 +394,25 @@ Page({
     try {
       const result = await readDailyCareRecords(this, cursor);
       if (!current()) return;
+      const previousRows = new Map(this.data.dailyRecords.map(row => [row.recordKey, row]));
       const byId = new Map<string, RecordView>((more ? this.data.dailyRecords : []).map(record => [record.recordKey, record]));
       result.items.forEach(record => {
         const previous = byId.get(`daily:${record.id}`)?.dailyRecord;
-        if (!previous || previous.version <= record.version) byId.set(`daily:${record.id}`, dailyRecordView(record));
+        if (!previous || previous.version <= record.version) {
+          const view = dailyRecordView(record), oldView = previousRows.get(view.recordKey);
+          if (oldView?.dailyRecord?.version === record.version && oldView.swipeStyle !== undefined) view.swipeStyle = oldView.swipeStyle;
+          byId.set(view.recordKey, view);
+        }
       });
       const dailyRecords = [...byId.values()], loadedRecordCount = this.data.records.length + dailyRecords.length;
+      const unchanged = (key: string) => Boolean(key && previousRows.get(key)?.dailyRecord?.version === byId.get(key)?.dailyRecord?.version
+        && byId.has(key));
+      const gesture = rowGestures.get(this);
+      if (gesture && !unchanged(gesture.key)) this.dailyTouchCancel();
+      const openDailyKey = unchanged(this.data.openDailyKey) ? this.data.openDailyKey : "";
+      const draggingDailyKey = unchanged(this.data.draggingDailyKey) ? this.data.draggingDailyKey : "";
       this.setData({ dailyRecords, dailyTotalCount: result.totalCount, dailyReady: true, dailyCursor: result.nextCursor, dailyHasMore: result.hasMore, dailyRetryAppend: false,
-        loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), openDailyKey: "", draggingDailyKey: "" });
+        loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), openDailyKey, draggingDailyKey });
     } catch (error) {
       if (this.recordReadAuthenticationFailed(error, token, revision, attempt, true)) return;
       if (!current()) return;
@@ -402,36 +429,60 @@ Page({
   setDailySwipe(key: string, offset: number, dragging = false) {
     this.setData({ openDailyKey: offset > 0 ? key : "", draggingDailyKey: dragging ? key : "", dailyRecords: this.data.dailyRecords.map(row => ({ ...row, swipeStyle: `transform:translateX(-${row.recordKey === key ? offset : 0}px);` })) });
   },
-  onPageScroll() { this.closeDailySwipe(); const gesture = rowGestures.get(this); if (gesture) { gesture.axis = "vertical"; gesture.moved = true; } },
+  onPageScroll(event?: { scrollTop: number }) {
+    if (!event || !Number.isFinite(event.scrollTop)) return;
+    const previous = pageScrollPositions.get(this) ?? 0;
+    pageScrollPositions.set(this, event.scrollTop);
+    if (event.scrollTop === previous) return;
+    const gesture = rowGestures.get(this);
+    if (gesture?.axis === "horizontal" && !gesture.canceled
+      && Math.abs(event.scrollTop - gesture.scrollTop) < dailyGestureThreshold) return;
+    this.dailyTouchCancel();
+  },
+  currentDailyGesture(gesture: RowGesture) {
+    return this.data.visible && this.sameSession(gesture.token, gesture.revision) && this.data.loadAttempt === gesture.attempt
+      && this.data.dailyRecords.find(row => row.recordKey === gesture.key)?.dailyRecord?.version === gesture.version;
+  },
   dailyTouchStart(event: WechatMiniprogram.TouchEvent) {
     const key = String(event.currentTarget.dataset.key || ""), touch = event.touches[0];
-    if (!this.data.visible || this.data.recordDetailMounted || this.data.dailyMutationState !== "idle" || event.touches.length !== 1 || !touch || !this.data.dailyRecords.some(row => row.recordKey === key)) return;
+    const row = this.data.dailyRecords.find(item => item.recordKey === key)?.dailyRecord;
+    if (!this.data.visible || !this.data.pageAlive || this.data.recordDetailMounted || this.data.dailyMutationState !== "idle"
+      || event.touches.length !== 1 || !touch || !Number.isFinite(touch.clientX) || !Number.isFinite(touch.clientY) || !row) { this.dailyTouchCancel(); return; }
     if (this.data.openDailyKey && this.data.openDailyKey !== key) this.closeDailySwipe();
-    rowGestures.set(this, { key, token: getApp<IAppOption>().globalData.sessionToken, revision: commerceContextRevision(), x: touch.clientX, y: touch.clientY, initial: this.data.openDailyKey === key ? dailyActionWidth : 0, offset: this.data.openDailyKey === key ? dailyActionWidth : 0, axis: "pending", moved: false });
+    rowGestures.set(this, { key, token: getApp<IAppOption>().globalData.sessionToken, revision: commerceContextRevision(), version: row.version,
+      attempt: this.data.loadAttempt, touchId: Number.isFinite(touch.identifier) ? touch.identifier : null, scrollTop: pageScrollPositions.get(this) ?? 0,
+      x: touch.clientX, y: touch.clientY, initial: this.data.openDailyKey === key ? dailyActionWidth : 0,
+      offset: this.data.openDailyKey === key ? dailyActionWidth : 0, axis: "pending", moved: false, canceled: false });
   },
   dailyTouchMove(event: WechatMiniprogram.TouchEvent) {
     const gesture = rowGestures.get(this), touch = event.touches[0];
-    if (!gesture || !touch || event.touches.length !== 1 || !this.data.visible || !this.sameSession(gesture.token, gesture.revision)) { this.dailyTouchCancel(); return; }
+    if (gesture?.endedAt !== undefined) return;
+    if (!gesture || !touch || event.touches.length !== 1 || !this.currentDailyGesture(gesture)
+      || !Number.isFinite(touch.clientX) || !Number.isFinite(touch.clientY)
+      || gesture.touchId !== null && touch.identifier !== gesture.touchId) { this.dailyTouchCancel(); return; }
     if (String(event.currentTarget.dataset.key || "") !== gesture.key) return;
-    const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
-    if (gesture.axis === "vertical") return;
-    if (gesture.axis === "pending") {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 12) return;
-      gesture.moved = true;
-      if (Math.abs(dx) < Math.abs(dy) * 1.3) { gesture.axis = "vertical"; this.closeDailySwipe(); return; }
-      gesture.axis = "horizontal";
-    }
-    const offset = Math.max(0, Math.min(dailyActionWidth, gesture.initial - dx));
-    if (Math.abs(offset - gesture.offset) < 2) return;
-    gesture.offset = offset; this.setDailySwipe(gesture.key, offset, true);
+    const previous = gesture.offset;
+    sampleDailyGesture(gesture, touch);
+    if (gesture.axis === "vertical" || gesture.canceled) { this.closeDailySwipe(); return; }
+    if (gesture.axis === "horizontal" && Math.abs(gesture.offset - previous) >= 2) this.setDailySwipe(gesture.key, gesture.offset, true);
   },
   dailyTouchEnd(event?: WechatMiniprogram.TouchEvent) {
     const gesture = rowGestures.get(this); if (!gesture) return;
-    if (!this.data.visible || !this.sameSession(gesture.token, gesture.revision) || event && String(event.currentTarget.dataset.key || "") !== gesture.key) return;
+    if (gesture.endedAt !== undefined) return;
+    if (event && String(event.currentTarget.dataset.key || "") !== gesture.key) return;
+    if (!this.currentDailyGesture(gesture) || gesture.canceled) { this.dailyTouchCancel(); return; }
+    if (event) {
+      const touch = event.changedTouches?.[0];
+      if (event.touches.length || event.changedTouches?.length !== 1 || !touch
+        || !Number.isFinite(touch.clientX) || !Number.isFinite(touch.clientY)
+        || gesture.touchId !== null && touch.identifier !== gesture.touchId) { this.dailyTouchCancel(); return; }
+      sampleDailyGesture(gesture, touch);
+    }
     gesture.endedAt = Date.now();
     if (gesture.axis === "horizontal") this.setDailySwipe(gesture.key, gesture.offset >= dailyActionWidth / 2 ? dailyActionWidth : 0);
+    else if (gesture.axis === "vertical") this.closeDailySwipe();
   },
-  dailyTouchCancel() { const gesture = rowGestures.get(this); if (gesture) { gesture.moved = true; gesture.endedAt = Date.now(); } this.closeDailySwipe(); },
+  dailyTouchCancel() { const gesture = rowGestures.get(this); if (gesture) { gesture.canceled = true; gesture.moved = true; gesture.endedAt = Date.now(); } this.closeDailySwipe(); },
   async deleteDailyRecord(event?: WechatMiniprogram.TouchEvent) {
     if (!this.data.visible || !this.data.pageAlive || this.data.dailyMutationState !== "idle" || this.data.confirmingDailyDelete || this.data.working) return;
     const key = String(event?.currentTarget.dataset.key || this.data.selectedRecord?.recordKey || "");
@@ -518,7 +569,7 @@ Page({
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = this.data.loadAttempt;
     const recordKey = String(event.currentTarget.dataset.key || "");
     const gesture = rowGestures.get(this);
-    if (gesture?.key === recordKey && gesture.moved && (gesture.endedAt === undefined || Date.now() - gesture.endedAt < 350)) { rowGestures.delete(this); return; }
+    if (gesture?.key === recordKey && gesture.moved) { rowGestures.delete(this); return; }
     if (this.data.openDailyKey) { this.closeDailySwipe(); return; }
     const record = [...this.data.records, ...this.data.dailyRecords].find((item) => item.recordKey === recordKey);
     if (!record) return;

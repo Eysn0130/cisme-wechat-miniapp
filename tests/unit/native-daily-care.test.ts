@@ -239,6 +239,7 @@ describe("Home server-day create and explicit same-day adjustment", () => {
 });
 
 function rowEvent(n = 1, x = 200, y = 300): any { return { currentTarget: { dataset: { key: `daily:${record(n).id}` } }, touches: [{ clientX: x, clientY: y }] }; }
+function rowEnd(n = 1, x = 200, y = 300): any { return { currentTarget: { dataset: { key: `daily:${record(n).id}` } }, touches: [], changedTouches: [{ clientX: x, clientY: y }] }; }
 function installDeleteWrite() {
   write = options => {
     const deleted = options.method === "DELETE";
@@ -260,7 +261,7 @@ describe("Records swipe, accessible confirmed deletion and reversible writes", (
   });
   it("lets vertical intent stay vertical and cancels half-open drags on cancel, scroll and hide", async () => {
     await records(); page.dailyTouchStart(rowEvent()); page.dailyTouchMove(rowEvent(1, 196, 340)); page.dailyTouchEnd(); expect(page.data.openDailyKey).toBe("");
-    for (const stop of [() => page.dailyTouchCancel(), () => page.onPageScroll(), () => page.onHide()]) {
+    for (const stop of [() => page.dailyTouchCancel(), () => page.onPageScroll({ scrollTop: 20 }), () => page.onHide()]) {
       page.data.visible = true; page.dailyTouchStart(rowEvent()); page.dailyTouchMove(rowEvent(1, 120, 300)); stop(); expect(page.data.openDailyKey).toBe("");
     }
     expect(posts).toEqual([]);
@@ -318,6 +319,94 @@ describe("Records swipe, accessible confirmed deletion and reversible writes", (
   });
 });
 
+describe("Records swipe terminal samples and read reconciliation", () => {
+  beforeEach(() => { dailyRead = () => pageOf([record()]); });
+  it("uses the real end point even when native dispatches no touchmove and suppresses its tap", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 40, 305));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`);
+    expect(page.data.dailyRecords[0].swipeStyle).toBe("transform:translateX(-72px);");
+    page.openRecordDetail(rowEnd(1, 40, 305)); expect(page.data.recordDetailMounted).toBe(false);
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(posts).toEqual([]);
+  });
+  it("uses a farther final sample rather than snapping a30px cached move shut", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 270, 301));
+    page.dailyTouchEnd(rowEnd(1, 100, 303));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(page.data.dailyRecords[0].swipeStyle).toContain("-72px");
+  });
+  it("does not let a queued move or duplicate end change an already settled swipe", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 100, 301));
+    page.dailyTouchMove(rowEvent(1, 285, 301)); page.dailyTouchEnd(rowEnd(1, 300, 300));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`);
+    expect(page.data.dailyRecords[0].swipeStyle).toBe("transform:translateX(-72px);"); expect(page.data.draggingDailyKey).toBe("");
+    expect(posts).toEqual([]);
+  });
+  it("keeps a short horizontal end closed but does not mistake it for a row tap", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 280, 301));
+    expect(page.data.openDailyKey).toBe(""); page.openRecordDetail(rowEnd(1, 280, 301));
+    expect(page.data.recordDetailMounted).toBe(false); expect(posts).toEqual([]);
+  });
+  it("honors end-only vertical intent and a later deliberate right swipe", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 296, 360));
+    page.openRecordDetail(rowEnd(1, 296, 360)); expect(page.data.recordDetailMounted).toBe(false);
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 100, 301));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`);
+    page.dailyTouchStart(rowEvent(1, 100, 300)); page.dailyTouchEnd(rowEnd(1, 220, 301));
+    expect(page.data.openDailyKey).toBe("");
+  });
+  it.each(["cancel", "multiple-touches"])("a %s terminates the gesture so its late end cannot reopen", async stop => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301));
+    if (stop === "cancel") page.dailyTouchCancel();
+    else { const multiple = rowEvent(1, 100, 301); multiple.touches.push({ clientX: 110, clientY: 301 }); page.dailyTouchMove(multiple); }
+    expect(page.data.openDailyKey).toBe(""); page.dailyTouchEnd(rowEnd(1, 80, 301));
+    expect(page.data.openDailyKey).toBe(""); page.openRecordDetail(rowEnd(1, 80, 301)); expect(page.data.recordDetailMounted).toBe(false);
+    expect(posts).toEqual([]);
+  });
+  it("does not complete the old gesture using a different finger identifier", async () => {
+    await records(); const start = rowEvent(1, 300, 300); start.touches[0].identifier = 7; page.dailyTouchStart(start);
+    const moved = rowEvent(1, 100, 301); moved.touches[0].identifier = 7; page.dailyTouchMove(moved);
+    const end = rowEnd(1, 80, 301); end.changedTouches[0].identifier = 8; page.dailyTouchEnd(end);
+    expect(page.data.openDailyKey).toBe("");
+  });
+  it.each([false, true])("same-version read preserves the current %s drag/open state", async dragging => {
+    await records(); const held = deferred(); dailyRead = () => held.promise; const reading = page.loadDailyRecords();
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, dragging ? 270 : 100, 301));
+    if (!dragging) page.dailyTouchEnd(rowEnd(1, 100, 301));
+    const expectedStyle = page.data.dailyRecords[0].swipeStyle;
+    held.resolve(pageOf([record()])); await reading;
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(page.data.dailyRecords[0].swipeStyle).toBe(expectedStyle);
+    expect(page.data.draggingDailyKey).toBe(dragging ? `daily:${record().id}` : "");
+    page.dailyTouchEnd(rowEnd(1, 80, 301)); expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(posts).toEqual([]);
+  });
+  it.each(["changed", "removed"])("a %s row closes and invalidates the old gesture after refresh", async change => {
+    await records(); const held = deferred(); dailyRead = () => held.promise; const reading = page.loadDailyRecords();
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301));
+    held.resolve(pageOf(change === "changed" ? [record(1, { version: 2 })] : [])); await reading;
+    expect(page.data.openDailyKey).toBe(""); expect(page.data.draggingDailyKey).toBe("");
+    page.dailyTouchEnd(rowEnd(1, 80, 301)); expect(page.data.openDailyKey).toBe("");
+    page.openRecordDetail(rowEnd(1, 80, 301)); expect(page.data.recordDetailMounted).toBe(false); expect(posts).toEqual([]);
+  });
+  it("ignores equal-offset and tiny horizontal-tail scroll callbacks but closes for real vertical movement", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301));
+    page.dailyTouchEnd(rowEnd(1, 100, 301)); page.onPageScroll(); page.onPageScroll({}); page.onPageScroll({ scrollTop: 0 });
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); page.onPageScroll({ scrollTop: 2 });
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); page.onPageScroll({ scrollTop: 30 });
+    expect(page.data.openDailyKey).toBe(""); page.dailyTouchEnd(rowEnd(1, 80, 301)); expect(page.data.openDailyKey).toBe("");
+    expect(posts).toEqual([]);
+  });
+  it("suppresses a delayed tap from the completed drag but permits the next actual touch", async () => {
+    await records(); const clock = vi.spyOn(Date, "now").mockReturnValue(1000);
+    try {
+      page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301)); page.dailyTouchEnd(rowEnd(1, 100, 301));
+      clock.mockReturnValue(1600); page.openRecordDetail(rowEnd(1, 100, 301));
+      expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(page.data.recordDetailMounted).toBe(false);
+      page.dailyTouchStart(rowEvent(1, 200, 300)); page.dailyTouchEnd(rowEnd(1, 200, 300)); page.openRecordDetail(rowEnd(1, 200, 300));
+      expect(page.data.openDailyKey).toBe("");
+      page.dailyTouchStart(rowEvent(1, 200, 300)); page.dailyTouchEnd(rowEnd(1, 200, 300)); page.openRecordDetail(rowEnd(1, 200, 300));
+      expect(page.data.recordDetailMounted).toBe(true);
+    } finally { clock.mockRestore(); }
+  });
+});
+
 describe("Daily new DTO and mutation/read ordering", () => {
  it.each([{serverDay:"2026-02-30"},{serverDay:null},{totalCount:-1},{totalCount:0},{today:record(2)},{today:null},{items:[record(1,{version:0})],today:record(1,{version:0})},{items:[record(1,{deleted:true})],today:record(1,{deleted:true})}])("rejects inconsistent server day or canonical day metadata %j",async(patch)=>{
   dailyRead=()=>({...pageOf([record()]),...patch});const {readDailyCareRecords}=await import("../../apps/miniprogram/services/daily-care");await expect(readDailyCareRecords({})).rejects.toThrow("INVALID_DAILY_CARE_RESPONSE");
@@ -338,8 +427,8 @@ describe("Daily new DTO and mutation/read ordering", () => {
   dailyRead=()=>pageOf([record()]);await records();write=()=>{m.token="";throw {status:401};};await page.deleteDailyRecord(rowEvent());expect(page.data).toMatchObject({accessRequired:true,dailyRecords:[],loadedRecordCount:0,undoAvailable:false});
  });
  it("does not reopen a swipe from late gesture events after hide or account change",async()=>{
-  dailyRead=()=>pageOf([record()]);await records();page.dailyTouchStart(rowEvent());page.dailyTouchMove(rowEvent(1,120,300));page.onHide();page.dailyTouchEnd(rowEvent());expect(page.data.openDailyKey).toBe("");
-  page.data.visible=true;page.dailyTouchStart(rowEvent());m.token="member-b";page.dailyTouchMove(rowEvent(1,120,300));page.dailyTouchEnd(rowEvent());expect(page.data.openDailyKey).toBe("");
+  dailyRead=()=>pageOf([record()]);await records();page.dailyTouchStart(rowEvent());page.dailyTouchMove(rowEvent(1,120,300));page.onHide();page.dailyTouchEnd(rowEnd());expect(page.data.openDailyKey).toBe("");
+  page.data.visible=true;page.dailyTouchStart(rowEvent());m.token="member-b";page.dailyTouchMove(rowEvent(1,120,300));page.dailyTouchEnd(rowEnd());expect(page.data.openDailyKey).toBe("");
  });
 });
 
@@ -370,7 +459,7 @@ describe("Records delete confirmation lifecycle owner", () => {
 describe("Records swipe reveals a deletion choice without committing it", () => {
  it("clamps a full swipe to the action area, waits for a button tap and confirmation, and preserves cancel", async () => {
   dailyRead=()=>pageOf([record()]);await records();
-  page.dailyTouchStart(rowEvent(1,300,300));page.dailyTouchMove(rowEvent(1,-900,301));page.dailyTouchEnd(rowEvent(1,-900,301));
+  page.dailyTouchStart(rowEvent(1,300,300));page.dailyTouchMove(rowEvent(1,-900,301));page.dailyTouchEnd(rowEnd(1,-900,301));
   expect(page.data.openDailyKey).toBe(`daily:${record().id}`);expect(page.data.dailyRecords[0].swipeStyle).toBe("transform:translateX(-72px);");
   expect(wx.showModal).not.toHaveBeenCalled();expect(posts).toEqual([]);
   const modal=deferred();(wx.showModal as any).mockReturnValueOnce(modal.promise);const choosing=page.deleteDailyRecord(rowEvent());
