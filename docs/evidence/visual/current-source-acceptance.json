@@ -274,6 +274,13 @@
     "recordFile": "docs/evidence/care-authority-session-20261029/delivery-011.json",
     "nativeCapturePending": false,
     "independentlyReviewed": true,
-    "physicalDeviceValidated": false
+    "physicalDeviceValidated": false,
+    "officialCodeUpload": {
+      "version": "0.1.11",
+      "status": "success",
+      "recordFile": "docs/evidence/care-authority-session-20261029/delivery-011.json",
+      "bindingBoundary": "The platform receipt does not echo version, source head or source hash. These are bound by the verified clean remote-main preflight and the same original task receipt chain.",
+      "doesNotCompleteFormalOrPhysicalAcceptance": true
+    }
   }
 }

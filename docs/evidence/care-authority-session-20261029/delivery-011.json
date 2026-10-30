@@ -110,11 +110,48 @@
       "structuralErrors": []
     },
     "privateReceipt": "tmp/community-refinement-20261029/frontend-polish-checks/final-receipt.json",
-    "initialBindingFailure": "Preserved initial failed receipt; full unit rerun passed only after honest current-source pointer rebinding."
+    "initialBindingFailure": "Preserved initial failed receipt; full unit rerun passed only after honest current-source pointer rebinding.",
+    "sourcePrCI": {
+      "runId": 40945706948,
+      "head": "8fb36888e7cc1ab05bef458d6d66fb0c974b8431",
+      "conclusion": "success",
+      "optionalNativeJobs": "skipped"
+    },
+    "sourceMainPushCI": {
+      "runId": 40946778207,
+      "head": "dedac607850125d1ce0d86fbcd7de681cb4db59c",
+      "conclusion": "success",
+      "optionalNativeJobs": "skipped"
+    }
   },
   "officialUpload": {
     "version": "0.1.11",
-    "status": "not-started"
+    "sourceHeadFromPreflight": "dedac607850125d1ce0d86fbcd7de681cb4db59c",
+    "packageSourceSha256FromPreflight": "0e29b68cbca6708b6e2db7c7af50a7dbe5e65b0dcfb6e1f50129b10c69af583d",
+    "status": "success",
+    "sameOriginalTaskVerified": true,
+    "humanConfirmationReceived": true,
+    "terminalPollsAfterHumanConfirmation": 1,
+    "executionDetail": "execution_success",
+    "resultSuccess": true,
+    "compiledTotalBytes": 1640463,
+    "completedAtUtc": "2026-10-30T00:34:57.946000+00:00",
+    "preflight": {
+      "file": "tmp/community-refinement-20261029/upload-011/preflight-011.json",
+      "sha256": "bf64a6b96f8f47a4093bddd55382c960585427d36e80dac0bcba9d87bc7d3505"
+    },
+    "originalTaskReceipt": {
+      "file": "tmp/community-refinement-20261029/upload-011/official-upload-receipt.json",
+      "sha256": "e438a3f1b10bddb2de0610c1360687efb1f58e1e70b8e5acb0e2b3b7f342789b"
+    },
+    "terminalReceipt": {
+      "file": "tmp/community-refinement-20261029/upload-011/human-confirmed-poll-1.json",
+      "sha256": "f3017130c36f734af428a96cbd1dc04799c4002a1a2f9fcd37e6379ae8aa496a"
+    },
+    "bindingBoundary": "The platform receipt does not echo version, source head or source hash. These are bound by the verified clean remote-main preflight and the same original task receipt chain.",
+    "acceptanceBoundary": "Official code upload success does not establish actual experience-version selection, full route/state matrices, physical-device acceptance, formal review or public release.",
+    "experienceVersionSelectionVerified": false,
+    "formalReviewOrPublicReleaseStarted": false
   },
   "releaseAcceptance": {
     "finalResult": "blocked",
@@ -133,5 +170,18 @@
     "MGMT-ENTRY-01",
     "AUTH-RESTORE-01至03",
     "CARE-AUTH-QA-01"
-  ]
+  ],
+  "humanDeviceFeedback": {
+    "requestedVersion": "0.1.11",
+    "requestedChecks": [
+      "Picture pinch/zoom and return",
+      "Comment keyboard open/close avoidance",
+      "Video fullscreen and exit"
+    ],
+    "reply": "已检查继续",
+    "checksReportedPerformed": true,
+    "specificVersionAndPerCheckResultsProvided": false,
+    "abnormalitiesDescribed": false,
+    "scope": "Human reported completing the requested checks and continuing. This does not independently establish the exact selected experience version or per-check physical results; root did not observe the physical device."
+  }
 }
