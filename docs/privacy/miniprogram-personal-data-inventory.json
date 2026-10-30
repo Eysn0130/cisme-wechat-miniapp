@@ -1108,7 +1108,7 @@
     "cycleOrRewardCreated": false,
     "export": "Only approved owner care-field projection of live current records and necessary prior care versions; no raw snapshot, source_fact, internal key/hash or other member identity. Deleted and previously suppressed records do not return through portable projections.",
     "erasure": "Versioned delete/restore is reversible visibility, separate from account closure and QA suppression. Precise visibility markers replay after backup restore and never restore suppressed rows or remove a later new record. Closure and hold-release cover revision copies.",
-    "migration": "101 candidate consolidates same-day visible projection by latest server completedAt/id, without changing original100 facts or unsuppressing isolated records. The deployment must fence original fields across migration.",
+    "migration": "101 migration consolidates same-day visible projection by latest server completedAt/id, without changing original100 facts or unsuppressing isolated records. The actual isolated-trial deployment is bound to the original-field-preservation guards.",
     "deployed": true,
     "currentSourceNativeAcceptance": false,
     "physicalAcceptance": false,
@@ -1119,6 +1119,24 @@
       "activeVerified": true,
       "evidence": "docs/evidence/daily-care-day-20261029/source-review.json",
       "nativeOrUploadAcceptanceGranted": false
+    },
+    "scopedNativeReview": {
+      "packageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
+      "captureComplete": true,
+      "scope": "Scoped Appendix M current-da native pages and actual delete/undo readbacks; not all40 state matrices or qualified-cycle overall acceptance.",
+      "independent375Font16And26": true,
+      "independent390Font16": true,
+      "remainingReview": "Full40-state, physical-device and qualified-cycle acceptance remain incomplete.",
+      "originalRecordRestored": true,
+      "newCareIdsCreated": 0,
+      "nicknameReadConsistentAfterColdRestart": true,
+      "currentSourceSettingsSavePerformed": false,
+      "historical85fSettingsSaveIsNotCurrentSave": true,
+      "overallNativeAcceptance": false,
+      "physicalAcceptance": false,
+      "upload013Started": false,
+      "evidence": "docs/evidence/daily-care-day-20261029/source-review.json",
+      "swipeAndCancelPreserveRecord": true
     }
   }
 }
