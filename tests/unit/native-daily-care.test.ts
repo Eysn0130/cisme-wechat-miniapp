@@ -31,7 +31,7 @@ beforeEach(() => {
   (globalThis as any).wx = { showModal: vi.fn(async () => ({ confirm: true })), showToast: vi.fn(), navigateTo: vi.fn(), switchTab: vi.fn(), enableAlertBeforeUnload: vi.fn(), disableAlertBeforeUnload: vi.fn(), stopPullDownRefresh: vi.fn(), pageScrollTo: vi.fn(), nextTick: (fn: () => void) => fn() };
   (globalThis as any).Page = (definition: any) => { page = { ...definition, data: structuredClone(definition.data), setData(patch: any, callback?: () => void) { Object.assign(this.data, patch); callback?.(); } }; };
 });
-afterEach(() => page?.stopDaypartClock?.());
+afterEach(() => { page?.stopDaypartClock?.(); page?.stopCalendarRefresh?.(); });
 async function home() { await import("../../apps/miniprogram/pages/home/index"); await page.load(); await flush(); }
 async function records() { await import("../../apps/miniprogram/pages/records/index"); await page.load(); await flush(); }
 function complete() { page.openCareSession(); for (let i = 0; i < 4; i++) page.advanceCareStep(); page.selectAssessment({ currentTarget: { dataset: { value: "comfortable" } } }); }
@@ -158,14 +158,14 @@ describe("Records progressive daily group, paging and identity", () => {
     expect(page.data.care).toEqual(care); expect(page.data).toMatchObject({ authorityAvailable: true, dailyReady: false, accessRequired: false }); expect(page.data.dailyError).toBeTruthy();
   });
   it("merges page overlaps once, prevents duplicate clicks and labels only the loaded record count", async () => {
-    dailyRead = () => pageOf([record(1), record(2)], "next-page"); await records(); const held = deferred(); dailyRead = () => held.promise;
+    dailyRead = () => calendarPage([record(1), record(2)], serverDay, "next-page", 3); await records(); const held = deferred(); dailyRead = () => held.promise;
     const loading = page.loadDailyRecords(true); void page.loadDailyRecords(true); expect(gets.filter(url => url.includes("cursor="))).toHaveLength(1);
-    held.resolve(pageOf([record(2), record(3)])); await loading; expect(page.data.dailyRecords).toHaveLength(3); expect(page.data.loadedRecordCount).toBe(3); expect(page.data.dailyHasMore).toBe(false);
+    held.resolve(calendarPage([record(2), record(3)], serverDay, null, 3, record(1))); await loading; expect(page.data.dailyRecords).toHaveLength(3); expect(page.data.loadedRecordCount).toBe(3); expect(page.data.dailyHasMore).toBe(false);
   });
   it("retains loaded pages after a failed append and retries that cursor without a write", async () => {
-    dailyRead = () => pageOf([record(1)], "next-page"); await records(); dailyRead = () => { throw { status: 503 }; };
+    dailyRead = () => calendarPage([record(1)], serverDay, "next-page", 2); await records(); dailyRead = () => { throw { status: 503 }; };
     await page.loadDailyRecords(true); expect(page.data.dailyRecords).toHaveLength(1); expect(page.data.dailyRetryAppend).toBe(true);
-    dailyRead = () => pageOf([record(2)]); page.retryDailyRecords(); await flush();
+    dailyRead = () => calendarPage([record(2)], serverDay, null, 2, record(1)); page.retryDailyRecords(); await flush();
     expect(gets.filter(url => url.includes("cursor="))).toEqual([path + "?limit=20&cursor=next-page", path + "?limit=20&cursor=next-page"]);
     expect(page.data.dailyRecords).toHaveLength(2); expect(posts).toEqual([]);
   });
@@ -239,6 +239,7 @@ describe("Home server-day create and explicit same-day adjustment", () => {
 });
 
 function rowEvent(n = 1, x = 200, y = 300): any { return { currentTarget: { dataset: { key: `daily:${record(n).id}` } }, touches: [{ clientX: x, clientY: y }] }; }
+function rowEnd(n = 1, x = 200, y = 300): any { return { currentTarget: { dataset: { key: `daily:${record(n).id}` } }, touches: [], changedTouches: [{ clientX: x, clientY: y }] }; }
 function installDeleteWrite() {
   write = options => {
     const deleted = options.method === "DELETE";
@@ -260,7 +261,7 @@ describe("Records swipe, accessible confirmed deletion and reversible writes", (
   });
   it("lets vertical intent stay vertical and cancels half-open drags on cancel, scroll and hide", async () => {
     await records(); page.dailyTouchStart(rowEvent()); page.dailyTouchMove(rowEvent(1, 196, 340)); page.dailyTouchEnd(); expect(page.data.openDailyKey).toBe("");
-    for (const stop of [() => page.dailyTouchCancel(), () => page.onPageScroll(), () => page.onHide()]) {
+    for (const stop of [() => page.dailyTouchCancel(), () => page.onPageScroll({ scrollTop: 20 }), () => page.onHide()]) {
       page.data.visible = true; page.dailyTouchStart(rowEvent()); page.dailyTouchMove(rowEvent(1, 120, 300)); stop(); expect(page.data.openDailyKey).toBe("");
     }
     expect(posts).toEqual([]);
@@ -318,6 +319,289 @@ describe("Records swipe, accessible confirmed deletion and reversible writes", (
   });
 });
 
+describe("Records swipe terminal samples and read reconciliation", () => {
+  beforeEach(() => { dailyRead = () => pageOf([record()]); });
+  it("uses the real end point even when native dispatches no touchmove and suppresses its tap", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 40, 305));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`);
+    expect(page.data.dailyRecords[0].swipeStyle).toBe("transform:translateX(-72px);");
+    page.openRecordDetail(rowEnd(1, 40, 305)); expect(page.data.recordDetailMounted).toBe(false);
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(posts).toEqual([]);
+  });
+  it("uses a farther final sample rather than snapping a30px cached move shut", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 270, 301));
+    page.dailyTouchEnd(rowEnd(1, 100, 303));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(page.data.dailyRecords[0].swipeStyle).toContain("-72px");
+  });
+  it("does not let a queued move or duplicate end change an already settled swipe", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 100, 301));
+    page.dailyTouchMove(rowEvent(1, 285, 301)); page.dailyTouchEnd(rowEnd(1, 300, 300));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`);
+    expect(page.data.dailyRecords[0].swipeStyle).toBe("transform:translateX(-72px);"); expect(page.data.draggingDailyKey).toBe("");
+    expect(posts).toEqual([]);
+  });
+  it("keeps a short horizontal end closed but does not mistake it for a row tap", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 280, 301));
+    expect(page.data.openDailyKey).toBe(""); page.openRecordDetail(rowEnd(1, 280, 301));
+    expect(page.data.recordDetailMounted).toBe(false); expect(posts).toEqual([]);
+  });
+  it("honors end-only vertical intent and a later deliberate right swipe", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 296, 360));
+    page.openRecordDetail(rowEnd(1, 296, 360)); expect(page.data.recordDetailMounted).toBe(false);
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 100, 301));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`);
+    page.dailyTouchStart(rowEvent(1, 100, 300)); page.dailyTouchEnd(rowEnd(1, 220, 301));
+    expect(page.data.openDailyKey).toBe("");
+  });
+  it.each(["cancel", "multiple-touches"])("a %s terminates the gesture so its late end cannot reopen", async stop => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301));
+    if (stop === "cancel") page.dailyTouchCancel();
+    else { const multiple = rowEvent(1, 100, 301); multiple.touches.push({ clientX: 110, clientY: 301 }); page.dailyTouchMove(multiple); }
+    expect(page.data.openDailyKey).toBe(""); page.dailyTouchEnd(rowEnd(1, 80, 301));
+    expect(page.data.openDailyKey).toBe(""); page.openRecordDetail(rowEnd(1, 80, 301)); expect(page.data.recordDetailMounted).toBe(false);
+    expect(posts).toEqual([]);
+  });
+  it("does not complete the old gesture using a different finger identifier", async () => {
+    await records(); const start = rowEvent(1, 300, 300); start.touches[0].identifier = 7; page.dailyTouchStart(start);
+    const moved = rowEvent(1, 100, 301); moved.touches[0].identifier = 7; page.dailyTouchMove(moved);
+    const end = rowEnd(1, 80, 301); end.changedTouches[0].identifier = 8; page.dailyTouchEnd(end);
+    expect(page.data.openDailyKey).toBe("");
+  });
+  it.each([false, true])("same-version read preserves the current %s drag/open state", async dragging => {
+    await records(); const held = deferred(); dailyRead = () => held.promise; const reading = page.loadDailyRecords();
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, dragging ? 270 : 100, 301));
+    if (!dragging) page.dailyTouchEnd(rowEnd(1, 100, 301));
+    const expectedStyle = page.data.dailyRecords[0].swipeStyle;
+    held.resolve(pageOf([record()])); await reading;
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(page.data.dailyRecords[0].swipeStyle).toBe(expectedStyle);
+    expect(page.data.draggingDailyKey).toBe(dragging ? `daily:${record().id}` : "");
+    page.dailyTouchEnd(rowEnd(1, 80, 301)); expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(posts).toEqual([]);
+  });
+  it.each(["changed", "removed"])("a %s row closes and invalidates the old gesture after refresh", async change => {
+    await records(); const held = deferred(); dailyRead = () => held.promise; const reading = page.loadDailyRecords();
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301));
+    held.resolve(pageOf(change === "changed" ? [record(1, { version: 2 })] : [])); await reading;
+    expect(page.data.openDailyKey).toBe(""); expect(page.data.draggingDailyKey).toBe("");
+    page.dailyTouchEnd(rowEnd(1, 80, 301)); expect(page.data.openDailyKey).toBe("");
+    page.openRecordDetail(rowEnd(1, 80, 301)); expect(page.data.recordDetailMounted).toBe(false); expect(posts).toEqual([]);
+  });
+  it("ignores equal-offset and tiny horizontal-tail scroll callbacks but closes for real vertical movement", async () => {
+    await records(); page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301));
+    page.dailyTouchEnd(rowEnd(1, 100, 301)); page.onPageScroll(); page.onPageScroll({}); page.onPageScroll({ scrollTop: 0 });
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); page.onPageScroll({ scrollTop: 2 });
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`); page.onPageScroll({ scrollTop: 30 });
+    expect(page.data.openDailyKey).toBe(""); page.dailyTouchEnd(rowEnd(1, 80, 301)); expect(page.data.openDailyKey).toBe("");
+    expect(posts).toEqual([]);
+  });
+  it("suppresses a delayed tap from the completed drag but permits the next actual touch", async () => {
+    await records(); const clock = vi.spyOn(Date, "now").mockReturnValue(1000);
+    try {
+      page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301)); page.dailyTouchEnd(rowEnd(1, 100, 301));
+      clock.mockReturnValue(1600); page.openRecordDetail(rowEnd(1, 100, 301));
+      expect(page.data.openDailyKey).toBe(`daily:${record().id}`); expect(page.data.recordDetailMounted).toBe(false);
+      page.dailyTouchStart(rowEvent(1, 200, 300)); page.dailyTouchEnd(rowEnd(1, 200, 300)); page.openRecordDetail(rowEnd(1, 200, 300));
+      expect(page.data.openDailyKey).toBe("");
+      page.dailyTouchStart(rowEvent(1, 200, 300)); page.dailyTouchEnd(rowEnd(1, 200, 300)); page.openRecordDetail(rowEnd(1, 200, 300));
+      expect(page.data.recordDetailMounted).toBe(true);
+    } finally { clock.mockRestore(); }
+  });
+});
+
+const calendarEvent = (day: string): any => ({ currentTarget: { dataset: { day } } });
+function calendarPage(items: any[], server = serverDay, nextCursor: string | null = null, totalCount = items.length, today: any = items.find(row => row.careDay === server) ?? null) {
+  return { ...pageOf(items, nextCursor), serverDay: server, totalCount, today };
+}
+describe("Records calendar real Page read and action integration", () => {
+  beforeEach(() => { dailyRead = () => calendarPage([record(), record(2)]); });
+  it("defaults to recent records and locally filters known dates or returns without an API call", async () => {
+    await records(); const reads = gets.length;
+    expect(page.data.calendarVisibleRecords).toHaveLength(2); expect(page.data.calendarSelectedDay).toBe("");
+    page.selectCalendarDay(calendarEvent("2026-10-29"));
+    expect(page.data.calendarVisibleRecords.map((row: any) => row.dailyRecord.id)).toEqual([record().id]);
+    expect(page.data.calendarSelectionLabel).toBe("10月29日");
+    page.selectCalendarDay(calendarEvent("2026-10-27")); expect(page.data.calendarSelectedEmpty).toBe(true);
+    expect(page.data.calendarVisibleRecords).toEqual([]); expect(page.data.dailyRecords).toHaveLength(2);
+    page.showRecentRecords(); expect(page.data.calendarSelectedDay).toBe(""); expect(page.data.calendarVisibleRecords).toHaveLength(2);
+    expect(gets).toHaveLength(reads); expect(posts).toEqual([]);
+  });
+  it("uses the same response today fact when it is not present in items, without inventing an empty day", async () => {
+    dailyRead = () => calendarPage([record(2)], serverDay, null, 2, record()); await records();
+    page.selectCalendarDay(calendarEvent(serverDay));
+    expect(page.data.calendarDays.find((day: any) => day.iso === serverDay).recorded).toBe(true);
+    expect(page.data.calendarVisibleRecords[0].dailyRecord.id).toBe(record().id);
+    expect(page.data.calendarSelectedEmpty).toBe(false); expect(page.data.dailyRecords).toHaveLength(2); expect(posts).toEqual([]);
+  });
+  it("does not invent a week before the first successful server response, or allow future/unknown dates", async () => {
+    const held = deferred(); dailyRead = () => held.promise; await records();
+    expect(page.data.calendarDays).toEqual([]); expect(page.data.calendarCoverageReady).toBe(false);
+    held.resolve(calendarPage([record()], serverDay, "next", 2)); await flush();
+    expect(page.data.calendarCoverageReady).toBe(false);
+    for (const day of ["2026-10-26", "2026-10-30"]) { page.selectCalendarDay(calendarEvent(day)); expect(page.data.calendarSelectedDay).toBe(""); }
+    page.selectCalendarDay(calendarEvent(serverDay)); expect(page.data.calendarSelectedDay).toBe(serverDay);
+    expect(page.data.calendarVisibleRecords).toHaveLength(1); expect(posts).toEqual([]);
+  });
+  it("preserves selected-row swipe style on same-version read and terminates hidden-row events when changing date", async () => {
+    await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 270, 301));
+    await page.loadDailyRecords();
+    expect(page.data.calendarVisibleRecords[0].swipeStyle).toBe("transform:translateX(-30px);");
+    expect(page.data.draggingDailyKey).toBe(`daily:${record().id}`);
+    page.dailyTouchEnd(rowEnd(1, 100, 301)); expect(page.data.calendarVisibleRecords[0].swipeStyle).toContain("-72px");
+    page.selectCalendarDay(calendarEvent("2026-10-28")); expect(page.data.openDailyKey).toBe("");
+    page.dailyTouchEnd(rowEnd(1, 50, 301)); page.openRecordDetail(rowEnd(1, 50, 301));
+    expect(page.data.openDailyKey).toBe(""); expect(page.data.recordDetailMounted).toBe(false);
+    expect(page.data.calendarVisibleRecords[0].dailyRecord.id).toBe(record(2).id);
+  });
+  it("ignores a late old capsule tap after switching to a covered empty date", async () => {
+    await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchEnd(rowEnd(1, 100, 301));
+    expect(page.data.openDailyKey).toBe(`daily:${record().id}`);
+    page.selectCalendarDay(calendarEvent("2026-10-27")); expect(page.data.calendarVisibleRecords).toEqual([]);
+    await page.deleteDailyRecord(rowEvent());
+    expect(wx.showModal).not.toHaveBeenCalled(); expect(posts).toEqual([]); expect(page.data.confirmingDailyDelete).toBe(false);
+  });
+  it("still confirms and deletes the currently selected date through its capsule", async () => {
+    dailyRead = () => calendarPage([record()]); await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    installDeleteWrite(); await page.deleteDailyRecord(rowEvent()); await flush();
+    expect(wx.showModal).toHaveBeenCalledTimes(1); expect(posts).toHaveLength(1);
+    expect(posts[0]).toMatchObject({ method: "DELETE", path: `${path}/${record().id}`, data: { expectedVersion: 1 } });
+    expect(page.data.calendarVisibleRecords).toEqual([]); expect(page.data.undoAvailable).toBe(true);
+  });
+  it("extends coverage only through a contiguous cursor chain without losing a local selection", async () => {
+    const head = record(); dailyRead = options => options.path.includes("cursor=b")
+      ? calendarPage([record(3, { careDay: "2026-10-25" })], serverDay, null, 3, head)
+      : options.path.includes("cursor=a") ? calendarPage([record(2)], serverDay, "b", 3, head)
+      : calendarPage([head], serverDay, "a", 3, head);
+    await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    await page.loadDailyRecords(true); expect(page.data.calendarCoverageReady).toBe(false);
+    await page.loadDailyRecords(true); expect(page.data.calendarCoverageReady).toBe(true);
+    expect(page.data.calendarSelectedDay).toBe(serverDay); expect(page.data.calendarVisibleRecords).toHaveLength(1);
+    expect(page.data.dailyRecords).toHaveLength(3); expect(posts).toEqual([]);
+  });
+  it("discards an old-day cursor response and reads a new head instead of mixing its rows", async () => {
+    let headReads = 0;
+    const next = record(3, { careDay: "2026-10-30" });
+    dailyRead = options => options.path.includes("cursor=") ? calendarPage([record(2)], "2026-10-30", null, 2, next)
+      : ++headReads === 1 ? calendarPage([record()], serverDay, "old", 2) : calendarPage([next, record()], "2026-10-30", null, 2, next);
+    await records(); await page.loadDailyRecords(true);
+    expect(headReads).toBe(2); expect(page.data.calendarServerDay).toBe("2026-10-30");
+    expect(page.data.dailyRecords.map((row: any) => row.dailyRecord.id)).toEqual([next.id, record().id]);
+    expect(page.data.dailyCursor).toBeNull(); expect(page.data.calendarStale).toBe(false);
+    expect(gets.filter(item => item.startsWith(path))).toHaveLength(3);
+  });
+  it("restarts an expired cursor once, while a transient failure retries the same cursor explicitly", async () => {
+    let mode = "expired", calls = 0;
+    dailyRead = options => {
+      if (!options.path.includes("cursor=")) return calendarPage([record()], serverDay, "next", 2);
+      calls += 1;
+      if (mode === "expired") throw { status: 422, code: "PAGE_CURSOR_INVALID" };
+      if (mode === "unavailable") throw { status: 503 };
+      return calendarPage([record(2)], serverDay, null, 2, record());
+    };
+    await records(); await page.loadDailyRecords(true); expect(calls).toBe(1);
+    expect(gets.filter(item => item.startsWith(path) && !item.includes("cursor="))).toHaveLength(2);
+    mode = "unavailable"; await page.loadDailyRecords(true);
+    expect(page.data.calendarStale).toBe(true); expect(page.data.dailyRetryAppend).toBe(true); expect(page.data.dailyCursor).toBe("next");
+    mode = "success"; page.retryDailyRecords(); await flush();
+    expect(calls).toBe(3); expect(page.data.dailyRecords).toHaveLength(2); expect(page.data.calendarStale).toBe(false);
+  });
+  it("stops a repeated multi-page cursor rather than looping or declaring coverage", async () => {
+    dailyRead = options => options.path.includes("cursor=b") ? calendarPage([record(3)], serverDay, "a", 3, record())
+      : options.path.includes("cursor=a") ? calendarPage([record(2)], serverDay, "b", 3, record())
+      : calendarPage([record()], serverDay, "a", 3);
+    await records(); await page.loadDailyRecords(true); await page.loadDailyRecords(true);
+    expect(page.data.dailyCursor).toBeNull(); expect(page.data.dailyHasMore).toBe(false);
+    expect(page.data.calendarStale).toBe(true); expect(page.data.calendarCoverageReady).toBe(false);
+    expect(page.data.dailyError).toContain("重新加载"); expect(gets.filter(item => item.startsWith(path))).toHaveLength(3);
+  });
+  it("refreshes instead of silently deduplicating different live ids for one care day across pages", async () => {
+    let heads = 0; const other = record(3, { careDay: record(2).careDay });
+    dailyRead = options => options.path.includes("cursor=") ? calendarPage([other], serverDay, null, 2, record())
+      : ++heads === 1 ? calendarPage([record(), record(2)], serverDay, "next", 2) : calendarPage([record(), other]);
+    await records(); await page.loadDailyRecords(true);
+    expect(heads).toBe(2); expect(page.data.dailyRecords).toHaveLength(2);
+    expect(page.data.dailyRecords.map((row: any) => row.dailyRecord.id)).toEqual([record().id, other.id]);
+    expect(page.data.calendarStale).toBe(false); expect(posts).toEqual([]);
+  });
+  it("rejects an inconsistent first-page union once without automatically retrying forever", async () => {
+    dailyRead = () => calendarPage([record(2)], serverDay, null, 1, record()); await records();
+    expect(gets.filter(item => item.startsWith(path))).toHaveLength(1);
+    expect(page.data.dailyReady).toBe(false); expect(page.data.calendarDays).toEqual([]); expect(page.data.dailyError).toContain("重新加载");
+  });
+  it("retains the old week on failed refresh without projecting a newly confirmed empty day", async () => {
+    await records(); page.selectCalendarDay(calendarEvent("2026-10-27")); const week = page.data.calendarWeekLabel;
+    dailyRead = () => { throw { status: 503 }; }; await page.loadDailyRecords();
+    expect(page.data.calendarWeekLabel).toBe(week); expect(page.data.calendarStale).toBe(true);
+    expect(page.data.calendarSelectedEmpty).toBe(false); expect(page.data.calendarDays.every((day: any) => day.disabled)).toBe(true);
+    page.selectCalendarDay(calendarEvent(serverDay)); expect(page.data.calendarSelectedDay).toBe("2026-10-27");
+    dailyRead = () => calendarPage([record(), record(2)]); page.retryDailyRecords(); await flush();
+    expect(page.data.calendarStale).toBe(false); expect(page.data.calendarSelectedEmpty).toBe(true);
+  });
+  it("resets a selection outside a freshly confirmed week and never restores an old swipe", async () => {
+    await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    page.dailyTouchStart(rowEvent(1, 300, 300)); page.dailyTouchMove(rowEvent(1, 100, 301));
+    dailyRead = () => calendarPage([record(3, { careDay: "2026-11-02" }), record()], "2026-11-02");
+    await page.loadDailyRecords(); expect(page.data.calendarSelectedDay).toBe("");
+    expect(page.data.calendarDays[0].iso).toBe("2026-11-02"); page.dailyTouchEnd(rowEnd(1, 50, 301));
+    expect(page.data.openDailyKey).toBe("");
+  });
+  it("updates selected-day marker, visible row and count from delete/undo acknowledgements even if the follow-up GET fails", async () => {
+    dailyRead = () => calendarPage([record()]); await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    write = options => { dailyRead = () => { throw { status: 503 }; }; return { record: record(1, { version: options.data.expectedVersion + 1, operationId: options.idempotencyKey, deleted: options.method === "DELETE" }), replayed: false, current: true }; };
+    await page.deleteDailyRecord(rowEvent()); await flush();
+    expect(page.data.calendarDays.find((day: any) => day.iso === serverDay).recorded).toBe(false);
+    expect(page.data.calendarVisibleRecords).toEqual([]); expect(page.data.dailyTotalCount).toBe(0); expect(page.data.undoAvailable).toBe(true);
+    await page.undoDailyDelete(); await flush();
+    expect(page.data.calendarDays.find((day: any) => day.iso === serverDay).recorded).toBe(true);
+    expect(page.data.calendarVisibleRecords[0].dailyRecord.id).toBe(record().id); expect(page.data.dailyTotalCount).toBe(1);
+    expect(page.data.calendarVisibleRecords[0].dailyRecord.version).toBe(3); expect(posts).toHaveLength(2);
+  });
+  it("does not pretend an unknown delete removed a calendar day or issue a new command", async () => {
+    dailyRead = () => calendarPage([record()]); await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    write = () => { throw { status: 503 }; }; await page.deleteDailyRecord(rowEvent());
+    expect(page.data.dailyMutationState).toBe("unknown"); expect(page.data.calendarVisibleRecords).toHaveLength(1);
+    expect(page.data.calendarDays.find((day: any) => day.iso === serverDay).recorded).toBe(true);
+    expect(page.data.dailyTotalCount).toBe(1); page.selectCalendarDay(calendarEvent("2026-10-28"));
+    expect(page.data.calendarSelectedDay).toBe(serverDay); expect(posts).toHaveLength(1);
+  });
+  it("clears old calendar identity and ignores a late read after hide and actor change", async () => {
+    await records(); page.selectCalendarDay(calendarEvent(serverDay)); const held = deferred(); dailyRead = () => held.promise;
+    const reading = page.loadDailyRecords(); page.onHide(); m.token = "member-b"; page.syncSession();
+    held.resolve(calendarPage([record()])); await reading;
+    expect(page.data.calendarDays).toEqual([]); expect(page.data.calendarSelectedDay).toBe(""); expect(page.data.calendarVisibleRecords).toEqual([]);
+  });
+  it.each([401, 403])("clears every calendar projection after an actual %s private-read refusal", async status => {
+    await records(); page.selectCalendarDay(calendarEvent(serverDay));
+    expect(page.data.calendarDays).toHaveLength(7); expect(page.data.calendarVisibleRecords).toHaveLength(1);
+    dailyRead = () => { if (status === 401) m.token = ""; throw { status }; };
+    await page.loadDailyRecords();
+    expect(page.data.calendarDays).toEqual([]); expect(page.data.calendarVisibleRecords).toEqual([]);
+    expect(page.data.calendarSelectedDay).toBe(""); expect(page.data.calendarServerDay).toBe("");
+    expect(page.data.calendarWeekLabel).toBe(""); expect(page.data.calendarCoverageReady).toBe(false);
+  });
+  it("performs one head refresh at confirmed Shanghai midnight and stops it after leaving", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-29T15:59:59Z"));
+    try {
+      dailyRead = () => calendarPage([record()]); await records(); const reads = gets.filter(item => item.startsWith(path)).length;
+      dailyRead = () => calendarPage([record(3, { careDay: "2026-10-30" })], "2026-10-30");
+      await vi.advanceTimersByTimeAsync(1000); await flush();
+      expect(page.data.calendarServerDay).toBe("2026-10-30"); expect(gets.filter(item => item.startsWith(path))).toHaveLength(reads + 1);
+      page.onHide(); await vi.advanceTimersByTimeAsync(86400000); expect(gets.filter(item => item.startsWith(path))).toHaveLength(reads + 1);
+    } finally { page.stopCalendarRefresh(); vi.useRealTimers(); }
+  });
+  it("keeps the last confirmed week after midnight read failure without still calling its old date today", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-29T15:59:59Z"));
+    try {
+      dailyRead = () => calendarPage([record()]); await records(); const week = page.data.calendarWeekLabel;
+      dailyRead = () => { throw { status: 503 }; }; await vi.advanceTimersByTimeAsync(1000); await flush();
+      expect(page.data.calendarWeekLabel).toBe(week); expect(page.data.calendarServerDay).toBe(serverDay);
+      expect(page.data.calendarStale).toBe(true); expect(page.data.calendarDays.some((day: any) => day.isToday)).toBe(false);
+      expect(page.data.calendarDays.every((day: any) => day.disabled && day.statusLabel === "待更新")).toBe(true);
+      expect(page.data.calendarSelectedEmpty).toBe(false);
+    } finally { page.stopCalendarRefresh(); vi.useRealTimers(); }
+  });
+});
+
 describe("Daily new DTO and mutation/read ordering", () => {
  it.each([{serverDay:"2026-02-30"},{serverDay:null},{totalCount:-1},{totalCount:0},{today:record(2)},{today:null},{items:[record(1,{version:0})],today:record(1,{version:0})},{items:[record(1,{deleted:true})],today:record(1,{deleted:true})}])("rejects inconsistent server day or canonical day metadata %j",async(patch)=>{
   dailyRead=()=>({...pageOf([record()]),...patch});const {readDailyCareRecords}=await import("../../apps/miniprogram/services/daily-care");await expect(readDailyCareRecords({})).rejects.toThrow("INVALID_DAILY_CARE_RESPONSE");
@@ -338,8 +622,8 @@ describe("Daily new DTO and mutation/read ordering", () => {
   dailyRead=()=>pageOf([record()]);await records();write=()=>{m.token="";throw {status:401};};await page.deleteDailyRecord(rowEvent());expect(page.data).toMatchObject({accessRequired:true,dailyRecords:[],loadedRecordCount:0,undoAvailable:false});
  });
  it("does not reopen a swipe from late gesture events after hide or account change",async()=>{
-  dailyRead=()=>pageOf([record()]);await records();page.dailyTouchStart(rowEvent());page.dailyTouchMove(rowEvent(1,120,300));page.onHide();page.dailyTouchEnd(rowEvent());expect(page.data.openDailyKey).toBe("");
-  page.data.visible=true;page.dailyTouchStart(rowEvent());m.token="member-b";page.dailyTouchMove(rowEvent(1,120,300));page.dailyTouchEnd(rowEvent());expect(page.data.openDailyKey).toBe("");
+  dailyRead=()=>pageOf([record()]);await records();page.dailyTouchStart(rowEvent());page.dailyTouchMove(rowEvent(1,120,300));page.onHide();page.dailyTouchEnd(rowEnd());expect(page.data.openDailyKey).toBe("");
+  page.data.visible=true;page.dailyTouchStart(rowEvent());m.token="member-b";page.dailyTouchMove(rowEvent(1,120,300));page.dailyTouchEnd(rowEnd());expect(page.data.openDailyKey).toBe("");
  });
 });
 
@@ -370,7 +654,7 @@ describe("Records delete confirmation lifecycle owner", () => {
 describe("Records swipe reveals a deletion choice without committing it", () => {
  it("clamps a full swipe to the action area, waits for a button tap and confirmation, and preserves cancel", async () => {
   dailyRead=()=>pageOf([record()]);await records();
-  page.dailyTouchStart(rowEvent(1,300,300));page.dailyTouchMove(rowEvent(1,-900,301));page.dailyTouchEnd(rowEvent(1,-900,301));
+  page.dailyTouchStart(rowEvent(1,300,300));page.dailyTouchMove(rowEvent(1,-900,301));page.dailyTouchEnd(rowEnd(1,-900,301));
   expect(page.data.openDailyKey).toBe(`daily:${record().id}`);expect(page.data.dailyRecords[0].swipeStyle).toBe("transform:translateX(-72px);");
   expect(wx.showModal).not.toHaveBeenCalled();expect(posts).toEqual([]);
   const modal=deferred();(wx.showModal as any).mockReturnValueOnce(modal.promise);const choosing=page.deleteDailyRecord(rowEvent());

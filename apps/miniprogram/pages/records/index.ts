@@ -6,6 +6,8 @@ import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../se
 import { careProtocolSteps, careSelfAssessments, type CareSelfAssessmentValue } from "../../services/care-protocol";
 import { readDailyCareRecords, changeDailyCareRecord, type DailyCareRecord, type DailyCareResult } from "../../services/daily-care";
 import { clientOperationKey } from "../../services/orders";
+import { advanceCalendarCoverage, recordsCalendar, calendarMidnightDelay, CalendarPageError,
+  type CalendarCoverage, type CalendarDay } from "../../services/records-calendar";
 
 function scrollToRecordsError() {
   wx.pageScrollTo({ selector: "#records-error-summary", duration: motionDuration(200) });
@@ -29,8 +31,26 @@ type DailyMutation = { kind: "delete" | "restore"; record: DailyCareRecord; key:
 const dailyMutations = new WeakMap<object, DailyMutation>();
 const dailyDeleteConfirmations = new WeakMap<object, object>();
 const dailyUndo = new WeakMap<object, { record: DailyCareRecord; token: string; revision: number }>();
-const rowGestures = new WeakMap<object, { key: string; token: string; revision: number; x: number; y: number; initial: number; offset: number; axis: "pending" | "horizontal" | "vertical"; moved: boolean; endedAt?: number }>();
+type RowGesture = { key: string; token: string; revision: number; version: number; attempt: number; touchId: number | null; scrollTop: number;
+  x: number; y: number; initial: number; offset: number; axis: "pending" | "horizontal" | "vertical"; moved: boolean; canceled: boolean; endedAt?: number };
+const rowGestures = new WeakMap<object, RowGesture>();
+const pageScrollPositions = new WeakMap<object, number>();
+const calendarReads = new WeakMap<object, { token: string; revision: number; attempt: number; coverage: CalendarCoverage }>();
+const calendarTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
+const calendarMidnightChecked = new WeakMap<object, string>();
 const dailyActionWidth = 72;
+const dailyGestureThreshold = 12;
+
+function sampleDailyGesture(gesture: RowGesture, touch: { clientX: number; clientY: number }): void {
+  const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
+  if (gesture.axis === "vertical" || gesture.canceled) return;
+  if (gesture.axis === "pending") {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < dailyGestureThreshold) return;
+    gesture.moved = true;
+    gesture.axis = Math.abs(dx) < Math.abs(dy) * 1.3 ? "vertical" : "horizontal";
+  }
+  if (gesture.axis === "horizontal") gesture.offset = Math.max(0, Math.min(dailyActionWidth, gesture.initial - dx));
+}
 
 const emptySummary = { completed: 0, totalRecords: 0, cycleCount: 0, recordCountClass: "", headlineLine1: "护理记录", headlineLine2: "", phaseLabel: "尚无护理周期", protocol: "", cycleSummary: "" };
 
@@ -90,7 +110,9 @@ interface RecordGroupView {
   emptyCopy: string;
 }
 
-const emptyDaily = { dailyRecords: [] as RecordView[], dailyTotalCount: null as number | null, dailyReady: false, dailyLoading: false, dailyError: "", dailyCursor: null as string | null, dailyHasMore: false, dailyRetryAppend: false };
+const emptyCalendar = { calendarServerDay: "", calendarDays: [] as CalendarDay[], calendarWeekLabel: "", calendarSelectedDay: "",
+  calendarSelectionLabel: "最近记录", calendarVisibleRecords: [] as RecordView[], calendarCoverageReady: false, calendarStale: false, calendarSelectedEmpty: false };
+const emptyDaily = { dailyRecords: [] as RecordView[], dailyTotalCount: null as number | null, dailyReady: false, dailyLoading: false, dailyError: "", dailyCursor: null as string | null, dailyHasMore: false, dailyRetryAppend: false, ...emptyCalendar };
 
 function dailyRecordView(record: DailyCareRecord): RecordView {
   const completion = zonedCompletion(record.completedAt, record.timezone);
@@ -256,6 +278,7 @@ Page({
   syncSession() {
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     if (this.lastSessionToken !== undefined && (this.lastSessionToken !== token || this.lastSessionRevision !== revision)) {
+      this.stopCalendarRefresh(); calendarReads.delete(this); calendarMidnightChecked.delete(this);
       dailyMutations.delete(this); dailyDeleteConfirmations.delete(this); dailyUndo.delete(this); rowGestures.delete(this);
       cancelPageReads(this); this.data.loadAttempt += 1; this.data.dailyAttempt += 1; this.dismissRecordDetailImmediately();
       this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [],
@@ -270,7 +293,7 @@ Page({
   sameSession(token: string, revision: number) {
     return this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken && revision === commerceContextRevision();
   },
-  onLoad() { this.data.pageAlive = true; },
+  onLoad() { this.data.pageAlive = true; pageScrollPositions.set(this, 0); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
   onShow() {
     this.data.pageAlive = true; this.data.visible = true; this.syncSession();
@@ -290,12 +313,13 @@ Page({
     void this.load(retainMemberSnapshot(this));
   },
   onHide() {
+    this.stopCalendarRefresh();
     dailyDeleteConfirmations.delete(this);
     rowGestures.delete(this);
     this.closeDailySwipe(); this.setData({ confirmingDailyDelete: false });
     if (dailyMutations.has(this)) this.setData({ dailyMutationState: "unknown" });
     this.data.visible = false; this.data.loadAttempt += 1; this.data.refreshOnShow = true;
-    this.data.dailyAttempt += 1; this.setData({ dailyLoading: false });
+    this.data.dailyAttempt += 1; this.setDailyProjection({ dailyLoading: false, calendarStale: true });
     cancelPageReads(this); this.dismissRecordDetailImmediately();
     this.getTabBar?.()?.setData({ externalBusy: false });
     this.setData({ writeReady: false, confirmingCycleAction: false });
@@ -315,7 +339,8 @@ Page({
   async load(preserveSnapshot = false, failClosed = false): Promise<boolean> {
     this.syncSession();
     if (!this.data.pageAlive || !this.data.visible || this.data.working && !failClosed) { this.data.refreshOnShow = true; return false; }
-    cancelPageReads(this); this.data.refreshOnShow = false; this.data.dailyAttempt += 1; this.setData({ dailyLoading: false });
+    this.dailyTouchCancel();
+    cancelPageReads(this); this.data.refreshOnShow = false; this.data.dailyAttempt += 1; this.setDailyProjection({ dailyLoading: false, calendarStale: true });
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     dailyDeleteConfirmations.delete(this);
     this.setData({ writeReady: false, confirmingCycleAction: false, confirmingDailyDelete: false }); this.dismissRecordDetailImmediately();
@@ -362,7 +387,8 @@ Page({
     if (!isAuthenticationFailure(error) || !this.data.pageAlive || !this.data.visible
       || (daily ? this.data.dailyAttempt : this.data.loadAttempt) !== attempt
       || (!this.sameSession(token, revision) && currentToken !== "")) return false;
-    this.syncSession(); cancelPageReads(this); this.data.loadAttempt += 1; this.data.dailyAttempt += 1; this.dismissRecordDetailImmediately();
+    this.syncSession(); this.stopCalendarRefresh(); calendarReads.delete(this);
+    cancelPageReads(this); this.data.loadAttempt += 1; this.data.dailyAttempt += 1; this.dismissRecordDetailImmediately();
     this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], summary: emptySummary,
       selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, writeReady: false, accessRequired: true,
       loading: false, refreshing: false, error: "", ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "" });
@@ -372,71 +398,194 @@ Page({
     if (!this.data.pageAlive || !this.data.visible || this.data.dailyLoading || (more && (!this.data.dailyHasMore || !this.data.dailyCursor))) return;
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     if (!token || this.lastSessionToken !== token || this.lastSessionRevision !== revision) return;
-    const attempt = ++this.data.dailyAttempt, cursor = more ? this.data.dailyCursor : null;
+    let cursor = more ? this.data.dailyCursor : null;
+    const prior = calendarReads.get(this);
+    if (more && (!prior || prior.token !== token || prior.revision !== revision || prior.attempt !== this.data.loadAttempt
+      || prior.coverage.nextCursor !== cursor)) { more = false; cursor = null; }
+    const attempt = ++this.data.dailyAttempt;
     const current = () => this.sameSession(token, revision) && this.data.visible && this.data.dailyAttempt === attempt;
-    this.setData({ dailyLoading: true, dailyError: "", dailyRetryAppend: more });
+    this.setDailyProjection({ dailyLoading: true, dailyError: "", dailyRetryAppend: more });
     try {
       const result = await readDailyCareRecords(this, cursor);
       if (!current()) return;
+      const coverage = advanceCalendarCoverage(more ? prior!.coverage : null, result, cursor);
+      if (!coverage) {
+        this.dailyTouchCancel();
+        this.setDailyProjection({ dailyLoading: false, dailyCursor: null, dailyHasMore: false, dailyRetryAppend: false, calendarStale: true });
+        await this.loadDailyRecords();
+        return;
+      }
+      if (prior && prior.coverage.serverDay !== coverage.serverDay) this.dailyTouchCancel();
+      const previousRows = new Map(this.data.dailyRecords.map(row => [row.recordKey, row]));
       const byId = new Map<string, RecordView>((more ? this.data.dailyRecords : []).map(record => [record.recordKey, record]));
-      result.items.forEach(record => {
+      const incoming = result.today && !result.items.some(row => row.id === result.today!.id) ? [result.today, ...result.items] : result.items;
+      incoming.forEach(record => {
         const previous = byId.get(`daily:${record.id}`)?.dailyRecord;
-        if (!previous || previous.version <= record.version) byId.set(`daily:${record.id}`, dailyRecordView(record));
+        if (!previous || previous.version <= record.version) {
+          const view = dailyRecordView(record), oldView = previousRows.get(view.recordKey);
+          if (oldView?.dailyRecord?.version === record.version && oldView.swipeStyle !== undefined) view.swipeStyle = oldView.swipeStyle;
+          byId.set(view.recordKey, view);
+        }
       });
       const dailyRecords = [...byId.values()], loadedRecordCount = this.data.records.length + dailyRecords.length;
-      this.setData({ dailyRecords, dailyTotalCount: result.totalCount, dailyReady: true, dailyCursor: result.nextCursor, dailyHasMore: result.hasMore, dailyRetryAppend: false,
-        loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), openDailyKey: "", draggingDailyKey: "" });
+      if (new Set(dailyRecords.map(row => row.dailyRecord!.careDay)).size !== dailyRecords.length || dailyRecords.length > result.totalCount) {
+        if (!more) throw new CalendarPageError();
+        this.dailyTouchCancel();
+        this.setDailyProjection({ dailyLoading: false, dailyCursor: null, dailyHasMore: false, dailyRetryAppend: false, calendarStale: true });
+        await this.loadDailyRecords();
+        return;
+      }
+      calendarReads.set(this, { token, revision, attempt: this.data.loadAttempt, coverage });
+      const unchanged = (key: string) => Boolean(key && previousRows.get(key)?.dailyRecord?.version === byId.get(key)?.dailyRecord?.version
+        && byId.has(key));
+      const gesture = rowGestures.get(this);
+      if (gesture && !unchanged(gesture.key)) this.dailyTouchCancel();
+      const openDailyKey = unchanged(this.data.openDailyKey) ? this.data.openDailyKey : "";
+      const draggingDailyKey = unchanged(this.data.draggingDailyKey) ? this.data.draggingDailyKey : "";
+      this.setDailyProjection({ dailyRecords, dailyTotalCount: result.totalCount, dailyReady: true, dailyCursor: result.nextCursor, dailyHasMore: result.hasMore, dailyRetryAppend: false,
+        calendarStale: false,
+        loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), openDailyKey, draggingDailyKey });
+      this.scheduleCalendarRefresh();
     } catch (error) {
       if (this.recordReadAuthenticationFailed(error, token, revision, attempt, true)) return;
       if (!current()) return;
       if ((error as { status?: number })?.status === 403) {
+        this.stopCalendarRefresh(); calendarReads.delete(this); this.dailyTouchCancel();
         this.setData({ ...emptyDaily, loadedRecordCount: this.data.records.length, loadedRecordCountClass: recordCountClass(this.data.records.length), dailyError: "当前账号暂时无法查看日常护理记录，请稍后重试。" });
-      } else this.setData({ dailyError: "日常护理记录暂时无法加载，请重试。" });
-    } finally { if (current()) this.setData({ dailyLoading: false }); }
+      } else if (more && (error as { code?: string })?.code === "PAGE_CURSOR_INVALID") {
+        this.dailyTouchCancel();
+        this.setDailyProjection({ dailyLoading: false, dailyCursor: null, dailyHasMore: false, dailyRetryAppend: false, calendarStale: true });
+        await this.loadDailyRecords();
+      } else this.setDailyProjection({ dailyError: error instanceof CalendarPageError ? "记录位置已变化，请重新加载记录。" : "日常护理记录暂时无法加载，请重试。",
+        calendarStale: true, ...(error instanceof CalendarPageError ? { dailyCursor: null, dailyHasMore: false, dailyRetryAppend: false } : {}) });
+    } finally { if (current()) this.setDailyProjection({ dailyLoading: false }); }
+  },
+  setDailyProjection(patch: Record<string, unknown>) {
+    let state = { ...this.data, ...patch };
+    const read = calendarReads.get(this);
+    const owned = read && this.sameSession(read.token, read.revision);
+    const project = () => recordsCalendar({ records: state.dailyRecords, careDay: row => row.dailyRecord?.careDay,
+      coverage: owned ? read.coverage : null, selectedDay: state.calendarSelectedDay,
+      stale: state.calendarStale, loading: state.dailyLoading, error: state.dailyError });
+    let projection = project();
+    if (projection.calendarSelectedDay !== this.data.calendarSelectedDay) {
+      const gesture = rowGestures.get(this);
+      if (gesture) { gesture.canceled = true; gesture.moved = true; gesture.endedAt = Date.now(); }
+      state = { ...state, dailyRecords: state.dailyRecords.map(row => ({ ...row, swipeStyle: "transform:translateX(0px);" })) };
+      patch = { ...patch, dailyRecords: state.dailyRecords, openDailyKey: "", draggingDailyKey: "" };
+      projection = project();
+    }
+    this.setData({ ...patch, ...projection });
+  },
+  selectCalendarDay(event: WechatMiniprogram.TouchEvent) {
+    if (!this.data.pageAlive || !this.data.visible || this.data.recordDetailMounted || this.data.dailyLoading || this.data.working
+      || this.data.confirmingDailyDelete || this.data.confirmingCycleAction || this.data.dailyMutationState !== "idle"
+      || this.lastSessionToken === undefined || !this.sameSession(this.lastSessionToken, this.lastSessionRevision)) return;
+    const day = this.data.calendarDays.find(item => item.iso === String(event.currentTarget.dataset.day || ""));
+    if (!day || day.disabled) return;
+    this.dailyTouchCancel(); this.setDailyProjection({ calendarSelectedDay: day.iso });
+  },
+  showRecentRecords() {
+    if (!this.data.pageAlive || !this.data.visible || this.data.recordDetailMounted || this.data.dailyLoading || this.data.working
+      || this.data.confirmingDailyDelete || this.data.confirmingCycleAction || this.data.dailyMutationState !== "idle"
+      || this.lastSessionToken === undefined || !this.sameSession(this.lastSessionToken, this.lastSessionRevision)) return;
+    this.dailyTouchCancel(); this.setDailyProjection({ calendarSelectedDay: "" });
+  },
+  stopCalendarRefresh() {
+    const timer = calendarTimers.get(this); if (timer) clearTimeout(timer);
+    calendarTimers.delete(this);
+  },
+  scheduleCalendarRefresh() {
+    this.stopCalendarRefresh();
+    const read = calendarReads.get(this);
+    if (!read || calendarMidnightChecked.get(this) === read.coverage.serverDay) return;
+    const delay = calendarMidnightDelay(read.coverage.serverDay, Date.now());
+    if (delay === null) return;
+    calendarTimers.set(this, setTimeout(() => {
+      calendarTimers.delete(this);
+      if (calendarReads.get(this) !== read || !this.data.pageAlive || !this.data.visible || !this.sameSession(read.token, read.revision)) return;
+      calendarMidnightChecked.set(this, read.coverage.serverDay); this.dailyTouchCancel();
+      this.data.dailyAttempt += 1;
+      this.setDailyProjection({ calendarStale: true, dailyLoading: false, dailyCursor: null, dailyHasMore: false, dailyRetryAppend: false });
+      void this.loadDailyRecords();
+    }, delay));
   },
   retryDailyRecords() { void this.loadDailyRecords(this.data.dailyRetryAppend); },
   loadMoreDailyRecords() { void this.loadDailyRecords(true); },
   closeDailySwipe() {
-    if (this.data.openDailyKey || this.data.draggingDailyKey) this.setData({ openDailyKey: "", draggingDailyKey: "", dailyRecords: this.data.dailyRecords.map(row => ({ ...row, swipeStyle: "transform:translateX(0px);" })) });
+    if (this.data.openDailyKey || this.data.draggingDailyKey) {
+      const dailyRecords = this.data.dailyRecords.map(row => ({ ...row, swipeStyle: "transform:translateX(0px);" }));
+      this.setData({ openDailyKey: "", draggingDailyKey: "", dailyRecords,
+        calendarVisibleRecords: dailyRecords.filter(row => !this.data.calendarSelectedDay || row.dailyRecord?.careDay === this.data.calendarSelectedDay) });
+    }
   },
   setDailySwipe(key: string, offset: number, dragging = false) {
-    this.setData({ openDailyKey: offset > 0 ? key : "", draggingDailyKey: dragging ? key : "", dailyRecords: this.data.dailyRecords.map(row => ({ ...row, swipeStyle: `transform:translateX(-${row.recordKey === key ? offset : 0}px);` })) });
+    const dailyRecords = this.data.dailyRecords.map(row => ({ ...row, swipeStyle: `transform:translateX(-${row.recordKey === key ? offset : 0}px);` }));
+    this.setData({ openDailyKey: offset > 0 ? key : "", draggingDailyKey: dragging ? key : "", dailyRecords,
+      calendarVisibleRecords: dailyRecords.filter(row => !this.data.calendarSelectedDay || row.dailyRecord?.careDay === this.data.calendarSelectedDay) });
   },
-  onPageScroll() { this.closeDailySwipe(); const gesture = rowGestures.get(this); if (gesture) { gesture.axis = "vertical"; gesture.moved = true; } },
+  onPageScroll(event?: { scrollTop: number }) {
+    if (!event || !Number.isFinite(event.scrollTop)) return;
+    const previous = pageScrollPositions.get(this) ?? 0;
+    pageScrollPositions.set(this, event.scrollTop);
+    if (event.scrollTop === previous) return;
+    const gesture = rowGestures.get(this);
+    if (gesture?.axis === "horizontal" && !gesture.canceled
+      && Math.abs(event.scrollTop - gesture.scrollTop) < dailyGestureThreshold) return;
+    this.dailyTouchCancel();
+  },
+  currentDailyGesture(gesture: RowGesture) {
+    return this.data.visible && this.sameSession(gesture.token, gesture.revision) && this.data.loadAttempt === gesture.attempt
+      && this.data.dailyRecords.find(row => row.recordKey === gesture.key)?.dailyRecord?.version === gesture.version
+      && (!this.data.calendarSelectedDay || this.data.dailyRecords.find(row => row.recordKey === gesture.key)?.dailyRecord?.careDay === this.data.calendarSelectedDay);
+  },
   dailyTouchStart(event: WechatMiniprogram.TouchEvent) {
     const key = String(event.currentTarget.dataset.key || ""), touch = event.touches[0];
-    if (!this.data.visible || this.data.recordDetailMounted || this.data.dailyMutationState !== "idle" || event.touches.length !== 1 || !touch || !this.data.dailyRecords.some(row => row.recordKey === key)) return;
+    const row = this.data.dailyRecords.find(item => item.recordKey === key)?.dailyRecord;
+    if (!this.data.visible || !this.data.pageAlive || this.data.recordDetailMounted || this.data.dailyMutationState !== "idle"
+      || event.touches.length !== 1 || !touch || !Number.isFinite(touch.clientX) || !Number.isFinite(touch.clientY) || !row
+      || this.data.calendarSelectedDay && row.careDay !== this.data.calendarSelectedDay) { this.dailyTouchCancel(); return; }
     if (this.data.openDailyKey && this.data.openDailyKey !== key) this.closeDailySwipe();
-    rowGestures.set(this, { key, token: getApp<IAppOption>().globalData.sessionToken, revision: commerceContextRevision(), x: touch.clientX, y: touch.clientY, initial: this.data.openDailyKey === key ? dailyActionWidth : 0, offset: this.data.openDailyKey === key ? dailyActionWidth : 0, axis: "pending", moved: false });
+    rowGestures.set(this, { key, token: getApp<IAppOption>().globalData.sessionToken, revision: commerceContextRevision(), version: row.version,
+      attempt: this.data.loadAttempt, touchId: Number.isFinite(touch.identifier) ? touch.identifier : null, scrollTop: pageScrollPositions.get(this) ?? 0,
+      x: touch.clientX, y: touch.clientY, initial: this.data.openDailyKey === key ? dailyActionWidth : 0,
+      offset: this.data.openDailyKey === key ? dailyActionWidth : 0, axis: "pending", moved: false, canceled: false });
   },
   dailyTouchMove(event: WechatMiniprogram.TouchEvent) {
     const gesture = rowGestures.get(this), touch = event.touches[0];
-    if (!gesture || !touch || event.touches.length !== 1 || !this.data.visible || !this.sameSession(gesture.token, gesture.revision)) { this.dailyTouchCancel(); return; }
+    if (gesture?.endedAt !== undefined) return;
+    if (!gesture || !touch || event.touches.length !== 1 || !this.currentDailyGesture(gesture)
+      || !Number.isFinite(touch.clientX) || !Number.isFinite(touch.clientY)
+      || gesture.touchId !== null && touch.identifier !== gesture.touchId) { this.dailyTouchCancel(); return; }
     if (String(event.currentTarget.dataset.key || "") !== gesture.key) return;
-    const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
-    if (gesture.axis === "vertical") return;
-    if (gesture.axis === "pending") {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 12) return;
-      gesture.moved = true;
-      if (Math.abs(dx) < Math.abs(dy) * 1.3) { gesture.axis = "vertical"; this.closeDailySwipe(); return; }
-      gesture.axis = "horizontal";
-    }
-    const offset = Math.max(0, Math.min(dailyActionWidth, gesture.initial - dx));
-    if (Math.abs(offset - gesture.offset) < 2) return;
-    gesture.offset = offset; this.setDailySwipe(gesture.key, offset, true);
+    const previous = gesture.offset;
+    sampleDailyGesture(gesture, touch);
+    if (gesture.axis === "vertical" || gesture.canceled) { this.closeDailySwipe(); return; }
+    if (gesture.axis === "horizontal" && Math.abs(gesture.offset - previous) >= 2) this.setDailySwipe(gesture.key, gesture.offset, true);
   },
   dailyTouchEnd(event?: WechatMiniprogram.TouchEvent) {
     const gesture = rowGestures.get(this); if (!gesture) return;
-    if (!this.data.visible || !this.sameSession(gesture.token, gesture.revision) || event && String(event.currentTarget.dataset.key || "") !== gesture.key) return;
+    if (gesture.endedAt !== undefined) return;
+    if (event && String(event.currentTarget.dataset.key || "") !== gesture.key) return;
+    if (!this.currentDailyGesture(gesture) || gesture.canceled) { this.dailyTouchCancel(); return; }
+    if (event) {
+      const touch = event.changedTouches?.[0];
+      if (event.touches.length || event.changedTouches?.length !== 1 || !touch
+        || !Number.isFinite(touch.clientX) || !Number.isFinite(touch.clientY)
+        || gesture.touchId !== null && touch.identifier !== gesture.touchId) { this.dailyTouchCancel(); return; }
+      sampleDailyGesture(gesture, touch);
+    }
     gesture.endedAt = Date.now();
     if (gesture.axis === "horizontal") this.setDailySwipe(gesture.key, gesture.offset >= dailyActionWidth / 2 ? dailyActionWidth : 0);
+    else if (gesture.axis === "vertical") this.closeDailySwipe();
   },
-  dailyTouchCancel() { const gesture = rowGestures.get(this); if (gesture) { gesture.moved = true; gesture.endedAt = Date.now(); } this.closeDailySwipe(); },
+  dailyTouchCancel() { const gesture = rowGestures.get(this); if (gesture) { gesture.canceled = true; gesture.moved = true; gesture.endedAt = Date.now(); } this.closeDailySwipe(); },
   async deleteDailyRecord(event?: WechatMiniprogram.TouchEvent) {
     if (!this.data.visible || !this.data.pageAlive || this.data.dailyMutationState !== "idle" || this.data.confirmingDailyDelete || this.data.working) return;
     const key = String(event?.currentTarget.dataset.key || this.data.selectedRecord?.recordKey || "");
     const row = this.data.dailyRecords.find(item => item.recordKey === key)?.dailyRecord;
     if (!row) return;
+    if (event && this.data.calendarSelectedDay && row.careDay !== this.data.calendarSelectedDay) return;
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     const attempt = this.data.loadAttempt, owner = {};
     dailyDeleteConfirmations.set(this, owner);
@@ -466,7 +615,7 @@ Page({
   async runDailyMutation(command: DailyMutation) {
     if (command.inFlight || !this.sameSession(command.token, command.revision) || !this.data.visible) return;
     command.inFlight = true;
-    this.data.dailyAttempt += 1; this.setData({ dailyLoading: false, dailyMutationState: "sending", dailyMutationError: "" });
+    this.data.dailyAttempt += 1; this.setDailyProjection({ dailyLoading: false, dailyMutationState: "sending", dailyMutationError: "" });
     const current = () => dailyMutations.get(this) === command && this.sameSession(command.token, command.revision);
     try {
       const result = await changeDailyCareRecord(command.record.id, command.record.version, command.key, command.kind === "restore");
@@ -489,7 +638,6 @@ Page({
     if (dailyMutations.get(this) !== command || !this.sameSession(command.token, command.revision) || !this.data.visible) return;
     dailyMutations.delete(this); this.dismissRecordDetailImmediately();
     this.data.dailyAttempt += 1;
-    this.setData({ dailyLoading: false });
     let dailyRecords = this.data.dailyRecords;
     const newer = dailyRecords.find(row => row.recordKey === `daily:${result.record.id}`)?.dailyRecord;
     const currentResult = result.current && (!newer || newer.version <= result.record.version);
@@ -500,7 +648,14 @@ Page({
     const undo = command.kind === "delete" && currentResult;
     if (undo) dailyUndo.set(this, { record: result.record, token: command.token, revision: command.revision }); else dailyUndo.delete(this);
     const loadedRecordCount = this.data.records.length + dailyRecords.length;
-    this.setData({ dailyRecords, loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), dailyMutationState: "idle", undoAvailable: undo,
+    const countChange = currentResult ? Number(!result.record.deleted) - Number(Boolean(newer)) : 0;
+    const dailyTotalCount = this.data.dailyTotalCount === null ? null : Math.max(0, this.data.dailyTotalCount + countChange);
+    const read = calendarReads.get(this);
+    if (currentResult && read && this.sameSession(read.token, read.revision)) {
+      read.coverage = { ...read.coverage, ...(dailyTotalCount === null ? {} : { totalCount: dailyTotalCount }),
+        ...(result.record.careDay === read.coverage.serverDay ? { todayStamp: result.record.deleted ? "" : `${result.record.id}:${result.record.version}` } : {}) };
+    }
+    this.setDailyProjection({ dailyRecords, dailyTotalCount, dailyLoading: false, loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), dailyMutationState: "idle", undoAvailable: undo,
       dailyMutationError: currentResult ? "" : "记录已有更新，请查看最新内容。" });
     wx.showToast({ title: !currentResult ? "操作已核对" : command.kind === "delete" ? "记录已删除" : "删除已撤销", icon: "success" });
     void this.loadDailyRecords();
@@ -518,10 +673,11 @@ Page({
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = this.data.loadAttempt;
     const recordKey = String(event.currentTarget.dataset.key || "");
     const gesture = rowGestures.get(this);
-    if (gesture?.key === recordKey && gesture.moved && (gesture.endedAt === undefined || Date.now() - gesture.endedAt < 350)) { rowGestures.delete(this); return; }
+    if (gesture?.key === recordKey && gesture.moved) { rowGestures.delete(this); return; }
     if (this.data.openDailyKey) { this.closeDailySwipe(); return; }
     const record = [...this.data.records, ...this.data.dailyRecords].find((item) => item.recordKey === recordKey);
     if (!record) return;
+    if (record.source === "daily" && this.data.calendarSelectedDay && record.dailyRecord?.careDay !== this.data.calendarSelectedDay) return;
     this.clearRecordDetailCloseTimer();
     this.getTabBar?.()?.setPresentation?.("record-detail", true);
     this.setData({ selectedRecord: record, recordDetailMounted: true, recordDetailOpen: true, recordDetailVisible: this.data.reducedMotion, recordDetailClosing: false }, () => {

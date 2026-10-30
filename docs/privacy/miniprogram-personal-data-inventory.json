@@ -1139,5 +1139,38 @@
       "swipeAndCancelPreserveRecord": true,
       "upload013Succeeded": true
     }
+  },
+  "recordsCalendarReview20261030": {
+    "scope": "PRD Appendix M / CARE-DAY-CALENDAR-01..03; user selected the native calendar layout",
+    "source": "Existing owner daily-care read projection only; no new API, recipient or authority",
+    "pageMemory": [
+      "confirmed server care day",
+      "derived current-week date cells and loaded coverage",
+      "selected date and filtered view of the existing owner record list"
+    ],
+    "purpose": "View one current daily record by the confirmed service day; preserve truthful empty/loading/error and recoverable delete/undo states.",
+    "persistentStorageAdded": false,
+    "serverDataAdded": false,
+    "newRecipient": false,
+    "newConsentCreated": false,
+    "newRetentionPeriod": false,
+    "businessWriteRulesChanged": false,
+    "onIdentityChange": "Clear calendar, date selection and record projection using the existing session boundary",
+    "nativeCurrentSourceAccepted": true,
+    "physicalDeviceAccepted": false,
+    "evidence": "docs/evidence/records-calendar-20261030/source-review.json",
+    "nativeAcceptanceScope": "Records calendar/date filters/swipe/detail/recoverable deleteUndo on390/font16 and375/font26 only; no full40 or physical acceptance."
+  },
+  "homeCanonicalNameReview20261030": {
+    "scope": "PROFILE-SYNC-01 cold Home bootstrap and clock/protocol/sheet redraws",
+    "source": "Existing authenticated bootstrap member name and profile revision only",
+    "pageMemoryOnly": true,
+    "purpose": "Keep the current saved member nickname visible while the same member session remains valid",
+    "newServerData": false,
+    "newPersistentStorage": false,
+    "newRecipient": false,
+    "newConsent": false,
+    "onIdentityChange": "Discard on token/context change, authentication expiry or page unload; late old responses cannot restore it",
+    "evidence": "docs/evidence/records-calendar-20261030/source-review.json"
   }
 }

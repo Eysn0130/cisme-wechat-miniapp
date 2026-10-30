@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "e63344352ad6f11581562efdb0f84ce93124e7cebe73d97e4811ed1961619b97",
+  "scope": "Records swipe correction and five unselected local native layout alternatives",
+  "sourceFixes": [
+    "final changedTouches participates in gesture recognition",
+    "cancel/completed gestures are terminal",
+    "same-record same-version response preserves the current offset",
+    "record change, removal, account or load ownership invalidates old gestures",
+    "actual scroll delta arbitration and next-touch distinction for ghost clicks"
+  ],
+  "targetedChecks": {
+    "authorRelevantTests": 113,
+    "independentRelevantTests": 143,
+    "newBehaviorCases": 14,
+    "beforeFixFailures": 13,
+    "typecheck": "passed",
+    "package": "passed",
+    "fullUnit": {
+      "files": 159,
+      "passed": 2337,
+      "existingSkipped": 1,
+      "failed": 0
+    }
+  },
+  "nativeScope": {
+    "viewport": "390x844",
+    "fontSetting": 16,
+    "cuaRapidSwipeShowsOnlyDeletePill": true,
+    "nativeSdkEndOnlySequenceShowsOnlyDeletePill": true,
+    "sameVersionRealReadPreservesExpandedPill": true,
+    "rightSwipeCloses": true,
+    "newNormalTapOpensDetail": true,
+    "nativeDeletionConfirmationCancelled": true,
+    "beforeAfterApiResponsesEqual": true,
+    "businessWrites": 0,
+    "independentScopedFramesReviewed": 3,
+    "physicalDeviceValidated": false
+  },
+  "designReview": {
+    "variants": [
+      "A calendar and recent records",
+      "B date timeline",
+      "C recent-care overview",
+      "D compact orb and confirmed count",
+      "E compact paper cards"
+    ],
+    "nativeViewport": "390x844/font16",
+    "screenshots": 10,
+    "independentlyReviewed": true,
+    "sameActualDailyDataUsed": true,
+    "syntheticCareOrTrendCreated": false,
+    "calendarDerivedFromAuthenticatedServerDay": true,
+    "previewTemplatesRestored": true,
+    "selectedByUser": false,
+    "uploaded": false,
+    "fullInteractionMatricesValidated": false
+  },
+  "deliveryBoundary": {
+    "statusAtSourceReview": "awaiting user layout selection; no0.1.14 upload invoked",
+    "previousExperienceVersion": "0.1.13",
+    "gestureFixWillBeRetainedInChosenLayout": true,
+    "apiChanged": false,
+    "schema": 101,
+    "productionChanged": false,
+    "all40StateMatricesComplete": false,
+    "formalReleaseReady": false
+  },
+  "privacy": "Raw event/page/API records and all current native design screenshots remain private local TMP; public fields are aggregated only."
+}
