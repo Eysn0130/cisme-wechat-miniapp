@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "28d3cbe29d51c5aba1ec71e007418b74ab6148c3d64c283c72bbe7133e5b862f",
+  "requirement": "User requested centered close text and consistent button tokens in care-record details.",
+  "rootCause": "Records close had minimum height but inherited a short normal text line box without internal alignment; Home implemented flex centering independently. Color/shape/spacing drifted across local copies.",
+  "change": {
+    "sharedStyle": "apps/miniprogram/styles/sheet-dismiss.wxss",
+    "consumers": [
+      "pages/home/index",
+      "pages/records/index"
+    ],
+    "existingTokens": [
+      "--cisme-text-small",
+      "--cisme-hit-target",
+      "--cisme-plum",
+      "--cisme-lilac"
+    ],
+    "sharedGeometry": {
+      "minWidthPx": 64,
+      "minHeightToken": "--cisme-hit-target",
+      "paddingInlineRpx": 20,
+      "radiusRpx": 999,
+      "lineHeight": 1.25,
+      "centering": "flex align-items:center;justify-content:center"
+    },
+    "otherCssFixes": [
+      "Order-support header text controls centered with existing hit token",
+      "Management-support full-width Done centered; existing50px minimum retained",
+      "Two rate-sheet close controls use hit token for minimum width and height"
+    ],
+    "behaviorOrPermissionsChanged": false,
+    "dependenciesAdded": false
+  },
+  "recordCountCorrection": {
+    "rootCause": "Two precisely identified root-generated software-test records remained visible alongside the user new record.",
+    "corrected": true,
+    "softHiddenQaRows": 2,
+    "physicalDeletedRows": 0,
+    "allNonTargetRowsUnchanged": true,
+    "visibleApiRowsAfter": 1,
+    "userRecordExactRetained": true,
+    "nativeVisibleCountAfter": 1,
+    "privateEvidence": "tmp/community-refinement-20261029/qa-care-cleanup/actual-v2",
+    "rawPersonalFactsPublished": false,
+    "scope": "Historical actual cleanup/record readback preceding this CSS-only source, not a fresh software care write or current visual acceptance."
+  },
+  "runtimeEvidenceCaution": "The IDE previously retained stale compilation data; official cleanCompileCache plus refresh restored the expected daily source field and kicker. Disk hashes alone are not claimed to be loaded-bundle hashes. Compile cache only, no auth/storage clearing.",
+  "native": {
+    "pending": false,
+    "performedBy": "root",
+    "configurations": [
+      {
+        "width": 390,
+        "height": 844,
+        "fontSetting": 16,
+        "buttonWidth": 64,
+        "buttonHeight": 44,
+        "fontPx": 12,
+        "lineHeightPx": 15,
+        "display": "flex",
+        "align": "center",
+        "justify": "center"
+      },
+      {
+        "width": 375,
+        "height": 812,
+        "fontSetting": 26,
+        "buttonWidth": 64,
+        "buttonHeight": 44,
+        "fontPx": 19.5,
+        "lineHeightPx": 24.375,
+        "display": "flex",
+        "align": "center",
+        "justify": "center"
+      }
+    ],
+    "scope": "Home and existing-user-record dismiss controls; actual close return observed. No new care save or synthetic business state.",
+    "privateManifest": "tmp/community-refinement-20261029/sheet-button-28d3cbe2/manifest-private.json",
+    "privateManifestSha256": "25b07f2c57fcaef6923aedcd285735192cc540f61296772b85c9b7de45e717c2",
+    "originalUserRecordExactRetained": true,
+    "newCareDataWritten": false,
+    "deviceRestored": true,
+    "guardedPagesSourceOnly": true,
+    "independentVisualReview": {
+      "agent": "trial_backup_prepare",
+      "frames": 4,
+      "noBlockingFindings": true,
+      "scope": "Actual raw stills and computed line boxes in two configurations; centered text checked explicitly. Click and server readback performed by root."
+    }
+  },
+  "checks": {
+    "unit": {
+      "passed": 2210,
+      "failed": 0,
+      "conditionalSkipped": 1,
+      "files": 155
+    },
+    "typecheck": true,
+    "packageGate": true,
+    "diffCheck": true,
+    "qaStatus": {
+      "ok": true,
+      "releaseReady": false,
+      "structuralErrors": []
+    },
+    "privateReceipt": "tmp/sheet-button-28d3cbe2/checks/receipt.json",
+    "apiIntegrationRerun": false,
+    "apiSourceUnchanged": true
+  },
+  "releaseAcceptance": {
+    "finalResult": "blocked",
+    "all40StateMatricesComplete": false,
+    "physicalDeviceValidated": false,
+    "guardedOrderOrAdditionalPermissionPositiveFlowsVerified": false,
+    "formalReviewOrPublicReleaseStarted": false
+  }
+}

@@ -72,7 +72,7 @@
   <view wx:if="{{recordDetailMounted && selectedRecord}}" class="record-detail {{recordDetailVisible ? 'record-detail--visible' : ''}} {{recordDetailClosing ? 'record-detail--closing' : ''}} {{reducedMotion ? 'record-detail--reduced' : ''}}" catchtap="closeRecordDetail" aria-role="dialog" aria-modal="true" aria-label="{{selectedRecord.milestone}} 护理记录详情">
     <view class="record-detail__sheet" catchtap="stopPropagation">
       <view class="record-detail__handle"></view>
-      <view class="record-detail__head"><view><text class="record-detail__eyebrow">{{selectedRecord.cycleLabel}}{{selectedRecord.source === 'daily' ? '' : ' · ' + selectedRecord.milestone}}</text><strong class="record-detail__title">护理详情</strong></view><button class="record-detail__close" bindtap="closeRecordDetail">关闭</button></view>
+      <view class="record-detail__head"><view><text class="record-detail__eyebrow">{{selectedRecord.cycleLabel}}{{selectedRecord.source === 'daily' ? '' : ' · ' + selectedRecord.milestone}}</text><strong class="record-detail__title">护理详情</strong></view><button class="record-detail__close sheet-dismiss" bindtap="closeRecordDetail">关闭</button></view>
       <view class="record-detail__time"><view><small class="record-detail__time-label">完成日期</small><strong class="record-detail__date">{{selectedRecord.completedDate}}</strong></view><text class="record-detail__clock">{{selectedRecord.completedTime}}</text></view>
       <view class="record-detail__section">
         <text class="record-detail__label">四步护理</text>
