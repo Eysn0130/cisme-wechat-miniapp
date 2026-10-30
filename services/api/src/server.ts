@@ -153,7 +153,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return payload;
   });
   const service = new PlatformService(pool, config, storage,undefined,accountClosure);
-  const dailyCare = new DailyCareService(pool);
+  const dailyCare = new DailyCareService(pool,accountClosure);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
   const editorial = new EditorialService(pool,config,storage,authority);
@@ -524,8 +524,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 
   app.post("/v1/care-cycles", async (request) => service.planCycle(request.memberId, request.body as { qualificationFactId: string; timezone: string; protocolVersion: string }, service.now(devClock(request))));
   app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/care", async (request) => service.getCare(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
-  app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/daily-care-records", request => dailyCare.list(request.memberId, request.query));
+  app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/daily-care-records", request => dailyCare.list(request.memberId, request.query,service.now()));
   app.post("/v1/me/daily-care-records", request => dailyCare.create(request.memberId, idempotencyKey(request), request.body, service.now()));
+  app.put<{Params:{id:string}}>("/v1/me/daily-care-records/:id",request=>dailyCare.update(request.memberId,request.params.id,idempotencyKey(request),request.body,service.now()));
+  app.delete<{Params:{id:string}}>("/v1/me/daily-care-records/:id",request=>dailyCare.visibility(request.memberId,request.params.id,idempotencyKey(request),request.body,'delete',service.now()));
+  app.post<{Params:{id:string}}>("/v1/me/daily-care-records/:id/restore",request=>dailyCare.visibility(request.memberId,request.params.id,idempotencyKey(request),request.body,'restore',service.now()));
   for (const scope of ["home", "profile", "settings"] as const) app.get(`/v1/bootstrap/${scope}`, async (request) => service.bootstrap(request.memberId, scope, service.now(devClock(request))));
   app.get("/v1/legal", async () => {
     const documents = await pool.query("SELECT document_type,version,title,body,operator_name,contact,published_at FROM legal_document WHERE active=true ORDER BY document_type");

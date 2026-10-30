@@ -5,6 +5,8 @@ page {
   --cisme-plum: #56306f;
   --cisme-plum-deep: #321d48;
   --cisme-lilac: #eee4f2;
+  --cisme-danger: #9a3d55;
+  --cisme-motion-press: 120ms;
   --cisme-line: rgba(78, 47, 91, .12);
   --cisme-surface: rgba(255, 252, 255, .78);
   --cisme-text-micro: 11px;
@@ -257,51 +259,9 @@ image {
   line-height: 1.55;
 }
 
-.primary,
-.secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 50px;
-  margin-top: 24rpx;
-  padding: 0 24rpx;
-  border-radius: 999rpx;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: var(--cisme-text-action);
-  font-weight: 400;
-  line-height: 20px;
-  text-align: center;
-}
+.primary,.secondary{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:24rpx;padding:0 24rpx;border-radius:999rpx;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;font-size:var(--cisme-text-action);font-weight:400;line-height:1.25;text-align:center;}.action-label{display:block;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;font-size:var(--cisme-text-action);font-weight:400;line-height:1.25;}
 
-.action-label {
-  display: block;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: var(--cisme-text-action);
-  font-weight: 400;
-  line-height: 20px;
-}
-
-.primary {
-  border: 1rpx solid rgba(255, 255, 255, .78);
-  color: #fff;
-  background: linear-gradient(180deg, #78528f, #3e2454);
-  box-shadow: inset 0 2rpx 8rpx rgba(255, 255, 255, .48), 0 13rpx 28rpx rgba(58, 31, 77, .18);
-  font-weight: 400;
-}
-
-.primary--disabled {
-  color: #fff !important;
-  background: linear-gradient(180deg, #78528f, #3e2454) !important;
-  box-shadow: inset 0 2rpx 8rpx rgba(255, 255, 255, .48), 0 13rpx 28rpx rgba(58, 31, 77, .18) !important;
-  opacity: .38 !important;
-}
-
-.secondary {
-  border: 1rpx solid rgba(86, 48, 111, .14);
-  color: #56306f;
-  background: rgba(255, 255, 255, .68);
-}
+.primary{border:1rpx solid rgba(255,255,255,.78);color:#fff;background:linear-gradient(180deg,#78528f,#3e2454);box-shadow:inset 0 2rpx 8rpx rgba(255,255,255,.48),0 13rpx 28rpx rgba(58,31,77,.18);font-weight:400;}.primary--disabled{color:#fff !important;background:linear-gradient(180deg,#78528f,#3e2454) !important;box-shadow:inset 0 2rpx 8rpx rgba(255,255,255,.48),0 13rpx 28rpx rgba(58,31,77,.18) !important;opacity:.38 !important;}.secondary{border:1rpx solid rgba(86,48,111,.14);color:#56306f;background:rgba(255,255,255,.68);}
 
 .control--disabled,
 .secondary--disabled,
@@ -309,20 +269,7 @@ image {
   opacity: .58;
 }
 
-.text-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--cisme-hit-target);
-  padding: 6rpx 18rpx;
-  border: 1rpx solid rgba(86, 48, 111, .16);
-  border-radius: 999rpx;
-  color: #56306f;
-  background: rgba(255, 255, 255, .74);
-  font-size: var(--cisme-text-small);
-  line-height: 1.25;
-  text-align: center;
-}
+.text-button{display:inline-flex;align-items:center;justify-content:center;min-height:var(--cisme-hit-target);padding:6rpx 18rpx;border:1rpx solid rgba(86,48,111,.16);border-radius:999rpx;color:#56306f;background:rgba(255,255,255,.74);font-size:var(--cisme-text-small);line-height:1.25;text-align:center;}.primary,.secondary,.text-button{transition:opacity var(--cisme-motion-press) ease-out;}.primary:active,.secondary:active,.text-button:active{opacity:.84;}@media (prefers-reduced-motion:reduce){.primary,.secondary,.text-button{transition:none;}}
 
 .state-error__copy {
   display: block;

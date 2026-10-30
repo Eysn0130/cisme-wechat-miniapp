@@ -257,23 +257,23 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "28d3cbe29d51c5aba1ec71e007418b74ab6148c3d64c283c72bbe7133e5b862f",
+  "packageSourceSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "Current scoped dismiss observations do not establish all40 state matrices, guarded positive business flows or physical-device acceptance."
+      "reason": "Current source has not established all40 state matrices, physical-device acceptance or qualified-cycle positive flows. Scoped daily-day native capture is pending actual101 trial deployment."
     }
   ],
-  "note": "Current final shared-dismiss source shared close-control alignment and same-cause CSS repairs. Previous0e29/current011 receipts and screenshots remain in the exact archived record, not inherited as fresh native evidence.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-0e29b68cbca6.json",
+  "note": "Current daily-day/nickname source is bound for review. Previous shared-dismiss and0.1.12 evidence remains archived; no old frame is inherited as current native acceptance.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-28d3cbe29d51.json",
   "observedEvidence": {
-    "packageSourceSha256": "28d3cbe29d51c5aba1ec71e007418b74ab6148c3d64c283c72bbe7133e5b862f",
-    "scope": "Current28d3 scoped Home/Records shared-dismiss native observations390/16 and375/26 with computed64x44/flexcenter; owner record retained and no new care writes. Guarded order/management CSS source-only.",
-    "recordFile": "docs/evidence/sheet-button-consistency-20261029/review.json",
-    "nativeCapturePending": false,
-    "independentlyReviewed": true,
+    "packageSourceSha256": "85f9259e9e9112d8de659be311d8aab602f75b83bc3fa7603283a44c92ec76bd",
+    "scope": "Daily-day/nickname implementation plus full40-route button source audit; current101 native capture pending actual trial deployment.",
+    "recordFile": "docs/evidence/daily-care-day-20261029/interaction-contract.md",
+    "nativeCapturePending": true,
+    "independentlyReviewed": false,
     "physicalDeviceValidated": false
   }
 }

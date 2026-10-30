@@ -35,6 +35,7 @@ beforeEach(() => {
     if (path === "/v1/me/support/summary") return support.promise;
     if (path === "/v1/me/commercial-membership") return commercial.promise;
     if (path === "/v1/me/tasks") return [];
+    if (path.startsWith("/v1/me/daily-care-records")) return {items:[],loadedCount:0,hasMore:false,nextCursor:null,serverDay:"2026-10-29",today:null,totalCount:0};
     throw new Error(`Unexpected synthetic request: ${path}`);
   });
   (globalThis as any).getApp = () => ({ globalData: { sessionToken: mocks.token } });
@@ -178,7 +179,7 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     mocks.request.mockImplementation(options=>options.path==="/v1/bootstrap/profile"?Promise.resolve({...snapshot,care:null}):original(options));
     await loadPage("profile");await page.load();await flush();
     expect(page.data).toMatchObject({loading:false,member:{id:member.id},points:snapshot.points,care:null,
-      hasCareCycle:false,careUnavailable:false,progressPercent:0,careTitle:"尚无护理周期",careStatus:"尚无护理周期",careCopy:"可先查看日常护理指引。"});
+      hasCareCycle:false,careUnavailable:false,progressPercent:0,careTitle:"今天还未记录",careStatus:"今日日常护理未记录",careCopy:"完成四步并保存后，可在记录中查看。"});
     expect(page.data.careCopy).not.toMatch(/资格|确认|已完成|下一次/);
     const view=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
     expect(view).toContain('<block wx:if="{{member && points}}">');
@@ -206,7 +207,7 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     const original=mocks.request.getMockImplementation()!;
     mocks.request.mockImplementation(options=>options.path==="/v1/bootstrap/profile"?Promise.resolve({...snapshot,care:null,businessVersion:101}):original(options));
     await page.load(undefined,true);await flush();
-    expect(page.data).toMatchObject({care:null,hasCareCycle:false,careUnavailable:false,progressPercent:0,careStatus:"尚无护理周期",points:snapshot.points});
+    expect(page.data).toMatchObject({care:null,hasCareCycle:false,careUnavailable:false,progressPercent:0,careStatus:"今日日常护理未记录",points:snapshot.points});
   });
   it("displays member/points/care before permissions, commercial, support and avatar", async () => {
     await loadPage("profile"); void page.load(); await flush();
@@ -218,7 +219,8 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     await loadPage("profile"); void page.load(); await flush();
     authority.reject(new Error("synthetic offline")); commercial.reject(new Error("synthetic offline")); support.reject(new Error("synthetic offline")); avatar.reject(new Error("synthetic fs")); await flush();
     expect(page.data).toMatchObject({ loading: false, member: { id: "a" }, authority: null, commercialAccessible: false, supportUnread: null, authorityState: "error", commercialState: "error", supportState: "error", avatarState: "error" });
-    expect(mocks.publish).not.toHaveBeenCalled();
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledWith(expect.objectContaining({id:member.id,display_name:member.display_name,profile_revision:member.profile_revision,avatarUrl:"neutral"}));
   });
   it("publishes separately arriving successful auxiliary results without changing the core version", async () => {
     await loadPage("profile"); void page.load(); await flush();
@@ -230,7 +232,8 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     await loadPage("profile"); void page.load(); await flush();
     if (kind === "hide") page.onHide(); else mocks.token = "member-b";
     authority.resolve({ version: 1, managementAvailable: true, capabilities: ["support.read"] }); commercial.resolve({ eligible: true, membershipState: "active", verifiedOrderCount: 1, commission: { netEarnedCents: 0 } }); support.resolve({ unreadCount: 4 }); avatar.resolve("wxfile://old-session"); await flush();
-    expect(page.data.authority).toBeNull(); expect(page.data.commercialAccessible).toBe(false); expect(page.data.supportUnread).toBeNull(); expect(mocks.publish).not.toHaveBeenCalled();
+    expect(page.data.authority).toBeNull(); expect(page.data.commercialAccessible).toBe(false); expect(page.data.supportUnread).toBeNull(); expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledWith(expect.objectContaining({id:member.id,display_name:member.display_name,profile_revision:member.profile_revision,avatarUrl:"neutral"}));
   });
   it.each([
     { eligible: false, membershipState: "suspended", verifiedOrderCount: 0, commission: { netEarnedCents: 0 } },

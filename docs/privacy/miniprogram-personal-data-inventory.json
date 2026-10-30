@@ -638,7 +638,7 @@
       "informationType": "本人日常护理四步、护理后感受及完成时间",
       "purpose": "用户完成后主动保存、本人回看与幂等结果恢复",
       "activation": "已登录会员完成四步并选择感受后明确提交",
-      "serverStorage": "独立daily_care_record按真实会员归属；不生成周期、权益、邀请或积分；注销删除/必要保全隔离/恢复抑制沿现有流程",
+      "serverStorage": "Owner daily current record plus version history; one live Asia/Shanghai day. Deleted, superseded and suppressed records excluded from current lists. Recoverable owner deletion uses exact visibility marker; closure/holds include history copies.",
       "currentGate": "源码新增待测试与实际部署，不声明已在现网可用或真机验收"
     }
   ],
@@ -718,7 +718,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "7c121e9902488a76afced15562ae2fce1901e045f3fb1e9384fdf6460b32a15a",
+  "migrationSetSha256": "72d9832c3381b97a168252e903cadc9110f9d72cd69658d5f897d9b209592b06",
   "egressSignatureSha256": "5cf1ebcfa2cf9799b664ce1f711652ef6e588bc2786252d05968acd178b0bc2a",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1081,7 +1081,36 @@
     "erasure": "Existing account closure and external suppression marker replay delete unheld daily facts, retain held evidence suppressed and remove it after hold release. Optional-profile deletion does not silently delete care history.",
     "newRetentionPeriod": false,
     "newConsentCreated": false,
+    "deployed": true,
+    "nativeOrPhysicalAcceptance": false,
+    "deploymentScope": "Migration100/runtime a189 active in isolated trial before this revision; not a claim for migration101 or formal release."
+  },
+  "dailyCareDayRevisionReview20261029": {
+    "scope": "PRD Appendix M / PROFILE-SYNC-01, PROFILE-CARE-01, CARE-DAY-01..05. Explicit latest user instruction.",
+    "routes": [
+      "GET /v1/me/daily-care-records",
+      "POST /v1/me/daily-care-records",
+      "PUT /v1/me/daily-care-records/:recordId",
+      "DELETE /v1/me/daily-care-records/:recordId",
+      "POST /v1/me/daily-care-records/:recordId/restore"
+    ],
+    "data": [
+      "server Asia/Shanghai calendar day",
+      "current record version and update time",
+      "original100 care facts retained as owner revisions",
+      "delete/restore visibility state and exact external suppression marker"
+    ],
+    "purpose": "Keep one current daily record, explicitly revise today, remove and undo owner records without silently restoring older facts. Show actual care status and canonical saved nickname across native pages.",
+    "profile": "WeChat login exchanges identity only. Native nickname input is optional and user initiated. Settings PUT canonical nickname and revision propagate immediately; a slow or failed avatar cannot hold the name update. Existing custom names survive login.",
+    "newRecipient": false,
+    "newConsentCreated": false,
+    "newRetentionPeriod": false,
+    "cycleOrRewardCreated": false,
+    "export": "Only approved owner care-field projection of live current records and necessary prior care versions; no raw snapshot, source_fact, internal key/hash or other member identity. Deleted and previously suppressed records do not return through portable projections.",
+    "erasure": "Versioned delete/restore is reversible visibility, separate from account closure and QA suppression. Precise visibility markers replay after backup restore and never restore suppressed rows or remove a later new record. Closure and hold-release cover revision copies.",
+    "migration": "101 candidate consolidates same-day visible projection by latest server completedAt/id, without changing original100 facts or unsuppressing isolated records. The deployment must fence original fields across migration.",
     "deployed": false,
-    "nativeOrPhysicalAcceptance": false
+    "currentSourceNativeAcceptance": false,
+    "physicalAcceptance": false
   }
 }

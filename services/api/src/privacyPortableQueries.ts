@@ -12,8 +12,18 @@ export const portableQuerySpecs = [
         FROM member_profile WHERE member_id=$1`},
   {section:'care',collection:'cycles',single:false,sql:`SELECT id,phase,started_on,timezone,protocol_version,created_at,updated_at
         FROM care_cycle WHERE member_id=$1 ORDER BY created_at,id`},
-  {section:'care',collection:'dailyRecords',single:false,sql:`SELECT id,completed_at,timezone,protocol_version,step_codes,self_assessment
-        FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NULL ORDER BY completed_at,id`},
+  {section:'care',collection:'dailyRecords',single:false,sql:`SELECT id,care_day,version,completed_at,updated_at,timezone,protocol_version,step_codes,self_assessment
+        FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NULL AND deleted_at IS NULL AND superseded_by IS NULL ORDER BY completed_at,id`},
+  {section:'care',collection:'dailyRecordHistory',single:false,sql:`SELECT r.record_id,r.version,r.action,jsonb_build_object(
+        'id',r.snapshot->'id','source',r.snapshot->'source','completedAt',r.snapshot->'completedAt',
+        'timezone',r.snapshot->'timezone','protocolVersion',r.snapshot->'protocolVersion','stepCodes',r.snapshot->'stepCodes',
+        'selfAssessment',r.snapshot->'selfAssessment','careDay',r.snapshot->'careDay','version',r.snapshot->'version',
+        'updatedAt',r.snapshot->'updatedAt','deleted',r.snapshot->'deleted') AS record,r.recorded_at
+        FROM daily_care_record_revision r JOIN daily_care_record d ON d.id=r.record_id AND d.member_id=r.member_id
+        WHERE d.member_id=$1 AND d.suppressed_at IS NULL AND d.deleted_at IS NULL AND (d.superseded_by IS NULL OR EXISTS(
+          SELECT 1 FROM daily_care_record head WHERE head.id=d.superseded_by AND head.member_id=d.member_id
+            AND head.suppressed_at IS NULL AND head.deleted_at IS NULL AND head.superseded_by IS NULL))
+        ORDER BY r.record_id,r.version`},
   {section:'care',collection:'qualifications',single:false,sql:`SELECT id,source,external_ref,occurred_at,created_at
         FROM qualification_fact WHERE member_id=$1 ORDER BY occurred_at,id`},
   {section:'care',collection:'pauses',single:false,sql:`SELECT p.cycle_id,p.reason_code,p.paused_at,p.paused_on,

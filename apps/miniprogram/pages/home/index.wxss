@@ -425,4 +425,4 @@ page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body
 /* Recovery stays inside the native sheet; other navigation remains available. */
 .session-error { margin: 12rpx 0; padding: 16rpx 20rpx; border: 1rpx solid rgba(91,64,105,.18); border-radius: 20rpx; font-size: var(--cisme-text-micro); line-height: 1.5; }
 .session-error text { display: block; }
-.session-error .text-button { margin-top: 8rpx; min-height: 72rpx; }
+.session-error .text-button { margin-top: 8rpx; min-height: var(--cisme-hit-target); }

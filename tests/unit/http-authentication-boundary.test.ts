@@ -22,7 +22,7 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();});
 it("retains the explicit authentication denominator",()=>{
-  expect(routes).toHaveLength(242);
+  expect(routes).toHaveLength(245);
   // Nine new protected methods accompany the independently reviewed optional
   // GET comments read. Blocks are member-private, never an anonymous exception.
   for(const operation of [
@@ -39,6 +39,9 @@ it("retains the explicit authentication denominator",()=>{
     {method:"DELETE",path:"/v1/me/editorial/saves/{articleId}"},
     {method:"GET",path:"/v1/me/daily-care-records"},
     {method:"POST",path:"/v1/me/daily-care-records"},
+    {method:"PUT",path:"/v1/me/daily-care-records/{id}"},
+    {method:"DELETE",path:"/v1/me/daily-care-records/{id}"},
+    {method:"POST",path:"/v1/me/daily-care-records/{id}/restore"},
   ])expect(routes).toContainEqual(operation);
   expect(routes).not.toContainEqual({method:"GET",path:"/v1/editorial/articles/{id}/comments"});
 });

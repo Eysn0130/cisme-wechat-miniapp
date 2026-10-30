@@ -85,6 +85,18 @@ page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body
 .record-row__meta { margin-top:6rpx; overflow:hidden; color:#756a79; font-size:var(--cisme-text-small); line-height:1.45; text-overflow:ellipsis; white-space:nowrap; }
 .record-row__time { display:flex; align-items:center; gap:6rpx; color:#7d7281; font-size:var(--cisme-text-small); line-height:1.4; }
 .record-row__caret { width:20rpx; height:20rpx; }
+.record-swipe { position:relative; overflow:hidden; }
+.record-row--sliding { position:relative; z-index:1; background:#f5eff7; transition:transform 190ms ease-out; }
+.record-swipe__actions { position:absolute; top:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; width:72px; opacity:0; pointer-events:none; transition:opacity 190ms ease-out; }
+.record-swipe--open .record-swipe__actions { opacity:1; pointer-events:auto; }
+.record-swipe__delete { display:flex; align-items:center; justify-content:center; width:64px; min-width:56px; min-height:var(--cisme-hit-target); padding:8px; border:0; border-radius:999px; color:#fff; background:var(--cisme-danger,#9a3d55); font-size:var(--cisme-text-small); line-height:1.25; transition:transform 190ms ease-out,opacity 190ms ease-out; }
+.record-swipe__delete--pressed { transform:scale(.98); opacity:.9; }
+.record-swipe--dragging .record-row--sliding,.record-swipe--dragging .record-swipe__actions,.record-swipe--dragging .record-swipe__delete,
+.record-swipe--reduced .record-row--sliding,.record-swipe--reduced .record-swipe__actions,.record-swipe--reduced .record-swipe__delete { transition:none; }
+.record-swipe--reduced .record-swipe__delete--pressed { transform:none; }
+.record-undo { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8rpx 20rpx; padding:10rpx 0; color:var(--cisme-plum); font-size:var(--cisme-text-small); }
+.record-detail__delete { display:flex; align-items:center; justify-content:center; width:100%; min-height:var(--cisme-hit-target); margin-top:16rpx; padding:12rpx 20rpx; border:1rpx solid rgba(154,61,85,.2); border-radius:24rpx; color:#9a3d55; background:transparent; font-size:var(--cisme-text-small); line-height:1.25; }
+@media (prefers-reduced-motion:reduce) { .record-row--sliding,.record-swipe__actions,.record-swipe__delete { transition:none; } .record-swipe__delete--pressed { transform:none; } }
 .record-row--pending { opacity:.82; }
 .records-earlier { display:flex; align-items:center; justify-content:center; width:100%; min-height:var(--cisme-hit-target); margin-top:18rpx; padding:0 22rpx; border:1rpx solid rgba(99,68,118,.12); border-radius:999rpx; color:#604574; background:rgba(255,255,255,.54); font-size:var(--cisme-text-small); line-height:1.25; transition:transform 160ms ease,opacity 160ms ease; }
 .records-earlier:active { transform:scale(.985); }

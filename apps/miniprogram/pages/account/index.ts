@@ -30,6 +30,8 @@ Page({
   authenticationReturnUrl:"/pages/home/index",
   renewalSessionToken:"",
   renewalDestination:"",
+  registrationNickname: "",
+  nicknameRejected: false,
   data: { restoringSession:false,sessionRestoreFailed:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login", avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, phoneCapabilityKnown:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
@@ -254,7 +256,28 @@ Page({
     // Native open-type owns the gesture when enabled. Do not race wx.login
     // against the native authorization result or avatar picker callback.
     if(this.data.loginStage === "avatar" || (this.data.phoneBindingEnabled && !this.data.pendingDestination))return;
+    // The ordinary login button submits its native form first, so nickname
+    // autofill does not depend on an input/blur event having fired.
+    if(!this.data.pendingDestination)return;
     void this.login();
+  },
+  async submitLogin(event:WechatMiniprogram.CustomEvent) {
+    if(!this.data.pageAlive || this.data.loading || this.data.leaving || this.data.renewalMode || this.data.phoneBindingEnabled || this.data.pendingDestination || this.data.loginStage !== "login")return;
+    const nickname=event.detail?.value?.nickname;
+    if(typeof nickname === "string")this.registrationNickname=nickname;
+    await this.login();
+  },
+  editNickname(event:WechatMiniprogram.Input) {
+    if(this.data.loading || this.data.leaving)return;
+    if(this.registrationNickname !== event.detail.value)this.nicknameRejected=false;
+    this.registrationNickname=event.detail.value;
+  },
+  reviewNickname(event:WechatMiniprogram.CustomEvent) {
+    this.nicknameRejected=event.detail.pass === false;
+  },
+  initialDisplayName():string {
+    const nickname=this.registrationNickname.trim();
+    return !this.data.phoneBindingEnabled && !this.nicknameRejected && nickname && Array.from(nickname).length <= 40 && !/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(nickname) ? nickname : "CISME 会员";
   },
   async loginWithPhone(event:WechatMiniprogram.CustomEvent) {
     if(this.data.renewalMode)return;
@@ -338,7 +361,7 @@ Page({
     this.setData({ authAttempt: attempt, loading: true, identityCommitStarted: false, error: "", accountHelpAvailable:false });
     try {
       const account = wx.getAccountInfoSync();
-      const base = { displayName: "CISME 会员", consents: [{ documentType: "privacy", version: legalDocuments.privacy }, { documentType: "terms", version: legalDocuments.terms }] };
+      const base = { displayName: this.initialDisplayName(), consents: [{ documentType: "privacy", version: legalDocuments.privacy }, { documentType: "terms", version: legalDocuments.terms }] };
       if (legalDocuments.crossBorder) base.consents.push({documentType:"cross_border",version:legalDocuments.crossBorder});
       let result: { sessionToken: string; phoneBindingEnabled?: boolean };
       const runtime = getApp<IAppOption>().globalData;
@@ -360,7 +383,7 @@ Page({
         }
         this.setData({ identityCommitStarted: true });
         wx.enableAlertBeforeUnload({ message: "登录正在处理中，离开后请先确认账号状态。" });
-        result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, code: login.code } });
+        result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, displayName:this.initialDisplayName(), code: login.code } });
       }
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
       setSessionToken(result.sessionToken);

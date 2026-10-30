@@ -8,7 +8,7 @@ const care={id:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",version:3,phase:"active",p
 let page:any,read:ReturnType<typeof later>,write:ReturnType<typeof later>,aborts:ReturnType<typeof vi.fn>[],nextTicks:Array<()=>void>;
 const action=()=>page.changeCycle({currentTarget:{dataset:{action:"pause"}}});
 beforeEach(async()=>{vi.resetModules();vi.clearAllMocks();m.token="member-a";read=later();write=later();aborts=[];nextTicks=[];
-  m.request.mockImplementation((o:any)=>{if(o.method==="POST")return write.promise;if(o.path.startsWith("/v1/me/daily-care-records"))return Promise.resolve({items:[],loadedCount:0,hasMore:false,nextCursor:null});const a=vi.fn();aborts.push(a);o.registerAbort?.(a);return read.promise;});
+  m.request.mockImplementation((o:any)=>{if(o.method==="POST")return write.promise;if(o.path.startsWith("/v1/me/daily-care-records"))return Promise.resolve({items:[],loadedCount:0,hasMore:false,nextCursor:null,serverDay:"2026-10-29",today:null,totalCount:0});const a=vi.fn();aborts.push(a);o.registerAbort?.(a);return read.promise;});
   (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token}});
   (globalThis as any).wx={showModal:vi.fn().mockResolvedValue({confirm:true}),showToast:vi.fn(),pageScrollTo:vi.fn(),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),stopPullDownRefresh:vi.fn(),nextTick:(fn:()=>void)=>nextTicks.push(fn)};
   (globalThis as any).Page=(d:any)=>{page={...d,data:structuredClone(d.data),setData(p:any,fn?:()=>void){Object.assign(this.data,p);fn?.();}};};

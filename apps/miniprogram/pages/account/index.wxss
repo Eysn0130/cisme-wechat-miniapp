@@ -29,6 +29,9 @@
 .account-cross-border{margin-top:16rpx;padding-top:16rpx;border-top:1rpx solid var(--cisme-line)}
 .account-cross-border>.account-legal-entry{margin-left:58rpx}
 .account-phone-note{display:block;width:100%;margin-top:34rpx;padding:0;color:#82748a;font-size:26rpx;line-height:20px;text-align:left}
+.account-login-form{box-sizing:border-box;width:100%}
+.account-nickname-label{display:block;margin-top:20rpx;color:#45304f;font-size:28rpx;line-height:22px}
+.account-nickname-input{box-sizing:border-box;width:100%;min-height:44px;margin-top:8rpx;padding:10rpx 18rpx;border:1rpx solid #ded4e2;border-radius:12rpx;background:rgba(255,255,255,.8);color:#45304f;font-size:28rpx;line-height:22px}
 .account-login{flex:none;width:100%;height:auto;min-height:50px;margin-top:20rpx;padding:12rpx 24rpx;border-radius:999px}
 .account-login .action-label{font-size:31rpx;font-weight:600}
 .account-login.primary--disabled{border-color:#ded4e2!important;color:#796b80!important;background:linear-gradient(90deg,#e9e1ec,#e4d9e8)!important;box-shadow:inset 0 1px 3px rgba(73,42,82,.05)!important}

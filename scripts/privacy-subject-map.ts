@@ -4,9 +4,10 @@ const input=process.argv[2];if(!input)throw new Error('EXPLICIT_SYNTHETIC_SCHEMA
 const schema=JSON.parse(await readFile(input,'utf8')) as {kind:string;migrationSetSha256:string;tables:Table[]};
 if(schema.kind!=='synthetic-migrated-schema-only-NOT-personal-data-export')throw new Error('SCHEMA_METADATA_ONLY');
 const tables=new Map(schema.tables.map(t=>[t.table,t]));
-const allow:Record<string,string[]>={member:['id','display_name','created_at'],member_profile:['wechat_handle','updated_at'],daily_care_record:['id','completed_at','timezone','protocol_version','step_codes','self_assessment']};
+const allow:Record<string,string[]>={member:['id','display_name','created_at'],member_profile:['wechat_handle','updated_at'],daily_care_record:['id','completed_at','timezone','protocol_version','step_codes','self_assessment','care_day','version','updated_at']};
 const special:Record<string,string>={
- daily_care_record:'Member-owned independent daily care facts, not a cycle/qualification/reward. Export only unsuppressed owner facts; exclude member_id, operation_id, request_sha256 and suppressed_at. Account closure deletes unheld facts, isolates held facts and replays deletion after backup restore or hold release.',
+ daily_care_record:'Member-owned daily current projection, one live record per Asia/Shanghai day. Export only nondeleted, nonsuperseded, unsuppressed owner facts. Exclude member_id, operation keys, request hash and internal visibility markers. Versioned update and recoverable deletion do not create a cycle, qualification or reward. Exact record visibility markers replay after backup restore; account closure deletes unheld facts and isolates held facts until hold release.',
+ daily_care_record_revision:'Owner-scoped care revisions and original100 source facts. Snapshot/source_fact JSON contain private care data and internal operation IDs/hashes; never raw-export. Portable owner history projects care fields only and excludes deleted/suppressed records and operations. Account closure cascades unheld revisions, suppresses held records and removes revisions when the hold releases. No permanent-retention trigger or separate user permission.',
  commerce_aftersale_case:'member_id/order_id identify buyer; claim_basis, return_destination, return_tracking, reason and exception_evidence_reference are private. exception_approved_by is a separate operator. The support_conversation_id links the existing customer service thread; it is not another claim. The case and refund, receipt, inspection and inventory facts remain distinct. Never raw-export reasons, evidence references or contacts across subjects.',
  commerce_aftersale_event:'case_id identifies buyer; actor_member_id is the customer or a separately authorized operator. Notes may contain third-party data. Immutable history is not a blanket retention approval.',
  commerce_aftersale_return_instruction:'case_id identifies buyer; issued_by is a separate operator. The recipient, phone, region and address may identify a third party. Each version is immutable and must be projected to the case owner only; do not export all versions as a general member profile or delete while return/dispute duties remain.',
@@ -36,6 +37,13 @@ function paths(name:string,seen=new Set<string>()):string[][]{
  const next=new Set([...seen,name]);
  return (tables.get(name)?.foreignKeys??[]).flatMap(f=>paths(f.table,next).map(tail=>[`${name}.${f.column} -> ${f.table}.${f.referencedColumn}`,...tail])).slice(0,64);
 }
+// Preserve already reviewed owner-field and retention decisions. Schema metadata
+// cannot revoke working exports or promote an unknown table into authorization.
+const reviewed=JSON.parse(await readFile(process.argv[3]??'docs/privacy/subject-data-map.json','utf8')) as Record<string,any>;
+if(reviewed.schemaVersion!==1||!Array.isArray(reviewed.tables))throw new Error('REVIEWED_MAP_BASELINE_REQUIRED');
+const existing=new Map<string,Record<string,any>>(reviewed.tables.map((row:any)=>[row.table,row]));
+if(existing.size!==reviewed.tables.length)throw new Error('DUPLICATE_REVIEWED_TABLE');
+if([...existing.keys()].some(name=>!tables.has(name)))throw new Error('REVIEWED_TABLE_REMOVAL_REQUIRES_EXPLICIT_REVIEW');
 const result={schemaVersion:1,migrationSetSha256:schema.migrationSetSha256,scope:'schema/subject review map; no personal rows read',
  fullMemberExportImplemented:false,productionErasureEnabled:false,retentionApproved:false,releaseReady:false,
  rules:{export:'Only existing synthetic member_profile_only archive fields are allowed. All other columns excluded; no SELECT * exporter.',
@@ -46,10 +54,22 @@ const result={schemaVersion:1,migrationSetSha256:schema.migrationSetSha256,scope
   actorColumns:t.columns.filter(c=>/principal|created_by|updated_by|approved_by|requested_by|decided_by|reviewed_by/.test(c.name)).map(c=>c.name),
   specialHandling:special[t.table]??(paths(t.table).length?'Follow each distinct subject role; shared rows require field-specific projection.':'No FK path to member; examine operator text fields/config/reference purpose before deciding non-personal.'),
   exportFields:allow[t.table]??[],excludedFields:t.columns.map(c=>c.name).filter(name=>!(allow[t.table]??[]).includes(name)),
-  syntheticErasureFields:t.table==='member_profile'?['wechat_handle']:[],productionErasure:t.table==='daily_care_record'?'ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION':'DISABLED',
+  syntheticErasureFields:t.table==='member_profile'?['wechat_handle']:[],productionErasure:['daily_care_record','daily_care_record_revision'].includes(t.table)?'ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION':'DISABLED',
   retention:['support_conversation','support_message'].includes(t.table)
     ?'ORDINARY_SUPPORT_FINITE_POLICY_AND_AUTO_GATE; TRANSACTION_LINKED_EXCLUDED'
     :'POLICY_PENDING_NO_AUTOMATIC_DELETION',
   fullSubjectResolverStatus:special[t.table]?'TYPED_RESOLVER_REQUIRED':'RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION'}))};
-await writeFile('docs/privacy/subject-data-map.json',JSON.stringify(result,null,2)+'\n');
+// New or changed daily tables are reviewed above. Keep unrelated approved
+// projections/typed ownership and retain new unknown columns as excluded.
+const changed=new Set(['daily_care_record','daily_care_record_revision']);
+result.tables=result.tables.map(row=>{
+ const prior=existing.get(row.table);if(!prior||changed.has(row.table))return row;
+ const columns=new Set(tables.get(row.table)!.columns.map(c=>c.name));
+ const exportFields=(prior.exportFields??[]).filter((field:string)=>columns.has(field));
+ return {...row,...prior,table:row.table,exportFields,
+  excludedFields:[...columns].filter(field=>!exportFields.includes(field))};
+});
+const output={...reviewed,...result,productionErasureEnabled:reviewed.productionErasureEnabled,
+ rules:reviewed.rules};
+await writeFile('docs/privacy/subject-data-map.json',JSON.stringify(output,null,2)+'\n');
 console.log(JSON.stringify({tables:result.tables.length,withSubjectPaths:result.tables.filter(t=>t.subjectPaths.length).length,fullMemberExportImplemented:false}));

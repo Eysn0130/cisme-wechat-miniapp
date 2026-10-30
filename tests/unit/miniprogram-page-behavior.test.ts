@@ -416,7 +416,7 @@ describe("mini-program page behavior", () => {
     vi.useFakeTimers();
     await vi.importActual("../../apps/miniprogram/pages/home/index");
     const tab = { setPresentation: vi.fn() };
-    const page = mountedPage(capturedPage!, { care: null, working: false, authorityAvailable: true, reducedMotion: false });
+    const page = mountedPage(capturedPage!, { care: null, working: false, authorityAvailable: true, reducedMotion: false, dailyReady:true, serverDay:"2026-10-29" });
     page.getTabBar = () => tab;
 
     page.openCareSession();
@@ -848,7 +848,7 @@ describe("mini-program page behavior", () => {
   it("saves a complete daily care intent without creating a dedicated cycle", async () => {
     await vi.importActual("../../apps/miniprogram/pages/home/index");
     const page = capturedPage!;
-    const context = mountedPage(page, { pageAlive: true, care: null, authorityAvailable: true, loading: false, working: false });
+    const context = mountedPage(page, { pageAlive: true, care: null, authorityAvailable: true, loading: false, working: false, dailyReady:true, serverDay:"2026-10-29" });
     const resetCareSession = vi.fn(page.resetCareSession.bind(context));
     context.resetCareSession = resetCareSession;
     const act = vi.fn().mockResolvedValue({ record: { source: "daily" }, replayed: false });
@@ -859,14 +859,14 @@ describe("mini-program page behavior", () => {
     expect(context.data.sessionOpen).toBe(true);
     expect(context.data.sessionRecordable).toBe(true);
     expect(context.data.sessionLabel).toBe("DAILY CARE");
-    expect(context.data.sessionSubmitLabel).toBe("保存本次护理");
+    expect(context.data.sessionSubmitLabel).toBe("保存今日记录");
     expect(wxMock.navigateTo).not.toHaveBeenCalled();
     for (let index = 0; index < 4; index += 1) page.advanceCareStep.call(context);
     page.selectAssessment.call(context, { currentTarget: { dataset: { value: "comfortable" } } });
     await page.submitCareSession.call(context);
 
     expect(resetCareSession).toHaveBeenCalledTimes(1);
-    expect(act).toHaveBeenCalledWith("/v1/me/daily-care-records", expect.stringMatching(/^daily-care-/), { stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" });
+    expect(act).toHaveBeenCalledWith("/v1/me/daily-care-records", expect.stringMatching(/^daily-care-/), { careDay:"2026-10-29", stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" }, false, "POST");
     expect(act).toHaveBeenCalledTimes(1);
     expect(wxMock.showToast).toHaveBeenCalledWith({ title: "护理已保存", icon: "success" });
   });

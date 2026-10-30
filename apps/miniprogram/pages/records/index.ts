@@ -4,7 +4,8 @@ import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication } from "../../services/api";
 import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../services/layout";
 import { careProtocolSteps, careSelfAssessments, type CareSelfAssessmentValue } from "../../services/care-protocol";
-import { readDailyCareRecords, type DailyCareRecord } from "../../services/daily-care";
+import { readDailyCareRecords, changeDailyCareRecord, type DailyCareRecord, type DailyCareResult } from "../../services/daily-care";
+import { clientOperationKey } from "../../services/orders";
 
 function scrollToRecordsError() {
   wx.pageScrollTo({ selector: "#records-error-summary", duration: motionDuration(200) });
@@ -24,6 +25,12 @@ const archivePageSize = 3;
 const recordDetailExitMs = 240;
 const careMilestones = ["D1", "D7", "D14", "D28"] as const;
 const detailTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
+type DailyMutation = { kind: "delete" | "restore"; record: DailyCareRecord; key: string; token: string; revision: number; inFlight: boolean; ack?: DailyCareResult };
+const dailyMutations = new WeakMap<object, DailyMutation>();
+const dailyDeleteConfirmations = new WeakMap<object, object>();
+const dailyUndo = new WeakMap<object, { record: DailyCareRecord; token: string; revision: number }>();
+const rowGestures = new WeakMap<object, { key: string; token: string; revision: number; x: number; y: number; initial: number; offset: number; axis: "pending" | "horizontal" | "vertical"; moved: boolean; endedAt?: number }>();
+const dailyActionWidth = 72;
 
 const emptySummary = { completed: 0, totalRecords: 0, cycleCount: 0, recordCountClass: "", headlineLine1: "护理记录", headlineLine2: "", phaseLabel: "尚无护理周期", protocol: "", cycleSummary: "" };
 
@@ -55,6 +62,8 @@ interface CareCycleApi {
 
 interface RecordView {
   source?: "daily";
+  dailyRecord?: DailyCareRecord;
+  swipeStyle?: string;
   recordKey: string;
   milestone: string;
   index: string;
@@ -81,12 +90,12 @@ interface RecordGroupView {
   emptyCopy: string;
 }
 
-const emptyDaily = { dailyRecords: [] as RecordView[], dailyReady: false, dailyLoading: false, dailyError: "", dailyCursor: null as string | null, dailyHasMore: false, dailyRetryAppend: false };
+const emptyDaily = { dailyRecords: [] as RecordView[], dailyTotalCount: null as number | null, dailyReady: false, dailyLoading: false, dailyError: "", dailyCursor: null as string | null, dailyHasMore: false, dailyRetryAppend: false };
 
 function dailyRecordView(record: DailyCareRecord): RecordView {
   const completion = zonedCompletion(record.completedAt, record.timezone);
   const assessment = careSelfAssessments.find(item => item.value === record.selfAssessment)!;
-  return { source: record.source, recordKey: `daily:${record.id}`, milestone: "日常", index: "日", completedAt: completion.short,
+  return { source: record.source, dailyRecord: record, swipeStyle: "transform:translateX(0px);", recordKey: `daily:${record.id}`, milestone: "日常", index: "日", completedAt: completion.short,
     completedDate: completion.date, completedTime: completion.time, assessmentLabel: assessment.label,
     assessmentNote: assessment.note, assessmentAvailable: true, assessmentIcon: "/assets/icons/check-circle-plum.svg",
     steps: careProtocolSteps.map(step => ({ code: step.code, label: step.label, title: step.title })), stepSummary: "",
@@ -211,6 +220,7 @@ Page({
   lastSessionToken: undefined as string | undefined,
   lastSessionRevision: 0,
   data: {
+    openDailyKey: "", draggingDailyKey: "", dailyMutationState: "idle" as "idle" | "sending" | "unknown", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false,
     ...emptyDaily, dailyAttempt: 0, loadedRecordCount: 0, loadedRecordCountClass: "",
     care: null as any,
     timeline: [] as Array<{ milestone: string; done: boolean; current: boolean; status: string }>,
@@ -246,12 +256,13 @@ Page({
   syncSession() {
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
     if (this.lastSessionToken !== undefined && (this.lastSessionToken !== token || this.lastSessionRevision !== revision)) {
+      dailyMutations.delete(this); dailyDeleteConfirmations.delete(this); dailyUndo.delete(this); rowGestures.delete(this);
       cancelPageReads(this); this.data.loadAttempt += 1; this.data.dailyAttempt += 1; this.dismissRecordDetailImmediately();
       this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [],
         visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null,
         working: false, workingAction: "", confirmingCycleAction: false, writeReady: false,
         authorityAvailable: false, accessRequired: !token, operationStatus: "", error: "", lastSyncedLabel: "",
-        ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "" });
+        ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "", dailyMutationState: "idle", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false, openDailyKey: "", draggingDailyKey: "" });
       this.getTabBar?.()?.setData({ externalBusy: false }); wx.disableAlertBeforeUnload();
     }
     this.lastSessionToken = token; this.lastSessionRevision = revision;
@@ -273,10 +284,16 @@ Page({
       return;
     }
     if (this.data.working) { this.data.refreshOnShow = true; return; }
+    const mutation = dailyMutations.get(this);
+    if (mutation?.ack) this.finishDailyMutation(mutation, mutation.ack);
     this.setData({ operationStatus: "" });
     void this.load(retainMemberSnapshot(this));
   },
   onHide() {
+    dailyDeleteConfirmations.delete(this);
+    rowGestures.delete(this);
+    this.closeDailySwipe(); this.setData({ confirmingDailyDelete: false });
+    if (dailyMutations.has(this)) this.setData({ dailyMutationState: "unknown" });
     this.data.visible = false; this.data.loadAttempt += 1; this.data.refreshOnShow = true;
     this.data.dailyAttempt += 1; this.setData({ dailyLoading: false });
     cancelPageReads(this); this.dismissRecordDetailImmediately();
@@ -300,7 +317,8 @@ Page({
     if (!this.data.pageAlive || !this.data.visible || this.data.working && !failClosed) { this.data.refreshOnShow = true; return false; }
     cancelPageReads(this); this.data.refreshOnShow = false; this.data.dailyAttempt += 1; this.setData({ dailyLoading: false });
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
-    this.setData({ writeReady: false, confirmingCycleAction: false }); this.dismissRecordDetailImmediately();
+    dailyDeleteConfirmations.delete(this);
+    this.setData({ writeReady: false, confirmingCycleAction: false, confirmingDailyDelete: false }); this.dismissRecordDetailImmediately();
     const attempt = this.data.loadAttempt + 1;
     this.setData(preserveSnapshot && this.data.authorityAvailable
       ? { loadAttempt: attempt, loading: true, refreshing: true, accessRequired: false, error: "" }
@@ -361,10 +379,13 @@ Page({
       const result = await readDailyCareRecords(this, cursor);
       if (!current()) return;
       const byId = new Map<string, RecordView>((more ? this.data.dailyRecords : []).map(record => [record.recordKey, record]));
-      result.items.forEach(record => byId.set(`daily:${record.id}`, dailyRecordView(record)));
+      result.items.forEach(record => {
+        const previous = byId.get(`daily:${record.id}`)?.dailyRecord;
+        if (!previous || previous.version <= record.version) byId.set(`daily:${record.id}`, dailyRecordView(record));
+      });
       const dailyRecords = [...byId.values()], loadedRecordCount = this.data.records.length + dailyRecords.length;
-      this.setData({ dailyRecords, dailyReady: true, dailyCursor: result.nextCursor, dailyHasMore: result.hasMore, dailyRetryAppend: false,
-        loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount) });
+      this.setData({ dailyRecords, dailyTotalCount: result.totalCount, dailyReady: true, dailyCursor: result.nextCursor, dailyHasMore: result.hasMore, dailyRetryAppend: false,
+        loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), openDailyKey: "", draggingDailyKey: "" });
     } catch (error) {
       if (this.recordReadAuthenticationFailed(error, token, revision, attempt, true)) return;
       if (!current()) return;
@@ -375,6 +396,115 @@ Page({
   },
   retryDailyRecords() { void this.loadDailyRecords(this.data.dailyRetryAppend); },
   loadMoreDailyRecords() { void this.loadDailyRecords(true); },
+  closeDailySwipe() {
+    if (this.data.openDailyKey || this.data.draggingDailyKey) this.setData({ openDailyKey: "", draggingDailyKey: "", dailyRecords: this.data.dailyRecords.map(row => ({ ...row, swipeStyle: "transform:translateX(0px);" })) });
+  },
+  setDailySwipe(key: string, offset: number, dragging = false) {
+    this.setData({ openDailyKey: offset > 0 ? key : "", draggingDailyKey: dragging ? key : "", dailyRecords: this.data.dailyRecords.map(row => ({ ...row, swipeStyle: `transform:translateX(-${row.recordKey === key ? offset : 0}px);` })) });
+  },
+  onPageScroll() { this.closeDailySwipe(); const gesture = rowGestures.get(this); if (gesture) { gesture.axis = "vertical"; gesture.moved = true; } },
+  dailyTouchStart(event: WechatMiniprogram.TouchEvent) {
+    const key = String(event.currentTarget.dataset.key || ""), touch = event.touches[0];
+    if (!this.data.visible || this.data.recordDetailMounted || this.data.dailyMutationState !== "idle" || event.touches.length !== 1 || !touch || !this.data.dailyRecords.some(row => row.recordKey === key)) return;
+    if (this.data.openDailyKey && this.data.openDailyKey !== key) this.closeDailySwipe();
+    rowGestures.set(this, { key, token: getApp<IAppOption>().globalData.sessionToken, revision: commerceContextRevision(), x: touch.clientX, y: touch.clientY, initial: this.data.openDailyKey === key ? dailyActionWidth : 0, offset: this.data.openDailyKey === key ? dailyActionWidth : 0, axis: "pending", moved: false });
+  },
+  dailyTouchMove(event: WechatMiniprogram.TouchEvent) {
+    const gesture = rowGestures.get(this), touch = event.touches[0];
+    if (!gesture || !touch || event.touches.length !== 1 || !this.data.visible || !this.sameSession(gesture.token, gesture.revision)) { this.dailyTouchCancel(); return; }
+    if (String(event.currentTarget.dataset.key || "") !== gesture.key) return;
+    const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
+    if (gesture.axis === "vertical") return;
+    if (gesture.axis === "pending") {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 12) return;
+      gesture.moved = true;
+      if (Math.abs(dx) < Math.abs(dy) * 1.3) { gesture.axis = "vertical"; this.closeDailySwipe(); return; }
+      gesture.axis = "horizontal";
+    }
+    const offset = Math.max(0, Math.min(dailyActionWidth, gesture.initial - dx));
+    if (Math.abs(offset - gesture.offset) < 2) return;
+    gesture.offset = offset; this.setDailySwipe(gesture.key, offset, true);
+  },
+  dailyTouchEnd(event?: WechatMiniprogram.TouchEvent) {
+    const gesture = rowGestures.get(this); if (!gesture) return;
+    if (!this.data.visible || !this.sameSession(gesture.token, gesture.revision) || event && String(event.currentTarget.dataset.key || "") !== gesture.key) return;
+    gesture.endedAt = Date.now();
+    if (gesture.axis === "horizontal") this.setDailySwipe(gesture.key, gesture.offset >= dailyActionWidth / 2 ? dailyActionWidth : 0);
+  },
+  dailyTouchCancel() { const gesture = rowGestures.get(this); if (gesture) { gesture.moved = true; gesture.endedAt = Date.now(); } this.closeDailySwipe(); },
+  async deleteDailyRecord(event?: WechatMiniprogram.TouchEvent) {
+    if (!this.data.visible || !this.data.pageAlive || this.data.dailyMutationState !== "idle" || this.data.confirmingDailyDelete || this.data.working) return;
+    const key = String(event?.currentTarget.dataset.key || this.data.selectedRecord?.recordKey || "");
+    const row = this.data.dailyRecords.find(item => item.recordKey === key)?.dailyRecord;
+    if (!row) return;
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
+    const attempt = this.data.loadAttempt, owner = {};
+    dailyDeleteConfirmations.set(this, owner);
+    const current = () => dailyDeleteConfirmations.get(this) === owner && this.data.loadAttempt === attempt && this.sameSession(token, revision) && this.data.visible && this.lastSessionToken === token && this.lastSessionRevision === revision;
+    this.closeDailySwipe(); this.setData({ confirmingDailyDelete: true, dailyMutationError: "" });
+    try {
+      const confirmation = await wx.showModal({ title: "删除这条护理记录？", content: "删除后不再显示，你可以撤销这次删除。", confirmText: "删除", cancelText: "保留" });
+      if (!current() || !confirmation.confirm) return;
+      if (this.data.dailyRecords.find(item => item.recordKey === key)?.dailyRecord?.version !== row.version) { this.setData({ dailyMutationError: "记录已更新，请查看最新内容后再删除。" }); return; }
+      const command: DailyMutation = { kind: "delete", record: row, key: clientOperationKey("daily-care-delete"), token, revision, inFlight: false };
+      dailyMutations.set(this, command); await this.runDailyMutation(command);
+    } catch { if (current()) this.setData({ dailyMutationError: "删除确认暂时无法打开，请重试。" }); }
+    finally { if (current()) { dailyDeleteConfirmations.delete(this); this.setData({ confirmingDailyDelete: false }); } }
+  },
+  async undoDailyDelete() {
+    const undo = dailyUndo.get(this);
+    if (!undo || !this.sameSession(undo.token, undo.revision) || !this.data.visible || this.data.dailyMutationState !== "idle") return;
+    const command: DailyMutation = { kind: "restore", record: undo.record, key: clientOperationKey("daily-care-restore"), token: undo.token, revision: undo.revision, inFlight: false };
+    dailyMutations.set(this, command); await this.runDailyMutation(command);
+  },
+  async retryDailyMutation() {
+    const command = dailyMutations.get(this);
+    if (!command || command.inFlight || !this.sameSession(command.token, command.revision) || !this.data.visible) return;
+    if (command.ack) this.finishDailyMutation(command, command.ack);
+    else await this.runDailyMutation(command);
+  },
+  async runDailyMutation(command: DailyMutation) {
+    if (command.inFlight || !this.sameSession(command.token, command.revision) || !this.data.visible) return;
+    command.inFlight = true;
+    this.data.dailyAttempt += 1; this.setData({ dailyLoading: false, dailyMutationState: "sending", dailyMutationError: "" });
+    const current = () => dailyMutations.get(this) === command && this.sameSession(command.token, command.revision);
+    try {
+      const result = await changeDailyCareRecord(command.record.id, command.record.version, command.key, command.kind === "restore");
+      if (!current()) return;
+      command.ack = result;
+      if (this.data.visible) this.finishDailyMutation(command, result);
+    } catch (error) {
+      if (dailyMutations.get(this) === command && this.recordReadAuthenticationFailed(error, command.token, command.revision, this.data.dailyAttempt, true)) { dailyMutations.delete(this); dailyUndo.delete(this); this.setData({ dailyMutationState: "idle", undoAvailable: false, dailyMutationError: "" }); return; }
+      if (!current() || !this.data.visible) return;
+      const status = (error as { status?: number }).status;
+      if (typeof status === "number" && status >= 400 && status < 500) {
+        dailyMutations.delete(this);
+        if (command.kind === "restore") dailyUndo.delete(this);
+        this.setData({ dailyMutationState: "idle", ...(command.kind === "restore" ? { undoAvailable: false } : {}), dailyMutationError: command.kind === "restore" ? "记录已有变化，暂时无法撤销。请重新加载核对。" : "删除未完成，记录可能已更新。请重新加载后查看。" });
+        void this.loadDailyRecords();
+      } else this.setData({ dailyMutationState: "unknown", dailyMutationError: command.kind === "delete" ? "暂未确认是否删除。请重试核对。" : "暂未确认是否恢复。请重试核对。" });
+    } finally { command.inFlight = false; }
+  },
+  finishDailyMutation(command: DailyMutation, result: DailyCareResult) {
+    if (dailyMutations.get(this) !== command || !this.sameSession(command.token, command.revision) || !this.data.visible) return;
+    dailyMutations.delete(this); this.dismissRecordDetailImmediately();
+    this.data.dailyAttempt += 1;
+    this.setData({ dailyLoading: false });
+    let dailyRecords = this.data.dailyRecords;
+    const newer = dailyRecords.find(row => row.recordKey === `daily:${result.record.id}`)?.dailyRecord;
+    const currentResult = result.current && (!newer || newer.version <= result.record.version);
+    if (currentResult) {
+      dailyRecords = dailyRecords.filter(row => row.recordKey !== `daily:${result.record.id}`);
+      if (!result.record.deleted) dailyRecords = [dailyRecordView(result.record), ...dailyRecords].sort((a, b) => b.dailyRecord!.careDay.localeCompare(a.dailyRecord!.careDay));
+    }
+    const undo = command.kind === "delete" && currentResult;
+    if (undo) dailyUndo.set(this, { record: result.record, token: command.token, revision: command.revision }); else dailyUndo.delete(this);
+    const loadedRecordCount = this.data.records.length + dailyRecords.length;
+    this.setData({ dailyRecords, loadedRecordCount, loadedRecordCountClass: recordCountClass(loadedRecordCount), dailyMutationState: "idle", undoAvailable: undo,
+      dailyMutationError: currentResult ? "" : "记录已有更新，请查看最新内容。" });
+    wx.showToast({ title: !currentResult ? "操作已核对" : command.kind === "delete" ? "记录已删除" : "删除已撤销", icon: "success" });
+    void this.loadDailyRecords();
+  },
   retryLoad() { if (!this.data.visible) return; clearAuthenticationRedirectSuppression(); if (this.data.accessRequired) { this.authenticate(); return; } if (this.data.authorityAvailable) void this.load(true); else void this.load(); },
   authenticate() { resumeAuthentication("/pages/records/index"); },
   showEarlierCycles() {
@@ -387,6 +517,9 @@ Page({
       !this.sameSession(this.lastSessionToken, this.lastSessionRevision)) return;
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = this.data.loadAttempt;
     const recordKey = String(event.currentTarget.dataset.key || "");
+    const gesture = rowGestures.get(this);
+    if (gesture?.key === recordKey && gesture.moved && (gesture.endedAt === undefined || Date.now() - gesture.endedAt < 350)) { rowGestures.delete(this); return; }
+    if (this.data.openDailyKey) { this.closeDailySwipe(); return; }
     const record = [...this.data.records, ...this.data.dailyRecords].find((item) => item.recordKey === recordKey);
     if (!record) return;
     this.clearRecordDetailCloseTimer();
