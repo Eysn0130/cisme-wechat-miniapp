@@ -1,3 +1,4 @@
+@import "../../styles/sheet-dismiss.wxss";
 page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body:.875rem; --cisme-text-action:1rem; }
 .home-page {
   position: fixed;
@@ -362,7 +363,6 @@ page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body
 .care-session__summary { display:flex; align-items:center; gap:16rpx; }
 .care-session__milestone { color:#7c6688; font:600 var(--cisme-text-small)/1.2 Georgia,"Times New Roman",serif; letter-spacing:4rpx; }
 .care-session__progress { display:flex; align-items:center; justify-content:center; min-width:72rpx; height:42rpx; padding:0 14rpx; border-radius:999rpx; color:#624b6d; background:#eee5f2; font-size:var(--cisme-text-micro); line-height:1; }
-.care-session__close { display:flex; align-items:center; justify-content:center; min-width:64px; height:44px; padding:0 20rpx; border-radius:999rpx; color:#604b68; background:rgba(232,222,236,.76); font-size:var(--cisme-text-small); line-height:1; }
 .session-rail { position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18rpx; margin:22rpx 2rpx 0; }
 .session-rail__line { position:absolute; top:34rpx; right:10%; left:10%; height:2rpx; overflow:hidden; background:rgba(91,64,105,.16); }
 .session-node { position:relative; z-index:1; display:flex; align-items:center; flex-direction:column; color:#9a8f9d; }

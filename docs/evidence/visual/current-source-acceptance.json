@@ -257,30 +257,23 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "0e29b68cbca6708b6e2db7c7af50a7dbe5e65b0dcfb6e1f50129b10c69af583d",
+  "packageSourceSha256": "28d3cbe29d51c5aba1ec71e007418b74ab6148c3d64c283c72bbe7133e5b862f",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "Current scoped native care/records/font/management observations do not establish all40 state matrices or physical-device acceptance."
+      "reason": "Current scoped dismiss observations do not establish all40 state matrices, guarded positive business flows or physical-device acceptance."
     }
   ],
-  "note": "Current source0e29: scoped daily-care software-test journey, persistent readback, Home/Records token font scaling and management entry. Historical evidence is source-bound in the archived pointer. Formal release remains blocked.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-0dbe01dd9388.json",
+  "note": "Current final shared-dismiss source shared close-control alignment and same-cause CSS repairs. Previous0e29/current011 receipts and screenshots remain in the exact archived record, not inherited as fresh native evidence.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-0e29b68cbca6.json",
   "observedEvidence": {
-    "packageSourceSha256": "0e29b68cbca6708b6e2db7c7af50a7dbe5e65b0dcfb6e1f50129b10c69af583d",
-    "scope": "Daily care four ordered steps, assessment selection, once-save acknowledgement, record-detail/readback after relaunch;375x812/font26 and390x844/font16 observed. Real-account input is software acceptance data, not a physical-care or health assertion. Management entry observed with existing editorial.manage only.",
-    "recordFile": "docs/evidence/care-authority-session-20261029/delivery-011.json",
+    "packageSourceSha256": "28d3cbe29d51c5aba1ec71e007418b74ab6148c3d64c283c72bbe7133e5b862f",
+    "scope": "Current28d3 scoped Home/Records shared-dismiss native observations390/16 and375/26 with computed64x44/flexcenter; owner record retained and no new care writes. Guarded order/management CSS source-only.",
+    "recordFile": "docs/evidence/sheet-button-consistency-20261029/review.json",
     "nativeCapturePending": false,
     "independentlyReviewed": true,
-    "physicalDeviceValidated": false,
-    "officialCodeUpload": {
-      "version": "0.1.11",
-      "status": "success",
-      "recordFile": "docs/evidence/care-authority-session-20261029/delivery-011.json",
-      "bindingBoundary": "The platform receipt does not echo version, source head or source hash. These are bound by the verified clean remote-main preflight and the same original task receipt chain.",
-      "doesNotCompleteFormalOrPhysicalAcceptance": true
-    }
+    "physicalDeviceValidated": false
   }
 }

@@ -697,12 +697,16 @@
 }
 
 .context-done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 50px;
   margin-top: 18rpx;
   border-radius: 25px;
   color: #fff;
   background: #56306f;
+  line-height: 1.25;
 }
 .return-card{display:flex;flex-direction:column;gap:10rpx;margin-top:14rpx;padding:22rpx;border-radius:20rpx;background:#fff;text-align:left;color:#3f3447;font-size:25rpx;line-height:1.5}
 .return-card strong{font-size:27rpx;font-weight:600;color:#56306f}

@@ -1,0 +1,35 @@
+.sheet-dismiss {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: var(--cisme-hit-target);
+  padding: 0 20rpx;
+  border: 0;
+  border-radius: 999rpx;
+  color: var(--cisme-plum);
+  background: var(--cisme-lilac);
+  font-size: var(--cisme-text-small);
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: center;
+  transition: transform 160ms ease;
+}
+
+.sheet-dismiss:active { transform: scale(.98); }
+
+.care-session--reduced .sheet-dismiss,
+.record-detail--reduced .sheet-dismiss {
+  transition: none;
+}
+
+.care-session--reduced .sheet-dismiss:active,
+.record-detail--reduced .sheet-dismiss:active {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-dismiss { transition: none; }
+  .sheet-dismiss:active { transform: none; }
+}

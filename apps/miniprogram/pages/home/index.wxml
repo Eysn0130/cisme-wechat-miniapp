@@ -28,7 +28,7 @@
   <view wx:if="{{sessionMounted}}" class="care-session {{sessionVisible ? 'care-session--visible' : ''}} {{sessionClosing ? 'care-session--closing' : ''}} {{reducedMotion ? 'care-session--reduced' : ''}}" catchtap="closeCareSession" aria-label="本次护理步骤" aria-role="dialog" aria-modal="true">
     <view class="care-session__sheet" catchtap="stopPropagation">
       <view class="care-session__handle"></view>
-      <view class="care-session__topline"><view class="care-session__summary"><text class="care-session__milestone">{{sessionLabel}}</text><text class="care-session__progress" aria-live="polite">{{sessionProgressLabel}}</text></view><button class="care-session__close {{working ? 'control--disabled' : ''}}" bindtap="closeCareSession" disabled="{{working}}" aria-label="关闭护理步骤">关闭</button></view>
+      <view class="care-session__topline"><view class="care-session__summary"><text class="care-session__milestone">{{sessionLabel}}</text><text class="care-session__progress" aria-live="polite">{{sessionProgressLabel}}</text></view><button class="care-session__close sheet-dismiss {{working ? 'control--disabled' : ''}}" bindtap="closeCareSession" disabled="{{working}}" aria-label="关闭护理步骤">关闭</button></view>
       <view wx:if="{{error || mutationState === 'unknown'}}" class="session-error" aria-live="assertive">
         <text>{{error || '保存结果尚未确认，请先查看最新记录。'}}</text>
         <button class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryLoad" disabled="{{working || loading}}">刷新记录</button>
