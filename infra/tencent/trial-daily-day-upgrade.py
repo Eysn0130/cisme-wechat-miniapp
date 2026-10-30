@@ -14,9 +14,12 @@ import json
 import os
 from pathlib import Path
 import re
+import resource
 import stat
 import subprocess
 import sys
+import tempfile
+import threading
 import time
 import types
 import urllib.request
@@ -615,6 +618,82 @@ def private_hash(path, limit=2 * 1024 ** 3 + 32):
     finally:
         os.close(fd)
 
+
+SNAPSHOT_STRUCTURE_TIMEOUT = 180
+SNAPSHOT_TOC_LIMIT = 1024 * 1024
+
+
+def snapshot_table_of_contents(encrypted, key, aad):
+    # pg_restore --list may finish after the custom archive's TOC. Keep
+    # draining/authenticating the decryptor even after its consumer closes.
+    decrypt = listing = watchdog = None
+    expired = threading.Event()
+
+    def kill_running():
+        expired.set()
+        for process in (listing, decrypt):
+            if process is not None and process.poll() is None:
+                try:
+                    process.kill()
+                except ProcessLookupError:
+                    pass
+
+    def limit_toc_file():
+        resource.setrlimit(resource.RLIMIT_FSIZE, (SNAPSHOT_TOC_LIMIT + 1, SNAPSHOT_TOC_LIMIT + 1))
+
+    try:
+        with tempfile.TemporaryFile(mode='w+b', dir=encrypted.parent, prefix='.snapshot-toc-') as toc:
+            info = os.fstat(toc.fileno())
+            need(stat.S_ISREG(info.st_mode) and info.st_uid == OWNER
+                 and stat.S_IMODE(info.st_mode) == 0o600, 'APPLICATION_SNAPSHOT_FILE_UNSAFE')
+            decrypt = subprocess.Popen(crypto_args('decrypt', encrypted, key, aad), env=CLEAN,
+                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            listing = subprocess.Popen(['/usr/bin/pg_restore', '--list'], env=CLEAN,
+                                       stdin=subprocess.PIPE, stdout=toc, stderr=subprocess.DEVNULL,
+                                       preexec_fn=limit_toc_file)
+            watchdog = threading.Timer(SNAPSHOT_STRUCTURE_TIMEOUT, kill_running)
+            watchdog.daemon = True
+            watchdog.start()
+            feeding = True
+            while chunk := decrypt.stdout.read(65536):
+                if feeding:
+                    try:
+                        listing.stdin.write(chunk)
+                        listing.stdin.flush()
+                    except BrokenPipeError:
+                        feeding = False
+            try:
+                listing.stdin.close()
+            except BrokenPipeError:
+                pass
+            decrypt_exit = decrypt.wait(timeout=20)
+            listing_exit = listing.wait(timeout=20)
+            need(not expired.is_set() and decrypt_exit == 0 and listing_exit == 0,
+                 'APPLICATION_SNAPSHOT_STRUCTURE_FAILED')
+            toc.seek(0)
+            table_of_contents = toc.read(SNAPSHOT_TOC_LIMIT + 1)
+            need(len(table_of_contents) <= SNAPSHOT_TOC_LIMIT
+                 and b'dbname: cisme_trial' in table_of_contents
+                 and b'TABLE DATA public schema_migration' in table_of_contents,
+                 'APPLICATION_SNAPSHOT_STRUCTURE_FAILED')
+            return table_of_contents
+    finally:
+        if watchdog is not None:
+            watchdog.cancel()
+            watchdog.join()
+        for process in (listing, decrypt):
+            if process is not None:
+                if process.poll() is None:
+                    process.kill()
+                process.wait()
+                for stream in (process.stdin, process.stdout):
+                    if stream is not None and not stream.closed:
+                        try:
+                            stream.close()
+                        except BrokenPipeError:
+                            pass
+
+
 def snapshot(plan, state, approval):
     fixed_profile(plan['profile'])
     url = urlsplit(plan['config']['DATABASE_URL'])
@@ -656,23 +735,7 @@ def snapshot(plan, state, approval):
     verified = D.json_bytes(D.command(crypto_args('verify',encrypted,key,aad),timeout=600))
     need(verified.get('authenticated') is True and all(verified.get(k) == plain[k] for k in ('plainSha256','plainBytes')),
          'APPLICATION_SNAPSHOT_AUTHENTICATION_FAILED')
-    decrypt = subprocess.Popen(crypto_args('decrypt',encrypted,key,aad),env=CLEAN,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
-    listing = None
-    try:
-        listing = subprocess.Popen(['/usr/bin/pg_restore','--list'],env=CLEAN,stdin=decrypt.stdout,
-                                   stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
-        decrypt.stdout.close()
-        table_of_contents,_ = listing.communicate(timeout=180)
-        need(listing.returncode == 0 and decrypt.wait(timeout=20) == 0 and len(table_of_contents) <= 1024 * 1024
-             and b'dbname: cisme_trial' in table_of_contents
-             and b'TABLE DATA public schema_migration' in table_of_contents,'APPLICATION_SNAPSHOT_STRUCTURE_FAILED')
-    finally:
-        for process in (listing,decrypt):
-            if process is not None and process.poll() is None:
-                process.kill()
-                process.wait()
-        if decrypt.stdout is not None and not decrypt.stdout.closed:
-            decrypt.stdout.close()
+    table_of_contents = snapshot_table_of_contents(encrypted, key, aad)
     need(private_hash(encrypted) == cipher and private_hash(key,32) == key_binding,'APPLICATION_SNAPSHOT_CHANGED')
     record = {'scope':'same-host-database-only','database':'cisme_trial','baseline':BASELINE_HEAD,
               'backupReference':'TRIAL-SNAPSHOT-' + state.name,'encryptedFile':str(encrypted),'keyFile':str(key),

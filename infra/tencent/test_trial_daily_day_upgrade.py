@@ -1,8 +1,15 @@
 """Offline schema101 contracts and cutover failure tests; no network/DB/host calls."""
 import copy
+from contextlib import ExitStack
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
 import types
 import unittest
 from unittest.mock import Mock, patch
@@ -236,6 +243,154 @@ class CutoverTests(unittest.TestCase):
 
     def test_unknown_errors_never_export_exception_text(self):
         self.assertEqual(M.safe_error_code(RuntimeError('postgresql://synthetic-password@example/private')), 'DAILY_CARE_APPLICATION_REVIEW_REQUIRED')
+
+
+class SnapshotPipelineTests(unittest.TestCase):
+    """Real Node/GCM and OS pipes; only dump/list children use synthetic data."""
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.root.chmod(0o700)
+        self.state = self.root / 'operation-fixture'
+        self.state.mkdir(mode=0o700)
+        self.toc = b'; dbname: cisme_trial\n1; 0 0 TABLE DATA public schema_migration cisme_trial\n'
+        self.dump_exit = 0
+        self.decrypt_exit = 0
+        self.tamper = False
+        self.list_mode = 'early'
+        self.list_calls = 0
+        self.children = []
+        self.plan = {'profile': {'name': 'trial', 'root': '/opt/cisme-trial',
+            'user': 'cisme-trial', 'units': ['cisme-trial-api.service', 'cisme-trial-worker.service']},
+            'config': {'DATABASE_URL': 'postgresql://cisme_trial:synthetic-only@127.0.0.1:5432/cisme_trial'}}
+        self.real_popen = subprocess.Popen
+
+        def popen(args, **kw):
+            if args[0] == '/usr/sbin/runuser' and '/usr/bin/pg_dump' in args:
+                child = self.real_popen([sys.executable, '-c',
+                    'import sys;sys.stdout.buffer.write(b"PGDMP"+b"x"*700732);sys.exit(int(sys.argv[1]))', str(self.dump_exit)], **kw)
+            elif args[:2] == ['/usr/bin/pg_restore', '--list']:
+                self.list_calls += 1
+                code = {'early': 'sys.stdin.buffer.read(5)', 'normal': 'sys.stdin.buffer.read()',
+                        'failed': 'sys.stdin.buffer.read(5);sys.exit(13)',
+                        'oversize': 'sys.stdout.buffer.write(b"x"*(2*1024*1024));sys.stdout.flush()',
+                        'stalled': 'time.sleep(30)'}[self.list_mode]
+                child = self.real_popen([sys.executable, '-c',
+                    'import sys,time;' + code + ';sys.stdout.buffer.write(' + repr(self.toc) + ')'], **kw)
+            elif args[4] == 'decrypt' and self.decrypt_exit:
+                child = self.real_popen([sys.executable, '-c',
+                    'import sys;sys.stdout.buffer.write(b"PGDMP"+b"x"*700732);sys.exit(int(sys.argv[1]))', str(self.decrypt_exit)], **kw)
+            else:
+                child = self.real_popen(args, **kw)
+            self.children.append(child)
+            return child
+
+        def store(path, raw):
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(raw)
+
+        def command(args, **kwargs):
+            if self.tamper:
+                path = Path(args[5])
+                raw = bytearray(path.read_bytes())
+                raw[100] ^= 1
+                path.write_bytes(raw)
+            result = subprocess.run(args, env=M.CLEAN, capture_output=True, timeout=20)
+            M.need(result.returncode == 0, 'SYNTHETIC_AUTHENTICATION_FAILED')
+            return result.stdout
+
+        def parents(path, private=False):
+            self.assertTrue(path.is_relative_to(self.root))
+            self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        stack.enter_context(patch.object(M, 'D', types.SimpleNamespace(json_bytes=M.parse, command=command,
+            owned_directory=lambda *args: None, general=types.SimpleNamespace(store=store))))
+        stack.enter_context(patch.object(M, 'NODE', shutil.which('node')))
+        stack.enter_context(patch.object(M, 'OWNER', os.getuid()))
+        stack.enter_context(patch.object(M, 'fixed_profile'))
+        stack.enter_context(patch.object(M, 'parents', side_effect=parents))
+        stack.enter_context(patch.object(M.subprocess, 'Popen', side_effect=popen))
+
+    def assert_children_reaped(self):
+        self.assertTrue(all(child.poll() is not None for child in self.children))
+
+    def test_early_successful_toc_consumer_still_drains_and_authenticates_full_dump(self):
+        record = M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+        M.validate_snapshot(record, self.state, 'SYNTHETIC-APPROVAL')
+        self.assertEqual(record['plainBytes'], 700737)
+        self.assertEqual(record['plainSha256'], M.sha(b'PGDMP' + b'x' * 700732))
+        self.assertEqual(record['structureListSha256'], M.sha(self.toc))
+        self.assertTrue(record['authenticated'])
+        self.assertTrue(record['pgRestoreListVerified'])
+        self.assertFalse(record['fullRecoveryQualified'])
+        self.assertFalse(any(p.name.startswith('.snapshot-toc-') or p.suffix == '.dump'
+                             for p in self.state.rglob('*')))
+        self.assert_children_reaped()
+
+    def test_normal_full_stream_consumer_also_succeeds(self):
+        self.list_mode = 'normal'
+        record = M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+        self.assertEqual(record['structureListSha256'], M.sha(self.toc))
+        self.assert_children_reaped()
+
+    def test_authentication_failure_never_starts_toc_parser(self):
+        self.tamper = True
+        with self.assertRaisesRegex(M.Refused, 'AUTHENTICATION_FAILED'):
+            M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+        self.assertEqual(self.list_calls, 0)
+        self.assertFalse((self.state / 'predeploy-database/snapshot-private.json').exists())
+        self.assert_children_reaped()
+
+    def test_nonzero_decrypt_is_refused_even_after_toc_success_and_complete_bytes(self):
+        self.decrypt_exit = 9
+        with self.assertRaisesRegex(M.Refused, 'STRUCTURE_FAILED'):
+            M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+        self.assertEqual(self.list_calls, 1)
+        self.assertFalse((self.state / 'predeploy-database/snapshot-private.json').exists())
+        self.assert_children_reaped()
+
+    def test_nonzero_dump_remains_refused_before_toc(self):
+        self.dump_exit = 9
+        with self.assertRaisesRegex(M.Refused, 'DUMP_FAILED'):
+            M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+        self.assertEqual(self.list_calls, 0)
+        self.assert_children_reaped()
+
+    def test_nonzero_parser_and_oversize_output_cannot_create_snapshot_receipt(self):
+        for mode in ('failed', 'oversize'):
+            with self.subTest(mode=mode):
+                self.state = self.root / mode
+                self.state.mkdir(mode=0o700)
+                self.list_mode = mode
+                with self.assertRaisesRegex(M.Refused, 'STRUCTURE_FAILED'):
+                    M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+                self.assertFalse((self.state / 'predeploy-database/snapshot-private.json').exists())
+                self.assert_children_reaped()
+
+    def test_wrong_database_or_missing_migration_table_is_still_refused(self):
+        for name, toc in [('wrong-database', self.toc.replace(b'cisme_trial', b'cisme')),
+                          ('missing-table', b'; dbname: cisme_trial\n')]:
+            with self.subTest(name=name):
+                self.state = self.root / name
+                self.state.mkdir(mode=0o700)
+                self.toc = toc
+                with self.assertRaisesRegex(M.Refused, 'STRUCTURE_FAILED'):
+                    M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+                self.assertFalse((self.state / 'predeploy-database/snapshot-private.json').exists())
+                self.assert_children_reaped()
+
+    def test_stalled_parser_has_one_deadline_and_reaps_both_children(self):
+        self.list_mode = 'stalled'
+        started = time.monotonic()
+        with patch.object(M, 'SNAPSHOT_STRUCTURE_TIMEOUT', 0.2), self.assertRaisesRegex(M.Refused, 'STRUCTURE_FAILED'):
+            M.snapshot(self.plan, self.state, 'SYNTHETIC-APPROVAL')
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertFalse((self.state / 'predeploy-database/snapshot-private.json').exists())
+        self.assert_children_reaped()
 
 
 if __name__ == '__main__':
