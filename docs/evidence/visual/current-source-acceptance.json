@@ -283,6 +283,12 @@
       ],
       "framesReviewed": 11,
       "reviewed390Font16": true
+    },
+    "officialUpload": {
+      "version": "0.1.13",
+      "status": "success",
+      "recordFile": "docs/evidence/daily-care-day-20261029/upload-013.json",
+      "formalOrPhysicalAcceptance": false
     }
   },
   "pendingSourceRebind": false

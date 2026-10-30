@@ -18,7 +18,7 @@
   "physicalDeviceValidated": false,
   "releaseReady": false,
   "deployed": true,
-  "uploaded": false,
+  "uploaded": true,
   "buttonSourceAudit": {
     "distinctRoutes": 40,
     "nativeButtonTemplateSites": 543,
@@ -237,7 +237,7 @@
       "physicalDeviceValidated": false,
       "all40StateMatricesComplete": false,
       "qualifiedCycleOverallAcceptance": false,
-      "upload013Started": false,
+      "upload013Started": true,
       "formalPublicationApproved": false,
       "currentSwipeCancel": {
         "cuaFullSwipeRevealsOnly": true,
@@ -245,10 +245,17 @@
         "explicitConfirmationObserved": true,
         "cancelPreservesExactResponse": true,
         "remainingVisibleRecords": 1
-      }
+      },
+      "upload013Succeeded": true
     },
     "privacy": "Raw screenshots, personal page/API snapshots and exact record comparisons remain only in private TMP. Public evidence contains no personal identifiers, care dates/times or private-fact hashes."
   },
   "pendingSourceRebind": false,
-  "finalCandidatePackageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2"
+  "finalCandidatePackageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
+  "upload": {
+    "version": "0.1.13",
+    "status": "success",
+    "recordFile": "docs/evidence/daily-care-day-20261029/upload-013.json",
+    "formalRelease": false
+  }
 }

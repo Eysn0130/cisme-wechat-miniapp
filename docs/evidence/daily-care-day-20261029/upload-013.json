@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.13",
+  "status": "success",
+  "sourceHead": "4b977376c7d6cd6a56603ede6efcaed6ee2901c5",
+  "packageSourceSha256": "da065de2e4f27fea572dd0d74ebb8001a567805a280dcebdfafc9d46494fb5e2",
+  "sourcePr": 49,
+  "sourcePrHead": "3c183578bd3c17d7a6229e6c180599021a031440",
+  "sourcePrCi": {
+    "runId": 41036209597,
+    "conclusion": "success"
+  },
+  "officialTool": "wechatide upload",
+  "applicationVersion": "2.02.2610292",
+  "skillVersion": "0.3.14",
+  "compiledTotalBytes": 1672634,
+  "completedAtUtc": "2026-10-30T10:03:39.705000+00:00",
+  "originalTaskPolledOnce": true,
+  "terminalExecutionSucceeded": true,
+  "terminalReceiptSha256": "6a29442009b3a97d81715217909b4ea0d37aab74a100c53eb42253269757721b",
+  "sourceBinding": "Clean exact remote-main preflight, original upload arguments and same-original-task terminal receipt. The terminal receipt itself does not echo version or source hash.",
+  "routineAllowConfirmedByAuthorizedAgent": true,
+  "officialPromptReportedExistingTrialReplacement": true,
+  "consoleTrialSelectionIndependentlyVerified": false,
+  "formalReviewSubmitted": false,
+  "publicReleasePublished": false,
+  "physicalDeviceAccepted": false,
+  "all40StateMatricesComplete": false,
+  "apiRedeployedForClientPolish": false,
+  "reuploadForMetadataRequired": false
+}

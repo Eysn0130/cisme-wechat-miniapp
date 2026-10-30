@@ -1134,9 +1134,10 @@
       "historical85fSettingsSaveIsNotCurrentSave": true,
       "overallNativeAcceptance": false,
       "physicalAcceptance": false,
-      "upload013Started": false,
+      "upload013Started": true,
       "evidence": "docs/evidence/daily-care-day-20261029/source-review.json",
-      "swipeAndCancelPreserveRecord": true
+      "swipeAndCancelPreserveRecord": true,
+      "upload013Succeeded": true
     }
   }
 }
