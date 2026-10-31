@@ -132,11 +132,24 @@
     "evidence": "docs/evidence/comment-support-20261030/native-read-only.json"
   },
   "pending": {
-    "miniProgramUploadVersion": "0.1.14",
+    "miniProgramUploadVersion": "0.1.16",
     "uploadAuthorizedThisRequest": false,
     "uploaded": false,
     "physicalDeviceAcceptance": false,
     "full40RouteStateMatrixAcceptance": false
   },
-  "privacy": "No provided API key, session token, member identifier, private URL or real chat body included. Key remains in server private environment and local ignored private storage. No synthetic test data created in real account."
+  "privacy": "No provided API key, session token, member identifier, private URL or real chat body included. Key remains in server private environment and local ignored private storage. No synthetic test data created in real account.",
+  "latestVerifiedHistoricalUpload": {
+    "version": "0.1.15",
+    "sourceHead": "5a481fa3f8c10f719a49ffe43b59b758a55dc165",
+    "packageSourceSha256": "12c04828fc5243d05ee8c0518cdc5b41af0bbbde62b54d586c7f441d578be6b9",
+    "evidence": "docs/evidence/records-calendar-20261030/upload-015.json",
+    "samePackageAsThisRepair": false
+  },
+  "uploadVersionCorrection20261031": {
+    "incorrectProposedVersion": "0.1.14",
+    "correctedCandidateVersion": "0.1.16",
+    "reason": "The earlier question used an outdated013 baseline and omitted the already successful015 upload. Corrected after verifying original invocation, preflight and same-task official terminal receipt.",
+    "newUploadInvoked": false
+  }
 }
