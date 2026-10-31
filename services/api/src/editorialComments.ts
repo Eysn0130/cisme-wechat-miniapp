@@ -74,10 +74,11 @@ export class EditorialCommentsService{
     }
     return row;
   }
-  async read(memberId:string|undefined,articleId:string,input:{limit?:unknown;cursor?:unknown}={}){
+  async read(memberId:string|undefined,principalId:string|undefined,articleId:string,input:{limit?:unknown;cursor?:unknown}={}){
     const id=uuid(articleId),limit=pageLimit(input.limit,30,50),scope=pageScope(['editorial-comments',id,memberId??'guest']);
     const cursor=readPageCursor(input.cursor,scope);
     return readSnapshot(this.pool,async(client,asOf)=>{
+      await this.editorial.commentReader(client,memberId,principalId);
       const article=await this.editorial.commentArticle(client,id),summary=await editorialCommentSummary(client,this.config.env,id,article.authorMemberId,memberId);
       const condition=`c.article_id=$1 AND c.deleted_at IS NULL AND ((${publicComment}) OR (c.author_member_id=$2 AND c.state IN ('pending_review','rejected','hidden')
         AND commenter.status='active' AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM editorial_comment r JOIN member rm ON rm.id=r.author_member_id

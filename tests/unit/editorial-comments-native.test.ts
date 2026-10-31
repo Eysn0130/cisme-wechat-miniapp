@@ -2,11 +2,11 @@ import {beforeEach,describe,expect,it,vi} from "vitest";
 
 // Actual Page methods, typed editorial clients, thread grouping and read epochs
 // run here. Requests and native dialogs are isolated synthetic boundaries.
-const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),token:"actor-a"}));
+const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),avatar:vi.fn(),token:"actor-a"}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:mocks.request,resumeAuthentication:mocks.resume,beginLegalRenewal:mocks.renew,clearAuthenticationRedirectSuppression:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:unknown)=>mocks.request(options),cancelPageReads:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
-vi.mock("../../apps/miniprogram/services/member-avatar",()=>({defaultMemberAvatar:"local-default",localMemberAvatar:async()=>"local-default",prepareFeedAuthors:async(rows:unknown)=>rows}));
+vi.mock("../../apps/miniprogram/services/member-avatar",()=>({defaultMemberAvatar:"local-default",localMemberAvatar:mocks.avatar,prepareFeedAuthors:async(rows:unknown)=>rows}));
 vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const rootId="cccccccc-cccc-4ccc-8ccc-cccccccccccc",replyId="dddddddd-dddd-4ddd-8ddd-dddddddddddd";
@@ -19,8 +19,8 @@ const article=()=>({id:articleId,title:"精选标题",excerpt:"摘要",authorId,
  interactionsEnabled:true,sourceUrl:null,provenanceLabel:"",commentsEnabled:true,commentsPolicyVersion:0,commentCount:1,canModerate:false});
 const deferred=()=>{let resolve!:(value:any)=>void,reject!:(value:unknown)=>void;const promise=new Promise<any>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const event=(id=rootId)=>({currentTarget:{dataset:{id}}});
-let page:any,rows:any[],enabled:boolean,moderator:boolean,policyVersion:number,nextCursor:string|null,patches:any[],blockReads:Promise<unknown>[];
-function commentPage(){return {comments:structuredClone(rows),authors:{[authorId]:{name:"公开昵称",avatar:"",avatarRevision:null}},
+let page:any,rows:any[],authors:Record<string,{name:string;avatar:string;avatarRevision:string|null}>,enabled:boolean,moderator:boolean,policyVersion:number,nextCursor:string|null,patches:any[],blockReads:Promise<unknown>[];
+function commentPage(){return {comments:structuredClone(rows),authors:structuredClone(authors),
  commentCount:rows.filter(item=>item.status==="published").length,commentsEnabled:enabled,commentsPolicyVersion:policyVersion,canModerate:moderator,
  loadedCount:rows.length,hasMore:nextCursor!==null,nextCursor,truncated:nextCursor!==null,preview:false,asOf:stamp};}
 function calls(method?:string){return mocks.request.mock.calls.map(([input])=>input).filter(input=>!method||(input.method??"GET")===method);}
@@ -34,8 +34,8 @@ async function mountWithDelayedBridge(){
 }
 function input(value:string){if(!page.data.composerOpen)page.startComment();page.inputComment({detail:{value},currentTarget:{dataset:{composerId:page.data.composerEventId}}});}
 beforeEach(()=>{
- vi.resetModules();mocks.request.mockReset();mocks.resume.mockReset();mocks.renew.mockReset();mocks.token="actor-a";
- rows=[row()];enabled=true;moderator=false;policyVersion=3;nextCursor=null;patches=[];blockReads=[];
+ vi.resetModules();mocks.request.mockReset();mocks.resume.mockReset();mocks.renew.mockReset();mocks.avatar.mockReset().mockResolvedValue("local-default");mocks.token="actor-a";
+ rows=[row()];authors={[authorId]:{name:"公开昵称",avatar:"",avatarRevision:null}};enabled=true;moderator=false;policyVersion=3;nextCursor=null;patches=[];blockReads=[];
  (globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token,apiBaseUrl:"https://synthetic.invalid"}});
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),loadEditorialBlocks(...args:any[]){const reading=definition.loadEditorialBlocks.apply(this,args);blockReads.push(Promise.resolve(reading));return reading;},setData(update:any,done?:()=>void){patches.push(structuredClone(update));for(const [key,value]of Object.entries(update))patch(this.data,key,value);done?.();}};};
  (globalThis as any).wx={hideShareMenu:vi.fn(),showShareMenu:vi.fn(),showToast:vi.fn(),hideKeyboard:vi.fn(),stopPullDownRefresh:vi.fn(),pageScrollTo:vi.fn(),
@@ -83,18 +83,53 @@ describe("published editorial comment Page reads",()=>{
    expect(patches.slice(before)).toEqual([]);expect(page.data.commentsLoading).toBe(false);expect(page.data.threads).toEqual([]);
   }finally{vi.useRealTimers();}
  });
- it("loads public comments independently without replacing real article reactions or its body",async()=>{
-  mocks.token="";await mount();expect(page.data).toMatchObject({commentCount:1,commentsEnabled:true,commentsLoading:false,commentsError:"",commentAuthenticated:false});
+ it("loads member comments independently without replacing real article reactions or its body",async()=>{
+  await mount();expect(page.data).toMatchObject({commentCount:1,commentsEnabled:true,commentsLoading:false,commentsError:"",commentAuthenticated:true});
   expect(page.data.threads[0]).toMatchObject({id:rootId,body:"已审核的评论",likeCount:3});
   expect(page.data.social).toMatchObject({liked:false,saved:true,likeCount:17,saveCount:9});
   const item=page.data.item,reading=page.readingRead;await page.loadEditorialComments();
   expect(page.data.item).toBe(item);expect(page.readingRead).toBe(reading);expect(calls().filter(input=>input.path===`/v1/editorial/articles/${articleId}`)).toHaveLength(1);
   expect(calls().find(input=>input.path.startsWith(base+"?"))).toMatchObject({authMode:"optional"});
  });
+ it("keeps guest article text readable without requesting or rendering private comments",async()=>{
+  mocks.token="";await mount();page.showComments();await page.loadMoreEditorialComments();
+  expect(page.data.item).toMatchObject({id:articleId,body:"第一段原文\n第二段原文"});
+  expect(page.data).toMatchObject({commentAuthenticated:false,threads:[],editorialCommentItems:[],commentsLoading:false,canModerate:false});
+  expect(calls().filter(input=>input.path.startsWith(base))).toEqual([]);expect(mocks.resume).not.toHaveBeenCalled();
+  page.loginToViewComments();expect(mocks.resume).toHaveBeenCalledExactlyOnceWith(returnUrl);
+ });
+ it("does not let an old account's delayed page erase a newer account's confirmed comments",async()=>{
+  await mount();const pending=deferred();mocks.request.mockReturnValueOnce(pending.promise);const old=page.loadEditorialComments();
+  mocks.token="actor-b";rows=[row(replyId,{body:"新账号可读评论"})];await page.loadEditorialComments();
+  expect(page.data.threads[0]).toMatchObject({id:replyId,body:"新账号可读评论"});
+  pending.resolve({...commentPage(),comments:[row(rootId,{body:"旧账号迟到评论"})],loadedCount:1});await old;
+  expect(page.data.threads).toHaveLength(1);expect(page.data.threads[0]).toMatchObject({id:replyId,body:"新账号可读评论"});
+  expect(page.data.commentAuthenticated).toBe(true);
+ });
+ it("refuses reply, like and expansion from old rows after the account changes",async()=>{
+  await mount();mocks.token="actor-b";mocks.request.mockClear();
+  page.replyComment(event());await page.likeComment(event());page.expandReplies(event());
+  expect(calls()).toEqual([]);expect(page.data).toMatchObject({threads:[],editorialCommentItems:[],commentAuthenticated:false,composerOpen:false,replyToId:""});
+ });
+ it("collapses even one editorial reply and expands only confirmed loaded replies",async()=>{
+  rows=[row(),row(replyId,{parentId:rootId,replyRootId:rootId,replyToId:rootId,replyToName:"公开昵称"})];nextCursor="another_page";await mount();
+  expect(page.data.threads[0]).toMatchObject({replyCount:1,replies:[],expanded:false,hiddenCount:1});
+  page.expandReplies(event());expect(page.data.threads[0]).toMatchObject({replyCount:1,expanded:true,replies:[{id:replyId}]});
+  const third="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  rows=[row(third,{parentId:rootId,replyRootId:rootId,replyToId:replyId})];nextCursor=null;await page.loadMoreEditorialComments();
+  expect(page.data.threads[0]).toMatchObject({replyCount:2,expanded:true,replies:[{id:replyId},{id:third}]});
+  page.expandReplies(event());expect(page.data.threads[0]).toMatchObject({replyCount:2,expanded:false,replies:[],hiddenCount:2});
+ });
+ it("keeps the legacy preview's one-reply default when grouping shared comment data",async()=>{
+  const {commentThreads}=await import("../../apps/miniprogram/services/community");
+  const values=[row(),row(replyId,{parentId:rootId,replyRootId:rootId,replyToId:rootId})];
+  expect(commentThreads(values as any,[])[0]!.replies).toHaveLength(1);
+  expect(commentThreads(values as any,[],0)[0]!.replies).toHaveLength(0);
+ });
  it("navigates a guest composer or reply to this article and does not submit or require auth just to read",async()=>{
   mocks.token="";await mount();mocks.request.mockClear();page.showComments();
   expect((globalThis as any).wx.pageScrollTo).toHaveBeenCalledWith({selector:"#post-comments",duration:0});expect(mocks.resume).not.toHaveBeenCalled();
-  page.startComment();page.replyComment(event());expect(mocks.resume.mock.calls).toEqual([[returnUrl],[returnUrl]]);expect(calls("POST")).toEqual([]);expect(page.data.draft).toBe("");
+  page.startComment();page.loginToViewComments();page.replyComment(event());expect(mocks.resume.mock.calls).toEqual([[returnUrl],[returnUrl]]);expect(calls("POST")).toEqual([]);expect(page.data.draft).toBe("");
  });
  it("keeps published comments readable when policy is closed and rejects new send/like locally",async()=>{
   enabled=false;await mount();input("明确提交内容");await page.sendComment();await page.likeComment(event());
@@ -105,7 +140,7 @@ describe("published editorial comment Page reads",()=>{
   nextCursor="next_page";await mount();const item=page.data.item;
   rows=[row(),row(replyId,{parentId:rootId,replyRootId:rootId,replyToId:rootId,replyToName:"公开昵称",body:"一条回复"})];nextCursor=null;
   await page.loadMoreEditorialComments();expect(page.data.editorialCommentItems.map((item:any)=>item.id)).toEqual([rootId,replyId]);
-  expect(page.data.threads[0].replies[0]).toMatchObject({id:replyId,body:"一条回复"});expect(page.data.item).toBe(item);
+  expect(page.data.threads[0].replies).toEqual([]);page.expandReplies(event(rootId));expect(page.data.threads[0].replies[0]).toMatchObject({id:replyId,body:"一条回复"});expect(page.data.item).toBe(item);
   expect(calls().at(-1).path).toBe(base+"?limit=30&cursor=next_page");
  });
  it.each(["hide","unload","actor","version","newer-read"])("discards a late comments read after %s",async(change)=>{
@@ -113,7 +148,8 @@ describe("published editorial comment Page reads",()=>{
   if(change==="hide")page.onHide();else if(change==="unload")page.onUnload();else if(change==="actor")mocks.token="actor-b";
   else if(change==="version")page.data.item.version+=1;else {rows=[];await page.loadEditorialComments();}
   const before=patches.length;pending.resolve({...commentPage(),comments:[row(replyId)],loadedCount:1});await reading;
-  expect(patches.slice(before)).toEqual([]);expect(page.data.editorialCommentItems.some((item:any)=>item.id===replyId)).toBe(false);
+  if(change==="actor")expect(page.data).toMatchObject({threads:[],editorialCommentItems:[],commentAuthenticated:false});
+  else expect(patches.slice(before)).toEqual([]);expect(page.data.editorialCommentItems.some((item:any)=>item.id===replyId)).toBe(false);
  });
  it("keeps comment-load errors separate from the article and offers a real explicit retry",async()=>{
   await mount();const item=page.data.item;mocks.request.mockRejectedValueOnce({status:503,title:"评论暂时无法读取"});await page.loadEditorialComments();
@@ -149,6 +185,41 @@ describe("published editorial comment Page commands",()=>{
   expect(page.data.commentsNotice).toBe("评论已发布。");expect(page.data.editorialCommentItems[0]).toMatchObject({id:replyId,status:"published"});
   expect(page.data.commentCount).toBe(1);expect(calls("POST")[0]).toMatchObject({path:base,idempotencyKey:key,data:{body:"确认发送的评论"}});
  });
+ it("reloads a newly saved comment with its own current nickname and asynchronous persisted avatar",async()=>{
+  await mount();input("新会员的真实评论");
+  const member="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",avatar=deferred();
+  mocks.request.mockImplementationOnce(async()=>{
+   rows=[row(),row(replyId,{authorId:member,authorName:"会员保存的新昵称",isMine:true,version:1})];
+   authors[member]={name:"会员保存的新昵称",avatar:"data:image/jpeg;base64,YWJjZA==",avatarRevision:"a".repeat(64)};
+   return {id:replyId,status:"published",version:1,replayed:false};
+  });
+  mocks.avatar.mockImplementation(async(_data:string,revision:string)=>revision?avatar.promise:"local-default");
+  const sending=page.sendComment();await vi.waitFor(()=>expect(mocks.avatar).toHaveBeenCalledWith(authors[member]!.avatar,"a".repeat(64)));
+  expect(page.data.editorialCommentItems.some((item:any)=>item.id===replyId)).toBe(false);
+  avatar.resolve("wxfile://usr/current-member-avatar.jpg");await sending;
+  expect(page.data.threads.find((item:any)=>item.id===replyId)).toMatchObject({authorName:"会员保存的新昵称",avatar:"wxfile://usr/current-member-avatar.jpg",isMine:true});
+  expect(calls("POST")).toHaveLength(1);
+ });
+ it("honestly displays an unset new member profile instead of borrowing the earlier commenter's identity",async()=>{
+  await mount();input("未设置资料的新会员评论");
+  const member="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  mocks.request.mockImplementationOnce(async()=>{
+   rows=[row(),row(replyId,{authorId:member,authorName:"CISME 会员",isMine:true,version:1})];
+   authors[member]={name:"CISME 会员",avatar:"",avatarRevision:null};
+   return {id:replyId,status:"published",version:1,replayed:false};
+  });
+  await page.sendComment();
+  expect(page.data.threads.find((item:any)=>item.id===replyId)).toMatchObject({authorName:"CISME 会员",avatar:"local-default",isMine:true});
+  expect(page.data.threads.find((item:any)=>item.id===rootId).authorName).toBe("公开昵称");
+ });
+ it("ignores a new comment avatar completion after a different account takes over",async()=>{
+  await mount();const avatar=deferred();authors[authorId]={name:"公开昵称",avatar:"data:image/jpeg;base64,YWJjZA==",avatarRevision:"a".repeat(64)};
+  mocks.avatar.mockReturnValueOnce(avatar.promise);const reading=page.loadEditorialComments();
+  await vi.waitFor(()=>expect(mocks.avatar).toHaveBeenLastCalledWith(authors[authorId]!.avatar,"a".repeat(64)));
+  mocks.token="actor-b";const before=patches.length;avatar.resolve("wxfile://usr/old-account-avatar.jpg");await reading;
+  expect(page.data).toMatchObject({threads:[],editorialCommentItems:[],commentAuthenticated:false});
+  expect(page.data.editorialCommentItems.some((item:any)=>item.avatar==="wxfile://usr/old-account-avatar.jpg")).toBe(false);
+ });
  it("retains an unknown command's body, reply and key and uses that same command for explicit verification",async()=>{
   await mount();page.replyComment(event());input("尚待确认的回复");
   mocks.request.mockRejectedValueOnce({code:"NETWORK_TIMEOUT"});await page.sendComment();const key=page.data.draftOperation;
@@ -157,6 +228,17 @@ describe("published editorial comment Page commands",()=>{
   mocks.request.mockResolvedValueOnce({id:replyId,status:"deleted",version:3,replayed:true});await page.sendComment();
   expect(calls("POST").map(input=>[input.idempotencyKey,input.data])).toEqual([[key,{body:"尚待确认的回复",replyToId:rootId}],[key,{body:"尚待确认的回复",replyToId:rootId}]]);
   expect(page.data).toMatchObject({commentSendUnknown:false,draft:"",draftOperation:""});expect(page.data.commentsNotice).toContain("未再次发送");
+ });
+ it("clears hidden private rows while preserving the same member's unconfirmed reply command for explicit verification",async()=>{
+  await mount();page.replyComment(event());input("结果未确认的同一条回复");
+  mocks.request.mockRejectedValueOnce({code:"NETWORK_TIMEOUT"});await page.sendComment();const operation=page.data.draftOperation;
+  page.onHide();expect(page.data).toMatchObject({threads:[],editorialCommentItems:[],commentAuthenticated:false});
+  page.readVisible=true;await page.load(true);await vi.waitFor(()=>expect(page.data.commentsLoading).toBe(false));
+  expect(page.data).toMatchObject({draft:"结果未确认的同一条回复",draftOperation:operation,replyToId:rootId,commentSendUnknown:true});
+  expect(calls("POST")).toHaveLength(1);
+  mocks.request.mockResolvedValueOnce({id:replyId,status:"published",version:1,replayed:true});await page.sendComment();
+  expect(calls("POST").map(input=>[input.idempotencyKey,input.data])).toEqual([
+   [operation,{body:"结果未确认的同一条回复",replyToId:rootId}],[operation,{body:"结果未确认的同一条回复",replyToId:rootId}]]);
  });
  it("preserves a legal-rejected draft/key across a same-actor return without replaying the write",async()=>{
   await mount();input("等待本人协议确认的评论");mocks.request.mockRejectedValueOnce({status:409,code:"CURRENT_LEGAL_CONSENT_REQUIRED"});await page.sendComment();
@@ -173,7 +255,8 @@ describe("published editorial comment Page commands",()=>{
   await mount();input("旧请求的评论");const pending=deferred();mocks.request.mockReturnValueOnce(pending.promise);const sending=page.sendComment();
   if(change==="hide")page.onHide();else if(change==="actor")mocks.token="actor-b";else page.data.item.version+=1;
   const before=patches.length;pending.resolve({id:replyId,status:"pending",version:1,replayed:false});await sending;
-  expect(patches.slice(before)).toEqual([]);expect(page.data.draft).toBe("旧请求的评论");expect(page.data.commentsNotice).toBe("");
+  if(change==="actor")expect(page.data).toMatchObject({threads:[],editorialCommentItems:[],draft:"",commentAuthenticated:false});
+  else {expect(patches.slice(before)).toEqual([]);expect(page.data.draft).toBe("旧请求的评论");}expect(page.data.commentsNotice).toBe("");
  });
  it("adopts only confirmed comment-like counts and does not alter article counts",async()=>{
   await mount();const pending=deferred();mocks.request.mockReturnValueOnce(pending.promise);const liking=page.likeComment(event());

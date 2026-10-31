@@ -63,6 +63,7 @@ Page({
   videoPosition:0,
   videoIdentity:"",
   blockReadEpoch:0,
+  commentReadToken:"",
   commentReadEpoch:0,
   commentActionOwner:0,
   composerSequence:0,
@@ -85,7 +86,7 @@ Page({
     wx.hideShareMenu();
   },
   onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(true); },
-  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1; this.setData({ composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
+  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
   onUnload() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.gallerySizingCache=null;this.pauseVideo(true);this.galleryRead=null;this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption) {
     const top=event.scrollTop;
@@ -293,7 +294,32 @@ Page({
       this.setData({draft:"",draftLength:0,draftOperation:"",replyToId:"",replyToName:"",composerOpen:false,composerFocused:false,keyboardHeight:0,commentSendUnknown:false,lastBlockedAuthor:"",lastBlockedName:""});
     }
   },
+  clearPrivateComments() {
+    this.commentReadEpoch+=1;this.commentActionOwner+=1;this.blockReadEpoch+=1;this.commentReadToken="";
+    this.syncCommentDraftOwner();
+    this.setData({commentAuthenticated:false,editorialCommentItems:[],threads:[],expandedThreads:[],commentCursor:null,commentHasMore:false,
+      commentsLoading:false,commentsBusy:false,commentsError:"",commentsNotice:"",commentRetryAppend:false,canModerate:false,
+      blocksOpen:false,blocks:[],blocksCursor:null,blocksHasMore:false,blocksLoading:false,blocksBusy:false,blocksError:"",lastBlockedAuthor:"",lastBlockedName:"",
+      composerOpen:false,composerFocused:false,keyboardHeight:0});
+  },
+  recoverCommentAccess(intent:CommentIntent,error?:unknown):boolean {
+    if(!this.data.editorialSource||!this.readVisible||!this.data.pageAlive||this.data.leaving||intent.attempt!==this.data.loadAttempt
+      ||intent.id!==this.data.id||intent.id!==this.data.item?.id)return false;
+    const token=getApp<IAppOption>().globalData.sessionToken;
+    if(token===intent.token&&(error as {status?:number})?.status!==401)return false;
+    if(this.commentReadToken!==intent.token)return false;
+    this.clearPrivateComments();
+    this.setData({following:false,followBusy:false,socialBusy:false,social:{...this.data.social,liked:false,saved:false},
+      item:{...this.data.item,isMine:false,liked:false,saved:false,following:false,canModerate:false}});
+    return true;
+  },
+  loginToViewComments() {
+    if(!this.data.editorialSource||!this.data.item||this.data.loading||this.data.leaving)return;
+    if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication(this.editorialReturnUrl());return;}
+    void this.loadEditorialComments();
+  },
   commentIntent():CommentIntent|null {
+    if(this.data.editorialSource&&this.commentReadToken&&this.commentReadToken!==getApp<IAppOption>().globalData.sessionToken)this.clearPrivateComments();
     if(!this.data.editorialSource||!this.data.item||!this.readVisible||!this.data.pageAlive||this.data.leaving||this.data.loading)return null;
     return {owner:this.commentActionOwner,attempt:this.data.loadAttempt,token:getApp<IAppOption>().globalData.sessionToken,id:this.data.id,version:this.data.item.version};
   },
@@ -305,6 +331,7 @@ Page({
     if(this.data.commentsBusy)return null;
     const intent=this.commentIntent();if(!intent)return null;
     if(!intent.token){resumeAuthentication(this.editorialReturnUrl());return null;}
+    if(!this.data.commentAuthenticated||this.commentReadToken!==intent.token)return null;
     if(requireEnabled&&this.data.commentsEnabled!==true){this.setData({commentsError:"评论设置已变化，请刷新后再试。"});return null;}
     this.interruptReadingRestore();
     this.commentReadEpoch+=1;
@@ -314,6 +341,7 @@ Page({
   },
   finishEditorialCommentAction(intent:CommentIntent) { if(this.currentCommentIntent(intent))this.setData({commentsBusy:false}); },
   editorialCommentFailed(intent:CommentIntent,error:unknown,fallback:string,requiresConsent=false) {
+    if(this.recoverCommentAccess(intent,error))return;
     if(!this.currentCommentIntent(intent)){
       this.recoverExpiredEditorialRead(intent.attempt,intent.token,error);
       return;
@@ -323,25 +351,28 @@ Page({
   },
   async loadEditorialComments(append=false) {
     const intent=this.commentIntent();if(!intent||this.data.commentsBusy)return;
+    if(!intent.token){this.clearPrivateComments();return;}
+    this.commentReadToken=intent.token;
     const more=append===true;
     if(more&&(!this.data.commentHasMore||!this.data.commentCursor||this.data.commentsLoading))return;
     const epoch=++this.commentReadEpoch,cursor=more?this.data.commentCursor:null;
     const current=()=>epoch===this.commentReadEpoch&&this.currentCommentIntent(intent);
-    this.setData({commentsLoading:true,commentsError:"",commentRetryAppend:false});
+    this.setData({commentsLoading:true,commentAuthenticated:true,commentsError:"",commentRetryAppend:false});
     try{
       const page=await readEditorialComments(intent.id,this,cursor);
-      if(!current())return;
+      if(!current()){this.recoverCommentAccess(intent);return;}
       const prepared=await prepareCommentAuthors({...emptyCommunity,preview:false,comments:page.comments,authors:page.authors});
-      if(!current())return;
+      if(!current()){this.recoverCommentAccess(intent);return;}
       const existing=more?this.data.editorialCommentItems:[];
       const byId=new Map<string,CommunityComment>(existing.map(comment=>[comment.id,comment]));
       for(const comment of prepared.comments)byId.set(comment.id,comment);
       const comments=[...byId.values()];
-      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads),commentCount:page.commentCount,
+      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads,0),commentCount:page.commentCount,
         commentsEnabled:page.commentsEnabled,commentsPolicyVersion:page.commentsPolicyVersion,canModerate:page.canModerate,
         commentHasMore:page.hasMore,commentCursor:page.nextCursor,commentAuthenticated:Boolean(intent.token),commentsLoading:false,...(!page.commentsEnabled?{composerOpen:false,composerFocused:false,keyboardHeight:0}:{})});
       if(!page.commentsEnabled)wx.hideKeyboard();
     }catch(error){
+      if(this.recoverCommentAccess(intent,error))return;
       if(this.recoverExpiredEditorialRead(intent.attempt,intent.token,error))return;
       if(current())this.setData({commentsLoading:false,commentRetryAppend:more,commentsError:commentFailure(error,"评论暂时无法加载，请重试。")});
     }finally{if(current())this.setData({commentsLoading:false});}
@@ -399,7 +430,7 @@ Page({
       const result=await setEditorialCommentLike(intent.id,comment.id,!comment.liked);
       if(!this.currentCommentIntent(intent))return;
       const comments=this.data.editorialCommentItems.map(item=>item.id===result.id?{...item,liked:result.liked,likeCount:result.likeCount}:item);
-      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads)});
+      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads,0)});
     }catch(error){this.editorialCommentFailed(intent,error,"点赞结果尚未确认，请刷新评论核对。",true);}
     finally{this.finishEditorialCommentAction(intent);}
   },
@@ -413,7 +444,7 @@ Page({
       await deleteEditorialComment(intent.id,comment.id);
       if(!this.currentCommentIntent(intent))return;
       const comments=this.data.editorialCommentItems.filter(item=>item.id!==comment.id&&item.parentId!==comment.id);
-      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads),commentCount:null,commentsNotice:"评论已删除。",
+      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads,0),commentCount:null,commentsNotice:"评论已删除。",
         ...(this.data.replyToId===comment.id?{replyToId:"",replyToName:"",draftOperation:""}:{})});
       this.finishEditorialCommentAction(intent);await this.loadEditorialComments();
     }catch(error){this.editorialCommentFailed(intent,error,"删除结果尚未确认，请刷新评论核对。");}
@@ -567,7 +598,8 @@ Page({
       try{const result=await followEditorialArticle(this.data.id,!this.data.following);
         if(result.authorId!==this.data.authorId)throw new Error("EDITORIAL_AUTHOR_MISMATCH");
         if(this.currentEditorial(attempt,token))this.setData({following:result.following});
-      }catch(error){if(this.currentEditorial(attempt,token)){
+      }catch(error){if(this.recoverCommentAccess({owner:this.commentActionOwner,attempt,token,id:this.data.id,version:this.data.item?.version},error))return;
+        if(this.currentEditorial(attempt,token)){
         if((error as {status?:number;code?:string}).status===409&&(error as {code?:string}).code==="CURRENT_LEGAL_CONSENT_REQUIRED")beginLegalRenewal(this.editorialReturnUrl());
         this.setData({followError:(error as {title?:string}).title||"关注结果尚未确认，请先重新加载查看。"});}}
       finally{if(this.currentEditorial(attempt,token))this.setData({followBusy:false});}
@@ -631,7 +663,8 @@ Page({
     this.interruptReadingRestore();this.setData({socialBusy:true,socialError:""});
     try{const result=await reactToEditorialArticle(this.data.id,kind,!(kind==="like"?this.data.social.liked:this.data.social.saved));
       if(this.currentEditorial(attempt,token))this.setData({social:{...this.data.social,liked:result.liked,saved:result.saved,likeCount:result.likeCount,saveCount:result.saveCount}});
-    }catch(error){if(this.currentEditorial(attempt,token)){
+    }catch(error){if(this.recoverCommentAccess({owner:this.commentActionOwner,attempt,token,id:this.data.id,version:this.data.item?.version},error))return;
+      if(this.currentEditorial(attempt,token)){
       const consentRequired=(error as {status?:number;code?:string}).status===409&&(error as {code?:string}).code==="CURRENT_LEGAL_CONSENT_REQUIRED";
       const message=(error as {title?:string}).title||(consentRequired?"请确认当前用户协议和隐私指引后再互动。":"互动结果尚未确认，请先重新加载查看，再决定是否重试。");
       this.editorialSocialRefusal=consentRequired?message:null;
@@ -668,15 +701,16 @@ Page({
   replyComment(event: WechatMiniprogram.TouchEvent) {
     const comment = (this.data.editorialSource?this.data.editorialCommentItems:this.data.social.comments).find(item => item.id === event.currentTarget.dataset.id);
     if (!comment || comment.status !== "published") return;
-    if(this.data.editorialSource){if(this.data.commentsBusy||this.data.commentSendUnknown||!this.commentIntent()||this.data.commentsEnabled!==true)return;if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication(this.editorialReturnUrl());return;}}
+    if(this.data.editorialSource){if(this.data.commentsBusy||this.data.commentSendUnknown||!this.commentIntent()||!this.data.commentAuthenticated||this.data.commentsEnabled!==true)return;if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication(this.editorialReturnUrl());return;}}
     this.setData({composerOpen:true,replyToId:comment.id,replyToName:comment.authorName,draftOperation:"",composerFocused:true,
       ...(!this.data.composerOpen?{composerEventId:++this.composerSequence}:{})},()=>this.measureComposer());
   },
   cancelReply() { if(this.data.editorialSource&&(this.data.commentsBusy||this.data.commentSendUnknown))return;this.setData({ replyToId:"",replyToName:"",draftOperation:"" },()=>this.measureComposer()); },
   expandReplies(event: WechatMiniprogram.TouchEvent) {
+    if(this.data.editorialSource&&(!this.commentIntent()||!this.data.commentAuthenticated))return;
     const id = String(event.currentTarget.dataset.id ?? "");
     const expanded = this.data.expandedThreads.includes(id) ? this.data.expandedThreads.filter(value => value !== id) : [...this.data.expandedThreads, id];
-    this.setData({ expandedThreads: expanded, threads: commentThreads(this.data.editorialSource?this.data.editorialCommentItems:this.data.social.comments, expanded) });
+    this.setData({ expandedThreads: expanded, threads: commentThreads(this.data.editorialSource?this.data.editorialCommentItems:this.data.social.comments, expanded,this.data.editorialSource?0:1) });
   },
   likeComment(event: WechatMiniprogram.TouchEvent) {
     if(this.data.editorialSource)return this.likeEditorialComment(event);

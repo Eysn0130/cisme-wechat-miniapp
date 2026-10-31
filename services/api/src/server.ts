@@ -299,7 +299,6 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         /^\/v1\/ugc\/own-preview\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(path));
     const publicEditorialRead = request.method === "GET" && !request.headers.authorization &&
       (path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
-        /^\/v1\/editorial\/articles\/[0-9a-f-]{36}\/comments$/i.test(path) ||
         /^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
     if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
@@ -368,7 +367,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.put<{Params:{id:string}}>("/v1/editorial/articles/:id/reaction",request=>editorial.react(request.memberId,request.principalId,request.params.id,(request.body??{}) as never));
   app.put<{Params:{id:string}}>("/v1/editorial/articles/:id/follow",request=>editorial.follow(request.memberId,request.principalId,request.params.id,(request.body as {active?:unknown})?.active));
-  app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/articles/:id/comments",request=>editorialComments.read(request.memberId,request.params.id,request.query));
+  app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/articles/:id/comments",request=>editorialComments.read(request.memberId,request.principalId,request.params.id,request.query));
   app.post<{Params:{id:string}}>("/v1/editorial/articles/:id/comments",request=>editorialComments.create(request.memberId,request.principalId,request.params.id,idempotencyKey(request),(request.body??{}) as never));
   app.delete<{Params:{id:string;commentId:string}}>("/v1/editorial/articles/:id/comments/:commentId",request=>editorialComments.remove(request.memberId,request.principalId,request.params.id,request.params.commentId));
   app.put<{Params:{id:string;commentId:string}}>("/v1/editorial/articles/:id/comments/:commentId/like",request=>editorialComments.like(request.memberId,request.principalId,request.params.id,request.params.commentId,(request.body as {active?:unknown})?.active));

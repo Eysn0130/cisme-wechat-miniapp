@@ -55,6 +55,9 @@ function read<T>(page:object|undefined,path:string,authMode:"optional"|"required
   const options={path,authMode};return page?pageRead<T>(page,options):request<T>(options);
 }
 export async function readEditorialComments(articleId:string,page?:object,cursor?:string|null):Promise<EditorialCommentsPage> {
+  if(!getApp<IAppOption>().globalData.sessionToken)throw {status:401,code:"AUTH_REQUIRED",title:"登录后查看评论"};
+  // Optional transport auth handles expiry without opening login over public article text.
+  // The server independently requires the canonical active member for this route.
   const result=await read<EditorialCommentsPage>(page,commentPath(articleId)+query({limit:"30",cursor:cursor??undefined}),"optional");
   if(!result||!Array.isArray(result.comments)||!result.comments.every(validateComment)||!nonnegative(result.commentCount)
     ||typeof result.commentsEnabled!=="boolean"||typeof result.canModerate!=="boolean"||!nonnegative(result.commentsPolicyVersion)

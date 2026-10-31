@@ -96,9 +96,9 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(buttons.map(button=>attribute(button,"bindtap")??`@${attribute(button,"open-type")}`))
       .toEqual(["startComment","toggleLike","toggleSave","showComments","@share"]);
     expect(body).not.toMatch(/<(?:input|textarea)\b|bind(?:input|confirm)=|sendComment|(?:view|read)Count|阅读量/);
-    expect(buttons[0]).toContain("commentsEnabled !== true ? '查看评论'");expect(buttons[0]).toContain("'说点什么…'");
+    expect(buttons[0]).toContain("!commentAuthenticated ? '登录后评论'");expect(buttons[0]).toContain("commentsEnabled !== true ? '查看评论'");expect(buttons[0]).toContain("'说点什么…'");
     expect(buttons[3]).toContain("{{commentCount === null ? '评论' : commentCount}}");
-    expect(markup).toContain('<view wx:if="{{editorialSource && composerOpen}}" class="post-editorial-composer">');
+    expect(markup).toContain('<view wx:if="{{editorialSource && commentAuthenticated && composerOpen}}" class="post-editorial-composer">');
     const textarea=markup.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toBeDefined();
     expect(attribute(textarea!,"bindinput")).toBe("inputComment");expect(attribute(textarea!,"maxlength")).toBe("360");
     expect(attribute(textarea!,"disabled")).toContain("commentSendUnknown");
@@ -112,6 +112,28 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(buttons[4]).toContain('/assets/icons/post-reference/share_forward.svg');
     for(const button of [buttons[1]!,buttons[2]!])expect(attribute(button,"disabled")).toBe("{{socialBusy || !socialEnabled}}");
     expect(markup).toMatch(/<button\b[^>]*bindtap="back"[^>]*>[\s\S]*?<image\b[^>]*src="\/assets\/icons\/arrow-left-ink\.svg"/);
+  });
+
+  it("keeps the guest comment wall decorative and gates real comments and errors behind authentication",()=>{
+    const start=markup.indexOf('<view wx:if="{{editorialSource}}" id="post-comments"');
+    const end=markup.indexOf('<view wx:if="{{socialEnabled && !editorialSource}}" id="post-comments"',start);
+    expect(start).toBeGreaterThanOrEqual(0);expect(end).toBeGreaterThan(start);
+    const section=markup.slice(start,end);
+    const branches=section.match(/<view wx:if="\{\{!commentAuthenticated\}\}" class="comment-login-gate">([\s\S]*?)<\/view>\s*<block wx:else>([\s\S]*?)<\/block>/);
+    expect(branches).not.toBeNull();
+    const guest=branches![1]!,authenticated=branches![2]!;
+    expect(guest).toContain('class="comment-login-preview" aria-hidden="true"');
+    expect(guest).not.toMatch(/\{\{|wx:for|comment\.(?:body|authorName|avatar)|threads|commentsError/);
+    expect(guest).toMatch(/<button\b[^>]*bindtap="loginToViewComments"[^>]*>登录后查看<\/button>/);
+    for(const privateFact of ['wx:for="{{threads}}"','{{commentsError}}','{{commentsNotice}}','commentsEnabled === false'])
+      expect(authenticated).toContain(privateFact);
+    const outside=section.replace(branches![0],"");
+    expect(outside).not.toMatch(/wx:for="\{\{threads\}\}"|\{\{commentsError\}\}|\{\{commentsNotice\}\}/);
+    expect(section).toContain("!commentAuthenticated || commentCount === null ? '评论'");
+    for(const removedAction of ['commentMore','openCommentManagement','undoEditorialBlock'])
+      expect(markup).not.toContain('bindtap="'+removedAction+'"');
+    const deleteButton=markup.match(/<button\b[^>]*bindtap="deleteComment"[^>]*>/)?.[0];
+    expect(deleteButton).toBeDefined();expect(attribute(deleteButton!,"wx:if")).toContain("editorial ? canModerate : comment.isMine");
   });
 
   it("reuses measured native navigation and places the conditional author in content flow below media before the title",()=>{

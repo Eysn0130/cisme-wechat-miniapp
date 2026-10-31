@@ -10,12 +10,12 @@ export interface CommunityView {
 }
 export const emptyCommunity: CommunityView = { preview: true, liked: false, saved: false, likeCount: 0, saveCount: 0, commentCount: 0, aggregateVersion: 0, truncated: false, comments: [] };
 const decorate = (comment: CommunityComment) => ({ ...comment, dateLabel: new Date(comment.createdAt).toLocaleDateString("zh-CN"), statusLabel: comment.status === "pending" ? "审核中 · 仅本人可见" : comment.status === "rejected" ? "审核未通过 · 仅本人可见" : comment.status === "hidden" ? "已隐藏 · 仅本人可见" : "" });
-export function commentThreads(comments: CommunityComment[], expanded: string[]) {
+export function commentThreads(comments: CommunityComment[], expanded: string[], collapsedReplyLimit=1) {
   const ids = new Set(comments.map(comment => comment.id));
   return comments.filter(comment => !comment.parentId || !ids.has(comment.parentId)).map(root => {
     const replies = comments.filter(comment => comment.parentId === root.id);
     const isExpanded = expanded.includes(root.id);
-    return { ...decorate(root), expanded: isExpanded, replyCount: replies.length, hiddenCount: Math.max(0, replies.length - 1), replies: (isExpanded ? replies : replies.slice(0, 1)).map(decorate) };
+    return { ...decorate(root), expanded: isExpanded, replyCount: replies.length, hiddenCount: Math.max(0, replies.length - collapsedReplyLimit), replies: (isExpanded ? replies : replies.slice(0, collapsedReplyLimit)).map(decorate) };
   });
 }
 

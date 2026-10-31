@@ -1878,10 +1878,10 @@ paths:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
     get:
       operationId: readEditorialComments
-      security: [{}, {session: []}]
-      description: Published article comments with viewer-specific blocks and root visibility. Pending, rejected and hidden comments are visible only to their author. Cursor is bound to article and viewer; this is independent of ordinary public UGC and legacy preview gates.
+      security: [{session: []}]
+      description: Canonical active WeChat member reads comments without requiring renewed legal consent. Guests receive 401 with no comment or author data; article body remains publicly readable. Viewer-specific blocks and root visibility apply. Pending, rejected and hidden comments are visible only to their author. Cursor is bound to article and viewer; this is independent of ordinary public UGC and legacy preview gates.
       parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50}}, {name: cursor, in: query, schema: {type: string, maxLength: 600}}]
-      responses: {'200': {description: Actual comment page and public count, content policy and effective moderation permission, content: {application/json: {schema: {$ref: '#/components/schemas/EditorialCommentsPage'}}}}, '404': {description: Article unavailable}, '422': {description: Invalid viewer or article cursor}}
+      responses: {'200': {description: Authenticated comment page and visible count, content policy and effective moderation permission, content: {application/json: {schema: {$ref: '#/components/schemas/EditorialCommentsPage'}}}}, '401': {description: Canonical active WeChat identity required; no comment or author data}, '404': {description: Article unavailable}, '422': {description: Invalid viewer or article cursor}}
     post:
       operationId: createEditorialComment
       security: [{session: []}]
