@@ -38,9 +38,21 @@ describe("empty and N-1 database lifecycle", () => {
   it("migrates empty, rolls back latest, and reapplies", async () => {
     const env = { ...process.env, DATABASE_URL: migrationUrl.toString() };
     const migrationFiles = (await readdir("db/migrations")).filter((file) => file.endsWith(".sql")).sort();
+    // Keep historical fixture round-trips at their named schema boundary.
+    // Newer migrations are still exercised at the current tip, then removed
+    // only inside this separately owned disposable lifecycle database.
+    let migrationTip = migrationFiles.at(-1)!;
+    const migrate = async (direction:"up"|"down") => {
+      const result = await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", direction], { env });
+      if(direction === "up")for(const newer of migrationFiles.filter(name=>name>migrationTip).reverse()){
+        const rolled = await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+        expect(rolled.stdout).toContain(`rolled back ${newer}`);
+      }
+      return result;
+    };
     let migrationCount = migrationFiles.length;
     let extensionCount = migrationFiles.filter((file) => file >= "202609120002_commercial_membership_referral.sql").length;
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
+    await migrate('up');
     let pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
     expect(await assertFinalSchemaContract(pool)).toEqual({tables:43,constraints:49,indexes:36,triggers:36});
@@ -98,6 +110,18 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    // Latest103 changes the support transition guard, not daily-care fields.
+    expect(migrationTip).toBe('202610300003_support_explicit_ai_resume.sql');
+    const supportGuard=async()=>String((await pool.query("SELECT pg_get_functiondef('enforce_support_conversation_transition()'::regprocedure) AS definition")).rows[0].definition);
+    expect(await supportGuard()).toContain('cisme.support_resume_ai_conversation_id');
+    await closePool(pool);await migrate('down');pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    expect(await supportGuard()).not.toContain('cisme.support_resume_ai_conversation_id');
+    expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='daily_care_record' AND column_name='care_day'")).rowCount).toBe(1);
+    await closePool(pool);await migrate('up');pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    expect(await supportGuard()).toContain('cisme.support_resume_ai_conversation_id');
+
     // Migration99 is independent from the existing98 article facts. Verify
     // its empty round-trip, then its comment preservation refusal, before
     // testing the older article-evidence rollback guard.
@@ -114,16 +138,23 @@ describe("empty and N-1 database lifecycle", () => {
       authorization_ref,rights_evidence,content_sha256,status,published_by,published_principal_id)
       VALUES('synthetic-migration-preservation',$1,'合成测试作者','合成测试标题','','合成测试正文','synthetic-test','{}',$2,'draft',$1,'synthetic-test') RETURNING id`,
       [evidenceOwner,'a'.repeat(64)])).rows[0].id;
+    migrationTip='202610300001_daily_care_daily_latest.sql';
+    for(const newer of migrationFiles.filter(name=>name>migrationTip).reverse()){
+      await closePool(pool);const rolled=await migrate('down');pool=migrationPool();
+      expect(rolled.stdout).toContain(`rolled back ${newer}`);
+      migrationCount-=1;extensionCount-=1;
+    }
     //101 preserves every original100 column while selecting only one live
     // record per owner/day; already suppressed QA/privacy rows stay excluded.
     expect((await pool.query("SELECT to_regclass('public.daily_care_record_revision') name")).rows[0].name).toBe('daily_care_record_revision');
-    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
+    await closePool(pool);await migrate('down');pool=migrationPool();
     migrationCount-=1;extensionCount-=1;
+    expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='daily_care_record' AND column_name='care_day'")).rowCount).toBe(0);
     const legacy=[];
     for(let n=0;n<4;n++)legacy.push((await pool.query(`INSERT INTO daily_care_record(member_id,operation_id,request_sha256,completed_at,
       protocol_version,step_codes,self_assessment,suppressed_at) VALUES($1,$2,$3,$4,'daily-care-v1',ARRAY['00','01','02','03'],'neutral',$5)
       RETURNING to_jsonb(daily_care_record) AS row`,[evidenceOwner,randomUUID(),'d'.repeat(64),new Date(Date.UTC(2026,9,29,n)),n>=2?new Date('2026-10-29T05:00:00Z'):null])).rows[0].row);
-    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});pool=migrationPool();
+    await closePool(pool);await migrate('up');pool=migrationPool();
     const migrated=(await pool.query(`SELECT to_jsonb(d)-ARRAY['care_day','version','updated_at','latest_operation_id','deleted_at','superseded_by'] AS row
       FROM daily_care_record d WHERE member_id=$1 ORDER BY completed_at,id`,[evidenceOwner])).rows.map(r=>r.row);
     expect(migrated).toEqual(legacy);
@@ -131,41 +162,41 @@ describe("empty and N-1 database lifecycle", () => {
     const current=(await pool.query('SELECT id FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NULL AND superseded_by IS NULL',[evidenceOwner])).rows;
     expect(current).toEqual([{id:legacy[1].id}]);
     expect((await pool.query('SELECT id FROM daily_care_record WHERE member_id=$1 AND suppressed_at IS NOT NULL ORDER BY completed_at',[evidenceOwner])).rows.map(r=>r.id)).toEqual([legacy[2].id,legacy[3].id]);
-    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
+    await closePool(pool);await migrate('down');pool=migrationPool();
     expect((await pool.query('SELECT to_jsonb(d) AS row FROM daily_care_record d WHERE member_id=$1 ORDER BY completed_at,id',[evidenceOwner])).rows.map(r=>r.row)).toEqual(legacy);
     await pool.query('DELETE FROM daily_care_record WHERE member_id=$1',[evidenceOwner]);
     expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBe('daily_care_record');
     const daily=(await pool.query(`INSERT INTO daily_care_record(member_id,operation_id,request_sha256,protocol_version,step_codes,self_assessment)
       VALUES($1,$2,$3,'daily-care-v1',ARRAY['00','01','02','03'],'comfortable') RETURNING id`,[evidenceOwner,randomUUID(),'c'.repeat(64)])).rows[0].id;
-    await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({stderr:expect.stringContaining('DAILY_CARE_RECORDS_EXIST')});
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('DAILY_CARE_RECORDS_EXIST')});
     expect((await pool.query('SELECT step_codes FROM daily_care_record WHERE id=$1',[daily])).rows[0].step_codes).toEqual(['00','01','02','03']);
     await pool.query('DELETE FROM daily_care_record WHERE id=$1',[daily]);await closePool(pool);
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
+    await migrate('down');pool=migrationPool();
     expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBeNull();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
-    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();
+    await closePool(pool);await migrate('up');await migrate('down');pool=migrationPool();
     expect((await pool.query("SELECT to_regclass('public.daily_care_record') name")).rows[0].name).toBe('daily_care_record');
-    await closePool(pool);await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});pool=migrationPool();migrationCount-=1;extensionCount-=1;
+    await closePool(pool);await migrate('down');pool=migrationPool();migrationCount-=1;extensionCount-=1;
     const commentTables=['editorial_comment','editorial_comment_like','editorial_comment_policy','editorial_comment_report','editorial_comment_safety_scan','editorial_comment_scan_claim'];
     for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     await closePool(pool);
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    await migrate('down');
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
     for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBeNull();
     expect((await pool.query('SELECT body FROM editorial_article WHERE id=$1',[evidence])).rows[0].body).toBe('合成测试正文');
     expect(await capabilityNames()).toEqual(extendedCapabilities);
     await closePool(pool);
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    await migrate('up');
+    await migrate('down');
     // Keep the independent99 rollback assertions below targeted at99.
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    await migrate('down');
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     const comment=(await pool.query(`INSERT INTO editorial_comment(article_id,author_member_id,body,operation_id,request_sha256)
       VALUES($1,$2,'需要保留的合成评论',$3,$4) RETURNING id`,[evidence,evidenceOwner,randomUUID(),'b'.repeat(64)])).rows[0].id;
-    await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({
+    await expect(migrate('down')).rejects.toMatchObject({
       stderr:expect.stringContaining('EDITORIAL_COMMENT_ROLLBACK_REQUIRES_DATA_PRESERVATION')
     });
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
@@ -173,21 +204,21 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query('SELECT id FROM editorial_article WHERE id=$1',[evidence])).rowCount).toBe(1);
     // Only explicit disposable-fixture cleanup makes the empty99 down valid.
     await pool.query('DELETE FROM editorial_comment WHERE id=$1',[comment]);await closePool(pool);
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    await migrate('down');
     pool=migrationPool();migrationCount-=1;extensionCount-=1;
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     for(const table of commentTables)expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBeNull();
     expect(await capabilityNames()).toEqual(extendedCapabilities);
     // Now the latest remaining migration is98: its original article evidence
     // must still prevent rollback exactly as before99 was introduced.
-    await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({
+    await expect(migrate('down')).rejects.toMatchObject({
       stderr:expect.stringContaining('EDITORIAL_EVIDENCE_REQUIRES_DATA_PRESERVATION')
     });
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     expect((await pool.query('SELECT id FROM editorial_article WHERE id=$1',[evidence])).rowCount).toBe(1);
     await pool.query('DELETE FROM editorial_article WHERE id=$1',[evidence]);
     await closePool(pool);
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    await migrate('down');
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
     for(const table of ['editorial_article','editorial_article_revision'])
@@ -195,34 +226,34 @@ describe("empty and N-1 database lifecycle", () => {
     expect(await capabilityNames()).toEqual(extendedCapabilities.filter(name=>name!=='editorial.manage'));
     expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_watch_control') name")).rows[0].name).toBe('commerce_wechat_receipt_watch_control');
     await closePool(pool);
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
+    await migrate('up');
     // up reapplies the full latest set (98+99+100+101); remove empty101/100/99 before
     // checking the independently restored98 tables/capability set below.
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    await migrate('down');
+    await migrate('down');
+    await migrate('down');
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     expect(await capabilityNames()).toEqual(extendedCapabilities);
     await closePool(pool);
-    await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+    await migrate('down');
     pool=migrationPool();migrationCount-=1;extensionCount-=1;
 
     // Round-trip the watcher and observation separately before the older
     // catalog migration guard. This fixture has no receipt observations.
     await closePool(pool);
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool(); migrationCount -= 1; extensionCount -= 1;
     expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_watch_control') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_observation') name")).rows[0].name).toBe('commerce_wechat_receipt_observation');
     await closePool(pool);
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool(); migrationCount -= 1; extensionCount -= 1;
     expect((await pool.query("SELECT to_regclass('public.commerce_wechat_receipt_observation') name")).rows[0].name).toBeNull();
     await pool.query("UPDATE catalog_product SET version=3,updated_by='synthetic-rollback-guard' WHERE id='c1000000-0000-4000-8000-000000000001'");
-    await expect(exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env })).rejects.toMatchObject({
+    await expect(migrate('down')).rejects.toMatchObject({
       stderr: expect.stringContaining("CATALOG_IMAGE_RETIREMENT_ROLLBACK_REQUIRES_DATA_PRESERVATION")
     });
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
@@ -235,7 +266,7 @@ describe("empty and N-1 database lifecycle", () => {
     // Roll back this commercial/UGC extension before checking the older
     // lifecycle milestones below. Each new migration must round-trip alone.
     for (let step = 1; step <= extensionCount; step += 1) {
-      await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+      await migrate('down');
       pool = migrationPool();
       expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - step);
       await closePool(pool);
@@ -249,7 +280,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.support_presence') name")).rows[0].name).toBe('support_presence');
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 1);
     expect((await pool.query("SELECT to_regclass('public.support_presence') name")).rows[0].name).toBeNull();
@@ -259,7 +290,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT indexdef FROM pg_indexes WHERE indexname='media_hash_unique'")).rows[0].indexdef).toContain("is_current");
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 2);
     expect((await pool.query("SELECT to_regclass('public.commerce_order') name")).rows[0].name).toBeNull();
@@ -267,7 +298,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.catalog_product') name")).rows[0].name).toBe("catalog_product");
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 3);
     expect((await pool.query("SELECT to_regclass('public.catalog_product') name")).rows[0].name).toBeNull();
@@ -275,7 +306,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.support_conversation') name")).rows[0].name).toBe("support_conversation");
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 4);
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='wechat_identity' AND column_name='provider'")).rowCount).toBe(0);
@@ -283,7 +314,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.support_conversation') name")).rows[0].name).toBe("support_conversation");
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT to_regclass('public.member') name")).rows[0].name).toBe("member");
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 5);
@@ -315,28 +346,28 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT to_regclass('public.ugc_post') name")).rows[0].name).toBe("ugc_post");
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 6);
     expect((await pool.query("SELECT to_regclass('public.authority_grant') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT to_regclass('public.ugc_post') name")).rows[0].name).toBe("ugc_post");
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 7);
     expect((await pool.query("SELECT to_regclass('public.ugc_post') name")).rows[0].name).toBeNull();
     expect((await pool.query("SELECT 1 FROM emergency_switch WHERE key='community'")).rowCount).toBe(0);
     await pool.query(`INSERT INTO data_retention_policy(code,data_class,trigger_event,duration_days,disposition,legal_basis)
       VALUES('rollback_guard','synthetic rollback guard','test finished',1,'delete','test-only rollback preservation')`);
-    await expect(exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env })).rejects.toMatchObject({
+    await expect(migrate('down')).rejects.toMatchObject({
       stderr: expect.stringContaining("PRIVACY_LIFECYCLE_ROLLBACK_REQUIRES_DATA_PRESERVATION")
     });
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 7);
     await pool.query("DELETE FROM data_retention_policy WHERE code='rollback_guard'");
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
+    await migrate('down');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount - extensionCount - 8);
     expect((await pool.query("SELECT to_regclass('public.data_retention_policy') name")).rows[0].name).toBeNull();
@@ -345,7 +376,8 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT count(*)::int count FROM emergency_switch")).rows[0].count).toBe(7);
     await closePool(pool);
 
-    await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "up"], { env });
+    migrationTip=migrationFiles.at(-1)!;
+    await migrate('up');
     pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
