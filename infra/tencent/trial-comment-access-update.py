@@ -132,7 +132,7 @@ def load_baseline(active=True):
     B = types.ModuleType('reviewed_schema103_baseline')
     B.__file__ = str(path)
     exec(compile(raw, str(path), 'exec'), B.__dict__)
-    old_binding = B.binding(BASELINE_RUNNER / 'application-binding.json', BASELINE_BINDING_SHA)
+    old_binding = B.binding(BASELINE_RUNNER / 'binding.json', BASELINE_BINDING_SHA)
     need(old_binding.get('sourceHead') == BASELINE_HEAD and old_binding.get('sourceTree') == BASELINE_TREE
          and old_binding.get('manifestSha256') == BASELINE_MANIFEST and old_binding.get('migrations') == 103,
          'COMMENT_ACCESS_SCHEMA103_BASELINE_BINDING_REQUIRED')
@@ -268,7 +268,7 @@ def protected_baseline_inputs(old_binding, history):
     need(state.parent == B.STATE_PARENT and re.fullmatch(r'commit-' + BASELINE_HEAD[:12] + r'-[0-9]+', state.name),
          'COMMENT_ACCESS_BASELINE_PRIVATE_PLAN_PATH_REQUIRED')
     paths = [(BASELINE_RUNNER / 'trial-comment-support-upgrade.py', 128 * 1024),
-             (BASELINE_RUNNER / 'application-binding.json', 65536),
+             (BASELINE_RUNNER / 'binding.json', 65536),
              (Path(old_binding['deepseekKeyFile']), 256), (state / 'protected-plan.json', 8 * 1024 ** 2)]
     result = {str(path): {'sha256': sha(read(path, limit)), 'limit': limit} for path, limit in paths}
     need(result[str(state / 'protected-plan.json')]['sha256'] == active.get('privatePlanSha256'),

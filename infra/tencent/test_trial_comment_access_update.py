@@ -140,12 +140,26 @@ class SourceTests(unittest.TestCase):
 class GuardTests(unittest.TestCase):
     def test_current103_loader_uses_active_guard_only_before_cutover(self):
         raw = ("from pathlib import Path\nC=object()\nD=object()\ncalled=[]\n"
-               "def binding(path, expected):\n return " + repr({'sourceHead': M.BASELINE_HEAD, 'sourceTree': M.BASELINE_TREE, 'manifestSha256': M.BASELINE_MANIFEST, 'migrations': 103}) + "\n"
+               "def binding(path, expected):\n called.append(('binding',str(path),expected))\n return " + repr({'sourceHead': M.BASELINE_HEAD, 'sourceTree': M.BASELINE_TREE, 'manifestSha256': M.BASELINE_MANIFEST, 'migrations': 103}) + "\n"
                "def active_context(value):\n called.append('active103')\n return {'release':Path('" + str(M.ROOT / 'releases' / ('tencent-release-' + M.BASELINE_HEAD[:12])) + "')}\n"
                "def load_baseline(value):\n called.append(('primitives',value))\n").encode()
         with patch.object(M, 'target'), patch.object(M, 'read', return_value=raw), patch.object(M, 'BASELINE_HELPER_SHA', M.sha(raw)):
-            M.load_baseline(True); self.assertEqual(M.B.called, ['active103'])
-            M.load_baseline(False); self.assertEqual(M.B.called, [('primitives', False)])
+            expected = ('binding', str(M.BASELINE_RUNNER / 'binding.json'), M.BASELINE_BINDING_SHA)
+            M.load_baseline(True); self.assertEqual(M.B.called, [expected, 'active103'])
+            M.load_baseline(False); self.assertEqual(M.B.called, [expected, ('primitives', False)])
+
+    def test_protected_baseline_uses_the_actual_0ca_binding_filename(self):
+        active_path = M.ROOT / 'comment-support-upgrades/active-release.json'
+        state = active_path.parent / ('commit-' + M.BASELINE_HEAD[:12] + '-123')
+        saved = b'synthetic-private-baseline-plan'
+        history = {str(active_path): json.dumps({'upgradeState': str(state), 'privatePlanSha256': M.sha(saved)}).encode()}
+        old_binding = {'deepseekKeyFile': str(M.BASELINE_RUNNER / 'deepseek.key')}
+        with patch.object(M, 'B', types.SimpleNamespace(ACTIVE=active_path, STATE_PARENT=active_path.parent)), \
+             patch.object(M, 'read', side_effect=lambda path, limit: saved if path.name == 'protected-plan.json' else b'synthetic-private') as reader:
+            inputs = M.protected_baseline_inputs(old_binding, history)
+        self.assertIn(str(M.BASELINE_RUNNER / 'binding.json'), inputs)
+        self.assertNotIn(str(M.BASELINE_RUNNER / 'application-binding.json'), inputs)
+        self.assertEqual(reader.call_args_list[1].args, (M.BASELINE_RUNNER / 'binding.json', 65536))
 
     def test_history_and_private_deepseek_inputs_cannot_drift(self):
         plan = {'history': {'/synthetic/active.json': b'original'}, 'protectedBaselineInputs': {'/synthetic/deepseek.key': {'limit': 256, 'sha256': M.sha(b'original-key')}}}
