@@ -1,0 +1,30 @@
+{
+  "route": "pages/support/index",
+  "conversation": {
+    "id": "2f9e9e79-0b64-4f6c-b3be-6dce6b0f6df4",
+    "status": "ai_active",
+    "priority": "normal",
+    "memberUnreadCount": 0,
+    "teamUnreadCount": 0,
+    "memberReadSequence": 10,
+    "teamReadSequence": 10,
+    "version": 14,
+    "updatedAt": "2026-11-01T09:31:38.828Z"
+  },
+  "contextVersion": 14,
+  "contextStartSequence": 10,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": []
+}

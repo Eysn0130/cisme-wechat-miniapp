@@ -1,0 +1,79 @@
+{
+  "route": "pages/support/index",
+  "conversation": {
+    "id": "2f9e9e79-0b64-4f6c-b3be-6dce6b0f6df4",
+    "status": "waiting_human",
+    "priority": "normal",
+    "memberUnreadCount": 1,
+    "teamUnreadCount": 3,
+    "memberReadSequence": 4,
+    "teamReadSequence": 0,
+    "version": 8,
+    "updatedAt": "2026-11-01T09:29:00.647Z"
+  },
+  "contextVersion": 0,
+  "contextStartSequence": 0,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": [
+    {
+      "id": "b0489d4e-a700-43ce-8521-f0f5a959d122",
+      "sequence": 1,
+      "senderType": "user",
+      "body": "护理四步完成后，如何保存护理感受？",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "66a90df0-e917-4387-a5f1-af9f8a746816",
+      "sequence": 2,
+      "senderType": "ai",
+      "body": "在护理首页完成四步护理后，填写护理后自我感受并点击保存即可；护理记录页只能回看，不能在那里填写或保存感受。",
+      "replyToMessageId": "b0489d4e-a700-43ce-8521-f0f5a959d122",
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "86688f81-4d78-4ce0-9769-2cfd05015dbf",
+      "sequence": 3,
+      "senderType": "user",
+      "body": "我的包裹有破损，请人工帮忙核对。",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "ebbb93ab-f0a7-473a-87eb-3273adc46143",
+      "sequence": 4,
+      "senderType": "system",
+      "body": "这次没能及时回复你，抱歉呀 🌿 你可以稍后再问，或点「申请人工」。",
+      "replyToMessageId": "86688f81-4d78-4ce0-9769-2cfd05015dbf",
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "d0673011-eab6-4b56-b464-3c2136217e31",
+      "sequence": 5,
+      "senderType": "user",
+      "body": "护理四步应该按什么顺序完成？",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "531d6dad-a8fd-4612-90a8-0e87687ef0f1",
+      "sequence": 6,
+      "senderType": "ai",
+      "body": "护理四步按 00 净澈、01 清洁、02 修护、03 精护的顺序完成。",
+      "replyToMessageId": "d0673011-eab6-4b56-b464-3c2136217e31",
+      "replyReferenceLabel": ""
+    }
+  ]
+}

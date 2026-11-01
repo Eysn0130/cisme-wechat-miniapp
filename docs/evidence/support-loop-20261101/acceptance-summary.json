@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-01T08:57:14.278655+00:00",
+  "recordedAt": "2026-11-01T09:33:03.569782+00:00",
   "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
   "originalPublishedVersion": "0.1.18",
   "originalPackageSourceSha256": "1868cd6df93f30c2d02d1a0389ff6c32df897bdfddfaf34ae3c9956fbdf480d3",
@@ -23,16 +23,17 @@
     "newDeploymentOfflineGuards": 20,
     "priorDeploymentOfflineRegressions": 22
   },
-  "nativeAuthenticatedLoop": "pending",
-  "actualTrialAccountLoop": "pending: no dedicated authorized test login state in current DevTools",
+  "nativeAuthenticatedLoop": "passed scoped isolated native run against backend40789 and client2191; see native-isolated-40789/record.json",
+  "actualTrialAccountLoop": "pending: user confirmed dedicated identities; actual login not yet performed",
   "physicalPhone": "not tested",
   "full40RouteMatrix": "blocked",
   "networkGate": {
-    "currentPrivateUrlCheck": true,
-    "loopbackRequest": "rejected: url not in domain list",
-    "temporaryDevelopmentOnlyChange": "awaiting explicit user confirmation; not performed"
+    "explicitAuthorizationReceived": true,
+    "currentPrivateUrlCheck": false,
+    "loopbackRequest": "native real HTTP passed",
+    "temporaryDevelopmentOnlyChange": "approved and active only for continuous isolated QA; restore required before completion"
   },
-  "knownLimit": "Native compilation, unit tests and original native parameter rejection do not constitute a complete live-account end-to-end pass.",
+  "knownLimit": "40789 isolated native loop passed, one real model invalid-route failure triggered minimal prompt followup. Final backend followup, real trial identities, physical phone and full40 route matrix remain unverified.",
   "artifacts": [
     {
       "path": "native-018-five-character-modal-probe.json",

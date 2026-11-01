@@ -1,0 +1,111 @@
+{
+  "recordedAt": "2026-11-01T09:33:03.569782+00:00",
+  "scope": "Official WeChat DevTools native UI against loopback-forwarded formal-host isolated PostgreSQL + original HTTP API and real DeepSeek; two synthetic owned identities. Not real trial accounts or physical phone.",
+  "backendSourceHead": "40789a6f0b076571e874c61de1f3db1c7efafd66",
+  "clientPackageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "passed": [
+    "floating transparent capsule action row above input; 44px targets",
+    "IME confirm event retained input and sent nothing; explicit send button created message",
+    "real AI response before human request",
+    "waiting_human and human_active other basic questions answered by AI",
+    "original human issue sequence3 remained stable after later questions",
+    "management claim and manual reply linked to original issue",
+    "manual message persisted and visible on consumer side",
+    "actual native four-character resolve modal confirmed; status became resolved",
+    "actual new-topic modal confirmed; context14/start10, visible old messages empty",
+    "new context received real AI answer without previous messages"
+  ],
+  "modelFailureObserved": {
+    "questionSequence": 3,
+    "reason": "SUPPORT_AI_ROUTE_INVALID",
+    "qualification": "One strict rejection retained; original output not logged, so its exact invalid value is unknown. Followup narrows prompt route template without relaxing validation."
+  },
+  "runtimeRestored": true,
+  "securityCheckRestoration": "pending remaining isolated backend followup within same authorized QA session",
+  "artifacts": [
+    {
+      "path": "welcome-state.json",
+      "sha256": "ca4c382843f4d8e97412c9ae6ffa6a23f472b1a5b1cb17f43242cd0bcac2042a"
+    },
+    {
+      "path": "welcome-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "path": "ime-confirm-no-send-state.json",
+      "sha256": "1c15a7e8397ad2c061f41842353a9ac6cbad3481bad2625a160d2ce5fd3a5136"
+    },
+    {
+      "path": "ai-first-pending-state.json",
+      "sha256": "e4e3127c425f99bb405bdc2b8361318ed9fa78d6063f7ff2b2a590cb3e402378"
+    },
+    {
+      "path": "human-requested-state.json",
+      "sha256": "e8a2c8b22e99d8b5d582bd790f35e8714db14cb3f49200576dfaf4f18d085c83"
+    },
+    {
+      "path": "waiting-human-other-ai-state.json",
+      "sha256": "6c4a4b6cd079d9f2f3abaf242ed2605ab55c9ecc762079f4699fdeedcafee041"
+    },
+    {
+      "path": "operator-before-claim-state.json",
+      "sha256": "f7607c363be7fb4b26a0a6039ff24326d325284e7e736d64412ab46d93e73101"
+    },
+    {
+      "path": "operator-after-claim-state.json",
+      "sha256": "4a722cf6f96fa32dbe34bc4c64611c85be1be84e8a5da333480374cd1dc2f3cb"
+    },
+    {
+      "path": "active-human-other-ai-state.json",
+      "sha256": "e7ccdafcc483673e69bb10dc8db48a30711b0b906b4a8d838397fb8329bbb3ad"
+    },
+    {
+      "path": "operator-reply-sent-state.json",
+      "sha256": "e0ca58ec6db4a99b9b2ce83c711ccff256099c5005dbac9fad2df40bb87ba2e4"
+    },
+    {
+      "path": "manual-reply-synced-state.json",
+      "sha256": "5ce2a419c158893b5b769aa8cefd7b34f7eeb49f5e83276f832c16b76e6c1b1b"
+    },
+    {
+      "path": "operator-resolved-state.json",
+      "sha256": "a7966b4ae8353162f931add32a30ecf8231b172834b5c5130a9f74a3eb3e0fc3"
+    },
+    {
+      "path": "consumer-resolved-state.json",
+      "sha256": "acde55b3083bb30ac104752e7aa0a06008408d73a2441706989446f019c46cdd"
+    },
+    {
+      "path": "new-topic-empty-state.json",
+      "sha256": "eb3fdab1f4b4f77738c98ba852a8d9de40322e95d40efb87d5732911bb8ffcc4"
+    },
+    {
+      "path": "new-topic-ai-state.json",
+      "sha256": "949a5ddfa94cb3bd064eb176d7d02fad2ecb1d1d287317d2ca700043717a5624"
+    },
+    {
+      "path": "restored-runtime.json",
+      "sha256": "6c176165f38f2f2f55b86860824c25279dd8383f522fd60e0f1bdb1fe8820474"
+    },
+    {
+      "path": "welcome.png",
+      "sha256": "09ce14d90fa11fc48d2495620e9abe94058d06d7e0b6a08254baf7626a1b7290"
+    },
+    {
+      "path": "operator-before-claim.png",
+      "sha256": "61280b3f33eba5c61a45c7208f7023c3ed7016eef3fbc3c2a2810e4afb58ecd3"
+    },
+    {
+      "path": "manual-reply-synced.png",
+      "sha256": "0bd3546b7f01eef5df9dee6df1a1e83d39b820b13ad761d6f579103de71b1ab5"
+    },
+    {
+      "path": "resolve-modal.png",
+      "sha256": "70c3ee220fd7d5b9c36113b9bf086039e3e0bb20bdf60efc02c6842cefbc0218"
+    },
+    {
+      "path": "new-topic-empty.png",
+      "sha256": "b47e0f65bdd979d219e6b82e50fbb6a9d7030d9bf9ed9f25486c0db822caf45b"
+    }
+  ]
+}
