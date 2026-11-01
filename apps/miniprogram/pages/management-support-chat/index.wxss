@@ -192,6 +192,11 @@
   background: #eee4f2;
 }
 
+.operator-avatar--ai image {
+  width: 100%;
+  height: 100%;
+}
+
 .operator-avatar--member {
   background: #fff;
 }

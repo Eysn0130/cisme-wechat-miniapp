@@ -1,0 +1,125 @@
+{
+  "scope": "native synthetic layout only, no authenticated chat acceptance",
+  "scenes": [
+    {
+      "scene": "ai-message-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "ai-wait-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "attachments-375-26-geometry",
+      "width": 375,
+      "font": 26,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "attachments-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "focused-draft-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "human-active-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "unknown-topic-375-26-geometry",
+      "width": 375,
+      "font": 26,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "unknown-topic-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "waiting-human-375-26-geometry",
+      "width": 375,
+      "font": 26,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "waiting-human-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "welcome-375-26-geometry",
+      "width": 375,
+      "font": 26,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    },
+    {
+      "scene": "welcome-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "capsuleTouchAtLeast44": true,
+      "wrapperTransparent": true,
+      "capsulesAboveInput": true,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0
+    }
+  ]
+}

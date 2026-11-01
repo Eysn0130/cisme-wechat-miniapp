@@ -28,7 +28,7 @@
       </view>
       <view wx:else id="operator-{{item.sequence}}" class="operator-message operator-message--{{item.senderType}} {{item.groupStart ? 'operator-message--group-start' : 'operator-message--grouped'}}">
         <view wx:if="{{item.senderType !== 'admin'}}" class="operator-avatar-slot">
-          <view wx:if="{{item.groupStart}}" class="operator-avatar operator-avatar--{{item.avatarKind}}"><image src="{{item.senderType === 'ai' ? '/assets/icons/star-active.svg' : '/assets/icons/user-circle-plum.svg'}}"/></view>
+          <view wx:if="{{item.groupStart}}" class="operator-avatar operator-avatar--{{item.avatarKind}}"><image src="{{item.senderType === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : '/assets/icons/user-circle-plum.svg'}}" mode="aspectFit"/></view>
         </view>
         <view class="operator-message__content">
           <text wx:if="{{item.groupStart && item.senderType !== 'admin'}}" class="operator-message__sender">{{item.senderLabel}}</text>

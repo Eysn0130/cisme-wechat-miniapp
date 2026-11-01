@@ -20,7 +20,7 @@ describe("role-aware native support UX",()=>{
   for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
   expect(state).toContain("Only a response from the synchronization endpoint may advance");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("retainMemberSnapshot(this)");
- expect(state).toContain("CISME AI 客服");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("申请人工客服");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
+ expect(state).toContain("CISME AI 客服");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("handoffBusy ? '正在申请人工…' : '申请人工'");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
   expect(operatorLogic).toContain("wx.showModal");expect(operatorLogic).toContain("member.support_view");
   expect(userLogic).toContain("const sendAttempt = previous ??");expect(userLogic).toContain("linkedOrderId = previous ? previous.linkedOrderId");expect(operatorLogic).toMatch(/sendAttempt\?\.body\s*===\s*body/);
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("sendAttempt.id");
@@ -33,11 +33,11 @@ describe("role-aware native support UX",()=>{
   expect(welcome?.[1]).toContain("!conversation || conversation.status === 'ai_active'");
   expect(view).toContain('你好呀，我是 CISME AI 客服 😊 护理或使用小程序有疑问，都可以问我～');
   expect(view).toContain('你好呀 😊 有问题可以留言，也可以申请人工客服。');expect(view).toContain('正在等待 AI 回复…');
-  expect(view).toContain("handoffFailed ? '重试申请' : '申请人工客服'");expect(view).not.toContain('重新提交');
+  expect(view).toContain("handoffFailed ? '重试申请' : '申请人工'");expect(view).not.toContain('重新提交');
   expect(view).toContain("!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'");
   expect(view.match(/人工接待 09:00–22:00/g)).toHaveLength(1);expect(view).toContain("conversation.status === 'waiting_human'");
   expect(style).toContain('min-height: 44px');expect(style).toContain('@media (prefers-reduced-motion: reduce)');
-  const chatFonts={'.support-bubble':'.875rem','.support-message__sender':'.75rem','.support-message__meta':'.6875rem','.support-input':'.875rem','.support-human':'.75rem','.support-system text':'.8125rem','.support-ai-notice':'.75rem','.support-presence':'.75rem'};
+  const chatFonts={'.support-bubble':'.875rem','.support-message__sender':'.75rem','.support-message__meta':'.6875rem','.support-input':'.875rem','.support-human':'.75rem','.support-system text':'.8125rem','.support-presence':'.75rem'};
   for(const [selector,size] of Object.entries(chatFonts)){
     const declaration=style.split(`${selector} {`)[1]?.split('}')[0];
     expect(declaration,selector).toMatch(new RegExp(`font-size:\\s*${size.replace('.','\\.')}\\s*;`));
@@ -51,7 +51,7 @@ describe("role-aware native support UX",()=>{
   const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).toContain('bindtap="resumeAi"');expect(actions).toContain('support-action-pill');
   const textarea=view.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toContain('confirm-type="done"');expect(textarea).not.toContain('bindconfirm');expect(textarea).not.toContain('confirm-hold="true"');
   expect(view.match(/bindtap="send"/g)).toHaveLength(1);
-  expect(view).toContain('AI 可能出错，请勿发敏感信息。');expect(view).not.toContain('DeepSeek');
+  expect(view).not.toContain('support-ai-notice');expect(view).not.toContain('AI 可能出错，请勿发敏感信息。');expect(view).not.toContain('DeepSeek');
   expect(style).toMatch(/\.support-human\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s);
   expect(style).toMatch(/\.support-composer__actions\s*\{[^}]*flex-wrap:\s*wrap;/s);
  });

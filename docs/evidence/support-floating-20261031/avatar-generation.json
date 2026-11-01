@@ -1,0 +1,18 @@
+{
+  "mode": "built-in image_gen",
+  "purpose": "CISME native AI support avatar",
+  "sourceFile": "/Users/mini/CISME/output/imagegen/cisme-ai-avatar-v1-source.png",
+  "sourceSha256": "c99b61ed6c3ee464b8952fc9970bc3fdffcd3bb99cdf01e47396fd905474c8a7",
+  "projectAsset": "/Users/mini/CISME/apps/miniprogram/assets/cisme/cisme-ai-avatar-v1.png",
+  "projectAssetSha256": "97f40fde6631723baf0c3da7f99c42dfbe260b52113d080cfe30dfcfa9338d16",
+  "projectAssetBytes": 9990,
+  "dimensions": {
+    "width": 160,
+    "height": 160
+  },
+  "alphaPreserved": true,
+  "processing": "Mechanical resize and PNG packaging only; original generated image preserved.",
+  "prompt": "Use case: stylized-concept / brand character avatar. Create ONE finished standalone avatar asset for CISME, a calm premium skincare WeChat mini program. A cute anthropomorphic pearly skincare droplet sprite, warm and approachable, front-facing head-and-shoulders close-up. Milk-white rounded droplet-shaped head with one subtle curled tuft suggesting a C, soft lavender lower body, two clear dark plum bean-shaped eyes, tiny gentle smile, very subtle dusty-pink cheeks, one tiny hand waving near the cheek. Clean soft editorial character illustration with very shallow pearlescent volume, smooth silhouette and broad simple forms, restrained highlights. Palette milk white #fffaff, pale lavender #e9ddf0 and dark plum #654072. The face must remain distinct at 34px avatar size, no fine details, subject fills 86 percent of the square while keeping the entire silhouette inside. Fully transparent background, no circle badge, no frame, no halo, no surrounding objects. No lettering, no logo text, no robot screen face, no headset, no medicine symbol, no sparkles, no watermark. This is the final single avatar cutout, not a presentation board or application screenshot.",
+  "transparentPixels": 12888,
+  "pixelCount": 25600
+}

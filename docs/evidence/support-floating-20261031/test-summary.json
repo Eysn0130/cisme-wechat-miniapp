@@ -1,0 +1,76 @@
+{
+  "sourceHead": "f09c253fb432fbfeab46bed4b6d49d1a74fc61fc",
+  "sourceTree": "e613f05f8f790a9a1dbe1c253e78625caf058e8b",
+  "packageSourceSha256": "80a99cb8aee3ac27e2b2878160b19a8e9b275de7e96bff25164c325df60095ac",
+  "unit": {
+    "files": 165,
+    "passed": 2496,
+    "skipped": 1,
+    "exitCode": 0
+  },
+  "typecheck": "passed",
+  "nativeCompile": {
+    "supportWxml": "passed",
+    "supportWxss": "passed",
+    "managementWxml": "passed",
+    "managementWxss": "passed"
+  },
+  "nativeLayouts": {
+    "consumerSyntheticStates": 12,
+    "managementAiSyntheticStates": 1,
+    "widths": [
+      375,
+      390
+    ],
+    "systemFonts": [
+      16,
+      26
+    ],
+    "selectedNodesHorizontalOverflow": false,
+    "threadComposerOverlap": 0,
+    "capsuleTouchTargetsAtLeast44": true,
+    "wrapperTransparent": true,
+    "physicalPhoneKeyboardVerified": false,
+    "realSignedInFlowVerified": false,
+    "full40PageAcceptance": "blocked"
+  },
+  "asset": {
+    "file": "apps/miniprogram/assets/cisme/cisme-ai-avatar-v1.png",
+    "bytes": 9990,
+    "dimensions": [
+      160,
+      160
+    ],
+    "transparent": true,
+    "generationMode": "built-in image_gen",
+    "promptAndSource": "avatar-generation.json"
+  },
+  "scope": {
+    "nativeMarkupStyleAndAssetOnly": true,
+    "typescriptLogicChanged": false,
+    "backendChanged": false,
+    "apiChanged": false,
+    "dependenciesChanged": false,
+    "backendDeploymentNeeded": false,
+    "newMiniProgramUploaded": false,
+    "lastKnownUploadedVersion": "0.1.16"
+  },
+  "restored": {
+    "device": "iPhone 12/13 (Pro)",
+    "width": 390,
+    "systemFont": 16,
+    "route": "pages/account/index",
+    "mockNavigateToRestored": true,
+    "realSessionPresent": false
+  },
+  "logs": {
+    "full-unit.log": {
+      "rawSha256": "d77eca796130cb8303f2ae42058949b7f66334b181264de2100067b991fd12d8",
+      "publishedSha256": "463ada2d6f3c70ad12679e734a81a33459dcb87316f07780c614f00efa87ce40"
+    },
+    "typecheck.log": {
+      "rawSha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c",
+      "publishedSha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
+    }
+  }
+}

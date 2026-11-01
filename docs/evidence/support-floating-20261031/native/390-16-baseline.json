@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/support/index",
+        "sessionPresent": false,
+        "visible": false,
+        "width": 390,
+        "font": 16
+      }
+    }
+  }
+}
