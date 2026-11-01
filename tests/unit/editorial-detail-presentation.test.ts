@@ -89,15 +89,15 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(propertiesFor(".post-copy__topic").color).toBe("#133667");
   });
 
-  it("uses five distinct idle editorial actions with true counts and an explicit composer entry, without invented views",()=>{
+  it("uses four idle editorial actions and gives the former duplicate comment space to the composer entry",()=>{
     const body=editorialBar();
     const buttons=[...body.matchAll(/<button\b(?:(?:"[^"]*")|(?:'[^']*')|[^'">])*?>[\s\S]*?<\/button>/g)].map(match=>match[0]);
-    expect(buttons).toHaveLength(5);
+    expect(buttons).toHaveLength(4);
     expect(buttons.map(button=>attribute(button,"bindtap")??`@${attribute(button,"open-type")}`))
-      .toEqual(["startComment","toggleLike","toggleSave","showComments","@share"]);
+      .toEqual(["startComment","toggleLike","toggleSave","@share"]);
     expect(body).not.toMatch(/<(?:input|textarea)\b|bind(?:input|confirm)=|sendComment|(?:view|read)Count|阅读量/);
     expect(buttons[0]).toContain("!commentAuthenticated ? '登录后评论'");expect(buttons[0]).toContain("commentsEnabled !== true ? '查看评论'");expect(buttons[0]).toContain("'说点什么…'");
-    expect(buttons[3]).toContain("{{commentCount === null ? '评论' : commentCount}}");
+    expect(body).not.toMatch(/post-comment-action|post-reference\/chat\.svg|commentCount/);
     expect(markup).toContain('<view wx:if="{{editorialSource && commentAuthenticated && composerOpen}}" class="post-editorial-composer">');
     const textarea=markup.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toBeDefined();
     expect(attribute(textarea!,"bindinput")).toBe("inputComment");expect(attribute(textarea!,"maxlength")).toBe("360");
@@ -108,8 +108,7 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(buttons[1]).toContain("{{social.likeCount}}");
     expect(buttons[2]).toContain("social.saved ? '/assets/icons/post-reference/collected.svg' : '/assets/icons/post-reference/collect.svg'");
     expect(buttons[2]).toContain("{{social.saveCount}}");
-    expect(buttons[3]).toContain('/assets/icons/post-reference/chat.svg');
-    expect(buttons[4]).toContain('/assets/icons/post-reference/share_forward.svg');
+    expect(buttons[3]).toContain('/assets/icons/post-reference/share_forward.svg');
     for(const button of [buttons[1]!,buttons[2]!])expect(attribute(button,"disabled")).toBe("{{socialBusy || !socialEnabled}}");
     expect(markup).toMatch(/<button\b[^>]*bindtap="back"[^>]*>[\s\S]*?<image\b[^>]*src="\/assets\/icons\/arrow-left-ink\.svg"/);
   });
@@ -159,6 +158,7 @@ describe("native detail presentation preserves the authorized comments and sourc
 
   it("keeps the idle composer label readable and retains distinct44px controls without duplicate editorial gaps",()=>{
     const entry=propertiesFor(".post-comment-entry"),label=propertiesFor(".post-comment-entry__label");
+    expect(entry.flex).toBe("1");expect(entry["min-width"]).toBe("0");
     expect(entry.display).toBe("flex");expect(entry["align-items"]).toBe("center");expect(sizePx(entry["min-height"]!)).toBeGreaterThanOrEqual(44);
     expect(editorialBar()).toContain('class="post-comment-entry__label"');expect(editorialBar()).toContain("'继续编辑…'");
     expect(label.overflow).toBe("hidden");expect(label["text-overflow"]).toBe("ellipsis");expect(label["min-width"]).toBe("0");

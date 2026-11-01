@@ -1,0 +1,89 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+        "loading": false,
+        "composerOpen": false,
+        "draftLength": 0,
+        "commentAuthenticated": true,
+        "commentsEnabled": true,
+        "selectors": [
+          ".post-comment-entry",
+          ".post-comment-action",
+          ".post-like-action",
+          ".post-save-action",
+          ".post-share-action",
+          ".post-bottom-wrap"
+        ],
+        "boxes": [
+          [
+            {
+              "left": 16,
+              "right": 173.6796875,
+              "top": 760,
+              "bottom": 804,
+              "width": 157.6796875,
+              "height": 44
+            }
+          ],
+          [
+            {
+              "left": 281.171875,
+              "right": 334,
+              "top": 760,
+              "bottom": 804,
+              "width": 52.828125,
+              "height": 44
+            }
+          ],
+          [
+            {
+              "left": 177.6796875,
+              "right": 228.25,
+              "top": 760,
+              "bottom": 804,
+              "width": 50.5703125,
+              "height": 44
+            }
+          ],
+          [
+            {
+              "left": 228.25,
+              "right": 281.171875,
+              "top": 760,
+              "bottom": 804,
+              "width": 52.921875,
+              "height": 44
+            }
+          ],
+          [
+            {
+              "left": 334,
+              "right": 378,
+              "top": 760,
+              "bottom": 804,
+              "width": 44,
+              "height": 44
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 753,
+              "bottom": 844,
+              "width": 390,
+              "height": 91
+            }
+          ]
+        ]
+      }
+    }
+  }
+}

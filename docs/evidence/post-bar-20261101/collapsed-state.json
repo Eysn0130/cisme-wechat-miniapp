@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "composerOpen": false,
+        "draftLength": 0,
+        "commentCount": 3,
+        "likeCount": 1,
+        "saveCount": 0,
+        "entry": {
+          "id": "",
+          "dataset": {},
+          "left": 16,
+          "right": 226.5078125,
+          "top": 760,
+          "bottom": 804,
+          "width": 210.5078125,
+          "height": 44
+        }
+      }
+    }
+  }
+}

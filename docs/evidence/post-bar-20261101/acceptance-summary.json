@@ -1,0 +1,82 @@
+{
+  "recordedAt": "2026-11-01T17:07:02.831127+00:00",
+  "requirement": "ED-READ-05",
+  "packageSourceSha256": "dcf10bb83d80fef67d7e0bbf55e854853c3fef9bc5bbbfef721f36b769ca131b",
+  "beforeInputWidthPx": 157.6796875,
+  "afterInputWidthPx": 210.5078125,
+  "increasePx": 52.828125,
+  "removedCommentButtonCount": 1,
+  "remainingActions": [
+    "comment-entry",
+    "like",
+    "save",
+    "share"
+  ],
+  "nativeWidth": 390,
+  "nativeFont": 16,
+  "nativeExpandedAndCollapsed": "passed; empty draft retained; no send/like/save/share actions",
+  "focusedPassed": 115,
+  "unitPassed": 2618,
+  "unitSkipped": 1,
+  "typecheck": "passed",
+  "databaseWrites": false,
+  "nativeHomeAndSessionRestored": true,
+  "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+  "full40AndPhoneKeyboard": "not tested in this task",
+  "targetVersion": "0.1.23",
+  "officialUpload": "pending terminal receipt",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "4ef92a56759d498d76f52dc05e4c75b388ef1325465a3f99385b4874069696aa"
+    },
+    {
+      "path": "after-geometry.json",
+      "sha256": "572f57301a30f863faa2f8c36667ce3be0ed928063cac7418fb74b959aecdc92"
+    },
+    {
+      "path": "before-geometry.json",
+      "sha256": "d668773a1ac3cbb750acb8f499c51f6c20fc69d37a1da662bab9edb92a381e71"
+    },
+    {
+      "path": "collapsed-state.json",
+      "sha256": "cb6dba36e0adf290d5ea689a11c06a7459dd5a5a8a644a3b2fdcdb1420fa9f8e"
+    },
+    {
+      "path": "expanded-state.json",
+      "sha256": "6eedb4bfbd6cb6702dbfa029ee9bbd24feb507686d1c0f5efc7e1e5ef74bd0ae"
+    },
+    {
+      "path": "expanded.png",
+      "sha256": "904986e310b8eb5a23b86615831483a75828bd858b05d81fb458d079de825a58"
+    },
+    {
+      "path": "focused.log",
+      "sha256": "508fa1916126f3075792ff0b6b0f404882278129f98ff59517ea386804599dfd"
+    },
+    {
+      "path": "idle-after.png",
+      "sha256": "c83437c1a99fa500a75667b2092d3f78e6cf3f16acf768b38a1452215a2fba96"
+    },
+    {
+      "path": "native-before-context.json",
+      "sha256": "8aaded25a98e884b051587922f5f1103bde1dae2f8f07daa52fcf287edb8805b"
+    },
+    {
+      "path": "native-restored.json",
+      "sha256": "184b48c27244db7c305cb67d475ccd9db6b9fd8bad3c8287df985a03d915b43b"
+    },
+    {
+      "path": "package-gate.json",
+      "sha256": "ecf660a2029473a913bc9fc290f0280d3c4d1ab3271a435082687804ee2abb33"
+    },
+    {
+      "path": "typecheck.log",
+      "sha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
+    },
+    {
+      "path": "unit-final.log",
+      "sha256": "d7c48346ba6e32f95dc6b93f4e94b96116a0381880c91711b3a3878ce5849e60"
+    }
+  ]
+}
