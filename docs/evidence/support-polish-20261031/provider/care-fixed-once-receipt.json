@@ -1,0 +1,93 @@
+{
+  "schema": "cisme.support.corrected-care.live-e2e.v1",
+  "startedAt": "2026-11-01T00:35:59.705Z",
+  "runId": "b9ca6286a2e59624f6478ea2",
+  "scope": "one real DeepSeek response and same-conversation human roundtrip via local injected API in disposable synthetic DB; not deployed/native acceptance",
+  "authorization": "fourth and final live call after knowledge correction; one-call hard cap",
+  "realAccountsUsed": false,
+  "productionDatabaseUsed": false,
+  "parameters": {
+    "model": "deepseek-flash",
+    "thinking": {
+      "type": "disabled"
+    },
+    "max_tokens": 384,
+    "temperature": 0.2,
+    "timeoutMs": 4000
+  },
+  "clientReasoningAbsent": true,
+  "sourceHashes": {
+    "services/api/src/deepseekSupportAi.ts": "2ccf9b469cddf71f308ece73f9b1f2a75142ceea53d3fd5171f641b0624d7dcb",
+    "services/api/src/supportService.ts": "0880f9a9afbe5c6661b7ca618e31abdb401bf08bd3fe05848b35c1cfe7e5c2eb",
+    "services/api/src/supportAiBoundary.ts": "c86b760556caf6066d96e39d74ac55e461589c2af869e15e25c347dd91f85048"
+  },
+  "provider": {
+    "requestModel": "deepseek-flash",
+    "httpStatus": 200,
+    "headersDurationMs": 372,
+    "fullResponseDurationMs": 1246,
+    "actualModel": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 814,
+      "completion_tokens": 84,
+      "total_tokens": 898,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 814
+    },
+    "finishReason": "stop",
+    "upstreamReasoningPresent": false,
+    "finalUnicodeLength": 72,
+    "approvedCitations": true
+  },
+  "apiCompleteDurationMs": 1282,
+  "first": {
+    "aiStatus": "replied",
+    "status": "ai_active"
+  },
+  "answer": {
+    "text": "四步护理完成后，请在护理首页填写护理后自我感受并点击保存；护理记录页只能回看，不能在那里填写或保存感受。游客可看指引，保存个人记录需先授权身份。",
+    "unicodeLength": 72,
+    "citations": [
+      {
+        "version": "2026-10-31",
+        "sourceId": "cisme.care-guide"
+      }
+    ]
+  },
+  "checks": {
+    "correctHomeEntry": true,
+    "unicodeBound": true,
+    "currentApprovedCitations": true,
+    "emptyReadNoGreetingFact": true,
+    "userReplayIdempotent": true,
+    "noQueueBeforeExplicitConsent": true,
+    "explicitHandoffSameConversation": true,
+    "handoffEventExactlyOnce": true,
+    "waitingQueueVisible": true,
+    "claimHumanActive": true,
+    "adminReplyIdempotent": true,
+    "memberIncrementalRead": true
+  },
+  "messageCounts": [
+    {
+      "sender_type": "admin",
+      "n": 1
+    },
+    {
+      "sender_type": "ai",
+      "n": 1
+    },
+    {
+      "sender_type": "system",
+      "n": 1
+    },
+    {
+      "sender_type": "user",
+      "n": 1
+    }
+  ],
+  "sourceUnchanged": true,
+  "pass": true,
+  "realProviderCalls": 1,
+  "completedAt": "2026-11-01T00:36:01.813Z"
+}

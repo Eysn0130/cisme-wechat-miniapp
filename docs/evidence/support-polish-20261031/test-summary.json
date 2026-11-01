@@ -1,0 +1,435 @@
+{
+  "schema": "cisme.support-polish.test-summary.v1",
+  "status": "verified-source-with-explicit-native-limits",
+  "recordedAtUtc": "2026-11-01T00:44:05.827369+00:00",
+  "scope": "Frozen source, disposable integration, actual provider evaluation, guest native navigation and synthetic native layouts; no deployed or physical-device acceptance claim.",
+  "finalBinding": {
+    "sourceHead": "813df77d334afbcc2d1659af5bc38ce107513bde",
+    "sourceTree": "f2880141ab166ee286957cbccc8c39967f3a6d88",
+    "miniprogramPackageSourceSha256": "3505ecefc54c8f5f5ebfd4fa5fddbd036e7b31db0b83b7b63e580a80859b3824",
+    "status": "code commit bound; later evidence-only commit does not change evaluated runtime bytes"
+  },
+  "businessReview": {
+    "stableRequirementIds": [
+      "SUPPORT-AI-01",
+      "SUPPORT-HANDOFF-01",
+      "SUPPORT-FAILURE-01",
+      "SUPPORT-GREETING-01",
+      "SUPPORT-SHORT-01",
+      "SUPPORT-WAIT-01",
+      "SUPPORT-HANDOFF-02",
+      "SUPPORT-STATE-01",
+      "SUPPORT-GREETING-QA-01"
+    ],
+    "ordinaryNewConversationStatus": "ai_active",
+    "includes": [
+      "text",
+      "order card",
+      "image authorization and sent image",
+      "provider unavailable"
+    ],
+    "complexOrFailureOutcome": {
+      "conversationStatus": "ai_active",
+      "aiStatus": "handoff_suggested",
+      "handoffSuggested": true,
+      "messageSender": "system",
+      "humanHandoffEventCount": 0,
+      "untrustedModelTextUsed": false
+    },
+    "manualHandoff": "Only explicit member request creates waiting_human and one handoff event; existing waiting/human_active states and historical-order processing remain.",
+    "guardsPreserved": [
+      "member ownership and authority",
+      "committed user acknowledgement",
+      "idempotency and storage-failure replay recovery",
+      "second active-member/version check",
+      "late AI invalidated by human request or newer message",
+      "admin claim/reply and member incremental read"
+    ],
+    "readOnlyOpening": "GET does not create a conversation or greeting message; greeting is UI presentation.",
+    "managementList": "Existing management API lists all conversation states; AI rows are not proof of a human request."
+  },
+  "integration": {
+    "command": "npm run test:integration",
+    "filesPassed": 63,
+    "filesTotal": 63,
+    "testsPassed": 1057,
+    "testsTotal": 1057,
+    "failed": 0,
+    "skipped": 0,
+    "exitCode": 0,
+    "vitestDurationSeconds": 128.79,
+    "testExecutionSeconds": 115.52,
+    "log": "tmp/support-polish-20261031/full-integration.log",
+    "logSha256": "63623f80694014a1a81181d5a05b98e9bc5098757ae42248d55b82578ca0b798",
+    "resultSource": "tmp/support-polish-20261031/full-integration-summary.json",
+    "ownedCleanupVerified": true,
+    "remainingOwnedContainerCount": 0
+  },
+  "offlineGuards": [
+    {
+      "file": "infra/tencent/test_trial_comment_support_upgrade.py",
+      "passed": 15,
+      "scope": "Earlier schema103 support-upgrade baseline guards",
+      "verificationSource": "coordinator-reported executed offline suite; original baseline retained"
+    },
+    {
+      "file": "infra/tencent/test_trial_comment_access_update.py",
+      "passed": 20,
+      "scope": "Deployed de9 comment-access app-only guard regression",
+      "verificationSource": "coordinator-reported executed offline suite; pinned current baseline helper retained"
+    },
+    {
+      "file": "infra/tencent/test_trial_support_polish_update.py",
+      "passed": 24,
+      "scope": "New de9/schema103 app-only update;106 protected-file negative cases and14 cutover failure injection stages",
+      "verificationSource": "executed offline locally by delegated test author; parent independently reviewed bindings and file bytes",
+      "durationSeconds": 0.093,
+      "sha256": "1771f21c390c9b2233138e6834c1bec5483581869e4aaec2e1e3ee6aa27a0193"
+    }
+  ],
+  "newUpdateHelper": {
+    "file": "infra/tencent/trial-support-polish-update.py",
+    "sha256": "c7caad85440e9c610aad90be5c5078aaa72c7c5fe96b98fc48a183855044649e",
+    "baselineHead": "de9c85a84faa14931708965e85decee2773475b3",
+    "baselineTree": "b1367944538deab535b77ab028c7287ea4728449",
+    "schemaMigrations": 103,
+    "scope": "Prepared only; default preflight is read-only; candidate staging waits for final source binding. No SQL/migrator/package/lock/dependency/env/key/authority/production changes; cutover failures stop trial for forward recovery, no automatic old-app or database restore."
+  },
+  "realProviderEvaluation": {
+    "assessment": "tmp/support-concise-live-e2e-20261031/final-assessment.json",
+    "assessmentSha256": "3f184fa8be2b8f0e9541f9c14b6480addcdab0504fb47c06a7231d7adb51f5ea",
+    "totalActualDeepSeekCalls": 4,
+    "scope": "local injected API + actual DeepSeek + disposable DB; no native UI or deployed-runtime claim",
+    "realAccountsUsed": false,
+    "productionDatabaseUsed": false,
+    "finalParameters": {
+      "model": "deepseek-flash",
+      "thinking": {
+        "type": "disabled"
+      },
+      "max_tokens": 384,
+      "temperature": 0.2,
+      "timeoutMs": 4000
+    },
+    "finalAnswerUnicodeLength": 72,
+    "finalApiCompleteDurationMs": 1282,
+    "finalProviderFullResponseDurationMs": 1246,
+    "latencyQualification": "one final corrected sample, not a percentile, SLA or deployed/native response-time result",
+    "finalCorrectedSameConversationTail": {
+      "pass": true,
+      "receipt": "tmp/support-concise-live-e2e-20261031/care-fixed-once-receipt.json",
+      "receiptSha256": "fd68d2385ad559cef2259a051034c3e5f5dffaa346b7879c96e599c68e38efb5",
+      "checks": {
+        "correctHomeEntry": true,
+        "unicodeBound": true,
+        "currentApprovedCitations": true,
+        "emptyReadNoGreetingFact": true,
+        "userReplayIdempotent": true,
+        "noQueueBeforeExplicitConsent": true,
+        "explicitHandoffSameConversation": true,
+        "handoffEventExactlyOnce": true,
+        "waitingQueueVisible": true,
+        "claimHumanActive": true,
+        "adminReplyIdempotent": true,
+        "memberIncrementalRead": true
+      }
+    },
+    "originalDifficultyVerifiedScope": [
+      "actual 61-character refusal/manual invitation with approved citations",
+      "conversation remained ai_active",
+      "zero human-handoff outbox events before explicit consent"
+    ],
+    "originalDifficultyManualRoundtripCompleted": false,
+    "separateNoAiManualFollowupPass": true,
+    "originalRealInFlightLateAiDropped": true,
+    "historicalDefectsRetained": {
+      "originalThreeCallReceiptPassed": false,
+      "harness": "status filter not supported; wrongly asserted AI row absent from all-conversations list",
+      "knowledge": {
+        "oldAnswerWrongEntry": "records page",
+        "correctedKnowledgeVersion": "2026-10-31",
+        "correctedAnswerEntry": "care home",
+        "revalidatedWithRealCall": true
+      }
+    },
+    "evaluatedComponentSha256": {
+      "services/api/src/deepseekSupportAi.ts": "2ccf9b469cddf71f308ece73f9b1f2a75142ceea53d3fd5171f641b0624d7dcb",
+      "services/api/src/supportService.ts": "0880f9a9afbe5c6661b7ca618e31abdb401bf08bd3fe05848b35c1cfe7e5c2eb",
+      "services/api/src/supportAiBoundary.ts": "c86b760556caf6066d96e39d74ac55e461589c2af869e15e25c347dd91f85048"
+    },
+    "componentBytesMatchCurrentAtDraft": true,
+    "sourceUnchangedDuringFinalRun": true,
+    "privateReasoningSerialized": false,
+    "cleanupPass": true
+  },
+  "deliveryScope": {
+    "newBackendDeployed": false,
+    "newMiniprogramUploaded": false,
+    "physicalDeviceValidated": false,
+    "realSignedInNativeBusinessFlowValidated": false,
+    "nativeEvidenceStatus": "current frozen source, guest navigation + synthetic layouts only; all40-route full-state acceptance remains blocked",
+    "serverReceipt": null,
+    "uploadReceipt": null
+  },
+  "privacy": "Sanitized statuses/counts/durations/component hashes only; no key, token, personal account/member identifier or raw reasoning is copied.",
+  "unit": {
+    "filesPassed": 163,
+    "testsPassed": 2447,
+    "skipped": 1,
+    "exitCode": 0,
+    "durationSeconds": 7.33,
+    "log": "full-unit-final.log",
+    "logSha256": "81e8c8382448626cb3867adc434539f1bf1159538dbdc4176cdc361f0872d54a"
+  },
+  "build": {
+    "exitCode": 0,
+    "includes": "both TypeScript projects, API/worker and admin bundling",
+    "logSha256": "20c94a9ad22e8fda68d62a267b18eb5be1d4f61fb2798dd07c79573200ef0241",
+    "nativeAcceptance": false
+  },
+  "contracts": {
+    "registeredV1Methods": 283,
+    "documentedIncludingHealth": 285,
+    "typedEvents": 32,
+    "exitCode": 0
+  },
+  "package": {
+    "files": 283,
+    "routes": 40,
+    "totalBytes": 1819975,
+    "mainPackageBytes": 737947,
+    "subpackageBytes": {
+      "pages/task": 17022,
+      "pages/submit": 43708,
+      "pages/progress": 24005,
+      "pages/points": 12037,
+      "pages/post": 105819,
+      "pages/shop": 9153,
+      "pages/product": 16772,
+      "pages/checkout": 28515,
+      "pages/orders": 8815,
+      "pages/order-detail": 81102,
+      "pages/settings": 76104,
+      "pages/invite": 15195,
+      "pages/legal": 3645,
+      "pages/privacy-rights": 53288,
+      "pages/support": 82894,
+      "pages/management": 19133,
+      "pages/management-catalog": 7814,
+      "pages/management-product": 21770,
+      "pages/management-orders": 8747,
+      "pages/management-order-detail": 17478,
+      "pages/management-support": 10700,
+      "pages/management-support-chat": 66285,
+      "pages/management-members": 33998,
+      "pages/management-member": 34624,
+      "pages/referral": 6863,
+      "pages/community-compose": 46098,
+      "pages/community-post": 26258,
+      "pages/community-author": 14377,
+      "pages/community-review": 33404,
+      "pages/community-activity": 24034,
+      "pages/management-finance": 29932,
+      "pages/commission": 36445,
+      "pages/management-privacy": 17783,
+      "pages/aftersale": 33344,
+      "pages/management-fulfillment": 14867
+    },
+    "globalStyleBytes": 8190,
+    "sourceSha256": "3505ecefc54c8f5f5ebfd4fa5fddbd036e7b31db0b83b7b63e580a80859b3824"
+  },
+  "native": {
+    "sourceHead": "813df77d334afbcc2d1659af5bc38ce107513bde",
+    "packageSourceSha256": "3505ecefc54c8f5f5ebfd4fa5fddbd036e7b31db0b83b7b63e580a80859b3824",
+    "devtools": "2.02.2610292 Nightly, skill0.3.14",
+    "fixtureLayouts": [
+      {
+        "file": "ai-wait-375-26-geometry.json",
+        "width": 375,
+        "font": 26,
+        "overlapPx": 0
+      },
+      {
+        "file": "ai-wait-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "human-typing-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "read-error-375-26-geometry.json",
+        "width": 375,
+        "font": 26,
+        "overlapPx": 0
+      },
+      {
+        "file": "read-error-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "safe-handoff-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "unknown-send-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "waiting-human-375-26-geometry.json",
+        "width": 375,
+        "font": 26,
+        "overlapPx": 0
+      },
+      {
+        "file": "waiting-human-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "welcome-375-26-geometry.json",
+        "width": 375,
+        "font": 26,
+        "overlapPx": 0
+      },
+      {
+        "file": "welcome-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      }
+    ],
+    "guestHomeChatLogin": {
+      "route": "pages/account/index",
+      "returnUrl": "/pages/support/index",
+      "agreementAccepted": false,
+      "sessionPresent": false,
+      "width": 390,
+      "font": 16,
+      "stack": [
+        "pages/home/index",
+        "pages/account/index"
+      ]
+    },
+    "mockRestored": true,
+    "defaultDeviceAndFontRestored": true,
+    "artifacts": [
+      {
+        "file": "native/375-26-baseline.json",
+        "sha256": "1b59db95dbf2c6b753a47daf86f8855237a7a791bb1f231b5f667e54ba5fb728"
+      },
+      {
+        "file": "native/390-16-baseline.json",
+        "sha256": "8afeb33694f9409937ac698904f53b4ac37e05b9fcdcf218267bd7f2a7dafa0e"
+      },
+      {
+        "file": "native/ai-wait-375-26-geometry.json",
+        "sha256": "3db258e6dd67dd372b27ede65f4c4f34adb1708416c76cb405d27ce965b0a3a0"
+      },
+      {
+        "file": "native/ai-wait-375-26.png",
+        "sha256": "9b52aed9086132e4ab6447e73ef784290d0a0046724c919f4529b93169f89038"
+      },
+      {
+        "file": "native/ai-wait-390-16-geometry.json",
+        "sha256": "2904632db69f340a3884ed763629cb17739fed98ffcb164c9d170ccace3dea3a"
+      },
+      {
+        "file": "native/ai-wait-390-16.png",
+        "sha256": "d929e0fa177cba5cb33a5579a4f826d085958b0e2abdd7de95b4944c9aeb9d70"
+      },
+      {
+        "file": "native/guest-home-chat-login.json",
+        "sha256": "535c1afd91a981e93c5e9a63e5e72ba103d9964c12ca98e083b9723de4a58ac5"
+      },
+      {
+        "file": "native/guest-home-chat-login.png",
+        "sha256": "f15d6906915b9bf5e0c385aaaa45d84b642b5bb117c172995a81e322e4f7ab1a"
+      },
+      {
+        "file": "native/human-typing-390-16-geometry.json",
+        "sha256": "fdb64491c3c1d05faacfe8d7db8ab16136740ca5739ae7e16160ff7f23ec46c5"
+      },
+      {
+        "file": "native/human-typing-390-16.png",
+        "sha256": "b6c7a58ae7725c1c3d03620b9945d6d2d7ef9a6b0b6eaa916c68738af917c506"
+      },
+      {
+        "file": "native/read-error-375-26-geometry.json",
+        "sha256": "1e843300a3b04004128c70588ea4df950ece7095ba1f88f3132ce80dceaf0596"
+      },
+      {
+        "file": "native/read-error-375-26.png",
+        "sha256": "425f769232bf677b381c8915ef08dbc7bfb0248460e454a1cf2919fd69b9c8d5"
+      },
+      {
+        "file": "native/read-error-390-16-geometry.json",
+        "sha256": "51c62584fb72943536506a99c15681642a289d2ff9a4c79b410e6ae3f996b1ae"
+      },
+      {
+        "file": "native/read-error-390-16.png",
+        "sha256": "3beeccb57a5d1d6e6876226a0a269c8152dbc056d2bf566d973b7d525f964e7c"
+      },
+      {
+        "file": "native/safe-handoff-390-16-geometry.json",
+        "sha256": "e32f24ca99e228434a662f0b8504e2db20725806ca65a2bedb9245a9340b48e1"
+      },
+      {
+        "file": "native/safe-handoff-390-16.png",
+        "sha256": "f2dbb0a264f0785013e00f698de06158181c2661c29afedd7dfe4bb03e9017fb"
+      },
+      {
+        "file": "native/unknown-send-390-16-geometry.json",
+        "sha256": "fdb5ba77cb1d1f44aa11336398c42d48104f548dad4d7637e3dfebf1828d2277"
+      },
+      {
+        "file": "native/unknown-send-390-16.png",
+        "sha256": "9ba043efc53804f91971bdf3161bb4dfc505a583388cd90365e6ef5c5b9fcd18"
+      },
+      {
+        "file": "native/waiting-human-375-26-geometry.json",
+        "sha256": "bfc0efb47995661b7fee7a5441aef16b664ce439a4d5c2adc3a5d274628abfcd"
+      },
+      {
+        "file": "native/waiting-human-375-26.png",
+        "sha256": "098d7bb0818020ea94d3dafc49b2c9328fb15f2722d1312bef81ec06b52fa848"
+      },
+      {
+        "file": "native/waiting-human-390-16-geometry.json",
+        "sha256": "28a350dbf622a46ddbc80980047a216f25d70cac7b00c750cd3a6e5aee6f6523"
+      },
+      {
+        "file": "native/waiting-human-390-16.png",
+        "sha256": "4e3a3f4dbe194fc94dbb106d43b79506c7f57612c1b8c0e17b88933d05075b92"
+      },
+      {
+        "file": "native/welcome-375-26-geometry.json",
+        "sha256": "59be9bc857c124896de2907359867779cb25408c939d4602159f20d812c12876"
+      },
+      {
+        "file": "native/welcome-375-26.png",
+        "sha256": "5f0efa28077759755533929a0caa095e8844a40bcce10bdecef9cae6d99202fa"
+      },
+      {
+        "file": "native/welcome-390-16-geometry.json",
+        "sha256": "ed0edb208e9878b9141945b7bfafdd6c9713b29258bcd0a8ed45c61a85eea919"
+      },
+      {
+        "file": "native/welcome-390-16.png",
+        "sha256": "4aff68eb7775056d2f9c10afaceb56cb0ea159ed1e0e2af64479dbf0500583f1"
+      }
+    ],
+    "scope": "Chat layouts are local setData fixtures rendered by original WXML/WXSS; no real session. Page visible stays false to prevent network/polling. Composer bottom is projected from native measured rect because original owns guard deliberately refuses invisible fixtures. Layouts are not proof of real authenticated loading, keyboard, polling or physical device. Guest login routing uses restored real navigation."
+  }
+}
