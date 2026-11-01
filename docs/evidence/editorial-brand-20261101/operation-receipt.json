@@ -1,0 +1,189 @@
+{
+  "operation": "editorial.author_relabel",
+  "instance": "lhins-61ikz4mi",
+  "database": "cisme_trial",
+  "oldName": "ʜᴇ ʜᴇ ʜᴇ",
+  "newName": "CISME头皮实验室",
+  "authorizationRef": "cisme-editorial-brand-author-owner-20261101",
+  "articles": [
+    {
+      "id": "e9ef4758-e0a4-4469-8df0-c7cc50985910",
+      "externalRef": "cisme-owned-20261026:describe-your-care-feeling",
+      "previousVersion": 2,
+      "version": 3,
+      "previousContentSha256": "ae6177aac61ddef970104d128084da8c0a44d904ff5433e940d6e873b59f5163",
+      "contentSha256": "b8e8f886aae5a369b0e126c9bb57f55fc3d07a2c389b7125038c2cc19d3a97f1"
+    },
+    {
+      "id": "1a6e1c5e-44a0-475c-b156-bfd9aec5ec98",
+      "externalRef": "cisme-owned-20261026:four-step-care-explained",
+      "previousVersion": 2,
+      "version": 3,
+      "previousContentSha256": "93d68f4d7c1e0fb33341bc293b123e1aa81a1a8aed1583beff9560bd3db76839",
+      "contentSha256": "dba7bd331d851ca9bd220277470d2ce1d4a90a16b219aea021fe805ccb52662c"
+    },
+    {
+      "id": "d5e94e77-9e12-4f22-b628-da12d0c8e8e6",
+      "externalRef": "cisme-owned-20261026:gentle-after-wash-drying",
+      "previousVersion": 2,
+      "version": 3,
+      "previousContentSha256": "fde90b85b1127750a9457398117c6bdd3b58b9fb3a1c4df022577fc64fcbf039",
+      "contentSha256": "9f2adb378e924cdc8a41c2650be144195114b634f869ba90bf0ce8723ba892a1"
+    },
+    {
+      "id": "27c84214-15c6-4dcc-8f69-11a3bd1f89c1",
+      "externalRef": "cisme-owned-20261026:meet-cisme-care-journal",
+      "previousVersion": 2,
+      "version": 3,
+      "previousContentSha256": "6531fb80467225a98814c00947d3c244f72a12ef4d0e27ce239b2e637944e819",
+      "contentSha256": "92636a535a16eb912141519fd89cc5e6f651988ee2754d3035bb0afa7381bdf5"
+    },
+    {
+      "id": "39256eb6-9078-42b6-8900-7a9a4f1ad440",
+      "externalRef": "cisme-owned-20261026:scalp-clean-hair-condition",
+      "previousVersion": 2,
+      "version": 3,
+      "previousContentSha256": "a4ae8875ef45de2a403d3afe16445d2695799176410bce447b9e264be18e4b4b",
+      "contentSha256": "9d878fccba6e1777dcd70f46353ff47d03b7d79d7a3d160c614877b33d416041"
+    },
+    {
+      "id": "11c35a29-566f-436d-9374-dcb5548f84d5",
+      "externalRef": "cisme-owned-20261026:washing-frequency-observation",
+      "previousVersion": 2,
+      "version": 3,
+      "previousContentSha256": "9ef1a5d7750c0a2563aa9ea32395b3f09115f7e3732fcef44a626448c46c50eb",
+      "contentSha256": "3d261a099c3fa135972c9b17e6c04ab2246ebe9d99aa486033d8fefdd4943cf0"
+    },
+    {
+      "id": "541bbfcd-0ac3-4ac2-89f1-72a7390cb90c",
+      "externalRef": "cisme-xhs:6a11232400000000360034c6",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "e3a7d192d8e08de3a467a15bca8bf7fedf1f4ff83f305f00731395f1652d1593",
+      "contentSha256": "e147ab58322d32f44c7a56f2b76575a28c46a727dc9f4df0ab75db7fe11c54f6"
+    },
+    {
+      "id": "90f0cff6-29bb-4cd2-9d8e-cc84a385cc96",
+      "externalRef": "cisme-xhs:6a12fc6c000000003501eff2",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "7294d2a88d7d00f638e29b3232e0f8bba571f58f7081559c68726aad47fab97f",
+      "contentSha256": "66bae0bd9a22859b00b2537d7868e1b5b596e3373f6da775387f618b5f20beb9"
+    },
+    {
+      "id": "94983bbc-5bea-41ba-a9a4-3a00a99a351c",
+      "externalRef": "cisme-xhs:6a1443e6000000003501d11f",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "91e1783f10f6bcac7d22597d9c27929c2a0d85fdd6ac5ae8da020d1c3284fa29",
+      "contentSha256": "77aab9dce402c185d92378df19c7912c9962644801cc4d42b5e552a86db71cfd"
+    },
+    {
+      "id": "ec2919e1-0c9e-433d-8b16-b40e96652202",
+      "externalRef": "cisme-xhs:6a1598380000000035030f24",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "4e69e80c6b1a2a6e9ad175c71c35e79f7eddeb12ce88365c80f735ff1d9d4122",
+      "contentSha256": "30ea70b4dbcd0621373e1f8ba9d2270cc15df5586d3e6072248aeead0ac0e20c"
+    },
+    {
+      "id": "a28a3b3c-03a3-4074-bf5a-d989405b04ac",
+      "externalRef": "cisme-xhs:6a51a9580000000011014ffc",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "5c2294742af89460e76af83c8846394833cc0d4046bf3d16f6439eaaa9c9eac0",
+      "contentSha256": "8a327be0c634f8094752d1f6effde3027bee39fe76e996423a531b5bbb2b5179"
+    },
+    {
+      "id": "0dd14a6a-cbcd-47bc-b284-fe2e4026f876",
+      "externalRef": "cisme-xhs:6a5d82bf00000000110107a3",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "ed1a2a7ac00d2253adad2291990644326ab9f94c50f4c61389d47858840cc24b",
+      "contentSha256": "310e4287c1c56d9942124992821875b83c91b5dda0471eec8d018198d09626fa"
+    },
+    {
+      "id": "7b9c2ae5-e88d-4a7f-84ac-f3b598521d42",
+      "externalRef": "cisme-xhs:6a5f641a000000000f01f1b0",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "ed5c7ecf520bd320e503a312f2c04b7111f1e9e50d1fd1e0a6eab522d790c0ec",
+      "contentSha256": "fb94619e3fcad5b2b3912c2cf243f226849d5efe6fe656cd8675539b874d0a56"
+    },
+    {
+      "id": "8b183841-ba8a-4f12-851d-d80e63fdcb39",
+      "externalRef": "cisme-xhs:6a63563e000000000f02a45e",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "93ba7b6444268ac6f249e7d1a49ed9fd60d24f6fd4ccbf16b0df001fac038c0a",
+      "contentSha256": "a357be0d700c5cfe13a4746be224e334502c42adc8cdd61eb2bc73f6afa6b2d0"
+    },
+    {
+      "id": "dec6ce35-05fe-4b60-95d3-77d35e73fa1d",
+      "externalRef": "cisme-xhs:6a657b7200000000110046ed",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "2f12b9eaa1fd36e758c5fe5d01c2809dc342889f6e34e4326619a9a350e755a8",
+      "contentSha256": "d03f6a05ba0a05c063752e7c7779c71f5c44500b9b5a897296b16f2e7a656c8b"
+    },
+    {
+      "id": "d6909bc4-aaa6-47da-b388-af003a21b52d",
+      "externalRef": "cisme-xhs:6a66dae5000000001101afde",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "ad0d6893b68b4bdfdb334628667a4d403a191f8fc7b98130e2ff81e3142f81ef",
+      "contentSha256": "0265b66d3ca7b63a2a229d6b9a50e3a1760b39d2bd07df81a0c6772fb9eb10f6"
+    },
+    {
+      "id": "f8d9ff69-e77f-491f-818d-02a097cdb91c",
+      "externalRef": "cisme-xhs:6a682a3a000000001101d411",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "0ed6e1c40bc60299cfeb91351c8bbbcb11d27650425a288b1d47426ea372346b",
+      "contentSha256": "508bfd5852c5d45e46078be49c372b9416ef456078d58e32634431a036c756ce"
+    },
+    {
+      "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a",
+      "externalRef": "cisme-xhs:6a6a902b000000001101c47e",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "0ad49874783535cd8199fe91950ffcad0ccd747f1ebed7e1b54c8c3e0ff7a8d8",
+      "contentSha256": "c5b549c3a727e768e546a4997ac62c63dab8f39b5fc56e2067d748f2e113bd02"
+    },
+    {
+      "id": "6c9a8008-fa1b-492a-93cc-11f7ed3598a0",
+      "externalRef": "cisme-xhs:6a6ca32d00000000220107c3",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "eb508ac7020ea322e1e507e6c9b54a29b1aa0f15f5de078ed84c7c5a8326589d",
+      "contentSha256": "2e15023932451e4f3de3af9c258e7f7f9b02542c80ea923eb0575a453c35bdc6"
+    },
+    {
+      "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+      "externalRef": "cisme-xhs:6a6f2c8c00000000320218eb",
+      "previousVersion": 1,
+      "version": 2,
+      "previousContentSha256": "ab7238c2932973274ee9e5b969b4d148f7c02f35143b1f9b1bb530f0dbb706f8",
+      "contentSha256": "9c4659b761f998330ce044eaa6569cad636d05436952833e78a09c0cba7a14ac"
+    }
+  ],
+  "count": 20,
+  "planSha256": "73f5a0778aba5cf29e91f9c9944c25b61729d6b7b9f4dda6dfd54c79b1b804d1",
+  "toolBundleSha256": "753c943663210f419094dad0f83d1e5466785ca4aff0528d2aaea70d11637c68",
+  "sourceFiles": [
+    {
+      "path": "services/api/src/editorialAuthorRelabel.ts",
+      "sha256": "8223499fa2f63df9a68ee3be063cdb284bf0ec85b9cdfc42f7c4c70434ff9d52"
+    },
+    {
+      "path": "scripts/editorial-author-relabel.ts",
+      "sha256": "6aa74d2c207b2c7613b09eb479c9e30bcb83bcdd74d0e2745f5da8b27db22b71"
+    }
+  ],
+  "privateBaselineSha256": "e9efaa39f124e8ac902d097abf233f417dae46023c0d82eb580a80329335af17",
+  "privateAfterSha256": "dbd8def9784abea6d4fc89afa04292c68d6086d65070d34262c33097bf8b45fa",
+  "recoverableBackup": "Protected exact-row/revision baseline retained locally and on the verified trial host; reversal requires current exact guards and new revisions, never deleting historical evidence.",
+  "residentApplicationRestarted": false,
+  "productionModified": false,
+  "readback": "data-assessment.json"
+}
