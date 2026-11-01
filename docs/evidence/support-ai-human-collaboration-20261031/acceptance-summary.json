@@ -1,0 +1,186 @@
+{
+  "scope": "Official WeChat DevTools synthetic native fixtures; no signed-in user writes and no physical-phone IME acceptance",
+  "packageSourceSha256": "73d0f5ab470ba6bec7abfeb25552d65f52892984a349b698b49a301de295f5e4",
+  "checks": [
+    {
+      "file": "operator-known-target-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-out-of-order-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "welcome-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-general-answer-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "waiting-human-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "operator-unknown-target-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-ai-thinking-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-active-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "operator-out-of-order-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    }
+  ],
+  "full40RouteMatrix": "blocked",
+  "sourceHeadAssignedAfterCommit": true,
+  "artifacts": [
+    {
+      "path": "native/human-active-390-16-geometry.json",
+      "sha256": "90088ca65d357347a7e4f387132722c3ce1687ddae2db9c35c2889e8a2a62a54",
+      "bytes": 4116
+    },
+    {
+      "path": "native/human-active-390-16.png",
+      "sha256": "620233b6c20c50cb7e7f262ec917a23b07bed055972b03555c2b9c8d298c266f",
+      "bytes": 44244
+    },
+    {
+      "path": "native/human-ai-thinking-390-16-geometry.json",
+      "sha256": "02436e5c70dc84ecf6f056870bbc4e8d2f26901f206ab118ed7d6edff37cc9c3",
+      "bytes": 4483
+    },
+    {
+      "path": "native/human-ai-thinking-390-16.png",
+      "sha256": "e8a592134eeae946d465571873e617ee7968a4dd93bc8c204d1665cd59809a0d",
+      "bytes": 54233
+    },
+    {
+      "path": "native/human-general-answer-390-16-geometry.json",
+      "sha256": "90088ca65d357347a7e4f387132722c3ce1687ddae2db9c35c2889e8a2a62a54",
+      "bytes": 4116
+    },
+    {
+      "path": "native/human-general-answer-390-16.png",
+      "sha256": "711aca1654a2837d56b2b9dce8f7433ff0c3a5c7d9b73fb5c77151d5a4ddd4b8",
+      "bytes": 59864
+    },
+    {
+      "path": "native/human-out-of-order-390-16-geometry.json",
+      "sha256": "bb440a6b194492ebb3f97859f535ce7824858297de98695becd73233cf1992f8",
+      "bytes": 4493
+    },
+    {
+      "path": "native/human-out-of-order-390-16.png",
+      "sha256": "26de6fbe486f6cf3eca295b6a7fcb0f0d56047c6c8e428c5eb429b3948272ec1",
+      "bytes": 72828
+    },
+    {
+      "path": "native/operator-known-target-390-16-geometry.json",
+      "sha256": "819d754c4423b4d02df8f8dc4d6eb588ebe5327d7a97fe340b87e6d4b373603a",
+      "bytes": 3401
+    },
+    {
+      "path": "native/operator-known-target-390-16.png",
+      "sha256": "60e209ff952213ec5f2118618e0d824a31d8e9ee50db45bd14d864bb57b8d2c2",
+      "bytes": 70101
+    },
+    {
+      "path": "native/operator-out-of-order-390-16-geometry.json",
+      "sha256": "20796b4e2783633fb3da3e28c4152a9483723e3cd5acf32e464962564c11d85a",
+      "bytes": 4168
+    },
+    {
+      "path": "native/operator-out-of-order-390-16.png",
+      "sha256": "515fbf3c829d3b91728c2f87096b6b667b3714459e986cb7e92340b486fd3747",
+      "bytes": 82216
+    },
+    {
+      "path": "native/operator-unknown-target-390-16-geometry.json",
+      "sha256": "819d754c4423b4d02df8f8dc4d6eb588ebe5327d7a97fe340b87e6d4b373603a",
+      "bytes": 3401
+    },
+    {
+      "path": "native/operator-unknown-target-390-16.png",
+      "sha256": "a14662786f2c0b05218d23f34056ef0eb99f093dbbd41662fa1cd656303e6d43",
+      "bytes": 65047
+    },
+    {
+      "path": "native/waiting-human-390-16-geometry.json",
+      "sha256": "90088ca65d357347a7e4f387132722c3ce1687ddae2db9c35c2889e8a2a62a54",
+      "bytes": 4116
+    },
+    {
+      "path": "native/waiting-human-390-16.png",
+      "sha256": "31e8dbd498a2feb489e71a312cd70e9c8a39d9d6ee56cad58a4c6182abd8f189",
+      "bytes": 50190
+    },
+    {
+      "path": "native/welcome-390-16-geometry.json",
+      "sha256": "871bd641c2d8ebcfae830ec75ba26478ac68bc36d525553cec8a46db4b0ec076",
+      "bytes": 4113
+    },
+    {
+      "path": "native/welcome-390-16.png",
+      "sha256": "677c25d48200759e3bea7cdcbdaad79964d8297cb0c35829103ecf09b2e9a09c",
+      "bytes": 47035
+    }
+  ],
+  "validation": {
+    "unitPassed": 2524,
+    "unitSkipped": 1,
+    "typecheck": "passed",
+    "newDeploymentOfflineGuards": 22,
+    "historicalDeploymentOfflineGuards": 98,
+    "realDeepSeekSyntheticRouting": {
+      "passed": 6,
+      "total": 6
+    },
+    "backendFocusedIntegration": "100 tests across 7 files, final collaboration file 33 tests; full CI pending",
+    "nativeCompileChecks": [
+      "support WXML",
+      "support WXSS",
+      "management-support-chat WXML",
+      "management-support-chat WXSS"
+    ]
+  },
+  "knownLimits": [
+    "No physical-phone keyboard acceptance in this run",
+    "Synthetic native layouts do not assert real-account support writes",
+    "Full 40-route state matrix remains blocked"
+  ]
+}

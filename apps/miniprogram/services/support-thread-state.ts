@@ -5,6 +5,7 @@ export interface SupportSequenceMessage {
   sequence: number;
   senderType: string;
   createdAt?: string;
+  replyToMessageId?: string | null;
 }
 
 export type SupportHeaderTone = "ai" | "waiting" | "online" | "neutral" | "resolved";
@@ -16,6 +17,7 @@ export interface SupportHeaderInput {
 
 export type PresentedSupportMessage<TMessage extends SupportSequenceMessage> = TMessage & {
   displayBody: string;
+  replyReferenceLabel: string;
   groupStart: boolean;
   groupEnd: boolean;
   timeSeparatorLabel: string;
@@ -140,6 +142,20 @@ function displayBody(item:SupportSequenceMessage):string {
     ?'售后申请已收到，客服会继续处理。':body;
 }
 
+function replyQuestionSummary(item: SupportSequenceMessage): string {
+  const content = item as SupportSequenceMessage & {body?: string; attachments?: unknown[]; orderCard?: unknown};
+  const body = typeof content.body === "string" ? content.body.replace(/\s+/g, " ").trim() : "";
+  if (body) {
+    const characters = Array.from(body);
+    return characters.length > 80 ? `${characters.slice(0, 80).join("")}…` : body;
+  }
+  return content.attachments?.length ? "图片咨询" : content.orderCard ? "订单咨询" : "";
+}
+
+function isChatMessage(item: SupportSequenceMessage): boolean {
+  return Boolean(item.id) && ["user", "ai", "admin"].includes(item.senderType) && validSequence(item.sequence) > 0 && Boolean(replyQuestionSummary(item));
+}
+
 export function presentSupportMessages<TMessage extends SupportSequenceMessage>(messages: readonly TMessage[], options: {
   ownSenderType: string;
   counterpartyReadSequence?: number;
@@ -151,6 +167,8 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
   const now = options.now ?? new Date();
   const timezoneOffsetMinutes = options.timezoneOffsetMinutes ?? now.getTimezoneOffset();
   const counterpartyReadSequence = validSequence(options.counterpartyReadSequence);
+  const loadedQuestions = new Map(messages.filter(item => item.senderType === "user" && isChatMessage(item)).map(item => [item.id, item]));
+  let previousChat: TMessage | undefined;
   return messages.map((item, index) => {
     const previous = messages[index - 1];
     const next = messages[index + 1];
@@ -167,10 +185,15 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
       : localState === "unknown" ? "结果待核对"
       : item.sequence <= counterpartyReadSequence ? "已读" : "已发送";
     const orderCard = (item as TMessage & {orderCard?:{productImage?:string|null}|null}).orderCard;
+    const question = item.replyToMessageId ? loadedQuestions.get(item.replyToMessageId) : undefined;
+    const replyReferenceLabel = question && question.sequence < item.sequence && question.id !== previousChat?.id
+      ? `回复：${replyQuestionSummary(question)}` : "";
+    if (isChatMessage(item)) previousChat = item;
     return {
       ...item,
       ...(orderCard ? {orderCard:{...orderCard,productImage:nativeCatalogImage(orderCard.productImage)}} : {}),
       displayBody:displayBody(item),
+      replyReferenceLabel,
       groupStart: !sameMessageGroup(previous, item),
       groupEnd: !sameMessageGroup(item, next),
       timeSeparatorLabel: needsSeparator && time !== null ? separatorLabel(time, now, timezoneOffsetMinutes) : "",

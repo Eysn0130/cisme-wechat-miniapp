@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-10-30",
+  "inventoryDate": "2026-10-31",
   "wechatApis": [
     "wx.canIUse",
     "wx.chooseAddress",
@@ -719,7 +719,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "97744c12238ed0b3d9b9eb961784c80980a2742e1b241e94aec241666af769f3",
+  "migrationSetSha256": "14c5c24b2764e29e73c13d5fc0baa3676949f386529a66b4bff84be30aef4646",
   "egressSignatureSha256": "eef2c6f170f4b2e8f42f99ac0c4aeff28ecaaab85bce55774556d83cc1190a94",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1201,5 +1201,21 @@
     },
     "nativeAcceptanceScope": "Read-only simulator management entry, comments with current saved profile and existing waiting-human queue; no real conversation details or writes, no physical-device acceptance.",
     "evidence": "docs/evidence/comment-support-20261030/source-review.json"
+  },
+  "supportCollaborationReview20261031": {
+    "scope": "PRD N.6 / SUPPORT-COLLAB-01, SUPPORT-COLLAB-ROUTE-01, SUPPORT-COLLAB-STATE-01, SUPPORT-COLLAB-TARGET-01, SUPPORT-COLLAB-GATE-01",
+    "migration104": "202610310001_support_ai_human_collaboration.sql adds internal request generation, original-question sequence, source topic version and nullable reply target. Existing rows default to generation0/context0/unknown anchor/null target. No existing body, status, handler, order or aftersale fact is rewritten.",
+    "purpose": "Keep existing manual service for its requested issue while AI answers separate basic questions. Explicit current question and the redacted original human-request question form bounded model context; unknown old anchors remain unknown. Internal generation/IDs are never sent to the provider.",
+    "recipient": "The already owner-selected DeepSeek official API; no new recipient or credential path.",
+    "authority": "Only owner ordinary-member messages invoke automatic AI. Admin reply/AI draft require existing support capabilities and current assignment plus the frozen current target, human-request generation and topic. Historical-rights tokens cannot invoke AI.",
+    "dataMinimization": "Source body stays in the existing immutable message; metadata contains references only, not a second text snapshot. Outbox remains body-free. Model only receives redacted text and actual waiting/active state; no order snapshot, identity, private-media URL, generation or internal target ID.",
+    "retention": "Reply target has no cascade/FK: precise ordinary-message removal is not blocked and cannot delete independent transaction evidence. Retired or deleted targets are hidden from message views. Existing external reset markers clear restored old content and isolate preserved evidence; no new automatic deletion period.",
+    "newRecipient": false,
+    "newConsentCreated": false,
+    "newRetentionPeriod": false,
+    "exportOrErasureRulesChanged": false,
+    "deployed": false,
+    "nativeAcceptance": false,
+    "physicalAcceptance": false
   }
 }

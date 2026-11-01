@@ -204,6 +204,20 @@
   line-height: 1.25;
 }
 
+.support-reply-reference {
+  display: -webkit-box;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: 8rpx;
+  color: var(--cisme-muted);
+  font-size: var(--cisme-text-small);
+  line-height: 1.4;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
 .support-bubble {
   max-width: 100%;
   padding: 19rpx 23rpx;
@@ -602,6 +616,10 @@
   border-radius: 999px;
   background: rgba(238, 228, 242, .55);
   box-shadow: 0 2px 8px rgba(62, 39, 76, .06);
+}
+
+.support-human--status {
+  color: var(--cisme-muted);
 }
 
 .support-draft-attachments {

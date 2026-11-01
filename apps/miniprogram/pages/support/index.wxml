@@ -37,6 +37,7 @@
         </view>
         <view class="support-message__content">
           <text wx:if="{{item.groupStart && item.senderType !== 'user'}}" class="support-message__sender">{{item.senderLabel}}</text>
+          <text wx:if="{{item.replyReferenceLabel}}" class="support-reply-reference">{{item.replyReferenceLabel}}</text>
           <view wx:if="{{item.body}}" class="support-bubble">{{item.body}}</view>
           <view wx:if="{{item.attachments.length}}" class="support-media-grid">
             <button wx:for="{{item.attachments}}" wx:for-item="media" wx:key="id" class="support-media" data-media-id="{{media.id}}" bindtap="previewImage" aria-label="预览客服图片">
@@ -65,7 +66,7 @@
 
     <view wx:if="{{aiReplyWaiting || presence.operatorTyping}}" id="support-ai-wait" class="support-typing {{aiReplyWaiting ? 'support-typing--ai' : ''}}" aria-live="polite">
       <view class="support-avatar support-avatar--{{aiReplyWaiting ? 'ai' : 'human'}}"><image src="{{aiReplyWaiting ? '/assets/cisme/cisme-ai-avatar-v1.png' : '/assets/icons/chat-circle-plum.svg'}}" mode="aspectFit" aria-hidden="true"/></view>
-      <view class="support-typing__body"><view class="support-typing__dots" aria-hidden="true"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{aiReplyWaiting ? '正在等待 AI 回复…' : presence.agentDisplayName + '正在输入…'}}</text></view>
+      <view class="support-typing__body"><view class="support-typing__dots" aria-hidden="true"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{aiReplyWaiting ? '正在思考…' : presence.agentDisplayName + '正在输入…'}}</text></view>
     </view>
     <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重试</button><button wx:elif="{{errorAction === 'handoff'}}" class="{{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="retryHandoff" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}">{{handoffFailed ? '重试申请' : '申请人工'}}</button></view>
       <view class="support-thread__end"></view>
@@ -76,9 +77,9 @@
 
   <view class="support-composer {{composerFocused ? 'support-composer--focused' : ''}}">
     <view wx:if="{{!closedRights}}" class="support-composer__actions">
-      <button wx:if="{{supportAiAvailable && conversation && conversation.status === 'waiting_human'}}" class="support-human {{handoffBusy || sending || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="resumeAi" disabled="{{handoffBusy || sending || newTopicBusy || newTopicAttempt}}"><text class="support-action-pill">继续 AI 咨询</text></button>
+      <view wx:if="{{conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active')}}" class="support-human support-human--status" aria-live="polite"><text class="support-action-pill">{{conversation.status === 'waiting_human' ? '人工已申请' : '人工接待中'}}</text></view>
       <button wx:if="{{!loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human {{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}"><text class="support-action-pill">{{handoffBusy ? '正在申请人工…' : '申请人工'}}</text></button>
-      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && newTopicAvailable && supportAiAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启 AI 新对话' : '清空之前聊天并开始新对话'}}"><text class="support-action-pill">{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
+      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && ((conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active')) || newTopicAvailable && supportAiAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'))}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启 AI 新对话' : conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active') ? '查看人工处理期间开启新对话的说明' : '清空之前聊天并开始新对话'}}"><text class="support-action-pill">{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
     </view>
     <view class="support-composer__surface {{composerFocused ? 'support-composer__surface--focused' : ''}}">
       <view wx:if="{{selectedImage || selectedOrder}}" class="support-draft-attachments">

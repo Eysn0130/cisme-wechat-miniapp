@@ -94,6 +94,64 @@ describe("support thread state", () => {
       .toBe("结果待核对");
   });
 
+  it("references each loaded question when interleaved human and AI replies are separated from their source", () => {
+    const questions = [
+      { ...message(1, "user"), body: "我的退款什么时候处理？" },
+      { ...message(2, "user"), body: "护理记录在哪里查看？" }
+    ];
+    const presented = presentSupportMessages([
+      ...questions,
+      { ...message(3, "admin"), body: "退款事项已收到。", replyToMessageId: "m-1" },
+      { id: "m-4", sequence: 4, senderType: "ai", body: "在底部记录页查看。", replyToMessageId: "m-2" }
+    ], { ownSenderType: "user", counterpartyReadSequence: 2 });
+    expect(presented.map(item => item.replyReferenceLabel)).toEqual(["", "", "回复：我的退款什么时候处理？", "回复：护理记录在哪里查看？"]);
+    expect(presented.map(item => item.senderType)).toEqual(["user", "user", "admin", "ai"]);
+    expect(presented.map(item => item.deliveryLabel)).toEqual(["已读", "已读", "", ""]);
+  });
+
+  it("identifies the slower first-question answer after the second-question answer arrives first", () => {
+    const presented = presentSupportMessages([
+      { ...message(1, "user"), body: "先问的问题" },
+      { ...message(2, "user"), body: "后来问的问题" },
+      { id: "m-3", sequence: 3, senderType: "ai", body: "第二问的答案", replyToMessageId: "m-2" },
+      { id: "m-4", sequence: 4, senderType: "ai", body: "第一问的答案", replyToMessageId: "m-1" }
+    ], { ownSenderType: "admin" });
+    expect(presented[2]!.replyReferenceLabel).toBe("");
+    expect(presented[3]!.replyReferenceLabel).toBe("回复：先问的问题");
+  });
+
+  it("keeps an adjacent question-answer pair uncluttered even with a system event or empty row between them", () => {
+    const presented = presentSupportMessages([
+      { ...message(1, "user"), body: "如何保存护理？" },
+      { ...message(2, "system"), body: "人工申请已收到" },
+      { ...message(3, "admin"), body: "" },
+      { id: "m-4", sequence: 4, senderType: "ai", body: "填写感受后保存。", replyToMessageId: "m-1" }
+    ], { ownSenderType: "user" });
+    expect(presented[3]!.replyReferenceLabel).toBe("");
+  });
+
+  it("does not invent a quote for an unloaded, non-user or future source", () => {
+    const presented = presentSupportMessages([
+      { ...message(1, "admin"), body: "人工回复" },
+      { id: "m-2", sequence: 2, senderType: "ai", body: "未知来源", replyToMessageId: "missing" },
+      { id: "m-3", sequence: 3, senderType: "ai", body: "非用户来源", replyToMessageId: "m-1" },
+      { id: "m-4", sequence: 4, senderType: "ai", body: "未来来源", replyToMessageId: "m-5" },
+      { ...message(5, "user"), body: "未来的问题" }
+    ], { ownSenderType: "user" });
+    expect(presented.every(item => item.replyReferenceLabel === "")).toBe(true);
+  });
+
+  it("compacts and bounds a long quote without changing its original question body", () => {
+    const body = `护理\n  ${"😊".repeat(100)}`;
+    const presented = presentSupportMessages([
+      { ...message(1, "user"), body },
+      message(2, "user"),
+      { id: "m-3", sequence: 3, senderType: "ai", body: "回答", replyToMessageId: "m-1" }
+    ], { ownSenderType: "user" });
+    expect(presented[0]!.body).toBe(body);
+    expect(presented[2]!.replyReferenceLabel).toBe(`回复：护理 ${"😊".repeat(77)}…`);
+  });
+
   it("keeps an old full case id in the underlying event while showing a short receipt", () => {
     const body="售后申请已收到 · 编号 8bb27d44-9e66-4bcd-8471-dd7535263e02。客服将按本案处理。";
     const shown=presentSupportMessages([{...message(1,"system"),body}],{ownSenderType:"user"})[0]!;

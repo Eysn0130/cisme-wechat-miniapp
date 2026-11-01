@@ -62,7 +62,7 @@ describe('native support new AI topic',()=>{
   expect(p.data.selectedOrder.id).toBe('late-order');expect(m.request).not.toHaveBeenCalled();
  });
  it.each(['waiting_human','human_active'])('does not leave %s to start a fresh topic',async(status)=>{
-  p.data.conversation={...conversation,status};await p.startNewTopic();expect(m.request).not.toHaveBeenCalled();
+  p.data.conversation={...conversation,status};await p.startNewTopic();expect(m.request).not.toHaveBeenCalled();expect(p.data.conversation.status).toBe(status);expect(wx.showModal).toHaveBeenCalledWith(expect.objectContaining({title:'人工事项处理中',showCancel:false,content:expect.stringContaining('人工申请会继续保留')}));
  });
  it.each(['sending','uploadBusy','handoffBusy','closedRights','sendAttempt'])('does not start during %s',async(key)=>{
   p.data[key]=key==='sendAttempt'?{id:'unconfirmed-original'}:true;await p.startNewTopic();expect(m.request).not.toHaveBeenCalled();
@@ -127,7 +127,7 @@ describe('native support new AI topic',()=>{
   m.request.mockImplementation(input=>input.path==='/v1/me/support/handoff'?Promise.reject({status:409,code:'SUPPORT_CONTEXT_CHANGED'}):Promise.resolve({}));
   m.read.mockResolvedValueOnce(page({contextVersion:5,conversation:{...conversation,version:5}}));await p.requestHuman();
   const requests=m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/handoff');expect(requests).toHaveLength(1);
-  expect(requests[0]![0].data).toEqual({expectedConversationId:conversation.id,contextVersion:4});
+  expect(requests[0]![0].data).toEqual({expectedConversationId:conversation.id,contextVersion:4,questionMessageId:null});
   expect(p.data.contextVersion).toBe(5);expect(p.data.handoffBusy).toBe(false);expect(p.data.handoffFailed).toBe(false);expect(p.data.error).toContain('再申请人工客服');
  });
  it('acknowledges an old send without putting its bubbles back into a newer topic',async()=>{

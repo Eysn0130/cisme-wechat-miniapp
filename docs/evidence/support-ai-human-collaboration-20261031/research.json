@@ -1,0 +1,31 @@
+{
+  "recordedAt": "2026-11-01T05:43:19.723024+00:00",
+  "scope": "Official open-source support implementations; CISME design is an adaptation, not an assertion that one project provides the full desired workflow.",
+  "sources": [
+    {
+      "url": "https://github.com/chatwoot/chatwoot/blob/develop/lib/integrations/bot_processor_service.rb",
+      "finding": "Default bot processing requires pending conversation state; whole-conversation handoff cannot be copied for concurrent basic questions."
+    },
+    {
+      "url": "https://github.com/chatwoot/chatwoot/blob/develop/app/listeners/agent_bot_listener.rb",
+      "finding": "Event observation and public bot response eligibility are distinct concerns."
+    },
+    {
+      "url": "https://github.com/zammad/zammad-user-documentation/blob/4.x/advanced/ticket-actions/split.rst",
+      "finding": "Multiple problems can be split into associated issues; use issue-specific context rather than locking all messages."
+    },
+    {
+      "url": "https://doc.livehelperchat.com/docs/bot/check-conditions",
+      "finding": "Route using explicit message and chat context conditions; do not infer status from generated prose."
+    },
+    {
+      "url": "https://api-docs.deepseek.com/guides/json_mode/",
+      "finding": "Use structured JSON and handle blank/malformed outputs."
+    },
+    {
+      "url": "https://api-docs.deepseek.com/api/create-chat-completion.md",
+      "finding": "Explicitly disable thinking and bound output/request parameters."
+    }
+  ],
+  "cismeDecision": "Retain one chat and existing manual assignment; anchor human requests and route each new user question. Human followups use actual server state, independent basic questions receive grounded AI, ambiguity asks one clarification, mixed turns preserve both parts. No manual AI/human switching."
+}

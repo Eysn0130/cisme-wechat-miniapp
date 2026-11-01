@@ -23,12 +23,15 @@ import {
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType?: string; createdAt?: string; attachments?: Attachment[]; orderCard?: OrderCard | null;
+  replyToMessageId?: string | null;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
   deliveryState?: "server_accepted" | "read" };
 type Message = PresentedSupportMessage<RawMessage>;
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
-type SendAttempt = { id: string; body: string };
+type HumanRequest = { generation: number; status: "waiting_human" | "human_active"; anchorKnown: boolean; anchorMessageId: string | null; anchorSequence: number | null };
+type ReplyTarget = { id: string; sequence: number | null; summary: string; generation: number; contextVersion: number };
+type SendAttempt = { id: string; body: string; replyToMessageId: string; expectedHumanRequestGeneration: number; contextVersion: number };
 type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;returnDestination:null|{version:number};claimBasis:string};
 type ReturnForm = {recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string};
 
@@ -63,6 +66,9 @@ Page({
     olderCursor: null as number | null,
     contextStartSequence: 0,
     contextVersion: 0,
+    humanRequest: null as HumanRequest | null,
+    replyTarget: null as ReplyTarget | null,
+    replyTargetNeedsRefresh: false,
     assignedToMe: false,
     canAssign: false,
     canReply: false,
@@ -156,6 +162,8 @@ Page({
   onHide() {
     cancelPageReads(this);
     void this.publishPresence(false, false, true);
+    if (this.data.sendAttempt) this.setData({ busy: false, pendingMessage: this.pendingFrom(this.data.sendAttempt, "unknown"),
+      error: "回复是否发送成功还未确认，文字和回复对象已保留，请重试核对。" });
     this.data.visible = false;
     this.lifecycleEpoch += 1;
     this.stopPolling();
@@ -201,6 +209,9 @@ Page({
       olderCursor: null,
       contextStartSequence: 0,
       contextVersion: 0,
+      humanRequest: null,
+      replyTarget: null,
+      replyTargetNeedsRefresh: false,
       assignedToMe: false,
       canAssign: false,
       canReply: false,
@@ -239,8 +250,63 @@ Page({
   clearRetiredTopic() {
     this.clearPresenceTimer(); this.abortDownloads(); this.inputRevision += 1;
     this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
-    this.setData({ input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
+    this.setData({ input: "", sendAttempt: null, pendingMessage: null, replyTarget: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
       presence: emptyPresence, olderCursor: null, loadingOlder: false, anchor: "", atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
+  },
+  questionSummary(message: RawMessage | undefined) {
+    return (message?.body?.trim() || (message?.attachments?.length ? "图片咨询" : message?.orderCard ? "订单咨询" : "人工申请中的问题")).slice(0, 80);
+  },
+  humanRequestFrom(page: { humanRequest?: unknown }): HumanRequest | null {
+    const value = page.humanRequest as Partial<HumanRequest> | null | undefined;
+    if (!value || !Number.isSafeInteger(value.generation) || Number(value.generation) < 0
+      || value.status !== "waiting_human" && value.status !== "human_active") return null;
+    return { generation: Number(value.generation), status: value.status, anchorKnown: value.anchorKnown === true,
+      anchorMessageId: typeof value.anchorMessageId === "string" ? value.anchorMessageId : null,
+      anchorSequence: Number.isSafeInteger(value.anchorSequence) && Number(value.anchorSequence) > 0 ? Number(value.anchorSequence) : null };
+  },
+  staleHumanRequest(page: { humanRequest?: unknown }) {
+    const incoming = this.humanRequestFrom(page);
+    return Boolean(incoming && this.data.humanRequest && incoming.generation < this.data.humanRequest.generation);
+  },
+  replyContextPatch(page: { humanRequest?: unknown }, messages: readonly RawMessage[], contextVersion: number, topicChanged = false): Record<string, unknown> {
+    const humanRequest = this.humanRequestFrom(page), generation = humanRequest?.generation ?? 0;
+    const changed = topicChanged || Boolean(this.data.humanRequest && generation !== this.data.humanRequest.generation)
+      || Boolean(this.data.replyTarget && (this.data.replyTarget.generation !== generation || this.data.replyTarget.contextVersion !== contextVersion));
+    if (changed) {
+      this.inputRevision += 1;
+      return { humanRequest, replyTarget: null, replyTargetNeedsRefresh: true, input: "", sendAttempt: null, pendingMessage: null,
+        composerCapped: false, composerLineCount: 1, composerSendEnabled: false, error: "人工事项已变化，请刷新后确认要回复的问题。" };
+    }
+    if (this.data.replyTargetNeedsRefresh) return { humanRequest, replyTarget: null, composerSendEnabled: false };
+    let replyTarget = this.data.replyTarget;
+    if (!replyTarget && humanRequest?.anchorKnown && humanRequest.anchorMessageId) {
+      const question = messages.find(item => item.id === humanRequest.anchorMessageId && item.senderType === "user");
+      replyTarget = { id: humanRequest.anchorMessageId, sequence: humanRequest.anchorSequence,
+        summary: this.questionSummary(question), generation, contextVersion };
+    } else if (replyTarget) {
+      const question = messages.find(item => item.id === replyTarget!.id && item.senderType === "user");
+      if (question) replyTarget = { ...replyTarget, summary: this.questionSummary(question) };
+    }
+    return { humanRequest, replyTarget, composerSendEnabled: Boolean(this.data.input.trim() && replyTarget) };
+  },
+  async selectReplyTarget(event: WechatMiniprogram.TouchEvent) {
+    if (!this.data.canReply || !this.data.assignedToMe || this.data.busy || this.data.sendAttempt || this.data.conversation?.status !== "human_active") return;
+    if (this.data.replyTargetNeedsRefresh) { wx.showToast({ title: "请先刷新人工事项", icon: "none" }); return; }
+    const id = String(event.currentTarget.dataset.id ?? "");
+    const message = this.data.messages.find(item => item.id === id && item.senderType === "user" && item.sequence > this.data.contextStartSequence);
+    if (!message || this.data.replyTarget?.id === id) return;
+    if (this.data.input.trim()) {
+      const epoch = this.lifecycleEpoch, token = sessionToken(), revision = this.inputRevision;
+      const generation = this.data.humanRequest?.generation ?? 0, contextVersion = this.data.contextVersion;
+      const answer = await wx.showModal({ title: "更换回复问题？", content: "当前未发送的回复会清空，请针对新选择的问题重新填写。", confirmText: "更换问题" });
+      if (!answer.confirm || !this.owns(epoch, token) || this.data.busy || this.data.sendAttempt || revision !== this.inputRevision
+        || generation !== (this.data.humanRequest?.generation ?? 0) || contextVersion !== this.data.contextVersion || this.data.replyTargetNeedsRefresh) return;
+    }
+    this.inputRevision += 1;
+    this.setData({ replyTarget: { id, sequence: message.sequence, summary: this.questionSummary(message),
+      generation: this.data.humanRequest?.generation ?? 0, contextVersion: this.data.contextVersion }, input: "", composerSendEnabled: false,
+      composerCapped: false, composerLineCount: 1, error: "" });
+    wx.nextTick(() => this.measureActions());
   },
   present(messages: readonly RawMessage[], conversation?: Conversation | null, presence?: Presence, memberDisplayName?: string): Message[] {
     const activeConversation = conversation === undefined ? this.data.conversation : conversation;
@@ -350,7 +416,7 @@ Page({
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const topic = this.topicMetadata(page);
-      if (topic.stale) { this.setData({ loading: false }); return; }
+      if (topic.stale || this.staleHumanRequest(page)) { this.setData({ loading: false }); return; }
       const memberDisplayName = page.memberDisplayName || "CISME 会员";
       const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
       const assignedToMe = page.assignedToMe === true;
@@ -371,6 +437,7 @@ Page({
         newMessagesBelow: false,
         newMessagesBelowCount: 0,
         anchor: messages.length ? `operator-${messages[messages.length - 1]!.sequence}` : "",
+        ...this.replyContextPatch(page, messages, topic.contextVersion, topic.changed),
         ...this.headerPatch(conversation, presence, assignedToMe)
       });
       this.downloadMedia(raw);
@@ -465,7 +532,7 @@ Page({
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const topic = this.topicMetadata(page);
-      if (topic.stale) return;
+      if (topic.stale || this.staleHumanRequest(page)) return;
       const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
       const presence = { ...emptyPresence, ...(page.presence ?? (topic.changed ? emptyPresence : this.data.presence)) } as Presence;
       const incoming = this.normalize(page.messages || []).filter(item => item.sequence > topic.contextStartSequence);
@@ -488,7 +555,8 @@ Page({
         contextStartSequence: topic.contextStartSequence, contextVersion: topic.contextVersion,
         ...(topic.changed ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
         assignedToMe,
-        ...(lostAssignment ? { input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
+        ...this.replyContextPatch(page, state.messages, topic.contextVersion, topic.changed),
+        ...(lostAssignment ? { input: "", sendAttempt: null, pendingMessage: null, replyTarget: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
         ...this.headerPatch(conversation, presence, assignedToMe),
         anchor: topic.changed ? newest ? `operator-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `operator-${newest.sequence}` : this.data.anchor,
         newMessagesBelowCount: shouldFollow || topic.changed ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
@@ -516,10 +584,12 @@ Page({
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || boundary !== this.data.contextStartSequence) return;
       const topic = this.topicMetadata(page);
-      if (topic.stale) return;
+      if (topic.stale || this.staleHumanRequest(page)) return;
       if (topic.changed) { await this.load(); return; }
       const older = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
-      this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null, anchor: preserve ? `operator-${preserve}` : "" });
+      const state = mergeHistoryPage(this.threadState(), this.present(older));
+      this.applyThreadState(state, { olderCursor: page.olderCursor ?? null, anchor: preserve ? `operator-${preserve}` : "",
+        ...this.replyContextPatch(page, state.messages, topic.contextVersion) });
       this.downloadMedia(older);
     } catch {
       if (this.data.visible) wx.showToast({ title: "更早消息暂时无法加载", icon: "none" });
@@ -602,30 +672,33 @@ Page({
     }
   },
   updateInput(event: WechatMiniprogram.TextareaInput) {
+    if (this.data.busy || this.data.sendAttempt) return;
     this.inputRevision += 1;
     this.lastActivityAt = Date.now();
     const input = event.detail.value;
     this.setData({
       input,
-      composerSendEnabled: Boolean(input.trim()),
-      sendAttempt: this.data.sendAttempt?.body === input.trim() ? this.data.sendAttempt : null,
-      pendingMessage: this.data.pendingMessage?.deliveryLabel === "发送失败" ? null : this.data.pendingMessage
+      composerSendEnabled: Boolean(input.trim() && this.data.replyTarget && !this.data.replyTargetNeedsRefresh),
+      sendAttempt: null,
+      pendingMessage: null
     });
     void this.publishPresence(true, Boolean(input.trim()), !input.trim());
   },
   async suggest() {
-    if (!this.data.aiProviderAvailable || !this.data.assignedToMe || this.data.busy) return;
+    if (!this.data.aiProviderAvailable || !this.data.assignedToMe || this.data.busy || this.data.sendAttempt || !this.data.replyTarget || this.data.replyTargetNeedsRefresh) return;
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     const contextVersion = this.data.contextVersion;
+    const replyTarget = this.data.replyTarget;
     this.setData({ busy: true, error: "" });
     try {
-      const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: {}, cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.inputRevision === draftRevision) {
+      const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: { replyToMessageId: replyTarget.id,
+        expectedHumanRequestGeneration: replyTarget.generation, contextVersion: replyTarget.contextVersion }, cacheTags: ["support"] });
+      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.inputRevision === draftRevision && this.data.replyTarget?.id === replyTarget.id) {
         this.inputRevision += 1;
         const input = String(draft.text || "");
-        this.setData({ input, composerSendEnabled: Boolean(input.trim()), sendAttempt: null });
+        this.setData({ input, composerSendEnabled: Boolean(input.trim() && this.data.replyTarget), sendAttempt: null });
       }
     } catch {
       if (this.owns(epoch, ownerToken)) this.setData({ error: "AI 建议回复不可用，请继续人工处理。草稿不会自动发送。" });
@@ -633,12 +706,13 @@ Page({
       if (this.owns(epoch, ownerToken)) this.setData({ busy: false });
     }
   },
-  pendingFrom(attempt: SendAttempt, state: "pending" | "failed"): Message {
+  pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {
     const raw = {
       id: `local-${attempt.id}`,
       sequence: this.data.maxSeenSequence + 1,
       senderType: "admin" as const,
       body: attempt.body,
+      replyToMessageId: attempt.replyToMessageId,
       contentType: "text",
       createdAt: new Date().toISOString(),
       attachments: [],
@@ -649,18 +723,25 @@ Page({
     return this.present([raw])[0]! as Message;
   },
   async send() {
-    const body = this.data.input.trim();
-    if (!body || !this.data.canReply || !this.data.assignedToMe || this.data.busy) return;
+    const previous = this.data.sendAttempt;
+    const body = previous?.body ?? this.data.input.trim();
+    if (!body || !this.data.canReply || !this.data.assignedToMe || this.data.busy || this.data.conversation?.status !== "human_active") return;
+    const target = this.data.replyTarget;
+    if (!previous && (!target || this.data.replyTargetNeedsRefresh || target.contextVersion !== this.data.contextVersion || target.generation !== (this.data.humanRequest?.generation ?? 0))) {
+      this.setData({ composerSendEnabled: false, error: this.data.replyTargetNeedsRefresh ? "人工事项已变化，请刷新后确认要回复的问题。" : "请先点选要回复的用户消息。" }); return;
+    }
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     const contextVersion = this.data.contextVersion;
-    const sendAttempt = this.data.sendAttempt?.body === body ? this.data.sendAttempt : { id: `wx-agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, body };
+    const sendAttempt = previous ?? { id: `wx-agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, body,
+      replyToMessageId: target!.id, expectedHumanRequestGeneration: target!.generation, contextVersion: target!.contextVersion };
     this.lastActivityAt = Date.now();
     this.setData({ busy: true, error: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending") });
     void this.publishPresence(true, false, true);
     try {
-      const result = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/messages`, method: "POST", data: { body, clientMessageId: sendAttempt.id }, cacheTags: ["support"] });
+      const result = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/messages`, method: "POST", data: { body, clientMessageId: sendAttempt.id,
+        replyToMessageId: sendAttempt.replyToMessageId, expectedHumanRequestGeneration: sendAttempt.expectedHumanRequestGeneration, contextVersion: sendAttempt.contextVersion }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || this.data.sendAttempt?.id !== sendAttempt.id) return;
       if (result.contextSyncRequired) {
         const clearDraft = this.inputRevision === draftRevision && this.data.input.trim() === body;
@@ -684,9 +765,17 @@ Page({
       if (clearDraft) this.inputRevision += 1;
       await this.markRead();
       wx.nextTick(() => this.measureActions());
-    } catch {
-      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.data.sendAttempt?.id === sendAttempt.id)
-        this.setData({ error: "回复是否发送成功还未确认，文字已保留。", pendingMessage: this.pendingFrom(sendAttempt, "failed") });
+    } catch (error) {
+      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.data.sendAttempt?.id === sendAttempt.id) {
+        if (["SUPPORT_CONTEXT_CHANGED", "SUPPORT_HUMAN_REQUEST_CHANGED", "SUPPORT_REPLY_TARGET_INVALID"].includes(String((error as {code?:string})?.code))) {
+          this.clearRetiredTopic(); this.setData({ replyTargetNeedsRefresh: true, error: "人工事项已变化，原回复未发送。请刷新后确认要回复的问题。" });
+        } else {
+          const status = (error as {status?:number})?.status;
+          if (status && status >= 400 && status < 500 && status !== 408 && status !== 429)
+            this.setData({ sendAttempt: null, pendingMessage: null, error: "回复未发送，请核对问题或刷新后重试。" });
+          else this.setData({ error: "回复是否发送成功还未确认，文字和回复对象已保留，请重试核对。", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
+        }
+      }
     } finally {
       if (this.owns(epoch, ownerToken)) this.setData({ busy: false });
     }
@@ -764,7 +853,7 @@ Page({
     const id = String(event.currentTarget.dataset.id ?? "");
     if (id) wx.navigateTo({ url: `/pages/management-order-detail/index?id=${encodeURIComponent(id)}` });
   },
-  retry() { return this.onShow(); },
+  retry() { this.setData({ replyTargetNeedsRefresh: false }); return this.onShow(); },
   back() {
     wx.navigateBack({ fail: () => wx.redirectTo({ url: "/pages/management-support/index" }) });
   }

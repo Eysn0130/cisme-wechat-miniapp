@@ -376,13 +376,17 @@ describe('fresh support conversation with ordinary-message erasure',()=>{
   expect(history.messages.map(message=>message.sequence)).toEqual([4,5,6]);
   expect(JSON.stringify(history)).not.toContain('旧话题合成历史');
   expect((await support.operatorMessages(operator.memberId,operator.principalId,row.id,{before:4,limit:100})).messages).toEqual([]);
-  const projection=await support.modelProjectionForAssignedOperator(operator.memberId,operator.principalId,row.id);
-  expect(projection.messages.map(message=>message.sequence)).toEqual([4,5,6]);
+  const projection=await support.modelProjectionForAssignedOperator(operator.memberId,operator.principalId,row.id,{contextVersion:history.contextVersion,expectedHumanRequestGeneration:1});
+  expect(projection.messages.map(message=>message.sequence)).toEqual([4]);
+  expect(projection.question).toMatchObject({sequence:4,body:'新话题需要帮助'});
   expect(JSON.stringify(projection)).not.toContain('旧话题合成历史');
  });
 
  it('erases ordinary messages while retaining transaction evidence outside ordinary and operator chat history',async()=>{
   const row=await seedHistory(3,'ai_active','transaction');await reset(inputFor(row));
+  const retainedTarget=(await pool.query('SELECT id FROM support_message WHERE conversation_id=$1 AND sequence=1',[row.id])).rows[0];
+  await expect(pool.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,reply_to_message_id)
+    VALUES($1,4,'ai','ai:support','不能关联退役话题','synthetic-retired-target',$2)`,[row.id,retainedTarget.id])).rejects.toThrow(/SUPPORT_REPLY_TARGET_INVALID/);
   expect((await pool.query('SELECT sequence,retention_purpose FROM support_message WHERE conversation_id=$1',[row.id])).rows)
    .toEqual([{sequence:'1',retention_purpose:'transaction'}]);
   const page=await support.messagesForMember(user.memberId,{});
@@ -413,6 +417,28 @@ describe('fresh support conversation with ordinary-message erasure',()=>{
    await expect(support.memberSupportMedia(user.memberId,mediaId)).rejects.toMatchObject({code:'SUPPORT_MEDIA_NOT_FOUND',status:404});
    await expect(support.operatorSupportMedia(operator.memberId,row.id,mediaId)).rejects.toMatchObject({code:'SUPPORT_MEDIA_NOT_FOUND',status:404});
   }
+ });
+
+ it('clears linked ordinary question/answer pairs without a foreign-key barrier or a retired reply target',async()=>{
+  const sent=await send('即将清空的普通问答');
+  expect(sent.aiMessages?.[0]?.replyToMessageId).toBe(sent.message.id);
+  const row=await current(sent.conversation.id);await reset(inputFor(row));
+  expect((await pool.query('SELECT id FROM support_message WHERE conversation_id=$1',[row.id])).rowCount).toBe(0);
+  expect((await support.messagesForMember(user.memberId,{})).messages).toEqual([]);
+ });
+
+ it('preserves independently retained evidence while hiding a reply link whose ordinary target was removed',async()=>{
+  const row=await seedHistory(1),target=(await pool.query('SELECT id FROM support_message WHERE conversation_id=$1',[row.id])).rows[0];
+  const evidence=(await pool.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose,reply_to_message_id)
+    VALUES($1,2,'ai','ai:support','合成独立保留凭证','synthetic-retained-link','transaction',$2) RETURNING id`,[row.id,target.id])).rows[0];
+  await pool.query('UPDATE support_conversation SET next_sequence=3,version=version+1,updated_at=clock_timestamp() WHERE id=$1',[row.id]);
+  await reset(inputFor(await current(row.id)));
+  expect((await pool.query('SELECT id FROM support_message WHERE id=$1',[target.id])).rowCount).toBe(0);
+  expect((await pool.query('SELECT reply_to_message_id FROM support_message WHERE id=$1',[evidence.id])).rows[0].reply_to_message_id).toBe(target.id);
+  expect((await support.messagesForMember(user.memberId,{})).messages).toEqual([]);
+  expect((await support.operatorMessages(operator.memberId,operator.principalId,row.id,{})).messages).toEqual([]);
+  const historical=await support.messagesForMember(user.memberId,{},false);
+  expect(historical.messages).toMatchObject([{id:evidence.id,replyToMessageId:null}]);
  });
 
  it('ignores other-owner, other-operation and other-conversation receipt boundaries',async()=>{

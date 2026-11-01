@@ -17,12 +17,15 @@ type ConversationRow = {
   current_handler_principal_id: string | null; next_sequence: string; member_unread_count: number;
   team_unread_count: number; member_last_read_sequence:string; team_last_read_sequence:string; version: number; updated_at: Date;
   resolved_at?: Date | null;
+  human_request_generation?:number;human_request_anchor_sequence?:string|null;human_request_context_version?:number;
 };
 type OrderCard = { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
 type MessageRow = { id: string; conversation_id:string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; body: string; attachment_refs: string[];
   content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null;
-  linked_case_id:string|null;return_instruction_snapshot:Omit<NonNullable<SupportMessageView['returnInstruction']>,'caseId'>|null;created_at: Date };
+  linked_case_id:string|null;return_instruction_snapshot:Omit<NonNullable<SupportMessageView['returnInstruction']>,'caseId'>|null;created_at: Date;reply_to_message_id?:string|null };
 type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
+type ReplyTargetInput={replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown};
+type HumanContext={generation:number;status:'waiting_human'|'human_active';anchorQuestion:string|null;anchorKnown:boolean;anchorMessageId:string|null;anchorSequence:number|null};
 
 function required(value: string | undefined, code: string): string {
   if (!value) throw new DomainError(code, "Authenticated principal required", 401);
@@ -83,7 +86,7 @@ function contentType(body: string, images: readonly string[], orderId: string | 
   return "text";
 }
 function messageColumns(): string {
-  return "id,conversation_id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at";
+  return "id,conversation_id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at,reply_to_message_id";
 }
 function view(row: MessageRow, input: { counterpartyReadSequence: number; previewPrefix: string; media: ReadonlyMap<string, MediaRow> }): SupportMessageView {
   const attachments = (Array.isArray(row.attachment_refs) ? row.attachment_refs : []).flatMap((id) => {
@@ -93,6 +96,7 @@ function view(row: MessageRow, input: { counterpartyReadSequence: number; previe
   return { id: row.id, sequence: Number(row.sequence), senderType: row.sender_type, body: row.body, contentType: row.content_type,
     attachments, orderCard: row.order_snapshot ?? null,
     returnInstruction:row.linked_case_id&&row.return_instruction_snapshot?{caseId:row.linked_case_id,...row.return_instruction_snapshot}:null,
+    replyToMessageId:row.reply_to_message_id??null,
     deliveryState: Number(row.sequence) <= input.counterpartyReadSequence ? "read" : "server_accepted", createdAt: row.created_at.toISOString() };
 }
 function conversation(row: ConversationRow) {
@@ -172,67 +176,122 @@ export class SupportService {
     return readSnapshot(this.pool,async client=>{
       const row=await this.findForMember(client,owner);
       if(!row)throw new DomainError('SUPPORT_CONVERSATION_NOT_FOUND','会话状态暂时无法核对，请刷新后重试',503);
-      return {conversation:conversation(row),...await this.contextState(client,row),newTopicAvailable:this.suppression?.suppressionEnabled()===true};
+      const topic=await this.contextState(client,row);
+      return {conversation:conversation(row),...topic,newTopicAvailable:this.suppression?.suppressionEnabled()===true,
+        supportAiCanRespond:this.automaticAiAvailable(),humanRequest:this.humanView(await this.humanContext(client,row,topic))};
     });
   }
 
-  /** Model work runs after the member message commits and without holding a
-   * database connection. A second locked check prevents any answer crossing a
-   * manual handoff, newer message, account block or operator assignment. */
-  private async automaticReply(owner:string,id:string,messageId:string,expectedVersion:number,traceId:string) {
-    await this.reconcile(owner);
-    const context=await transaction(this.pool,async client=>{
-      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
-      await this.reconcileLocked(client,owner);
-      const snapshot=await this.findForMember(client,owner);
-      if(!snapshot||snapshot.id!==id||snapshot.status!=='ai_active'||snapshot.version!==expectedVersion)return null;
-      return {snapshot,messages:await this.modelMessages(client,snapshot)};
-    });
-    if(!context)return {};
-    const {snapshot,messages}=context;
-    const latest=messages.at(-1);
-    if(latest?.id!==messageId||latest.sender_type!=='user')return {};
-    let suggestion:SupportAiSuggestion|null=null,failure='SUPPORT_AI_UNAVAILABLE';
-    if(latest.content_type!=='text')failure='SUPPORT_AI_HUMAN_CONTEXT_REQUIRED';
-    else if(this.automaticAiAvailable()){
-      try{
-        suggestion=await this.ai!.suggestedReply(modelSafeSupportProjection({conversation:snapshot,messages}));
-        if(suggestion.handoffReason||suggestion.confidence<0.5){failure='SUPPORT_AI_HANDOFF_REQUIRED';suggestion=null;}
-      }catch(error){
-        const code=(error as {code?:unknown})?.code;
-        failure=typeof code==='string'&&/^SUPPORT_AI_[A-Z_]+$/.test(code)?code:'SUPPORT_AI_UNAVAILABLE';
+  private async humanContext(client:DbClient|pg.Pool,row:ConversationRow,context?:{contextStartSequence:number;contextVersion:number}):Promise<HumanContext|null>{
+    if(row.status!=='waiting_human'&&row.status!=='human_active')return null;
+    const topic=context??await this.contextState(client,row),generation=row.human_request_generation??0;
+    const sequence=Number(row.human_request_anchor_sequence??0);
+    const anchor=generation>0&&row.human_request_context_version===topic.contextVersion&&sequence>topic.contextStartSequence
+      ?(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND sequence=$2 AND sender_type='user'`,[row.id,sequence])).rows[0]:undefined;
+    const known=Boolean(anchor?.body.trim());
+    return {generation,status:row.status,anchorQuestion:known?anchor!.body:null,anchorKnown:known,anchorMessageId:anchor?.id??null,anchorSequence:anchor?Number(anchor.sequence):null};
+  }
+
+  private humanView(human:HumanContext|null){
+    if(!human)return null;
+    const {anchorQuestion:_,...visible}=human;return visible;
+  }
+  private humanStatus(human:HumanContext){return human.status==='waiting_human'
+    ?'之前申请人工的问题正在等待处理，有补充可以直接告诉我 😊'
+    :'之前申请人工的问题正由人工客服跟进，有补充可以直接告诉我 😊';}
+  private humanKey(human:HumanContext|null){return human?`${human.generation}:${human.anchorMessageId??'unknown'}`:'none';}
+
+  /** Each AI receipt belongs to one user question and topic, independently of
+   * unrelated human messages. Only the commit transaction allocates sequence. */
+  private async automaticReply(owner:string,id:string,messageId:string,traceId:string) {
+    for(let attempt=0;attempt<2;attempt++){
+      await this.reconcile(owner);
+      const context=await transaction(this.pool,async client=>{
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+        await this.reconcileLocked(client,owner);
+        const snapshot=await this.findForMember(client,owner);
+        if(!snapshot||snapshot.id!==id)return null;
+        if(!(await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner])).rowCount)return null;
+        const topic=await this.contextState(client,snapshot);
+        const source=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE id=$1 AND conversation_id=$2 AND sender_type='user' AND sequence>$3`,[messageId,id,topic.contextStartSequence])).rows[0];
+        if(!source)return null;
+        const prior=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND client_message_id=$2 AND sender_type IN ('ai','system')`,[id,`ai-reply:${messageId}`])).rows[0];
+        if(prior)return {snapshot,topic,source,prior,human:null,messages:[] as MessageRow[],answeredByHuman:false};
+        const answeredByHuman=Boolean((await client.query("SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='admin' AND reply_to_message_id=$2 LIMIT 1",[id,messageId])).rowCount);
+        const messages=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND sequence>$2 AND sequence<=$3 ORDER BY sequence DESC LIMIT 50`,[id,topic.contextStartSequence,source.sequence])).rows.reverse();
+        return {snapshot,topic,source,prior:null,human:await this.humanContext(client,snapshot,topic),messages,answeredByHuman};
+      });
+      if(!context)return {};
+      if(context.prior)return {conversation:conversation(context.snapshot),aiMessages:[await this.messageView(context.prior,context.snapshot,'member')],aiStatus:context.prior.sender_type==='ai'?'replied':'handoff_suggested'};
+      if(context.answeredByHuman)return {conversation:conversation(context.snapshot),aiStatus:'answered_by_human',aiMessages:[]};
+      const {snapshot,source,messages,human}=context;
+      let suggestion:SupportAiSuggestion|null=null,failure='SUPPORT_AI_UNAVAILABLE';
+      if(source.content_type!=='text')failure='SUPPORT_AI_HUMAN_CONTEXT_REQUIRED';
+      else if(this.automaticAiAvailable()){
+        try{
+          suggestion=await this.ai!.suggestedReply({...modelSafeSupportProjection({conversation:snapshot,messages}),
+            question:{sequence:Number(source.sequence),body:source.body},...(human?{humanRequest:human}:{})});
+          const route=suggestion.route??'general';
+          if(human&&route!=='clarify'&&(suggestion.confidence<0.75||(['general','mixed'].includes(route)&&suggestion.handoffReason)))
+            suggestion={...suggestion,route:'clarify',text:'你是在补充之前申请人工的问题，还是有新的使用问题？',handoffReason:null};
+          else if(!human&&(suggestion.handoffReason||suggestion.confidence<0.5)){failure='SUPPORT_AI_HANDOFF_REQUIRED';suggestion=null;}
+          if(suggestion?.route==='clarify'&&(suggestion.text.match(/[？?]/g)?.length??0)>1)
+            suggestion={...suggestion,text:'你是在补充之前申请人工的问题，还是有新的使用问题？'};
+        }catch(error){
+          const code=(error as {code?:unknown})?.code;failure=typeof code==='string'&&/^SUPPORT_AI_[A-Z_]+$/.test(code)?code:'SUPPORT_AI_UNAVAILABLE';
+        }
       }
+      const committed=await transaction(this.pool,async client=>{
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+        await this.reconcileLocked(client,owner);
+        if(!(await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner])).rowCount)return {done:{}};
+        const row=await this.findForMember(client,owner,true);
+        if(!row||row.id!==id)return {done:{}};
+        const topic=await this.contextState(client,row);
+        if(topic.contextVersion!==context.topic.contextVersion||topic.contextStartSequence!==context.topic.contextStartSequence)return {done:{}};
+        const retained=(await client.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2 AND sequence>$3',[messageId,id,topic.contextStartSequence])).rowCount;
+        if(!retained)return {done:{}};
+        const existing=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND client_message_id=$2 AND sender_type IN ('ai','system')`,[id,`ai-reply:${messageId}`])).rows[0];
+        if(existing)return {done:{conversation:conversation(row),aiMessages:[await this.messageView(existing,row,'member')],aiStatus:existing.sender_type==='ai'?'replied':'handoff_suggested'}};
+        const currentHuman=await this.humanContext(client,row,topic);
+        if(this.humanKey(currentHuman)!==this.humanKey(human))return {retry:true};
+        const answered=(await client.query(`SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='admin' AND reply_to_message_id=$2 LIMIT 1`,[id,messageId])).rowCount;
+        if(answered)return {done:{conversation:conversation(row),aiStatus:'answered_by_human',aiMessages:[]}};
+        const route=suggestion?.route??'general';
+        const issueAnswered=currentHuman?.anchorMessageId&&(await client.query(`SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='admin' AND reply_to_message_id=$2 AND sequence>$3 LIMIT 1`,[id,currentHuman.anchorMessageId,source.sequence])).rowCount;
+        if(route==='human_followup'&&issueAnswered)return {done:{conversation:conversation(row),aiStatus:'answered_by_human',aiMessages:[]}};
+        let body:string,isAi=false,humanStatusShown=false;
+        if(suggestion&&route==='human_followup'&&currentHuman){body=this.humanStatus(currentHuman);humanStatusShown=true;}
+        else if(suggestion){
+          const statusAlreadyShown=currentHuman&&(await client.query(`SELECT id FROM audit_log WHERE object_id=$1 AND action IN ('support.ai.reply','support.ai.handoff_suggested')
+            AND after_state->>'humanRequestGeneration'=$2 AND after_state->>'humanRequestStatus'=$3
+            AND after_state->>'humanStatusShown'='true' LIMIT 1`,[id,String(currentHuman.generation),currentHuman.status])).rowCount;
+          humanStatusShown=Boolean(route==='mixed'&&currentHuman&&!issueAnswered&&!statusAlreadyShown);
+          isAi=true;body=suggestion.text+(humanStatusShown?'\n'+this.humanStatus(currentHuman!):'');
+        }
+        else body=currentHuman
+          ?(failure==='SUPPORT_AI_HUMAN_CONTEXT_REQUIRED'?'信息已收到，需要人工核实；已有人工申请会继续保留。':'这次暂时没能准确回答，已有人工申请会继续保留，你也可以补充问题。')
+          :(['SUPPORT_AI_HUMAN_CONTEXT_REQUIRED','SUPPORT_AI_HANDOFF_REQUIRED'].includes(failure)
+            ?'这个问题需要人工核实 😊 点「申请人工」，客服会接着帮你。':'这次没能及时回复你，抱歉呀 🌿 你可以稍后再问，或点「申请人工」。');
+        const sequence=Number(row.next_sequence),replyId=randomUUID();
+        await client.query("SELECT set_config('cisme.support_ai_reply',$1,true)",[`${id}:${messageId}:${topic.contextVersion}:${row.human_request_generation??0}`]);
+        const inserted=(await client.query<MessageRow>(`INSERT INTO support_message
+          (id,conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id,retention_purpose,reply_to_message_id)
+          SELECT $1,$2,$3,$4,$5,$6,$7,$8,retention_purpose,id FROM support_message WHERE id=$9 RETURNING ${messageColumns()}`,
+          [replyId,id,sequence,isAi?'ai':'system',isAi?'ai:support':'system:support',body,isAi?'text':'system',`ai-reply:${messageId}`,messageId])).rows[0]!;
+        const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
+          version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
+        await this.audit(client,isAi?'ai:support':'system:support',isAi?'support.ai.reply':'support.ai.handoff_suggested',id,null,
+          {messageId:replyId,inReplyTo:messageId,route:suggestion?.route??null,humanRequestGeneration:currentHuman?.generation??null,humanRequestStatus:currentHuman?.status??null,humanStatusShown,
+            providerId:this.ai?.status().providerId??'disabled',...(suggestion?{citations:suggestion.citations,confidence:suggestion.confidence}:{reason:failure})},traceId);
+        await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:id,aggregateVersion:updated.version,
+          businessKey:`support-message:${replyId}`,payload:{conversationId:id,messageId:replyId,senderType:isAi?'ai':'system',sequence},occurredAt:inserted.created_at});
+        return {done:{conversation:conversation(updated),aiMessages:[await this.messageView(inserted,updated,'member')],
+          aiStatus:suggestion?'replied':'handoff_suggested',handoffSuggested:!suggestion&&!currentHuman}};
+      });
+      if('done' in committed)return committed.done;
     }
-    return transaction(this.pool,async client=>{
-      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
-      await this.reconcileLocked(client,owner);
-      const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner]);
-      if(!active.rowCount)return {};
-      const row=await this.findForMember(client,owner,true);
-      if(!row||row.id!==id||row.status!=='ai_active'||row.version!==expectedVersion)return {};
-      const isAi=suggestion!==null,sequence=Number(row.next_sequence),replyId=randomUUID();
-      // A suggestion or a provider failure is not the member's consent to
-      // enter the human queue. Keep untrusted/low-confidence text private.
-      const body=suggestion?.text??(['SUPPORT_AI_HUMAN_CONTEXT_REQUIRED','SUPPORT_AI_HANDOFF_REQUIRED'].includes(failure)
-        ?'这个问题需要人工核实 😊 点「申请人工」，客服会接着帮你。'
-        :'这次没能及时回复你，抱歉呀 🌿 你可以稍后再问，或点「申请人工」。');
-      const inserted=(await client.query<MessageRow>(`INSERT INTO support_message
-        (id,conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id,retention_purpose)
-        SELECT $1,$2,$3,$4,$5,$6,$7,$8,retention_purpose FROM support_message WHERE id=$9
-        RETURNING ${messageColumns()}`,[replyId,id,sequence,isAi?'ai':'system',isAi?'ai:support':'system:support',body,
-          isAi?'text':'system',`ai-reply:${messageId}`,messageId])).rows[0]!;
-      const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET
-        next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
-        version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
-      await this.audit(client,isAi?'ai:support':'system:support',isAi?'support.ai.reply':'support.ai.handoff_suggested',id,null,
-        {messageId:replyId,inReplyTo:messageId,providerId:this.ai?.status().providerId??'disabled',
-          ...(suggestion?{citations:suggestion.citations,confidence:suggestion.confidence}:{reason:failure})},traceId);
-      await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:id,
-        aggregateVersion:updated.version,businessKey:`support-message:${replyId}`,
-        payload:{conversationId:id,messageId:replyId,senderType:isAi?'ai':'system',sequence},occurredAt:inserted.created_at});
-      return {conversation:conversation(updated),aiMessages:[await this.messageView(inserted,updated,'member')],
-        aiStatus:isAi?'replied':'handoff_suggested',handoffSuggested:!isAi};
-    });
+    return {aiStatus:'pending',aiMessages:[]};
   }
 
   private async findForMember(client: DbClient | pg.Pool, memberId: string, lock = false): Promise<ConversationRow | null> {
@@ -296,21 +355,39 @@ export class SupportService {
 
   private async messageView(row: MessageRow, conversationRow: ConversationRow, perspective: "member" | "operator", media?: ReadonlyMap<string, MediaRow>) {
     const mediaRows = media ?? await this.mediaMap(this.pool, [row]);
-    return view(row, {
+    const validTarget=row.reply_to_message_id&&(await this.pool.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2',[row.reply_to_message_id,row.conversation_id])).rowCount;
+    return view({...row,reply_to_message_id:validTarget?row.reply_to_message_id??null:null}, {
       counterpartyReadSequence: Number(perspective === "member" ? conversationRow.team_last_read_sequence : conversationRow.member_last_read_sequence),
       previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${conversationRow.id}/media`,
       media: mediaRows
     });
   }
 
-  async modelProjectionForAssignedOperator(memberId:string|undefined,principalId:string|undefined,id:string) {
+  private async replyTarget(client:DbClient,row:ConversationRow,input:ReplyTargetInput,requiredTarget=false){
+    const topic=await this.contextState(client,row),generation=row.human_request_generation??0;
+    if((topic.contextVersion>0&&input.contextVersion===undefined)||input.contextVersion!==undefined&&input.contextVersion!==topic.contextVersion)
+      throw new DomainError('SUPPORT_CONTEXT_CHANGED','聊天已更新，请刷新后再回复',409);
+    if((generation>0&&input.expectedHumanRequestGeneration===undefined)||input.expectedHumanRequestGeneration!==undefined&&input.expectedHumanRequestGeneration!==generation)
+      throw new DomainError('SUPPORT_HUMAN_REQUEST_CHANGED','人工事项已更新，请刷新后再回复',409);
+    const human=await this.humanContext(client,row,topic);
+    const targetId=input.replyToMessageId===undefined?human?.anchorMessageId:input.replyToMessageId===null?null:uuid(input.replyToMessageId,'SUPPORT_REPLY_TARGET_INVALID');
+    const target=targetId?(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE id=$1 AND conversation_id=$2 AND sender_type='user' AND sequence>$3`,[targetId,row.id,topic.contextStartSequence])).rows[0]:null;
+    if(targetId&&!target)throw new DomainError('SUPPORT_REPLY_TARGET_INVALID','请选择当前聊天中的用户问题',409);
+    if(requiredTarget&&!target)throw new DomainError('SUPPORT_REPLY_TARGET_REQUIRED','请先选择需要回复的用户问题',422);
+    return {topic,target};
+  }
+  async modelProjectionForAssignedOperator(memberId:string|undefined,principalId:string|undefined,id:string,input:ReplyTargetInput={}) {
     await this.authority.require(memberId,"support.reply");
     const principal=required(principalId,"AUTH_REQUIRED");
     await this.reconcile((await this.findById(this.pool,id)).member_id);
     return readSnapshot(this.pool,async client=>{
       const row=await this.findById(client,id);
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_OWNERSHIP_CONFLICT","Claim the conversation before requesting a suggested reply",409);
-      return modelSafeSupportProjection({conversation:row,messages:await this.modelMessages(client,row)});
+      if(!(await client.query("SELECT id FROM member WHERE id=$1 AND status='active'",[row.member_id])).rowCount)
+        throw new DomainError('MEMBER_NOT_ACTIVE','该账号的历史事项仅由人工处理',403);
+      const {topic,target}=await this.replyTarget(client,row,input,true);
+      const messages=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND sequence>$2 AND sequence<=$3 ORDER BY sequence DESC LIMIT 50`,[id,topic.contextStartSequence,target!.sequence])).rows.reverse();
+      return {...modelSafeSupportProjection({conversation:row,messages}),question:{sequence:Number(target!.sequence),body:target!.body}};
     });
   }
   private async audit(client: DbClient, principalId: string, action: string, objectId: string, before: unknown, after: unknown, traceId: string) {
@@ -371,7 +448,7 @@ export class SupportService {
     const owner = required(memberId, "AUTH_REQUIRED");
     await this.reconcile(owner);
     const row = await this.findForMember(this.pool, owner);
-    return row ? { conversation: conversation(row), unreadCount: row.member_unread_count } : { conversation: null, unreadCount: 0 };
+    return row ? { conversation: conversation(row), unreadCount: row.member_unread_count,supportAiCanRespond:this.automaticAiAvailable() } : { conversation: null, unreadCount: 0,supportAiCanRespond:this.automaticAiAvailable() };
   }
 
   async messagesForMember(memberId: string | undefined, query: { after?: unknown; before?: unknown; limit?: unknown },ordinary=true) {
@@ -379,10 +456,11 @@ export class SupportService {
     await this.reconcile(owner);
     return readSnapshot(this.pool,async client=>{
       const row = await this.findForMember(client, owner);
-      const metadata={supportAiAvailable:this.automaticAiAvailable(),newTopicAvailable:ordinary&&this.suppression?.suppressionEnabled()===true};
-      if (!row) return { conversation: null, messages: [], latestCursor: 0, olderCursor: null,contextStartSequence:0,contextVersion:0,...metadata };
+      const metadata={supportAiAvailable:this.automaticAiAvailable(),supportAiCanRespond:ordinary&&this.automaticAiAvailable(),newTopicAvailable:ordinary&&this.suppression?.suppressionEnabled()===true};
+      if (!row) return { conversation: null, messages: [], latestCursor: 0, olderCursor: null,contextStartSequence:0,contextVersion:0,humanRequest:null,...metadata };
       const context=ordinary?await this.contextState(client,row):{contextStartSequence:0,contextVersion:0};
-      return {...await this.messagePage(row, query, "member",client,context.contextStartSequence),...context,...metadata};
+      return {...await this.messagePage(row, query, "member",client,context.contextStartSequence),...context,...metadata,
+        humanRequest:this.humanView(await this.humanContext(client,row,context))};
     });
   }
 
@@ -401,7 +479,9 @@ export class SupportService {
     const hasOlder = after === null && result.rows.length > pageLimit;
     const pageRows = hasOlder ? result.rows.slice(result.rows.length - pageLimit) : result.rows;
     const media = await this.mediaMap(client, pageRows);
-    const messages = pageRows.map((messageRow) => view(messageRow, {
+    const replyIds=pageRows.flatMap(message=>message.reply_to_message_id?[message.reply_to_message_id]:[]);
+    const validTargets=new Set((replyIds.length?(await client.query<{id:string}>(`SELECT id FROM support_message WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3`,[replyIds,row.id,boundary])).rows:[]).map(target=>target.id));
+    const messages = pageRows.map((messageRow) => view({...messageRow,reply_to_message_id:messageRow.reply_to_message_id&&validTargets.has(messageRow.reply_to_message_id)?messageRow.reply_to_message_id:null}, {
       counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
       previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
       media
@@ -467,9 +547,7 @@ export class SupportService {
         const created = await client.query<ConversationRow>(`INSERT INTO support_conversation(member_id,status)
           VALUES($1,$2) RETURNING *`, [owner,historicalOrder?'waiting_human':'ai_active']); row = created.rows[0]!;
       }
-      if(!historicalOrder){
-        await this.requireCurrentContext(client,row,input);
-      }
+      const topic=!historicalOrder?await this.requireCurrentContext(client,row,input):null;
       const duplicate = await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='user' AND sender_principal_id=$2 AND client_message_id=$3`, [row.id, principal, messageKey]);
       if (duplicate.rows[0]) {
@@ -487,6 +565,10 @@ export class SupportService {
         if (media.rowCount !== images.length) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "A support image is unavailable or belongs to another conversation", 404);
       }
       const sequence = Number(row.next_sequence); const messageId = randomUUID();
+      const bindHuman=Boolean(!historicalOrder&&topic&&(row.human_request_generation??0)>0&&row.human_request_anchor_sequence===null
+        &&row.human_request_context_version===topic.contextVersion&&(row.status==='waiting_human'||row.status==='human_active'));
+      if(bindHuman)await client.query("SELECT set_config('cisme.support_human_anchor_bind',$1,true)",
+        [`${row.id}:${owner}:${row.human_request_generation}:${sequence}:${topic!.contextVersion}`]);
       const reopened = row.status === "resolved";
       const resetHandler = reopened || historicalOrder && row.status === "ai_active";
       const nextStatus: SupportConversationStatus = historicalOrder && resetHandler
@@ -498,8 +580,10 @@ export class SupportService {
         linkedOrderId?'transaction':'ordinary']);
       if (images.length) await client.query("UPDATE media_object SET bound_support_message_id=$1,support_expires_at='infinity' WHERE id=ANY($2::uuid[])", [messageId, images]);
       const updated = await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,team_unread_count=team_unread_count+1,
-        status=$2,current_handler_principal_id=CASE WHEN $3 THEN NULL ELSE current_handler_principal_id END,resolved_at=NULL,version=version+1,updated_at=clock_timestamp()
-        WHERE id=$1 RETURNING *`, [row.id, nextStatus, resetHandler]);
+        status=$2,current_handler_principal_id=CASE WHEN $3 THEN NULL ELSE current_handler_principal_id END,
+        human_request_anchor_sequence=CASE WHEN $4 THEN $5 ELSE human_request_anchor_sequence END,
+        resolved_at=NULL,version=version+1,updated_at=clock_timestamp()
+        WHERE id=$1 RETURNING *`, [row.id, nextStatus, resetHandler,bindHuman,sequence]);
       row = updated.rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='member'", [row.id]);
       await enqueue(client, { eventType: "support.message.created.v1", aggregateType: "support_conversation", aggregateId: row.id,
@@ -507,29 +591,29 @@ export class SupportService {
       return { conversation: conversation(row), message: await this.messageView(inserted.rows[0]!, row, "member", await this.mediaMap(client, inserted.rows)), replayed: false };
     });
     let acknowledged:typeof result&{aiMessages?:SupportMessageView[];aiStatus?:string;handoffSuggested?:boolean}=result;
-    if(result.conversation.status==='ai_active'){
+    if(!historicalOrder&&(result.conversation.status==='ai_active'||this.automaticAiAvailable())){
       try{
         // Replaying a committed member receipt also recovers a reply interrupted
         // between commits, but never regenerates an earlier topic's answer.
-        acknowledged={...result,...await this.automaticReply(owner,result.conversation.id,result.message.id,result.conversation.version,traceId)};
+        acknowledged={...result,...await this.automaticReply(owner,result.conversation.id,result.message.id,traceId)};
       }catch{
         acknowledged={...result,aiStatus:'pending',aiMessages:[]};
       }
     }
-    if(historicalOrder)return acknowledged;
+    if(historicalOrder)return {...acknowledged,supportAiCanRespond:false};
     try{
       const current=await this.currentTopicState(owner);
-      return {...acknowledged,acknowledgedConversationId:result.conversation.id,...current,
+      return {...acknowledged,acknowledgedConversationId:result.conversation.id,...current,supportAiCanRespond:this.automaticAiAvailable(),
         aiMessages:current.conversation.id===result.conversation.id
           ?(acknowledged.aiMessages??[]).filter(message=>message.sequence>current.contextStartSequence):[]};
     }catch{
       // Committed user text remains acknowledged even if refreshing the topic
       // fails. Do not invent a zero boundary or expose an old generated reply.
-      return {...acknowledged,acknowledgedConversationId:result.conversation.id,aiStatus:'pending',aiMessages:[],contextSyncRequired:true};
+      return {...acknowledged,acknowledgedConversationId:result.conversation.id,supportAiCanRespond:this.automaticAiAvailable(),aiStatus:'pending',aiMessages:[],contextSyncRequired:true};
     }
   }
 
-  async requestHuman(memberId: string | undefined, principalId: string | undefined,input:{expectedConversationId?:unknown;contextVersion?:unknown}={}) {
+  async requestHuman(memberId: string | undefined, principalId: string | undefined,input:{expectedConversationId?:unknown;contextVersion?:unknown;questionMessageId?:unknown}={}) {
     const owner = required(memberId, "AUTH_REQUIRED"); required(principalId, "AUTH_REQUIRED");
     await this.reconcile(owner);
     return transaction(this.pool, async (client) => {
@@ -539,10 +623,23 @@ export class SupportService {
       if(row)await this.requireCurrentContext(client,row,input);
       else if(input.expectedConversationId!==undefined||input.contextVersion!==undefined&&input.contextVersion!==0)
         throw new DomainError('SUPPORT_CONTEXT_CHANGED','会话已更新，请刷新后重试',409);
-      if (!row) row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING *", [owner])).rows[0]!;
+      if (!row) {
+        if(input.questionMessageId!==undefined&&input.questionMessageId!==null)throw new DomainError('SUPPORT_HANDOFF_QUESTION_INVALID','请选择当前聊天中已确认的用户问题',409);
+        row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status,human_request_generation) VALUES($1,'waiting_human',1) RETURNING *", [owner])).rows[0]!;
+      }
       else if (row.status === "human_active" || row.status === "waiting_human") return conversation(row);
-      else row = (await client.query<ConversationRow>(`UPDATE support_conversation SET status='waiting_human',current_handler_principal_id=NULL,resolved_at=NULL,
-        version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [row.id])).rows[0]!;
+      else {
+        const topic=await this.contextState(client,row),generation=(row.human_request_generation??0)+1;
+        const explicitId=input.questionMessageId===undefined||input.questionMessageId===null?null:uuid(input.questionMessageId,'SUPPORT_HANDOFF_QUESTION_INVALID');
+        const anchor=input.questionMessageId===null?null:(await client.query<{sequence:string}>(`SELECT sequence FROM support_message
+          WHERE conversation_id=$1 AND sender_type='user' AND sequence>$2 AND ($3::uuid IS NULL OR id=$3) ORDER BY sequence DESC LIMIT 1`,[row.id,topic.contextStartSequence,explicitId])).rows[0]?.sequence??null;
+        if(explicitId&&!anchor)throw new DomainError('SUPPORT_HANDOFF_QUESTION_INVALID','请选择当前聊天中已确认的用户问题',409);
+        await client.query("SELECT set_config('cisme.support_human_request_transition',$1,true)",
+          [`${row.id}:${owner}:${row.human_request_generation??0}:${generation}:${topic.contextVersion}:${anchor??0}`]);
+        row = (await client.query<ConversationRow>(`UPDATE support_conversation SET status='waiting_human',current_handler_principal_id=NULL,resolved_at=NULL,
+          human_request_generation=$2,human_request_anchor_sequence=$3,human_request_context_version=$4,
+          version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [row.id,generation,anchor,topic.contextVersion])).rows[0]!;
+      }
       await enqueue(client, { eventType: "support.conversation.handoff_requested.v1", aggregateType: "support_conversation", aggregateId: row.id,
         aggregateVersion: row.version, businessKey: `support-handoff:${row.id}:v${row.version}`, payload: { conversationId: row.id }, occurredAt: row.updated_at });
       return conversation(row);
@@ -790,7 +887,7 @@ export class SupportService {
       const row=await this.findById(client,id),context=await this.contextState(client,row);
       const page=await this.messagePage(row,query,"operator",client,context.contextStartSequence);
       const member=await client.query<{display_name:string}>("SELECT display_name FROM member WHERE id=$1",[row.member_id]);
-      return {...page,...context,memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
+      return {...page,...context,humanRequest:this.humanView(await this.humanContext(client,row,context)),memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
     });
   }
   async claim(memberId: string | undefined, principalId: string | undefined, id: string, input: { expectedVersion?: unknown }, traceId: string) {
@@ -821,7 +918,7 @@ export class SupportService {
       return conversation(updated);
     });
   }
-  async reply(memberId: string | undefined, principalId: string | undefined, id: string, input: { body?: unknown; clientMessageId?: unknown }, traceId: string) {
+  async reply(memberId: string | undefined, principalId: string | undefined, id: string, input: { body?: unknown; clientMessageId?: unknown }&ReplyTargetInput, traceId: string) {
     await this.operator(memberId, "support.reply"); const principal = required(principalId, "AUTH_REQUIRED");
     const body=textBody(input.body); const messageKey=clientMessageId(input.clientMessageId);
     const targetOwner=(await this.findById(this.pool,id)).member_id;
@@ -832,15 +929,22 @@ export class SupportService {
       let row=await this.findById(client,id,true);
       const duplicate=await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='admin' AND sender_principal_id=$2 AND client_message_id=$3`,[id,principal,messageKey]);
-      if(duplicate.rows[0]){if(duplicate.rows[0].body!==body)throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different text",409);return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(duplicate.rows[0],row,"operator"),replayed:true};}
+      if(duplicate.rows[0]){
+        const prior=duplicate.rows[0],topic=await this.contextState(client,row);
+        if(prior.body!==body||input.replyToMessageId!==undefined&&(input.replyToMessageId??null)!==(prior.reply_to_message_id??null))throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different support content",409);
+        if(Number(prior.sequence)<=topic.contextStartSequence)throw new DomainError('SUPPORT_CONTEXT_CHANGED','原回复属于之前的聊天，请刷新核对',409);
+        return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(prior,row,"operator"),replayed:true};
+      }
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Claim this conversation before replying",409);
+      const {target}=await this.replyTarget(client,row,input);
       const sequence=Number(row.next_sequence);const messageId=randomUUID();
       const context=(await client.query<{retention_purpose:string}>(`SELECT retention_purpose FROM support_message
         WHERE conversation_id=$1 AND sender_type='user' ORDER BY sequence DESC LIMIT 1`,[id])).rows[0];
-      const purpose=context?.retention_purpose==='ordinary'?'ordinary':
-        context?.retention_purpose==='transaction'?'transaction':'legacy_unknown';
-      const inserted=(await client.query<MessageRow>(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose)
-        VALUES($1,$2,$3,'admin',$4,$5,$6,$7) RETURNING ${messageColumns()}`,[messageId,id,sequence,principal,body,messageKey,purpose])).rows[0]!;
+      const targetPurpose=target?(await client.query<{retention_purpose:string}>('SELECT retention_purpose FROM support_message WHERE id=$1',[target.id])).rows[0]?.retention_purpose:context?.retention_purpose;
+      const purpose=targetPurpose==='ordinary'?'ordinary':
+        targetPurpose==='transaction'?'transaction':'legacy_unknown';
+      const inserted=(await client.query<MessageRow>(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose,reply_to_message_id)
+        VALUES($1,$2,$3,'admin',$4,$5,$6,$7,$8) RETURNING ${messageColumns()}`,[messageId,id,sequence,principal,body,messageKey,purpose,target?.id??null])).rows[0]!;
       row=(await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
         version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),online_expires_at=GREATEST(online_expires_at,clock_timestamp()+interval '10 seconds'),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='operator' AND actor_principal_id=$2", [id, principal]);

@@ -24,7 +24,7 @@ beforeEach(async()=>{
  m.request.mockResolvedValue({});m.read.mockResolvedValue({conversation,messages:[],latestCursor:0,supportAiAvailable:true});
 });
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
-describe('native AI support receipts and explicit switching',()=>{
+describe('native AI and human support collaboration receipts',()=>{
  it('measures an asynchronously attached route order after its owned card renders',async()=>{
   p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const ticks=captureComposerMeasurements(),response=deferred();m.read.mockReturnValueOnce(response.promise);
   const loading=p.loadLinkedOrder();expect(ticks).toHaveLength(0);
@@ -45,12 +45,12 @@ describe('native AI support receipts and explicit switching',()=>{
   expect(ticks).toHaveLength(1);expect(p.measureComposer).not.toHaveBeenCalled();ticks.shift()!();expect(p.measureComposer).toHaveBeenCalledOnce();
   await p.poll();expect(ticks).toHaveLength(0);
  });
- it('remeasures queue action visibility after AI availability changes, not on every queue version',async()=>{
+ it('keeps queue actions stable when AI availability or queue version changes',async()=>{
   const waiting={...conversation,status:'waiting_human',version:4};p.data.conversation=waiting;const ticks=captureComposerMeasurements();
   m.read.mockResolvedValueOnce({conversation:waiting,messages:[],latestCursor:0,supportAiAvailable:false});await p.poll();
-  expect(ticks).toHaveLength(1);ticks.shift()!();
+  expect(ticks).toHaveLength(0);
   m.read.mockResolvedValueOnce({conversation:{...waiting,version:5},messages:[],latestCursor:0,supportAiAvailable:false});await p.poll();expect(ticks).toHaveLength(0);
-  m.read.mockResolvedValueOnce({conversation:{...waiting,version:6},messages:[],latestCursor:0,supportAiAvailable:true});await p.poll();expect(ticks).toHaveLength(1);
+  m.read.mockResolvedValueOnce({conversation:{...waiting,version:6},messages:[],latestCursor:0,supportAiAvailable:true});await p.poll();expect(ticks).toHaveLength(0);
  });
  it('measures the restored contact action after an initial load error',async()=>{
   Object.assign(p.data,{loading:true,conversation:null,supportAiAvailable:false});const ticks=captureComposerMeasurements();m.read.mockRejectedValueOnce(new Error('synthetic read failure'));
@@ -83,17 +83,16 @@ describe('native AI support receipts and explicit switching',()=>{
   response.resolve({conversation,message:message('user',1),aiMessages:[message('ai',2)],aiStatus:'replied'});await sending;
   expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.messages.map((row:any)=>row.senderType)).toEqual(['user','ai']);
  });
- it.each(['disabled','human','attachment','unknown','unconfirmed-handoff'])('does not claim AI waiting for a %s send',async(mode)=>{
+ it.each(['disabled','legacy-human','attachment','unknown','capability-disabled'])('does not claim AI waiting for a %s send',async(mode)=>{
   if(mode==='disabled')p.data.supportAiAvailable=false;
-  if(mode==='human')p.data.conversation={...conversation,status:'human_active'};
+  if(mode==='legacy-human')p.data.conversation={...conversation,status:'human_active'};
   if(mode==='attachment')p.data.selectedImage={mediaId:'synthetic-image',status:'ready',mimeType:'image/jpeg',size:10,localPath:'/tmp/synthetic'};
   if(mode==='unknown')p.data.sendAttempt={id:'synthetic-retry-key',body:p.data.input,mediaIds:[],linkedOrderId:null,signature:'retained-signature'};
-  if(mode==='unconfirmed-handoff')p.data.handoffFailed=true;
+  if(mode==='capability-disabled')p.data.supportAiCanRespond=false;
   const response=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?response.promise:Promise.resolve({}));
   const sending=p.send();expect(p.data.aiReplyWaiting).toBe(false);
   response.resolve({conversation:p.data.conversation,message:message('user',1)});await sending;
   if(mode==='unknown')expect(m.request).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({clientMessageId:'synthetic-retry-key'})}));
-  if(mode==='unconfirmed-handoff')expect(p.data.handoffFailed).toBe(true);
  });
  it('stops waiting on a network timeout and retains the exact unknown attempt for verification',async()=>{
   const response=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?response.promise:Promise.resolve({}));
@@ -133,17 +132,17 @@ describe('native AI support receipts and explicit switching',()=>{
   p.data.conversation=null;const response=deferred(),handoff=deferred();
   m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?response.promise:input.path==='/v1/me/support/handoff'?handoff.promise:Promise.resolve({}));
   const sending=p.send();expect(p.data.aiReplyWaiting).toBe(true);
-  const requesting=p.requestHuman();expect(p.data.aiReplyWaiting).toBe(false);
+  const requesting=p.requestHuman();expect(p.data.aiReplyWaiting).toBe(true);
   const waiting={...conversation,status:'waiting_human',version:4};handoff.resolve(waiting);await requesting;
   response.resolve({conversation,message:message('user',1),aiStatus:'pending',aiMessages:[]});await sending;
   expect(p.data.conversation).toEqual(waiting);expect(p.data.statusLabel).toBe('等待人工客服');expect(p.data.messages.map((row:any)=>row.id)).toEqual(['synthetic-user-1']);
-  expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.error).toBe('');expect(p.data.sendAttempt).toBeNull();
+  expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.errorAction).toBe('sync');expect(p.data.sendAttempt).toBeNull();
  });
- it('accepts a new message while handoff is pending without restarting AI waiting or regressing its later queue receipt',async()=>{
+ it('keeps thinking for a new question while handoff is pending without regressing its later queue receipt',async()=>{
   const handoff=deferred(),response=deferred();
   m.request.mockImplementation(input=>input.path==='/v1/me/support/handoff'?handoff.promise:input.path==='/v1/me/support/messages'?response.promise:Promise.resolve({}));
   const requesting=p.requestHuman();expect(p.data.handoffBusy).toBe(true);
-  const sending=p.send();expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.sending).toBe(true);
+  const sending=p.send();expect(p.data.aiReplyWaiting).toBe(true);expect(p.data.sending).toBe(true);
   expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:'/v1/me/support/messages',method:'POST',data:expect.objectContaining({body:'护理如何保存？'})}));
   const waiting={...conversation,status:'waiting_human',version:4};handoff.resolve(waiting);await requesting;
   response.resolve({conversation,message:message('user',1),aiStatus:'pending',aiMessages:[]});await sending;
@@ -163,9 +162,9 @@ describe('native AI support receipts and explicit switching',()=>{
   await p.send();history.resolve({conversation:null,messages:[],latestCursor:0,supportAiAvailable:true});await reading;
   expect(p.data.conversation).toEqual(conversation);expect(p.data.messages.map((row:any)=>row.senderType)).toEqual(['user','ai']);
  });
- it('does not restart thinking after a failed explicit handoff or silently queue a handoff suggestion',async()=>{
+ it('keeps a real send thinking through a failed handoff without silently resubmitting the human request',async()=>{
   const response=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?response.promise:input.path==='/v1/me/support/handoff'?Promise.reject(new Error('synthetic failure')):Promise.resolve({}));
-  const sending=p.send();await p.requestHuman();expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.handoffFailed).toBe(true);
+  const sending=p.send();await p.requestHuman();expect(p.data.aiReplyWaiting).toBe(true);expect(p.data.handoffFailed).toBe(true);
   response.resolve({conversation,message:message('user',1),aiMessages:[{...message('system',2),body:'这个问题需要人工核对，可点击申请人工客服。'}],aiStatus:'handoff_suggested',handoffSuggested:true});await sending;
   expect(p.data.conversation.status).toBe('ai_active');expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.messages.map((row:any)=>row.senderType)).toEqual(['user','system']);
   expect(m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/handoff')).toHaveLength(1);
@@ -181,42 +180,43 @@ describe('native AI support receipts and explicit switching',()=>{
   expect(p.data.aiReplyWaiting).toBe(false);
   await p.retryHandoff();await Promise.resolve();expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:'/v1/me/support/handoff',method:'POST'}));
  });
- it('switches a waiting conversation only after explicit confirmation with its current version',async()=>{
-  p.data.conversation={...conversation,status:'waiting_human',version:7};p.data.supportAiAvailable=true;
-  m.request.mockImplementation(async(input:any)=>input.path==='/v1/me/support/resume-ai'?conversation:{});
-  await p.resumeAi();expect(wx.showModal).toHaveBeenCalledOnce();expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:'/v1/me/support/resume-ai',method:'POST',data:{expectedVersion:7}}));
- });
- it('restores AI waiting after a timed-out handoff is observed in the queue and explicitly resumed',async()=>{
-  const waiting={...conversation,status:'waiting_human',version:4},resumed={...conversation,version:5},response=deferred();
-  m.request.mockImplementation(input=>input.path==='/v1/me/support/handoff'?Promise.reject({code:'NETWORK_TIMEOUT'}):input.path==='/v1/me/support/resume-ai'?Promise.resolve(resumed):input.path==='/v1/me/support/messages'?response.promise:Promise.resolve({}));
-  await p.requestHuman();expect(p.data.handoffFailed).toBe(true);
-  m.read.mockResolvedValueOnce({conversation:waiting,messages:[],latestCursor:0,supportAiAvailable:true});await p.poll();
-  expect(p.data.conversation.status).toBe('waiting_human');expect(p.data.handoffFailed).toBe(true);
-  m.read.mockResolvedValueOnce({conversation:resumed,messages:[],latestCursor:0,supportAiAvailable:true});await p.resumeAi();
-  expect(p.data.conversation).toEqual(resumed);expect(p.data.handoffFailed).toBe(false);
+ it.each(['waiting_human','human_active'])('answers a basic question during %s without switching modes or ending the human request',async(status)=>{
+  const active={...conversation,status,version:7};p.data.conversation=active;p.data.supportAiCanRespond=true;
+  const response=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?response.promise:Promise.resolve({}));
   const sending=p.send();expect(p.data.aiReplyWaiting).toBe(true);
-  response.resolve({conversation:resumed,message:message('user',1),aiMessages:[message('ai',2)],aiStatus:'replied'});await sending;
-  expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.messages.map((row:any)=>row.senderType)).toEqual(['user','ai']);
+  response.resolve({conversation:active,message:message('user',1),aiMessages:[message('ai',2)],aiStatus:'replied',supportAiCanRespond:true});await sending;
+  expect(p.data.conversation).toEqual(active);expect(p.data.aiReplyWaiting).toBe(false);expect(p.data.messages.map((row:any)=>row.senderType)).toEqual(['user','ai']);
+  expect(m.request.mock.calls.some(([input])=>input.path.includes('resume-ai'))).toBe(false);expect(wx.showModal).not.toHaveBeenCalled();
  });
- it.each(['cancelled','failed','newer-human'])('retains an unconfirmed handoff when explicit AI switching is %s',async(mode)=>{
-  p.data.conversation={...conversation,status:'waiting_human',version:7};p.data.handoffFailed=true;
-  if(mode==='cancelled')(wx.showModal as any).mockResolvedValueOnce({confirm:false});
-  if(mode==='failed')m.request.mockImplementation(input=>input.path==='/v1/me/support/resume-ai'?Promise.reject(new Error('synthetic failure')):Promise.resolve({}));
-  if(mode==='newer-human'){
-    const response=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/resume-ai'?response.promise:Promise.resolve({}));
-    const resuming=p.resumeAi();await Promise.resolve();p.data.conversation={...conversation,status:'human_active',version:9};
-    response.resolve({...conversation,version:8});await resuming;
-  }else await p.resumeAi();
-  expect(p.data.handoffFailed).toBe(true);expect(p.data.aiReplyWaiting).toBe(false);
+ it.each(['waiting_human','human_active'])('does not submit another human request when the conversation is %s',async(status)=>{
+  p.data.conversation={...conversation,status};await p.requestHuman();await p.retryHandoff();expect(m.request).not.toHaveBeenCalled();
  });
- it('cannot switch a conversation that is already handled by a person',async()=>{
-  p.data.conversation={...conversation,status:'human_active'};p.data.supportAiAvailable=true;await p.resumeAi();
-  expect(wx.showModal).not.toHaveBeenCalled();expect(m.request).not.toHaveBeenCalled();
+ it.each([false,true])('pins the confirmed handoff source through a pending send and retry (known source: %s)',async(known)=>{
+  p.data.messages=known?[message('user',1)]:[];
+  p.data.pendingMessage={...message('user',2),id:'local-unknown-send'};
+  p.data.sendAttempt={id:'unknown-send',body:'not yet confirmed',mediaIds:[],linkedOrderId:null};
+  let requests=0;m.request.mockImplementation(input=>input.path==='/v1/me/support/handoff'
+    ?++requests===1?Promise.reject({code:'NETWORK_TIMEOUT'}):Promise.resolve({...conversation,status:'waiting_human',version:4}):Promise.resolve({}));
+  await p.requestHuman();expect(p.data.handoffFailed).toBe(true);
+  const first=m.request.mock.calls.find(([input])=>input.path==='/v1/me/support/handoff')![0].data;
+  expect(first.questionMessageId).toBe(known?'synthetic-user-1':null);
+  p.data.messages.push(message('user',3));await p.requestHuman();
+  const handoffs=m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/handoff');expect(handoffs).toHaveLength(2);expect(handoffs[1]![0].data).toEqual(first);expect(p.data.handoffAttempt).toBeNull();
  });
- it.each(['account','hidden','version'])('does not switch after %s changes while confirmation is open',async(change)=>{
-  p.data.conversation={...conversation,status:'waiting_human'};p.data.supportAiAvailable=true;
-  const modal=deferred();(wx.showModal as any).mockReturnValueOnce(modal.promise);const pending=p.resumeAi();
-  if(change==='account')m.token='synthetic-other';else if(change==='hidden'){p.data.visible=false;p.lifecycleEpoch++;}else p.data.conversation.version++;
-  modal.resolve({confirm:true});await pending;expect(m.request).not.toHaveBeenCalled();
+ it('uses the server collaboration capability after an uncertain handoff without asking the user to switch',async()=>{
+  const waiting={...conversation,status:'waiting_human',version:4};
+  m.request.mockImplementation(input=>input.path==='/v1/me/support/handoff'?Promise.reject({code:'NETWORK_TIMEOUT'}):Promise.resolve({}));
+  await p.requestHuman();expect(p.data.handoffFailed).toBe(true);
+  m.read.mockResolvedValueOnce({conversation:waiting,messages:[],latestCursor:0,supportAiAvailable:true,supportAiCanRespond:true});await p.poll();
+  const response=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?response.promise:Promise.resolve({}));
+  const sending=p.send();expect(p.data.aiReplyWaiting).toBe(true);
+  response.resolve({conversation:waiting,message:message('user',1),aiMessages:[message('ai',2)],aiStatus:'replied'});await sending;
+  expect(p.data.conversation.status).toBe('waiting_human');expect(p.data.messages.map((row:any)=>row.senderType)).toEqual(['user','ai']);
  });
+ it('uses a refresh recovery for an unconfirmed AI reply during human service instead of another handoff',async()=>{
+  const active={...conversation,status:'human_active',version:7};Object.assign(p.data,{conversation:active,supportAiCanRespond:true});
+  m.request.mockImplementation(async input=>input.path==='/v1/me/support/messages'?{conversation:active,message:message('user',1),aiMessages:[],aiStatus:'pending'}:{});
+  await p.send();expect(p.data.errorAction).toBe('sync');expect(p.data.error).not.toContain('申请人工');expect(p.data.pendingMessage).toBeNull();expect(p.data.sendAttempt).toBeNull();
+ });
+ it('does not expose a manual AI mode switching method',()=>{expect(p.resumeAi).toBeUndefined();});
 });

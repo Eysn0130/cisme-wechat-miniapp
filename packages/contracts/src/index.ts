@@ -183,6 +183,7 @@ export type CommerceOrderSummaryView = Omit<CommerceOrderView, "address"> & { ad
 
 export interface SupportMessageView {
   id: string;
+  replyToMessageId?: string | null;
   sequence: number;
   senderType: SupportSenderType;
   body: string;

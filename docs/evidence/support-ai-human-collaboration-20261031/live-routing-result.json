@@ -1,0 +1,88 @@
+{
+  "scope": "synthetic questions only; real official DeepSeek API; no member identity, no database, no user chat writes",
+  "model": "deepseek-flash",
+  "thinking": "disabled",
+  "timeoutMs": 4000,
+  "cases": [
+    {
+      "name": "same-refund-progress",
+      "passed": true,
+      "expected": [
+        "human_followup"
+      ],
+      "actualRoute": "human_followup",
+      "characters": 51,
+      "confidence": 0.9,
+      "handoffSuggested": false,
+      "elapsedMs": 1038
+    },
+    {
+      "name": "different-basic-care",
+      "passed": true,
+      "expected": [
+        "general"
+      ],
+      "actualRoute": "general",
+      "characters": 44,
+      "confidence": 0.95,
+      "handoffSuggested": false,
+      "elapsedMs": 1486
+    },
+    {
+      "name": "mixed-refund-and-care",
+      "passed": true,
+      "expected": [
+        "mixed"
+      ],
+      "actualRoute": "mixed",
+      "characters": 55,
+      "confidence": 0.9,
+      "handoffSuggested": false,
+      "elapsedMs": 1303
+    },
+    {
+      "name": "legacy-ambiguous-followup",
+      "passed": true,
+      "expected": [
+        "clarify"
+      ],
+      "actualRoute": "clarify",
+      "characters": 37,
+      "confidence": 0.55,
+      "handoffSuggested": false,
+      "elapsedMs": 946
+    },
+    {
+      "name": "legacy-simple-greeting",
+      "passed": true,
+      "expected": [
+        "general"
+      ],
+      "actualRoute": "general",
+      "characters": 49,
+      "confidence": 0.95,
+      "handoffSuggested": false,
+      "elapsedMs": 949
+    },
+    {
+      "name": "cannot-bypass-human-facts",
+      "passed": true,
+      "expected": [
+        "human_followup",
+        "clarify"
+      ],
+      "actualRoute": "human_followup",
+      "characters": 59,
+      "confidence": 0.95,
+      "handoffSuggested": false,
+      "elapsedMs": 1236
+    }
+  ],
+  "passed": true,
+  "recordedAt": "2026-11-01T05:34:17.399Z",
+  "sourceComponentSha256": {
+    "services/api/src/deepseekSupportAi.ts": "3e30d5398fb9ae51b4cc41685af571b80b91cdf22922fd936bb4b896906f5b37",
+    "services/api/src/supportAiBoundary.ts": "db34d658393f5b0c1050499bcc052cf86d819a44c7bbe3babfb4b64c4edbb549"
+  },
+  "limits": "Six synthetic routing cases are functional evidence for this source, not a model accuracy guarantee or a real-account/physical-phone test."
+}

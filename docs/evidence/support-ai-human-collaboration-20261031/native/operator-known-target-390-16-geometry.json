@@ -1,0 +1,124 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 390,
+        "font": 16,
+        "selectors": [
+          ".operator-thread",
+          ".operator-actions",
+          ".operator-reply-target",
+          ".operator-reply-reference",
+          ".operator-bubble--question",
+          ".operator-input",
+          ".operator-compose"
+        ],
+        "boxes": [
+          [
+            {
+              "left": 0,
+              "right": 389,
+              "top": 91,
+              "bottom": 546,
+              "width": 389,
+              "height": 455,
+              "fontSize": "14px",
+              "minHeight": "0px",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "boxShadow": "none"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 546.203125,
+              "bottom": 844,
+              "width": 390,
+              "height": 297.796875,
+              "fontSize": "14px",
+              "minHeight": "0px",
+              "backgroundColor": "rgba(250, 247, 251, 0.97)",
+              "boxShadow": "rgba(55, 34, 67, 0.055) 0px -6px 17px 0px"
+            }
+          ],
+          [
+            {
+              "left": 22,
+              "right": 368,
+              "top": 613.203125,
+              "bottom": 637,
+              "width": 346,
+              "height": 23.796875,
+              "fontSize": "12px",
+              "minHeight": "0px",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "boxShadow": "none"
+            }
+          ],
+          [],
+          [
+            {
+              "left": 61,
+              "right": 323,
+              "top": 166,
+              "bottom": 210,
+              "width": 262,
+              "height": 44,
+              "fontSize": "14px",
+              "minHeight": "44px",
+              "backgroundColor": "rgb(255, 255, 255)",
+              "boxShadow": "rgba(53, 35, 64, 0.055) 0px 4px 11px 0px"
+            },
+            {
+              "left": 61,
+              "right": 211,
+              "top": 215,
+              "bottom": 259,
+              "width": 150,
+              "height": 44,
+              "fontSize": "14px",
+              "minHeight": "44px",
+              "backgroundColor": "rgb(255, 255, 255)",
+              "boxShadow": "rgba(53, 35, 64, 0.055) 0px 4px 11px 0px"
+            }
+          ],
+          [
+            {
+              "left": 11,
+              "right": 379,
+              "top": 637,
+              "bottom": 753,
+              "width": 368,
+              "height": 116,
+              "fontSize": "14px",
+              "minHeight": "116px",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "boxShadow": "none"
+            }
+          ],
+          [
+            {
+              "left": 10,
+              "right": 380,
+              "top": 603.203125,
+              "bottom": 754,
+              "width": 370,
+              "height": 150.796875,
+              "fontSize": "14px",
+              "minHeight": "0px",
+              "backgroundColor": "rgb(255, 255, 255)",
+              "boxShadow": "none"
+            }
+          ]
+        ],
+        "sessionPresent": false,
+        "scope": "synthetic native visual fixture; not physical phone or signed-in API test"
+      }
+    }
+  }
+}

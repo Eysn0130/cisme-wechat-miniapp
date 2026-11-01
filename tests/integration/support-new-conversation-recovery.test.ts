@@ -95,6 +95,10 @@ describe('independent user-requested support conversation reset recovery',()=>{
           VALUES($1,$2,'user',$3,$4,$5,$6)`,[row.id,sequence,user.principalId,`恢复的旧问题${sequence}`,`synthetic-restored-${sequence}`,sequence===1?'transaction':'ordinary']);
         await client.query('UPDATE support_conversation SET next_sequence=next_sequence+1,version=version+1,updated_at=clock_timestamp() WHERE id=$1',[row.id]);
       }
+      const source=(await client.query("SELECT id FROM support_message WHERE conversation_id=$1 AND sequence=2",[row.id])).rows[0];
+      await client.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose,reply_to_message_id)
+        VALUES($1,3,'ai','ai:support','恢复的旧问题答复','synthetic-restored-linked-ai','ordinary',$2)`,[row.id,source.id]);
+      await client.query('UPDATE support_conversation SET next_sequence=next_sequence+1,version=version+1,updated_at=clock_timestamp() WHERE id=$1',[row.id]);
       await client.query('COMMIT');
     }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
     // Simulate losing the local suppression directory independently of DB.
