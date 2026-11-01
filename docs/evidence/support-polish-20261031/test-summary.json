@@ -179,7 +179,9 @@
     "exitCode": 0,
     "durationSeconds": 7.33,
     "log": "full-unit-final.log",
-    "logSha256": "81e8c8382448626cb3867adc434539f1bf1159538dbdc4176cdc361f0872d54a"
+    "logSha256": "9dbf413240e46f9b2b744e48f416a8bc6c59c686770eb4564415b58eedf58ef2",
+    "rawLogSha256": "81e8c8382448626cb3867adc434539f1bf1159538dbdc4176cdc361f0872d54a",
+    "publishedLogNormalization": "Only trailing blank lines removed for Git whitespace rules; raw log retained under tmp with rawLogSha256."
   },
   "build": {
     "exitCode": 0,
