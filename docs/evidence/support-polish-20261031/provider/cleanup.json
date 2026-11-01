@@ -1,0 +1,28 @@
+{
+  "schema": "cisme.support.synthetic-cleanup.v1",
+  "verifiedAt": "2026-11-01T00:36:21.609Z",
+  "runs": [
+    {
+      "receipt": "receipt.json",
+      "runId": "a0557928e0215694009a6604",
+      "remainingOwnedContainerCount": 0,
+      "remainingOwnedObjectDirectories": 0,
+      "pass": true
+    },
+    {
+      "receipt": "manual-only-receipt.json",
+      "runId": "60804eec65f22c1e2f887739",
+      "remainingOwnedContainerCount": 0,
+      "remainingOwnedObjectDirectories": 0,
+      "pass": true
+    },
+    {
+      "receipt": "care-fixed-once-receipt.json",
+      "runId": "b9ca6286a2e59624f6478ea2",
+      "remainingOwnedContainerCount": 0,
+      "remainingOwnedObjectDirectories": 0,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

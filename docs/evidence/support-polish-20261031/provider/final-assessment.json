@@ -1,0 +1,45 @@
+{
+  "schema": "cisme.support.concise.final-assessment.v1",
+  "createdAt": "2026-11-01T00:36:21.610Z",
+  "totalActualDeepSeekCalls": 4,
+  "finalCorrectedCareSameConversationRoundtripPass": true,
+  "originalThreeCallReceiptPreserved": true,
+  "originalHarnessDefectPreserved": "status filter not supported; wrongly asserted AI row absent from all-conversations list",
+  "originalDifficultyVerifiedScope": [
+    "actual 61-character refusal/manual invitation with approved citations",
+    "conversation remained ai_active",
+    "zero human-handoff outbox events before explicit consent"
+  ],
+  "originalDifficultyManualRoundtripCompleted": false,
+  "separateNoAiManualFollowupPass": true,
+  "originalRealInFlightLateAiDropped": true,
+  "providerKnowledgeDefect": {
+    "oldAnswerWrongEntry": "records page",
+    "correctedKnowledgeVersion": "2026-10-31",
+    "correctedAnswerEntry": "care home",
+    "revalidatedWithRealCall": true
+  },
+  "finalParameters": {
+    "model": "deepseek-flash",
+    "thinking": {
+      "type": "disabled"
+    },
+    "max_tokens": 384,
+    "temperature": 0.2,
+    "timeoutMs": 4000
+  },
+  "finalAnswerUnicodeLength": 72,
+  "finalApiCompleteDurationMs": 1282,
+  "finalProviderFullResponseDurationMs": 1246,
+  "sourceHashes": {
+    "services/api/src/deepseekSupportAi.ts": "2ccf9b469cddf71f308ece73f9b1f2a75142ceea53d3fd5171f641b0624d7dcb",
+    "services/api/src/supportService.ts": "0880f9a9afbe5c6661b7ca618e31abdb401bf08bd3fe05848b35c1cfe7e5c2eb",
+    "services/api/src/supportAiBoundary.ts": "c86b760556caf6066d96e39d74ac55e461589c2af869e15e25c347dd91f85048"
+  },
+  "sourceUnchangedDuringFinalRun": true,
+  "privateReasoningNeverSerialized": true,
+  "realAccountsUsed": false,
+  "productionDatabaseUsed": false,
+  "scope": "local injected API + actual DeepSeek + disposable DB; no native UI or deployed-runtime claim",
+  "cleanupPass": true
+}

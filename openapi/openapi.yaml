@@ -1317,18 +1317,18 @@ paths:
       tags: [Support]
       operationId: ownSupportMessages
       security: [{session: []}]
-      description: Latest, older-before, or incremental-after persisted messages from the caller's single support conversation.
+      description: Latest, older-before, or incremental-after persisted messages from the caller's single support conversation. An empty read is side-effect free and does not create a conversation or greeting message. A fixed AI welcome is presentation only.
       parameters: [{name: after, in: query, schema: {type: integer, minimum: 0}}, {name: before, in: query, schema: {type: integer, minimum: 1}}, {$ref: '#/components/parameters/PageLimit'}]
       responses: {'200': {description: Cursor page; PostgreSQL sequence is authoritative}}
     post:
       tags: [Support]
       operationId: sendOwnSupportMessage
       security: [{session: []}]
-      description: Persists the member message before optional grounded AI work. Enabled text conversations may include persisted aiMessages and aiStatus replied, handed_off, or pending. Pending confirms the member message was accepted; exact clientMessageId replay can resume an unfinished latest AI reply. Human waiting or active conversations do not receive automatic replies.
+      description: Persists the member message before optional grounded AI work. Ordinary new conversations remain ai_active until the member explicitly requests human support. Enabled text conversations may include persisted aiMessages and aiStatus replied, handoff_suggested, or pending. A difficult, uncertain, unavailable, timed-out, image, or order turn may return handoffSuggested true with a short persisted system explanation; it never automatically creates a human-queue request. Pending confirms the member message was accepted, not that model generation remains active; exact clientMessageId replay can resume an unfinished latest AI reply. Human waiting or active conversations do not receive automatic replies. Final provider text is limited to180 Unicode characters; internal reasoning content is not returned.
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupportMessageInput'}}}}
       responses: {'200': {description: Persisted message or exact client retry}, '409': {description: clientMessageId reused with different text}}
   /v1/me/support/handoff:
-    post: {tags: [Support], operationId: requestHumanSupport, security: [{session: []}], responses: {'200': {description: Idempotent transition to waiting_human; never allows AI to reply after human_active}}}
+    post: {tags: [Support], operationId: requestHumanSupport, security: [{session: []}], description: The member explicitly requests human support, including before sending a first message. This command creates the waiting_human request and its event; model confidence, attachments and failures do not invoke it implicitly. An existing assigned operator is preserved., responses: {'200': {description: Idempotent transition to waiting_human; a late AI result cannot reclaim a waiting or human_active conversation}}}
   /v1/me/support/resume-ai:
     post: {tags: [Support], security: [{session: []}], summary: 会员明确退出人工等待并继续 AI 咨询, operationId: resumeSupportAi, x-release-stage: R0_GATED, x-transaction-profile: MAKE, x-required-gates: [SUPPORT_AI_PROVIDER], x-authority: member-session-owner, x-idempotency: expectedVersion-and-current-status, x-state-guards: "waiting_human or resolved; expectedVersion; provider available; human_active forbidden", requestBody: {required: true, content: {application/json: {schema: {type: object, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: 会话已切换 AI 且历史保留}, '409': {description: 会话已变化或人工已接管}, '503': {description: AI 不可用，继续等待人工}}}
   /v1/me/support/read:
@@ -1351,7 +1351,7 @@ paths:
       tags: [Support]
       operationId: authorizeOwnSupportMedia
       security: [{session: []}]
-      description: Creates a member-owned, 24-hour draft-image authorization only after the uploads switch is enabled. The server controls the object key and verifies bytes and MIME on completion.
+      description: Creates a member-owned, 24-hour draft-image authorization only after the uploads switch is enabled. The server controls the object key and verifies bytes and MIME on completion. An ordinary image draft does not implicitly request human support or enter the human queue.
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupportMediaAuthorizeInput'}}}}
       responses: {'200': {description: Short-lived controlled-gateway or object-store upload authorization}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/me/support/media/{mediaId}/complete:

@@ -1,0 +1,109 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 390,
+        "font": 16,
+        "selectors": [
+          ".support-topbar",
+          ".support-thread",
+          ".support-welcome-message",
+          ".support-bubble",
+          ".support-message__sender",
+          ".support-ai-notice",
+          ".support-human",
+          ".support-composer",
+          ".support-input",
+          ".support-typing",
+          ".support-error",
+          ".support-queue-notice"
+        ],
+        "boxes": [
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 0,
+              "bottom": 91,
+              "width": 390,
+              "height": 91,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 389,
+              "top": 91,
+              "bottom": 677,
+              "width": 389,
+              "height": 586,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [],
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 677,
+              "bottom": 844,
+              "width": 390,
+              "height": 167,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 11,
+              "right": 379,
+              "top": 686,
+              "bottom": 802,
+              "width": 368,
+              "height": 116,
+              "fontSize": "14px",
+              "lineHeight": "20.0004px",
+              "minHeight": "116px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 13,
+              "right": 378,
+              "top": 115,
+              "bottom": 159,
+              "width": 365,
+              "height": 44,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [],
+          []
+        ],
+        "sessionPresent": false,
+        "scope": "synthetic visual layout; not authenticated API acceptance"
+      }
+    }
+  }
+}

@@ -13,6 +13,20 @@ const base = { DATABASE_URL: "postgres://local/test", APP_SESSION_SECRET: "sessi
 const ok = (value: unknown = output, finish = "stop") => new Response(JSON.stringify({ choices: [{ finish_reason: finish, message: { content: JSON.stringify(value) } }] }));
 
 describe("DeepSeek customer support integration", () => {
+  it("versions the current care entry and published human hours without inventing consent or immediate staffing", () => {
+    expect(knowledge).toHaveLength(3);
+    expect(knowledge.every(source => source.version === "2026-10-31")).toBe(true);
+    const care = knowledge.find(source => source.id === "cisme.care-guide")!;
+    expect(care.content).toContain("在护理首页完成当前四步护理流程，填写护理后自我感受并点击保存");
+    expect(care.content).toContain("护理记录页只用于回看，不能在那里填写或保存感受");
+    const policy = knowledge.find(source => source.id === "cisme.support-policy")!;
+    expect(policy.content).toContain("只有用户在客服会话明确点击申请人工后，会话才进入等待人工队列");
+    expect(policy.content).toContain("每日北京时间 09:00–22:00，其他时间可以留言");
+    expect(policy.content).toContain("不承诺即时接入");
+    expect(policy.content).not.toContain("没有已验证的服务排班");
+    expect(() => new ApprovedKnowledgeRegistry(knowledge)).not.toThrow();
+  });
+
   it("requires explicit enablement and valid server-only configuration", () => {
     const disabled = loadConfig(base).supportAi;
     expect(disabled).toMatchObject({ enabled: false, apiKey: null, model: "deepseek-flash", timeoutMs: 4_000 });
@@ -35,7 +49,8 @@ describe("DeepSeek customer support integration", () => {
     expect(request?.redirect).toBe("error");
     expect(request?.headers).toMatchObject({ Authorization: `Bearer ${config.apiKey}` });
     const sent = JSON.parse(String(request?.body));
-    expect(sent).toMatchObject({ model: "deepseek-flash", thinking: { type: "disabled" }, stream: false, response_format: { type: "json_object" } });
+    expect(sent).toMatchObject({ model: "deepseek-flash", thinking: { type: "disabled" }, stream: false, max_tokens: 384, response_format: { type: "json_object" } });
+    expect(sent.reasoning_effort).toBeUndefined();
     expect(sent.tools).toBeUndefined();
     expect(String(request?.body)).not.toContain(projection.conversationId);
     expect(String(request?.body)).not.toContain("test@example.com");
@@ -45,6 +60,51 @@ describe("DeepSeek customer support integration", () => {
     expect(sent.messages[0].content).toContain("不可信数据");
     const ungrounded = new SupportAiBoundary(new DeepSeekSupportAiProvider(config, async () => ok({ ...output, citations: [{ sourceId: "made-up", version: "1" }] })), new ApprovedKnowledgeRegistry(knowledge));
     await expect(ungrounded.suggestedReply(projection)).rejects.toMatchObject({ code: "SUPPORT_AI_UNGROUNDED" });
+  });
+
+  it("asks for short friendly answers and only suggests a user-initiated human handoff", async () => {
+    let system = "";
+    const provider = new DeepSeekSupportAiProvider(config, async (_url, init) => {
+      system = JSON.parse(String(init?.body)).messages[0].content; return ok();
+    });
+    await provider.suggest({ conversation: projection, knowledge });
+    for (const instruction of ["通常30–100字、1–3句话", "护理四步时可用4个短项", "每轮最多1个澄清问题", "0–1个emoji", "不无故重复欢迎或自我介绍", "用户问身份时如实说明是AI", "不自称人工", "不声称已查询、已办理", "困难时只提示用户点击“申请人工”", "由用户主动决定", "不代表已转人工"])
+      expect(system).toContain(instruction);
+    expect(system).not.toContain("500个汉字");
+  });
+
+  it("accepts 180 Unicode characters including an emoji, and rejects a complete longer answer without truncation", async () => {
+    const allowed = "护".repeat(179) + "👋";
+    expect(allowed.length).toBe(181);
+    await expect(new DeepSeekSupportAiProvider(config, async () => ok({ ...output, text: allowed })).suggest({ conversation: projection, knowledge }))
+      .resolves.toMatchObject({ text: allowed });
+    const tooLong = "护".repeat(179) + "👋。请先暂停使用并寻求专业帮助。";
+    await expect(new DeepSeekSupportAiProvider(config, async () => ok({ ...output, text: tooLong })).suggest({ conversation: projection, knowledge }))
+      .rejects.toMatchObject({ code: "SUPPORT_AI_OUTPUT_INVALID", status: 502 });
+    const expandedByRedaction = "护".repeat(175) + "姓名：李";
+    expect(Array.from(expandedByRedaction)).toHaveLength(179);
+    expect(Array.from(redactSupportModelText(expandedByRedaction)).length).toBeGreaterThan(180);
+    await expect(new DeepSeekSupportAiProvider(config, async () => ok({ ...output, text: expandedByRedaction })).suggest({ conversation: projection, knowledge }))
+      .rejects.toMatchObject({ code: "SUPPORT_AI_OUTPUT_INVALID", status: 502 });
+  });
+
+  it("takes only final content and never returns or replays private reasoning fields", async () => {
+    const sentinel = "PRIVATE_REASONING_SENTINEL_NOT_FOR_USER";
+    const resultWithExtra = { ...output, reasoning_content: sentinel };
+    let requestBody = "";
+    const provider = new DeepSeekSupportAiProvider(config, async (_url, init) => {
+      requestBody = String(init?.body);
+      return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: {
+        reasoning_content: sentinel, content: JSON.stringify(resultWithExtra)
+      } }] }));
+    });
+    const history = { ...projection, messages: [
+      { sequence: 1, senderType: "ai", body: "请按页面指引完成护理。", reasoning_content: sentinel },
+      { sequence: 2, senderType: "user", body: "如何保存记录？" }
+    ] };
+    await expect(provider.suggest({ conversation: history, knowledge })).resolves.toEqual(output);
+    expect(requestBody).not.toContain(sentinel);
+    expect(requestBody).not.toContain("reasoning_content");
   });
 
   it("redacts signed URLs, credentials and volunteered private identifiers", () => {

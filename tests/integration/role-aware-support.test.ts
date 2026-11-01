@@ -53,6 +53,9 @@ describe("R2 support authority",()=>{
   it("persists retries once, orders concurrent member messages and exposes the same conversation",async()=>{
     const send=(body:string,key:string)=>app.inject({method:"POST",url:"/v1/me/support/messages",headers:auth(user.sessionToken),payload:{body,clientMessageId:key}});
     expect((await app.inject({method:"POST",url:"/v1/me/support/messages",headers:auth(user.sessionToken)})).statusCode).toBe(422);
+    // This authority fixture exercises a human conversation; queue entry is
+    // the member's explicit command, not a side effect of an unavailable AI.
+    expect((await app.inject({method:"POST",url:"/v1/me/support/handoff",headers:auth(user.sessionToken)})).statusCode).toBe(200);
     const duplicate=await Promise.all([send("你好，我需要人工帮助","member-retry-0001"),send("你好，我需要人工帮助","member-retry-0001")]);
     expect(duplicate.map(item=>item.statusCode)).toEqual([200,200]);
     expect(new Set(duplicate.map(item=>item.json().message.id)).size).toBe(1);
@@ -99,7 +102,9 @@ describe("R2 support authority",()=>{
     expect(resolved.statusCode).toBe(200);expect(resolved.json().status).toBe("resolved");
     expect((await pool.query("SELECT current_handler_principal_id FROM support_conversation WHERE id=$1",[current.id])).rows[0].current_handler_principal_id).toBeNull();
     const reopened=await app.inject({method:"POST",url:"/v1/me/support/messages",headers:auth(user.sessionToken),payload:{body:"还有一个问题",clientMessageId:"member-reopen-01"}});
-    expect(reopened.json().conversation).toMatchObject({status:"waiting_human"});expect(reopened.json().conversation).not.toHaveProperty("currentHandlerPrincipalId");
+    expect(reopened.json().conversation).toMatchObject({status:"ai_active"});expect(reopened.json().conversation).not.toHaveProperty("currentHandlerPrincipalId");
+    const requested=await app.inject({method:"POST",url:"/v1/me/support/handoff",headers:auth(user.sessionToken)});
+    expect(requested.statusCode).toBe(200);expect(requested.json().status).toBe("waiting_human");
     await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='test-authority',revoke_reason='test immediate revocation' WHERE member_id=$1 AND capability='support.read'",[reader.memberId]);
     expect((await app.inject({method:"GET",url:"/v1/management/support/conversations",headers:auth(reader.sessionToken)})).statusCode).toBe(403);
   });

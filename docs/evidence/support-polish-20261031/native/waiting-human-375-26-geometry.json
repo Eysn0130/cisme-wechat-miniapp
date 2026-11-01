@@ -1,0 +1,122 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 375,
+        "font": 26,
+        "selectors": [
+          ".support-topbar",
+          ".support-thread",
+          ".support-welcome-message",
+          ".support-bubble",
+          ".support-message__sender",
+          ".support-ai-notice",
+          ".support-human",
+          ".support-composer",
+          ".support-input",
+          ".support-typing",
+          ".support-error",
+          ".support-queue-notice"
+        ],
+        "boxes": [
+          [
+            {
+              "left": 0,
+              "right": 375,
+              "top": 0,
+              "bottom": 91,
+              "width": 375,
+              "height": 91,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 374,
+              "top": 91,
+              "bottom": 608,
+              "width": 374,
+              "height": 517,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "left": 14,
+              "right": 361,
+              "top": 731,
+              "bottom": 775,
+              "width": 347,
+              "height": 44,
+              "fontSize": "19.5px",
+              "lineHeight": "24.375px",
+              "minHeight": "44px",
+              "color": "rgb(114, 85, 127)"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 375,
+              "top": 608,
+              "bottom": 812,
+              "width": 375,
+              "height": 204,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 11,
+              "right": 364,
+              "top": 617,
+              "bottom": 729,
+              "width": 353,
+              "height": 112,
+              "fontSize": "22.75px",
+              "lineHeight": "32.5006px",
+              "minHeight": "112px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [],
+          [],
+          [
+            {
+              "left": 32.5,
+              "right": 343.5,
+              "top": 122.5,
+              "bottom": 184.875,
+              "width": 311,
+              "height": 62.375,
+              "fontSize": "19.5px",
+              "lineHeight": "31.2px",
+              "minHeight": "0px",
+              "color": "rgb(117, 105, 122)"
+            }
+          ]
+        ],
+        "sessionPresent": false,
+        "scope": "synthetic visual layout; not authenticated API acceptance"
+      }
+    }
+  }
+}
