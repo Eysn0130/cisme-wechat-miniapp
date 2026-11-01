@@ -1,4 +1,5 @@
 import { defaultMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
+import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication, beginLegalRenewal } from "../../services/api";
 import { cancelPageReads } from "../../services/page-requests";
 import { editorialPreviewAllowed, editorialStory, isBundledEditorialId, editorialIdentifier, editorialDisplayMedia, editorialAiLabel, type EditorialVideo, type PublishedEditorialMedia, publishedEditorialArticle, reactToEditorialArticle, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
@@ -242,7 +243,7 @@ Page({
           // successful read may retire that old refusal, never an unknown write.
           const clearSocialRefusal=this.editorialSocialRefusal!==null&&this.data.socialError===this.editorialSocialRefusal;
           if(clearSocialRefusal)this.editorialSocialRefusal=null;
-          this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:"editorial",avatar:defaultMemberAvatar,
+          this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:"editorial",avatar:editorialPublisherAvatar(article.author,defaultMemberAvatar),
             readingSegments:readingSegments(article.body),publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
             media:display.images,mediaIndex:restored?.index??0,galleryHeight,video:display.video,videoHeightRpx,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",imageEventId:display.images.length?`${attempt}:${article.version}:${article.id}:${galleryHeight}`:"",following:article.following,
             commentAuthenticated:Boolean(token),commentsLoading:true,socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{

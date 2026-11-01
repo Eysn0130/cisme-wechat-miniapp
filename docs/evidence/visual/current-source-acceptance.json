@@ -257,16 +257,16 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "3942f0be14641c7cf7a77ecc092b3bf23a80ee5ae407f100459918454a732f6b",
+  "packageSourceSha256": "c22d1e6cf1f98b18c3a082a3d552bf81dc384ee4dc9ea5d88aac76317e197288",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "The current source retains the local welcome at the confirmed beginning of a support topic. Full40-route state matrices and physical-device acceptance remain incomplete."
+      "reason": "Current source uses the user-authorized editorial publisher avatar in the three native editorial entry points. Full40-route state and physical-device matrices remain incomplete."
     }
   ],
-  "note": "Current welcome retention validation is scoped separately. Historical support and calendar frames retain their original source hashes and do not validate the current source. Full40-route and physical-device acceptance remain blocked.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-8b4ea1a3a940.json",
+  "note": "Editorial publisher validation is scoped separately; historical support and community frames retain original source hashes. No old frame is rebound as a current-source full-matrix pass.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-3942f0be1464.json",
   "pendingSourceRebind": false
 }

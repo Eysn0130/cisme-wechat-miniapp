@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import {CANONICAL_WECHAT_MINIPROGRAM_APP_ID} from '@cisme/config';
 import {editorialProvenanceLabel,validateEditorialPublication,type EditorialPublication,type EditorialMedia} from '../../services/api/src/editorial';
 import {prepareEditorial,runEditorialPublication} from '../../scripts/editorial-publish';
+import {defaultEditorialPublisherName} from '../../apps/miniprogram/services/editorial-publisher';
 const dirs:string[]=[];afterEach(async()=>{for(const dir of dirs.splice(0))await rm(dir,{recursive:true,force:true});});
 const base=():EditorialPublication=>({externalRef:'owned-original-test',authorMemberId:randomUUID(),author:'公开作者名',title:'标题',excerpt:'摘要',body:'第一段\n第二段',
  sourceUrl:null,authorizationRef:'cisme-editorial-owner-20261026',rightsEvidence:{kind:'owner_authorized_original_rewrite',sources:[]},media:[]});
@@ -30,6 +31,20 @@ async function brandInput(count=2){
  const file=join(root,'input.json');await writeFile(file,JSON.stringify(input));return {root,input,file};
 }
 describe('editorial publication preparation and validation',()=>{
+ it.each([undefined,'另行指定的作者'])('defaults only an omitted author name while preserving explicit override %j and the actual member identity',async(authorDisplayName)=>{
+  const {root,input,file}=await brandInput(1);
+  await writeFile(file,JSON.stringify({...input,authorDisplayName}));
+  const result=await prepareEditorial(file,join(root,'prepared-default-author'));
+  const bundle=JSON.parse(await readFile(result.file,'utf8'));
+  expect(bundle.articles[0]).toMatchObject({author:authorDisplayName===undefined?defaultEditorialPublisherName:authorDisplayName,
+   authorMemberId:input.authorMemberId});
+  expect(bundle).toMatchObject({operatorMemberId:input.operatorMemberId,operatorPrincipalId:input.operatorPrincipalId});
+ });
+ it.each(['',null])('keeps an explicit invalid author name %j invalid instead of silently replacing it',async(authorDisplayName)=>{
+  const {root,input,file}=await brandInput(1);
+  await writeFile(file,JSON.stringify({...input,authorDisplayName}));
+  await expect(prepareEditorial(file,join(root,'prepared-invalid-author'))).rejects.toMatchObject({code:'EDITORIAL_INPUT_INVALID'});
+ });
  it('accepts plain text and an authorization reference without adding identities or metrics',()=>{
   const value=base();expect(validateEditorialPublication(value)).toMatchObject({body:'第一段\n第二段',media:[]});
  });

@@ -3,6 +3,7 @@ import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, beginLegalRenewal } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 import { defaultMemberAvatar } from "../../services/member-avatar";
+import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { editorialIdentifier, editorialMediaSrc, publishedEditorialAuthor, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
 
 type Author = { id:string; name:string; avatar:string; postCount:number; following:boolean; isMine:boolean };
@@ -50,7 +51,7 @@ Page({
         this.setData({author:null,articleContextId:""});
         const result=await publishedEditorialAuthor(id,this);
         if(!this.currentEditorial(epoch,token))return;
-        this.setData({author:{...result.author,avatar:defaultMemberAvatar},articleContextId:result.items[0]?.id||"",
+        this.setData({author:{...result.author,avatar:editorialPublisherAvatar(result.author.name,defaultMemberAvatar)},articleContextId:result.items[0]?.id||"",
           items:result.items.map(item=>({...item,coverId:null,cover:editorialMediaSrc(item.coverUrl)})),nextCursor:result.nextCursor,loading:false});return;
       }
       const [author,page]=await Promise.all([

@@ -1,0 +1,12 @@
+
+> cisme-wechat-miniapp@0.1.0 test
+> vitest run tests/unit --exclude 'dist/**'
+
+
+ RUN  v4.1.12 /Users/mini/CISME
+
+
+ Test Files  168 passed (168)
+      Tests  2617 passed | 1 skipped (2618)
+   Start at  08:14:41
+   Duration  8.03s (transform 7.44s, setup 7.84s, import 12.41s, tests 32.43s, environment 917ms)

@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-author/index",
+        "loading": false,
+        "error": "",
+        "editorialSource": true,
+        "author": {
+          "id": "8d2b65b6-c165-4186-b4d0-5fdda9c67456",
+          "name": "CISME头皮实验室",
+          "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp",
+          "postCount": 20
+        },
+        "itemCount": 20
+      }
+    }
+  }
+}
