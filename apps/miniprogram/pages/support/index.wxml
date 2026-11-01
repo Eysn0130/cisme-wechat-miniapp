@@ -1,3 +1,4 @@
+<page-meta root-font-size="system"/>
 <view class="support-shell" style="{{chromeStyle}}">
   <view class="topbar support-topbar">
     <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
@@ -11,13 +12,13 @@
     <view class="support-thread__content">
     <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
-    <view wx:if="{{!loading && !messages.length && !pendingMessage}}" class="support-welcome">
-      <image src="/assets/icons/chat-circle-plum.svg"/>
-      <strong>你好，这里是 CISME 客服</strong>
-      <text>护理、账号或订单有问题？请在这里留言。</text>
+    <view wx:if="{{historyLoaded && !loading && !closedRights && !messages.length && !pendingMessage && !error && (!conversation || conversation.status === 'ai_active')}}" class="support-message support-message--{{supportAiAvailable ? 'ai' : 'admin'}} support-message--group-start support-welcome-message">
+      <view class="support-avatar-slot"><view class="support-avatar support-avatar--{{supportAiAvailable ? 'ai' : 'human'}}"><image src="{{supportAiAvailable ? '/assets/icons/star-active.svg' : '/assets/icons/chat-circle-plum.svg'}}" aria-hidden="true"/></view></view>
+      <view class="support-message__content"><text class="support-message__sender">{{supportAiAvailable ? 'CISME AI 客服' : 'CISME 客服'}}</text><view class="support-bubble">{{supportAiAvailable ? '你好呀，我是 CISME AI 客服 😊 护理或使用小程序有疑问，都可以问我～' : '你好呀 😊 有问题可以留言，也可以申请人工客服。'}}</view></view>
     </view>
 
-    <view wx:if="{{supportAiAvailable && (!conversation || conversation.status === 'ai_active')}}" class="support-ai-notice">AI 回复由 DeepSeek 提供，请勿发送密码、验证码或完整联系方式，可随时申请人工。</view>
+    <view wx:if="{{historyLoaded && !loading && !closedRights && supportAiAvailable && (!conversation || conversation.status === 'ai_active')}}" class="support-ai-notice">AI 回复由 DeepSeek 提供，请勿发送密码、验证码或完整联系方式，可随时申请人工。</view>
+    <view wx:if="{{!closedRights && conversation && conversation.status === 'waiting_human'}}" class="support-queue-notice">人工接待 09:00–22:00（北京时间），其他时间可留言。</view>
 
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
@@ -63,11 +64,11 @@
       </view>
     </view>
 
-    <view wx:if="{{presence.operatorTyping}}" class="support-typing" aria-live="polite">
-      <view class="support-avatar support-avatar--human"><image src="/assets/icons/chat-circle-plum.svg"/></view>
-      <view class="support-typing__body"><view class="support-typing__dots"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{presence.agentDisplayName}}正在输入…</text></view>
+    <view wx:if="{{aiReplyWaiting || presence.operatorTyping}}" id="support-ai-wait" class="support-typing {{aiReplyWaiting ? 'support-typing--ai' : ''}}" aria-live="polite">
+      <view class="support-avatar support-avatar--{{aiReplyWaiting ? 'ai' : 'human'}}"><image src="{{aiReplyWaiting ? '/assets/icons/star-active.svg' : '/assets/icons/chat-circle-plum.svg'}}" aria-hidden="true"/></view>
+      <view class="support-typing__body"><view class="support-typing__dots" aria-hidden="true"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{aiReplyWaiting ? '正在等待 AI 回复…' : presence.agentDisplayName + '正在输入…'}}</text></view>
     </view>
-    <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重试</button><button wx:elif="{{errorAction === 'handoff'}}" bindtap="retryHandoff">重新提交</button></view>
+    <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重试</button><button wx:elif="{{errorAction === 'handoff'}}" class="{{handoffBusy ? 'control--disabled' : ''}}" bindtap="retryHandoff" disabled="{{handoffBusy}}">{{handoffFailed ? '重试申请' : '申请人工客服'}}</button></view>
       <view class="support-thread__end"></view>
     </view>
   </scroll-view>
@@ -92,7 +93,7 @@
       </view>
     </view>
     <button wx:if="{{!closedRights && supportAiAvailable && conversation && conversation.status === 'waiting_human'}}" class="support-human {{handoffBusy || sending ? 'control--disabled' : ''}}" bindtap="resumeAi" disabled="{{handoffBusy || sending}}">继续 AI 咨询</button>
-    <button wx:if="{{!closedRights && conversation && conversation.status === 'ai_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">联系人工客服</button>
+    <button wx:if="{{!closedRights && !loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">{{handoffBusy ? '正在申请人工…' : '申请人工客服'}}</button>
   </view>
 
   <view wx:if="{{attachmentSheetOpen}}" class="support-sheet-mask" catchtap="closeAttachmentSheet" catchtouchmove="stopPropagation">

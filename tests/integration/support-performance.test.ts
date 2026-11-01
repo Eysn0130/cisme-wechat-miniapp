@@ -10,7 +10,11 @@ it("accepts one first support message from 100 isolated members without failure"
  const members=await Promise.all(Array.from({length:100},(_,index)=>app.inject({method:"POST",url:"/v1/identity/dev",payload:{externalUserId:`support-perf-${index}`,displayName:`成员 ${index}`,consents:[{documentType:"privacy",version:"v1"},{documentType:"terms",version:"v1"}]}}).then(response=>response.json())));
  const latencies:number[]=[];const responses=await Promise.all(members.map(async(member,index)=>{const started=performance.now();const response=await app.inject({method:"POST",url:"/v1/me/support/messages",headers:{authorization:`Bearer ${member.sessionToken}`},payload:{body:`并发客服消息 ${index}`,clientMessageId:`support-perf-message-${index}`}});latencies.push(performance.now()-started);return response;}));
  expect(responses.map(response=>response.statusCode)).toEqual(Array(100).fill(200));
- expect((await pool.query("SELECT count(*)::int AS count FROM support_conversation")).rows[0].count).toBe(100);expect((await pool.query("SELECT count(*)::int AS count FROM support_message")).rows[0].count).toBe(100);
+ expect((await pool.query("SELECT count(*)::int AS count FROM support_conversation")).rows[0].count).toBe(100);
+ expect((await pool.query("SELECT sender_type,count(*)::int count FROM support_message GROUP BY sender_type ORDER BY sender_type")).rows)
+  .toEqual([{sender_type:"system",count:100},{sender_type:"user",count:100}]);
+ expect(responses.every(response=>response.json().conversation.status==="ai_active"&&response.json().handoffSuggested===true)).toBe(true);
+ expect((await pool.query("SELECT count(*)::int count FROM outbox_event WHERE event_type='support.conversation.handoff_requested.v1'")).rows[0].count).toBe(0);
  latencies.sort((a,b)=>a-b);const p95=latencies[Math.ceil(latencies.length*.95)-1]!;
  const operator=members[0];await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'support.read','performance-test','bounded local performance test','test','integration_fixture')",[operator.memberId]);
  const queueStarted=performance.now();

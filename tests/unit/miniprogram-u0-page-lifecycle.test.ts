@@ -460,7 +460,7 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/support/index");
     const page = mountedPage(capturedPage!);
 
-    expect(page.headerPatch(null, page.data.presence)).toMatchObject({ statusLabel: "欢迎留言，我们会尽快回复", statusTone: "neutral" });
+    expect(page.headerPatch(null, page.data.presence)).toMatchObject({ statusLabel: "欢迎留言", statusTone: "neutral" });
   });
 
   it("allows an image or owned order to reopen a resolved member conversation", async () => {

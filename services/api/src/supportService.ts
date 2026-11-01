@@ -144,26 +144,27 @@ export class SupportService {
       const row=await this.findForMember(client,owner,true);
       if(!row||row.id!==id||row.status!=='ai_active'||row.version!==expectedVersion)return {};
       const isAi=suggestion!==null,sequence=Number(row.next_sequence),replyId=randomUUID();
-      const body=suggestion?.text??(failure==='SUPPORT_AI_HUMAN_CONTEXT_REQUIRED'
-        ?'图片或订单需要人工核对，已转人工客服，请继续留言。'
-        :'AI 暂时无法完成回复，已转人工客服，请继续留言。');
+      // A suggestion or a provider failure is not the member's consent to
+      // enter the human queue. Keep untrusted/low-confidence text private.
+      const body=suggestion?.text??(['SUPPORT_AI_HUMAN_CONTEXT_REQUIRED','SUPPORT_AI_HANDOFF_REQUIRED'].includes(failure)
+        ?'这个问题需要人工核实 😊 点「申请人工」，客服会接着帮你。'
+        :'这次没能及时回复你，抱歉呀 🌿 你可以稍后再问，或点「申请人工」。');
       const inserted=(await client.query<MessageRow>(`INSERT INTO support_message
         (id,conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id,retention_purpose)
         SELECT $1,$2,$3,$4,$5,$6,$7,$8,retention_purpose FROM support_message WHERE id=$9
         RETURNING ${messageColumns()}`,[replyId,id,sequence,isAi?'ai':'system',isAi?'ai:support':'system:support',body,
           isAi?'text':'system',`ai-reply:${messageId}`,messageId])).rows[0]!;
       const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET
-        status=$2,next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
-        version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id,isAi?'ai_active':'waiting_human'])).rows[0]!;
-      await this.audit(client,isAi?'ai:support':'system:support',isAi?'support.ai.reply':'support.ai.handoff',id,null,
+        next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
+        version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
+      await this.audit(client,isAi?'ai:support':'system:support',isAi?'support.ai.reply':'support.ai.handoff_suggested',id,null,
         {messageId:replyId,inReplyTo:messageId,providerId:this.ai?.status().providerId??'disabled',
           ...(suggestion?{citations:suggestion.citations,confidence:suggestion.confidence}:{reason:failure})},traceId);
       await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:id,
         aggregateVersion:updated.version,businessKey:`support-message:${replyId}`,
         payload:{conversationId:id,messageId:replyId,senderType:isAi?'ai':'system',sequence},occurredAt:inserted.created_at});
-      if(!isAi)await enqueue(client,{eventType:'support.conversation.handoff_requested.v1',aggregateType:'support_conversation',aggregateId:id,
-        aggregateVersion:updated.version,businessKey:`support-handoff:${id}:v${updated.version}`,payload:{conversationId:id},occurredAt:updated.updated_at});
-      return {conversation:conversation(updated),aiMessages:[await this.messageView(inserted,updated,'member')],aiStatus:isAi?'replied':'handed_off'};
+      return {conversation:conversation(updated),aiMessages:[await this.messageView(inserted,updated,'member')],
+        aiStatus:isAi?'replied':'handoff_suggested',handoffSuggested:!isAi};
     });
   }
 
@@ -346,7 +347,7 @@ export class SupportService {
       let row = await this.findForMember(client, owner, true);
       if (!row) {
         const created = await client.query<ConversationRow>(`INSERT INTO support_conversation(member_id,status)
-          VALUES($1,$2) RETURNING *`, [owner,this.automaticAiAvailable()&&!historicalOrder&&!images.length&&!linkedOrderId?'ai_active':'waiting_human']); row = created.rows[0]!;
+          VALUES($1,$2) RETURNING *`, [owner,historicalOrder?'waiting_human':'ai_active']); row = created.rows[0]!;
       }
       const duplicate = await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='user' AND sender_principal_id=$2 AND client_message_id=$3`, [row.id, principal, messageKey]);
@@ -366,9 +367,9 @@ export class SupportService {
       }
       const sequence = Number(row.next_sequence); const messageId = randomUUID();
       const reopened = row.status === "resolved";
-      const needsHuman = reopened || historicalOrder && row.status === "ai_active";
-      const nextStatus: SupportConversationStatus = reopened&&!historicalOrder&&!images.length&&!linkedOrderId&&this.automaticAiAvailable()
-        ?'ai_active':needsHuman ? "waiting_human" : row.status;
+      const resetHandler = reopened || historicalOrder && row.status === "ai_active";
+      const nextStatus: SupportConversationStatus = historicalOrder && resetHandler
+        ? "waiting_human" : reopened ? "ai_active" : row.status;
       const inserted = await client.query<MessageRow>(`INSERT INTO support_message
         (id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,client_message_id,retention_purpose)
         VALUES($1,$2,$3,'user',$4,$5,$6,$7,$8,$9,$10,$11) RETURNING ${messageColumns()}`,
@@ -377,7 +378,7 @@ export class SupportService {
       if (images.length) await client.query("UPDATE media_object SET bound_support_message_id=$1,support_expires_at='infinity' WHERE id=ANY($2::uuid[])", [messageId, images]);
       const updated = await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,team_unread_count=team_unread_count+1,
         status=$2,current_handler_principal_id=CASE WHEN $3 THEN NULL ELSE current_handler_principal_id END,resolved_at=NULL,version=version+1,updated_at=clock_timestamp()
-        WHERE id=$1 RETURNING *`, [row.id, nextStatus, needsHuman]);
+        WHERE id=$1 RETURNING *`, [row.id, nextStatus, resetHandler]);
       row = updated.rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='member'", [row.id]);
       await enqueue(client, { eventType: "support.message.created.v1", aggregateType: "support_conversation", aggregateId: row.id,
@@ -403,12 +404,12 @@ export class SupportService {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
       let row = await this.findForMember(client, owner, true);
       if (!row) row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING *", [owner])).rows[0]!;
-      if (row.status === "human_active" || row.status === "waiting_human") return conversation(row);
-      const updated = (await client.query<ConversationRow>(`UPDATE support_conversation SET status='waiting_human',current_handler_principal_id=NULL,resolved_at=NULL,
+      else if (row.status === "human_active" || row.status === "waiting_human") return conversation(row);
+      else row = (await client.query<ConversationRow>(`UPDATE support_conversation SET status='waiting_human',current_handler_principal_id=NULL,resolved_at=NULL,
         version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [row.id])).rows[0]!;
       await enqueue(client, { eventType: "support.conversation.handoff_requested.v1", aggregateType: "support_conversation", aggregateId: row.id,
-        aggregateVersion: updated.version, businessKey: `support-handoff:${row.id}:v${updated.version}`, payload: { conversationId: row.id }, occurredAt: updated.updated_at });
-      return conversation(updated);
+        aggregateVersion: row.version, businessKey: `support-handoff:${row.id}:v${row.version}`, payload: { conversationId: row.id }, occurredAt: row.updated_at });
+      return conversation(row);
     });
   }
 
@@ -510,7 +511,7 @@ export class SupportService {
       await this.platform.assertSwitch(client, "uploads");
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
       let row = await this.findForMember(client, owner, true);
-      if (!row) row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING *", [owner])).rows[0]!;
+      if (!row) row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status) VALUES($1,'ai_active') RETURNING *", [owner])).rows[0]!;
       const id = randomUUID();
       const objectKey = `support/${row.id}/images/${id}`;
       const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);

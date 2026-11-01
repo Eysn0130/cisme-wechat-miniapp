@@ -32,6 +32,13 @@ export interface SupportThreadState<TMessage extends SupportSequenceMessage> {
   readCursor: number;
 }
 
+/** Receipts and polls may finish after a newer handoff/claim response. */
+export function newestSupportConversation<T extends { id: string; version: number }>(current: T | null, incoming: T | null | undefined): T | null {
+  if (!incoming) return current;
+  if (current?.id === incoming.id && incoming.version < current.version) return current;
+  return incoming;
+}
+
 function validSequence(value: unknown): number {
   return Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : 0;
 }
@@ -152,7 +159,7 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
     const needsSeparator = time !== null && (!previous || previousTime === null || dateKey(time, timezoneOffsetMinutes) !== dateKey(previousTime, timezoneOffsetMinutes) || time - previousTime > 5 * 60_000);
     const senderLabel = item.senderType === "user" ? options.memberDisplayName ?? "CISME 会员"
       : item.senderType === "admin" ? `${options.agentDisplayName ?? "CISME 客服"} · 人工客服`
-      : item.senderType === "ai" ? "CISME AI 助手" : "";
+      : item.senderType === "ai" ? "CISME AI 客服" : "";
     const localState = (item as TMessage & { localState?: string }).localState;
     const deliveryLabel = item.senderType !== options.ownSenderType ? ""
       : localState === "pending" ? "正在发送"
@@ -176,7 +183,7 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
 }
 
 export function supportHeaderPresentation(input: SupportHeaderInput): { tone: SupportHeaderTone; label: string } {
-  if (input.status === "ai_active") return { tone: "ai", label: "CISME AI 助手" };
+  if (input.status === "ai_active") return { tone: "ai", label: "CISME AI 客服" };
   if (input.status === "waiting_human") return { tone: "waiting", label: "等待人工客服" };
   if (input.status === "resolved") return { tone: "resolved", label: "本次服务已结束" };
   if (input.operatorOnline) return { tone: "online", label: `${input.agentDisplayName || "CISME 客服"} · 人工客服已接入` };

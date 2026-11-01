@@ -4,6 +4,7 @@ import {
   mergeAcknowledgement,
   mergeHistoryPage,
   mergeSyncPage,
+  newestSupportConversation,
   presentSupportMessages,
   readableSequence,
   supportHeaderPresentation,
@@ -14,6 +15,12 @@ type Message = { id: string; sequence: number; senderType: "user" | "admin" | "s
 const message = (sequence: number, senderType: Message["senderType"] = "admin"): Message => ({ id: `m-${sequence}`, sequence, senderType, body: `message ${sequence}` });
 
 describe("support thread state", () => {
+  it("keeps confirmed handoff versions while allowing a later explicit AI resume", () => {
+    const waiting = { id: "same-thread", version: 4, status: "waiting_human" };
+    expect(newestSupportConversation(waiting, { ...waiting, version: 3, status: "ai_active" })).toBe(waiting);
+    expect(newestSupportConversation(waiting, null)).toBe(waiting);
+    expect(newestSupportConversation(waiting, { ...waiting, version: 5, status: "ai_active" })).toEqual({ ...waiting, version: 5, status: "ai_active" });
+  });
   it("does not let a late local acknowledgement skip an unseen server message", () => {
     const initial = createSupportThreadState([message(100)], 100);
     const withAck = mergeAcknowledgement(initial, message(102, "user"));

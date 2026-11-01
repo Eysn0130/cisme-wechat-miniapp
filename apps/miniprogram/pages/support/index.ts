@@ -11,6 +11,7 @@ import {
   mergeAcknowledgement,
   mergeHistoryPage,
   mergeSyncPage,
+  newestSupportConversation,
   presentSupportMessages,
   readableSequence,
   supportHeaderPresentation,
@@ -50,6 +51,7 @@ Page({
   pollInFlight: false,
   pollFailures: 0,
   lifecycleEpoch: 0,
+  aiWaitRevision: 0,
   inputRevision: 0,
   orderSelectionRevision: 0,
   linkedOrderAttempt: 0,
@@ -68,7 +70,7 @@ Page({
   data: {
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
-    pendingMessage: null as Message | null, loading: true, loadingOlder: false, sending: false, handoffBusy: false, supportAiAvailable:false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
+    pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, aiReplyWaiting: false, supportAiAvailable:false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
@@ -78,7 +80,7 @@ Page({
     const orderId=options.orderId??'';
     this.linkedOrderId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)?orderId:''; },
   onReady() { this.measureComposer(); },
-  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.measureComposer(); },
+  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.scheduleComposerMeasure(); },
   onShow() {
     const previousRevision = this.readRevision;
     this.readRevision=commerceContextRevision();
@@ -86,6 +88,7 @@ Page({
     const preserve = (retainMemberSnapshot(this)||Boolean(token&&this.snapshotToken===token)) && previousRevision===this.readRevision;
     this.snapshotToken=token;
     this.lifecycleEpoch += 1;
+    this.stopAiReplyWait();
     this.data.pageAlive = true;
     this.data.visible = true;
     this.nativePickerReturn?.();
@@ -100,6 +103,7 @@ Page({
       this.linkedOrderDismissed = false;
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
+        historyLoaded: false, supportAiAvailable: false, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
@@ -130,6 +134,7 @@ Page({
     wx.nextTick(() => this.measureComposer());
   },
   onHide() {
+    this.stopAiReplyWait();
     cancelPageReads(this);
     void this.publishPresence(false, false, true);
     if (this.data.sending && this.data.sendAttempt) this.setData({
@@ -151,7 +156,7 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [] });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
-  onUnload() { const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
+  onUnload() { this.stopAiReplyWait(); const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
     if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
       !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null});
     else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
@@ -163,6 +168,8 @@ Page({
     wx.navigateTo({url:`/pages/aftersale/index?caseId=${id}`});
   },
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
+  stopAiReplyWait() { this.aiWaitRevision += 1; if (this.data.aiReplyWaiting) this.setData({ aiReplyWaiting: false }); },
+  currentConversation(incoming: Conversation | null | undefined) { return newestSupportConversation(this.data.conversation, incoming); },
   abortDownloads() {
     const downloads = this.mediaDownloads ?? [];
     this.mediaDownloads = [];
@@ -185,7 +192,7 @@ Page({
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:nativeCatalogImage(order.lines[0]?.image),
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
-    }catch{if(current())this.setData({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
+    }catch{if(current())this.setComposerState({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
   threadState(): SupportThreadState<Message> { return { messages: this.data.messages, syncCursor: this.data.syncCursor, maxSeenSequence: this.data.maxSeenSequence, readCursor: this.data.readCursor }; },
@@ -194,8 +201,11 @@ Page({
     const activePresence = presence ?? this.data.presence ?? emptyPresence;
     return presentSupportMessages(messages, { ownSenderType: "user", counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName });
   },
-  headerPatch(conversation: Conversation | null, presence: Presence) {
-    if (!conversation) return { statusLabel: "欢迎留言，我们会尽快回复", statusTone: "neutral", presence };
+  headerPatch(conversation: Conversation | null, presence: Presence, aiAvailable?: boolean) {
+    if (!conversation) return (aiAvailable ?? this.data.supportAiAvailable) && !this.data.closedRights
+      ? { statusLabel: "CISME AI 客服", statusTone: "ai", presence }
+      : { statusLabel: "欢迎留言", statusTone: "neutral", presence };
+    if (conversation.status === "ai_active" && !(aiAvailable ?? this.data.supportAiAvailable)) return { statusLabel: "AI 客服暂不可用", statusTone: "neutral", presence };
     const header = supportHeaderPresentation({ status: conversation?.status ?? "waiting_human", agentDisplayName: presence.agentDisplayName, operatorOnline: presence.operatorOnline });
     return { statusLabel: header.label, statusTone: header.tone, presence };
   },
@@ -204,8 +214,25 @@ Page({
     const presence = (patch.presence as Presence | undefined) ?? this.data.presence;
     const messages = this.present(state.messages, conversation, presence);
     const messagePatch = supportMessageSetDataPatch(this.data.messages, messages);
-    this.setData({ ...messagePatch, syncCursor: state.syncCursor, maxSeenSequence: state.maxSeenSequence, readCursor: state.readCursor, ...patch });
+    this.setComposerState({ ...messagePatch, syncCursor: state.syncCursor, maxSeenSequence: state.maxSeenSequence, readCursor: state.readCursor, ...patch });
     if (Object.keys(messagePatch).length) this.data.messages = messages;
+  },
+  composerControlKey() {
+    if (this.data.closedRights) return "";
+    const status = this.data.conversation?.status;
+    if (this.data.supportAiAvailable && status === "waiting_human") return "resume";
+    if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))
+      return this.data.handoffBusy ? "handoff-busy" : "handoff";
+    return "";
+  },
+  setComposerState(patch: Record<string, unknown>) {
+    const before = this.composerControlKey();
+    this.setData(patch);
+    if (before !== this.composerControlKey()) this.scheduleComposerMeasure();
+  },
+  scheduleComposerMeasure() {
+    const epoch = this.lifecycleEpoch, ownerToken = sessionToken();
+    wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureComposer(); });
   },
   measureComposer() {
     if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
@@ -245,21 +272,24 @@ Page({
   async load() {
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    this.setData({ loading: true, error: "", errorAction: "" });
+    this.setComposerState({ loading: true, error: "", errorAction: "" });
     try {
       const page = await pageRead<any>(this,{ path: "/v1/me/support/messages", cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
       const messages = this.normalize(page.messages || []);
-      const state = createSupportThreadState(this.present(messages, page.conversation, presence), page.latestCursor || 0);
-      this.applyThreadState(state, { conversation: page.conversation, olderCursor: page.olderCursor ?? null, loading: false, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
-        anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "", supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(page.conversation, presence) });
+      const conversation = this.currentConversation(page.conversation);
+      const state = conversation !== (page.conversation ?? null)
+        ? mergeSyncPage(this.threadState(), this.present(messages, conversation, presence), page.latestCursor || 0)
+        : createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor || 0);
+      this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
+        anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
       this.downloadMedia(messages);
       await this.markRead();
       void this.publishPresence(true, Boolean(this.data.input.trim()), true);
       this.startPolling();
     } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ loading: false, error: "连接失败，请重试。", errorAction: "sync" });
+      if (this.owns(epoch, ownerToken)) this.setComposerState({ loading: false, error: "连接失败，请重试。", errorAction: "sync" });
     }
   },
   async poll() {
@@ -272,16 +302,17 @@ Page({
       const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const presence = { ...emptyPresence, ...(page.presence ?? this.data.presence) } as Presence;
+      const conversation = this.currentConversation(page.conversation);
       const incoming = this.normalize(page.messages || []);
       const knownIds = new Set(this.data.messages.map((item) => item.id));
       const freshCount = incoming.filter((item) => !knownIds.has(item.id)).length;
-      const state = mergeSyncPage(this.threadState(), this.present(incoming, page.conversation ?? this.data.conversation, presence), page.latestCursor ?? after);
+      const state = mergeSyncPage(this.threadState(), this.present(incoming, conversation, presence), page.latestCursor ?? after);
       const newest = state.messages[state.messages.length - 1];
       const shouldFollow = this.data.atBottom;
       if (freshCount || presence.operatorTyping) this.lastActivityAt = Date.now();
       this.applyThreadState(state, {
-        conversation: page.conversation ?? this.data.conversation,
-        supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(page.conversation ?? this.data.conversation, presence),
+        conversation,
+        supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true),
         anchor: freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
         newMessagesBelowCount: shouldFollow ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
         newMessagesBelow: shouldFollow ? false : this.data.newMessagesBelow || freshCount > 0
@@ -381,24 +412,32 @@ Page({
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     const sendAttempt = previous ?? { id: `wx-user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, signature, body, mediaIds, linkedOrderId };
+    const waitRevision = ++this.aiWaitRevision;
+    const aiReplyWaiting = !previous && !this.data.closedRights && !this.data.handoffBusy && !this.data.handoffFailed
+      && this.data.supportAiAvailable && !mediaIds.length && !linkedOrderId
+      && (!this.data.conversation || this.data.conversation.status === "ai_active" || this.data.conversation.status === "resolved");
     this.lastActivityAt = Date.now();
-    this.setData({ sending: true, error: "", errorAction: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending") });
+    this.setComposerState({ sending: true, aiReplyWaiting, error: "", errorAction: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending"),
+      ...(aiReplyWaiting && this.data.atBottom ? { anchor: "support-ai-wait" } : {}) });
     void this.publishPresence(true, false, true);
     try {
       const result = await request<any>({ path: "/v1/me/support/messages", method: "POST", data: { body, clientMessageId: sendAttempt.id,
         ...(this.data.closedRights?{}:{mediaIds}),linkedOrderId }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
+      if (this.aiWaitRevision === waitRevision) this.stopAiReplyWait();
+      const conversation = this.currentConversation(result.conversation);
       const normalized = this.normalize([result.message], this.data.selectedImage);
       if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       if(Array.isArray(result.aiMessages)&&result.aiMessages.length)this.append(this.normalize(result.aiMessages));
       const clearInput = this.inputRevision === draftRevision && this.data.input.trim() === body;
       const clearImage = this.data.selectedImage?.mediaId === mediaIds[0];
       const clearOrder = !this.data.closedRights && this.data.selectedOrder?.id === linkedOrderId;
-      this.setData({ ...(clearInput ? { input: "", composerCapped: false, composerLineCount: 1 } : {}),
+      this.setComposerState({ ...(clearInput ? { input: "", composerCapped: false, composerLineCount: 1 } : {}),
         ...(clearImage ? { selectedImage: null } : {}), ...(clearOrder ? { selectedOrder: null } : {}),
         sendAttempt: null, composerSendEnabled: false, pendingMessage: null,
-        conversation: result.conversation, ...this.headerPatch(result.conversation, this.data.presence),
-        ...(result.aiStatus==='pending'?{error:"消息已收到，AI 回复暂未确认。你可以继续留言，或联系人工客服。",errorAction:"handoff"}:{}) });
+        conversation, ...this.headerPatch(conversation, this.data.presence),
+        ...(result.aiStatus==='pending' && conversation?.status==='ai_active' && !this.data.handoffBusy && !this.data.handoffFailed
+          ?{error:"消息已收到，AI 回复暂未确认。你可以继续留言，或申请人工客服。",errorAction:"handoff",handoffFailed:false}:{}) });
       if (clearInput) {
         this.inputRevision += 1;
         // Clearing a sent card must not silently reattach the route order.
@@ -410,8 +449,13 @@ Page({
       await this.markRead();
       wx.nextTick(() => this.measureComposer());
     } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
-    } finally { if (this.owns(epoch, ownerToken)) this.setData({ sending: false }); }
+      if (this.owns(epoch, ownerToken)) this.setComposerState({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
+    } finally {
+      // A changed identity can invalidate ownership before another onShow.
+      // The attempt revision prevents an old completion clearing a newer wait.
+      if (this.aiWaitRevision === waitRevision) this.stopAiReplyWait();
+      if (this.owns(epoch, ownerToken)) this.setData({ sending: false });
+    }
   },
   retrySend() { void this.send(); },
   prepareAttachmentSheet(attachmentSheetMode: "image" | "attachment") {
@@ -436,7 +480,7 @@ Page({
         await new Promise<void>(resolve => { this.nativePickerReturn = resolve; });
     };
     this.choosingImage = true;
-    this.setData({ attachmentSheetOpen: false, error: "", errorAction: "" });
+    this.setComposerState({ attachmentSheetOpen: false, error: "", errorAction: "" });
     try {
       await new Promise<void>((resolve, reject) => wx.requirePrivacyAuthorize({ success: () => resolve(), fail: reject }));
       if (!this.data.visible) await returned();
@@ -461,8 +505,8 @@ Page({
       }
       if (!current()) return;
       const mimeType = this.mimeForPath(localPath) ?? this.mimeForPath(file.tempFilePath);
-      if (!mimeType) { this.setData({ error: "仅支持 JPG、PNG 或 WEBP 图片。", errorAction: "" }); return; }
-      if (!size || size > 5 * 1024 * 1024) { this.setData({ error: "图片需小于 5MB，请压缩或重新选择。", errorAction: "" }); return; }
+      if (!mimeType) { this.setComposerState({ error: "仅支持 JPG、PNG 或 WEBP 图片。", errorAction: "" }); return; }
+      if (!size || size > 5 * 1024 * 1024) { this.setComposerState({ error: "图片需小于 5MB，请压缩或重新选择。", errorAction: "" }); return; }
       const replacedMediaId = this.data.selectedImage?.mediaId;
       if (replacedMediaId) void request({ path: `/v1/me/support/media/${replacedMediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
       this.inputRevision += 1;
@@ -470,7 +514,7 @@ Page({
       this.setData({ selectedImage: candidate, composerSendEnabled: false });
       wx.nextTick(() => this.measureComposer());
       await this.uploadImage(candidate);
-    } catch (error) { if (current() && !isCancellation(error)) this.setData({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
+    } catch (error) { if (current() && !isCancellation(error)) this.setComposerState({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
     finally { this.choosingImage = false; }
   },
   async uploadImage(candidate?: SelectedImage | null) {
@@ -481,7 +525,7 @@ Page({
     const ownerToken = sessionToken();
     const current = () => this.owns(epoch, ownerToken) && attempt === this.uploadAttempt;
     if (selected.mediaId) void request({ path: `/v1/me/support/media/${selected.mediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
-    this.setData({ uploadBusy: true, selectedImage: { ...selected, status: "uploading", progress: 0, mediaId: "", error: "" }, composerSendEnabled: false, error: "", errorAction: "" });
+    this.setComposerState({ uploadBusy: true, selectedImage: { ...selected, status: "uploading", progress: 0, mediaId: "", error: "" }, composerSendEnabled: false, error: "", errorAction: "" });
     try {
       const authorization = await request<any>({ path: "/v1/me/support/media/authorize", method: "POST", data: { mimeType: selected.mimeType, maxBytes: selected.size }, cacheTags: ["support"] });
       if (!current()) return;
@@ -502,7 +546,7 @@ Page({
     } catch (error) {
       if (current() && !isCancellation(error)) {
         const failed = { ...(this.data.selectedImage ?? selected), status: "failed" as const, error: "上传未完成，图片和正文仍保留。" };
-        this.setData({ selectedImage: failed, composerSendEnabled: false, error: failed.error, errorAction: "" });
+        this.setComposerState({ selectedImage: failed, composerSendEnabled: false, error: failed.error, errorAction: "" });
       }
     } finally {
       if (current()) { this.uploadAbort = null; this.setData({ uploadBusy: false }); wx.nextTick(() => this.measureComposer()); }
@@ -603,28 +647,34 @@ Page({
   async requestHuman() {
     if(this.data.closedRights)return;
     if (this.data.handoffBusy) return;
+    this.stopAiReplyWait();
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    this.setData({ handoffBusy: true, error: "", errorAction: "" });
+    this.setComposerState({ handoffBusy: true, handoffFailed: false, error: "", errorAction: "" });
     try {
-      const conversation = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: {}, cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken)) this.setData({ conversation, ...this.headerPatch(conversation, this.data.presence) });
-    } catch { if (this.owns(epoch, ownerToken)) this.setData({ error: "暂时无法联系人工客服，请重试。", errorAction: "handoff" }); }
-    finally { if (this.owns(epoch, ownerToken)) this.setData({ handoffBusy: false }); }
+      const result = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: {}, cacheTags: ["support"] });
+      if (this.owns(epoch, ownerToken)) {
+        const conversation = this.currentConversation(result);
+        this.setComposerState({ conversation, ...this.headerPatch(conversation, this.data.presence) });
+      }
+    } catch { if (this.owns(epoch, ownerToken)) this.setComposerState({ error: "人工申请结果暂未确认，请重试申请。", errorAction: "handoff", handoffFailed: true }); }
+    finally { if (this.owns(epoch, ownerToken)) this.setComposerState({ handoffBusy: false }); }
   },
   async resumeAi() {
     if(this.data.closedRights||!this.data.supportAiAvailable||this.data.handoffBusy||this.data.sending||this.data.conversation?.status!=="waiting_human")return;
     const epoch=this.lifecycleEpoch,ownerToken=sessionToken(),expectedVersion=this.data.conversation.version;
-    this.setData({handoffBusy:true,error:"",errorAction:""});
+    this.setComposerState({handoffBusy:true,error:"",errorAction:""});
     try{
       const answer=await wx.showModal({title:"继续 AI 咨询？",content:"将退出当前人工等待队列。需要人工时可再次申请；已有聊天记录会保留。",confirmText:"继续 AI"});
       if(!answer.confirm||!this.owns(epoch,ownerToken)||this.data.conversation?.version!==expectedVersion)return;
-      const conversation=await request<Conversation>({path:"/v1/me/support/resume-ai",method:"POST",data:{expectedVersion},cacheTags:["support"]});
+      const result=await request<Conversation>({path:"/v1/me/support/resume-ai",method:"POST",data:{expectedVersion},cacheTags:["support"]});
       if(!this.owns(epoch,ownerToken))return;
-      this.setData({conversation,...this.headerPatch(conversation,this.data.presence)});
+      const conversation=this.currentConversation(result);
+      this.setComposerState({conversation,...this.headerPatch(conversation,this.data.presence),
+        ...(conversation?.status==='ai_active'?{handoffFailed:false}:{})});
       await this.load();this.startPolling();
-    }catch{if(this.owns(epoch,ownerToken))this.setData({error:"暂时无法切换，请刷新会话后重试；人工等待记录会保留。",errorAction:"sync"});}
-    finally{if(this.owns(epoch,ownerToken))this.setData({handoffBusy:false});}
+    }catch{if(this.owns(epoch,ownerToken))this.setComposerState({error:"暂时无法切换，请刷新会话后重试；人工等待记录会保留。",errorAction:"sync"});}
+    finally{if(this.owns(epoch,ownerToken))this.setComposerState({handoffBusy:false});}
   },
   retryHandoff() { void this.requestHuman(); },
   retry() { void this.load(); if(this.linkedOrderId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },
