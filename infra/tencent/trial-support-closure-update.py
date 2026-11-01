@@ -10,6 +10,7 @@ import argparse
 import base64
 import fcntl
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -104,14 +105,30 @@ def response(url, limit):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
     request = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json',
         'Cache-Control': 'no-cache', 'User-Agent': 'cisme-trial-support-closure'})
-    with opener.open(request, timeout=12) as remote:
-        need(remote.status == 200, 'SUPPORT_CLOSURE_SOURCE_UNAVAILABLE')
-        declared = remote.headers.get('Content-Length')
-        need(declared is None or re.fullmatch(r'[0-9]+', declared) and 0 < int(declared) <= limit,
-             'SUPPORT_CLOSURE_RESPONSE_SIZE_REQUIRED')
-        raw = remote.read(limit + 1)
-        need(0 < len(raw) <= limit and (declared is None or len(raw) == int(declared)), 'SUPPORT_CLOSURE_RESPONSE_TRUNCATED')
-    return raw
+    attempts = 3 if re.fullmatch(r'https://api\.github\.com/repos/Eysn0130/cisme-wechat-miniapp/'
+        r'(?:git/commits/[0-9a-f]{40}|git/trees/[0-9a-f]{40}\?recursive=1|contents/package(?:-lock)?\.json\?ref=[0-9a-f]{40})', url) else 1
+    for attempt in range(attempts):
+        with opener.open(request, timeout=12) as remote:
+            need(remote.status == 200, 'SUPPORT_CLOSURE_SOURCE_UNAVAILABLE')
+            declared = remote.headers.get('Content-Length')
+            need(declared is None or re.fullmatch(r'[0-9]+', declared) and 0 < int(declared) <= limit,
+                 'SUPPORT_CLOSURE_RESPONSE_SIZE_REQUIRED')
+            try:
+                raw = remote.read(limit + 1)
+            except http.client.IncompleteRead as error:
+                need(isinstance(error.partial, bytes) and len(error.partial) <= limit
+                     and (declared is None or len(error.partial) < int(declared)), 'SUPPORT_CLOSURE_RESPONSE_TRUNCATED')
+                if attempt == attempts - 1:
+                    raise Refused('SUPPORT_CLOSURE_RESPONSE_TRUNCATED') from None
+                continue
+            # Retry only a proven short transport read. Each attempt uses the
+            # same endpoint and full size checks; partial bodies are discarded.
+            if declared is not None and len(raw) < int(declared):
+                if attempt == attempts - 1:
+                    raise Refused('SUPPORT_CLOSURE_RESPONSE_TRUNCATED')
+                continue
+            need(0 < len(raw) <= limit and (declared is None or len(raw) == int(declared)), 'SUPPORT_CLOSURE_RESPONSE_TRUNCATED')
+            return raw
 
 
 def target():

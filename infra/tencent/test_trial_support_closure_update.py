@@ -6,9 +6,11 @@ import io
 import json
 import os
 from pathlib import Path
+import ssl
 import tempfile
 import types
 import unittest
+import urllib.error
 from contextlib import redirect_stdout
 from unittest.mock import Mock, patch
 
@@ -66,6 +68,123 @@ def inherited_fixture():
         B=types.SimpleNamespace(binding=Mock(return_value={'deepseekKeyFile': key})),
         P=types.SimpleNamespace(P=types.SimpleNamespace(P=types.SimpleNamespace(A=original_support))))
     return binding, history, prior, private, h, helper, old_binding
+
+
+class ResponseTests(unittest.TestCase):
+    URL = 'https://api.github.com/repos/Eysn0130/cisme-wechat-miniapp/contents/package-lock.json?ref=' + '1' * 40
+
+    @staticmethod
+    def remote(body=b'complete', declared=None, status=200):
+        response = types.SimpleNamespace(status=status, headers={} if declared is None else {'Content-Length': declared}, closed=False)
+        response.read = Mock(side_effect=body) if isinstance(body, Exception) else Mock(return_value=body)
+        class Context:
+            def __enter__(self): return response
+            def __exit__(self, *args): response.closed = True
+        return Context(), response
+
+    def test_retries_a_declared_short_read_at_the_same_endpoint_and_discards_partial_bytes(self):
+        short, first = self.remote(b'part', '8'); complete, second = self.remote(b'complete', '8')
+        opener = types.SimpleNamespace(open=Mock(side_effect=[short, complete]))
+        with patch.object(M.urllib.request, 'build_opener', return_value=opener) as build:
+            self.assertEqual(M.response(self.URL, 16), b'complete')
+        self.assertEqual(opener.open.call_count, 2)
+        request = opener.open.call_args_list[0].args[0]
+        for call in opener.open.call_args_list:
+            self.assertIs(call.args[0], request); self.assertEqual(request.full_url, self.URL); self.assertEqual(call.kwargs, {'timeout': 12})
+        self.assertEqual(request.get_header('Accept'), 'application/vnd.github+json')
+        self.assertEqual(request.get_header('Cache-control'), 'no-cache')
+        self.assertEqual(build.call_args.args[0].proxies, {}); self.assertIsInstance(build.call_args.args[1], M.NoRedirect)
+        for response in (first, second): response.read.assert_called_once_with(17); self.assertTrue(response.closed)
+
+    def test_retries_an_incomplete_chunked_read_without_a_declared_size(self):
+        truncated, first = self.remote(M.http.client.IncompleteRead(b'partial', None)); complete, second = self.remote(b'complete')
+        opener = types.SimpleNamespace(open=Mock(side_effect=[truncated, complete]))
+        with patch.object(M.urllib.request, 'build_opener', return_value=opener): self.assertEqual(M.response(self.URL, 16), b'complete')
+        self.assertEqual(opener.open.call_count, 2); self.assertTrue(first.closed); self.assertTrue(second.closed)
+
+    def test_only_the_exact_public_repository_commit_tree_and_package_endpoints_can_retry(self):
+        base = 'https://api.github.com/repos/Eysn0130/cisme-wechat-miniapp/'
+        paths = ['git/commits/' + '1' * 40, 'git/trees/' + '2' * 40 + '?recursive=1',
+                 'contents/package.json?ref=' + '1' * 40, 'contents/package-lock.json?ref=' + '2' * 40]
+        for path in paths:
+            short, _ = self.remote(b'part', '8'); complete, _ = self.remote(b'complete', '8')
+            opener = types.SimpleNamespace(open=Mock(side_effect=[short, complete]))
+            with self.subTest(path=path), patch.object(M.urllib.request, 'build_opener', return_value=opener):
+                self.assertEqual(M.response(base + path, 16), b'complete')
+            self.assertEqual(opener.open.call_count, 2)
+
+    def test_imds_and_similar_or_foreign_urls_never_retry_short_or_incomplete_reads(self):
+        urls = ['http://metadata.tencentyun.com/latest/meta-data/instance-id',
+                self.URL.replace('Eysn0130/cisme-wechat-miniapp', 'Other/project'),
+                self.URL.replace('api.github.com/', 'api.github.com.evil.invalid/'),
+                self.URL.replace('cisme-wechat-miniapp/', 'cisme-wechat-miniapp-other/'),
+                self.URL.replace('https://', 'http://'), self.URL + '&extra=1', self.URL + '#fragment',
+                self.URL.replace('/contents/package-lock.json', '/contents/runtime.env')]
+        for url in urls:
+            for body, declared in [(b'part', '8'), (M.http.client.IncompleteRead(b'part', None), None)]:
+                context, response = self.remote(body, declared); opener = types.SimpleNamespace(open=Mock(return_value=context))
+                with self.subTest(url=url, body=type(body).__name__), patch.object(M.urllib.request, 'build_opener', return_value=opener), \
+                     self.assertRaisesRegex(M.Refused, '^SUPPORT_CLOSURE_RESPONSE_TRUNCATED$'): M.response(url, 16)
+                self.assertEqual(opener.open.call_count, 1); response.read.assert_called_once_with(17); self.assertTrue(response.closed)
+
+    def test_three_truncated_attempts_fail_closed_with_each_body_bounded_and_closed(self):
+        for body, declared in [(b'', '8'), (b'part', '8'), (M.http.client.IncompleteRead(b'part', None), None)]:
+            responses = [self.remote(body, declared) for _ in range(3)]
+            opener = types.SimpleNamespace(open=Mock(side_effect=[context for context, _ in responses]))
+            with self.subTest(body=type(body).__name__, declared=declared), patch.object(M.urllib.request, 'build_opener', return_value=opener), \
+                 self.assertRaisesRegex(M.Refused, '^SUPPORT_CLOSURE_RESPONSE_TRUNCATED$'):
+                M.response(self.URL, 16)
+            self.assertEqual(opener.open.call_count, 3)
+            for _, response in responses: response.read.assert_called_once_with(17); self.assertTrue(response.closed)
+
+    def test_http_tls_redirect_and_unclassified_transport_errors_are_never_retried(self):
+        errors = [urllib.error.HTTPError(self.URL, 429, 'rate limit', {}, None),
+                  ssl.SSLCertVerificationError('synthetic TLS failure'), urllib.error.URLError(ssl.SSLCertVerificationError('synthetic TLS failure')),
+                  M.Refused('SUPPORT_CLOSURE_REDIRECT_REFUSED'), TimeoutError('synthetic timeout')]
+        for error in errors:
+            opener = types.SimpleNamespace(open=Mock(side_effect=error))
+            with self.subTest(error=type(error).__name__), patch.object(M.urllib.request, 'build_opener', return_value=opener), self.assertRaises(type(error)):
+                M.response(self.URL, 16)
+            if isinstance(error, urllib.error.HTTPError): error.close()
+            self.assertEqual(opener.open.call_count, 1)
+        with self.assertRaisesRegex(M.Refused, '^SUPPORT_CLOSURE_REDIRECT_REFUSED$'): M.NoRedirect().redirect_request()
+
+    def test_invalid_status_or_declared_size_is_refused_before_reading_without_retry(self):
+        for status, declared, code in [(302, None, 'SOURCE_UNAVAILABLE'), (503, None, 'SOURCE_UNAVAILABLE'),
+                                      (200, '17', 'RESPONSE_SIZE_REQUIRED'), (200, '0', 'RESPONSE_SIZE_REQUIRED'),
+                                      (200, '-1', 'RESPONSE_SIZE_REQUIRED'), (200, '8x', 'RESPONSE_SIZE_REQUIRED')]:
+            context, response = self.remote(declared=declared, status=status); opener = types.SimpleNamespace(open=Mock(return_value=context))
+            with self.subTest(status=status, declared=declared), patch.object(M.urllib.request, 'build_opener', return_value=opener), \
+                 self.assertRaisesRegex(M.Refused, '^SUPPORT_CLOSURE_' + code + '$'): M.response(self.URL, 16)
+            self.assertEqual(opener.open.call_count, 1); response.read.assert_not_called(); self.assertTrue(response.closed)
+
+    def test_oversize_extra_or_undeclared_empty_bodies_are_not_treated_as_retryable_truncation(self):
+        cases = [(b'x' * 17, None), (b'extra', '4'), (b'', None),
+                 (M.http.client.IncompleteRead(b'x' * 17, None), None), (M.http.client.IncompleteRead(b'equal', None), '5')]
+        for body, declared in cases:
+            context, response = self.remote(body, declared); opener = types.SimpleNamespace(open=Mock(return_value=context))
+            with self.subTest(body=type(body).__name__, declared=declared), patch.object(M.urllib.request, 'build_opener', return_value=opener), \
+                 self.assertRaisesRegex(M.Refused, '^SUPPORT_CLOSURE_RESPONSE_TRUNCATED$'): M.response(self.URL, 16)
+            self.assertEqual(opener.open.call_count, 1); self.assertTrue(response.closed)
+
+    def test_complete_malformed_json_and_blob_hash_mismatch_are_not_retried_upstream(self):
+        blob = b'synthetic-package'
+        mismatch = json.dumps({'type': 'file', 'path': 'package.json', 'encoding': 'base64', 'size': len(blob),
+                               'content': base64.b64encode(blob).decode(), 'sha': '0' * 40}).encode()
+        for body, error in [(b'{', json.JSONDecodeError), (mismatch, M.Refused)]:
+            context, _ = self.remote(body, str(len(body))); opener = types.SimpleNamespace(open=Mock(return_value=context))
+            with self.subTest(error=error.__name__), patch.object(M.urllib.request, 'build_opener', return_value=opener), self.assertRaises(error):
+                M.source_bytes('package.json', '1' * 40)
+            self.assertEqual(opener.open.call_count, 1)
+
+    def test_complete_source_identity_failure_does_not_retry_or_run_candidate_code(self):
+        _, candidate, binding, _, _ = fixtures()
+        body = json.dumps({'sha': '0' * 40, 'tree': {'sha': binding['sourceTree']}}).encode()
+        context, _ = self.remote(body, str(len(body))); opener = types.SimpleNamespace(open=Mock(return_value=context)); command = Mock()
+        with patch.object(M.urllib.request, 'build_opener', return_value=opener), patch.object(M, 'D', types.SimpleNamespace(command=command)), \
+             self.assertRaisesRegex(M.Refused, '^SUPPORT_CLOSURE_COMMITTED_TREE_MISMATCH$'):
+            M.source_permit(binding, candidate)
+        self.assertEqual(opener.open.call_count, 1); command.assert_not_called()
 
 
 class ArtifactTests(unittest.TestCase):
