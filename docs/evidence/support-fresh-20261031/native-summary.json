@@ -1,0 +1,24 @@
+{
+  "sourceSha256": "95c0d5f66ef49a30c6d278fdfffcea356aa9725d4edce82296c558ceb676301a",
+  "scope": "current native synthetic layout and actual-source confirmation cancelled locally; no authenticated API writes",
+  "scenes": [
+    {
+      "state": "cleared-conversation-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0,
+      "capsuleTouchTargetAtLeast44": true
+    },
+    {
+      "state": "unknown-clear-390-16-geometry",
+      "width": 390,
+      "font": 16,
+      "horizontalOverflow": false,
+      "threadComposerOverlap": 0,
+      "capsuleTouchTargetAtLeast44": true
+    }
+  ],
+  "physicalDeviceVerified": false,
+  "full40PageAcceptance": "blocked"
+}

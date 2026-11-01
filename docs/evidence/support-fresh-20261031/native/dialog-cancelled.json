@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "local synthetic modal cancelled; not a signed-in server-clear test",
+        "visible": false,
+        "sessionPresent": false,
+        "input": "尚未发送的内容",
+        "newTopicAttempt": null,
+        "newTopicBusy": false,
+        "contextVersion": 5,
+        "messages": 0
+      }
+    }
+  }
+}

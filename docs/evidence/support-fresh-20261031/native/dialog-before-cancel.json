@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "visible": false,
+        "scope": "disable all network lifecycle before cancelling synthetic modal"
+      }
+    }
+  }
+}
