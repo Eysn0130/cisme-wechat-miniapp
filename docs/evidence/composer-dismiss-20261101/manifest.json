@@ -26,8 +26,7 @@
   "limitations": [
     "No physical-device keyboard or screenreader acceptance in this task",
     "Video native-component hit testing not exercised",
-    "Full40-route/device matrix remains blocked",
-    "Chrome reference screenshot tool produced390x168 cropped/scaled artifact; omitted as editor visual evidence; mobile DOM facts recorded separately"
+    "Full40-route/device matrix remains blocked"
   ],
   "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
   "files": {
@@ -46,6 +45,8 @@
     "typecheck.log": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433",
     "unit-final.log": "bad1b8c2d0fa93f5d0fb94e0d7a756eafb87233489fcbf3e9dd452766a22fe10",
     "xhs-reference-facts.json": "e6a4353bbfce03b25e957ace508b607f31b55cc4006dd00d0f3985ef5fb8ab05",
-    "native-restored.json": "a3bbc43ea204454b74c6b820bc74f5c2cdbaebd6f15762cfe1f65bd9865daf9b"
+    "native-restored.json": "a3bbc43ea204454b74c6b820bc74f5c2cdbaebd6f15762cfe1f65bd9865daf9b",
+    "xhs-mobile-stable.png": "4f4cd41395d12a6014950d9cdda9d204a3587281e6374252d140749887af1407",
+    "xhs-mobile-verified.json": "2dca8be914d177e65b75f8d27078e64ad3376494263151fdbf9b9175da60312d"
   }
 }

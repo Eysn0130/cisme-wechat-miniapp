@@ -1,0 +1,5 @@
+{
+  "exitCode": 0,
+  "stdout": "{\n  \"ok\": true,\n  \"tool\": \"upload\",\n  \"clientName\": \"Codex\",\n  \"result\": {\n    \"success\": true,\n    \"taskId\": \"confirmation_upload_eacf67e0-7b9d-4f4f-860b-9ff383209837\",\n    \"taskType\": \"confirmation_upload\",\n    \"status\": \"pending\",\n    \"message\": \"Waiting for user confirmation.\"\n  }\n}\n",
+  "stderr": "[wechatide] skill-call: client=Codex tool=upload\n"
+}

@@ -1,0 +1,41 @@
+{
+  "buttons": [
+    {
+      "height": 40,
+      "text": "发送",
+      "width": 64,
+      "x": 238,
+      "y": 788
+    },
+    {
+      "height": 40,
+      "text": "取消",
+      "width": 64,
+      "x": 310,
+      "y": 788
+    }
+  ],
+  "editor": {
+    "borderRadius": "20px",
+    "fontSize": "16px",
+    "height": 40,
+    "lineHeight": "22px",
+    "padding": "9px 16px",
+    "textLength": 0,
+    "width": 357.9921875,
+    "x": 16,
+    "y": 740
+  },
+  "parents": [
+    "content-edit",
+    "input-box",
+    "engage-bar active"
+  ],
+  "viewport": {
+    "devicePixelRatio": 1,
+    "height": 844,
+    "width": 390
+  },
+  "source": "https://www.xiaohongshu.com/explore/6a5d82bf00000000110107a3",
+  "method": "Logged-in Chrome task-owned tab; actual DOM viewport390x844; stable expanded empty editor; no input or submission"
+}
