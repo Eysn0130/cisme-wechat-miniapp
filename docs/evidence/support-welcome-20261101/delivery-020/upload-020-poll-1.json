@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "tool": "polling_task_result",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "taskId": "confirmation_upload_21256b21-63ac-4bdd-a99f-aea425723669",
+    "taskType": "confirmation_upload",
+    "status": "pending",
+    "createdAt": 1793547295885,
+    "updatedAt": 1793547295885
+  }
+}

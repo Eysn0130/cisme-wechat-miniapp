@@ -1,0 +1,11 @@
+{
+  "startedAt": "2026-11-01T15:34:51.824350+00:00",
+  "sourceHead": "5a36248dfb3f7ae5edb1e89e6f7bd6f5be60df2e",
+  "packageSourceSha256": "3942f0be14641c7cf7a77ecc092b3bf23a80ee5ae407f100459918454a732f6b",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "version": "0.1.20",
+  "tool": "upload",
+  "client": "Codex",
+  "status": "started; terminal result not yet known",
+  "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648"
+}

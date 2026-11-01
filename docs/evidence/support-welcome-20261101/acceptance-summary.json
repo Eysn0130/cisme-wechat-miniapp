@@ -26,12 +26,12 @@
   "physicalPhone": "not tested in this fix",
   "full40RouteMatrix": "blocked; old frames not rebound as current passes",
   "targetMiniProgramVersion": "0.1.20",
-  "officialUpload": "pending terminal receipt",
+  "officialUpload": "success; 0.1.20; confirmation_upload_21256b21-63ac-4bdd-a99f-aea425723669",
   "initialEvidencePreserved": "initial-source-8b4ea1a3a940",
   "artifacts": [
     {
       "path": "README.md",
-      "sha256": "2b916a7ea5d48fcdcbc2a6fab3d132f230aa0128647cabb1d58e96655d7d380d"
+      "sha256": "97491debb0d8836393bb976ddcf1ba672bc351a1d4535633fb81204f9049c162"
     },
     {
       "path": "cross-device-regression-green.log",
@@ -40,6 +40,34 @@
     {
       "path": "cross-device-regression-red.log",
       "sha256": "e14ddb781afc01696bec9a47195af57dfa5da041ddc6ee58d6f8f93429ef09d7"
+    },
+    {
+      "path": "delivery-020/ci-final-summary.json",
+      "sha256": "039b6129124033f231c369b07e4c663e156931766c98f1212d69b8698f3edbea"
+    },
+    {
+      "path": "delivery-020/release-receipt.json",
+      "sha256": "176868606798fef79ca0c23b4d598a3c867861bab2c210b8b64045b39803946b"
+    },
+    {
+      "path": "delivery-020/upload-020-original-receipt.json",
+      "sha256": "3456e338230f54925e1db8731c49e846e22c01006d8b23e7596d32f43e6f20a2"
+    },
+    {
+      "path": "delivery-020/upload-020-poll-1.json",
+      "sha256": "605f976b9e85d37e2ad390e80c0ea768a80c22c165a1cf55fc82a5faaca1dc6d"
+    },
+    {
+      "path": "delivery-020/upload-020-poll-2.json",
+      "sha256": "75e54c282e59921873d3d6e6250b5957eb48d25d7ee915b3a946b17a2620fd66"
+    },
+    {
+      "path": "delivery-020/upload-020-started.json",
+      "sha256": "3475770cb9ce8185417096f37a8bccca4077f66ad31af09258c1d92ba243cd35"
+    },
+    {
+      "path": "delivery-020/upload-020-task.json",
+      "sha256": "3ea4c6e64d04b0f3978cfff64702a19c171bc62bc1345a26c868309d329f5e13"
     },
     {
       "path": "native/ai-reply-geometry.json",
@@ -209,5 +237,17 @@
       "path": "unit-tests.log",
       "sha256": "4c595b1371c92800ea64c450d704e21e3547c20fc31c3908a4122533a63398c8"
     }
-  ]
+  ],
+  "ci": {
+    "runId": 41321021486,
+    "head": "239af534532b339732d0814e3d0ed77e38280948",
+    "verify": "success",
+    "unitPassed": 2561,
+    "unitSkipped": 1,
+    "integrationPassed": 1131
+  },
+  "mergeCommit": "5a36248dfb3f7ae5edb1e89e6f7bd6f5be60df2e",
+  "compiledUploadBytes": 1757225,
+  "deliveryRecord": "delivery-020/release-receipt.json",
+  "openPullRequestsAfterMerge": 0
 }
