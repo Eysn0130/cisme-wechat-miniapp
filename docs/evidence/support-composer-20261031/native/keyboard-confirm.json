@@ -1,0 +1,33 @@
+{
+  "scope": "Official native textarea confirm event on synthetic guest layout; not physical phone IME or signed-in send acceptance",
+  "sourcePackageSha256": "bebd57ed45d5cf07730707246fc3c5cf24a13a2e3800265d8cad1bf26e095fd2",
+  "before": {
+    "route": "pages/support/index",
+    "input": "仅点击右侧发送按钮才发送",
+    "sending": false,
+    "sendAttempt": null,
+    "pendingMessage": null,
+    "messages": 0,
+    "visible": false,
+    "sessionPresent": false
+  },
+  "event": {
+    "ok": true,
+    "tool": "automation_element_action",
+    "clientName": "Codex",
+    "result": {
+      "success": true
+    }
+  },
+  "after": {
+    "route": "pages/support/index",
+    "input": "仅点击右侧发送按钮才发送",
+    "sending": false,
+    "sendAttempt": null,
+    "pendingMessage": null,
+    "messages": 0,
+    "visible": false,
+    "sessionPresent": false
+  },
+  "unchanged": true
+}

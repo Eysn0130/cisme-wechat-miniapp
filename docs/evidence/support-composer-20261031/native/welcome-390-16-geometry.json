@@ -1,0 +1,230 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 390,
+        "font": 16,
+        "selectors": [
+          ".support-topbar",
+          ".support-thread",
+          ".support-welcome-message",
+          ".support-bubble",
+          ".support-message__sender",
+          ".support-ai-notice",
+          ".support-human",
+          ".support-composer",
+          ".support-input",
+          ".support-typing",
+          ".support-error",
+          ".support-queue-notice",
+          ".support-composer__actions",
+          ".support-action-pill",
+          ".support-topic"
+        ],
+        "boxes": [
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 0,
+              "bottom": 91,
+              "width": 390,
+              "height": 91,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 389,
+              "top": 91,
+              "bottom": 633,
+              "width": 389,
+              "height": 542,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 13,
+              "right": 378,
+              "top": 116,
+              "bottom": 198.375,
+              "width": 365,
+              "height": 82.375,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 61,
+              "right": 331.09375,
+              "top": 135,
+              "bottom": 198.375,
+              "width": 270.09375,
+              "height": 63.375,
+              "fontSize": "14px",
+              "lineHeight": "21.7px",
+              "minHeight": "auto",
+              "color": "rgb(63, 52, 68)"
+            }
+          ],
+          [
+            {
+              "left": 66,
+              "right": 145.140625,
+              "top": 116,
+              "bottom": 131,
+              "width": 79.140625,
+              "height": 15,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "auto",
+              "color": "rgb(117, 105, 122)"
+            }
+          ],
+          [
+            {
+              "left": 25,
+              "right": 366,
+              "top": 210.375,
+              "bottom": 229.5625,
+              "width": 341,
+              "height": 19.1875,
+              "fontSize": "12px",
+              "lineHeight": "19.2px",
+              "minHeight": "0px",
+              "color": "rgb(108, 96, 113)"
+            }
+          ],
+          [
+            {
+              "left": 10,
+              "right": 108,
+              "top": 641,
+              "bottom": 685,
+              "width": 98,
+              "height": 44,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "44px",
+              "color": "rgb(86, 48, 111)"
+            },
+            {
+              "left": 112,
+              "right": 174,
+              "top": 641,
+              "bottom": 685,
+              "width": 62,
+              "height": 44,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "44px",
+              "color": "rgb(86, 48, 111)"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 633,
+              "bottom": 844,
+              "width": 390,
+              "height": 211,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 11,
+              "right": 379,
+              "top": 686,
+              "bottom": 802,
+              "width": 368,
+              "height": 116,
+              "fontSize": "14px",
+              "lineHeight": "20.0004px",
+              "minHeight": "116px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [],
+          [],
+          [],
+          [
+            {
+              "left": 10,
+              "right": 380,
+              "top": 641,
+              "bottom": 685,
+              "width": 370,
+              "height": 44,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)"
+            }
+          ],
+          [
+            {
+              "left": 12,
+              "right": 106,
+              "top": 649,
+              "bottom": 677,
+              "width": 94,
+              "height": 28,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "28px",
+              "color": "rgb(86, 48, 111)"
+            },
+            {
+              "left": 114,
+              "right": 172,
+              "top": 649,
+              "bottom": 677,
+              "width": 58,
+              "height": 28,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "28px",
+              "color": "rgb(86, 48, 111)"
+            }
+          ],
+          [
+            {
+              "left": 112,
+              "right": 174,
+              "top": 641,
+              "bottom": 685,
+              "width": 62,
+              "height": 44,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "44px",
+              "color": "rgb(86, 48, 111)"
+            }
+          ]
+        ],
+        "sessionPresent": false,
+        "scope": "synthetic visual layout; not authenticated API acceptance"
+      }
+    }
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "schema": "cisme.support-composer.evidence.v1",
+  "codeHead": "1d483ce6172b10d7a07e103bb2a41accc21e74ae",
+  "codeTree": "42d6b6cf6ce5e0a071cc2a9fa95e2c8988978687",
+  "package": {
+    "files": 283,
+    "routes": 40,
+    "totalBytes": 1831801,
+    "mainPackageBytes": 737947,
+    "subpackageBytes": {
+      "pages/task": 17022,
+      "pages/submit": 43708,
+      "pages/progress": 24005,
+      "pages/points": 12037,
+      "pages/post": 105819,
+      "pages/shop": 9153,
+      "pages/product": 16772,
+      "pages/checkout": 28515,
+      "pages/orders": 8815,
+      "pages/order-detail": 81102,
+      "pages/settings": 76104,
+      "pages/invite": 15195,
+      "pages/legal": 3645,
+      "pages/privacy-rights": 53288,
+      "pages/support": 94720,
+      "pages/management": 19133,
+      "pages/management-catalog": 7814,
+      "pages/management-product": 21770,
+      "pages/management-orders": 8747,
+      "pages/management-order-detail": 17478,
+      "pages/management-support": 10700,
+      "pages/management-support-chat": 66285,
+      "pages/management-members": 33998,
+      "pages/management-member": 34624,
+      "pages/referral": 6863,
+      "pages/community-compose": 46098,
+      "pages/community-post": 26258,
+      "pages/community-author": 14377,
+      "pages/community-review": 33404,
+      "pages/community-activity": 24034,
+      "pages/management-finance": 29932,
+      "pages/commission": 36445,
+      "pages/management-privacy": 17783,
+      "pages/aftersale": 33344,
+      "pages/management-fulfillment": 14867
+    },
+    "globalStyleBytes": 8190,
+    "sourceSha256": "bebd57ed45d5cf07730707246fc3c5cf24a13a2e3800265d8cad1bf26e095fd2"
+  },
+  "unit": {
+    "files": 164,
+    "passed": 2471,
+    "skipped": 1,
+    "exitCode": 0
+  },
+  "integration": {
+    "files": 64,
+    "passed": 1091,
+    "exitCode": 0,
+    "scope": "Disposable synthetic database and object storage, not real accounts",
+    "ownedRemaining": 0
+  },
+  "offlineNewGuardsPassed": 27,
+  "contracts": {
+    "v1Methods": 284,
+    "documentedIncludingHealth": 286,
+    "events": 32
+  },
+  "runtimeHashes": {
+    "apps/miniprogram/pages/support/index.ts": "5a688934013c177a687b6cc2f6592998be1e965e1ed2b9bd98f200e8906bf883",
+    "apps/miniprogram/pages/support/index.wxml": "1548188b2dd9ce7b111f2391e222eebaaac59c771e288830a22fcf3a7752b3d9",
+    "apps/miniprogram/pages/support/index.wxss": "473c596a523f7a8400fc3b1d32858fb0ebf73e432586c3dadfffa556f062ed24",
+    "services/api/src/supportService.ts": "a89bf86e7db6d748e4aba1be0416630f5e94bb6d5bbdaab2ac851b9e78ebdfe4",
+    "services/api/src/server.ts": "ce96fd8dac52ad18e3c80d23d31a6c0c3abb696e658e576ff592b3f7d8c09b18",
+    "infra/tencent/trial-support-composer-update.py": "9dd48f6fcbe9ccfaac627a7ff9a537c2a0f093b3086c651d3508b83fedbed8c9"
+  },
+  "native": {
+    "layouts": [
+      {
+        "file": "human-active-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "keyboard-draft-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "new-topic-empty-375-26-geometry.json",
+        "width": 375,
+        "font": 26,
+        "overlapPx": 0
+      },
+      {
+        "file": "new-topic-empty-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "unknown-topic-375-26-geometry.json",
+        "width": 375,
+        "font": 26,
+        "overlapPx": 0
+      },
+      {
+        "file": "unknown-topic-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "waiting-human-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      },
+      {
+        "file": "welcome-375-26-geometry.json",
+        "width": 375,
+        "font": 26,
+        "overlapPx": 0
+      },
+      {
+        "file": "welcome-390-16-geometry.json",
+        "width": 390,
+        "font": 16,
+        "overlapPx": 0
+      }
+    ],
+    "componentConfirmEventPassed": true,
+    "mockRestored": true,
+    "deviceRestored": "390px/font16",
+    "guestNavigation": {
+      "route": "pages/account/index",
+      "returnUrl": "/pages/support/index",
+      "agreementAccepted": false,
+      "sessionPresent": false,
+      "width": 390,
+      "font": 16,
+      "stack": [
+        "pages/home/index",
+        "pages/account/index"
+      ]
+    },
+    "scope": "Original WXML/WXSS with local setData fixtures; visiblefalse/no session/no polling. Composer bottom projected from native measured rect because owns deliberately refuses invisible fixture. Official confirm event tested; not physical phone IME or real signed-in send acceptance."
+  },
+  "provider": "No paid model calls this round. Existing provider unchanged; integration verifies model input excludes retained old topics.",
+  "deliveryAtCapture": {
+    "backendDeployed": false,
+    "newPackageUploaded": false,
+    "physicalDeviceValidated": false
+  },
+  "logs": {
+    "full-unit.log": {
+      "rawSha256": "068242ab3d5287ea06b51779d2f4cc0c59c7fff927dec36e55bd5755c1657f4c",
+      "publishedSha256": "866cac87b7d8318013d69d691942b2aa3368a116df9a428f487e5d673cb1cdc3",
+      "normalization": "trailing blank lines only"
+    },
+    "full-integration.log": {
+      "rawSha256": "14826907295ec38485104e4124740032a660503065a2c476715227dc9fddbb18",
+      "publishedSha256": "14826907295ec38485104e4124740032a660503065a2c476715227dc9fddbb18",
+      "normalization": "trailing blank lines only"
+    },
+    "build.log": {
+      "rawSha256": "1bf926d9a944850c58c6476d6a4d7cc6ecfccd6e9a6ec73a8652d2d73db99f77",
+      "publishedSha256": "1bf926d9a944850c58c6476d6a4d7cc6ecfccd6e9a6ec73a8652d2d73db99f77",
+      "normalization": "trailing blank lines only"
+    },
+    "contracts.log": {
+      "rawSha256": "c8ec14fc82cbfd80fad83cd028944c42e8f765daba8e4ce3c645bd96e42bbdd6",
+      "publishedSha256": "c8ec14fc82cbfd80fad83cd028944c42e8f765daba8e4ce3c645bd96e42bbdd6",
+      "normalization": "trailing blank lines only"
+    },
+    "offline-guards.log": {
+      "rawSha256": "839e0a78e60a1acb9e1d45c8c5ef55861ad3ec06af40413a226189121c124e1c",
+      "publishedSha256": "839e0a78e60a1acb9e1d45c8c5ef55861ad3ec06af40413a226189121c124e1c",
+      "normalization": "trailing blank lines only"
+    }
+  }
+}

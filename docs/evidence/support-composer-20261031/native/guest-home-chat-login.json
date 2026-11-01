@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/account/index",
+        "returnUrl": "/pages/support/index",
+        "agreementAccepted": false,
+        "sessionPresent": false,
+        "width": 390,
+        "font": 16,
+        "stack": [
+          "pages/home/index",
+          "pages/account/index"
+        ]
+      }
+    }
+  }
+}
