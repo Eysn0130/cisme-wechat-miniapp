@@ -291,6 +291,24 @@ describe('native current-topic welcome remains a presentation prefix',()=>{
   m.read.mockResolvedValueOnce(historyPage({conversation:{...conversation,version:101},messages:Array.from({length:50},(_,index)=>message('user',index+1)),latestCursor:50}));await p.poll();
   expect(p.data.messages[0].sequence).toBe(1);expect(welcomeCount()).toBe(1);
  });
+ it('revokes an empty same-conversation topic-head proof when its first ACK skips unseen current-topic messages',async()=>{
+  const emptyTopic=historyPage({conversation:{...conversation,version:8},contextVersion:8,contextStartSequence:4,latestCursor:4});
+  m.read.mockResolvedValueOnce(emptyTopic);await p.load();expect(welcomeCount()).toBe(1);expect(p.data.messages).toEqual([]);
+  p.updateInput({detail:{value:'护理如何保存？'}});
+  const oldEmpty=deferred();m.read.mockReturnValueOnce(oldEmpty.promise);const loading=p.load();
+  // Another device already sent sequences5..98 in the same current topic.
+  m.request.mockImplementation(async input=>input.path==='/v1/me/support/messages'
+   ?historyPage({conversation:{...conversation,version:105},contextVersion:8,contextStartSequence:4,
+     message:message('user',99),aiMessages:[message('ai',100)]}):{});
+  await p.send();expect(p.data.conversation.id).toBe(conversation.id);expect(p.data.contextVersion).toBe(8);
+  expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([99,100]);expect(welcomeCount()).toBe(0);
+  oldEmpty.resolve(emptyTopic);await loading;
+  expect(p.data.conversation.version).toBe(105);expect(p.data.historyStartLoaded).toBe(false);expect(welcomeCount()).toBe(0);
+  m.read.mockResolvedValueOnce(historyPage({conversation:{...conversation,version:105},contextVersion:8,contextStartSequence:4,
+   messages:Array.from({length:50},(_,index)=>message('user',index+5)),latestCursor:54}));await p.poll();
+  expect(m.read).toHaveBeenLastCalledWith(p,expect.objectContaining({path:'/v1/me/support/messages?after=4&limit=50'}));
+  expect(p.data.messages[0].sequence).toBe(5);expect(p.data.historyStartLoaded).toBe(true);expect(welcomeCount()).toBe(1);
+ });
  it.each(['history','poll'])('keeps a new-topic prefix and empty history when a retired %s response arrives late',async(kind)=>{
   m.read.mockResolvedValueOnce(historyPage({messages:[message('user',51)],latestCursor:51,olderCursor:51}));await p.load();expect(welcomeCount()).toBe(0);
   const old=deferred();m.read.mockReturnValueOnce(old.promise);const reading=kind==='history'?p.loadOlder():p.poll();

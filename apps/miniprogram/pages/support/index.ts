@@ -545,6 +545,8 @@ Page({
         newMessagesBelow: false, newMessagesBelowCount: 0, anchor: "", atBottom: true, loading: false, historyLoaded: true
       });
       const normalized = sameConversation ? this.normalize([result.message], this.data.selectedImage).filter(item => item.sequence > boundary) : [];
+      if (!this.data.messages.length && normalized.length && normalized[0]!.sequence > boundary + 1)
+        this.setComposerState({ historyStartLoaded: false });
       if (normalized.length && !this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       if(sameConversation && Array.isArray(result.aiMessages)&&result.aiMessages.length)this.append(this.normalize(result.aiMessages).filter(item => item.sequence > boundary));
       const clearInput = this.inputRevision === draftRevision && this.data.input.trim() === body;

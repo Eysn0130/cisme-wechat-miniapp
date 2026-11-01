@@ -1,0 +1,33 @@
+
+ RUN  v4.1.12 /Users/mini/CISME
+
+ ❯ tests/unit/support-ai-native.test.ts (49 tests | 1 failed | 48 skipped) 43ms
+     × revokes an empty same-conversation topic-head proof when its first ACK skips unseen current-topic messages 42ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/support-ai-native.test.ts > native current-topic welcome remains a presentation prefix > revokes an empty same-conversation topic-head proof when its first ACK skips unseen current-topic messages
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ tests/unit/support-ai-native.test.ts:304:99
+    302|      message:message('user',99),aiMessages:[message('ai',100)]}):{});
+    303|   await p.send();expect(p.data.conversation.id).toBe(conversation.id);…
+    304|   expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([99,1…
+       |                                                                                                   ^
+    305|   oldEmpty.resolve(emptyTopic);await loading;
+    306|   expect(p.data.conversation.version).toBe(105);expect(p.data.historyS…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 48 skipped (49)
+   Start at  07:19:54
+   Duration  183ms (transform 75ms, setup 40ms, import 32ms, tests 43ms, environment 0ms)
+

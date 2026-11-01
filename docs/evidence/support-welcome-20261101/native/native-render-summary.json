@@ -1,6 +1,6 @@
 {
-  "runId": "c5ed5b7a841f4c2ca2f711687b4bf82c",
-  "packageSourceSha256": "8b4ea1a3a94072fbbd02d17879cf57b395bb0fb861b637bf6215016a04f13d67",
+  "runId": "73fececf5dd749669399efb70f90dfcf",
+  "packageSourceSha256": "3942f0be14641c7cf7a77ecc092b3bf23a80ee5ae407f100459918454a732f6b",
   "scope": "Original native WXML/WXSS setData render fixtures only. No authenticated loading, sending, polling or physical-device interaction is claimed. Actual Page state/races are tested separately.",
   "cases": [
     {

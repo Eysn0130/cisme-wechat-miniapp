@@ -9,7 +9,7 @@
   "actual": {
     "files": 284,
     "routes": 40,
-    "totalBytes": 1877707,
+    "totalBytes": 1877870,
     "mainPackageBytes": 749343,
     "subpackageBytes": {
       "pages/task": 17022,
@@ -26,7 +26,7 @@
       "pages/invite": 15195,
       "pages/legal": 3645,
       "pages/privacy-rights": 53288,
-      "pages/support": 103905,
+      "pages/support": 104068,
       "pages/management": 19133,
       "pages/management-catalog": 7814,
       "pages/management-product": 21770,
@@ -49,7 +49,7 @@
       "pages/management-fulfillment": 14867
     },
     "globalStyleBytes": 8190,
-    "sourceSha256": "8b4ea1a3a94072fbbd02d17879cf57b395bb0fb861b637bf6215016a04f13d67"
+    "sourceSha256": "3942f0be14641c7cf7a77ecc092b3bf23a80ee5ae407f100459918454a732f6b"
   },
   "errors": []
 }

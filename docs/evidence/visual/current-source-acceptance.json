@@ -257,7 +257,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "8b4ea1a3a94072fbbd02d17879cf57b395bb0fb861b637bf6215016a04f13d67",
+  "packageSourceSha256": "3942f0be14641c7cf7a77ecc092b3bf23a80ee5ae407f100459918454a732f6b",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -267,6 +267,6 @@
     }
   ],
   "note": "Current welcome retention validation is scoped separately. Historical support and calendar frames retain their original source hashes and do not validate the current source. Full40-route and physical-device acceptance remain blocked.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-2191d52e04da.json",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-8b4ea1a3a940.json",
   "pendingSourceRebind": false
 }
