@@ -25,6 +25,19 @@ beforeEach(async()=>{
 });
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 describe('native AI support receipts and explicit switching',()=>{
+ it('measures an asynchronously attached route order after its owned card renders',async()=>{
+  p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const ticks=captureComposerMeasurements(),response=deferred();m.read.mockReturnValueOnce(response.promise);
+  const loading=p.loadLinkedOrder();expect(ticks).toHaveLength(0);
+  response.resolve({id:p.linkedOrderId,orderNumber:'SYNTHETIC-0001',status:'pending_payment',currency:'CNY',totalCents:100,lines:[]});await loading;
+  expect(p.data.selectedOrder?.id).toBe(p.linkedOrderId);expect(ticks).toHaveLength(1);expect(p.measureComposer).not.toHaveBeenCalled();
+  ticks.shift()!();expect(p.measureComposer).toHaveBeenCalledOnce();
+ });
+ it.each(['hidden','account'])('does not attach or measure a route order returned after %s ownership changes',async(change)=>{
+  p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const ticks=captureComposerMeasurements(),response=deferred();m.read.mockReturnValueOnce(response.promise);
+  const loading=p.loadLinkedOrder();if(change==='hidden'){p.data.visible=false;p.lifecycleEpoch++;}else m.token='synthetic-other';
+  response.resolve({id:p.linkedOrderId,orderNumber:'SYNTHETIC-0001',status:'pending_payment',currency:'CNY',totalCents:100,lines:[]});await loading;
+  expect(p.data.selectedOrder).toBeNull();expect(ticks).toHaveLength(0);expect(p.measureComposer).not.toHaveBeenCalled();
+ });
  it('measures a newly loaded composer action after render and skips unchanged polls',async()=>{
   Object.assign(p.data,{loading:true,conversation:null,supportAiAvailable:false});const ticks=captureComposerMeasurements(),response=deferred();m.read.mockReturnValueOnce(response.promise);
   const loading=p.load();expect(ticks).toHaveLength(0);
