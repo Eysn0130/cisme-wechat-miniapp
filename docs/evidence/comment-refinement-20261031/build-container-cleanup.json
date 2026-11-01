@@ -1,0 +1,39 @@
+{
+  "completedAtUtc": "2026-10-31T23:53:34.522850+00:00",
+  "containers": [
+    {
+      "builderImageId": "sha256:43ffb442676c100df1e90d50b1d582c5af0b9dca1bdf7cbc9065dad0c5521044",
+      "containerId": "1e57b60a78dec851459956e8c4670ca9c7dae3d5ed6ed3291d7879a2f4891784",
+      "containerName": "cisme-comment-access-de9c85a84faa-94387c5e",
+      "exitCode": 0,
+      "metadataPath": "/Users/mini/CISME/tmp/comment-refinement-20261031/release/build.json",
+      "metadataSha256": "6fbf0d15246ccd26d52be70924ea6d3d3a34d35d2fbdb603d10a05d408507718",
+      "mounts": [],
+      "network": "none",
+      "purposeLabel": "comment-access-build",
+      "removed": true,
+      "sourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+      "statusBefore": "exited"
+    },
+    {
+      "builderImageId": "sha256:43ffb442676c100df1e90d50b1d582c5af0b9dca1bdf7cbc9065dad0c5521044",
+      "containerId": "626cd7b444f511489fb961fc5f5c91d0f8f2a79fb34bcd1238af6eb29fa76107",
+      "containerName": "cisme-comment-access-73e880e0d195-a8f1aaf7",
+      "exitCode": 0,
+      "metadataPath": "/Users/mini/CISME/tmp/comment-refinement-20261031/release/obsolete-73e880e0d195/build.json",
+      "metadataSha256": "3c73b779807838eb4a5a71f8d41999f2103bec417915278223a19964b45d27c5",
+      "mounts": [],
+      "network": "none",
+      "purposeLabel": "comment-access-build",
+      "removed": true,
+      "sourceHead": "73e880e0d195246f5cda7cb1b609b4cfde0dc8e2",
+      "statusBefore": "exited"
+    }
+  ],
+  "kind": "owned-build-container-cleanup",
+  "localArchivesBundlesAndReceiptsDeleted": false,
+  "otherContainersTouched": false,
+  "removedContainerCount": 2,
+  "schemaVersion": 1,
+  "sshUsed": false
+}

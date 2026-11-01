@@ -1,0 +1,23 @@
+{
+  "startedAtUtc": "2026-10-31T23:51:44.857581+00:00",
+  "version": "0.1.16",
+  "sourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+  "sourceTree": "b1367944538deab535b77ab028c7287ea4728449",
+  "packageSourceSha256": "5a292ca070e49f25e3284ff3281c7c465ccdd3996adceb8d9700a5280ff02b3e",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "appId": "wx4eac2d4fb11d299b",
+  "args": [
+    "wechatide",
+    "-c",
+    "Codex",
+    "upload",
+    "--project",
+    "/Users/mini/CISME/apps/miniprogram",
+    "--upload-version",
+    "0.1.16",
+    "--desc",
+    "评论登录可见、紧凑排版及默认昵称；AI客服与人工接待闭环"
+  ],
+  "authorization": "user explicitly approved upload 0.1.16 after fixes",
+  "previousSuccessfulVersion": "0.1.15"
+}

@@ -86,6 +86,9 @@ describe.sequential("commercial support conversation facts", () => {
   it("uses short-lived, explicit presence and typing facts", async () => {
     const touched = await app.inject({ method: "POST", url: `/v1/management/support/conversations/${conversationId}/presence`, headers: auth(operator.sessionToken), payload: { online: true, typing: true } });
     expect(touched.statusCode).toBe(200);
+    const receipt=touched.json();
+    expect(Date.parse(receipt.onlineExpiresAt)-Date.parse(receipt.serverTime)).toBe(10_000);
+    expect(Date.parse(receipt.typingExpiresAt)-Date.parse(receipt.serverTime)).toBe(9_000);
     const active = (await app.inject({ method: "GET", url: "/v1/me/support/messages", headers: auth(member.sessionToken) })).json();
     expect(active.presence).toMatchObject({ operatorOnline: true, operatorTyping: true, agentDisplayName: "小熹" });
 
@@ -95,7 +98,11 @@ describe.sequential("commercial support conversation facts", () => {
     const stillActive = (await app.inject({ method: "GET", url: "/v1/me/support/messages", headers: auth(member.sessionToken) })).json();
     expect(stillActive.presence).toMatchObject({ operatorOnline: true, operatorTyping: true, agentDisplayName: "小熹" });
 
-    await pool.query("UPDATE support_presence SET online_expires_at=now()-interval '1 second',typing_expires_at=now()-interval '1 second' WHERE conversation_id=$1 AND actor_type='operator'", [conversationId]);
+    // Presence is evaluated against application serverTime. A local Docker DB
+    // may have clock skew; expire from that same clock instead of DB now().
+    const expiredAt=new Date(Date.parse(stillActive.presence.serverTime)-1_000);
+    const expiredRows=await pool.query("UPDATE support_presence SET online_expires_at=$2,typing_expires_at=$2 WHERE conversation_id=$1 AND actor_type='operator'", [conversationId,expiredAt]);
+    expect(expiredRows.rowCount).toBe(1);
     const expired = (await app.inject({ method: "GET", url: "/v1/me/support/messages", headers: auth(member.sessionToken) })).json();
     expect(expired.presence).toMatchObject({ operatorOnline: false, operatorTyping: false });
   });

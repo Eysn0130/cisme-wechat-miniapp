@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-31T23:55:39.749086+00:00",
+  "scope": "0.1.16 developer/trial upload and isolated trial update; no public release or physical-device/full-state acceptance claim",
+  "pullRequest": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/52",
+  "source": {
+    "head": "de9c85a84faa14931708965e85decee2773475b3",
+    "tree": "b1367944538deab535b77ab028c7287ea4728449",
+    "packageSourceSha256": "5a292ca070e49f25e3284ff3281c7c465ccdd3996adceb8d9700a5280ff02b3e"
+  },
+  "requirements": [
+    "COMMENT-ACCESS-01",
+    "COMMENT-ACCESS-02",
+    "COMMENT-LAYOUT-01",
+    "COMMENT-LAYOUT-02",
+    "AUTH-PROFILE-INIT-01",
+    "COMMENT-REFINE-QA-01"
+  ],
+  "rootCause": {
+    "memberActive": true,
+    "nameIsDefault": true,
+    "profileRowExists": false,
+    "profileRevision": 0,
+    "profileCompleted": false,
+    "hasAvatar": false,
+    "hasAvatarRevision": false,
+    "sameAsExistingAdministrator": false,
+    "canonicalWechatIdentity": true
+  },
+  "finding": "Newest commenter has no saved profile/avatar and uses the initialized default name. Existing saved profiles continue to sync. wx.login supplies identity, not the real WeChat nickname/avatar.",
+  "comments": {
+    "guestFetchesCommentList": false,
+    "guestReceivesCommentData": false,
+    "guestCanReadArticle": true,
+    "loginCtaReturnsToOriginalArticle": true,
+    "directPublicationPreserved": true,
+    "onlyAdministratorHasColoredDelete": true,
+    "consumerReportAndReviewEntrancesRemoved": true,
+    "confirmedLoadedRepliesInitiallyCollapsed": true
+  },
+  "login": {
+    "nicknameInputRemoved": true,
+    "defaultNameInitializedOnServer": true,
+    "savedProfilePreservedOnReauthentication": true,
+    "userConsentNotAutomaticallyAccepted": true
+  },
+  "checks": {
+    "fullUnit": {
+      "passed": 2409,
+      "skipped": 1,
+      "files": 163,
+      "scope": "before final CSS min-width44; application TypeScript/API unchanged; final CSS separately checked"
+    },
+    "finalTemplateChecks": {
+      "passed": 28
+    },
+    "profileDisposableIntegration": {
+      "passed": 9
+    },
+    "commentsDisposableIntegration": {
+      "passed": 38
+    },
+    "deploymentOffline": {
+      "passed": 20
+    },
+    "typecheck": "passed",
+    "contracts": "283 v1 methods +2 health;247 protected;32 events",
+    "packageGate": "passed",
+    "remoteRegression": "Original CI failures and local clock-fixture failure corrected; final local complete1050/1050 passed. Follow-up remote CI remains separately tracked on PR52.",
+    "providedKeyMatchesInTrackedAndNewEvidence": 0,
+    "fullDisposableIntegration": {
+      "passed": 1050,
+      "filesPassed": 63,
+      "failed": 0,
+      "durationSeconds": 133.39,
+      "evidence": "docs/evidence/comment-refinement-20261031/regression-summary.json"
+    }
+  },
+  "build": {
+    "sourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+    "sourceTree": "b1367944538deab535b77ab028c7287ea4728449",
+    "archiveSha256": "a23be790a7e03dbf84026303ecf6db1ce7cd8426ee693ac1dd8711c43ec4b23a",
+    "archiveBytes": 25649357,
+    "manifestSha256": "ba6568a17c7775ce1785f587fe18b9a318aba0177bba1880248dd4820819264c",
+    "bindingSha256": "0f0166a14ab30797a868927f807111059c50de6afee60de62bab6ff79a021e95",
+    "helperSha256": "21401f9d1ace1b569e6b7efed31b0fe2496babff0a921dbd10d65766f4124b6f",
+    "dependenciesSha256": "d9f03813fc808eced42eacb92db4530a2cd0e0824cab5d1beb9c3bdf08144bdd",
+    "migrations": 103,
+    "unchangedProtectedFileCount": 106,
+    "network": "none",
+    "hostMounts": [],
+    "secretsIncluded": false
+  },
+  "deployment": {
+    "applicationRollbackExecuted": false,
+    "authorityGranted": false,
+    "businessDataSeeded": false,
+    "commentLoginEnforced": true,
+    "configurationChanged": false,
+    "credentialsChanged": false,
+    "databaseRestored": false,
+    "databaseSnapshotCreated": false,
+    "deployed": true,
+    "environment": "trial",
+    "guestCommentStatus": 401,
+    "migrationCountAfter": 103,
+    "migrationCountBefore": 103,
+    "previousActiveHistoryPreserved": true,
+    "privateValuesExported": false,
+    "productionChanged": false,
+    "publicArticleReadable": true,
+    "schemaChanged": false,
+    "sourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+    "versions": {
+      "fastify": "5.12.6",
+      "rsvg": "2.63.2",
+      "sharp": "0.35.5",
+      "vips": "8.18.7"
+    }
+  },
+  "active": {
+    "activeVerified": true,
+    "commentLoginEnforced": true,
+    "migrationCount": 103,
+    "privateValuesExported": false,
+    "readOnly": true,
+    "sourceHead": "de9c85a84faa14931708965e85decee2773475b3"
+  },
+  "publicApi": {
+    "verifiedAtUtc": "2026-10-31T23:51:33.946511+00:00",
+    "origin": "https://staging-api.cisme.cn",
+    "articleStatus": 200,
+    "articleBodyReadable": true,
+    "guestCommentsStatus": 401,
+    "guestCode": "AUTH_REQUIRED",
+    "guestCommentDataPresent": false,
+    "tlsVerifiedByDefaultClient": true,
+    "credentialsSent": false,
+    "businessWrites": false,
+    "dnsScope": "local resolver uses synthetic proxy addresses; not used as an origin-IP assertion"
+  },
+  "upload": {
+    "version": "0.1.16",
+    "sourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+    "sourceTree": "b1367944538deab535b77ab028c7287ea4728449",
+    "packageSourceSha256": "5a292ca070e49f25e3284ff3281c7c465ccdd3996adceb8d9700a5280ff02b3e",
+    "project": "/Users/mini/CISME/apps/miniprogram",
+    "appId": "wx4eac2d4fb11d299b",
+    "previousSuccessfulVersion": "0.1.15",
+    "taskId": "confirmation_upload_7c66e767-9ee0-4b79-b035-78d34f06aa13",
+    "status": "success",
+    "detail": "execution_success",
+    "officialSuccess": true,
+    "completedAtUtc": "2026-10-31T23:52:17.922000+00:00",
+    "compiledBytes": 1705097,
+    "compiledMainBytes": 663575,
+    "terminalReceiptSha256": "d5270de0de0b92089854eb59e53cd3aca161e95f7bce72c575462ef5075f7e92",
+    "nativeRealSignedInAcceptance": false,
+    "physicalDeviceAcceptance": false,
+    "uploadCountThisVersion": 1
+  },
+  "native": {
+    "genuineGuest": [
+      {
+        "width": 390,
+        "font": 16
+      },
+      {
+        "width": 375,
+        "font": 26
+      }
+    ],
+    "actualCtaLoginReturnAndNicknameRemoval": true,
+    "authenticatedLayout": "Synthetic page rendering only; no session injected or server write; temporary page onReachBottom pause was removed by full refresh and verified by restored guest access behavior",
+    "geometry": "375/font26 and390/font16; long nickname/text and expanded replies; all controls at least44px; no text/like overlap",
+    "restoredDeviceAndFont": "iPhone12/13Pro390x844,font16",
+    "physicalDeviceTested": false,
+    "realSignedInCommentActionsTestedThisRound": false,
+    "realAccountLoginCompletedThisRound": false,
+    "realKeyboardTested": false,
+    "full40RouteStateAcceptance": false
+  },
+  "support": {
+    "runtimeSourceUnchangedFromExistingFix": true,
+    "configurationAndCredentialsPreserved": true,
+    "currentHistoricalApiEvidence": "docs/evidence/comment-support-20261030/live-isolated-e2e.json",
+    "scope": "Earlier real DeepSeek + disposable database AI -> human queue -> administrator reply -> member read evidence remains historical; not new physical-device/live-account acceptance"
+  },
+  "testData": {
+    "newRealAccountComments": 0,
+    "newRealAccountMessages": 0,
+    "newRealAccountLoginsOrProfileChanges": 0,
+    "newTrialDatabaseTestFacts": 0,
+    "syntheticDisposableDatabaseTests": true
+  },
+  "artifacts": [
+    {
+      "path": "docs/evidence/comment-refinement-20261031/new-author-db-baseline.json",
+      "sha256": "d8eb57cafdfc9a2051b28137530d1a239ba64f6a3716796c4b6b073d5f5fea68",
+      "bytes": 241
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/reference-observation.json",
+      "sha256": "8d40c2e8032cea5c2d8fd668561a17951fc022ab3bc49132a5d6b0ff980f5da9",
+      "bytes": 1240
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/guest-wall-390-font16.png",
+      "sha256": "f080fdb3c060ab3abb0d6e297de0c0cadafedb01ea4801a625ed061847988722",
+      "bytes": 48336
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/guest-wall-375-font26.png",
+      "sha256": "cf8d75d1f0265db54a724594e4ca53e93a8100a6fd7b3de8f92db885ef347156",
+      "bytes": 34017
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/authenticated-layout-synthetic-390-font16.png",
+      "sha256": "f460942460b596b9a0788ff3a329d338acaedbf49a3cf7c8498a2508886e4648",
+      "bytes": 45814
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/replies-synthetic-375-font26.png",
+      "sha256": "1b3fe805b0ac594082f60a4b84a3cd5b86f382d4760c98a940cba78f88701265",
+      "bytes": 40532
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/long-text-synthetic-375-font26.png",
+      "sha256": "385b3fbb171b10490ba2b34abb417cd5c7836bc019ca288c8a6647ae26b8217e",
+      "bytes": 53443
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/login-no-nickname.png",
+      "sha256": "a07469da01e68ae9f03cd902609fd2141e14d0a60c610f91980725dbc0d901cc",
+      "bytes": 32505
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/layout-390-font16-geometry.json",
+      "sha256": "4f88c38b6a3b740d248b6977fd05653a6d9dc3e4fe3a2d1a8fc1b97455a91c77",
+      "bytes": 9568
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/long-layout-375-font26-geometry.json",
+      "sha256": "a1e359962253862445d7470ba0c238537a75f152800377f983bc1128f44bc9cc",
+      "bytes": 9941
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/reply-layout-375-font26-geometry.json",
+      "sha256": "ee2de2d2c743e562d122a4d83fef82fe49b4434bbe0c90e191fb406d60f0cd98",
+      "bytes": 17848
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/login-return.json",
+      "sha256": "17f3398c5b5f2bb15afa2dd2b25e6f6fdc5647ef0064c05e016ae602af4c00db",
+      "bytes": 411
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/native-fixture-cleanup.json",
+      "sha256": "7816e959c747a4aada89c82f065ee06c847c02c4eac0441d7e4d1af9f157b7eb",
+      "bytes": 406
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/server-stage.json",
+      "sha256": "f2cfce6918b0734edb363f248af7f778ddca7bd418456678e0017451b42b5381",
+      "bytes": 938
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/server-preflight.json",
+      "sha256": "5cc189e87b3ba20130514dc3116baf80239d567bf8771fc3373e7f8ffc8e573c",
+      "bytes": 304
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/server-deployment.json",
+      "sha256": "5dba8fea357524f231407ebd3b330961f0bff9bd662ae27d3fb978e0d5a82b35",
+      "bytes": 675
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/server-active.json",
+      "sha256": "76e727df3574a80a6ecc685e87fda65d01cffaa901b8e22100a6f41850dfc4bd",
+      "bytes": 186
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/public-api.json",
+      "sha256": "2160c87a05738687ab19ab812ac0a9bd60f4ce59fd6ee7472a1196db67f1dab8",
+      "bytes": 446
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/build-container-cleanup.json",
+      "sha256": "2c13cf8e55e5bbf223b2418a7b35665cdae521b7535e5a37e065728e0d505d8c",
+      "bytes": 1676
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/upload-016-intent.json",
+      "sha256": "127199cf57c1aafe9a312ee27d5c5c1c71927a8e2c3d93c4da16e430adfe93a0",
+      "bytes": 759
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/upload-016-official-terminal.json",
+      "sha256": "4628348d2dea87bf95802986b1e9722cf942bc24d87e80e2fd82c70b3c1f592d",
+      "bytes": 4301
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/upload-016.json",
+      "sha256": "fcb7df510b05d9970d6bbc6b3de07eba5c2e34144eb67f892576bf68fb6052b5",
+      "bytes": 837
+    },
+    {
+      "path": "docs/evidence/comment-refinement-20261031/regression-summary.json",
+      "sha256": "93ae0fe8fa16c4a2f7bb4251efb7e4bdbdbd12ea1bb66111ac94ff6724a1a5ad",
+      "bytes": 2377
+    }
+  ],
+  "postUploadChanges": {
+    "runtimeChanged": false,
+    "miniprogramPackageChanged": false,
+    "migrationsChanged": false,
+    "files": [
+      "tests/integration/migration-lifecycle.test.ts",
+      "tests/integration/support-commercial-chat.test.ts",
+      "docs/privacy/subject-data-map.json"
+    ],
+    "reasons": [
+      "Historical care fixture needed an explicit schema101 boundary after current tip advanced to103; data-preservation assertions kept.",
+      "Review map digest and descriptions updated for existing103 columns and direct-publication/explicit AI routing; no field/authority expansion.",
+      "Presence expiry fixture now uses application serverTime rather than skewed local Docker DB clock; exact10s/9s TTL and affected-row assertions added."
+    ],
+    "targetedChecksPassed": 7,
+    "privacyInventoryChecksPassed": 4,
+    "typecheck": "passed",
+    "independentReview": "No P1/P2; no assertions weakened."
+  }
+}

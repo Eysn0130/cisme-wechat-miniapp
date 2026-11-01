@@ -1,0 +1,9 @@
+{
+  "surface": "Xiaohongshu mobile H5, not the native App",
+  "source": "https://www.xiaohongshu.com/discovery/item/6ad9dd17000000002a028060",
+  "observedOn": "2026-10-31",
+  "method": "Live page with Android mobile user agent and 390x844 emulation; actual document client/body width confirmed 390; visible comment DOM and computed layout measured",
+  "observed": {"nicknameFontPx":15,"nicknameLineHeightPx":17,"bodyFontPx":14,"bodyLineHeightPx":22,"avatarPx":43.1875,"avatarTextGapPx":12,"commentPaddingPx":[12,15,8],"likeTargetPx":[40,35],"likeIconPx":18,"likeCountFontPx":13,"likeCountLineHeightPx":17,"footerHeightPx":26},
+  "limits": "Public H5 previews showed 3 comments; expanding was an App entry. No claim of native Xiaohongshu App measurement or complete in-App interaction validation. A scaled footer font declaration was not copied as a literal device font size.",
+  "implementation": {"nativeSurface":"WeChat Mini Program WXML/WXSS","nicknameFontLinePx":[15,18],"bodyFontLinePx":[14,22],"avatarPx":40,"avatarTextGapPx":12,"replyIndentPx":52,"replyAvatarPx":24,"minimumTouchTargetPx":44,"typographyScaling":"system rem","replies":"Initially collapsed; only confirmed loaded reply count; expand/collapse retains page context"}
+}

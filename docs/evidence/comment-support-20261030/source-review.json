@@ -151,5 +151,12 @@
     "correctedCandidateVersion": "0.1.16",
     "reason": "The earlier question used an outdated013 baseline and omitted the already successful015 upload. Corrected after verifying original invocation, preflight and same-task official terminal receipt.",
     "newUploadInvoked": false
+  },
+  "laterReleaseEvidence": {
+    "version": "0.1.16",
+    "uploaded": true,
+    "sourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+    "evidence": "docs/evidence/comment-refinement-20261031/source-review.json",
+    "note": "Earlier pending/authorization fields describe the 2026-10-30 snapshot; this later user-authorized upload supersedes them, preserving original package provenance."
   }
 }
