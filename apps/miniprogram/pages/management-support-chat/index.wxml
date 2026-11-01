@@ -73,6 +73,10 @@
   <button wx:if="{{newMessagesBelowCount > 0}}" class="operator-new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
 
   <view wx:if="{{!loading}}" class="operator-actions {{composerFocused ? 'operator-actions--focused' : ''}}">
+    <view wx:if="{{conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active')}}" class="operator-human-issue" aria-live="polite">
+      <text class="operator-human-issue__title">人工申请的问题</text>
+      <text class="operator-human-issue__summary">{{humanIssueSummary || (humanRequest && humanRequest.anchorKnown ? '原问题尚未加载，请查看更早消息' : '原问题未指定，请向用户确认')}}</text>
+    </view>
     <button wx:if="{{canManageAftersale}}" class="operator-aftersale-entry {{busy?'control--disabled':''}}" bindtap="openAftersales" disabled="{{busy}}">本会话售后</button>
     <button wx:if="{{conversation && conversation.status === 'waiting_human' && canAssign}}" class="operator-claim {{busy ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{busy}}">接管会话</button>
     <view wx:elif="{{conversation && conversation.status === 'human_active' && !assignedToMe}}" class="operator-owned">这次会话正由其他客服处理</view>
@@ -88,7 +92,7 @@
           <button class="operator-send {{!composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}} {{composerSendEnabled && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? 'operator-send--active' : 'operator-send--disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="{{busy ? '正在发送回复' : '发送回复'}}"><image src="{{composerSendEnabled && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
         </view>
       </view>
-      <button class="operator-resolve {{busy ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{busy}}">标记已解决</button>
+      <button class="operator-resolve {{busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{busy || sendAttempt}}" aria-label="{{sendAttempt ? '请先核对上条回复，再结束人工事项' : '标记已解决'}}">{{sendAttempt ? '请先核对上条回复' : '标记已解决'}}</button>
     </block>
   </view>
 

@@ -495,4 +495,59 @@ describe('fresh support conversation with ordinary-message erasure',()=>{
   expect(sent.json().contextVersion).toBe(page.json().contextVersion);
   expect(suggest).not.toHaveBeenCalled();
  });
+
+ it('shows the current original human question before claiming even when it is outside the latest fifty messages',async()=>{
+  const body='原人工问题：'+ '护理事项说明😊'.repeat(30);
+  const original=await send(body,'synthetic-visible-handoff-anchor');
+  const waiting=await support.requestHuman(user.memberId,user.principalId,{expectedConversationId:original.conversation.id,contextVersion:0,questionMessageId:original.message.id});
+  const client=await pool.connect();try{
+   await client.query('BEGIN');
+   for(let index=0;index<55;index++){
+    const row=(await client.query('SELECT next_sequence FROM support_conversation WHERE id=$1 FOR UPDATE',[waiting.id])).rows[0];
+    await client.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose)
+     VALUES($1,$2,'user',$3,$4,$5,'ordinary')`,[waiting.id,row.next_sequence,user.principalId,`其后基础消息${index}`,`synthetic-after-anchor-${index}`]);
+    await client.query('UPDATE support_conversation SET next_sequence=next_sequence+1,version=version+1,updated_at=clock_timestamp() WHERE id=$1',[waiting.id]);
+   }
+   await client.query('COMMIT');
+  }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+  const response=await app.inject({method:'GET',url:`/v1/management/support/conversations/${waiting.id}/messages`,headers:auth(operator.sessionToken)});
+  expect(response.statusCode).toBe(200);const page=response.json();
+  expect(page.messages).toHaveLength(50);expect(page.messages.some((message:any)=>message.id===original.message.id)).toBe(false);
+  expect(page).toMatchObject({assignedToMe:false,humanRequest:{generation:1,status:'waiting_human',anchorKnown:true,anchorMessageId:original.message.id,anchorSequence:1,
+   anchorSummary:Array.from(body).slice(0,160).join('')+'…'}});
+  expect((await support.messagesForMember(user.memberId,{})).humanRequest).not.toHaveProperty('anchorSummary');
+  expect((await app.inject({method:'GET',url:`/v1/management/support/conversations/${waiting.id}/messages`,headers:auth(user.sessionToken)})).statusCode).toBe(403);
+ });
+
+ it('lets only the assigned operator resolve a legacy unknown request, then lets its owner explicitly start a fresh conversation',async()=>{
+  const row=await seedHistory(3,'human_active','legacy_unknown');
+  const otherOperator=await identity(`synthetic-other-resolver-${serial}`);
+  for(const capability of ['support.read','support.assign','support.reply'])await pool.query(`INSERT INTO authority_grant
+   (member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,$2,'synthetic','Legacy resolution integration','test','integration_fixture')`,[otherOperator.memberId,capability]);
+  const ownPage=(await app.inject({method:'GET',url:`/v1/management/support/conversations/${row.id}/messages`,headers:auth(operator.sessionToken)})).json();
+  expect(ownPage).toMatchObject({assignedToMe:true,humanRequest:{generation:0,anchorKnown:false,anchorMessageId:null,anchorSequence:null,anchorSummary:null}});
+  expect((await support.operatorMessages(otherOperator.memberId,otherOperator.principalId,row.id,{})).assignedToMe).toBe(false);
+  const otherReply=await app.inject({method:'POST',url:`/v1/management/support/conversations/${row.id}/resolve`,headers:auth(otherOperator.sessionToken),payload:{expectedVersion:row.version}});
+  expect(otherReply.statusCode).toBe(409);expect(otherReply.json()).toMatchObject({code:'SUPPORT_ASSIGNMENT_REQUIRED'});
+  expect((await app.inject({method:'POST',url:`/v1/management/support/conversations/${row.id}/resolve`,headers:auth(user.sessionToken),payload:{expectedVersion:row.version}})).statusCode).toBe(403);
+  expect((await current(row.id)).status).toBe('human_active');
+  const requestId=randomUUID();
+  const blocked=await app.inject({method:'POST',url:'/v1/me/support/new-topic',headers:auth(user.sessionToken),payload:inputFor(row,requestId)});
+  expect(blocked.statusCode).toBe(409);expect(blocked.json()).toMatchObject({code:'SUPPORT_HUMAN_CONVERSATION_ACTIVE'});
+  const resolution=await app.inject({method:'POST',url:`/v1/management/support/conversations/${row.id}/resolve`,headers:auth(operator.sessionToken),payload:{expectedVersion:row.version}});
+  expect(resolution.statusCode).toBe(200);expect(resolution.json().status).toBe('resolved');
+  expect((await current(row.id)).current_handler_principal_id).toBeNull();
+  const fresh=await app.inject({method:'POST',url:'/v1/me/support/new-topic',headers:auth(user.sessionToken),payload:{conversationId:row.id,expectedVersion:resolution.json().version,requestId:randomUUID()}});
+  expect(fresh.statusCode).toBe(200);expect(fresh.json()).toMatchObject({messages:[],conversation:{id:row.id,status:'ai_active'},contextStartSequence:3});
+  expect((await pool.query('SELECT sequence,retention_purpose FROM support_message WHERE conversation_id=$1',[row.id])).rows).toEqual([{sequence:'1',retention_purpose:'legacy_unknown'}]);
+  expect((await support.operatorMessages(operator.memberId,operator.principalId,row.id,{})).humanRequest).toBeNull();
+ });
+
+ it('does not let a missing question target bypass the existing resolution version guard',async()=>{
+  const row=await seedHistory(2,'human_active');
+  await send('解决前又到的一条基础问题','synthetic-late-question-before-resolve');
+  const result=await app.inject({method:'POST',url:`/v1/management/support/conversations/${row.id}/resolve`,headers:auth(operator.sessionToken),payload:{expectedVersion:row.version}});
+  expect(result.statusCode).toBe(409);expect(result.json()).toMatchObject({code:'VERSION_CONFLICT'});
+  expect((await current(row.id)).status).toBe('human_active');
+ });
 });

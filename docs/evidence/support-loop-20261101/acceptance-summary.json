@@ -1,0 +1,58 @@
+{
+  "recordedAt": "2026-11-01T08:57:14.278655+00:00",
+  "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "originalPublishedVersion": "0.1.18",
+  "originalPackageSourceSha256": "1868cd6df93f30c2d02d1a0389ff6c32df897bdfddfaf34ae3c9956fbdf480d3",
+  "requirements": [
+    "SUPPORT-HANDOFF-TARGET-02",
+    "SUPPORT-RESOLVE-01",
+    "SUPPORT-NEW-TOPIC-RECOVERY-01",
+    "SUPPORT-LOOP-QA-01"
+  ],
+  "originalNativeDefect": {
+    "scope": "Exact 0.1.18 confirmText parameter invoked against real WeChat DevTools wx.showModal; not an authenticated operator-page button tap",
+    "result": "Native API rejects five-character confirmText before a resolve HTTP request",
+    "codeAnalysis": "await was outside try; human state remained active so new conversation protection persisted"
+  },
+  "completed": {
+    "unitPassed": 2548,
+    "unitSkipped": 1,
+    "focusedIntegrationPassed": 82,
+    "typecheck": "passed",
+    "wxmlWxssCompilationPassed": 4,
+    "newDeploymentOfflineGuards": 20,
+    "priorDeploymentOfflineRegressions": 22
+  },
+  "nativeAuthenticatedLoop": "pending",
+  "actualTrialAccountLoop": "pending: no dedicated authorized test login state in current DevTools",
+  "physicalPhone": "not tested",
+  "full40RouteMatrix": "blocked",
+  "networkGate": {
+    "currentPrivateUrlCheck": true,
+    "loopbackRequest": "rejected: url not in domain list",
+    "temporaryDevelopmentOnlyChange": "awaiting explicit user confirmation; not performed"
+  },
+  "knownLimit": "Native compilation, unit tests and original native parameter rejection do not constitute a complete live-account end-to-end pass.",
+  "artifacts": [
+    {
+      "path": "native-018-five-character-modal-probe.json",
+      "sha256": "48cdcaaf3221e14e6ec9e87072b0103621fcee919fc0e092d393401dd5662a0f"
+    },
+    {
+      "path": "native-compile-support-wxml.json",
+      "sha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac"
+    },
+    {
+      "path": "native-compile-support-wxss.json",
+      "sha256": "5af378e6a2dae316f0f5045a8075138c0d8a9919736b984fe1e341cb6c7d1f84"
+    },
+    {
+      "path": "native-compile-management-support-chat-wxml.json",
+      "sha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac"
+    },
+    {
+      "path": "native-compile-management-support-chat-wxss.json",
+      "sha256": "5af378e6a2dae316f0f5045a8075138c0d8a9919736b984fe1e341cb6c7d1f84"
+    }
+  ]
+}

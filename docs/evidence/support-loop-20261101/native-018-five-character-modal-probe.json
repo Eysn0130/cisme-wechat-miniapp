@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "accepted": false,
+        "errMsg": "showModal:fail confirmText length should not larger than 4 Chinese characters"
+      }
+    }
+  }
+}

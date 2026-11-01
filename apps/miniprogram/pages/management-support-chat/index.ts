@@ -29,7 +29,7 @@ type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "a
 type Message = PresentedSupportMessage<RawMessage>;
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
-type HumanRequest = { generation: number; status: "waiting_human" | "human_active"; anchorKnown: boolean; anchorMessageId: string | null; anchorSequence: number | null };
+type HumanRequest = { generation: number; status: "waiting_human" | "human_active"; anchorKnown: boolean; anchorMessageId: string | null; anchorSequence: number | null; anchorSummary: string | null };
 type ReplyTarget = { id: string; sequence: number | null; summary: string; generation: number; contextVersion: number };
 type SendAttempt = { id: string; body: string; replyToMessageId: string; expectedHumanRequestGeneration: number; contextVersion: number };
 type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;returnDestination:null|{version:number};claimBasis:string};
@@ -67,6 +67,7 @@ Page({
     contextStartSequence: 0,
     contextVersion: 0,
     humanRequest: null as HumanRequest | null,
+    humanIssueSummary: "",
     replyTarget: null as ReplyTarget | null,
     replyTargetNeedsRefresh: false,
     assignedToMe: false,
@@ -210,6 +211,7 @@ Page({
       contextStartSequence: 0,
       contextVersion: 0,
       humanRequest: null,
+      humanIssueSummary: "",
       replyTarget: null,
       replyTargetNeedsRefresh: false,
       assignedToMe: false,
@@ -250,7 +252,7 @@ Page({
   clearRetiredTopic() {
     this.clearPresenceTimer(); this.abortDownloads(); this.inputRevision += 1;
     this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
-    this.setData({ input: "", sendAttempt: null, pendingMessage: null, replyTarget: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
+    this.setData({ input: "", sendAttempt: null, pendingMessage: null, replyTarget: null, humanIssueSummary: "", composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
       presence: emptyPresence, olderCursor: null, loadingOlder: false, anchor: "", atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
   },
   questionSummary(message: RawMessage | undefined) {
@@ -262,7 +264,8 @@ Page({
       || value.status !== "waiting_human" && value.status !== "human_active") return null;
     return { generation: Number(value.generation), status: value.status, anchorKnown: value.anchorKnown === true,
       anchorMessageId: typeof value.anchorMessageId === "string" ? value.anchorMessageId : null,
-      anchorSequence: Number.isSafeInteger(value.anchorSequence) && Number(value.anchorSequence) > 0 ? Number(value.anchorSequence) : null };
+      anchorSequence: Number.isSafeInteger(value.anchorSequence) && Number(value.anchorSequence) > 0 ? Number(value.anchorSequence) : null,
+      anchorSummary: value.anchorKnown === true && typeof value.anchorSummary === "string" ? value.anchorSummary.trim() || null : null };
   },
   staleHumanRequest(page: { humanRequest?: unknown }) {
     const incoming = this.humanRequestFrom(page);
@@ -286,24 +289,27 @@ Page({
   },
   replyContextPatch(page: { humanRequest?: unknown }, messages: readonly RawMessage[], contextVersion: number, topicChanged = false): Record<string, unknown> {
     const humanRequest = this.humanRequestFrom(page), generation = humanRequest?.generation ?? 0;
+    const original = humanRequest?.anchorMessageId ? messages.find(item => item.id === humanRequest.anchorMessageId && item.senderType === "user") : undefined;
+    const humanIssueSummary = humanRequest?.anchorSummary || (original ? this.questionSummary(original) : "");
     const changed = topicChanged || Boolean(this.data.humanRequest && generation !== this.data.humanRequest.generation)
       || Boolean(this.data.replyTarget && (this.data.replyTarget.generation !== generation || this.data.replyTarget.contextVersion !== contextVersion));
     if (changed) {
       this.inputRevision += 1;
-      return { humanRequest, replyTarget: null, replyTargetNeedsRefresh: true, input: "", sendAttempt: null, pendingMessage: null,
+      return { humanRequest, humanIssueSummary, replyTarget: null, replyTargetNeedsRefresh: true, input: "", sendAttempt: null, pendingMessage: null,
         composerCapped: false, composerLineCount: 1, composerSendEnabled: false, error: "人工事项已变化，请刷新后确认要回复的问题。" };
     }
-    if (this.data.replyTargetNeedsRefresh) return { humanRequest, replyTarget: null, composerSendEnabled: false };
+    if (this.data.replyTargetNeedsRefresh) return { humanRequest, humanIssueSummary, replyTarget: null, composerSendEnabled: false };
     let replyTarget = this.data.replyTarget;
     if (!replyTarget && humanRequest?.anchorKnown && humanRequest.anchorMessageId) {
       const question = messages.find(item => item.id === humanRequest.anchorMessageId && item.senderType === "user");
       replyTarget = { id: humanRequest.anchorMessageId, sequence: humanRequest.anchorSequence,
-        summary: this.questionSummary(question), generation, contextVersion };
+        summary: humanRequest.anchorSummary || this.questionSummary(question), generation, contextVersion };
     } else if (replyTarget) {
       const question = messages.find(item => item.id === replyTarget!.id && item.senderType === "user");
       if (question) replyTarget = { ...replyTarget, summary: this.questionSummary(question) };
+      else if (replyTarget.id === humanRequest?.anchorMessageId && humanRequest.anchorSummary) replyTarget = { ...replyTarget, summary: humanRequest.anchorSummary };
     }
-    return { humanRequest, replyTarget, composerSendEnabled: Boolean(this.data.input.trim() && replyTarget) };
+    return { humanRequest, humanIssueSummary, replyTarget, composerSendEnabled: Boolean(this.data.input.trim() && replyTarget) };
   },
   async selectReplyTarget(event: WechatMiniprogram.TouchEvent) {
     if (!this.data.canReply || !this.data.assignedToMe || this.data.busy || this.data.sendAttempt || this.data.conversation?.status !== "human_active") return;
@@ -314,7 +320,9 @@ Page({
     if (this.data.input.trim()) {
       const epoch = this.lifecycleEpoch, token = sessionToken(), revision = this.inputRevision;
       const generation = this.data.humanRequest?.generation ?? 0, contextVersion = this.data.contextVersion;
-      const answer = await wx.showModal({ title: "更换回复问题？", content: "当前未发送的回复会清空，请针对新选择的问题重新填写。", confirmText: "更换问题" });
+      let answer: WechatMiniprogram.ShowModalSuccessCallbackResult;
+      try { answer = await wx.showModal({ title: "更换回复问题？", content: "当前未发送的回复会清空，请针对新选择的问题重新填写。", confirmText: "更换问题" }); }
+      catch { if (this.owns(epoch, token)) this.setData({ error: "确认窗口暂时无法打开，回复问题和草稿已保留，请重试。" }); return; }
       if (!answer.confirm || !this.owns(epoch, token) || this.data.busy || this.data.sendAttempt || revision !== this.inputRevision
         || generation !== (this.data.humanRequest?.generation ?? 0) || contextVersion !== this.data.contextVersion || this.data.replyTargetNeedsRefresh) return;
     }
@@ -345,6 +353,7 @@ Page({
     return { statusLabel: presence.memberOnline ? "处理中 · 会员在线" : "处理中 · 会员未在线", statusTone: presence.memberOnline ? "online" : "neutral", presence };
   },
   applyThreadState(state: SupportThreadState<Message>, patch: Record<string, unknown> = {}) {
+    const beforeLayout = this.actionsLayoutKey();
     const conversation = (patch.conversation as Conversation | undefined) ?? this.data.conversation;
     const presence = (patch.presence as Presence | undefined) ?? this.data.presence;
     const memberDisplayName = (patch.memberDisplayName as string | undefined) ?? this.data.memberDisplayName;
@@ -352,6 +361,14 @@ Page({
     const messagePatch = supportMessageSetDataPatch(this.data.messages, messages);
     this.setData({ ...messagePatch, syncCursor: state.syncCursor, maxSeenSequence: state.maxSeenSequence, readCursor: state.readCursor, ...patch });
     if (Object.keys(messagePatch).length) this.data.messages = messages;
+    if (beforeLayout !== this.actionsLayoutKey()) {
+      const epoch = this.lifecycleEpoch, token = sessionToken();
+      wx.nextTick(() => { if (this.owns(epoch, token)) this.measureActions(); });
+    }
+  },
+  actionsLayoutKey() {
+    return JSON.stringify([this.data.loading, this.data.conversation?.status, this.data.assignedToMe,
+      this.data.humanIssueSummary, this.data.replyTarget?.summary, this.data.replyTargetNeedsRefresh]);
   },
   measureActions() {
     if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
@@ -501,8 +518,11 @@ Page({
   async approveReturn(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??""),row=this.data.aftersaleCases.find(item=>item.id===id);
     if(!row||row.state!=='requested'||row.kind!=='return_refund')return;
-    const decision=await wx.showModal({title:'确认需寄回核对？',content:'这只记录退货处理决定。发送本案真实收件信息后，才会请用户寄回。',confirmText:'确认处理'});
-    if(!decision.confirm)return;
+    const epoch=this.lifecycleEpoch,token=sessionToken();
+    let decision:WechatMiniprogram.ShowModalSuccessCallbackResult;
+    try{decision=await wx.showModal({title:'确认需寄回核对？',content:'这只记录退货处理决定。发送本案真实收件信息后，才会请用户寄回。',confirmText:'确认处理'});}
+    catch{if(this.owns(epoch,token))this.setData({aftersaleError:'确认窗口暂时无法打开，原处理状态已保留，请重试。'});return;}
+    if(!decision.confirm||!this.owns(epoch,token))return;
     await this.runAftersaleAction(row,{action:'approve_return',expectedVersion:row.version,note:'已确认本案需寄回核对，待发送收件指引'});
   },
   async sendReturnInstruction(){
@@ -515,9 +535,12 @@ Page({
       this.setData({aftersaleError:'请完整填写收件人、电话、地区、地址和运费承担。'});return;
     }
     const payer=form.freightPayer==='merchant'?'商家':'用户';
-    const decision=await wx.showModal({title:row.state==='awaiting_return'?'发送新版本退货指引？':'发送本案退货指引？',
-      content:`${form.recipientName} · ${form.phone}\n${form.region} ${form.address}\n运费：${payer}承担。发送后会保留这一版指引，修改时需再发送新版本。`,confirmText:'确认发送'});
-    if(!decision.confirm)return;
+    const epoch=this.lifecycleEpoch,token=sessionToken();
+    let decision:WechatMiniprogram.ShowModalSuccessCallbackResult;
+    try{decision=await wx.showModal({title:row.state==='awaiting_return'?'发送新版本退货指引？':'发送本案退货指引？',
+      content:`${form.recipientName} · ${form.phone}\n${form.region} ${form.address}\n运费：${payer}承担。发送后会保留这一版指引，修改时需再发送新版本。`,confirmText:'确认发送'});}
+    catch{if(this.owns(epoch,token))this.setData({aftersaleError:'确认窗口暂时无法打开，收件指引草稿已保留，请重试。'});return;}
+    if(!decision.confirm||!this.owns(epoch,token))return;
     await this.runAftersaleAction(row,{action:'send_return_instruction',expectedVersion:row.version,note:'本案退货收件信息和运费承担已核对并发送',
       recipientName:form.recipientName.trim(),phone:form.phone.trim(),region:form.region.trim(),address:form.address.trim(),
       freightPayer:form.freightPayer,instructions:form.instructions.trim()});
@@ -803,23 +826,40 @@ Page({
   },
   retrySend() { void this.send(); },
   async resolve() {
-    if (!this.data.canReply || !this.data.assignedToMe || this.data.busy || !this.data.conversation) return;
+    if (!this.data.canReply || !this.data.assignedToMe || this.data.busy || this.data.conversation?.status !== "human_active") return;
+    if (this.data.sendAttempt) { this.setData({ error: "请先核对上条回复，再结束人工事项。" }); return; }
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const conversationId = this.data.conversation.id, expectedVersion = this.data.conversation.version, contextVersion = this.data.contextVersion;
+    const humanGeneration = this.data.humanRequest?.generation ?? 0;
     const draftWarning = this.data.input.trim() ? "当前未发送的回复草稿会清除。" : "";
-    const decision = await wx.showModal({ title: "确认解决这次问题？", content: `${draftWarning}会话历史会保留。用户再次发送消息时会重新开启咨询。`, confirmText: "标记已解决" });
-    if (!decision.confirm || !this.owns(epoch, ownerToken)) return;
-    this.setData({ busy: true, error: "" });
+    let submitted = false;
     try {
-      const conversation = await request<Conversation>({ path: `/v1/management/support/conversations/${this.data.id}/resolve`, method: "POST", data: { expectedVersion: this.data.conversation.version }, cacheTags: ["support"] });
+      const decision = await wx.showModal({ title: "确认解决这次问题？", content: `${draftWarning}会话历史会保留。用户再次发送消息时会重新开启咨询。`, confirmText: "确认解决" });
+      if (!decision.confirm || !this.owns(epoch, ownerToken)) return;
+      if (this.data.busy || this.data.sendAttempt || !this.data.canReply || !this.data.assignedToMe || this.data.conversation?.status !== "human_active"
+        || this.data.conversation.id !== conversationId || this.data.conversation.version !== expectedVersion
+        || this.data.contextVersion !== contextVersion || (this.data.humanRequest?.generation ?? 0) !== humanGeneration) {
+        this.setData({ error: "会话已变化，请刷新后再确认解决。" }); return;
+      }
+      this.setData({ busy: true, error: "" }); submitted = true;
+      const conversation = await request<Conversation>({ path: `/v1/management/support/conversations/${conversationId}/resolve`, method: "POST", data: { expectedVersion }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
+      if (conversation.id !== conversationId || conversation.status !== "resolved"
+        || this.data.conversation?.id !== conversationId || this.data.contextVersion !== contextVersion
+        || (this.data.humanRequest?.generation ?? 0) !== humanGeneration
+        || newestSupportConversation(this.data.conversation, conversation) !== conversation) {
+        await this.load(); return;
+      }
       this.clearPresenceTimer();
       this.inputRevision += 1;
-      this.setData({ conversation, assignedToMe: false, input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false, ...this.headerPatch(conversation, emptyPresence, false) });
+      this.setData({ conversation, assignedToMe: false, humanRequest: null, humanIssueSummary: "", replyTarget: null, replyTargetNeedsRefresh: false,
+        input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false, ...this.headerPatch(conversation, emptyPresence, false) });
+      wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
     } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "状态已变化，请刷新后再确认。" });
+      if (this.owns(epoch, ownerToken)) this.setData({ error: submitted ? "状态已变化，请刷新后再确认。" : "确认窗口暂时无法打开，人工接待和草稿已保留，请重试。" });
     } finally {
-      if (this.owns(epoch, ownerToken)) this.setData({ busy: false });
+      if (submitted && this.owns(epoch, ownerToken)) this.setData({ busy: false });
     }
   },
   async openContext() {

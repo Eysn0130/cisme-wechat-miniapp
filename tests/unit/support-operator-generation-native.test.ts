@@ -112,6 +112,17 @@ describe('operator reads crossing a confirmed newer assignment',()=>{
  });
 });
 describe('operator replies bind an explicit question',()=>{
+ it('shows the authorized original summary before claim even when the source is outside the loaded page',async()=>{
+  const summary='请核对原订单的退款金额';
+  await loadHuman({conversation:{...activeConversation,status:'waiting_human'},assignedToMe:false,
+    humanRequest:{...humanRequest,status:'waiting_human',anchorSummary:summary},messages:[message(30)]});
+  expect(p.data.assignedToMe).toBe(false);expect(p.data.humanIssueSummary).toBe(summary);expect(p.data.replyTarget).toMatchObject({id:'synthetic-1',summary});
+  expect(m.read).toHaveBeenCalledOnce();
+ });
+ it('keeps a legacy unspecified original question unknown instead of taking the latest loaded user text',async()=>{
+  await loadHuman({humanRequest:{...humanRequest,generation:0,anchorKnown:false,anchorMessageId:null,anchorSequence:null,anchorSummary:'不得展示的旧摘要'},messages:[{...message(30),body:'最新的问题不能代替原问题'}]});
+  expect(p.data.humanIssueSummary).toBe('');expect(p.data.replyTarget).toBeNull();
+ });
  it('defaults to the server human-request anchor rather than the latest user question',async()=>{
   await loadHuman();expect(p.data.replyTarget).toMatchObject({id:'synthetic-1',summary:'synthetic chat',generation:1,contextVersion:0});
   p.updateInput({detail:{value:'answer to original issue'}});

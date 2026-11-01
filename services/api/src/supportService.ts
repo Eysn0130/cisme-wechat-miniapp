@@ -197,6 +197,12 @@ export class SupportService {
     if(!human)return null;
     const {anchorQuestion:_,...visible}=human;return visible;
   }
+  private operatorHumanView(human:HumanContext|null){
+    if(!human)return null;
+    const characters=Array.from(human.anchorQuestion?.replace(/\s+/g,' ').trim()??'');
+    const anchorSummary=characters.length?characters.slice(0,160).join('')+(characters.length>160?'…':''):null;
+    return {...this.humanView(human),anchorSummary};
+  }
   private humanStatus(human:HumanContext){return human.status==='waiting_human'
     ?'之前申请人工的问题正在等待处理，有补充可以直接告诉我 😊'
     :'之前申请人工的问题正由人工客服跟进，有补充可以直接告诉我 😊';}
@@ -904,7 +910,7 @@ export class SupportService {
       const row=await this.findById(client,id),context=await this.contextState(client,row);
       const page=await this.messagePage(row,query,"operator",client,context.contextStartSequence);
       const member=await client.query<{display_name:string}>("SELECT display_name FROM member WHERE id=$1",[row.member_id]);
-      return {...page,...context,humanRequest:this.humanView(await this.humanContext(client,row,context)),memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
+      return {...page,...context,humanRequest:this.operatorHumanView(await this.humanContext(client,row,context)),memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
     });
   }
   async claim(memberId: string | undefined, principalId: string | undefined, id: string, input: { expectedVersion?: unknown }, traceId: string) {

@@ -508,6 +508,33 @@
   background: rgba(255, 252, 255, .985);
 }
 
+.operator-human-issue {
+  margin-bottom: 12rpx;
+  padding: 16rpx 20rpx;
+  border: 1rpx solid var(--cisme-line);
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, .76);
+}
+
+.operator-human-issue__title {
+  display: block;
+  margin-bottom: 6rpx;
+  color: var(--cisme-muted);
+  font-size: var(--cisme-text-small);
+  line-height: 1.4;
+}
+
+.operator-human-issue__summary {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--cisme-ink);
+  font-size: var(--cisme-text-body);
+  line-height: 1.5;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
 .operator-claim {
   width: 100%;
   min-height: 50px;
