@@ -35,11 +35,11 @@
     },
     {
       "path": "cross-device-regression-green.log",
-      "sha256": "e17205014376d9c4e8447dc336beab63ffc85afc6d871941d16f1fb71163af20"
+      "sha256": "80971dc15d6afa6c9ae3bc6773f28fa84aa1dbc5721c8d08bafe635019b04bba"
     },
     {
       "path": "cross-device-regression-red.log",
-      "sha256": "78797bd141b7623914f77bb0c38f4846f9d506a3c58b84f9ad146b986a1cc649"
+      "sha256": "e14ddb781afc01696bec9a47195af57dfa5da041ddc6ee58d6f8f93429ef09d7"
     },
     {
       "path": "native/ai-reply-geometry.json",
@@ -203,11 +203,11 @@
     },
     {
       "path": "typecheck.log",
-      "sha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c"
+      "sha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
     },
     {
       "path": "unit-tests.log",
-      "sha256": "f029a331894940eea3c624f588d1ab575e557194b25c55211bcfe78e80ca5cea"
+      "sha256": "4c595b1371c92800ea64c450d704e21e3547c20fc31c3908a4122533a63398c8"
     }
   ]
 }
