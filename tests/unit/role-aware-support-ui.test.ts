@@ -51,7 +51,7 @@ describe("role-aware native support UX",()=>{
   const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).toContain('bindtap="resumeAi"');expect(actions).toContain('support-action-pill');
   const textarea=view.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toContain('confirm-type="done"');expect(textarea).not.toContain('bindconfirm');expect(textarea).not.toContain('confirm-hold="true"');
   expect(view.match(/bindtap="send"/g)).toHaveLength(1);
-  expect(view).toContain('AI 客服可能答错，请勿发送敏感信息。');expect(view).not.toContain('DeepSeek');
+  expect(view).toContain('AI 可能出错，请勿发敏感信息。');expect(view).not.toContain('DeepSeek');
   expect(style).toMatch(/\.support-human\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s);
   expect(style).toMatch(/\.support-composer__actions\s*\{[^}]*flex-wrap:\s*wrap;/s);
  });
