@@ -1,0 +1,97 @@
+{
+  "recordedAt": "2026-11-01T06:29:25.590237+00:00",
+  "baseHead": "ba09166e5471307f92e9ee6e089f7c2a316df835",
+  "sourceSha256": "34ff383f479072f27613c8c02f741157fb09dbfa91b9ae5900fce9119391f51b",
+  "testSha256": "ae79a7d9f2ffc894b2be5fb790b89a446d7cc992cf98a7d4b168cefe82ad01ac",
+  "scope": [
+    "services/api/src/supportService.ts",
+    "tests/integration/support-transaction-pool.test.ts"
+  ],
+  "originalReproduction": {
+    "test": "support-performance.test.ts",
+    "userMessages": 100,
+    "systemMessages": 0,
+    "result": "failed_original_persistence_expectation"
+  },
+  "pressureAttempts": [
+    {
+      "stage": "client-bound-message-view",
+      "userMessages": 100,
+      "systemMessages": 100,
+      "p95Ms": 1359.59,
+      "queue100Ms": 320.86,
+      "passed": false
+    },
+    {
+      "stage": "isolated-client-bound-message-view",
+      "userMessages": 100,
+      "systemMessages": 100,
+      "p95Ms": 1308.35,
+      "queue100Ms": 260.79,
+      "passed": false
+    },
+    {
+      "stage": "safe-query-consolidation",
+      "userMessages": 100,
+      "systemMessages": 100,
+      "p95Ms": 1181.62,
+      "queue100Ms": 294.37,
+      "passed": false
+    },
+    {
+      "stage": "unavailable-fresh-committed-source",
+      "userMessages": 100,
+      "systemMessages": 100,
+      "p95Ms": 1036.62,
+      "queue100Ms": 441.59,
+      "passed": false
+    },
+    {
+      "stage": "final-isolated-unavailable-fresh-committed-source",
+      "userMessages": 100,
+      "systemMessages": 100,
+      "requestFailures": 0,
+      "p50Ms": 1004.2,
+      "p95Ms": 1037.16,
+      "p99Ms": 1038.86,
+      "maxMs": 1039.36,
+      "queue100Ms": 291.24,
+      "queueStatus": 200,
+      "passed": false
+    }
+  ],
+  "thresholdsUnchanged": {
+    "firstMessageP95Ms": 1000,
+    "queue100Ms": 1000
+  },
+  "finalCorrectness": {
+    "files": 8,
+    "testsPassed": 110,
+    "typecheck": "passed",
+    "diffCheck": "passed",
+    "realPoolMax": 1,
+    "concurrencyFences": [
+      "source committed before automatic reply",
+      "account blocked after source commit",
+      "new topic clears source before reply",
+      "new human request before reply forces fresh preparation",
+      "replay keeps historical target checks"
+    ],
+    "syntheticRunId": "2c5728cdb001e6cd41084de2",
+    "disposableResourcesRemoved": true
+  },
+  "audit": {
+    "transactionMessageViewsUseHeldClient": true,
+    "onlyPoolMessageViewUse": "post-transaction prior-receipt projection",
+    "mediaAndReplyTargetQueriesUsePassedClient": true,
+    "unavailableSnapshotNotSerialized": true,
+    "replayDoesNotUseSnapshot": true,
+    "onlyFirstAttemptMayUseSnapshot": true,
+    "allWriteFencesPreserved": true
+  },
+  "sqlHelperFrontendAdapterChanged": false,
+  "committed": false,
+  "deployed": false,
+  "serverWrites": false,
+  "remainingGate": "The original 100-message P95 must be judged unchanged on the existing Linux CI. Local P95 is a recorded failure, not a pass."
+}

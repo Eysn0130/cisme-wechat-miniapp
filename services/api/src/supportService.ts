@@ -26,6 +26,7 @@ type MessageRow = { id: string; conversation_id:string; sequence: string; sender
 type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
 type ReplyTargetInput={replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown};
 type HumanContext={generation:number;status:'waiting_human'|'human_active';anchorQuestion:string|null;anchorKnown:boolean;anchorMessageId:string|null;anchorSequence:number|null};
+type CommittedQuestion={snapshot:ConversationRow;source:MessageRow;topic:{contextStartSequence:number;contextVersion:number}};
 
 function required(value: string | undefined, code: string): string {
   if (!value) throw new DomainError(code, "Authenticated principal required", 401);
@@ -203,26 +204,38 @@ export class SupportService {
 
   /** Each AI receipt belongs to one user question and topic, independently of
    * unrelated human messages. Only the commit transaction allocates sequence. */
-  private async automaticReply(owner:string,id:string,messageId:string,traceId:string) {
+  private async automaticReply(owner:string,id:string,messageId:string,traceId:string,committedQuestion:CommittedQuestion|null=null) {
     for(let attempt=0;attempt<2;attempt++){
       await this.reconcile(owner);
-      const context=await transaction(this.pool,async client=>{
+      // With no external model work, the just-committed source is sufficient
+      // preparation. The locked write below still rechecks every live fence.
+      // A changed human request retries through the normal fresh read path.
+      const context=attempt===0&&!this.automaticAiAvailable()&&committedQuestion
+        ?{...committedQuestion,prior:null,human:null,messages:[] as MessageRow[],answeredByHuman:false}
+        :await transaction(this.pool,async client=>{
         await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
         await this.reconcileLocked(client,owner);
         const snapshot=await this.findForMember(client,owner);
         if(!snapshot||snapshot.id!==id)return null;
         if(!(await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner])).rowCount)return null;
         const topic=await this.contextState(client,snapshot);
-        const source=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE id=$1 AND conversation_id=$2 AND sender_type='user' AND sequence>$3`,[messageId,id,topic.contextStartSequence])).rows[0];
+        const source=(await client.query<MessageRow&{prior_reply_id:string|null;answered_by_human:boolean}>(`SELECT ${messageColumns().split(',').map(column=>`source.${column}`).join(',')},
+          (SELECT prior.id FROM support_message prior WHERE prior.conversation_id=source.conversation_id AND prior.client_message_id=$4
+            AND prior.sender_type IN ('ai','system') LIMIT 1) AS prior_reply_id,
+          EXISTS(SELECT 1 FROM support_message answer WHERE answer.conversation_id=source.conversation_id
+            AND answer.sender_type='admin' AND answer.reply_to_message_id=source.id) AS answered_by_human
+          FROM support_message source WHERE source.id=$1 AND source.conversation_id=$2 AND source.sender_type='user' AND source.sequence>$3`,
+          [messageId,id,topic.contextStartSequence,`ai-reply:${messageId}`])).rows[0];
         if(!source)return null;
-        const prior=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND client_message_id=$2 AND sender_type IN ('ai','system')`,[id,`ai-reply:${messageId}`])).rows[0];
+        const prior=source.prior_reply_id?(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE id=$1`,[source.prior_reply_id])).rows[0]:null;
         if(prior)return {snapshot,topic,source,prior,human:null,messages:[] as MessageRow[],answeredByHuman:false};
-        const answeredByHuman=Boolean((await client.query("SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='admin' AND reply_to_message_id=$2 LIMIT 1",[id,messageId])).rowCount);
-        const messages=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND sequence>$2 AND sequence<=$3 ORDER BY sequence DESC LIMIT 50`,[id,topic.contextStartSequence,source.sequence])).rows.reverse();
+        const answeredByHuman=source.answered_by_human;
+        const messages=this.automaticAiAvailable()&&source.content_type==='text'&&!answeredByHuman
+          ?(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND sequence>$2 AND sequence<=$3 ORDER BY sequence DESC LIMIT 50`,[id,topic.contextStartSequence,source.sequence])).rows.reverse():[];
         return {snapshot,topic,source,prior:null,human:await this.humanContext(client,snapshot,topic),messages,answeredByHuman};
       });
       if(!context)return {};
-      if(context.prior)return {conversation:conversation(context.snapshot),aiMessages:[await this.messageView(context.prior,context.snapshot,'member')],aiStatus:context.prior.sender_type==='ai'?'replied':'handoff_suggested'};
+      if(context.prior)return {conversation:conversation(context.snapshot),aiMessages:[await this.messageView(this.pool,context.prior,context.snapshot,'member')],aiStatus:context.prior.sender_type==='ai'?'replied':'handoff_suggested'};
       if(context.answeredByHuman)return {conversation:conversation(context.snapshot),aiStatus:'answered_by_human',aiMessages:[]};
       const {snapshot,source,messages,human}=context;
       let suggestion:SupportAiSuggestion|null=null,failure='SUPPORT_AI_UNAVAILABLE';
@@ -252,9 +265,9 @@ export class SupportService {
         const retained=(await client.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2 AND sequence>$3',[messageId,id,topic.contextStartSequence])).rowCount;
         if(!retained)return {done:{}};
         const existing=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND client_message_id=$2 AND sender_type IN ('ai','system')`,[id,`ai-reply:${messageId}`])).rows[0];
-        if(existing)return {done:{conversation:conversation(row),aiMessages:[await this.messageView(existing,row,'member')],aiStatus:existing.sender_type==='ai'?'replied':'handoff_suggested'}};
+        if(existing)return {done:{conversation:conversation(row),aiMessages:[await this.messageView(client,existing,row,'member')],aiStatus:existing.sender_type==='ai'?'replied':'handoff_suggested'}};
         const currentHuman=await this.humanContext(client,row,topic);
-        if(this.humanKey(currentHuman)!==this.humanKey(human))return {retry:true};
+        if((row.human_request_generation??0)!==(snapshot.human_request_generation??0)||this.humanKey(currentHuman)!==this.humanKey(human))return {retry:true};
         const answered=(await client.query(`SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='admin' AND reply_to_message_id=$2 LIMIT 1`,[id,messageId])).rowCount;
         if(answered)return {done:{conversation:conversation(row),aiStatus:'answered_by_human',aiMessages:[]}};
         const route=suggestion?.route??'general';
@@ -263,7 +276,7 @@ export class SupportService {
         let body:string,isAi=false,humanStatusShown=false;
         if(suggestion&&route==='human_followup'&&currentHuman){body=this.humanStatus(currentHuman);humanStatusShown=true;}
         else if(suggestion){
-          const statusAlreadyShown=currentHuman&&(await client.query(`SELECT id FROM audit_log WHERE object_id=$1 AND action IN ('support.ai.reply','support.ai.handoff_suggested')
+          const statusAlreadyShown=route==='mixed'&&currentHuman&&(await client.query(`SELECT id FROM audit_log WHERE object_id=$1 AND action IN ('support.ai.reply','support.ai.handoff_suggested')
             AND after_state->>'humanRequestGeneration'=$2 AND after_state->>'humanRequestStatus'=$3
             AND after_state->>'humanStatusShown'='true' LIMIT 1`,[id,String(currentHuman.generation),currentHuman.status])).rowCount;
           humanStatusShown=Boolean(route==='mixed'&&currentHuman&&!issueAnswered&&!statusAlreadyShown);
@@ -274,7 +287,7 @@ export class SupportService {
           :(['SUPPORT_AI_HUMAN_CONTEXT_REQUIRED','SUPPORT_AI_HANDOFF_REQUIRED'].includes(failure)
             ?'这个问题需要人工核实 😊 点「申请人工」，客服会接着帮你。':'这次没能及时回复你，抱歉呀 🌿 你可以稍后再问，或点「申请人工」。');
         const sequence=Number(row.next_sequence),replyId=randomUUID();
-        await client.query("SELECT set_config('cisme.support_ai_reply',$1,true)",[`${id}:${messageId}:${topic.contextVersion}:${row.human_request_generation??0}`]);
+        if(isAi&&row.status!=='ai_active')await client.query("SELECT set_config('cisme.support_ai_reply',$1,true)",[`${id}:${messageId}:${topic.contextVersion}:${row.human_request_generation??0}`]);
         const inserted=(await client.query<MessageRow>(`INSERT INTO support_message
           (id,conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id,retention_purpose,reply_to_message_id)
           SELECT $1,$2,$3,$4,$5,$6,$7,$8,retention_purpose,id FROM support_message WHERE id=$9 RETURNING ${messageColumns()}`,
@@ -286,7 +299,7 @@ export class SupportService {
             providerId:this.ai?.status().providerId??'disabled',...(suggestion?{citations:suggestion.citations,confidence:suggestion.confidence}:{reason:failure})},traceId);
         await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:id,aggregateVersion:updated.version,
           businessKey:`support-message:${replyId}`,payload:{conversationId:id,messageId:replyId,senderType:isAi?'ai':'system',sequence},occurredAt:inserted.created_at});
-        return {done:{conversation:conversation(updated),aiMessages:[await this.messageView(inserted,updated,'member')],
+        return {done:{conversation:conversation(updated),aiMessages:[await this.messageView(client,inserted,updated,'member',undefined,messageId)],
           aiStatus:suggestion?'replied':'handoff_suggested',handoffSuggested:!suggestion&&!currentHuman}};
       });
       if('done' in committed)return committed.done;
@@ -353,9 +366,11 @@ export class SupportService {
       memberOnline: state?.member_online === true, memberTyping: state?.member_typing === true };
   }
 
-  private async messageView(row: MessageRow, conversationRow: ConversationRow, perspective: "member" | "operator", media?: ReadonlyMap<string, MediaRow>) {
-    const mediaRows = media ?? await this.mediaMap(this.pool, [row]);
-    const validTarget=row.reply_to_message_id&&(await this.pool.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2',[row.reply_to_message_id,row.conversation_id])).rowCount;
+  private async messageView(client:DbClient|pg.Pool,row: MessageRow, conversationRow: ConversationRow, perspective: "member" | "operator", media?: ReadonlyMap<string, MediaRow>,verifiedReplyTarget?:string) {
+    const mediaRows = media ?? await this.mediaMap(client, [row]);
+    // Fresh inserts are validated by the sender trigger while this transaction
+    // still holds the conversation lock. Historical receipts must recheck links.
+    const validTarget=row.reply_to_message_id&&(row.reply_to_message_id===verifiedReplyTarget||(await client.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2',[row.reply_to_message_id,row.conversation_id])).rowCount);
     return view({...row,reply_to_message_id:validTarget?row.reply_to_message_id??null:null}, {
       counterpartyReadSequence: Number(perspective === "member" ? conversationRow.team_last_read_sequence : conversationRow.member_last_read_sequence),
       previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${conversationRow.id}/media`,
@@ -537,6 +552,7 @@ export class SupportService {
     const linkedOrderId = input.linkedOrderId === undefined || input.linkedOrderId === null || input.linkedOrderId === "" ? null : uuid(input.linkedOrderId, "SUPPORT_ORDER_INVALID");
     const messageContentType = contentType(body, images, linkedOrderId);
     await this.reconcile(owner);
+    let committedQuestion:CommittedQuestion|null=null;
     const result=await transaction(this.pool, async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
       await this.reconcileLocked(client,owner);
@@ -555,7 +571,7 @@ export class SupportService {
         if (prior.body !== body || JSON.stringify(prior.attachment_refs ?? []) !== JSON.stringify(images) || prior.linked_order_id !== linkedOrderId) {
           throw new DomainError("IDEMPOTENCY_CONFLICT", "clientMessageId was reused with different support content", 409);
         }
-        return { conversation: conversation(row), message: await this.messageView(prior, row, "member", await this.mediaMap(client, [prior])), replayed: true };
+        return { conversation: conversation(row), message: await this.messageView(client,prior, row, "member", await this.mediaMap(client, [prior])), replayed: true };
       }
       const order = await this.orderCard(client, owner, linkedOrderId);
       if (images.length) {
@@ -588,14 +604,15 @@ export class SupportService {
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='member'", [row.id]);
       await enqueue(client, { eventType: "support.message.created.v1", aggregateType: "support_conversation", aggregateId: row.id,
         aggregateVersion: row.version, businessKey: `support-message:${messageId}`, payload: { conversationId: row.id, messageId, senderType: "user", sequence }, occurredAt: inserted.rows[0]!.created_at });
-      return { conversation: conversation(row), message: await this.messageView(inserted.rows[0]!, row, "member", await this.mediaMap(client, inserted.rows)), replayed: false };
+      if(!historicalOrder&&!this.automaticAiAvailable()&&topic)committedQuestion={snapshot:row,source:inserted.rows[0]!,topic};
+      return { conversation: conversation(row), message: await this.messageView(client,inserted.rows[0]!, row, "member", await this.mediaMap(client, inserted.rows)), replayed: false };
     });
     let acknowledged:typeof result&{aiMessages?:SupportMessageView[];aiStatus?:string;handoffSuggested?:boolean}=result;
     if(!historicalOrder&&(result.conversation.status==='ai_active'||this.automaticAiAvailable())){
       try{
         // Replaying a committed member receipt also recovers a reply interrupted
         // between commits, but never regenerates an earlier topic's answer.
-        acknowledged={...result,...await this.automaticReply(owner,result.conversation.id,result.message.id,traceId)};
+        acknowledged={...result,...await this.automaticReply(owner,result.conversation.id,result.message.id,traceId,result.replayed?null:committedQuestion)};
       }catch{
         acknowledged={...result,aiStatus:'pending',aiMessages:[]};
       }
@@ -933,7 +950,7 @@ export class SupportService {
         const prior=duplicate.rows[0],topic=await this.contextState(client,row);
         if(prior.body!==body||input.replyToMessageId!==undefined&&(input.replyToMessageId??null)!==(prior.reply_to_message_id??null))throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different support content",409);
         if(Number(prior.sequence)<=topic.contextStartSequence)throw new DomainError('SUPPORT_CONTEXT_CHANGED','原回复属于之前的聊天，请刷新核对',409);
-        return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(prior,row,"operator"),replayed:true};
+        return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(client,prior,row,"operator"),replayed:true};
       }
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Claim this conversation before replying",409);
       const {target}=await this.replyTarget(client,row,input);
@@ -951,7 +968,7 @@ export class SupportService {
       await this.audit(client,principal,"support.message.reply",id,null,{messageId,sequence},traceId);
       await enqueue(client,{eventType:"support.message.created.v1",aggregateType:"support_conversation",aggregateId:id,aggregateVersion:row.version,
         businessKey:`support-message:${messageId}`,payload:{conversationId:id,messageId,senderType:"admin",sequence},occurredAt:inserted.created_at});
-      return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(inserted,row,"operator"),replayed:false};
+      return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(client,inserted,row,"operator",undefined,target?.id),replayed:false};
     });
     const {memberId:owner,...acknowledged}=result;
     try{return {...acknowledged,...await this.currentTopicState(owner)};}

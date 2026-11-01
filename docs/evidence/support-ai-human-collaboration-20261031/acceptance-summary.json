@@ -176,7 +176,23 @@
       "management-support-chat WXML",
       "management-support-chat WXSS"
     ],
-    "managementStaleReadRegressions": 5
+    "managementStaleReadRegressions": 5,
+    "backendConnectionAndFenceTests": {
+      "files": 8,
+      "passed": 110,
+      "poolMax": 1,
+      "resourcesRemoved": true
+    },
+    "localPressure": {
+      "userMessages": 100,
+      "automaticFallbacks": 100,
+      "requestFailures": 0,
+      "p95Ms": 1037.16,
+      "queue100Ms": 291.24,
+      "thresholdMs": 1000,
+      "passed": false,
+      "gate": "existing Linux CI must pass unchanged threshold before deployment"
+    }
   },
   "knownLimits": [
     "No physical-phone keyboard acceptance in this run",
