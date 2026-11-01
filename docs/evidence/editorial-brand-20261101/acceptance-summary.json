@@ -1,0 +1,96 @@
+{
+  "recordedAt": "2026-11-01T16:22:53.808491+00:00",
+  "requirements": [
+    "ED-PUBLISHER-01",
+    "ED-PUBLISHER-02",
+    "ED-PUBLISHER-03"
+  ],
+  "packageSourceSha256": "c22d1e6cf1f98b18c3a082a3d552bf81dc384ee4dc9ea5d88aac76317e197288",
+  "brandName": "CISME头皮实验室",
+  "currentPostsUpdated": 20,
+  "articleOrderPreserved": true,
+  "oldRevisionsAndAuditsPreserved": true,
+  "other144TablesUnchanged": true,
+  "unitPassed": 2617,
+  "unitSkipped": 1,
+  "typecheck": "passed",
+  "nativeScope": "three actual native pages with existing logged-in identity; public API reads only; community20cards, first detail, author20posts; no physical-device/full-matrix claim",
+  "nativeScreenshots": 3,
+  "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+  "sessionAndHomeRestored": true,
+  "targetVersion": "0.1.21",
+  "officialUpload": "pending terminal receipt",
+  "residentBackendHead": "6123a594cd673d8c72935e79d380320addcd127f",
+  "applicationRestarted": false,
+  "productionModified": false,
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "476e70c6997c6ccd8caf4f3cb5be1bdf2411317c7307dde3782539ca6e83e012"
+    },
+    {
+      "path": "data-assessment.json",
+      "sha256": "dae48c074895eb75e6753ae2ffcf604f6b2e142a5304b154fdc1c3cd393615c6"
+    },
+    {
+      "path": "frontend-focused.log",
+      "sha256": "cd4a5258be34534f66e3cd0200903d772a08b3e1740f5dfacb4b8137a943f699"
+    },
+    {
+      "path": "native-author-state.json",
+      "sha256": "96bba7ce5070bd6819a6fe6f777caf28c3e51b7b4c305d1c97d15c9eac58b30a"
+    },
+    {
+      "path": "native-author.png",
+      "sha256": "c27c86fd2321e1e03d341526c7e8b707b64bca5e5f0fec782a83c2d1dfc9ea10"
+    },
+    {
+      "path": "native-before.json",
+      "sha256": "8aaded25a98e884b051587922f5f1103bde1dae2f8f07daa52fcf287edb8805b"
+    },
+    {
+      "path": "native-community-state.json",
+      "sha256": "babb186c5bdd4c93a1633cc1372e2320e0ec62237507d1e8e25e111713fc3f04"
+    },
+    {
+      "path": "native-community.png",
+      "sha256": "953550f27b42c6cb4a6324026a45c69bfcf37ceb84e20f38bbf910ac9029c28e"
+    },
+    {
+      "path": "native-post-state.json",
+      "sha256": "3f5bdcb2672ff91bc0dd9f935874a4bd40b3033362dd92d6e969360f917b03a0"
+    },
+    {
+      "path": "native-post.png",
+      "sha256": "979e9fc087f5c9a316fe575cc51dc65c43c78b0c92f00363b090d3fd932d3c13"
+    },
+    {
+      "path": "native-restored.json",
+      "sha256": "184b48c27244db7c305cb67d475ccd9db6b9fd8bad3c8287df985a03d915b43b"
+    },
+    {
+      "path": "operation-receipt.json",
+      "sha256": "8976fff0980b33df6be489628f787ab5dcb8ab878f659793a8c6de861a8245db"
+    },
+    {
+      "path": "package-gate.json",
+      "sha256": "ae004f288016fd60c1522d3a7f289177629a425bb6405cc4470619951a627d8a"
+    },
+    {
+      "path": "public-after.json",
+      "sha256": "c72e7f38baf8511963264a086be18d33bc9bb06ef279f6ada3ba4deac5ee7a15"
+    },
+    {
+      "path": "public-before.json",
+      "sha256": "949824c84d6112678a48d6e1b4d6cba1939616dc8064ce42bc9b39e44adfea48"
+    },
+    {
+      "path": "typecheck.log",
+      "sha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
+    },
+    {
+      "path": "unit-tests.log",
+      "sha256": "c0b0f706043870b34cb50af5ee47bf2a5e20908b64d02270aa6426632c04a009"
+    }
+  ]
+}

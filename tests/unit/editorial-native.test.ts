@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {defaultEditorialPublisherName,defaultEditorialPublisherAvatar} from '../../apps/miniprogram/services/editorial-publisher';
 
 const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),token:"",share:vi.fn(),incoming:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:mocks.request,resumeAuthentication:mocks.resume,beginLegalRenewal:mocks.renew,clearAuthenticationRedirectSuppression:vi.fn()}));
@@ -32,6 +33,21 @@ beforeEach(()=>{
 const imageEvent=(src=page.data.media[0],identity=page.data.imageEventId,index=0)=>({currentTarget:{dataset:{src,imageIdentity:identity,index}},detail:{width:750,height:1000}});
 
 describe("published editorial native contracts",()=>{
+ it.each(['community','post','community-author'] as const)('shows the brand portrait on %s while preserving the real article and author relationships',async(name)=>{
+  if(name==='community')mocks.request.mockImplementation(({path}:any)=>{
+   if(path==='/v1/editorial/articles?limit=20')return Promise.resolve({items:[{...card(),author:defaultEditorialPublisherName}],nextCursor:null});
+   if(path==='/v1/capabilities')return Promise.resolve({communityPreviewEnabled:false});
+   if(path==='/v1/ugc/status')return Promise.resolve({publicEnabled:false});
+   return Promise.reject({status:403});
+  });
+  else if(name==='post')mocks.request.mockResolvedValueOnce({...article(),author:defaultEditorialPublisherName,following:true});
+  else mocks.request.mockResolvedValueOnce({...authorPage(),author:{...authorPage().author,name:defaultEditorialPublisherName,following:true}});
+  await mount(name,name==='post'?{id:articleId,source:'editorial'}:name==='community-author'?{id:authorId,source:'editorial'}:{});await page.load();
+  if(name==='community')expect(page.data.feedColumns.flat()).toEqual([expect.objectContaining({id:articleId,kind:'editorial',author:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar})]);
+  else if(name==='post')expect(page.data).toMatchObject({authorId,following:true,item:{id:articleId,authorId,author:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar}});
+  else expect(page.data).toMatchObject({articleContextId:articleId,author:{id:authorId,name:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar,following:true}});
+  expect(mocks.request.mock.calls.every(([input])=>input.method===undefined)).toBe(true);
+ });
  it.each([["generated","AI生成"],["not_declared",""]] as const)("uses the stored selected-media AI flag %s for its short label",async(aiUsage,label)=>{
   const {editorialAiLabel}=await import("../../apps/miniprogram/services/editorial");
   expect(editorialAiLabel({media:[{id:"d".repeat(64),url:mediaPath,aiUsage}],provenanceLabel:"AI辅助配图"})).toBe(label);
@@ -64,7 +80,7 @@ describe("published editorial native contracts",()=>{
  it("loads real article fields while keeping comments and legacy source attribution separate",async()=>{
   mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();
   expect(mocks.request).toHaveBeenCalledOnce();expect(mocks.request).toHaveBeenCalledWith({path:`/v1/editorial/articles/${articleId}`,authMode:"optional"});
-  expect(page.data).toMatchObject({loading:false,editorialSource:true,authorId,socialEnabled:true,media:["https://synthetic.invalid"+mediaPath],item:{kind:"editorial",author:"公开作者名",body:"第一段正文\n第二段正文"},social:{likeCount:0,saveCount:0,liked:false,saved:false,comments:[]}});
+  expect(page.data).toMatchObject({loading:false,editorialSource:true,authorId,socialEnabled:true,media:["https://synthetic.invalid"+mediaPath],item:{kind:"editorial",author:"公开作者名",avatar:'/assets/icons/user-circle-plum.svg',body:"第一段正文\n第二段正文"},social:{likeCount:0,saveCount:0,liked:false,saved:false,comments:[]}});
   expect(page.data.item.readingSegments.map((segment:{text:string})=>segment.text).join("")).toBe(page.data.item.body);
   expect(mocks.incoming).not.toHaveBeenCalled();expect(mocks.share).not.toHaveBeenCalled();expect(page.onShareAppMessage().path).toBe(`/pages/post/index?id=${articleId}&source=editorial`);
  });
@@ -160,7 +176,7 @@ describe("published editorial native contracts",()=>{
    return Promise.reject({status:403});
   });
   await mount("community");await page.load();expect(page.data).toMatchObject({mode:"featured",ugcFeedEnabled:false,socialPreviewEnabled:false,loading:false,error:"",displayFeedCount:1});
-  expect(page.data.feedColumns.flat()).toEqual([expect.objectContaining({id:articleId,kind:"editorial",author:"公开作者名",engagementLabel:"0 赞",image:"https://synthetic.invalid"+mediaPath})]);
+  expect(page.data.feedColumns.flat()).toEqual([expect.objectContaining({id:articleId,kind:"editorial",author:"公开作者名",avatar:'/assets/icons/user-circle-plum.svg',engagementLabel:"0 赞",image:"https://synthetic.invalid"+mediaPath})]);
   page.openPost({currentTarget:{dataset:{id:articleId}}});expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/post/index?id=${articleId}&source=editorial`}));
  });
  it("keeps featured empty and error separate and deduplicates real pagination",async()=>{
@@ -177,7 +193,7 @@ describe("published editorial native contracts",()=>{
  });
  it("loads the independent author page and uses a published article to confirm following",async()=>{
   mocks.token="member-a";mocks.request.mockResolvedValueOnce(authorPage());await mount("community-author",{id:authorId,source:"editorial"});await page.load();
-  expect(page.data).toMatchObject({loading:false,editorialSource:true,articleContextId:articleId,author:{id:authorId,name:"公开作者名",following:false}});
+  expect(page.data).toMatchObject({loading:false,editorialSource:true,articleContextId:articleId,author:{id:authorId,name:"公开作者名",avatar:'/assets/icons/user-circle-plum.svg',following:false}});
   const pending=delayed();mocks.request.mockReturnValueOnce(pending.promise);const follow=page.toggleFollow();expect(page.data.author.following).toBe(false);
   pending.resolve({authorId,following:true});await follow;expect(page.data.author.following).toBe(true);
   page.openPost({currentTarget:{dataset:{id:articleId}}});expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/post/index?id=${articleId}&source=editorial`}));

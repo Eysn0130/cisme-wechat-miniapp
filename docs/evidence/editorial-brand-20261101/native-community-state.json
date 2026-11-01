@@ -1,0 +1,119 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community/index",
+        "loading": false,
+        "error": "",
+        "mode": "featured",
+        "count": 20,
+        "editorial": [
+          {
+            "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "d6909bc4-aaa6-47da-b388-af003a21b52d",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "8b183841-ba8a-4f12-851d-d80e63fdcb39",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "0dd14a6a-cbcd-47bc-b284-fe2e4026f876",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "ec2919e1-0c9e-433d-8b16-b40e96652202",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "90f0cff6-29bb-4cd2-9d8e-cc84a385cc96",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "1a6e1c5e-44a0-475c-b156-bfd9aec5ec98",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "d5e94e77-9e12-4f22-b628-da12d0c8e8e6",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "39256eb6-9078-42b6-8900-7a9a4f1ad440",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "6c9a8008-fa1b-492a-93cc-11f7ed3598a0",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "f8d9ff69-e77f-491f-818d-02a097cdb91c",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "dec6ce35-05fe-4b60-95d3-77d35e73fa1d",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "7b9c2ae5-e88d-4a7f-84ac-f3b598521d42",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "a28a3b3c-03a3-4074-bf5a-d989405b04ac",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "94983bbc-5bea-41ba-a9a4-3a00a99a351c",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "541bbfcd-0ac3-4ac2-89f1-72a7390cb90c",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "e9ef4758-e0a4-4469-8df0-c7cc50985910",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "11c35a29-566f-436d-9374-dcb5548f84d5",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          },
+          {
+            "id": "27c84214-15c6-4dcc-8f69-11a3bd1f89c1",
+            "author": "CISME头皮实验室",
+            "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.webp"
+          }
+        ]
+      }
+    }
+  }
+}

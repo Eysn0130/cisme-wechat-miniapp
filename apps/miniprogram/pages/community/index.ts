@@ -4,6 +4,7 @@ import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors, prepareFeedPage } from "../../services/member-avatar";
 import { request, resumeAuthentication } from "../../services/api";
 import { editorialStoriesForRuntime, editorialMediaSrc, publishedEditorialArticles, expiredEditorialRead, type PublishedEditorialCard } from "../../services/editorial";
+import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { currentChromeStyle } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
 import { consumerTaskEntries } from "../../services/task-entry";
@@ -193,7 +194,7 @@ Page({
       ? { ...item, avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: `${item.likeCount || 0} 赞` }
       : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
     const featured = model.editorial.map(item => ({ ...item, kind:"editorial", author_id:item.authorId,
-      image:editorialMediaSrc(item.coverUrl),avatar:defaultMemberAvatar,engagementLabel:`${item.likeCount} 赞` }));
+      image:editorialMediaSrc(item.coverUrl),avatar:editorialPublisherAvatar(item.author,defaultMemberAvatar),engagementLabel:`${item.likeCount} 赞` }));
     let items = this.data.mode === "featured" ? featured : this.data.mode === "recommend" ? reviewed : reviewed.concat(featured);
     if (this.data.mode === "following") items = items.filter(item => item.kind==="formal"||this.data.follows.includes(item.author_id));
     const patch = feedColumnPatch(this.data.feedColumns, projectFeedCards(items));

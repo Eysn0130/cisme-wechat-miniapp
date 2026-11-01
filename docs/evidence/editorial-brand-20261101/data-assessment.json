@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "articles": 20,
+  "newName": "CISME头皮实验室",
+  "onlyChangedArticleFields": [
+    "author_display_name",
+    "content_sha256",
+    "updated_at",
+    "version"
+  ],
+  "originalTimestampsAndOrderingPreserved": true,
+  "articleIdsAndAuthorIdPreserved": true,
+  "bodyMediaRightsAndPoliciesPreserved": true,
+  "allOriginalRevisionsPreserved": true,
+  "allOriginalAuditsPreserved": true,
+  "newRevisions": 20,
+  "newAudits": 20,
+  "otherTableCount": 144,
+  "otherTablesUnchanged": true,
+  "otherTableDifferences": {},
+  "residentApplicationUnchanged": "6123a594cd673d8c72935e79d380320addcd127f",
+  "productionModified": false,
+  "beforeSha256": "e9efaa39f124e8ac902d097abf233f417dae46023c0d82eb580a80329335af17",
+  "afterSha256": "dbd8def9784abea6d4fc89afa04292c68d6086d65070d34262c33097bf8b45fa"
+}
