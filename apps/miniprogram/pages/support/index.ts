@@ -32,8 +32,9 @@ type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
 type SelectedImage = { localPath: string; size: number; mimeType: string; status: "uploading" | "ready" | "failed"; progress: number; mediaId: string; error: string };
 type OrderChoice = { id: string; orderNumberTail: string; status: string; statusLabel: string; totalYuan: string; totalCents: number; currency: "CNY"; productName: string; productImage: string | null; itemSummary: string };
-type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null };
+type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null; expectedConversationId: string | null; contextVersion: number };
 type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string };
+type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown; conversation?: Conversation | null };
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
 const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", paid:"已付款", shipped:"已发货", delivered:"已签收", completed:"已完成", cancelled: "已取消", expired: "已超时" };
@@ -55,6 +56,7 @@ Page({
   lifecycleEpoch: 0,
   aiWaitRevision: 0,
   newTopicRevision: 0,
+  handoffRevision: 0,
   inputRevision: 0,
   orderSelectionRevision: 0,
   linkedOrderAttempt: 0,
@@ -73,7 +75,7 @@ Page({
   data: {
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
-    contextStartSequence: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
+    contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, aiReplyWaiting: false, supportAiAvailable:false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
@@ -109,7 +111,7 @@ Page({
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
         historyLoaded: false, supportAiAvailable: false, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false,
-        contextStartSequence: 0, newTopicAvailable: false, newTopicAttempt: null,
+        contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicAttempt: null,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
@@ -121,7 +123,7 @@ Page({
       const pending=takeSupportSendAttempt(sessionToken(),draftScope);
       if(pending){
         const sendAttempt:SendAttempt={id:pending.id,body:pending.body,mediaIds:[],linkedOrderId:pending.linkedOrderId,
-          signature:this.sendSignature(pending.body,[],pending.linkedOrderId)};
+          signature:this.sendSignature(pending.body,[],pending.linkedOrderId),expectedConversationId:pending.expectedConversationId??null,contextVersion:pending.contextVersion??0};
         this.setData({input:pending.body,sendAttempt,pendingMessage:this.pendingFrom(sendAttempt,'unknown'),
           composerSendEnabled:true,error:'发送结果尚未确认，重试不会重复发送。'});
       }
@@ -166,7 +168,8 @@ Page({
   },
   onUnload() { this.newTopicRevision += 1; this.stopAiReplyWait(); const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
     if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
-      !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null});
+      !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null,
+        expectedConversationId:this.data.sendAttempt.expectedConversationId,contextVersion:this.data.sendAttempt.contextVersion});
     else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
       stageSupportDraft(sessionToken(),draftScope,this.data.input);
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); this.choosingImage = false; this.nativePickerReturn?.(); this.nativePickerReturn = null; },
@@ -178,11 +181,40 @@ Page({
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
   stopAiReplyWait() { this.aiWaitRevision += 1; if (this.data.aiReplyWaiting) this.setData({ aiReplyWaiting: false }); },
   currentConversation(incoming: Conversation | null | undefined) { return newestSupportConversation(this.data.conversation, incoming); },
-  topicBoundary(page: { contextStartSequence?: unknown; conversation?: Conversation | null }, current: Conversation | null) {
+  responseContextVersion(page: TopicMetadata) {
+    const value = Number(page.contextVersion ?? 0);
+    return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+  },
+  staleTopic(page: TopicMetadata) {
+    return Boolean(this.data.conversation && page.conversation?.id === this.data.conversation.id
+      && this.responseContextVersion(page) < this.data.contextVersion);
+  },
+  topicVersion(page: TopicMetadata, current: Conversation | null) {
+    const prior = this.data.conversation?.id === current?.id ? this.data.contextVersion : 0;
+    return page.conversation?.id === current?.id ? Math.max(prior, this.responseContextVersion(page)) : prior;
+  },
+  topicBoundary(page: TopicMetadata, current: Conversation | null) {
     const prior = this.data.conversation?.id === current?.id ? this.data.contextStartSequence : 0;
-    if (page.conversation?.id !== current?.id || (page.conversation && current && page.conversation.version < current.version)) return prior;
+    if (page.conversation?.id !== current?.id || this.staleTopic(page)) return prior;
     const value = Number(page.contextStartSequence ?? 0);
     return Math.max(prior, Number.isSafeInteger(value) && value >= 0 ? value : 0);
+  },
+  changedTopic(conversation: Conversation | null, contextVersion: number, boundary: number) {
+    return Boolean(this.data.conversation && (conversation?.id !== this.data.conversation.id
+      || contextVersion > this.data.contextVersion || boundary > this.data.contextStartSequence));
+  },
+  clearRetiredTopic(contextVersion?: number, conversationId?: string) {
+    const attempt = this.data.sendAttempt;
+    const keepAttempt = Boolean(attempt && (attempt.contextVersion??0) === contextVersion
+      && (attempt.expectedConversationId === conversationId || !attempt.expectedConversationId && contextVersion === 0));
+    this.stopAiReplyWait(); this.clearPresenceTimer(); this.abortTransientWork();
+    this.handoffRevision += 1;
+    if (!keepAttempt) this.clearTopicDraft();
+    this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
+    this.orderPickerRevision += 1; this.orderPickerToken = "";
+    this.setComposerState({ ...(!keepAttempt ? { pendingMessage: null, sendAttempt: null, sending: false } : {}), uploadBusy: false, handoffBusy: false,
+      presence: emptyPresence, anchor: "", olderCursor: null, loadingOlder: false, handoffFailed: false,
+      atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
   },
   abortDownloads() {
     const downloads = this.mediaDownloads ?? [];
@@ -295,15 +327,19 @@ Page({
       const page = await pageRead<any>(this,{ path: "/v1/me/support/messages", cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       if (requestConversationId !== this.data.conversation?.id && page.conversation?.id !== this.data.conversation?.id) return;
+      if (this.staleTopic(page)) { this.setComposerState({ loading: false }); return; }
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
       const conversation = this.currentConversation(page.conversation);
       const boundary = this.topicBoundary(page, conversation);
+      const contextVersion = this.topicVersion(page, conversation);
+      const changedTopic = this.changedTopic(conversation, contextVersion, boundary);
       const messages = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
-      const state = conversation !== (page.conversation ?? null)
+      const state = !changedTopic && conversation !== (page.conversation ?? null)
         ? mergeSyncPage(this.threadState(), this.present(messages, conversation, presence), page.latestCursor || 0)
         : createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor || 0);
+      if (changedTopic) this.clearRetiredTopic(contextVersion, conversation?.id);
       this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
-        contextStartSequence: boundary, newTopicAvailable: page.newTopicAvailable === true,
+        contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
       this.downloadMedia(messages);
       await this.markRead();
@@ -325,10 +361,12 @@ Page({
       if (!this.owns(epoch, ownerToken)) return;
       if (requestConversationId !== this.data.conversation?.id) return;
       if (page.conversation?.id && page.conversation.id !== requestConversationId) { await this.load(); return; }
-      const presence = { ...emptyPresence, ...(page.presence ?? this.data.presence) } as Presence;
+      if (this.staleTopic(page)) return;
       const conversation = this.currentConversation(page.conversation);
       const boundary = this.topicBoundary(page, conversation);
-      const changedTopic = conversation?.id !== this.data.conversation?.id || boundary > this.data.contextStartSequence;
+      const contextVersion = this.topicVersion(page, conversation);
+      const changedTopic = this.changedTopic(conversation, contextVersion, boundary);
+      const presence = { ...emptyPresence, ...(page.presence ?? (changedTopic ? emptyPresence : this.data.presence)) } as Presence;
       const incoming = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       const knownIds = new Set(this.data.messages.map((item) => item.id));
       const freshCount = incoming.filter((item) => !knownIds.has(item.id)).length;
@@ -336,9 +374,10 @@ Page({
       const newest = state.messages[state.messages.length - 1];
       const shouldFollow = this.data.atBottom;
       if (freshCount || presence.operatorTyping) this.lastActivityAt = Date.now();
+      if (changedTopic) this.clearRetiredTopic(contextVersion, conversation?.id);
       this.applyThreadState(state, {
         conversation,
-        contextStartSequence: boundary, newTopicAvailable: page.newTopicAvailable === true,
+        contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         ...(changedTopic ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
         supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true),
         anchor: changedTopic ? newest ? `support-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
@@ -357,15 +396,17 @@ Page({
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     const boundary = this.data.contextStartSequence;
+    const contextVersion = this.data.contextVersion;
     const conversationId = this.data.conversation?.id;
     const preserve = this.data.messages[0]?.sequence;
     this.setData({ loadingOlder: true, atBottom: false });
     try {
       const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
-      if (!this.owns(epoch, ownerToken) || boundary !== this.data.contextStartSequence || conversationId !== this.data.conversation?.id) return;
+      if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || boundary !== this.data.contextStartSequence || conversationId !== this.data.conversation?.id) return;
       if (page.conversation && page.conversation.id !== conversationId) { await this.load(); return; }
-      if (this.topicBoundary(page, this.currentConversation(page.conversation)) > boundary) { await this.load(); return; }
-      const older = this.normalize(page.messages || []);
+      if (this.staleTopic(page)) return;
+      if (this.topicVersion(page, this.currentConversation(page.conversation)) > contextVersion || this.topicBoundary(page, this.currentConversation(page.conversation)) > boundary) { await this.load(); return; }
+      const older = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null, anchor: preserve ? `support-${preserve}` : "" });
       this.downloadMedia(older);
     } catch { if (this.data.visible) wx.showToast({ title: "更早消息暂时无法加载", icon: "none" }); }
@@ -396,9 +437,10 @@ Page({
     if (candidate === null) return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const conversationId = this.data.conversation?.id, contextVersion = this.data.contextVersion;
     try {
       await request({ path: "/v1/me/support/read", method: "POST", data: { lastSeenSequence: candidate }, cacheTags: ["support"] });
-      if (!this.owns(epoch, ownerToken)) return;
+      if (!this.owns(epoch, ownerToken) || conversationId !== this.data.conversation?.id || contextVersion !== this.data.contextVersion) return;
       this.applyThreadState(withReadCursor(this.threadState(), candidate));
     } catch {}
   },
@@ -443,7 +485,8 @@ Page({
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    const sendAttempt = previous ?? { id: `wx-user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, signature, body, mediaIds, linkedOrderId };
+    const sendAttempt = previous ?? { id: `wx-user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, signature, body, mediaIds, linkedOrderId,
+      expectedConversationId: this.data.conversation?.id ?? null, contextVersion: this.data.contextVersion };
     const waitRevision = ++this.aiWaitRevision;
     const aiReplyWaiting = !previous && !this.data.closedRights && !this.data.handoffBusy && !this.data.handoffFailed
       && this.data.supportAiAvailable && !mediaIds.length && !linkedOrderId
@@ -454,18 +497,24 @@ Page({
     void this.publishPresence(true, false, true);
     try {
       const result = await request<any>({ path: "/v1/me/support/messages", method: "POST", data: { body, clientMessageId: sendAttempt.id,
-        ...(this.data.closedRights?{}:{mediaIds}),linkedOrderId }, cacheTags: ["support"] });
-      if (!this.owns(epoch, ownerToken)) return;
+        ...(this.data.closedRights?{}:{mediaIds,contextVersion:sendAttempt.contextVersion??0,
+          ...(sendAttempt.expectedConversationId?{expectedConversationId:sendAttempt.expectedConversationId}:{})}),linkedOrderId }, cacheTags: ["support"] });
+      if (!this.owns(epoch, ownerToken) || this.data.sendAttempt?.id !== sendAttempt.id) return;
       if (this.aiWaitRevision === waitRevision) this.stopAiReplyWait();
       const priorConversationId = this.data.conversation?.id;
-      const conversation = this.currentConversation(result.conversation);
+      const staleTopic = this.staleTopic(result);
+      const conversation = staleTopic ? this.data.conversation : this.currentConversation(result.conversation);
       const boundary = this.topicBoundary(result, conversation);
+      const contextVersion = this.topicVersion(result, conversation);
       const changedConversation = conversation?.id !== this.data.conversation?.id;
-      if (changedConversation || boundary > this.data.contextStartSequence) this.applyThreadState(createSupportThreadState<Message>([], boundary), {
-        contextStartSequence: boundary, olderCursor: boundary ? boundary + 1 : null, conversation,
+      const changedTopic = this.changedTopic(conversation, contextVersion, boundary);
+      if (changedTopic) this.clearRetiredTopic();
+      if (changedConversation || changedTopic) this.applyThreadState(createSupportThreadState<Message>([], boundary), {
+        contextStartSequence: boundary, contextVersion, olderCursor: null, conversation,
         newMessagesBelow: false, newMessagesBelowCount: 0, anchor: "", atBottom: true, loading: false, historyLoaded: true
       });
-      const sameConversation = !result.contextSyncRequired && (!result.acknowledgedConversationId || result.acknowledgedConversationId === conversation?.id);
+      const sameConversation = !staleTopic && !result.contextSyncRequired && (sendAttempt.contextVersion??0) === contextVersion
+        && (!result.acknowledgedConversationId || result.acknowledgedConversationId === conversation?.id);
       const normalized = sameConversation ? this.normalize([result.message], this.data.selectedImage).filter(item => item.sequence > boundary) : [];
       if (normalized.length && !this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       if(sameConversation && Array.isArray(result.aiMessages)&&result.aiMessages.length)this.append(this.normalize(result.aiMessages).filter(item => item.sequence > boundary));
@@ -475,7 +524,7 @@ Page({
       this.setComposerState({ ...(clearInput ? { input: "", composerCapped: false, composerLineCount: 1 } : {}),
         ...(clearImage ? { selectedImage: null } : {}), ...(clearOrder ? { selectedOrder: null } : {}),
         sendAttempt: null, composerSendEnabled: false, pendingMessage: null,
-        ...(typeof result.newTopicAvailable === 'boolean' ? { newTopicAvailable: result.newTopicAvailable } : {}),
+        ...(!staleTopic && typeof result.newTopicAvailable === 'boolean' ? { newTopicAvailable: result.newTopicAvailable } : {}),
         conversation, ...this.headerPatch(conversation, this.data.presence),
         ...(sameConversation && result.aiStatus==='pending' && result.message.sequence > boundary && conversation?.status==='ai_active' && !this.data.handoffBusy && !this.data.handoffFailed
           ?{error:"消息已收到，AI 回复暂未确认。你可以继续留言，或申请人工客服。",errorAction:"handoff",handoffFailed:false}:{}) });
@@ -487,19 +536,27 @@ Page({
       this.setData({ composerSendEnabled: this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,this.data.selectedOrder) });
       this.uploadAbort = null;
       this.startPolling();
-      if (changedConversation && (priorConversationId || !sameConversation) || result.contextSyncRequired) {
+      if (changedTopic || changedConversation && (priorConversationId || !sameConversation) || result.contextSyncRequired) {
         await this.load();
         if (this.owns(epoch, ownerToken) && this.data.error) this.setData({ error: "消息已收到，对话暂未同步，请刷新查看。", errorAction: "sync" });
       }
       await this.markRead();
       wx.nextTick(() => this.measureComposer());
-    } catch {
-      if (this.owns(epoch, ownerToken)) this.setComposerState({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
+    } catch (error) {
+      if (this.owns(epoch, ownerToken) && this.data.sendAttempt?.id === sendAttempt.id) {
+        if ((error as {code?:string})?.code === "SUPPORT_CONTEXT_CHANGED") {
+          this.stopPolling(); cancelPageReads(this); const recoveryEpoch = ++this.lifecycleEpoch;
+          this.clearRetiredTopic(); this.applyThreadState(createSupportThreadState<Message>([], this.data.contextStartSequence), { historyLoaded: false });
+          await this.load();
+          if (this.owns(recoveryEpoch, ownerToken))
+            this.setComposerState({ error: "会话已更新，原消息未发送，请重新输入。", errorAction: "sync" });
+        } else this.setComposerState({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
+      }
     } finally {
       // A changed identity can invalidate ownership before another onShow.
       // The attempt revision prevents an old completion clearing a newer wait.
       if (this.aiWaitRevision === waitRevision) this.stopAiReplyWait();
-      if (this.owns(epoch, ownerToken)) this.setData({ sending: false });
+      if (this.owns(epoch, ownerToken) && (!this.data.sendAttempt || this.data.sendAttempt.id === sendAttempt.id)) this.setData({ sending: false });
     }
   },
   retrySend() { void this.send(); },
@@ -667,13 +724,14 @@ Page({
   downloadMedia(messages: readonly RawMessage[]) {
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const conversationId = this.data.conversation?.id, contextVersion = this.data.contextVersion;
     for (const message of messages) for (const attachment of message.attachments ?? []) {
       if (attachment.localPath || !attachment.previewPath) continue;
       const download = downloadPrivateMedia(attachment.previewPath,this.data.closedRights);
       const abort = () => download.abort();
       this.mediaDownloads.push(abort);
       void download.promise.then((localPath) => {
-        if (!this.owns(epoch, ownerToken)) return;
+        if (!this.owns(epoch, ownerToken) || conversationId !== this.data.conversation?.id || contextVersion !== this.data.contextVersion) return;
         const messageIndex = this.data.messages.findIndex((item) => item.id === message.id);
         const attachmentIndex = this.data.messages[messageIndex]?.attachments.findIndex((item) => item.id === attachment.id) ?? -1;
         if (messageIndex < 0 || attachmentIndex < 0) return;
@@ -695,15 +753,28 @@ Page({
     this.stopAiReplyWait();
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const contextVersion = this.data.contextVersion, conversationId = this.data.conversation?.id;
+    const revision = ++this.handoffRevision;
     this.setComposerState({ handoffBusy: true, handoffFailed: false, error: "", errorAction: "" });
     try {
-      const result = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: {}, cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken)) {
+      const result = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: { contextVersion,
+        ...(conversationId ? { expectedConversationId: conversationId } : {}) }, cacheTags: ["support"] });
+      if (this.owns(epoch, ownerToken) && revision === this.handoffRevision && contextVersion === this.data.contextVersion) {
         const conversation = this.currentConversation(result);
         this.setComposerState({ conversation, ...this.headerPatch(conversation, this.data.presence) });
       }
-    } catch { if (this.owns(epoch, ownerToken)) this.setComposerState({ error: "人工申请结果暂未确认，请重试申请。", errorAction: "handoff", handoffFailed: true }); }
-    finally { if (this.owns(epoch, ownerToken)) this.setComposerState({ handoffBusy: false }); }
+    } catch (error) {
+      if (this.owns(epoch, ownerToken) && revision === this.handoffRevision && contextVersion === this.data.contextVersion) {
+        if ((error as {code?:string})?.code === "SUPPORT_CONTEXT_CHANGED") {
+          this.stopPolling(); cancelPageReads(this); const recoveryEpoch = ++this.lifecycleEpoch;
+          this.clearRetiredTopic(); this.applyThreadState(createSupportThreadState<Message>([], this.data.contextStartSequence), { historyLoaded: false });
+          await this.load();
+          if (this.owns(recoveryEpoch, ownerToken))
+            this.setComposerState({ error: "会话已更新，请核对后再申请人工客服。", errorAction: "sync" });
+        } else this.setComposerState({ error: "人工申请结果暂未确认，请重试申请。", errorAction: "handoff", handoffFailed: true });
+      }
+    }
+    finally { if (this.owns(epoch, ownerToken) && revision === this.handoffRevision) this.setComposerState({ handoffBusy: false }); }
   },
   async resumeAi() {
     if(this.data.closedRights||this.data.newTopicBusy||this.data.newTopicAttempt||!this.data.supportAiAvailable||this.data.handoffBusy||this.data.sending||this.data.conversation?.status!=="waiting_human")return;
@@ -745,8 +816,8 @@ Page({
     const reviewedDraft = draft();
     this.setComposerState({ newTopicBusy: true });
     try {
-      if (!previous && (this.data.input.trim() || this.data.selectedImage || this.data.selectedOrder)) {
-        const answer = await wx.showModal({ title: "开始新对话？", content: "当前未发送的内容会清空，历史聊天记录仍可查看。", confirmText: "开始新对话" });
+      if (!previous && (this.data.conversation || this.data.messages.length || this.data.input.trim() || this.data.selectedImage || this.data.selectedOrder)) {
+        const answer = await wx.showModal({ title: "开始新对话？", content: "之前的聊天和未发送内容会清空。订单、售后凭证仍按规则保留。", confirmText: "清空重开" });
         if (!answer.confirm || !this.owns(epoch, ownerToken)) return;
         if (draft() !== reviewedDraft) { wx.showToast({ title: "内容已变化，请重新开启", icon: "none" }); return; }
       }
@@ -759,14 +830,15 @@ Page({
       this.setComposerState({ newTopicAttempt: attempt, error: "", errorAction: "", loadingOlder: false });
       const page = await request<any>({ path: "/v1/me/support/new-topic", method: "POST", data: attempt, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
-      if (page.conversation?.id !== attempt.conversationId || !Number.isSafeInteger(page.contextStartSequence) || page.contextStartSequence < 0)
+      if (page.conversation?.id !== attempt.conversationId || !Number.isSafeInteger(page.contextStartSequence) || page.contextStartSequence < 0
+        || !Number.isSafeInteger(page.contextVersion) || page.contextVersion < 0 || this.staleTopic(page))
         throw new Error("NEW_TOPIC_RECEIPT_UNCONFIRMED");
-      const conversation = this.currentConversation(page.conversation), boundary = this.topicBoundary(page, conversation);
+      const conversation = this.currentConversation(page.conversation), boundary = this.topicBoundary(page, conversation), contextVersion = this.topicVersion(page, conversation);
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
       const messages = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
-      this.clearTopicDraft();
+      this.clearRetiredTopic();
       this.applyThreadState(createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor ?? boundary), {
-        conversation, contextStartSequence: boundary, newTopicAvailable: page.newTopicAvailable === true,
+        conversation, contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         supportAiAvailable: page.supportAiAvailable === true, ...this.headerPatch(conversation, presence, page.supportAiAvailable === true),
         newTopicAttempt: null, handoffFailed: false, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true,
         atBottom: true, anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "",

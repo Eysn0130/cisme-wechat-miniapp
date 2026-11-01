@@ -637,12 +637,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post("/v1/me/support/new-topic",async request=>support.startNewTopic(request.memberId,request.principalId,
     (request.body??{}) as {conversationId?:unknown;expectedVersion?:unknown;requestId?:unknown},request.id));
   app.post("/v1/me/support/messages", async request => {
-    const input=(request.body??{}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown};
+    const input=(request.body??{}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown;expectedConversationId?:unknown;contextVersion?:unknown};
     if(request.authScope==='privacy_rights'&&(!input.linkedOrderId||input.mediaIds!==undefined))
       throw new DomainError('HISTORICAL_SUPPORT_SCOPE_REQUIRED','请从历史订单进入客服并发送文字说明',422);
     return support.sendMember(request.memberId,request.principalId,input,request.id,request.authScope==='privacy_rights');
   });
-  app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId));
+  app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId,
+    (request.body??{}) as {expectedConversationId?:unknown;contextVersion?:unknown}));
   app.post("/v1/me/support/resume-ai", async request => support.resumeAi(request.memberId, request.principalId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
   app.post("/v1/me/support/presence", async request => support.touchMemberPresence(request.memberId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
@@ -655,7 +656,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId/complete", async request => support.completeSupportMedia(request.memberId, request.principalId, request.params.mediaId, request.id));
   app.delete<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async request => support.deleteSupportMedia(request.memberId, request.principalId, request.params.mediaId, request.id));
   app.get<{Params:{mediaId:string}}>("/v1/me/support/media/:mediaId", async (request, reply) => {
-    const media = await support.memberSupportMedia(request.memberId, request.params.mediaId);
+    const media = await support.memberSupportMedia(request.memberId, request.params.mediaId,request.authScope!=='privacy_rights');
     return reply.header("Cache-Control", "private, no-store").type(media.mimeType).send(Buffer.from(media.bytes));
   });
   app.get<{Querystring:{cursor?:string;limit?:string}}>("/v1/management/support/conversations", async request => support.queue(request.memberId, request.query));

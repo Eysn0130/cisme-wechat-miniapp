@@ -8,7 +8,7 @@ vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceC
 let p:any;
 const conversation={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',status:'ai_active',version:3,memberReadSequence:0,teamReadSequence:0};
 const msg=(sequence:number,senderType='user')=>({id:`synthetic-${sequence}`,sequence,senderType,body:'synthetic conversation',contentType:'text',createdAt:'2026-10-31T00:00:00Z',attachments:[],orderCard:null,deliveryState:'server_accepted'});
-const page=(extra:any={})=>({conversation:{...conversation,version:4},contextStartSequence:2,newTopicAvailable:true,supportAiAvailable:true,messages:[],latestCursor:2,olderCursor:3,...extra});
+const page=(extra:any={})=>({conversation:{...conversation,version:4},contextStartSequence:2,contextVersion:4,newTopicAvailable:true,supportAiAvailable:true,messages:[],latestCursor:2,olderCursor:null,...extra});
 function deferred(){let resolve!:(v:any)=>void,reject!:(v:any)=>void;const promise=new Promise<any>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};}
 beforeEach(async()=>{
  vi.resetModules();vi.useFakeTimers();m.token='synthetic-member';m.request.mockReset();m.read.mockReset();
@@ -22,13 +22,31 @@ beforeEach(async()=>{
 });
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 describe('native support new AI topic',()=>{
- it('opens a confirmed current topic and can explicitly read the retained old history',async()=>{
-  await p.startNewTopic();expect(p.data.messages).toEqual([]);expect(p.data.contextStartSequence).toBe(2);expect(p.data.olderCursor).toBe(3);
+ it('confirms clearing prior records and opens an empty conversation without an old history cursor',async()=>{
+  await p.startNewTopic();expect(p.data.messages).toEqual([]);expect(p.data.contextStartSequence).toBe(2);expect(p.data.contextVersion).toBe(4);expect(p.data.olderCursor).toBeNull();
   expect(p.data.conversation.version).toBe(4);expect(p.data.newTopicAttempt).toBeNull();expect(p.data.newTopicBusy).toBe(false);
+  expect(wx.showModal).toHaveBeenCalledWith(expect.objectContaining({content:expect.stringContaining('之前的聊天和未发送内容会清空')}));
+  const modal=(wx.showModal as any).mock.calls[0][0];
+  expect(Array.from(modal.confirmText).length).toBeLessThanOrEqual(4);
   const calls=m.request.mock.calls.filter(([x])=>x.path==='/v1/me/support/new-topic');expect(calls).toHaveLength(1);
   expect(calls[0]![0].data).toMatchObject({conversationId:conversation.id,expectedVersion:3,requestId:expect.stringMatching(/^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/)});
-  m.read.mockResolvedValueOnce(page({messages:[msg(1),msg(2,'ai')],olderCursor:null}));await p.loadOlder();
-  expect(m.read).toHaveBeenCalledWith(p,expect.objectContaining({path:'/v1/me/support/messages?before=3&limit=50'}));expect(p.data.messages.map((x:any)=>x.sequence)).toEqual([1,2]);
+  await p.loadOlder();expect(m.read).not.toHaveBeenCalled();
+ });
+ it('paginates only messages belonging to the new conversation generation',async()=>{
+  await p.startNewTopic();p.data.olderCursor=5;
+  m.read.mockResolvedValueOnce(page({messages:[msg(1),msg(3),msg(4,'ai')],olderCursor:null}));await p.loadOlder();
+  expect(m.read).toHaveBeenCalledWith(p,expect.objectContaining({path:'/v1/me/support/messages?before=5&limit=50'}));expect(p.data.messages.map((x:any)=>x.sequence)).toEqual([3,4]);
+ });
+ it('starts a distinct generation even when the current conversation has no records left',async()=>{
+  await p.startNewTopic();p.data.presence.operatorTyping=true;p.data.anchor='retired';p.data.newMessagesBelowCount=2;
+  m.request.mockResolvedValueOnce(page({conversation:{...conversation,version:5},contextVersion:5}));await p.startNewTopic();
+  expect(m.request.mock.calls.filter(([x])=>x.path==='/v1/me/support/new-topic')).toHaveLength(2);expect(p.data.contextVersion).toBe(5);
+  expect(p.data.messages).toEqual([]);expect(p.data.anchor).toBe('');expect(p.data.presence.operatorTyping).toBe(false);expect(p.data.newMessagesBelowCount).toBe(0);
+ });
+ it('confirms an existing empty view before deleting records hidden by the former topic boundary',async()=>{
+  p.data.messages=[];p.data.syncCursor=2;p.data.contextStartSequence=2;
+  await p.startNewTopic();expect(wx.showModal).toHaveBeenCalledOnce();
+  expect(m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/new-topic')).toHaveLength(1);
  });
  it('does not create a server conversation when the view is already empty',async()=>{
   p.data.conversation=null;p.data.messages=[];p.data.input='unsent';await p.startNewTopic();
@@ -67,6 +85,51 @@ describe('native support new AI topic',()=>{
   history.resolve(page({conversation,contextStartSequence:0,messages:[msg(1)]}));await older;
   expect(p.data.contextStartSequence).toBe(2);expect(p.data.messages.map((x:any)=>x.sequence)).toEqual([3]);
  });
+ it('clears a remotely replaced empty generation even when its sequence boundary has not changed',async()=>{
+  Object.assign(p.data,{contextStartSequence:2,contextVersion:4,messages:[msg(3)],input:'old draft',selectedImage:{localPath:'old-image'},pendingMessage:msg(4),anchor:'old',newMessagesBelowCount:3});
+  m.read.mockResolvedValueOnce(page({conversation:{...conversation,version:5},contextVersion:5}));await p.poll();
+  expect(p.data.contextVersion).toBe(5);expect(p.data.messages).toEqual([]);expect(p.data.input).toBe('');expect(p.data.selectedImage).toBeNull();
+  expect(p.data.pendingMessage).toBeNull();expect(p.data.anchor).toBe('');expect(p.data.newMessagesBelowCount).toBe(0);
+ });
+ it('ignores a late lower-generation load even if its conversation version is higher',async()=>{
+  const stale=deferred();m.read.mockReturnValueOnce(stale.promise);const loading=p.load();
+  Object.assign(p.data,{contextVersion:5,contextStartSequence:2,messages:[],conversation:{...conversation,version:6}});
+  stale.resolve(page({conversation:{...conversation,version:7},contextVersion:4,messages:[msg(3)]}));await loading;
+  expect(p.data.contextVersion).toBe(5);expect(p.data.messages).toEqual([]);expect(p.data.conversation.version).toBe(6);
+ });
+ it('does not apply a read receipt from a retired generation',async()=>{
+  p.data.messages=[msg(1,'ai')];const receipt=deferred();m.request.mockReturnValueOnce(receipt.promise);const reading=p.markRead();
+  p.data.contextVersion=4;p.data.readCursor=0;receipt.resolve({});await reading;expect(p.data.readCursor).toBe(0);
+ });
+ it('pins generation metadata to an uncertain send and retries that exact original command',async()=>{
+  Object.assign(p.data,{contextVersion:4,contextStartSequence:2,input:'current message',composerSendEnabled:true});
+  m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?Promise.reject(new Error('network lost')):Promise.resolve({}));
+  await p.send();const first=m.request.mock.calls.find(([x])=>x.path==='/v1/me/support/messages')![0].data;
+  p.data.contextVersion=5;await p.retrySend();const sends=m.request.mock.calls.filter(([x])=>x.path==='/v1/me/support/messages');
+  expect(first).toMatchObject({expectedConversationId:conversation.id,contextVersion:4});expect(sends[1]![0].data).toEqual(first);
+ });
+ it('does not let an old send completion unlock a newer generation send',async()=>{
+  p.data.input='old send';p.data.composerSendEnabled=true;const old=deferred(),current=deferred();let writes=0;
+  m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?(++writes===1?old.promise:current.promise):Promise.resolve({}));
+  const first=p.send();await p.load();p.updateInput({detail:{value:'new send'}});const second=p.send();const newAttempt=p.data.sendAttempt;
+  old.resolve({conversation,message:msg(1),aiMessages:[],contextVersion:0,contextStartSequence:0});await first;
+  expect(p.data.sending).toBe(true);expect(p.data.sendAttempt).toEqual(newAttempt);
+  current.resolve({...page(),message:msg(3),aiMessages:[]});await second;expect(p.data.sending).toBe(false);expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([3]);
+ });
+ it('refreshes a definitively retired send without replaying its text into the new conversation',async()=>{
+  p.data.input='old draft';p.data.composerSendEnabled=true;
+  m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?Promise.reject({status:409,code:'SUPPORT_CONTEXT_CHANGED'}):Promise.resolve({}));
+  await p.send();expect(p.data.contextVersion).toBe(4);expect(p.data.messages).toEqual([]);expect(p.data.input).toBe('');
+  expect(p.data.sendAttempt).toBeNull();expect(p.data.pendingMessage).toBeNull();expect(p.data.error).toContain('原消息未发送');
+ });
+ it('pins the explicit human request to its current generation and refreshes a retired request without resubmitting',async()=>{
+  Object.assign(p.data,{contextVersion:4,contextStartSequence:2});
+  m.request.mockImplementation(input=>input.path==='/v1/me/support/handoff'?Promise.reject({status:409,code:'SUPPORT_CONTEXT_CHANGED'}):Promise.resolve({}));
+  m.read.mockResolvedValueOnce(page({contextVersion:5,conversation:{...conversation,version:5}}));await p.requestHuman();
+  const requests=m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/handoff');expect(requests).toHaveLength(1);
+  expect(requests[0]![0].data).toEqual({expectedConversationId:conversation.id,contextVersion:4});
+  expect(p.data.contextVersion).toBe(5);expect(p.data.handoffBusy).toBe(false);expect(p.data.handoffFailed).toBe(false);expect(p.data.error).toContain('再申请人工客服');
+ });
  it('acknowledges an old send without putting its bubbles back into a newer topic',async()=>{
   p.data.input='synthetic conversation';p.data.composerSendEnabled=true;
   m.request.mockImplementation(async input=>input.path==='/v1/me/support/messages'?{...page(),message:msg(1),aiMessages:[msg(2,'ai')],aiStatus:'pending'}:{});await p.send();
@@ -78,7 +141,7 @@ describe('native support new AI topic',()=>{
   expect(p.data.input).toBe('retain after hiding');expect(p.data.visible).toBe(false);expect(p.data.newTopicBusy).toBe(false);expect(p.data.newTopicAttempt).not.toBeNull();
  });
  it('stops the busy visual when the request fails after the token changes without navigation',async()=>{
-  const result=deferred();m.request.mockReturnValueOnce(result.promise);const starting=p.startNewTopic();m.token='';result.reject(new Error('synthetic identity revoked'));await starting;
+  const result=deferred();m.request.mockReturnValueOnce(result.promise);const starting=p.startNewTopic();await Promise.resolve();expect(m.request).toHaveBeenCalledOnce();m.token='';result.reject(new Error('synthetic identity revoked'));await starting;
   expect(p.data.newTopicBusy).toBe(false);expect(p.data.messages).toHaveLength(2);
  });
  it('preserves an authoritative human state returned by idempotent retry',async()=>{

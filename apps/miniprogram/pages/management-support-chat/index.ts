@@ -10,6 +10,7 @@ import {
   mergeAcknowledgement,
   mergeHistoryPage,
   mergeSyncPage,
+  newestSupportConversation,
   presentSupportMessages,
   readableSequence,
   supportMessageSetDataPatch,
@@ -60,6 +61,8 @@ Page({
     maxSeenSequence: 0,
     readCursor: 0,
     olderCursor: null as number | null,
+    contextStartSequence: 0,
+    contextVersion: 0,
     assignedToMe: false,
     canAssign: false,
     canReply: false,
@@ -196,6 +199,8 @@ Page({
       maxSeenSequence: 0,
       readCursor: 0,
       olderCursor: null,
+      contextStartSequence: 0,
+      contextVersion: 0,
       assignedToMe: false,
       canAssign: false,
       canReply: false,
@@ -221,6 +226,21 @@ Page({
   },
   threadState(): SupportThreadState<Message> {
     return { messages: this.data.messages, syncCursor: this.data.syncCursor, maxSeenSequence: this.data.maxSeenSequence, readCursor: this.data.readCursor };
+  },
+  topicMetadata(page: {conversation?:Conversation|null;contextStartSequence?:unknown;contextVersion?:unknown}) {
+    const same = page.conversation?.id === this.data.conversation?.id;
+    const version = Number(page.contextVersion ?? 0), boundary = Number(page.contextStartSequence ?? 0);
+    const contextVersion = Number.isSafeInteger(version) && version >= 0 ? version : 0;
+    const contextStartSequence = Number.isSafeInteger(boundary) && boundary >= 0 ? boundary : 0;
+    return { contextVersion, contextStartSequence,
+      stale: same && contextVersion < this.data.contextVersion,
+      changed: Boolean(this.data.conversation && (!same || contextVersion > this.data.contextVersion || contextStartSequence > this.data.contextStartSequence)) };
+  },
+  clearRetiredTopic() {
+    this.clearPresenceTimer(); this.abortDownloads(); this.inputRevision += 1;
+    this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
+    this.setData({ input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
+      presence: emptyPresence, olderCursor: null, loadingOlder: false, anchor: "", atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
   },
   present(messages: readonly RawMessage[], conversation?: Conversation | null, presence?: Presence, memberDisplayName?: string): Message[] {
     const activeConversation = conversation === undefined ? this.data.conversation : conversation;
@@ -329,18 +349,23 @@ Page({
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
+      const topic = this.topicMetadata(page);
+      if (topic.stale) { this.setData({ loading: false }); return; }
       const memberDisplayName = page.memberDisplayName || "CISME 会员";
-      const conversation = page.conversation as Conversation;
+      const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
       const assignedToMe = page.assignedToMe === true;
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
-      const raw = this.normalize(page.messages || []);
+      const raw = this.normalize(page.messages || []).filter(item => item.sequence > topic.contextStartSequence);
       const messages = this.present(raw, conversation, presence, memberDisplayName);
       const state = createSupportThreadState(messages, page.latestCursor || 0);
+      if (topic.changed) this.clearRetiredTopic();
       this.applyThreadState(state, {
         memberDisplayName,
         conversation,
         assignedToMe,
         olderCursor: page.olderCursor ?? null,
+        contextStartSequence: topic.contextStartSequence,
+        contextVersion: topic.contextVersion,
         loading: false,
         atBottom: true,
         newMessagesBelow: false,
@@ -439,9 +464,11 @@ Page({
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
-      const conversation = (page.conversation ?? this.data.conversation) as Conversation;
-      const presence = { ...emptyPresence, ...(page.presence ?? this.data.presence) } as Presence;
-      const incoming = this.normalize(page.messages || []);
+      const topic = this.topicMetadata(page);
+      if (topic.stale) return;
+      const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
+      const presence = { ...emptyPresence, ...(page.presence ?? (topic.changed ? emptyPresence : this.data.presence)) } as Presence;
+      const incoming = this.normalize(page.messages || []).filter(item => item.sequence > topic.contextStartSequence);
       const knownIds = new Set(this.data.messages.map((item) => item.id));
       const freshCount = incoming.filter((item) => !knownIds.has(item.id)).length;
       const assignedToMe = page.assignedToMe === undefined ? this.data.assignedToMe : page.assignedToMe === true;
@@ -451,18 +478,21 @@ Page({
         this.clearPresenceTimer();
         this.inputRevision += 1;
       }
-      const state = mergeSyncPage(this.threadState(), this.present(incoming, conversation, presence), page.latestCursor ?? after);
+      const state = mergeSyncPage(topic.changed ? createSupportThreadState<Message>([], topic.contextStartSequence) : this.threadState(), this.present(incoming, conversation, presence), page.latestCursor ?? after);
       const newest = state.messages[state.messages.length - 1];
       const shouldFollow = this.data.atBottom;
       if (freshCount || presence.memberTyping) this.lastActivityAt = Date.now();
+      if (topic.changed) this.clearRetiredTopic();
       this.applyThreadState(state, {
         conversation,
+        contextStartSequence: topic.contextStartSequence, contextVersion: topic.contextVersion,
+        ...(topic.changed ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
         assignedToMe,
         ...(lostAssignment ? { input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
         ...this.headerPatch(conversation, presence, assignedToMe),
-        anchor: freshCount && shouldFollow && newest ? `operator-${newest.sequence}` : this.data.anchor,
-        newMessagesBelowCount: shouldFollow ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
-        newMessagesBelow: shouldFollow ? false : this.data.newMessagesBelow || freshCount > 0
+        anchor: topic.changed ? newest ? `operator-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `operator-${newest.sequence}` : this.data.anchor,
+        newMessagesBelowCount: shouldFollow || topic.changed ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
+        newMessagesBelow: shouldFollow || topic.changed ? false : this.data.newMessagesBelow || freshCount > 0
       });
       if (incoming.length) this.downloadMedia(incoming);
       this.pollFailures = 0;
@@ -479,12 +509,16 @@ Page({
     if (this.data.loadingOlder || this.data.olderCursor === null) return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const contextVersion = this.data.contextVersion, boundary = this.data.contextStartSequence;
     const preserve = this.data.messages[0]?.sequence;
     this.setData({ loadingOlder: true, atBottom: false });
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
-      if (!this.owns(epoch, ownerToken)) return;
-      const older = this.normalize(page.messages || []);
+      if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || boundary !== this.data.contextStartSequence) return;
+      const topic = this.topicMetadata(page);
+      if (topic.stale) return;
+      if (topic.changed) { await this.load(); return; }
+      const older = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null, anchor: preserve ? `operator-${preserve}` : "" });
       this.downloadMedia(older);
     } catch {
@@ -522,9 +556,10 @@ Page({
     if (candidate === null) return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const contextVersion = this.data.contextVersion;
     try {
       await request({ path: `/v1/management/support/conversations/${this.data.id}/read`, method: "POST", data: { lastSeenSequence: candidate }, cacheTags: ["support"] });
-      if (!this.owns(epoch, ownerToken)) return;
+      if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion) return;
       this.applyThreadState(withReadCursor(this.threadState(), candidate));
     } catch {}
   },
@@ -583,10 +618,11 @@ Page({
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const contextVersion = this.data.contextVersion;
     this.setData({ busy: true, error: "" });
     try {
       const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: {}, cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken) && this.inputRevision === draftRevision) {
+      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.inputRevision === draftRevision) {
         this.inputRevision += 1;
         const input = String(draft.text || "");
         this.setData({ input, composerSendEnabled: Boolean(input.trim()), sendAttempt: null });
@@ -618,27 +654,39 @@ Page({
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const contextVersion = this.data.contextVersion;
     const sendAttempt = this.data.sendAttempt?.body === body ? this.data.sendAttempt : { id: `wx-agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, body };
     this.lastActivityAt = Date.now();
     this.setData({ busy: true, error: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending") });
     void this.publishPresence(true, false, true);
     try {
       const result = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/messages`, method: "POST", data: { body, clientMessageId: sendAttempt.id }, cacheTags: ["support"] });
-      if (!this.owns(epoch, ownerToken)) return;
-      const normalized = this.normalize([result.message]);
-      if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
+      if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || this.data.sendAttempt?.id !== sendAttempt.id) return;
+      if (result.contextSyncRequired) {
+        const clearDraft = this.inputRevision === draftRevision && this.data.input.trim() === body;
+        if (clearDraft) this.inputRevision += 1;
+        this.setData({ sendAttempt: null, pendingMessage: null, ...(clearDraft ? { input: "", composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}) });
+        await this.load(); return;
+      }
+      const topic = this.topicMetadata(result);
+      if (topic.stale) { this.setData({ sendAttempt: null, pendingMessage: null }); return; }
+      if (topic.changed) { this.clearRetiredTopic(); await this.load(); return; }
+      const normalized = this.normalize([result.message]).filter(item => item.sequence > topic.contextStartSequence);
+      if (normalized.length && !this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       const clearDraft = this.inputRevision === draftRevision && this.data.input.trim() === body;
       this.setData({
         ...(clearDraft ? { input: "", sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
         pendingMessage: null,
         conversation: result.conversation,
+        contextStartSequence: topic.contextStartSequence, contextVersion: topic.contextVersion,
         ...this.headerPatch(result.conversation, this.data.presence, true)
       });
       if (clearDraft) this.inputRevision += 1;
       await this.markRead();
       wx.nextTick(() => this.measureActions());
     } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "回复是否发送成功还未确认，文字已保留。", pendingMessage: this.pendingFrom(sendAttempt, "failed") });
+      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.data.sendAttempt?.id === sendAttempt.id)
+        this.setData({ error: "回复是否发送成功还未确认，文字已保留。", pendingMessage: this.pendingFrom(sendAttempt, "failed") });
     } finally {
       if (this.owns(epoch, ownerToken)) this.setData({ busy: false });
     }
@@ -684,6 +732,7 @@ Page({
   downloadMedia(messages: readonly RawMessage[]) {
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const contextVersion = this.data.contextVersion;
     const downloads = this.mediaDownloads ?? [];
     this.mediaDownloads = downloads;
     for (const message of messages) for (const attachment of message.attachments ?? []) {
@@ -692,7 +741,7 @@ Page({
       const abort = () => download.abort();
       downloads.push(abort);
       void download.promise.then((localPath) => {
-        if (!this.owns(epoch, ownerToken)) return;
+        if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion) return;
         const messageIndex = this.data.messages.findIndex((item) => item.id === message.id);
         const attachmentIndex = this.data.messages[messageIndex]?.attachments?.findIndex((item) => item.id === attachment.id) ?? -1;
         if (messageIndex < 0 || attachmentIndex < 0) return;

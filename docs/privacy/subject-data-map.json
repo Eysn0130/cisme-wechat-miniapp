@@ -4346,7 +4346,7 @@
       "actorColumns": [
         "principal_id"
       ],
-      "specialHandling": "principal_id joins canonical identity or member:member.id; operation/business_key are typed object references. Never export raw response_body, key or request_hash. support.conversation.new_topic uses stable member:member.id ownership and typed support-topic:<conversationId>:v<expectedVersion> references. Its receipt contains only conversationId, contextStartSequence and resultVersion, with no chat body; the exclusive boundary survives ordinary-message retention and is scoped to the same owner and conversation. No new raw export or erasure permission is granted.",
+      "specialHandling": "principal_id joins canonical identity or member:member.id; operation/business_key are typed object references. Never export raw response_body, key or request_hash. support.conversation.new_topic uses stable member:member.id ownership and typed support-topic:<conversationId>:v<expectedVersion> references. Its receipt contains only conversationId, contextStartSequence and resultVersion, with no chat body; the exclusive boundary survives ordinary-message retention and is scoped to the same owner and conversation. contextVersion is the resultVersion of the latest receipt, so empty consecutive clear commands remain distinct. Independently durable member-clear markers restore this receipt after old backup restore. No raw export or generic erasure permission is granted.",
       "exportFields": [],
       "excludedFields": [
         "principal_id",
@@ -5809,7 +5809,7 @@
       "actorColumns": [
         "current_handler_principal_id"
       ],
-      "specialHandling": "member_id is the conversation owner; current_handler_principal_id is a separate operator actor. A waiting_human conversation may return to ai_active only through the owner's explicit request bound to cisme.support_resume_ai_conversation_id. human_active cannot be displaced by that request. The transition rule adds no data field, export grant or erasure authority; sender facts, ordinary/transaction purpose, legal holds and retention remain independent.",
+      "specialHandling": "member_id is the conversation owner; current_handler_principal_id is a separate operator actor. A waiting_human conversation may return to ai_active only through the owner's explicit request bound to cisme.support_resume_ai_conversation_id. human_active cannot be displaced by that request. The transition rule adds no data field, export grant or erasure authority; sender facts, ordinary/transaction purpose, legal holds and retention remain independent. Owner-confirmed new conversation advances an independent contextVersion within the durable aggregate and clears the active window; it never displaces waiting/active human service. Minimal receipt and independent clearing markers contain no chat body, and retired generations cannot send new ordinary messages.",
       "exportFields": [],
       "excludedFields": [
         "id",
@@ -5947,7 +5947,7 @@
       "actorColumns": [
         "sender_principal_id"
       ],
-      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes. New messages carry per-message ordinary/transaction purpose; ambiguous mixed legacy messages remain on the conservative linked clock. Independently durable purge markers suppress restoration. Explicit AI resume changes conversation routing only; existing user, AI, administrator and system sender facts keep the same field-specific export and retention boundaries.",
+      "specialHandling": "conversation member is owner of conversation access; sender_principal_id may identify another person; attachments, order_snapshot and case-linked return_instruction_snapshot require independent projection and retention. An old valid address version must remain traceable for in-transit disputes. New messages carry per-message ordinary/transaction purpose; ambiguous mixed legacy messages remain on the conservative linked clock. Independently durable purge markers suppress restoration. Explicit AI resume changes conversation routing only; existing user, AI, administrator and system sender facts keep the same field-specific export and retention boundaries. Separately scoped owner-confirmed new conversation deletes prior explicitly ordinary messages and queues unreferenced images. Transaction/aftersale/legacy evidence and held content are isolated from the active chat and model; retained evidence remains under existing rights and retention. Independent support_new_conversation_v1 markers restore the cleared generation and suppress ordinary content after backup restore. This does not enable generic production erasure.",
       "exportFields": [
         "id",
         "sequence",

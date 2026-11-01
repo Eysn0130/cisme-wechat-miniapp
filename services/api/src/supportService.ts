@@ -10,6 +10,7 @@ import type { ObjectStorage } from "./storage.js";
 import type {AccountClosure} from './accountClosure.js';
 import {recordWholeSuppression} from './supportRetention.js';
 import type {SupportAiBoundary,SupportAiSuggestion} from './supportAiBoundary.js';
+import {applySupportConversationReset,supportNewTopicOperation} from './supportConversationReset.js';
 
 type ConversationRow = {
   id: string; member_id: string; status: SupportConversationStatus; priority: "normal" | "high" | "urgent";
@@ -103,7 +104,7 @@ function conversation(row: ConversationRow) {
 function requestHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
-const newTopicOperation = 'support.conversation.new_topic';
+const newTopicOperation = supportNewTopicOperation;
 
 export function modelSafeSupportProjection(input: { conversation: ConversationRow; messages: Array<{sequence:string;sender_type:"user"|"ai"|"admin"|"system";body:string;[key:string]:unknown}> }) {
   return { conversationId: input.conversation.id, status: input.conversation.status,
@@ -118,7 +119,23 @@ export class SupportService {
     const status=this.ai?.status();return status?.providerAvailable===true&&status.autoSendEnabled===true;
   }
 
-  private async contextBoundary(client:DbClient|pg.Pool,row:ConversationRow):Promise<number> {
+  private async reconcile(owner?:string){
+    if(this.suppression?.suppressionEnabled())await this.suppression.replaySupportConversations(this.pool,owner);
+  }
+  private async reconcileLocked(client:DbClient,owner:string){
+    if(this.suppression?.suppressionEnabled())for(const marker of await this.suppression.supportConversationResetMarkers(owner,client))
+      await applySupportConversationReset(client,marker);
+  }
+  private async requireCurrentContext(client:DbClient,row:ConversationRow,input:{expectedConversationId?:unknown;contextVersion?:unknown}){
+    const context=await this.contextState(client,row);
+    if((context.contextVersion>0&&(input.expectedConversationId===undefined||input.contextVersion===undefined))||
+      input.expectedConversationId!==undefined&&input.expectedConversationId!==row.id||
+      input.contextVersion!==undefined&&(!Number.isSafeInteger(input.contextVersion)||input.contextVersion!==context.contextVersion))
+      throw new DomainError('SUPPORT_CONTEXT_CHANGED','会话已更新，请刷新后再发送',409);
+    return context;
+  }
+
+  private async contextState(client:DbClient|pg.Pool,row:ConversationRow):Promise<{contextStartSequence:number;contextVersion:number}> {
     // Command receipts survive ordinary-message retention. A display message
     // must never be the sole boundary, because that message may be purged.
     const next=Number(row.next_sequence);
@@ -126,7 +143,7 @@ export class SupportService {
     const receipts=await client.query<{response_body:unknown}>(`SELECT response_body FROM idempotency_operation
       WHERE principal_id=$1 AND operation=$2 AND response_body->>'conversationId'=$3`,
       [`member:${row.member_id}`,newTopicOperation,row.id]);
-    let boundary=0;
+    let boundary=0,contextVersion=0;
     for(const receipt of receipts.rows){
       const value=receipt.response_body as {conversationId?:unknown;contextStartSequence?:unknown;resultVersion?:unknown}|null;
       if(!value||value.conversationId!==row.id||!Number.isSafeInteger(value.contextStartSequence)||
@@ -135,8 +152,13 @@ export class SupportService {
         throw new DomainError('SUPPORT_TOPIC_RECEIPT_INVALID','会话状态暂时无法核对，请稍后重试',503);
       }
       boundary=Math.max(boundary,Number(value.contextStartSequence));
+      contextVersion=Math.max(contextVersion,Number(value.resultVersion));
     }
-    return boundary;
+    return {contextStartSequence:boundary,contextVersion};
+  }
+
+  private async contextBoundary(client:DbClient|pg.Pool,row:ConversationRow){
+    return (await this.contextState(client,row)).contextStartSequence;
   }
 
   private async modelMessages(client:DbClient|pg.Pool,row:ConversationRow):Promise<MessageRow[]> {
@@ -146,10 +168,11 @@ export class SupportService {
   }
 
   private async currentTopicState(owner:string) {
+    await this.reconcile(owner);
     return readSnapshot(this.pool,async client=>{
       const row=await this.findForMember(client,owner);
       if(!row)throw new DomainError('SUPPORT_CONVERSATION_NOT_FOUND','会话状态暂时无法核对，请刷新后重试',503);
-      return {conversation:conversation(row),contextStartSequence:await this.contextBoundary(client,row),newTopicAvailable:true};
+      return {conversation:conversation(row),...await this.contextState(client,row),newTopicAvailable:this.suppression?.suppressionEnabled()===true};
     });
   }
 
@@ -157,7 +180,10 @@ export class SupportService {
    * database connection. A second locked check prevents any answer crossing a
    * manual handoff, newer message, account block or operator assignment. */
   private async automaticReply(owner:string,id:string,messageId:string,expectedVersion:number,traceId:string) {
-    const context=await readSnapshot(this.pool,async client=>{
+    await this.reconcile(owner);
+    const context=await transaction(this.pool,async client=>{
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       const snapshot=await this.findForMember(client,owner);
       if(!snapshot||snapshot.id!==id||snapshot.status!=='ai_active'||snapshot.version!==expectedVersion)return null;
       return {snapshot,messages:await this.modelMessages(client,snapshot)};
@@ -178,6 +204,8 @@ export class SupportService {
       }
     }
     return transaction(this.pool,async client=>{
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner]);
       if(!active.rowCount)return {};
       const row=await this.findForMember(client,owner,true);
@@ -278,6 +306,7 @@ export class SupportService {
   async modelProjectionForAssignedOperator(memberId:string|undefined,principalId:string|undefined,id:string) {
     await this.authority.require(memberId,"support.reply");
     const principal=required(principalId,"AUTH_REQUIRED");
+    await this.reconcile((await this.findById(this.pool,id)).member_id);
     return readSnapshot(this.pool,async client=>{
       const row=await this.findById(client,id);
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_OWNERSHIP_CONFLICT","Claim the conversation before requesting a suggested reply",409);
@@ -340,18 +369,20 @@ export class SupportService {
 
   async summary(memberId: string | undefined) {
     const owner = required(memberId, "AUTH_REQUIRED");
+    await this.reconcile(owner);
     const row = await this.findForMember(this.pool, owner);
     return row ? { conversation: conversation(row), unreadCount: row.member_unread_count } : { conversation: null, unreadCount: 0 };
   }
 
   async messagesForMember(memberId: string | undefined, query: { after?: unknown; before?: unknown; limit?: unknown },ordinary=true) {
     const owner = required(memberId, "AUTH_REQUIRED");
+    await this.reconcile(owner);
     return readSnapshot(this.pool,async client=>{
       const row = await this.findForMember(client, owner);
-      const metadata={supportAiAvailable:this.automaticAiAvailable(),newTopicAvailable:ordinary};
-      if (!row) return { conversation: null, messages: [], latestCursor: 0, olderCursor: null,contextStartSequence:0,...metadata };
-      const boundary=ordinary?await this.contextBoundary(client,row):0;
-      return {...await this.messagePage(row, query, "member",client,boundary),contextStartSequence:boundary,...metadata};
+      const metadata={supportAiAvailable:this.automaticAiAvailable(),newTopicAvailable:ordinary&&this.suppression?.suppressionEnabled()===true};
+      if (!row) return { conversation: null, messages: [], latestCursor: 0, olderCursor: null,contextStartSequence:0,contextVersion:0,...metadata };
+      const context=ordinary?await this.contextState(client,row):{contextStartSequence:0,contextVersion:0};
+      return {...await this.messagePage(row, query, "member",client,context.contextStartSequence),...context,...metadata};
     });
   }
 
@@ -364,7 +395,7 @@ export class SupportService {
     if (after !== null) result = await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
       WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence ASC LIMIT $3`, [row.id, Math.max(after,boundary), pageLimit]);
     else if (before !== null) result = await client.query<MessageRow>(`SELECT * FROM (SELECT ${messageColumns()} FROM support_message
-      WHERE conversation_id=$1 AND sequence<$2 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id, before, pageLimit + 1]);
+      WHERE conversation_id=$1 AND sequence<$2 AND sequence>$4 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id, before, pageLimit + 1,boundary]);
     else result = await client.query<MessageRow>(`SELECT * FROM (SELECT ${messageColumns()} FROM support_message
       WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id,boundary,pageLimit + 1]);
     const hasOlder = after === null && result.rows.length > pageLimit;
@@ -375,11 +406,7 @@ export class SupportService {
       previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
       media
     }));
-    let olderCursor:number|null=hasOlder?messages[0]!.sequence:null;
-    if(before===null&&!hasOlder&&boundary>0&&(after===null||after<boundary)){
-      const history=await client.query('SELECT 1 FROM support_message WHERE conversation_id=$1 AND sequence<=$2 LIMIT 1',[row.id,boundary]);
-      if(history.rowCount)olderCursor=messages[0]?.sequence??boundary+1;
-    }
+    const olderCursor:number|null=hasOlder?messages[0]!.sequence:null;
     return { conversation: conversation(row), presence: await this.presence(row,new Date(),client), messages,
       latestCursor: messages.at(-1)?.sequence ?? Number(row.next_sequence) - 1, olderCursor };
   }
@@ -389,8 +416,10 @@ export class SupportService {
     const id=uuid(input.conversationId,'SUPPORT_CONVERSATION_INVALID').toLowerCase();
     const expected=version(input.expectedVersion),key=uuid(input.requestId,'SUPPORT_TOPIC_REQUEST_INVALID').toLowerCase();
     const principal=`member:${owner}`,hash=requestHash({conversationId:id,expectedVersion:expected});
+    await this.reconcile(owner);
     const replayed=await transaction(this.pool,async client=>{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner]);
       if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可执行此操作',403);
       const row=await this.findForMember(client,owner,true);
@@ -403,13 +432,15 @@ export class SupportService {
       }
       if(row.version!==expected)throw new DomainError('VERSION_CONFLICT','会话已变化，请刷新后重试',409);
       if(row.status==='waiting_human'||row.status==='human_active')throw new DomainError('SUPPORT_HUMAN_CONVERSATION_ACTIVE','正在等待或接待人工客服，请在当前会话继续沟通',409);
-      await this.contextBoundary(client,row);
+      await this.contextState(client,row);
       const boundary=Number(row.next_sequence)-1;
-      const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET status='ai_active',resolved_at=NULL,
-        version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[row.id])).rows[0]!;
-      const response={conversationId:row.id,contextStartSequence:boundary,resultVersion:updated.version};
-      await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
-        VALUES($1,$2,$3,$4,$5,200,$6)`,[principal,newTopicOperation,key,`support-topic:${row.id}:v${expected}`,hash,response]);
+      if(!this.suppression?.suppressionEnabled())throw new DomainError('SUPPORT_NEW_CONVERSATION_UNAVAILABLE','新对话暂不可用，请稍后重试',503);
+      const member=(await client.query<{created_at:Date;reset_at:string}>(`SELECT created_at,
+        to_char(clock_timestamp() AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS reset_at FROM member WHERE id=$1`,[owner])).rows[0]!;
+      const marker=await this.suppression.recordSupportConversationReset({memberId:owner,conversationId:row.id,
+        requestId:key,expectedVersion:expected,contextStartSequence:boundary,resultVersion:expected+1,memberCreatedAt:member.created_at.toISOString(),createdAt:member.reset_at});
+      await applySupportConversationReset(client,marker,false);
+      const response={conversationId:row.id,contextStartSequence:boundary,resultVersion:expected+1};
       await this.audit(client,actor,'support.conversation.new_topic',row.id,{version:row.version,status:row.status},response,traceId);
       return false;
     });
@@ -418,19 +449,26 @@ export class SupportService {
     return {...await this.messagesForMember(owner,{}),replayed};
   }
 
-  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown }, traceId: string, historicalOrder=false) {
+  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown;expectedConversationId?:unknown;contextVersion?:unknown }, traceId: string, historicalOrder=false) {
     const owner = required(memberId, "AUTH_REQUIRED");
     const principal = required(principalId, "AUTH_REQUIRED");
     const body = textBody(input.body, true); const messageKey = clientMessageId(input.clientMessageId);
     const images = mediaIds(input.mediaIds);
     const linkedOrderId = input.linkedOrderId === undefined || input.linkedOrderId === null || input.linkedOrderId === "" ? null : uuid(input.linkedOrderId, "SUPPORT_ORDER_INVALID");
     const messageContentType = contentType(body, images, linkedOrderId);
+    await this.reconcile(owner);
     const result=await transaction(this.pool, async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       let row = await this.findForMember(client, owner, true);
       if (!row) {
+        if(!historicalOrder&&(input.expectedConversationId!==undefined||input.contextVersion!==undefined&&input.contextVersion!==0))
+          throw new DomainError('SUPPORT_CONTEXT_CHANGED','会话已更新，请刷新后再发送',409);
         const created = await client.query<ConversationRow>(`INSERT INTO support_conversation(member_id,status)
           VALUES($1,$2) RETURNING *`, [owner,historicalOrder?'waiting_human':'ai_active']); row = created.rows[0]!;
+      }
+      if(!historicalOrder){
+        await this.requireCurrentContext(client,row,input);
       }
       const duplicate = await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='user' AND sender_principal_id=$2 AND client_message_id=$3`, [row.id, principal, messageKey]);
@@ -491,11 +529,16 @@ export class SupportService {
     }
   }
 
-  async requestHuman(memberId: string | undefined, principalId: string | undefined) {
+  async requestHuman(memberId: string | undefined, principalId: string | undefined,input:{expectedConversationId?:unknown;contextVersion?:unknown}={}) {
     const owner = required(memberId, "AUTH_REQUIRED"); required(principalId, "AUTH_REQUIRED");
+    await this.reconcile(owner);
     return transaction(this.pool, async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       let row = await this.findForMember(client, owner, true);
+      if(row)await this.requireCurrentContext(client,row,input);
+      else if(input.expectedConversationId!==undefined||input.contextVersion!==undefined&&input.contextVersion!==0)
+        throw new DomainError('SUPPORT_CONTEXT_CHANGED','会话已更新，请刷新后重试',409);
       if (!row) row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING *", [owner])).rows[0]!;
       else if (row.status === "human_active" || row.status === "waiting_human") return conversation(row);
       else row = (await client.query<ConversationRow>(`UPDATE support_conversation SET status='waiting_human',current_handler_principal_id=NULL,resolved_at=NULL,
@@ -509,8 +552,10 @@ export class SupportService {
   async resumeAi(memberId:string|undefined,principalId:string|undefined,input:{expectedVersion?:unknown},traceId:string) {
     const owner=required(memberId,'AUTH_REQUIRED'),principal=required(principalId,'AUTH_REQUIRED'),expected=version(input.expectedVersion);
     if(!this.automaticAiAvailable())throw new DomainError('SUPPORT_AI_UNAVAILABLE','AI 客服暂时无法接待，请继续等待人工处理',503);
+    await this.reconcile(owner);
     return transaction(this.pool,async client=>{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner]);
       if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可执行此操作',403);
       const row=await this.findForMember(client,owner,true);
@@ -537,10 +582,13 @@ export class SupportService {
   async markMemberRead(memberId: string | undefined, input: { lastSeenSequence?: unknown }) {
     const owner = required(memberId, "AUTH_REQUIRED"); const seen = cursor(input.lastSeenSequence);
     if (seen === null) throw new DomainError("CURSOR_INVALID", "lastSeenSequence is required", 422);
+    await this.reconcile(owner);
     return transaction(this.pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       const row = await this.findForMember(client, owner, true);
       if (!row) return null;
-      const effectiveSeen = Math.max(Number(row.member_last_read_sequence), Math.min(seen, Number(row.next_sequence) - 1));
+      const effectiveSeen = Math.max(await this.contextBoundary(client,row),Number(row.member_last_read_sequence), Math.min(seen, Number(row.next_sequence) - 1));
       const unread = await client.query<{count:number}>(`SELECT count(*)::int AS count FROM support_message
         WHERE conversation_id=$1 AND sequence>$2 AND sender_type IN ('ai','admin','system')`, [row.id, effectiveSeen]);
       const updated = await client.query<ConversationRow>(`UPDATE support_conversation
@@ -603,6 +651,7 @@ export class SupportService {
     return transaction(this.pool, async (client) => {
       await this.platform.assertSwitch(client, "uploads");
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       let row = await this.findForMember(client, owner, true);
       if (!row) row = (await client.query<ConversationRow>("INSERT INTO support_conversation(member_id,status) VALUES($1,'ai_active') RETURNING *", [owner])).rows[0]!;
       const id = randomUUID();
@@ -610,7 +659,7 @@ export class SupportService {
       const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       await client.query(`INSERT INTO media_object
         (id,submission_id,kind,object_key,mime_type,is_current,authorized_max_bytes,support_conversation_id,support_member_id,support_expires_at,authorized_at)
-        VALUES($1,NULL,'chat_image',$2,$3,true,$4,$5,$6,$7,$8)`, [id, objectKey, mimeType, maxBytes, row.id, owner, expiresAt, now]);
+        VALUES($1,NULL,'chat_image',$2,$3,true,$4,$5,$6,$7,clock_timestamp())`, [id, objectKey, mimeType, maxBytes, row.id, owner, expiresAt]);
       const authorization = await this.storage.authorize({ mediaId:id,objectKey,mimeType: mimeType as string,maxBytes,baseUrl:input.baseUrl,now });
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
         VALUES($1,'support.media.authorize','media_object',$2,$3,$4)`,
@@ -624,6 +673,8 @@ export class SupportService {
     const actor = required(principalId, "AUTH_REQUIRED");
     const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
     const outcome = await transaction(this.pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       await this.platform.assertSwitch(client, "uploads");
       const result = await client.query<{id:string;object_key:string;mime_type:string;upload_state:string;authorized_max_bytes:number;support_expires_at:Date}>(`
         SELECT media.id,media.object_key,media.mime_type,media.upload_state,media.authorized_max_bytes,media.support_expires_at
@@ -658,11 +709,12 @@ export class SupportService {
     const actor = required(principalId, "AUTH_REQUIRED");
     const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
     return transaction(this.pool, async (client) => {
-      const media = await client.query<{object_key:string;upload_state:string;bound_support_message_id:string|null}>(`SELECT object_key,upload_state,bound_support_message_id
+      const media = await client.query<{object_key:string;upload_state:string;bound_support_message_id:string|null;referenced:boolean}>(`SELECT object_key,upload_state,bound_support_message_id,
+        EXISTS(SELECT 1 FROM support_message message WHERE message.attachment_refs ? media_object.id::text) AS referenced
         FROM media_object WHERE id=$1 AND support_member_id=$2 FOR UPDATE`, [targetMediaId, owner]);
       const row = media.rows[0];
       if (!row || row.upload_state === "deleted") throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
-      if (row.bound_support_message_id) throw new DomainError("SUPPORT_MEDIA_BOUND", "A sent support image is immutable", 409);
+      if (row.bound_support_message_id||row.referenced) throw new DomainError("SUPPORT_MEDIA_BOUND", "A sent support image is immutable", 409);
       await client.query("UPDATE media_object SET upload_state='deleted',deleted_at=$2,is_current=false WHERE id=$1", [targetMediaId, now]);
       await client.query(`INSERT INTO media_cleanup_queue(media_id,object_key,reason,next_attempt_at)
         VALUES($1,$2,'support_deleted',$3) ON CONFLICT DO NOTHING`, [targetMediaId, row.object_key, now]);
@@ -674,14 +726,17 @@ export class SupportService {
     });
   }
 
-  async memberSupportMedia(memberId: string | undefined, mediaId: string) {
+  async memberSupportMedia(memberId: string | undefined, mediaId: string,ordinary=true) {
     const owner = required(memberId, "AUTH_REQUIRED");
     const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
+    await this.reconcile(owner);
+    const conversationRow=await this.findForMember(this.pool,owner);
+    const boundary=ordinary&&conversationRow?await this.contextBoundary(this.pool,conversationRow):0;
     const result = await this.pool.query<{object_key:string}>(`SELECT media.object_key FROM media_object media
       JOIN support_conversation conversation ON conversation.id=media.support_conversation_id
       WHERE media.id=$1 AND conversation.member_id=$2 AND media.support_member_id=$2
         AND media.upload_state='uploaded' AND EXISTS(SELECT 1 FROM support_message message
-          WHERE message.conversation_id=conversation.id AND message.attachment_refs ? media.id::text)`, [targetMediaId, owner]);
+          WHERE message.conversation_id=conversation.id AND message.sequence>$3 AND message.attachment_refs ? media.id::text)`, [targetMediaId, owner,boundary]);
     if (!result.rows[0]) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
     return this.storage.read(result.rows[0].object_key);
   }
@@ -690,10 +745,12 @@ export class SupportService {
     await this.operator(memberId, "support.read");
     const conversationId = uuid(id, "SUPPORT_CONVERSATION_INVALID");
     const targetMediaId = uuid(mediaId, "SUPPORT_MEDIA_INVALID");
+    await this.reconcile((await this.findById(this.pool,conversationId)).member_id);
+    const boundary=await this.contextBoundary(this.pool,await this.findById(this.pool,conversationId));
     const result = await this.pool.query<{object_key:string}>(`SELECT media.object_key FROM media_object media
       WHERE media.id=$1 AND media.support_conversation_id=$2 AND media.upload_state='uploaded'
         AND EXISTS(SELECT 1 FROM support_message message WHERE message.conversation_id=$2
-          AND message.attachment_refs ? media.id::text)`, [targetMediaId, conversationId]);
+          AND message.sequence>$3 AND message.attachment_refs ? media.id::text)`, [targetMediaId, conversationId,boundary]);
     if (!result.rows[0]) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "Support image was not found", 404);
     return this.storage.read(result.rows[0].object_key);
   }
@@ -703,6 +760,7 @@ export class SupportService {
   }
   async queue(memberId: string | undefined, query: { cursor?: unknown; limit?: unknown }) {
     await this.operator(memberId, "support.read"); const pageLimit = limit(query.limit); const after=queueCursor(query.cursor);
+    await this.reconcile();
     const result = await this.pool.query(`WITH ranked AS (SELECT c.id,c.status,c.priority,c.current_handler_principal_id,c.member_unread_count,c.team_unread_count,c.version,c.updated_at,
       m.display_name AS member_display_name,latest.body AS last_message,latest.sender_type AS last_sender_type,
       CASE c.status WHEN 'waiting_human' THEN 0 WHEN 'human_active' THEN 1 WHEN 'ai_active' THEN 2 ELSE 3 END AS rank,
@@ -713,18 +771,35 @@ export class SupportService {
         (rank=$1 AND unread_rank=$2 AND updated_at<$3::timestamptz) OR
         (rank=$1 AND unread_rank=$2 AND updated_at=$3::timestamptz AND id::text<$4)
       ORDER BY rank,unread_rank,updated_at DESC,id DESC LIMIT $5`, [after?.rank??null,after?.unreadRank??null,after?.at??null,after?.id??null,pageLimit+1]);
+    // The durable aggregate may retain protected transaction evidence. Its
+    // preview is derived only from the current generation, like active chat.
+    for(const item of result.rows.slice(0,pageLimit)){
+      const row=await this.findById(this.pool,item.id),boundary=await this.contextBoundary(this.pool,row);
+      const latest=(await this.pool.query<{body:string;sender_type:string}>(`SELECT body,sender_type FROM support_message
+        WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT 1`,[item.id,boundary])).rows[0];
+      item.last_message=latest?.body??null;item.last_sender_type=latest?.sender_type??null;
+    }
     return { items: result.rows.slice(0, pageLimit).map((item: any) => ({ id:item.id,status:item.status,priority:item.priority,
       memberUnreadCount:item.member_unread_count,teamUnreadCount:item.team_unread_count,version:item.version,updatedAt:item.updated_at.toISOString(),memberDisplayName:item.member_display_name,
       lastMessage:item.last_message ?? "暂无消息",lastSenderType:item.last_sender_type ?? null })), nextCursor: result.rows.length > pageLimit ? encodeQueueCursor(result.rows[pageLimit-1]) : null };
   }
   async operatorMessages(memberId: string | undefined, principalId: string | undefined, id: string, query: { after?: unknown; before?: unknown; limit?: unknown }) {
-    await this.operator(memberId, "support.read"); const principal=required(principalId,"AUTH_REQUIRED");const row=await this.findById(this.pool,id);
-    const page=await this.messagePage(row,query,"operator");const member=await this.pool.query<{display_name:string}>("SELECT display_name FROM member WHERE id=$1",[row.member_id]);
-    return {...page,memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
+    await this.operator(memberId, "support.read"); const principal=required(principalId,"AUTH_REQUIRED");
+    await this.reconcile((await this.findById(this.pool,id)).member_id);
+    return readSnapshot(this.pool,async client=>{
+      const row=await this.findById(client,id),context=await this.contextState(client,row);
+      const page=await this.messagePage(row,query,"operator",client,context.contextStartSequence);
+      const member=await client.query<{display_name:string}>("SELECT display_name FROM member WHERE id=$1",[row.member_id]);
+      return {...page,...context,memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
+    });
   }
   async claim(memberId: string | undefined, principalId: string | undefined, id: string, input: { expectedVersion?: unknown }, traceId: string) {
     await this.operator(memberId, "support.assign"); const principal = required(principalId, "AUTH_REQUIRED"); const expected = version(input.expectedVersion);
+    const owner=(await this.findById(this.pool,id)).member_id;
+    await this.reconcile(owner);
     return transaction(this.pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
       const row = await this.findById(client, id, true);
       if (row.status === "human_active" && row.current_handler_principal_id === principal) return conversation(row);
       if (row.version !== expected) throw new DomainError("VERSION_CONFLICT", "Conversation changed; reload before claiming", 409);
@@ -749,11 +824,15 @@ export class SupportService {
   async reply(memberId: string | undefined, principalId: string | undefined, id: string, input: { body?: unknown; clientMessageId?: unknown }, traceId: string) {
     await this.operator(memberId, "support.reply"); const principal = required(principalId, "AUTH_REQUIRED");
     const body=textBody(input.body); const messageKey=clientMessageId(input.clientMessageId);
-    return transaction(this.pool, async (client) => {
+    const targetOwner=(await this.findById(this.pool,id)).member_id;
+    await this.reconcile(targetOwner);
+    const result=await transaction(this.pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${targetOwner}`]);
+      await this.reconcileLocked(client,targetOwner);
       let row=await this.findById(client,id,true);
       const duplicate=await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='admin' AND sender_principal_id=$2 AND client_message_id=$3`,[id,principal,messageKey]);
-      if(duplicate.rows[0]){if(duplicate.rows[0].body!==body)throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different text",409);return {conversation:conversation(row),message:await this.messageView(duplicate.rows[0],row,"operator"),replayed:true};}
+      if(duplicate.rows[0]){if(duplicate.rows[0].body!==body)throw new DomainError("IDEMPOTENCY_CONFLICT","clientMessageId was reused with different text",409);return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(duplicate.rows[0],row,"operator"),replayed:true};}
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Claim this conversation before replying",409);
       const sequence=Number(row.next_sequence);const messageId=randomUUID();
       const context=(await client.query<{retention_purpose:string}>(`SELECT retention_purpose FROM support_message
@@ -768,20 +847,31 @@ export class SupportService {
       await this.audit(client,principal,"support.message.reply",id,null,{messageId,sequence},traceId);
       await enqueue(client,{eventType:"support.message.created.v1",aggregateType:"support_conversation",aggregateId:id,aggregateVersion:row.version,
         businessKey:`support-message:${messageId}`,payload:{conversationId:id,messageId,senderType:"admin",sequence},occurredAt:inserted.created_at});
-      return {conversation:conversation(row),message:await this.messageView(inserted,row,"operator"),replayed:false};
+      return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(inserted,row,"operator"),replayed:false};
     });
+    const {memberId:owner,...acknowledged}=result;
+    try{return {...acknowledged,...await this.currentTopicState(owner)};}
+    catch{return {...acknowledged,contextSyncRequired:true};}
   }
   async markTeamRead(memberId:string|undefined,id:string,input:{lastSeenSequence?:unknown}){
     await this.operator(memberId,"support.read");const seen=cursor(input.lastSeenSequence);if(seen===null)throw new DomainError("CURSOR_INVALID","lastSeenSequence is required",422);
-    return transaction(this.pool,async client=>{const row=await this.findById(client,id,true);
-      const effectiveSeen=Math.max(Number(row.team_last_read_sequence),Math.min(seen,Number(row.next_sequence)-1));
+    const owner=(await this.findById(this.pool,id)).member_id;await this.reconcile(owner);
+    return transaction(this.pool,async client=>{
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
+      const row=await this.findById(client,id,true);
+      const effectiveSeen=Math.max(await this.contextBoundary(client,row),Number(row.team_last_read_sequence),Math.min(seen,Number(row.next_sequence)-1));
       const unread=await client.query<{count:number}>("SELECT count(*)::int AS count FROM support_message WHERE conversation_id=$1 AND sequence>$2 AND sender_type='user'",[row.id,effectiveSeen]);
       const updated=await client.query<ConversationRow>("UPDATE support_conversation SET team_last_read_sequence=$2,team_unread_count=$3 WHERE id=$1 RETURNING *",[row.id,effectiveSeen,unread.rows[0]!.count]);
       return conversation(updated.rows[0]!);});
   }
   async resolve(memberId:string|undefined,principalId:string|undefined,id:string,input:{expectedVersion?:unknown},traceId:string){
     await this.operator(memberId,"support.reply");const principal=required(principalId,"AUTH_REQUIRED");const expected=version(input.expectedVersion);
-    return transaction(this.pool,async client=>{const row=await this.findById(client,id,true);if(row.status==="resolved")return conversation(row);
+    const owner=(await this.findById(this.pool,id)).member_id;await this.reconcile(owner);
+    return transaction(this.pool,async client=>{
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
+      const row=await this.findById(client,id,true);if(row.status==="resolved")return conversation(row);
       if(row.version!==expected)throw new DomainError("VERSION_CONFLICT","Conversation changed; reload before resolving",409);
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Only the assigned operator can resolve",409);
       const pendingAftersale=(await client.query(`SELECT c.id FROM commerce_aftersale_case c
