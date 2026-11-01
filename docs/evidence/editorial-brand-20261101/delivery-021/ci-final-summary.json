@@ -1,0 +1,346 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-01T16:34:54Z",
+  "repository": "Eysn0130/cisme-wechat-miniapp",
+  "pullRequest": 61,
+  "testedHead": "ba5aff21a77cad1bc2cd32b08d8609b1e67bae7e",
+  "workflowRun": {
+    "id": 41326089244,
+    "number": 508,
+    "attempt": 1,
+    "name": "CISME R0 gates",
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "startedAt": "2026-11-01T16:23:29Z",
+    "updatedAt": "2026-11-01T16:33:35Z",
+    "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/41326089244"
+  },
+  "verifyJob": {
+    "id": 124906207832,
+    "name": "verify",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/41326089244/job/124906207832",
+    "stepCounts": {
+      "total": 28,
+      "success": 28,
+      "failure": 0,
+      "skipped": 0
+    },
+    "steps": [
+      {
+        "number": 1,
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 2,
+        "name": "Run actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 3,
+        "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 4,
+        "name": "Diff hygiene",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 5,
+        "name": "Secret scan (Gitleaks 8.30.1, verified archive)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 6,
+        "name": "Create bounded verification evidence directory",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 7,
+        "name": "Run npm ci 2>&1 | tee \"$RUNNER_TEMP/native-validation/ci.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 8,
+        "name": "Production dependency audit",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 9,
+        "name": "Development-tool high-severity audit",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 10,
+        "name": "Run npm run typecheck 2>&1 | tee \"$RUNNER_TEMP/native-validation/typecheck.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 11,
+        "name": "Offline staging deployment and monitor guards",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 12,
+        "name": "Run npm run miniprogram:package-gate 2>&1 | tee \"$RUNNER_TEMP/native-validation/miniprogram-package-gate.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 13,
+        "name": "Run npm run miniprogram:route-audit 2>&1 | tee \"$RUNNER_TEMP/native-validation/miniprogram-route-audit.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 14,
+        "name": "Run npm run design:qa:status 2>&1 | tee \"$RUNNER_TEMP/native-validation/design-qa-status.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 15,
+        "name": "Run npm test 2>&1 | tee \"$RUNNER_TEMP/native-validation/test.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 16,
+        "name": "Run npm run test:integration 2>&1 | tee \"$RUNNER_TEMP/native-validation/test-integration.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 17,
+        "name": "Summarize executed HTTP evidence (not full security acceptance)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 18,
+        "name": "Run npm run restore:verify 2>&1 | tee \"$RUNNER_TEMP/native-validation/synthetic-restore.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 19,
+        "name": "Run npm run build 2>&1 | tee \"$RUNNER_TEMP/native-validation/build.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 20,
+        "name": "Run npm run lint:contracts 2>&1 | tee \"$RUNNER_TEMP/native-validation/lint-contracts.log\"",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 21,
+        "name": "Isolated same-runner performance comparison (not native acceptance)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 22,
+        "name": "Run npm run sbom",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 23,
+        "name": "Run npm run license:report",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 24,
+        "name": "Run docker compose -f infra/compose.yaml logs --no-color > ci-compose.log",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 25,
+        "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 49,
+        "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 50,
+        "name": "Post Run actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "number": 51,
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "tests": {
+    "unit": {
+      "filesPassed": 168,
+      "passed": 2617,
+      "skipped": 1,
+      "total": 2618,
+      "durationSeconds": 29.06
+    },
+    "integration": {
+      "filesPassed": 66,
+      "passed": 1131,
+      "skipped": 0,
+      "total": 1131,
+      "durationSeconds": 353.86
+    },
+    "offlineDeploymentAndMonitorGuards": {
+      "suiteRuns": 17,
+      "total": 568,
+      "passed": 567,
+      "skipped": 1,
+      "skippedReason": "One Linux disposable-root-container-only test was not executed on this runner."
+    },
+    "unitSkippedCase": {
+      "file": "tests/unit/editorial-video.test.ts",
+      "skipped": 1
+    }
+  },
+  "performance": {
+    "concurrentFirstMessages": {
+      "scenario": "100 isolated first messages",
+      "samples": 100,
+      "failures": 0,
+      "p50Ms": 823.24,
+      "p95Ms": 877.99,
+      "p99Ms": 879.51,
+      "maxMs": 879.94,
+      "queue100Ms": 261.26,
+      "queueStatus": 200,
+      "thresholdsMs": {
+        "firstMessageP95": 1000,
+        "queue100": 1000
+      }
+    },
+    "commercialChatLocalAPI": {
+      "scope": "local Fastify inject + PostgreSQL; excludes network, client rendering and poll scheduling",
+      "sampleCounts": {
+        "standard": 30,
+        "attachment": 20
+      },
+      "metrics": {
+        "firstLoadLatest50": {
+          "samples": 30,
+          "p50Ms": 6.33,
+          "p95Ms": 9.93,
+          "p99Ms": 14.31,
+          "maxMs": 14.31
+        },
+        "sendToServerAck": {
+          "samples": 30,
+          "p50Ms": 9.07,
+          "p95Ms": 9.53,
+          "p99Ms": 9.59,
+          "maxMs": 9.59
+        },
+        "incrementalSyncAfterRemoteMessage": {
+          "samples": 30,
+          "p50Ms": 4.86,
+          "p95Ms": 5.2,
+          "p99Ms": 5.29,
+          "maxMs": 5.29
+        },
+        "typingPublishAndProjection": {
+          "samples": 30,
+          "p50Ms": 9.08,
+          "p95Ms": 13.52,
+          "p99Ms": 18.16,
+          "maxMs": 18.16
+        },
+        "historyPage50": {
+          "samples": 30,
+          "p50Ms": 5.91,
+          "p95Ms": 7.05,
+          "p99Ms": 7.26,
+          "maxMs": 7.26
+        },
+        "attachmentAuthorizeUploadVerify256KiB": {
+          "samples": 20,
+          "p50Ms": 31.35,
+          "p95Ms": 49.43,
+          "p99Ms": 50.05,
+          "maxMs": 50.05
+        }
+      },
+      "clientDetectionBounds": {
+        "activePollMs": 2000,
+        "idlePollMs": 5000,
+        "hiddenPollMs": null,
+        "note": "Schedule bounds, not measured network latency"
+      }
+    },
+    "originalConcurrentThresholdsRetained": true,
+    "isolatedSameRunnerComparison": {
+      "stepNumber": 21,
+      "conclusion": "success",
+      "baselineSource": "56432fb9b42777ffd4b3aeaf17134a666c7f243c",
+      "scope": "Fixed baseline source versus candidate source with shared candidate dependencies; not historical results under old dependencies or native acceptance.",
+      "metricsNotExtractedFromRedirectedArtifact": true
+    },
+    "boundary": "Server-side synthetic/local API measurements do not measure physical-phone rendering, real network latency, or actual AI-provider response time."
+  },
+  "conditionalJobs": [
+    {
+      "id": 124908770911,
+      "name": "wechat-credentialed-preview",
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/41326089244/job/124908770911",
+      "executed": false
+    },
+    {
+      "id": 124908771023,
+      "name": "candidate-design-qa",
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/41326089244/job/124908771023",
+      "executed": false
+    }
+  ],
+  "acceptanceBoundary": {
+    "fullNative40RouteMatrixPassed": false,
+    "fullNative40RouteMatrixStatus": "Not established by this CI; design status explicitly reports incomplete matrix and releaseReady false.",
+    "credentialedWechatPreviewPassed": false,
+    "credentialedWechatPreviewStatus": "Conditional job skipped; no preview or device acceptance is inferred.",
+    "realTwoIdentitySupportAcceptance": "Not established by this CI; remains separate from synthetic tests.",
+    "httpEvidence": "286 routes executed with 248 entry rejections; not full security acceptance.",
+    "restoreEvidence": "Owned synthetic database restore and one owned synthetic object only; not production backup recovery.",
+    "editorialNativeEvidence": "Parent-reported three native screenshots and trial data update are separate evidence; this CI summary does not independently recertify them.",
+    "skippedDoesNotMeanPassed": true
+  },
+  "containsFullLogs": false,
+  "containsSensitiveValues": false,
+  "mutationsPerformedByThisSummary": [
+    "Only tmp/editorial-brand-20261101/ci-final-summary.json written; no tracked-file, environment, server, Git or GitHub mutation performed."
+  ]
+}

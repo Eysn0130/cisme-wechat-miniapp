@@ -34,7 +34,12 @@
   "simulatorPluginLibVersion": {},
   "packOptions": {
     "ignore": [],
-    "include": []
+    "include": [
+      {
+        "type": "file",
+        "value": "assets/cisme/cisme-scalp-lab-avatar-v1.jpg"
+      }
+    ]
   },
   "editorSetting": {},
   "isGameTourist": false
