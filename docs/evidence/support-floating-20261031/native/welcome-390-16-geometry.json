@@ -1,0 +1,288 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 390,
+        "font": 16,
+        "selectors": [
+          ".support-topbar",
+          ".support-thread",
+          ".support-welcome-message",
+          ".support-bubble",
+          ".support-message__sender",
+          ".support-human",
+          ".support-composer",
+          ".support-input",
+          ".support-typing",
+          ".support-error",
+          ".support-queue-notice",
+          ".support-composer__actions",
+          ".support-action-pill",
+          ".support-topic",
+          ".support-composer__surface",
+          ".support-avatar--ai image"
+        ],
+        "boxes": [
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 0,
+              "bottom": 91,
+              "width": 390,
+              "height": 91,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)",
+              "backgroundColor": "rgba(248, 244, 249, 0.94)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 389,
+              "top": 91,
+              "bottom": 634,
+              "width": 389,
+              "height": 543,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 13,
+              "right": 378,
+              "top": 116,
+              "bottom": 198.375,
+              "width": 365,
+              "height": 82.375,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 61,
+              "right": 331.09375,
+              "top": 135,
+              "bottom": 198.375,
+              "width": 270.09375,
+              "height": 63.375,
+              "fontSize": "14px",
+              "lineHeight": "21.7px",
+              "minHeight": "auto",
+              "color": "rgb(63, 52, 68)",
+              "backgroundColor": "rgb(240, 231, 243)",
+              "borderTopWidth": "1px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 66,
+              "right": 145.140625,
+              "top": 116,
+              "bottom": 131,
+              "width": 79.140625,
+              "height": 15,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "auto",
+              "color": "rgb(117, 105, 122)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 10,
+              "right": 84,
+              "top": 641,
+              "bottom": 685,
+              "width": 74,
+              "height": 44,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "44px",
+              "color": "rgb(86, 48, 111)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            },
+            {
+              "left": 88,
+              "right": 150,
+              "top": 641,
+              "bottom": 685,
+              "width": 62,
+              "height": 44,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "44px",
+              "color": "rgb(86, 48, 111)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 0,
+              "right": 390,
+              "top": 634,
+              "bottom": 844,
+              "width": 390,
+              "height": 210,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 11,
+              "right": 379,
+              "top": 686,
+              "bottom": 802,
+              "width": 368,
+              "height": 116,
+              "fontSize": "14px",
+              "lineHeight": "20.0004px",
+              "minHeight": "116px",
+              "color": "rgb(53, 42, 58)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "hidden auto"
+            }
+          ],
+          [],
+          [],
+          [],
+          [
+            {
+              "left": 10,
+              "right": 380,
+              "top": 641,
+              "bottom": 685,
+              "width": 370,
+              "height": 44,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 12,
+              "right": 82,
+              "top": 649,
+              "bottom": 677,
+              "width": 70,
+              "height": 28,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "28px",
+              "color": "rgb(86, 48, 111)",
+              "backgroundColor": "rgba(238, 228, 242, 0.55)",
+              "borderTopWidth": "1px",
+              "boxShadow": "rgba(62, 39, 76, 0.06) 0px 2px 8px 0px",
+              "overflow": "visible"
+            },
+            {
+              "left": 90,
+              "right": 148,
+              "top": 649,
+              "bottom": 677,
+              "width": 58,
+              "height": 28,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "28px",
+              "color": "rgb(86, 48, 111)",
+              "backgroundColor": "rgba(238, 228, 242, 0.55)",
+              "borderTopWidth": "1px",
+              "boxShadow": "rgba(62, 39, 76, 0.06) 0px 2px 8px 0px",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 88,
+              "right": 150,
+              "top": 641,
+              "bottom": 685,
+              "width": 62,
+              "height": 44,
+              "fontSize": "12px",
+              "lineHeight": "15px",
+              "minHeight": "44px",
+              "color": "rgb(86, 48, 111)",
+              "backgroundColor": "rgba(0, 0, 0, 0)",
+              "borderTopWidth": "0px",
+              "boxShadow": "none",
+              "overflow": "visible"
+            }
+          ],
+          [
+            {
+              "left": 10,
+              "right": 380,
+              "top": 685,
+              "bottom": 803,
+              "width": 370,
+              "height": 118,
+              "fontSize": "14px",
+              "lineHeight": "normal",
+              "minHeight": "0px",
+              "color": "rgb(53, 42, 58)",
+              "backgroundColor": "rgb(255, 255, 255)",
+              "borderTopWidth": "1px",
+              "boxShadow": "none",
+              "overflow": "hidden"
+            }
+          ],
+          []
+        ],
+        "sessionPresent": false,
+        "scope": "synthetic visual layout; not authenticated API acceptance"
+      }
+    }
+  }
+}

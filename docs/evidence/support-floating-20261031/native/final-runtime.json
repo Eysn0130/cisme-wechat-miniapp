@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/account/index",
+        "width": 390,
+        "font": 16,
+        "sessionPresent": false,
+        "scope": "final native settings restored, no authenticated chat or admin session"
+      }
+    }
+  }
+}
