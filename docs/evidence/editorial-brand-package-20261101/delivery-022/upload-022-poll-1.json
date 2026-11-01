@@ -1,0 +1,172 @@
+{
+  "ok": true,
+  "tool": "polling_task_result",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "taskId": "confirmation_upload_52bcb1ff-5a77-4c68-9c05-9f9b6fd89559",
+    "taskType": "confirmation_upload",
+    "status": "success",
+    "createdAt": 1793552105946,
+    "updatedAt": 1793552125613,
+    "detail": "execution_success",
+    "result": {
+      "info": {
+        "size": {
+          "total": 1850347,
+          "packages": [
+            {
+              "name": "TOTAL",
+              "size": 1850347
+            },
+            {
+              "name": "main",
+              "size": 767346
+            },
+            {
+              "name": "/pages/aftersale/",
+              "size": 33472
+            },
+            {
+              "name": "/pages/checkout/",
+              "size": 26872
+            },
+            {
+              "name": "/pages/commission/",
+              "size": 35209
+            },
+            {
+              "name": "/pages/community-activity/",
+              "size": 22822
+            },
+            {
+              "name": "/pages/community-author/",
+              "size": 14917
+            },
+            {
+              "name": "/pages/community-compose/",
+              "size": 45404
+            },
+            {
+              "name": "/pages/community-post/",
+              "size": 26591
+            },
+            {
+              "name": "/pages/community-review/",
+              "size": 32126
+            },
+            {
+              "name": "/pages/invite/",
+              "size": 14993
+            },
+            {
+              "name": "/pages/legal/",
+              "size": 3792
+            },
+            {
+              "name": "/pages/management-catalog/",
+              "size": 8402
+            },
+            {
+              "name": "/pages/management-finance/",
+              "size": 29585
+            },
+            {
+              "name": "/pages/management-fulfillment/",
+              "size": 15924
+            },
+            {
+              "name": "/pages/management-member/",
+              "size": 33151
+            },
+            {
+              "name": "/pages/management-members/",
+              "size": 34287
+            },
+            {
+              "name": "/pages/management-order-detail/",
+              "size": 19055
+            },
+            {
+              "name": "/pages/management-orders/",
+              "size": 9270
+            },
+            {
+              "name": "/pages/management-privacy/",
+              "size": 17983
+            },
+            {
+              "name": "/pages/management-product/",
+              "size": 19627
+            },
+            {
+              "name": "/pages/management-support-chat/",
+              "size": 77642
+            },
+            {
+              "name": "/pages/management-support/",
+              "size": 11071
+            },
+            {
+              "name": "/pages/management/",
+              "size": 19274
+            },
+            {
+              "name": "/pages/order-detail/",
+              "size": 83987
+            },
+            {
+              "name": "/pages/orders/",
+              "size": 9220
+            },
+            {
+              "name": "/pages/points/",
+              "size": 11372
+            },
+            {
+              "name": "/pages/post/",
+              "size": 98763
+            },
+            {
+              "name": "/pages/privacy-rights/",
+              "size": 52095
+            },
+            {
+              "name": "/pages/product/",
+              "size": 16551
+            },
+            {
+              "name": "/pages/progress/",
+              "size": 21100
+            },
+            {
+              "name": "/pages/referral/",
+              "size": 6834
+            },
+            {
+              "name": "/pages/settings/",
+              "size": 75544
+            },
+            {
+              "name": "/pages/shop/",
+              "size": 9293
+            },
+            {
+              "name": "/pages/submit/",
+              "size": 39210
+            },
+            {
+              "name": "/pages/support/",
+              "size": 91136
+            },
+            {
+              "name": "/pages/task/",
+              "size": 16427
+            }
+          ]
+        }
+      },
+      "success": true
+    }
+  }
+}

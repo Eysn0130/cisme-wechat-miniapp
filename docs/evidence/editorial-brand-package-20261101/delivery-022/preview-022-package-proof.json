@@ -1,0 +1,177 @@
+{
+  "recordedAt": "2026-11-01T16:46:59.201948+00:00",
+  "tool": "official wechatide create_preview_qrcode",
+  "purpose": "compile-only verification; final trial upload still required",
+  "sourceSha256": "a56de746b989c8b4a144b1aa1a2ccc95b50fb8949daf722a841e155681d160a6",
+  "officialExitCode": 0,
+  "toolSuccessPrefix": true,
+  "completeInfoObjectParsed": true,
+  "cliStdoutJsonTruncatedAt": 65536,
+  "truncationCause": "official CLI pretty-printed binary QR buffer reached65536-character stdout cap; no resend; complete info object parsed before QR bytes",
+  "privateQrFileProduced": true,
+  "qrPayloadNotPublished": true,
+  "compiledTotalBytes": 1850347,
+  "compiledMainBytes": 767346,
+  "previous021TotalBytes": 1757883,
+  "previous021MainBytes": 674882,
+  "totalAndMainDeltaBytes": 92464,
+  "jpegBytes": 92465,
+  "avatarLiteralPathDeltaBytes": -1,
+  "allOtherPackageSizesIdentical": true,
+  "avatarInclusionEvidence": "Exact byte accounting:92465 JPEG bytes minus1 path-literal byte matches both total/main compiled increase. Direct file-index inspection is not claimed.",
+  "info": {
+    "size": {
+      "total": 1850347,
+      "packages": [
+        {
+          "name": "TOTAL",
+          "size": 1850347
+        },
+        {
+          "name": "main",
+          "size": 767346
+        },
+        {
+          "name": "/pages/aftersale/",
+          "size": 33472
+        },
+        {
+          "name": "/pages/checkout/",
+          "size": 26872
+        },
+        {
+          "name": "/pages/commission/",
+          "size": 35209
+        },
+        {
+          "name": "/pages/community-activity/",
+          "size": 22822
+        },
+        {
+          "name": "/pages/community-author/",
+          "size": 14917
+        },
+        {
+          "name": "/pages/community-compose/",
+          "size": 45404
+        },
+        {
+          "name": "/pages/community-post/",
+          "size": 26591
+        },
+        {
+          "name": "/pages/community-review/",
+          "size": 32126
+        },
+        {
+          "name": "/pages/invite/",
+          "size": 14993
+        },
+        {
+          "name": "/pages/legal/",
+          "size": 3792
+        },
+        {
+          "name": "/pages/management-catalog/",
+          "size": 8402
+        },
+        {
+          "name": "/pages/management-finance/",
+          "size": 29585
+        },
+        {
+          "name": "/pages/management-fulfillment/",
+          "size": 15924
+        },
+        {
+          "name": "/pages/management-member/",
+          "size": 33151
+        },
+        {
+          "name": "/pages/management-members/",
+          "size": 34287
+        },
+        {
+          "name": "/pages/management-order-detail/",
+          "size": 19055
+        },
+        {
+          "name": "/pages/management-orders/",
+          "size": 9270
+        },
+        {
+          "name": "/pages/management-privacy/",
+          "size": 17983
+        },
+        {
+          "name": "/pages/management-product/",
+          "size": 19627
+        },
+        {
+          "name": "/pages/management-support-chat/",
+          "size": 77642
+        },
+        {
+          "name": "/pages/management-support/",
+          "size": 11071
+        },
+        {
+          "name": "/pages/management/",
+          "size": 19274
+        },
+        {
+          "name": "/pages/order-detail/",
+          "size": 83987
+        },
+        {
+          "name": "/pages/orders/",
+          "size": 9220
+        },
+        {
+          "name": "/pages/points/",
+          "size": 11372
+        },
+        {
+          "name": "/pages/post/",
+          "size": 98763
+        },
+        {
+          "name": "/pages/privacy-rights/",
+          "size": 52095
+        },
+        {
+          "name": "/pages/product/",
+          "size": 16551
+        },
+        {
+          "name": "/pages/progress/",
+          "size": 21100
+        },
+        {
+          "name": "/pages/referral/",
+          "size": 6834
+        },
+        {
+          "name": "/pages/settings/",
+          "size": 75544
+        },
+        {
+          "name": "/pages/shop/",
+          "size": 9293
+        },
+        {
+          "name": "/pages/submit/",
+          "size": 39210
+        },
+        {
+          "name": "/pages/support/",
+          "size": 91136
+        },
+        {
+          "name": "/pages/task/",
+          "size": 16427
+        }
+      ]
+    }
+  }
+}

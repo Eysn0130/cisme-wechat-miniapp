@@ -11,15 +11,43 @@
   "typecheck": "passed",
   "nativeScreenshots": 3,
   "nativeScope": "actual native public article reads with preexisting identity;390x844/font16; no physical-device or full40-matrix claim",
-  "officialUpload": "pending terminal receipt",
-  "avatarPackaging": "JPEG whitelist supported and explicit include; final uploaded byte accounting pending",
+  "officialUpload": "success;0.1.22;confirmation_upload_52bcb1ff-5a77-4c68-9c05-9f9b6fd89559",
+  "avatarPackaging": "verified by exact official preview/upload byte accounting and supported JPEG explicit inclusion",
   "jpegBytes": 92465,
   "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
   "newDatabaseWrites": false,
   "artifacts": [
     {
       "path": "README.md",
-      "sha256": "292ed80554aeae0affeaf92b09ecfc08df257578f17892bdbbd9f56b691886a7"
+      "sha256": "e6acb7c0830fc40d98d6da597830dd808645c4876e2698fac078124def9d8ddc"
+    },
+    {
+      "path": "delivery-022/ci-final-022-summary.json",
+      "sha256": "626793aee24de165de533a7f30f03c040d0213c583c1dd07e54409db9cc964f6"
+    },
+    {
+      "path": "delivery-022/preview-022-package-proof.json",
+      "sha256": "a3e2d563312569e5fa4671e9373160977fcc4bdb2b977cbb676186d876f17af6"
+    },
+    {
+      "path": "delivery-022/release-receipt.json",
+      "sha256": "652c499e533a0309012d88d43e5a7db4930a92cabfcc62108ee2269ff60ebf25"
+    },
+    {
+      "path": "delivery-022/upload-022-original-receipt.json",
+      "sha256": "c7a23512a5f5fd3a22ee2c8955010e8c1b1dde3a68c5320e6fd94d3a50df869c"
+    },
+    {
+      "path": "delivery-022/upload-022-poll-1.json",
+      "sha256": "59fa50036ff8821e2a72ae0673ff280f86c3d705f499be3cc9b5219d45fa6e30"
+    },
+    {
+      "path": "delivery-022/upload-022-started.json",
+      "sha256": "a1cf2807b57d928583873152f0880d982539d677d22c7bddac22534a461e5cd2"
+    },
+    {
+      "path": "delivery-022/upload-022-task.json",
+      "sha256": "8939122567abbda1703ec408f8eeece08ef07626c9c89b72099ae8044e75cd4d"
     },
     {
       "path": "native-author-022.json",
@@ -65,5 +93,16 @@
       "path": "unit-022.log",
       "sha256": "66cdea657e551c118577b629c01e8e96d81d55ee9f249bfb999c133ae0dc9fa8"
     }
-  ]
+  ],
+  "compiledUploadBytes": 1850347,
+  "compiledMainBytes": 767346,
+  "mergeCommit": "87710a472058fafdfddde4c6f1d2196785fb4adf",
+  "ci": {
+    "runId": 41327874626,
+    "head": "57f674641d5b7e7e68693b6ab4fa1a6a7106efc4",
+    "verify": "success",
+    "unitPassed": 2618,
+    "unitSkipped": 1,
+    "integrationPassed": 1131
+  }
 }
