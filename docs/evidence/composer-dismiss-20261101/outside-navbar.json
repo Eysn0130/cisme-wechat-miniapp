@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "composerOpen": false,
+        "draft": "仅验证草稿保留，不发送",
+        "leaving": false,
+        "previewBusy": false,
+        "commentCount": 3
+      }
+    }
+  }
+}

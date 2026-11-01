@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "bbc4c6e312ecb52a32565eeae91e79e6b63d7e917c58ac46d625fbfb5f9e67b7",
+  "scope": "ED-READ-05: editorial outside-tap composer dismissal; DevTools390x844/font16 only",
+  "sourceBaseline": "6e9eef30ebe337f128fb1a4bd45835a440548675",
+  "native": {
+    "device": "iPhone12/13 Pro",
+    "width": 390,
+    "height": 844,
+    "font": 16,
+    "ideZoom": "50% unchanged",
+    "realCommentCreated": false,
+    "realSocialWritePerformed": false,
+    "localDraftBaselineLength": 0,
+    "localDraftCleaned": true
+  },
+  "checks": [
+    "Expanded native textarea358x40 and send64x44; generic cancel absent",
+    "Native click inside editor retains it",
+    "Native coordinate click on image dismisses, preserves11-character local draft and does not preview",
+    "Native coordinate click on custom back area dismisses without navigating",
+    "Reopen restores identical local draft; cleanup restores empty draft",
+    "7 new async regression cases; blur then send retains existing one-write guard",
+    "2626 unit passed,1 existing skip; typecheck and package gate passed"
+  ],
+  "limitations": [
+    "No physical-device keyboard or screenreader acceptance in this task",
+    "Video native-component hit testing not exercised",
+    "Full40-route/device matrix remains blocked",
+    "Chrome reference screenshot tool produced390x168 cropped/scaled artifact; omitted as editor visual evidence; mobile DOM facts recorded separately"
+  ],
+  "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+  "files": {
+    "expanded-state.json": "af8e45c7af35c5469846dcc276c6e13874f1c35153957874bd8a4d744f990346",
+    "focused.log": "6e7d73c2e7a9a481a865bcc783aabc8651c43e9679525f7ff32fc5584cc1aada",
+    "inside-tap.json": "b149dcf4c30caf99191a616379a44e34276a8040a6a247e18ee9008fcdd71703",
+    "native-baseline.json": "fcd0e35422dc453f91e0a9b63d8afe6f9aa05ed6742e2dee92150ea45111ca30",
+    "native-cleaned.json": "de1271a97c6c6cbecf7d871572a0b5bd3fc98072d505bb4a2fc75cb353e5bf9d",
+    "native-draft-reopened.png": "4abc6114e9cc770a236f6f11832f06f36821ef6fc7ca4fc6766e2ffa97934842",
+    "native-expanded-empty.png": "7e17fe8ffa95d70bedc9097865d0bf4071dadb7f73876c7d0cd30b42fbefc23d",
+    "outside-image.json": "c0468d9f6a4ec55b5f0dba24a242b85e80d51629c5df402401dd8b63ca0b7efe",
+    "outside-navbar.json": "a7b22a48e93b01cf53a875f12c02095abcd56bd4d40e00bb8b5b7a80262a1797",
+    "package-gate.log": "c21a32098c18ce813f32f117d0f2d620671042d36b252112a706679ff400260f",
+    "package-source.json": "037250370f509bb6ab8f9a0b0f7e5211610dc21d2bbbd97a2053430aea1ffb60",
+    "reopened-state.json": "af8f9b2f3949daa6b562d13bf50fe8f4264c4cb1399ed93bc40bcf915d765faa",
+    "typecheck.log": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433",
+    "unit-final.log": "bad1b8c2d0fa93f5d0fb94e0d7a756eafb87233489fcbf3e9dd452766a22fe10",
+    "xhs-reference-facts.json": "e6a4353bbfce03b25e957ace508b607f31b55cc4006dd00d0f3985ef5fb8ab05",
+    "native-restored.json": "a3bbc43ea204454b74c6b820bc74f5c2cdbaebd6f15762cfe1f65bd9865daf9b"
+  }
+}

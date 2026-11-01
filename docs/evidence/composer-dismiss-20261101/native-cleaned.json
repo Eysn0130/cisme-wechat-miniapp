@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "composerOpen": false,
+        "draftLength": 0,
+        "replyPresent": false,
+        "draftOperationPresent": false,
+        "unknown": false,
+        "commentCount": 3,
+        "comments": [
+          {
+            "id": "9d373bdf-22a7-42ec-b9b4-31aecefe7579",
+            "version": 2
+          },
+          {
+            "id": "bea1ddfa-3c36-4b28-95b7-97404607b899",
+            "version": 1
+          },
+          {
+            "id": "b984f51e-cef8-4e85-adf3-b00334e1bad9",
+            "version": 1
+          }
+        ]
+      }
+    }
+  }
+}

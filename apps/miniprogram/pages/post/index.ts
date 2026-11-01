@@ -396,6 +396,10 @@ Page({
     this.syncCommentDraftOwner();this.setData({composerOpen:true,composerFocused:true,composerEventId:++this.composerSequence},()=>this.measureComposer());
   },
   closeComposer() { this.setData({composerOpen:false,composerFocused:false,keyboardHeight:0,composerEventId:++this.composerSequence});wx.hideKeyboard(); },
+  dismissComposer(event:WechatMiniprogram.CustomEvent) {
+    if(!this.data.editorialSource||!this.commentIntent()||!this.currentComposerEvent(event))return;
+    this.closeComposer();
+  },
   async sendEditorialComment() {
     const body=this.data.draft.trim();
     const length=Array.from(body).length;

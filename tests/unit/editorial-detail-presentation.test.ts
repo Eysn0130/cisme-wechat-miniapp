@@ -113,6 +113,21 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(markup).toMatch(/<button\b[^>]*bindtap="back"[^>]*>[\s\S]*?<image\b[^>]*src="\/assets\/icons\/arrow-left-ink\.svg"/);
   });
 
+  it("dismisses only outside the editor without intercepting its send control",()=>{
+    const dismiss=markup.match(/<view\b[^>]*class="post-composer-dismiss"[^>]*\/>/)?.[0];
+    expect(dismiss).toBeDefined();
+    expect(attribute(dismiss!,"wx:if")).toBe("{{item && editorialSource && commentAuthenticated && composerOpen}}");
+    expect(attribute(dismiss!,"data-composer-id")).toBe("{{composerEventId}}");
+    expect(attribute(dismiss!,"catchtap")).toBe("dismissComposer");
+    expect(markup).toMatch(/class="post-bottom-wrap \{\{editorialSource && commentAuthenticated && composerOpen \? 'post-bottom-wrap--editing' : ''\}\}"/);
+    const topbar=propertiesFor(".topbar",readFileSync(new URL("../../apps/miniprogram/app.wxss",import.meta.url),"utf8"));
+    expect(Number(propertiesFor(".post-composer-dismiss")["z-index"])).toBeGreaterThan(Number(topbar["z-index"]));
+    expect(Number(propertiesFor(".post-bottom-wrap--editing")["z-index"])).toBeGreaterThan(Number(propertiesFor(".post-composer-dismiss")["z-index"]));
+    expect(propertiesFor(".post-composer-dismiss").background).toBe("transparent");
+    expect(markup).not.toMatch(/post-composer-close|bindtap="closeComposer"/);
+    expect(markup).toContain('bindtap="cancelReply"');
+  });
+
   it("keeps the guest comment wall decorative and gates real comments and errors behind authentication",()=>{
     const start=markup.indexOf('<view wx:if="{{editorialSource}}" id="post-comments"');
     const end=markup.indexOf('<view wx:if="{{socialEnabled && !editorialSource}}" id="post-comments"',start);

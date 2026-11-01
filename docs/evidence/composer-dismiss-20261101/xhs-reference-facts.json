@@ -1,0 +1,26 @@
+{
+  "source": "https://www.xiaohongshu.com/explore/6a5d82bf00000000110107a3",
+  "method": "Existing logged-in Chrome session; separate task-owned tab;390x844 viewport; focused empty editor then clicked note heading; no text entered or submission",
+  "bar": {
+    "background": "rgba(0, 0, 0, 0)",
+    "className": "engage-bar active"
+  },
+  "cancelVisible": true,
+  "editor": {
+    "borderRadius": "20px",
+    "fontSize": "16px",
+    "height": 40,
+    "lineHeight": "22px",
+    "padding": "9px 16px",
+    "textLength": 0,
+    "width": 357.9921875
+  },
+  "outsideHeadingClick": {
+    "expandedStillPresent": true,
+    "focusedEditor": false
+  },
+  "viewport": {
+    "height": 844,
+    "width": 390
+  }
+}
