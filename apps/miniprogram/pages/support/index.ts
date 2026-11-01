@@ -33,11 +33,13 @@ type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyp
 type SelectedImage = { localPath: string; size: number; mimeType: string; status: "uploading" | "ready" | "failed"; progress: number; mediaId: string; error: string };
 type OrderChoice = { id: string; orderNumberTail: string; status: string; statusLabel: string; totalYuan: string; totalCents: number; currency: "CNY"; productName: string; productImage: string | null; itemSummary: string };
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null };
+type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string };
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
 const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", paid:"已付款", shipped:"已发货", delivered:"已签收", completed:"已完成", cancelled: "已取消", expired: "已超时" };
 function sessionToken(): string { return historicalCommerceToken(); }
 function isCancellation(error: unknown): boolean { return /cancel|abort/i.test(String((error as {errMsg?:string})?.errMsg ?? (error as {code?:string})?.code ?? error)); }
+function newTopicRequestId(): string { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => { const n = Math.floor(Math.random() * 16); return (char === 'x' ? n : n & 3 | 8).toString(16); }); }
 function memberComposerCanSend(input: string, image: SelectedImage | null, order: OrderChoice | null): boolean {
   if (image && (image.status !== "ready" || !image.mediaId)) return false;
   return Boolean(input.trim() || image?.mediaId || order);
@@ -52,6 +54,7 @@ Page({
   pollFailures: 0,
   lifecycleEpoch: 0,
   aiWaitRevision: 0,
+  newTopicRevision: 0,
   inputRevision: 0,
   orderSelectionRevision: 0,
   linkedOrderAttempt: 0,
@@ -70,6 +73,7 @@ Page({
   data: {
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
+    contextStartSequence: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, aiReplyWaiting: false, supportAiAvailable:false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
@@ -88,6 +92,7 @@ Page({
     const preserve = (retainMemberSnapshot(this)||Boolean(token&&this.snapshotToken===token)) && previousRevision===this.readRevision;
     this.snapshotToken=token;
     this.lifecycleEpoch += 1;
+    this.newTopicRevision += 1;
     this.stopAiReplyWait();
     this.data.pageAlive = true;
     this.data.visible = true;
@@ -96,7 +101,7 @@ Page({
     this.lastActivityAt = Date.now();
     this.orderPickerRevision += 1;
     this.orderPickerToken = "";
-    this.setData({ sending: false, handoffBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
+    this.setData({ sending: false, handoffBusy: false, newTopicBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
     if (!preserve) {
       this.inputRevision += 1;
       this.orderSelectionRevision += 1;
@@ -104,6 +109,7 @@ Page({
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
         historyLoaded: false, supportAiAvailable: false, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false,
+        contextStartSequence: 0, newTopicAvailable: false, newTopicAttempt: null,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
@@ -134,8 +140,10 @@ Page({
     wx.nextTick(() => this.measureComposer());
   },
   onHide() {
+    this.newTopicRevision += 1;
     this.stopAiReplyWait();
     cancelPageReads(this);
+    if (this.data.newTopicBusy) this.setData({ newTopicBusy: false, ...(this.data.newTopicAttempt ? { error: "新对话结果待确认，请点击「重试新对话」。", errorAction: "" } : {}) });
     void this.publishPresence(false, false, true);
     if (this.data.sending && this.data.sendAttempt) this.setData({
       sending: false, pendingMessage: this.pendingFrom(this.data.sendAttempt, "unknown"),
@@ -156,7 +164,7 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [] });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
-  onUnload() { this.stopAiReplyWait(); const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
+  onUnload() { this.newTopicRevision += 1; this.stopAiReplyWait(); const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
     if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
       !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null});
     else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
@@ -170,6 +178,12 @@ Page({
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
   stopAiReplyWait() { this.aiWaitRevision += 1; if (this.data.aiReplyWaiting) this.setData({ aiReplyWaiting: false }); },
   currentConversation(incoming: Conversation | null | undefined) { return newestSupportConversation(this.data.conversation, incoming); },
+  topicBoundary(page: { contextStartSequence?: unknown; conversation?: Conversation | null }, current: Conversation | null) {
+    const prior = this.data.conversation?.id === current?.id ? this.data.contextStartSequence : 0;
+    if (page.conversation?.id !== current?.id || (page.conversation && current && page.conversation.version < current.version)) return prior;
+    const value = Number(page.contextStartSequence ?? 0);
+    return Math.max(prior, Number.isSafeInteger(value) && value >= 0 ? value : 0);
+  },
   abortDownloads() {
     const downloads = this.mediaDownloads ?? [];
     this.mediaDownloads = [];
@@ -221,10 +235,12 @@ Page({
   composerControlKey() {
     if (this.data.closedRights) return "";
     const status = this.data.conversation?.status;
-    if (this.data.supportAiAvailable && status === "waiting_human") return "resume";
+    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && this.data.supportAiAvailable && this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved")
+      ? this.data.newTopicBusy ? ":topic-busy" : this.data.newTopicAttempt ? ":topic-retry" : ":topic" : "";
+    if (this.data.supportAiAvailable && status === "waiting_human") return "resume" + topic;
     if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))
-      return this.data.handoffBusy ? "handoff-busy" : "handoff";
-    return "";
+      return (this.data.handoffBusy ? "handoff-busy" : "handoff") + topic;
+    return topic;
   },
   setComposerState(patch: Record<string, unknown>) {
     const before = this.composerControlKey();
@@ -273,17 +289,21 @@ Page({
   async load() {
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const requestConversationId = this.data.conversation?.id;
     this.setComposerState({ loading: true, error: "", errorAction: "" });
     try {
       const page = await pageRead<any>(this,{ path: "/v1/me/support/messages", cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
+      if (requestConversationId !== this.data.conversation?.id && page.conversation?.id !== this.data.conversation?.id) return;
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
-      const messages = this.normalize(page.messages || []);
       const conversation = this.currentConversation(page.conversation);
+      const boundary = this.topicBoundary(page, conversation);
+      const messages = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       const state = conversation !== (page.conversation ?? null)
         ? mergeSyncPage(this.threadState(), this.present(messages, conversation, presence), page.latestCursor || 0)
         : createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor || 0);
       this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
+        contextStartSequence: boundary, newTopicAvailable: page.newTopicAvailable === true,
         anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
       this.downloadMedia(messages);
       await this.markRead();
@@ -294,29 +314,36 @@ Page({
     }
   },
   async poll() {
-    if (this.pollInFlight || !this.data.pageAlive || !this.data.visible || this.data.loading || this.data.sending || !this.data.conversation) { this.schedulePoll(); return; }
+    if (this.pollInFlight || !this.data.pageAlive || !this.data.visible || this.data.loading || this.data.sending || this.data.newTopicBusy || !this.data.conversation) { this.schedulePoll(); return; }
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     const after = this.data.syncCursor;
+    const requestConversationId = this.data.conversation.id;
     this.pollInFlight = true;
     try {
       const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
+      if (requestConversationId !== this.data.conversation?.id) return;
+      if (page.conversation?.id && page.conversation.id !== requestConversationId) { await this.load(); return; }
       const presence = { ...emptyPresence, ...(page.presence ?? this.data.presence) } as Presence;
       const conversation = this.currentConversation(page.conversation);
-      const incoming = this.normalize(page.messages || []);
+      const boundary = this.topicBoundary(page, conversation);
+      const changedTopic = conversation?.id !== this.data.conversation?.id || boundary > this.data.contextStartSequence;
+      const incoming = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       const knownIds = new Set(this.data.messages.map((item) => item.id));
       const freshCount = incoming.filter((item) => !knownIds.has(item.id)).length;
-      const state = mergeSyncPage(this.threadState(), this.present(incoming, conversation, presence), page.latestCursor ?? after);
+      const state = mergeSyncPage(changedTopic ? createSupportThreadState<Message>([], boundary) : this.threadState(), this.present(incoming, conversation, presence), page.latestCursor ?? after);
       const newest = state.messages[state.messages.length - 1];
       const shouldFollow = this.data.atBottom;
       if (freshCount || presence.operatorTyping) this.lastActivityAt = Date.now();
       this.applyThreadState(state, {
         conversation,
+        contextStartSequence: boundary, newTopicAvailable: page.newTopicAvailable === true,
+        ...(changedTopic ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
         supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true),
-        anchor: freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
-        newMessagesBelowCount: shouldFollow ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
-        newMessagesBelow: shouldFollow ? false : this.data.newMessagesBelow || freshCount > 0
+        anchor: changedTopic ? newest ? `support-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
+        newMessagesBelowCount: shouldFollow || changedTopic ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
+        newMessagesBelow: shouldFollow || changedTopic ? false : this.data.newMessagesBelow || freshCount > 0
       });
       if (incoming.length) this.downloadMedia(incoming);
       this.pollFailures = 0;
@@ -326,14 +353,18 @@ Page({
     finally { this.pollInFlight = false; this.schedulePoll(); }
   },
   async loadOlder() {
-    if (this.data.loadingOlder || this.data.olderCursor === null) return;
+    if (this.data.loadingOlder || this.data.olderCursor === null || this.data.newTopicBusy || this.data.newTopicAttempt) return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
+    const boundary = this.data.contextStartSequence;
+    const conversationId = this.data.conversation?.id;
     const preserve = this.data.messages[0]?.sequence;
     this.setData({ loadingOlder: true, atBottom: false });
     try {
       const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
-      if (!this.owns(epoch, ownerToken)) return;
+      if (!this.owns(epoch, ownerToken) || boundary !== this.data.contextStartSequence || conversationId !== this.data.conversation?.id) return;
+      if (page.conversation && page.conversation.id !== conversationId) { await this.load(); return; }
+      if (this.topicBoundary(page, this.currentConversation(page.conversation)) > boundary) { await this.load(); return; }
       const older = this.normalize(page.messages || []);
       this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null, anchor: preserve ? `support-${preserve}` : "" });
       this.downloadMedia(older);
@@ -372,7 +403,7 @@ Page({
     } catch {}
   },
   updateInput(event: WechatMiniprogram.TextareaInput) {
-    if(this.data.sending||this.data.sendAttempt)return;
+    if(this.data.sending||this.data.sendAttempt||this.data.newTopicBusy||this.data.newTopicAttempt)return;
     this.inputRevision += 1;
     this.lastActivityAt = Date.now();
     const input = event.detail.value;
@@ -407,7 +438,7 @@ Page({
     const body = previous?.body ?? this.data.input.trim();
     const mediaIds = previous?.mediaIds ?? (this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : []);
     const linkedOrderId = previous ? previous.linkedOrderId : (this.data.closedRights?this.linkedOrderId:(this.data.selectedOrder?.id ?? (!this.linkedOrderDismissed&&this.linkedOrderId?this.linkedOrderId:null)));
-    if ((this.data.closedRights?(!body||!linkedOrderId||mediaIds.length>0):previous?!Boolean(body||mediaIds.length||linkedOrderId):!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder)) || this.data.sending || this.data.uploadBusy) return;
+    if ((this.data.closedRights?(!body||!linkedOrderId||mediaIds.length>0):previous?!Boolean(body||mediaIds.length||linkedOrderId):!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder)) || this.data.sending || this.data.uploadBusy || this.data.newTopicBusy || this.data.newTopicAttempt) return;
     const signature = previous?.signature ?? this.sendSignature(body, mediaIds, linkedOrderId);
     const draftRevision = this.inputRevision;
     const epoch = this.lifecycleEpoch;
@@ -426,18 +457,27 @@ Page({
         ...(this.data.closedRights?{}:{mediaIds}),linkedOrderId }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       if (this.aiWaitRevision === waitRevision) this.stopAiReplyWait();
+      const priorConversationId = this.data.conversation?.id;
       const conversation = this.currentConversation(result.conversation);
-      const normalized = this.normalize([result.message], this.data.selectedImage);
-      if (!this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
-      if(Array.isArray(result.aiMessages)&&result.aiMessages.length)this.append(this.normalize(result.aiMessages));
+      const boundary = this.topicBoundary(result, conversation);
+      const changedConversation = conversation?.id !== this.data.conversation?.id;
+      if (changedConversation || boundary > this.data.contextStartSequence) this.applyThreadState(createSupportThreadState<Message>([], boundary), {
+        contextStartSequence: boundary, olderCursor: boundary ? boundary + 1 : null, conversation,
+        newMessagesBelow: false, newMessagesBelowCount: 0, anchor: "", atBottom: true, loading: false, historyLoaded: true
+      });
+      const sameConversation = !result.contextSyncRequired && (!result.acknowledgedConversationId || result.acknowledgedConversationId === conversation?.id);
+      const normalized = sameConversation ? this.normalize([result.message], this.data.selectedImage).filter(item => item.sequence > boundary) : [];
+      if (normalized.length && !this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
+      if(sameConversation && Array.isArray(result.aiMessages)&&result.aiMessages.length)this.append(this.normalize(result.aiMessages).filter(item => item.sequence > boundary));
       const clearInput = this.inputRevision === draftRevision && this.data.input.trim() === body;
       const clearImage = this.data.selectedImage?.mediaId === mediaIds[0];
       const clearOrder = !this.data.closedRights && this.data.selectedOrder?.id === linkedOrderId;
       this.setComposerState({ ...(clearInput ? { input: "", composerCapped: false, composerLineCount: 1 } : {}),
         ...(clearImage ? { selectedImage: null } : {}), ...(clearOrder ? { selectedOrder: null } : {}),
         sendAttempt: null, composerSendEnabled: false, pendingMessage: null,
+        ...(typeof result.newTopicAvailable === 'boolean' ? { newTopicAvailable: result.newTopicAvailable } : {}),
         conversation, ...this.headerPatch(conversation, this.data.presence),
-        ...(result.aiStatus==='pending' && conversation?.status==='ai_active' && !this.data.handoffBusy && !this.data.handoffFailed
+        ...(sameConversation && result.aiStatus==='pending' && result.message.sequence > boundary && conversation?.status==='ai_active' && !this.data.handoffBusy && !this.data.handoffFailed
           ?{error:"消息已收到，AI 回复暂未确认。你可以继续留言，或申请人工客服。",errorAction:"handoff",handoffFailed:false}:{}) });
       if (clearInput) {
         this.inputRevision += 1;
@@ -447,6 +487,10 @@ Page({
       this.setData({ composerSendEnabled: this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,this.data.selectedOrder) });
       this.uploadAbort = null;
       this.startPolling();
+      if (changedConversation && (priorConversationId || !sameConversation) || result.contextSyncRequired) {
+        await this.load();
+        if (this.owns(epoch, ownerToken) && this.data.error) this.setData({ error: "消息已收到，对话暂未同步，请刷新查看。", errorAction: "sync" });
+      }
       await this.markRead();
       wx.nextTick(() => this.measureComposer());
     } catch {
@@ -461,7 +505,7 @@ Page({
   retrySend() { void this.send(); },
   prepareAttachmentSheet(attachmentSheetMode: "image" | "attachment") {
     if(this.data.closedRights)return;
-    if (this.data.sending || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage) return;
+    if (this.data.sending || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.newTopicBusy || this.data.newTopicAttempt) return;
     if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
     this.setData({ attachmentSheetOpen: true, attachmentSheetMode, composerFocused: false });
   },
@@ -471,7 +515,7 @@ Page({
   stopPropagation() {},
   mimeForPath(path: string): string | null { const lower = path.toLowerCase(); return /\.(jpg|jpeg)$/.test(lower) ? "image/jpeg" : lower.endsWith(".png") ? "image/png" : lower.endsWith(".webp") ? "image/webp" : null; },
   async chooseImage(event: WechatMiniprogram.TouchEvent) {
-    if (this.choosingImage || !this.data.pageAlive || !this.data.visible) return;
+    if (this.choosingImage || !this.data.pageAlive || !this.data.visible || this.data.newTopicBusy || this.data.newTopicAttempt) return;
     const source = event.currentTarget.dataset.source === "camera" ? "camera" : "album";
     const ownerToken = sessionToken();
     const revision = commerceContextRevision();
@@ -520,7 +564,7 @@ Page({
   },
   async uploadImage(candidate?: SelectedImage | null) {
     const selected = candidate ?? this.data.selectedImage;
-    if (!selected || this.data.uploadBusy) return;
+    if (!selected || this.data.uploadBusy || this.data.newTopicBusy || this.data.newTopicAttempt) return;
     const attempt = ++this.uploadAttempt;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
@@ -555,7 +599,7 @@ Page({
   },
   retryImageUpload() { if(!this.data.sendAttempt)void this.uploadImage(); },
   removeImage() {
-    if(this.data.sendAttempt)return;
+    if(this.data.sendAttempt||this.data.newTopicBusy||this.data.newTopicAttempt)return;
     const mediaId = this.data.selectedImage?.mediaId;
     this.uploadAttempt += 1;
     this.uploadAbort?.(); this.uploadAbort = null;
@@ -605,7 +649,7 @@ Page({
     this.setData({ orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
   },
   selectOrder(event: WechatMiniprogram.TouchEvent) {
-    if(this.data.closedRights||this.data.sendAttempt||this.data.sending||this.data.orderPickerLoading||!this.data.orderPickerOpen||!this.owns(this.lifecycleEpoch,this.orderPickerToken))return;
+    if(this.data.closedRights||this.data.sendAttempt||this.data.sending||this.data.newTopicBusy||this.data.newTopicAttempt||this.data.orderPickerLoading||!this.data.orderPickerOpen||!this.owns(this.lifecycleEpoch,this.orderPickerToken))return;
     const selected = this.data.orderChoices.find((order) => order.id === String(event.currentTarget.dataset.id ?? ""));
     if (!selected) return;
     this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
@@ -614,7 +658,7 @@ Page({
     wx.nextTick(() => this.measureComposer());
   },
   removeOrder() {
-    if(this.data.closedRights||this.data.sendAttempt||this.data.sending)return;
+    if(this.data.closedRights||this.data.sendAttempt||this.data.sending||this.data.newTopicBusy||this.data.newTopicAttempt)return;
     this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
     this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) });
     wx.nextTick(() => this.measureComposer());
@@ -646,7 +690,7 @@ Page({
     wx.previewImage({ current, urls: attachments.map((attachment) => attachment.localPath!) });
   },
   async requestHuman() {
-    if(this.data.closedRights)return;
+    if(this.data.closedRights || this.data.newTopicBusy || this.data.newTopicAttempt)return;
     if (this.data.handoffBusy) return;
     this.stopAiReplyWait();
     const epoch = this.lifecycleEpoch;
@@ -662,7 +706,7 @@ Page({
     finally { if (this.owns(epoch, ownerToken)) this.setComposerState({ handoffBusy: false }); }
   },
   async resumeAi() {
-    if(this.data.closedRights||!this.data.supportAiAvailable||this.data.handoffBusy||this.data.sending||this.data.conversation?.status!=="waiting_human")return;
+    if(this.data.closedRights||this.data.newTopicBusy||this.data.newTopicAttempt||!this.data.supportAiAvailable||this.data.handoffBusy||this.data.sending||this.data.conversation?.status!=="waiting_human")return;
     const epoch=this.lifecycleEpoch,ownerToken=sessionToken(),expectedVersion=this.data.conversation.version;
     this.setComposerState({handoffBusy:true,error:"",errorAction:""});
     try{
@@ -678,6 +722,71 @@ Page({
     finally{if(this.owns(epoch,ownerToken))this.setComposerState({handoffBusy:false});}
   },
   retryHandoff() { void this.requestHuman(); },
+  clearTopicDraft() {
+    this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderAttempt += 1;
+    this.linkedOrderDismissed = true;
+    takeSupportDraft(sessionToken(), this.linkedOrderId || GENERAL_SUPPORT_SCOPE);
+    this.setData({ input: "", selectedImage: null, selectedOrder: null, composerSendEnabled: false,
+      composerCapped: false, composerLineCount: 1, attachmentSheetOpen: false, orderPickerOpen: false });
+    this.scheduleComposerMeasure();
+  },
+  async startNewTopic() {
+    if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.data.newTopicBusy || this.data.sending
+      || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.handoffBusy) return;
+    const previous = this.data.newTopicAttempt;
+    const status = this.data.conversation?.status;
+    if (!previous && (!this.data.historyLoaded || this.data.loading || !this.data.newTopicAvailable || !this.data.supportAiAvailable
+      || status && status !== "ai_active" && status !== "resolved")) return;
+    let epoch = this.lifecycleEpoch;
+    const ownerToken = sessionToken();
+    if (this.snapshotToken && this.snapshotToken !== ownerToken) return;
+    const revision = ++this.newTopicRevision;
+    const draft = () => JSON.stringify([this.inputRevision, this.data.input, this.data.selectedImage?.localPath, this.data.selectedImage?.mediaId, this.data.selectedOrder?.id]);
+    const reviewedDraft = draft();
+    this.setComposerState({ newTopicBusy: true });
+    try {
+      if (!previous && (this.data.input.trim() || this.data.selectedImage || this.data.selectedOrder)) {
+        const answer = await wx.showModal({ title: "开始新对话？", content: "当前未发送的内容会清空，历史聊天记录仍可查看。", confirmText: "开始新对话" });
+        if (!answer.confirm || !this.owns(epoch, ownerToken)) return;
+        if (draft() !== reviewedDraft) { wx.showToast({ title: "内容已变化，请重新开启", icon: "none" }); return; }
+      }
+      if (!this.owns(epoch, ownerToken)) return;
+      const current = this.data.conversation;
+      if (!previous && !current) { this.clearTopicDraft(); return; }
+      const attempt = previous ?? { conversationId: current!.id, expectedVersion: current!.version, requestId: newTopicRequestId() };
+      this.stopPolling(); cancelPageReads(this); this.stopAiReplyWait(); this.abortDownloads();
+      epoch = ++this.lifecycleEpoch;
+      this.setComposerState({ newTopicAttempt: attempt, error: "", errorAction: "", loadingOlder: false });
+      const page = await request<any>({ path: "/v1/me/support/new-topic", method: "POST", data: attempt, cacheTags: ["support"] });
+      if (!this.owns(epoch, ownerToken)) return;
+      if (page.conversation?.id !== attempt.conversationId || !Number.isSafeInteger(page.contextStartSequence) || page.contextStartSequence < 0)
+        throw new Error("NEW_TOPIC_RECEIPT_UNCONFIRMED");
+      const conversation = this.currentConversation(page.conversation), boundary = this.topicBoundary(page, conversation);
+      const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
+      const messages = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
+      this.clearTopicDraft();
+      this.applyThreadState(createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor ?? boundary), {
+        conversation, contextStartSequence: boundary, newTopicAvailable: page.newTopicAvailable === true,
+        supportAiAvailable: page.supportAiAvailable === true, ...this.headerPatch(conversation, presence, page.supportAiAvailable === true),
+        newTopicAttempt: null, handoffFailed: false, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true,
+        atBottom: true, anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "",
+        newMessagesBelow: false, newMessagesBelowCount: 0, error: "", errorAction: ""
+      });
+      this.downloadMedia(messages); await this.markRead();
+    } catch (error) {
+      if (this.owns(epoch, ownerToken)) {
+        const status = (error as { status?: number })?.status;
+        if (status && status >= 400 && status < 500) {
+          this.setComposerState({ newTopicAttempt: null });
+          await this.load();
+          if (this.owns(epoch, ownerToken)) this.setData({ error: "会话已变化，请核对后再开启新对话。", errorAction: "sync" });
+        } else this.setData({ error: "新对话结果待确认，请点击「重试新对话」。", errorAction: "" });
+      }
+    } finally {
+      if (this.data.pageAlive && this.newTopicRevision === revision) this.setComposerState({ newTopicBusy: false });
+      if (this.owns(epoch, ownerToken)) this.startPolling();
+    }
+  },
   retry() { void this.load(); if(this.linkedOrderId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },
   back() { wx.navigateBack({ fail: () => this.data.closedRights
     ?wx.redirectTo({url:'/pages/orders/index'}):wx.switchTab({ url: "/pages/profile/index" }) }); }

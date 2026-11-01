@@ -4346,7 +4346,7 @@
       "actorColumns": [
         "principal_id"
       ],
-      "specialHandling": "principal_id joins canonical identity or member:member.id; operation/business_key are typed object references. Never export raw response_body, key or request_hash.",
+      "specialHandling": "principal_id joins canonical identity or member:member.id; operation/business_key are typed object references. Never export raw response_body, key or request_hash. support.conversation.new_topic uses stable member:member.id ownership and typed support-topic:<conversationId>:v<expectedVersion> references. Its receipt contains only conversationId, contextStartSequence and resultVersion, with no chat body; the exclusive boundary survives ordinary-message retention and is scoped to the same owner and conversation. No new raw export or erasure permission is granted.",
       "exportFields": [],
       "excludedFields": [
         "principal_id",

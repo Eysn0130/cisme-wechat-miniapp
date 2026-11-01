@@ -137,12 +137,26 @@ describe('persistent AI support and manual handoff',()=>{
   await expect(pool.query("UPDATE support_conversation SET status='ai_active',version=version+1,updated_at=clock_timestamp() WHERE id=$1",[waiting.id])).rejects.toThrow(/SUPPORT_CONVERSATION_ILLEGAL_TRANSITION/);
  });
  it('returns the committed member receipt on a subsequent database failure, and the identical retry recovers exactly one AI reply',async()=>{
-  const original=pool.query.bind(pool);let failed=false;
-  const spy=vi.spyOn(pool,'query').mockImplementation(((...args:any[])=>{
-   if(!failed&&String(args[0]).includes('SELECT * FROM support_conversation WHERE member_id=$1')){failed=true;return Promise.reject(new Error('synthetic read outage'));}
-   return (original as any)(...args);
+  const original=pool.connect.bind(pool);let failed=false;
+  const observed=new Set<object>(),restores:Array<()=>void>=[];
+  const spy=vi.spyOn(pool,'connect').mockImplementation((async()=>{
+   const client=await original();
+   if(!observed.has(client)){
+    observed.add(client);const query=client.query.bind(client);let readOnly=false;
+    const fault=vi.spyOn(client,'query').mockImplementation(((...args:any[])=>{
+     const sql=String(args[0]);
+     if(/^BEGIN /i.test(sql))readOnly=/READ ONLY/i.test(sql);
+     if(readOnly&&!failed&&sql.includes('SELECT * FROM support_conversation WHERE member_id=$1')){
+      failed=true;return Promise.reject(new Error('synthetic read outage'));
+     }
+     if(/^(COMMIT|ROLLBACK)/i.test(sql))readOnly=false;
+     return (query as any)(...args);
+    }) as any);
+    restores.push(()=>fault.mockRestore());
+   }
+   return client;
   }) as any);
-  let first:any;try{first=await send();}finally{spy.mockRestore();}
+  let first:any;try{first=await send();}finally{spy.mockRestore();for(const restore of restores)restore();}
   expect(first).toMatchObject({replayed:false,aiStatus:'pending',aiMessages:[]});expect(first.message.body).toBe('如何记录护理？');expect(suggest).not.toHaveBeenCalled();
   const retry=await send();expect(retry).toMatchObject({replayed:true,message:{id:first.message.id},aiStatus:'replied'});expect(suggest).toHaveBeenCalledOnce();
   const counts=(await pool.query("SELECT sender_type,count(*)::int n FROM support_message WHERE conversation_id=$1 GROUP BY sender_type",[first.conversation.id])).rows;expect(counts).toEqual(expect.arrayContaining([{sender_type:'user',n:1},{sender_type:'ai',n:1}]));

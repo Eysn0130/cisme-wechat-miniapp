@@ -568,16 +568,36 @@
   opacity: .42;
 }
 
-.support-human {
+.support-composer__actions {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: .25rem;
+}
+
+.support-human {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
   min-height: 44px;
-  margin: 3rpx 8rpx -8rpx;
-  padding: 0;
-  color: #72557f;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 .125rem;
+  color: var(--cisme-plum);
   background: transparent;
   font-size: .75rem;
+  line-height: 1.25;
+}
+
+.support-action-pill {
+  display: flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: .25rem .625rem;
+  border: 1px solid var(--cisme-line);
+  border-radius: 999px;
+  background: rgba(238, 228, 242, .55);
 }
 
 .support-draft-attachments {

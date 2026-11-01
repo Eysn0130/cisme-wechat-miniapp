@@ -1317,7 +1317,7 @@ paths:
       tags: [Support]
       operationId: ownSupportMessages
       security: [{session: []}]
-      description: Latest, older-before, or incremental-after persisted messages from the caller's single support conversation. An empty read is side-effect free and does not create a conversation or greeting message. A fixed AI welcome is presentation only.
+      description: Reads the caller's single support conversation. Ordinary default and incremental-after reads contain only the current AI topic, whose exclusive contextStartSequence is derived from owner-scoped typed command receipts. Explicit before reads can still retrieve retained older history. Responses include newTopicAvailable as a feature capability; historical privacy-rights sessions retain their full order-support history with this capability false and boundary zero. An empty read creates no conversation, greeting, topic or model call. A fixed AI welcome is presentation only.
       parameters: [{name: after, in: query, schema: {type: integer, minimum: 0}}, {name: before, in: query, schema: {type: integer, minimum: 1}}, {$ref: '#/components/parameters/PageLimit'}]
       responses: {'200': {description: Cursor page; PostgreSQL sequence is authoritative}}
     post:
@@ -1331,6 +1331,14 @@ paths:
     post: {tags: [Support], operationId: requestHumanSupport, security: [{session: []}], description: The member explicitly requests human support, including before sending a first message. This command creates the waiting_human request and its event; model confidence, attachments and failures do not invoke it implicitly. An existing assigned operator is preserved., responses: {'200': {description: Idempotent transition to waiting_human; a late AI result cannot reclaim a waiting or human_active conversation}}}
   /v1/me/support/resume-ai:
     post: {tags: [Support], security: [{session: []}], summary: 会员明确退出人工等待并继续 AI 咨询, operationId: resumeSupportAi, x-release-stage: R0_GATED, x-transaction-profile: MAKE, x-required-gates: [SUPPORT_AI_PROVIDER], x-authority: member-session-owner, x-idempotency: expectedVersion-and-current-status, x-state-guards: "waiting_human or resolved; expectedVersion; provider available; human_active forbidden", requestBody: {required: true, content: {application/json: {schema: {type: object, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: 会话已切换 AI 且历史保留}, '409': {description: 会话已变化或人工已接管}, '503': {description: AI 不可用，继续等待人工}}}
+  /v1/me/support/new-topic:
+    post:
+      tags: [Support]
+      operationId: startOwnSupportTopic
+      security: [{session: []}]
+      description: Explicitly starts an AI topic in the existing ordinary support conversation. Requires its id and current version; waiting_human and human_active are never displaced. Records only a minimal typed command receipt and audit, increments conversation version and uses the current last sequence as an exclusive AI context boundary. Does not create or delete messages, change unread counts, call the model, erase history or grant authority. Replaying the same requestId with matching inputs does not reset again and returns a current message page; a later human assignment remains authoritative. Provider projections exclude all earlier topics even when ordinary old messages are lawfully purged. Privacy-rights identities cannot call this command.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [conversationId, expectedVersion, requestId], properties: {conversationId: {type: string, format: uuid}, expectedVersion: {type: integer, minimum: 1}, requestId: {type: string, format: uuid}}}}}}
+      responses: {'200': {description: Current topic page with contextStartSequence and feature capability}, '404': {description: No caller-owned matching conversation}, '409': {description: Version, human state or idempotency conflict}}
   /v1/me/support/read:
     post:
       tags: [Support]
