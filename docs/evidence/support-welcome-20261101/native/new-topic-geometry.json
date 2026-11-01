@@ -1,0 +1,80 @@
+{
+  "selectors": [
+    ".support-welcome-message",
+    ".support-welcome-message .support-bubble",
+    ".support-bubble",
+    ".support-message--pending",
+    ".support-composer",
+    ".support-thread"
+  ],
+  "boxes": [
+    [
+      {
+        "left": 13,
+        "right": 378,
+        "top": 116,
+        "bottom": 198.375,
+        "width": 365,
+        "height": 82.375,
+        "fontSize": "14px",
+        "lineHeight": "normal"
+      }
+    ],
+    [
+      {
+        "left": 61,
+        "right": 331.09375,
+        "top": 135,
+        "bottom": 198.375,
+        "width": 270.09375,
+        "height": 63.375,
+        "fontSize": "14px",
+        "lineHeight": "21.7px"
+      }
+    ],
+    [
+      {
+        "left": 61,
+        "right": 331.09375,
+        "top": 135,
+        "bottom": 198.375,
+        "width": 270.09375,
+        "height": 63.375,
+        "fontSize": "14px",
+        "lineHeight": "21.7px"
+      }
+    ],
+    [],
+    [
+      {
+        "left": 0,
+        "right": 390,
+        "top": 634,
+        "bottom": 844,
+        "width": 390,
+        "height": 210,
+        "fontSize": "14px",
+        "lineHeight": "normal"
+      }
+    ],
+    [
+      {
+        "left": 0,
+        "right": 389,
+        "top": 91,
+        "bottom": 634,
+        "width": 389,
+        "height": 543,
+        "fontSize": "14px",
+        "lineHeight": "normal"
+      }
+    ]
+  ],
+  "historyStartLoaded": true,
+  "historyLoaded": true,
+  "messageCount": 0,
+  "pendingPresent": false,
+  "visible": false,
+  "sessionPresent": false,
+  "scope": "setData native render fixture only"
+}

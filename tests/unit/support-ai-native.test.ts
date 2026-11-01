@@ -1,4 +1,6 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 const m=vi.hoisted(()=>({token:'synthetic-member',retain:true,closed:false,request:vi.fn(),read:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,requireMemberAccess:()=>true,retainMemberSnapshot:()=>m.retain,
  historicalCommerceToken:()=>m.token,historicalCommerceClosed:()=>m.closed,requireHistoricalCommerceAccess:()=>true,
@@ -13,6 +15,22 @@ function deferred(){let resolve!:(v:any)=>void,reject!:(v:any)=>void;const promi
 function captureComposerMeasurements(){
  const ticks:Array<()=>void>=[];(globalThis as any).wx.nextTick=(callback:()=>void)=>ticks.push(callback);p.measureComposer=vi.fn();return ticks;
 }
+const welcomeView=readFileSync(new URL('../../apps/miniprogram/pages/support/index.wxml',import.meta.url),'utf8');
+const welcomeConditions=[...welcomeView.matchAll(/<view wx:if="\{\{([^}]+)\}\}"[^>]*\bsupport-welcome-message\b/g)].map(match=>match[1]!);
+function welcomeCount(){
+ expect(welcomeConditions).toHaveLength(1);
+ return welcomeConditions.reduce((count,condition)=>{
+  const tokens=condition.match(/[A-Za-z_][A-Za-z0-9_]*|&&|\|\||!|\(|\)/g)??[];
+  expect(tokens.join('')).toBe(condition.replace(/\s/g,''));
+  const names=['historyLoaded','historyStartLoaded','closedRights','loading'];
+  for(const token of tokens)if(/^[A-Za-z_]/.test(token))expect(names).toContain(token);
+  const values=Object.fromEntries(names.map(name=>[name,p.data[name]===true]));
+  return count+Number(Boolean(runInNewContext(`(${condition})`,values,{timeout:100,contextCodeGeneration:{strings:false,wasm:false}})));
+ },0);
+}
+const historyPage=(extra:any={})=>({conversation:{...conversation},messages:[],latestCursor:0,olderCursor:null,
+ contextVersion:0,contextStartSequence:0,newTopicAvailable:true,supportAiAvailable:true,supportAiCanRespond:true,...extra});
+async function settlePage(){for(let index=0;index<8;index++)await Promise.resolve();}
 beforeEach(async()=>{
  vi.resetModules();vi.useFakeTimers();m.token='synthetic-member';m.retain=true;m.closed=false;m.request.mockReset();m.read.mockReset();
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token}});
@@ -219,4 +237,91 @@ describe('native AI and human support collaboration receipts',()=>{
   await p.send();expect(p.data.errorAction).toBe('sync');expect(p.data.error).not.toContain('申请人工');expect(p.data.pendingMessage).toBeNull();expect(p.data.sendAttempt).toBeNull();
  });
  it('does not expose a manual AI mode switching method',()=>{expect(p.resumeAi).toBeUndefined();});
+});
+
+describe('native current-topic welcome remains a presentation prefix',()=>{
+ it('keeps one welcome through pending, unknown result, successful retry, human states and re-entry without inventing messages',async()=>{
+  p.data.conversation=null;m.read.mockResolvedValue(historyPage({conversation:null}));await p.load();
+  expect(welcomeCount()).toBe(1);expect(p.data.messages).toEqual([]);expect(p.data.readCursor).toBe(0);expect(m.request).not.toHaveBeenCalled();
+  const first=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?first.promise:Promise.resolve({}));
+  const sending=p.send();expect(p.data.pendingMessage).not.toBeNull();expect(welcomeCount()).toBe(1);
+  first.reject({code:'NETWORK_TIMEOUT'});await sending;
+  const originalAttempt=p.data.sendAttempt.id;expect(p.data.pendingMessage.deliveryLabel).toBe('结果待核对');expect(welcomeCount()).toBe(1);
+  const retry=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?retry.promise:Promise.resolve({}));
+  const retrying=p.send();expect(welcomeCount()).toBe(1);
+  retry.resolve(historyPage({message:message('user',1),aiMessages:[message('ai',2)],aiStatus:'replied'}));await retrying;
+  expect(welcomeCount()).toBe(1);expect(p.data.messages.map((item:any)=>item.id)).toEqual(['synthetic-user-1','synthetic-ai-2']);
+  expect(p.data).toMatchObject({readCursor:2,maxSeenSequence:2,pendingMessage:null,sendAttempt:null});
+  const posts=m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/messages');expect(posts).toHaveLength(2);
+  expect(posts.every(([input])=>input.data.clientMessageId===originalAttempt&&input.data.body==='护理如何保存？')).toBe(true);
+  expect(JSON.stringify(m.request.mock.calls)).not.toContain('你好呀');
+  for(const [index,status] of ['waiting_human','human_active','resolved'].entries()){
+   m.read.mockResolvedValue(historyPage({conversation:{...conversation,status,version:4+index},latestCursor:2}));await p.poll();
+   expect(p.data.conversation.status).toBe(status);expect(welcomeCount()).toBe(1);expect(p.data.messages).toHaveLength(2);
+  }
+  p.onHide();p.onShow();await settlePage();expect(welcomeCount()).toBe(1);expect(p.data.messages).toHaveLength(2);expect(p.data.conversation.status).toBe('resolved');
+  expect(m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/messages')).toHaveLength(2);
+ });
+ it('keeps a successfully loaded prefix while a retry read is pending or fails, but never fabricates one on an initial failure or in closed-rights support',async()=>{
+  p.data.conversation=null;m.read.mockRejectedValueOnce(new Error('initial read failure'));await p.load();expect(welcomeCount()).toBe(0);
+  m.read.mockResolvedValueOnce(historyPage({conversation:null}));await p.load();expect(welcomeCount()).toBe(1);
+  const retry=deferred();m.read.mockReturnValueOnce(retry.promise);const loading=p.load();expect(p.data.loading).toBe(true);expect(welcomeCount()).toBe(1);
+  retry.reject(new Error('retry read failure'));await loading;expect(welcomeCount()).toBe(1);expect(p.data.errorAction).toBe('sync');
+  p.data.closedRights=true;expect(welcomeCount()).toBe(0);expect(p.data.messages).toEqual([]);expect(m.request).not.toHaveBeenCalled();
+ });
+ it('does not place the welcome before a recent fifty-message window and reveals it only after loading the topic head without changing the reading anchor',async()=>{
+  const latest=Array.from({length:50},(_,index)=>message('user',51+index));
+  m.read.mockResolvedValueOnce(historyPage({messages:latest,latestCursor:100,olderCursor:51}));await p.load();
+  expect(welcomeCount()).toBe(0);expect(p.data.historyStartLoaded).toBe(false);
+  m.read.mockResolvedValueOnce(historyPage({messages:Array.from({length:40},(_,index)=>message('user',11+index)),olderCursor:11,latestCursor:50}));await p.loadOlder();
+  expect(welcomeCount()).toBe(0);expect(p.data.anchor).toBe('support-51');
+  m.read.mockResolvedValueOnce(historyPage({messages:Array.from({length:10},(_,index)=>message('user',1+index)),olderCursor:null,latestCursor:10}));await p.loadOlder();
+  expect(welcomeCount()).toBe(1);expect(p.data.anchor).toBe('support-11');expect(p.data.messages).toHaveLength(100);
+  expect(p.data.messages[0].sequence).toBe(1);expect(p.data.readCursor).toBe(0);expect(p.data.syncCursor).toBe(100);
+  expect(m.request.mock.calls.some(([input])=>input.path==='/v1/me/support/messages')).toBe(false);
+ });
+ it('does not mistake a high-sequence first ACK or a late empty full read for the topic head',async()=>{
+  p.data.conversation=null;m.read.mockResolvedValueOnce(historyPage({conversation:null}));await p.load();expect(welcomeCount()).toBe(1);
+  const oldEmpty=deferred();m.read.mockReturnValueOnce(oldEmpty.promise);const loading=p.load();
+  m.request.mockImplementation(async input=>input.path==='/v1/me/support/messages'
+   ?historyPage({conversation:{...conversation,version:101},message:message('user',99),aiMessages:[message('ai',100)]}):{});
+  await p.send();expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([99,100]);expect(welcomeCount()).toBe(0);
+  oldEmpty.resolve(historyPage({conversation:{...conversation,version:90},messages:[],olderCursor:null}));await loading;
+  expect(p.data.conversation.version).toBe(101);expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([99,100]);expect(welcomeCount()).toBe(0);
+  m.read.mockResolvedValueOnce(historyPage({conversation:{...conversation,version:101},messages:Array.from({length:50},(_,index)=>message('user',index+1)),latestCursor:50}));await p.poll();
+  expect(p.data.messages[0].sequence).toBe(1);expect(welcomeCount()).toBe(1);
+ });
+ it.each(['history','poll'])('keeps a new-topic prefix and empty history when a retired %s response arrives late',async(kind)=>{
+  m.read.mockResolvedValueOnce(historyPage({messages:[message('user',51)],latestCursor:51,olderCursor:51}));await p.load();expect(welcomeCount()).toBe(0);
+  const old=deferred();m.read.mockReturnValueOnce(old.promise);const reading=kind==='history'?p.loadOlder():p.poll();
+  m.request.mockImplementation(async input=>input.path==='/v1/me/support/new-topic'
+   ?historyPage({conversation:{...conversation,version:4},contextVersion:4,contextStartSequence:51,latestCursor:51}):{});
+  await p.startNewTopic();expect(welcomeCount()).toBe(1);expect(p.data.messages).toEqual([]);
+  old.resolve(historyPage({messages:[message('user',1)],latestCursor:51,olderCursor:null}));await reading;
+  expect(p.data).toMatchObject({contextVersion:4,contextStartSequence:51,historyStartLoaded:true});expect(p.data.messages).toEqual([]);expect(welcomeCount()).toBe(1);
+ });
+ it('does not restore an old message or old head state when an ACK arrives after a newer topic was loaded',async()=>{
+  m.read.mockResolvedValueOnce(historyPage({messages:[message('user',1)],latestCursor:1}));await p.load();expect(welcomeCount()).toBe(1);
+  const old=deferred();m.request.mockImplementation(input=>input.path==='/v1/me/support/messages'?old.promise:Promise.resolve({}));const sending=p.send();
+  m.read.mockResolvedValueOnce(historyPage({conversation:{...conversation,version:5},contextVersion:5,contextStartSequence:2,latestCursor:2}));await p.load();
+  expect(p.data.messages).toEqual([]);expect(welcomeCount()).toBe(1);
+  old.resolve(historyPage({message:message('user',2),aiMessages:[message('ai',3)]}));await sending;
+  expect(p.data.contextVersion).toBe(5);expect(p.data.messages).toEqual([]);expect(welcomeCount()).toBe(1);
+ });
+ it('clears the previous identity head proof immediately and rejects its late history before loading the new identity',async()=>{
+  m.read.mockResolvedValueOnce(historyPage({messages:[message('user',1)],latestCursor:1}));await p.load();expect(welcomeCount()).toBe(1);
+  const old=deferred(),fresh=deferred();m.read.mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);const reading=p.load();
+  m.token='synthetic-other-member';m.retain=false;p.onShow();expect(p.data.historyStartLoaded).toBe(false);expect(welcomeCount()).toBe(0);
+  old.resolve(historyPage({messages:[message('user',1)],latestCursor:1}));await reading;expect(welcomeCount()).toBe(0);expect(p.data.messages).toEqual([]);
+  fresh.resolve(historyPage({conversation:null}));await settlePage();expect(welcomeCount()).toBe(1);expect(p.data.conversation).toBeNull();expect(p.data.messages).toEqual([]);
+ });
+ it('rechecks the topic head after an empty-page handoff assigns a previously unknown conversation ID',async()=>{
+  p.data.conversation=null;m.read.mockResolvedValueOnce(historyPage({conversation:null}));await p.load();expect(welcomeCount()).toBe(1);
+  m.request.mockResolvedValueOnce({...conversation,status:'waiting_human',version:1});await p.requestHuman();
+  expect(p.data.conversation.status).toBe('waiting_human');expect(p.data.messages).toEqual([]);expect(welcomeCount()).toBe(0);
+  m.read.mockResolvedValueOnce(historyPage({conversation:{...conversation,status:'waiting_human',version:1}}));await p.poll();
+  expect(welcomeCount()).toBe(1);expect(p.data.messages).toEqual([]);
+  expect(m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/handoff')).toHaveLength(1);
+  expect(m.request.mock.calls.some(([input])=>input.path==='/v1/me/support/messages')).toBe(false);
+ });
 });

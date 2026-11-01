@@ -257,16 +257,16 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "packageSourceSha256": "8b4ea1a3a94072fbbd02d17879cf57b395bb0fb861b637bf6215016a04f13d67",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "The current source repairs support resolution and original-question visibility. Full40-route state matrices and physical-device acceptance remain incomplete."
+      "reason": "The current source retains the local welcome at the confirmed beginning of a support topic. Full40-route state matrices and physical-device acceptance remain incomplete."
     }
   ],
-  "note": "Current support closure validation is scoped separately. Historical calendar and support frames retain their original source hashes in the archived records; they do not validate this source. Full40-route and physical-device acceptance remain blocked.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-1868cd6df93f.json",
+  "note": "Current welcome retention validation is scoped separately. Historical support and calendar frames retain their original source hashes and do not validate the current source. Full40-route and physical-device acceptance remain blocked.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-2191d52e04da.json",
   "pendingSourceRebind": false
 }

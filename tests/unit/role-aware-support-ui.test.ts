@@ -25,12 +25,14 @@ describe("role-aware native support UX",()=>{
   expect(userLogic).toContain("const sendAttempt = previous ??");expect(userLogic).toContain("linkedOrderId = previous ? previous.linkedOrderId");expect(operatorLogic).toContain("const sendAttempt = previous ??");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("sendAttempt.id");
  });
- it('separates a local empty-thread welcome, real thinking and human request status',async()=>{
+ it('keeps one local topic-head welcome separate from real messages, thinking and human request status',async()=>{
   const [view,style]=await Promise.all([read('apps/miniprogram/pages/support/index.wxml'),read('apps/miniprogram/pages/support/index.wxss')]);
   expect(view.startsWith('<page-meta root-font-size="system"/>')).toBe(true);
   const welcome=view.match(/<view wx:if="([^"]+)" class="support-message[^"\n]*support-welcome-message"/);
-  expect(welcome?.[1]).toContain('historyLoaded && !loading && !closedRights');expect(welcome?.[1]).toContain('!messages.length && !pendingMessage && !error');
-  expect(welcome?.[1]).toContain("!conversation || conversation.status === 'ai_active'");
+  expect(welcome?.[1]).toContain('historyLoaded');expect(welcome?.[1]).toContain('historyStartLoaded');expect(welcome?.[1]).toContain('!closedRights');
+  for(const transient of ['messages.length','pendingMessage','error','conversation.status','loading'])expect(welcome?.[1]).not.toContain(transient);
+  expect(view.match(/class="support-message[^"\n]*support-welcome-message/g)).toHaveLength(1);
+  expect(view.indexOf('support-welcome-message')).toBeLessThan(view.indexOf('<block wx:for="{{messages}}"'));
   expect(view).toContain('你好呀，我是 CISME AI 客服 😊 护理或使用小程序有疑问，都可以问我～');
   expect(view).toContain('你好呀 😊 有问题可以留言，也可以申请人工客服。');expect(view).toContain('正在思考…');
   expect(view).toContain("handoffFailed ? '重试申请' : '申请人工'");expect(view).not.toContain('重新提交');

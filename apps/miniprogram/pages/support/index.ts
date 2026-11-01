@@ -77,7 +77,7 @@ Page({
   mediaDownloads: [] as Array<() => void>,
   data: {
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
-    olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
+    olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
@@ -113,7 +113,7 @@ Page({
       this.linkedOrderDismissed = false;
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
-        historyLoaded: false, supportAiAvailable: false, supportAiCanRespond: null, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false, handoffAttempt: null,
+        historyLoaded: false, historyStartLoaded: false, supportAiAvailable: false, supportAiCanRespond: null, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false, handoffAttempt: null,
         contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicAttempt: null,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
@@ -216,7 +216,7 @@ Page({
     this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
     this.orderPickerRevision += 1; this.orderPickerToken = "";
     this.setComposerState({ ...(!keepAttempt ? { pendingMessage: null, sendAttempt: null, sending: false } : {}), uploadBusy: false, handoffBusy: false,
-      presence: emptyPresence, anchor: "", olderCursor: null, loadingOlder: false, handoffFailed: false, handoffAttempt: null,
+      presence: emptyPresence, anchor: "", olderCursor: null, historyStartLoaded: false, loadingOlder: false, handoffFailed: false, handoffAttempt: null,
       atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
   },
   abortDownloads() {
@@ -295,6 +295,10 @@ Page({
   },
   setComposerState(patch: Record<string, unknown>) {
     const before = this.composerControlKey();
+    const scopeChanged = "conversation" in patch && (patch.conversation as Conversation | null)?.id !== this.data.conversation?.id
+      || "contextVersion" in patch && patch.contextVersion !== this.data.contextVersion
+      || "contextStartSequence" in patch && patch.contextStartSequence !== this.data.contextStartSequence;
+    if (scopeChanged && !("historyStartLoaded" in patch)) patch = { ...patch, historyStartLoaded: false };
     this.setData(patch);
     if (before !== this.composerControlKey()) this.scheduleComposerMeasure();
   },
@@ -353,11 +357,15 @@ Page({
       const contextVersion = this.topicVersion(page, conversation);
       const changedTopic = this.changedTopic(conversation, contextVersion, boundary);
       const messages = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
-      const state = !changedTopic && conversation !== (page.conversation ?? null)
+      const mergeExisting = !changedTopic && conversation !== (page.conversation ?? null);
+      const state = mergeExisting
         ? mergeSyncPage(this.threadState(), this.present(messages, conversation, presence), page.latestCursor || 0)
         : createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor || 0);
+      // A stale empty read cannot prove the start of a later, longer thread.
+      const historyStartLoaded = mergeExisting && this.data.historyStartLoaded || page.olderCursor == null
+        && (messages.length > 0 || !state.messages.length || state.messages[0]!.sequence === boundary + 1);
       if (changedTopic) this.clearRetiredTopic(contextVersion, conversation?.id);
-      this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
+      this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, historyStartLoaded, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
       this.downloadMedia(messages);
@@ -390,13 +398,15 @@ Page({
       const knownIds = new Set(this.data.messages.map((item) => item.id));
       const freshCount = incoming.filter((item) => !knownIds.has(item.id)).length;
       const state = mergeSyncPage(changedTopic ? createSupportThreadState<Message>([], boundary) : this.threadState(), this.present(incoming, conversation, presence), page.latestCursor ?? after);
+      const historyStartLoaded = !changedTopic && this.data.historyStartLoaded || after <= boundary
+        && (incoming.length > 0 || !state.messages.length || state.messages[0]!.sequence === boundary + 1);
       const newest = state.messages[state.messages.length - 1];
       const shouldFollow = this.data.atBottom;
       if (freshCount || presence.operatorTyping) this.lastActivityAt = Date.now();
       if (changedTopic) this.clearRetiredTopic(contextVersion, conversation?.id);
       this.applyThreadState(state, {
         conversation,
-        contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
+        contextStartSequence: boundary, contextVersion, historyStartLoaded, newTopicAvailable: page.newTopicAvailable === true,
         ...(changedTopic ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
         ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true),
         anchor: changedTopic ? newest ? `support-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
@@ -426,7 +436,8 @@ Page({
       if (this.staleTopic(page)) return;
       if (this.topicVersion(page, this.currentConversation(page.conversation)) > contextVersion || this.topicBoundary(page, this.currentConversation(page.conversation)) > boundary) { await this.load(); return; }
       const older = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
-      this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null, anchor: preserve ? `support-${preserve}` : "" });
+      this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null,
+        historyStartLoaded: this.data.historyStartLoaded || page.olderCursor == null, anchor: preserve ? `support-${preserve}` : "" });
       this.downloadMedia(older);
     } catch { if (this.data.visible) wx.showToast({ title: "更早消息暂时无法加载", icon: "none" }); }
     finally { if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loadingOlder: false }); }
@@ -525,13 +536,14 @@ Page({
       const contextVersion = this.topicVersion(result, conversation);
       const changedConversation = conversation?.id !== this.data.conversation?.id;
       const changedTopic = this.changedTopic(conversation, contextVersion, boundary);
+      const sameConversation = !staleTopic && !result.contextSyncRequired && (sendAttempt.contextVersion??0) === contextVersion
+        && (!result.acknowledgedConversationId || result.acknowledgedConversationId === conversation?.id);
       if (changedTopic) this.clearRetiredTopic();
       if (changedConversation || changedTopic) this.applyThreadState(createSupportThreadState<Message>([], boundary), {
         contextStartSequence: boundary, contextVersion, olderCursor: null, conversation,
+        historyStartLoaded: sameConversation && result.message?.sequence === boundary + 1,
         newMessagesBelow: false, newMessagesBelowCount: 0, anchor: "", atBottom: true, loading: false, historyLoaded: true
       });
-      const sameConversation = !staleTopic && !result.contextSyncRequired && (sendAttempt.contextVersion??0) === contextVersion
-        && (!result.acknowledgedConversationId || result.acknowledgedConversationId === conversation?.id);
       const normalized = sameConversation ? this.normalize([result.message], this.data.selectedImage).filter(item => item.sequence > boundary) : [];
       if (normalized.length && !this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       if(sameConversation && Array.isArray(result.aiMessages)&&result.aiMessages.length)this.append(this.normalize(result.aiMessages).filter(item => item.sequence > boundary));
@@ -858,7 +870,7 @@ Page({
       this.applyThreadState(createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor ?? boundary), {
         conversation, contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         ...this.aiCapabilityPatch(page), ...this.headerPatch(conversation, presence, page.supportAiAvailable === true),
-        newTopicAttempt: null, handoffFailed: false, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true,
+        newTopicAttempt: null, handoffFailed: false, olderCursor: page.olderCursor ?? null, historyStartLoaded: page.olderCursor == null, loading: false, historyLoaded: true,
         atBottom: true, anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "",
         newMessagesBelow: false, newMessagesBelowCount: 0, error: "", errorAction: ""
       });

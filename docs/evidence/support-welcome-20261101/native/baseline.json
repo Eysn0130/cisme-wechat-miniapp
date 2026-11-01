@@ -1,0 +1,15 @@
+{
+  "route": "pages/account/index",
+  "options": {},
+  "sessionPresent": false,
+  "privacySessionPresent": false,
+  "apiOrigin": "https://staging-api.cisme.cn",
+  "ownedFixturePresent": false,
+  "activeAuthenticationFlow": false,
+  "busy": false,
+  "authReturnPresent": false,
+  "width": 390,
+  "font": 16,
+  "env": "develop",
+  "platform": "devtools"
+}
