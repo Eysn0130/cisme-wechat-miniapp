@@ -1,0 +1,69 @@
+{
+  "recordedAt": "2026-11-01T16:44:18.836156+00:00",
+  "requirements": [
+    "ED-PUBLISHER-02",
+    "ED-PUBLISHER-03"
+  ],
+  "packageSourceSha256": "a56de746b989c8b4a144b1aa1a2ccc95b50fb8949daf722a841e155681d160a6",
+  "targetVersion": "0.1.22",
+  "unitPassed": 2618,
+  "unitSkipped": 1,
+  "typecheck": "passed",
+  "nativeScreenshots": 3,
+  "nativeScope": "actual native public article reads with preexisting identity;390x844/font16; no physical-device or full40-matrix claim",
+  "officialUpload": "pending terminal receipt",
+  "avatarPackaging": "JPEG whitelist supported and explicit include; final uploaded byte accounting pending",
+  "jpegBytes": 92465,
+  "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+  "newDatabaseWrites": false,
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "292ed80554aeae0affeaf92b09ecfc08df257578f17892bdbbd9f56b691886a7"
+    },
+    {
+      "path": "native-author-022.json",
+      "sha256": "dad3ae0cc8eb137df196ef6b04f71638b23c70f47bb94ac6c32065e6a92256e9"
+    },
+    {
+      "path": "native-author-022.png",
+      "sha256": "11b3779afb197a2ca47d24263dd9b5287f79fe1ea2cc42924f5311802d96b3f8"
+    },
+    {
+      "path": "native-community-022.json",
+      "sha256": "cea28a91e24ead2c8293b41e4115267308b55a5ec9310dd87a52648278a8fe65"
+    },
+    {
+      "path": "native-community-022.png",
+      "sha256": "9b797fc57758f3d21e39bc1e0fb28464f28b8cf8ce7a1f9031f232f3d4ca98e4"
+    },
+    {
+      "path": "native-post-022.json",
+      "sha256": "fa87978d4f0186442ff3424262de3824bfeaed67f16b7ffa952be6ddcbb14954"
+    },
+    {
+      "path": "native-post-022.png",
+      "sha256": "34b5fa411fc63c881aeb4c06c40cced291c225d5cd749ace65f1fe98a2ed6963"
+    },
+    {
+      "path": "native-restored-022.json",
+      "sha256": "184b48c27244db7c305cb67d475ccd9db6b9fd8bad3c8287df985a03d915b43b"
+    },
+    {
+      "path": "package-gate.json",
+      "sha256": "fb06af54a243dac46ca71664c1fe7c020d14849645bc2c7563c75e09cf1ba910"
+    },
+    {
+      "path": "packaging-whitelist-proof.json",
+      "sha256": "ee51fde6b1c1c15f22d5ef1b6ad57496a49f79b4b8a16ad983134e213396f5e0"
+    },
+    {
+      "path": "typecheck-022.log",
+      "sha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
+    },
+    {
+      "path": "unit-022.log",
+      "sha256": "66cdea657e551c118577b629c01e8e96d81d55ee9f249bfb999c133ae0dc9fa8"
+    }
+  ]
+}

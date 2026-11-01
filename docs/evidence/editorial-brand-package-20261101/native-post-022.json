@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "loading": false,
+        "error": "",
+        "item": {
+          "author": "CISME头皮实验室",
+          "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.jpg"
+        }
+      }
+    }
+  }
+}

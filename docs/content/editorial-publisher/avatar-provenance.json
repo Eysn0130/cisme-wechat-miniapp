@@ -3,10 +3,17 @@
   "source": "User attachment supplied 2026-11-01 in this task",
   "sourceSha256": "e39d734b4123adf93277da4af6d151f43319083b1b241fc5eb96e6fc98ef1552",
   "sourceBytes": 543316,
-  "asset": "apps/miniprogram/assets/cisme/cisme-scalp-lab-avatar-v1.webp",
-  "assetSha256": "16341068753de1bf56cc038609e848aa1ce070c1e458ee6d403c842cfd64cd63",
-  "assetBytes": 97362,
-  "transformation": "Original 540x540 framing retained; encoded as WebP quality90 for native package size; no generated or replaced visual content",
+  "asset": "apps/miniprogram/assets/cisme/cisme-scalp-lab-avatar-v1.jpg",
+  "assetSha256": "c488c2d60276f4a3714d68efceb48f86756b6e6f55b6b01d35b128f46ec63398",
+  "assetBytes": 92465,
+  "transformation": "Original540x540 framing retained; JPEG quality90 for explicit native-package inclusion; no generated or replaced visual content",
   "authorization": "User explicitly requested use as current and future agent-published editorial author avatar",
-  "scope": "Owner-authorized editorial publisher presentation; no personal member or comment avatar change"
+  "scope": "Owner-authorized editorial publisher presentation; no personal member or comment avatar change",
+  "previousDerivation": {
+    "originalAssetPath": "apps/miniprogram/assets/cisme/cisme-scalp-lab-avatar-v1.webp",
+    "archivePath": "docs/content/editorial-publisher/cisme-scalp-lab-avatar-v1.webp",
+    "sha256": "16341068753de1bf56cc038609e848aa1ce070c1e458ee6d403c842cfd64cd63",
+    "bytes": 97362,
+    "scope": "0.1.21 native source rendering only; official upload omits this non-whitelisted WebP"
+  }
 }
