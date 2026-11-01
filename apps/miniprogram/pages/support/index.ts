@@ -25,6 +25,7 @@ import {
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
+  replyToMessageId?: string | null;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
   deliveryState: "server_accepted" | "read" };
 type Message = PresentedSupportMessage<RawMessage>;
@@ -34,7 +35,9 @@ type SelectedImage = { localPath: string; size: number; mimeType: string; status
 type OrderChoice = { id: string; orderNumberTail: string; status: string; statusLabel: string; totalYuan: string; totalCents: number; currency: "CNY"; productName: string; productImage: string | null; itemSummary: string };
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null; expectedConversationId: string | null; contextVersion: number };
 type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string };
+type HandoffAttempt = { contextVersion: number; questionMessageId: string | null; expectedConversationId?: string };
 type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown; conversation?: Conversation | null };
+type AiCapabilities = { supportAiAvailable?: unknown; supportAiCanRespond?: unknown };
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
 const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", paid:"已付款", shipped:"已发货", delivered:"已签收", completed:"已完成", cancelled: "已取消", expired: "已超时" };
@@ -76,7 +79,7 @@ Page({
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
-    pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, aiReplyWaiting: false, supportAiAvailable:false, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
+    pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
@@ -110,7 +113,7 @@ Page({
       this.linkedOrderDismissed = false;
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
-        historyLoaded: false, supportAiAvailable: false, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false,
+        historyLoaded: false, supportAiAvailable: false, supportAiCanRespond: null, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false, handoffAttempt: null,
         contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicAttempt: null,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
@@ -213,7 +216,7 @@ Page({
     this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
     this.orderPickerRevision += 1; this.orderPickerToken = "";
     this.setComposerState({ ...(!keepAttempt ? { pendingMessage: null, sendAttempt: null, sending: false } : {}), uploadBusy: false, handoffBusy: false,
-      presence: emptyPresence, anchor: "", olderCursor: null, loadingOlder: false, handoffFailed: false,
+      presence: emptyPresence, anchor: "", olderCursor: null, loadingOlder: false, handoffFailed: false, handoffAttempt: null,
       atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
   },
   abortDownloads() {
@@ -256,6 +259,21 @@ Page({
     const header = supportHeaderPresentation({ status: conversation?.status ?? "waiting_human", agentDisplayName: presence.agentDisplayName, operatorOnline: presence.operatorOnline });
     return { statusLabel: header.label, statusTone: header.tone, presence };
   },
+  aiCapabilityPatch(page: AiCapabilities) {
+    return { supportAiAvailable: page.supportAiAvailable === true,
+      supportAiCanRespond: typeof page.supportAiCanRespond === "boolean" ? page.supportAiCanRespond : null };
+  },
+  confirmedHandoffPatch(conversation: Conversation | null): Record<string, unknown> {
+    return conversation?.status === "waiting_human" || conversation?.status === "human_active"
+      ? { handoffAttempt: null, handoffFailed: false, ...(this.data.errorAction === "handoff" ? { error: "", errorAction: "" } : {}) } : {};
+  },
+  canAwaitAiReply() {
+    if (this.data.closedRights || !this.data.supportAiAvailable) return false;
+    if (this.data.supportAiCanRespond !== null) return this.data.supportAiCanRespond;
+    // Older services only support bot replies before a conversation handoff.
+    const status = this.data.conversation?.status;
+    return !status || status === "ai_active" || status === "resolved";
+  },
   applyThreadState(state: SupportThreadState<Message>, patch: Record<string, unknown> = {}) {
     const conversation = (patch.conversation as Conversation | undefined) ?? this.data.conversation;
     const presence = (patch.presence as Presence | undefined) ?? this.data.presence;
@@ -267,9 +285,10 @@ Page({
   composerControlKey() {
     if (this.data.closedRights) return "";
     const status = this.data.conversation?.status;
-    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && this.data.supportAiAvailable && this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved")
+    const human = status === "waiting_human" || status === "human_active";
+    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (human || this.data.supportAiAvailable && this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
       ? this.data.newTopicBusy ? ":topic-busy" : this.data.newTopicAttempt ? ":topic-retry" : ":topic" : "";
-    if (this.data.supportAiAvailable && status === "waiting_human") return "resume" + topic;
+    if (human) return status + topic;
     if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))
       return (this.data.handoffBusy ? "handoff-busy" : "handoff") + topic;
     return topic;
@@ -340,7 +359,7 @@ Page({
       if (changedTopic) this.clearRetiredTopic(contextVersion, conversation?.id);
       this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
-        anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
+        anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
       this.downloadMedia(messages);
       await this.markRead();
       void this.publishPresence(true, Boolean(this.data.input.trim()), true);
@@ -379,7 +398,7 @@ Page({
         conversation,
         contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         ...(changedTopic ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
-        supportAiAvailable:page.supportAiAvailable===true,...this.headerPatch(conversation, presence, page.supportAiAvailable===true),
+        ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true),
         anchor: changedTopic ? newest ? `support-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
         newMessagesBelowCount: shouldFollow || changedTopic ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
         newMessagesBelow: shouldFollow || changedTopic ? false : this.data.newMessagesBelow || freshCount > 0
@@ -488,9 +507,7 @@ Page({
     const sendAttempt = previous ?? { id: `wx-user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, signature, body, mediaIds, linkedOrderId,
       expectedConversationId: this.data.conversation?.id ?? null, contextVersion: this.data.contextVersion };
     const waitRevision = ++this.aiWaitRevision;
-    const aiReplyWaiting = !previous && !this.data.closedRights && !this.data.handoffBusy && !this.data.handoffFailed
-      && this.data.supportAiAvailable && !mediaIds.length && !linkedOrderId
-      && (!this.data.conversation || this.data.conversation.status === "ai_active" || this.data.conversation.status === "resolved");
+    const aiReplyWaiting = !previous && this.canAwaitAiReply() && !mediaIds.length && !linkedOrderId;
     this.lastActivityAt = Date.now();
     this.setComposerState({ sending: true, aiReplyWaiting, error: "", errorAction: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending"),
       ...(aiReplyWaiting && this.data.atBottom ? { anchor: "support-ai-wait" } : {}) });
@@ -525,9 +542,13 @@ Page({
         ...(clearImage ? { selectedImage: null } : {}), ...(clearOrder ? { selectedOrder: null } : {}),
         sendAttempt: null, composerSendEnabled: false, pendingMessage: null,
         ...(!staleTopic && typeof result.newTopicAvailable === 'boolean' ? { newTopicAvailable: result.newTopicAvailable } : {}),
-        conversation, ...this.headerPatch(conversation, this.data.presence),
-        ...(sameConversation && result.aiStatus==='pending' && result.message.sequence > boundary && conversation?.status==='ai_active' && !this.data.handoffBusy && !this.data.handoffFailed
-          ?{error:"消息已收到，AI 回复暂未确认。你可以继续留言，或申请人工客服。",errorAction:"handoff",handoffFailed:false}:{}) });
+        ...(!staleTopic && typeof result.supportAiCanRespond === 'boolean' ? { supportAiCanRespond: result.supportAiCanRespond } : {}),
+        conversation, ...this.confirmedHandoffPatch(conversation), ...this.headerPatch(conversation, this.data.presence),
+        ...(sameConversation && result.aiStatus==='pending' && result.message.sequence > boundary
+          ? conversation?.status==='waiting_human' || conversation?.status==='human_active'
+            ? {error:"消息已收到，回复暂未确认，请稍后刷新查看。",errorAction:"sync"}
+            : !this.data.handoffBusy && !this.data.handoffFailed
+              ? {error:"消息已收到，AI 回复暂未确认。你可以继续留言，或申请人工客服。",errorAction:"handoff",handoffFailed:false} : {} : {}) });
       if (clearInput) {
         this.inputRevision += 1;
         // Clearing a sent card must not silently reattach the route order.
@@ -749,23 +770,28 @@ Page({
   },
   async requestHuman() {
     if(this.data.closedRights || this.data.newTopicBusy || this.data.newTopicAttempt)return;
-    if (this.data.handoffBusy) return;
-    this.stopAiReplyWait();
+    if (this.data.handoffBusy || this.data.conversation?.status === "waiting_human" || this.data.conversation?.status === "human_active") return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    const contextVersion = this.data.contextVersion, conversationId = this.data.conversation?.id;
+    const conversationId = this.data.conversation?.id;
+    const question = this.data.messages.filter(item => item.senderType === "user" && item.sequence > this.data.contextStartSequence).slice(-1)[0];
+    const attempt = this.data.handoffAttempt ?? { contextVersion: this.data.contextVersion, questionMessageId: question?.id ?? null,
+      ...(conversationId ? { expectedConversationId: conversationId } : {}) };
+    const contextVersion = attempt.contextVersion;
     const revision = ++this.handoffRevision;
-    this.setComposerState({ handoffBusy: true, handoffFailed: false, error: "", errorAction: "" });
+    this.setComposerState({ handoffBusy: true, handoffFailed: false, handoffAttempt: attempt, error: "", errorAction: "" });
     try {
-      const result = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: { contextVersion,
-        ...(conversationId ? { expectedConversationId: conversationId } : {}) }, cacheTags: ["support"] });
+      const result = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: attempt, cacheTags: ["support"] });
       if (this.owns(epoch, ownerToken) && revision === this.handoffRevision && contextVersion === this.data.contextVersion) {
         const conversation = this.currentConversation(result);
-        this.setComposerState({ conversation, ...this.headerPatch(conversation, this.data.presence) });
+        this.setComposerState({ conversation, handoffAttempt: null, ...this.headerPatch(conversation, this.data.presence) });
       }
     } catch (error) {
       if (this.owns(epoch, ownerToken) && revision === this.handoffRevision && contextVersion === this.data.contextVersion) {
-        if ((error as {code?:string})?.code === "SUPPORT_CONTEXT_CHANGED") {
+        const observedConversation = this.data.conversation as Conversation | null;
+        if (observedConversation?.status === "waiting_human" || observedConversation?.status === "human_active") {
+          this.setComposerState(this.confirmedHandoffPatch(observedConversation));
+        } else if (["SUPPORT_CONTEXT_CHANGED", "SUPPORT_HANDOFF_QUESTION_INVALID"].includes(String((error as {code?:string})?.code))) {
           this.stopPolling(); cancelPageReads(this); const recoveryEpoch = ++this.lifecycleEpoch;
           this.clearRetiredTopic(); this.applyThreadState(createSupportThreadState<Message>([], this.data.contextStartSequence), { historyLoaded: false });
           await this.load();
@@ -775,22 +801,6 @@ Page({
       }
     }
     finally { if (this.owns(epoch, ownerToken) && revision === this.handoffRevision) this.setComposerState({ handoffBusy: false }); }
-  },
-  async resumeAi() {
-    if(this.data.closedRights||this.data.newTopicBusy||this.data.newTopicAttempt||!this.data.supportAiAvailable||this.data.handoffBusy||this.data.sending||this.data.conversation?.status!=="waiting_human")return;
-    const epoch=this.lifecycleEpoch,ownerToken=sessionToken(),expectedVersion=this.data.conversation.version;
-    this.setComposerState({handoffBusy:true,error:"",errorAction:""});
-    try{
-      const answer=await wx.showModal({title:"继续 AI 咨询？",content:"将退出当前人工等待队列。需要人工时可再次申请；已有聊天记录会保留。",confirmText:"继续 AI"});
-      if(!answer.confirm||!this.owns(epoch,ownerToken)||this.data.conversation?.version!==expectedVersion)return;
-      const result=await request<Conversation>({path:"/v1/me/support/resume-ai",method:"POST",data:{expectedVersion},cacheTags:["support"]});
-      if(!this.owns(epoch,ownerToken))return;
-      const conversation=this.currentConversation(result);
-      this.setComposerState({conversation,...this.headerPatch(conversation,this.data.presence),
-        ...(conversation?.status==='ai_active'?{handoffFailed:false}:{})});
-      await this.load();this.startPolling();
-    }catch{if(this.owns(epoch,ownerToken))this.setComposerState({error:"暂时无法切换，请刷新会话后重试；人工等待记录会保留。",errorAction:"sync"});}
-    finally{if(this.owns(epoch,ownerToken))this.setComposerState({handoffBusy:false});}
   },
   retryHandoff() { void this.requestHuman(); },
   clearTopicDraft() {
@@ -806,6 +816,10 @@ Page({
       || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.handoffBusy) return;
     const previous = this.data.newTopicAttempt;
     const status = this.data.conversation?.status;
+    if (!previous && (status === "waiting_human" || status === "human_active")) {
+      await wx.showModal({ title: "人工事项处理中", content: "人工申请会继续保留，你可以直接咨询其他问题。人工事项结束后可开启新对话。", showCancel: false, confirmText: "知道了" });
+      return;
+    }
     if (!previous && (!this.data.historyLoaded || this.data.loading || !this.data.newTopicAvailable || !this.data.supportAiAvailable
       || status && status !== "ai_active" && status !== "resolved")) return;
     let epoch = this.lifecycleEpoch;
@@ -839,7 +853,7 @@ Page({
       this.clearRetiredTopic();
       this.applyThreadState(createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor ?? boundary), {
         conversation, contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
-        supportAiAvailable: page.supportAiAvailable === true, ...this.headerPatch(conversation, presence, page.supportAiAvailable === true),
+        ...this.aiCapabilityPatch(page), ...this.headerPatch(conversation, presence, page.supportAiAvailable === true),
         newTopicAttempt: null, handoffFailed: false, olderCursor: page.olderCursor ?? null, loading: false, historyLoaded: true,
         atBottom: true, anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "",
         newMessagesBelow: false, newMessagesBelowCount: 0, error: "", errorAction: ""

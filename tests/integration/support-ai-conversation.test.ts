@@ -11,10 +11,10 @@ import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {ApprovedKnowledgeRegistry,SupportAiBoundary,type SupportAiSuggestion} from '../../services/api/src/supportAiBoundary';
 
 const pool=testPool();
-const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'synthetic-ai-chat-session',UPLOAD_TOKEN_SECRET:'synthetic-ai-chat-upload',OBJECT_STORAGE_DRIVER:'api_gateway'});
+const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'synthetic-ai-chat-session',UPLOAD_TOKEN_SECRET:'synthetic-ai-chat-upload',OBJECT_STORAGE_DRIVER:'api_gateway',API_RATE_LOGIN_MAX:'200'});
 const storage=createApiGatewayStorage(config);
 const source={id:'synthetic.support-guide',version:'1',title:'Synthetic support guide',content:'按00到03步骤护理，再保存感受。',approved:true as const,sha256:createHash('sha256').update('按00到03步骤护理，再保存感受。').digest('hex')};
-const reply:SupportAiSuggestion={text:'请按 00 到 03 顺序完成，再保存护理感受。',confidence:0.95,citations:[{sourceId:source.id,version:'1'}],handoffReason:null};
+const reply:SupportAiSuggestion={text:'请按 00 到 03 顺序完成，再保存护理感受。',confidence:0.95,citations:[{sourceId:source.id,version:'1'}],handoffReason:null,route:'general'};
 const suggest=vi.fn();
 const boundary=new SupportAiBoundary({id:'synthetic-ai',available:true,suggest},new ApprovedKnowledgeRegistry([source]),4000,true);
 const support=new SupportService(pool,new AuthorityService(pool,'test'),new PlatformService(pool,config,storage),storage,undefined,boundary);
@@ -73,10 +73,11 @@ describe('persistent AI support and manual handoff',()=>{
   expect(await handoffEvents(handoff.id)).toBe(1);
   const queue=(await app.inject({method:'GET',url:'/v1/management/support/conversations',headers:auth(operator.sessionToken)})).json();expect(queue.items.some((row:any)=>row.id===handoff.id&&row.status==='waiting_human')).toBe(true);
   const claimed=await app.inject({method:'POST',url:`/v1/management/support/conversations/${handoff.id}/claim`,headers:auth(operator.sessionToken),payload:{expectedVersion:handoff.version}});expect(claimed.statusCode).toBe(200);
+  suggest.mockResolvedValueOnce({...reply,route:'human_followup'});
   late.resolve(reply);await pending;
   expect((await pool.query("SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='ai'",[handoff.id])).rowCount).toBe(0);
-  const manual=await app.inject({method:'POST',url:`/v1/management/support/conversations/${handoff.id}/messages`,headers:auth(operator.sessionToken),payload:{body:'您好，已收到您的问题，由我继续处理。',clientMessageId:'synthetic-human-reply-01'}});expect(manual.statusCode).toBe(200);
-  const page=(await app.inject({method:'GET',url:'/v1/me/support/messages?after=1',headers:auth(user.sessionToken)})).json();expect(page.conversation.status).toBe('human_active');expect(page.messages.map((m:any)=>m.senderType)).toEqual(['system','admin']);expect(page.messages.at(-1).body).toContain('由我继续处理');
+  const manual=await app.inject({method:'POST',url:`/v1/management/support/conversations/${handoff.id}/messages`,headers:auth(operator.sessionToken),payload:{body:'您好，已收到您的问题，由我继续处理。',clientMessageId:'synthetic-human-reply-01',expectedHumanRequestGeneration:1,contextVersion:0}});expect(manual.statusCode).toBe(200);
+  const page=(await app.inject({method:'GET',url:'/v1/me/support/messages?after=1',headers:auth(user.sessionToken)})).json();expect(page.conversation.status).toBe('human_active');expect(page.messages.map((m:any)=>m.senderType)).toEqual(['system','system','admin']);expect(page.messages.at(-1).body).toContain('由我继续处理');
   await expect(support.resumeAi(user.memberId,user.principalId,{expectedVersion:page.conversation.version},'synthetic')).rejects.toMatchObject({code:'SUPPORT_ALREADY_ASSIGNED'});
  });
  it.each(['failure','low-confidence','handoff','invalid-output'])('persists a safe invitation without entering the human queue on %s',async(mode)=>{
@@ -126,9 +127,9 @@ describe('persistent AI support and manual handoff',()=>{
   if(!historical)expect(result).toMatchObject({aiStatus:'handoff_suggested',handoffSuggested:true,aiMessages:[{senderType:'system'}]});
   expect(suggest).not.toHaveBeenCalled();expect(await handoffEvents(result.conversation.id)).toBe(0);
  });
- it('does not return waiting users to AI until their own explicit versioned command, and rejects stale switching',async()=>{
+ it('keeps waiting human routing intact while answering and preserves the legacy explicit cancellation version guard',async()=>{
   const waiting=await support.requestHuman(user.memberId,user.principalId);
-  const message=await send();expect(message.conversation.status).toBe('waiting_human');expect(suggest).not.toHaveBeenCalled();
+  const message=await send();expect(message.conversation.status).toBe('waiting_human');expect(suggest).toHaveBeenCalledOnce();
   await expect(support.resumeAi(user.memberId,user.principalId,{expectedVersion:waiting.version},'synthetic')).rejects.toMatchObject({code:'VERSION_CONFLICT'});
   const resumed=await support.resumeAi(user.memberId,user.principalId,{expectedVersion:message.conversation.version},'synthetic');expect(resumed.status).toBe('ai_active');
   const answered=await send('如何保存感受？','synthetic-resumed-message');expect(answered).toMatchObject({aiStatus:'replied'});
@@ -163,11 +164,154 @@ describe('persistent AI support and manual handoff',()=>{
   const retry=await send();expect(retry).toMatchObject({replayed:true,message:{id:first.message.id},aiStatus:'replied'});expect(suggest).toHaveBeenCalledOnce();
   const counts=(await pool.query("SELECT sender_type,count(*)::int n FROM support_message WHERE conversation_id=$1 GROUP BY sender_type",[first.conversation.id])).rows;expect(counts).toEqual(expect.arrayContaining([{sender_type:'user',n:1},{sender_type:'ai',n:1}]));
  });
- it('allows only the newest member turn to publish when two generation requests finish out of order',async()=>{
+ it('keeps separately targeted answers when two user questions complete out of order',async()=>{
   const earlier=deferred<SupportAiSuggestion>(),later=deferred<SupportAiSuggestion>();suggest.mockReturnValueOnce(earlier.promise).mockReturnValueOnce(later.promise);
   const one=send('第一条问题','synthetic-concurrent-one');await vi.waitFor(()=>expect(suggest).toHaveBeenCalledTimes(1));
-  const two=send('第二条问题','synthetic-concurrent-two');await vi.waitFor(()=>expect(suggest).toHaveBeenCalledTimes(2));later.resolve(reply);await two;earlier.resolve({...reply,text:'旧问题回复'});await one;
-  const row=(await pool.query('SELECT id FROM support_conversation WHERE member_id=$1',[user.memberId])).rows[0];const answers=(await pool.query("SELECT body FROM support_message WHERE conversation_id=$1 AND sender_type='ai'",[row.id])).rows;
-  expect(answers).toEqual([{body:reply.text}]);
+  const two=send('第二条问题','synthetic-concurrent-two');await vi.waitFor(()=>expect(suggest).toHaveBeenCalledTimes(2));later.resolve(reply);const second=await two;earlier.resolve({...reply,text:'第一题的答案'});const first=await one;
+  const row=(await pool.query('SELECT id FROM support_conversation WHERE member_id=$1',[user.memberId])).rows[0];const answers=(await pool.query("SELECT body,reply_to_message_id FROM support_message WHERE conversation_id=$1 AND sender_type='ai'",[row.id])).rows;
+  expect(answers).toEqual(expect.arrayContaining([{body:reply.text,reply_to_message_id:second.message.id},{body:'第一题的答案',reply_to_message_id:first.message.id}]));expect(answers).toHaveLength(2);
+ });
+
+ it.each([false,true])('answers a separate basic question while human service stays intact (claimed=%s)',async(claimed)=>{
+  const original=await send('请人工核实原退款事项','synthetic-original-refund');
+  const waiting=await support.requestHuman(user.memberId,user.principalId);
+  if(claimed)await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:waiting.version},'synthetic');
+  const before=(await pool.query('SELECT status,current_handler_principal_id,human_request_generation FROM support_conversation WHERE id=$1',[waiting.id])).rows[0];
+  const response=await send('护理结束后怎样保存感受？','synthetic-independent-care');
+  expect(response).toMatchObject({supportAiCanRespond:true,aiStatus:'replied',aiMessages:[{senderType:'ai',body:reply.text,replyToMessageId:response.message.id}]});
+  expect((await pool.query('SELECT status,current_handler_principal_id,human_request_generation FROM support_conversation WHERE id=$1',[waiting.id])).rows[0]).toEqual(before);
+  expect(suggest.mock.calls.at(-1)?.[0].conversation).toMatchObject({question:{body:'护理结束后怎样保存感受？'},humanRequest:{generation:1,anchorKnown:true,anchorQuestion:'请人工核实原退款事项'}});
+  const page=await support.messagesForMember(user.memberId,{});expect(page).toMatchObject({supportAiCanRespond:true,humanRequest:{generation:1,anchorMessageId:original.message.id,anchorSequence:1,anchorKnown:true}});
+  expect(await handoffEvents(waiting.id)).toBe(1);
+ });
+ it.each([false,true])('uses the latest actual manual status for related followups, never model promises (claimed=%s)',async(claimed)=>{
+  await send('原人工售后问题','synthetic-followup-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  const late=deferred<SupportAiSuggestion>();suggest.mockReturnValueOnce(late.promise);
+  const pending=send('刚才那个问题有进展了吗？','synthetic-human-followup');await vi.waitFor(()=>expect(suggest).toHaveBeenCalledTimes(2));
+  if(claimed){const row=(await pool.query('SELECT version FROM support_conversation WHERE id=$1',[waiting.id])).rows[0];await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:row.version},'synthetic');}
+  late.resolve({...reply,route:'human_followup',text:'模型虚构已退款，不得发布'});
+  const result=await pending;expect(result.aiMessages?.[0]).toMatchObject({senderType:'system',replyToMessageId:result.message.id});
+  expect(result.aiMessages?.[0]?.body).toContain(claimed?'正由人工客服跟进':'正在等待处理');
+  expect(JSON.stringify(result)).not.toContain('模型虚构');expect(await handoffEvents(waiting.id)).toBe(1);
+ });
+ it('asks one clarification and keeps unknown legacy human anchors unknown',async()=>{
+  const row=(await pool.query("INSERT INTO support_conversation(member_id,status,current_handler_principal_id) VALUES($1,'human_active',$2) RETURNING id",[user.memberId,operator.principalId])).rows[0];
+  suggest.mockResolvedValueOnce({...reply,route:'clarify',confidence:0.3,text:'你是在补充之前的问题，还是咨询护理步骤？'});
+  const result=await send('这个怎么办？','synthetic-legacy-clarification');
+  expect(result).toMatchObject({conversation:{id:row.id,status:'human_active'},aiMessages:[{senderType:'ai',body:'你是在补充之前的问题，还是咨询护理步骤？'}]});
+  expect(suggest.mock.calls.at(-1)?.[0].conversation.humanRequest).toMatchObject({generation:0,anchorKnown:false,anchorQuestion:null});
+  expect((await pool.query('SELECT human_request_anchor_sequence FROM support_conversation WHERE id=$1',[row.id])).rows[0].human_request_anchor_sequence).toBeNull();
+ });
+ it('answers the basic portion of mixed questions without repeatedly appending the same manual-status notice',async()=>{
+  await send('原退款问题','synthetic-mixed-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  suggest.mockResolvedValue({...reply,route:'mixed'});
+  const first=await send('退款什么时候处理？另外护理怎么保存？','synthetic-mixed-first');
+  const second=await send('退款还在等吗？护理再说明一下？','synthetic-mixed-second');
+  expect(first.aiMessages?.[0]?.body).toContain(reply.text);expect(first.aiMessages?.[0]?.body).toContain('正在等待处理');
+  expect(second.aiMessages?.[0]?.body).toBe(reply.text);expect(await handoffEvents(waiting.id)).toBe(1);
+ });
+ it.each(['failure','missing-route'])('retains the existing human request without asking to apply again on %s',async(mode)=>{
+  await send('原人工问题','synthetic-manual-failure-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  if(mode==='failure')suggest.mockRejectedValueOnce(Object.assign(new Error('private upstream'),{code:'SUPPORT_AI_TIMEOUT'}));
+  else if(mode==='uncertain')suggest.mockResolvedValueOnce({...reply,confidence:0.6});
+  else{const {route:_,...missing}=reply;suggest.mockResolvedValueOnce(missing);}
+  const result=await send('另一个基础咨询','synthetic-manual-failure-next');
+  expect(result).toMatchObject({conversation:{status:'waiting_human'},handoffSuggested:false,aiMessages:[{senderType:'system'}]});
+  expect(result.aiMessages?.[0]?.body).toContain('已有人工申请会继续保留');expect(result.aiMessages?.[0]?.body).not.toContain('申请人工');
+  expect(await handoffEvents(waiting.id)).toBe(1);
+ });
+ it.each([false,true])('does not let an administrator reply swallow an unrelated AI answer (sameQuestion=%s)',async(sameQuestion)=>{
+  const origin=await send('原人工退款事项','synthetic-race-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:waiting.version},'synthetic');
+  const late=deferred<SupportAiSuggestion>();suggest.mockReturnValueOnce(late.promise);
+  const pending=send('护理怎么保存？','synthetic-race-care');await vi.waitFor(()=>expect(suggest).toHaveBeenCalledTimes(2));
+  const target=(await pool.query("SELECT id FROM support_message WHERE conversation_id=$1 AND client_message_id='synthetic-race-care'",[waiting.id])).rows[0].id;
+  await support.reply(operator.memberId,operator.principalId,waiting.id,{body:'人工对此问题的回复',clientMessageId:'synthetic-targeted-agent',replyToMessageId:sameQuestion?target:origin.message.id,expectedHumanRequestGeneration:1,contextVersion:0},'synthetic');
+  late.resolve(reply);const result=await pending;
+  expect(result.aiStatus).toBe(sameQuestion?'answered_by_human':'replied');expect(result.aiMessages??[]).toHaveLength(sameQuestion?0:1);
+  expect((await pool.query("SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='ai' AND reply_to_message_id=$2",[waiting.id,target])).rowCount).toBe(sameQuestion?0:1);
+ });
+ it('reclassifies a question when a new human request arrives during AI generation',async()=>{
+  const late=deferred<SupportAiSuggestion>();suggest.mockReturnValueOnce(late.promise).mockResolvedValueOnce({...reply,route:'human_followup'});
+  const pending=send('需要核实这个问题','synthetic-reroute-question');await vi.waitFor(()=>expect(suggest).toHaveBeenCalledOnce());
+  const waiting=await support.requestHuman(user.memberId,user.principalId);late.resolve(reply);const result=await pending;
+  expect(suggest).toHaveBeenCalledTimes(2);expect(result.aiMessages?.[0]).toMatchObject({senderType:'system'});expect(result.aiMessages?.[0]?.body).toContain('正在等待处理');
+  expect((await pool.query("SELECT id FROM support_message WHERE conversation_id=$1 AND client_message_id=$2",[waiting.id,`ai-reply:${result.message.id}`])).rowCount).toBe(1);
+ });
+ it('enforces targeted reply ownership, human generation and current topic before a new admin command',async()=>{
+  const origin=await send('原人工问题','synthetic-target-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:waiting.version},'synthetic');
+  const input={body:'目标回复',clientMessageId:'synthetic-target-validation',replyToMessageId:origin.message.id,expectedHumanRequestGeneration:1,contextVersion:0};
+  await expect(support.reply(operator.memberId,operator.principalId,waiting.id,{...input,expectedHumanRequestGeneration:0},'synthetic')).rejects.toMatchObject({code:'SUPPORT_HUMAN_REQUEST_CHANGED'});
+  await expect(support.reply(operator.memberId,operator.principalId,waiting.id,{...input,contextVersion:1},'synthetic')).rejects.toMatchObject({code:'SUPPORT_CONTEXT_CHANGED'});
+  const foreign=await identity(`synthetic-target-other-${serial}`);
+  const foreignMessage=await support.sendMember(foreign.memberId,foreign.principalId,{body:'别人的问题',clientMessageId:'synthetic-foreign-target'},'synthetic');
+  await expect(support.reply(operator.memberId,operator.principalId,waiting.id,{...input,replyToMessageId:foreignMessage.message.id},'synthetic')).rejects.toMatchObject({code:'SUPPORT_REPLY_TARGET_INVALID'});
+  const written=await support.reply(operator.memberId,operator.principalId,waiting.id,input,'synthetic');
+  expect(written.message.replyToMessageId).toBe(origin.message.id);
+  await expect(support.reply(operator.memberId,operator.principalId,waiting.id,{...input,replyToMessageId:foreignMessage.message.id},'synthetic')).rejects.toMatchObject({code:'IDEMPOTENCY_CONFLICT'});
+ });
+ it('requires the scoped SQL marker for AI in manual service and rejects cross-conversation reply links',async()=>{
+  const origin=await send('原人工问题','synthetic-sql-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  const row=(await pool.query('SELECT next_sequence FROM support_conversation WHERE id=$1',[waiting.id])).rows[0];
+  await expect(pool.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,reply_to_message_id)
+   VALUES($1,$2,'ai','ai:support','不得直接写入','synthetic-unscoped-ai',$3)`,[waiting.id,row.next_sequence,origin.message.id])).rejects.toThrow(/SUPPORT_AI_COLLABORATION_CONTEXT_REQUIRED/);
+  const client=await pool.connect();try{
+   await client.query('BEGIN');await client.query("SELECT set_config('cisme.support_ai_reply',$1,true)",[`${waiting.id}:${origin.message.id}:0:0`]);
+   await expect(client.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,reply_to_message_id)
+    VALUES($1,$2,'ai','ai:support','错误代次','synthetic-wrong-generation',$3)`,[waiting.id,row.next_sequence,origin.message.id])).rejects.toThrow(/SUPPORT_AI_COLLABORATION_CONTEXT_REQUIRED/);
+  }finally{await client.query('ROLLBACK');client.release();}
+  await expect(pool.query('UPDATE support_conversation SET human_request_generation=human_request_generation+1,version=version+1 WHERE id=$1',[waiting.id])).rejects.toThrow(/SUPPORT_HUMAN_REQUEST_METADATA_REQUIRED/);
+ });
+ it('binds the explicit handoff question despite another device adding a later question',async()=>{
+  const original=await send('本设备需要人工处理的问题','synthetic-explicit-origin');
+  await send('另一设备后来问的基础问题','synthetic-other-device-question');
+  const waiting=await support.requestHuman(user.memberId,user.principalId,{expectedConversationId:original.conversation.id,contextVersion:0,questionMessageId:original.message.id});
+  expect((await support.messagesForMember(user.memberId,{})).humanRequest).toMatchObject({anchorMessageId:original.message.id,anchorSequence:1});
+  expect(await handoffEvents(waiting.id)).toBe(1);
+ });
+ it('keeps an explicitly unknown handoff question unguessed and rejects invalid question owners/types',async()=>{
+  const first=await send('已确认的问题','synthetic-invalid-handoff-origin');
+  const foreign=await identity(`synthetic-handoff-other-${serial}`);
+  const other=await support.sendMember(foreign.memberId,foreign.principalId,{body:'其他会员问题',clientMessageId:'synthetic-foreign-handoff-question'},'synthetic');
+  for(const questionMessageId of [other.message.id,first.aiMessages![0]!.id])
+   await expect(support.requestHuman(user.memberId,user.principalId,{expectedConversationId:first.conversation.id,contextVersion:0,questionMessageId})).rejects.toMatchObject({code:'SUPPORT_HANDOFF_QUESTION_INVALID'});
+  await support.requestHuman(user.memberId,user.principalId,{expectedConversationId:first.conversation.id,contextVersion:0,questionMessageId:null});
+  expect((await support.messagesForMember(user.memberId,{})).humanRequest).toMatchObject({anchorKnown:false,anchorMessageId:null});
+ });
+ it('clarifies low-confidence association instead of treating it as an unrelated basic question',async()=>{
+  await send('原人工问题','synthetic-uncertain-origin');await support.requestHuman(user.memberId,user.principalId);
+  suggest.mockResolvedValueOnce({...reply,route:'general',confidence:0.6,text:'不得直接作为无关问题答复'});
+  const result=await send('这个怎么弄？','synthetic-uncertain-question');
+  expect(result.aiMessages?.[0]?.body).toBe('你是在补充之前申请人工的问题，还是有新的使用问题？');
+  expect(result.conversation.status).toBe('waiting_human');expect(result.aiMessages?.[0]?.body.match(/[？?]/g)).toHaveLength(1);
+ });
+ it('keeps an in-flight basic answer after an administrator resolves the separate human request',async()=>{
+  const origin=await send('人工原退款事项','synthetic-resolve-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:waiting.version},'synthetic');
+  const late=deferred<SupportAiSuggestion>();suggest.mockReturnValueOnce(late.promise);
+  const pending=send('另一基础护理问题','synthetic-resolve-general');await vi.waitFor(()=>expect(suggest).toHaveBeenCalledTimes(2));
+  const before=(await pool.query('SELECT version FROM support_conversation WHERE id=$1',[waiting.id])).rows[0];
+  await support.resolve(operator.memberId,operator.principalId,waiting.id,{expectedVersion:before.version},'synthetic');
+  const resolved=(await pool.query('SELECT status,current_handler_principal_id,resolved_at FROM support_conversation WHERE id=$1',[waiting.id])).rows[0];
+  late.resolve(reply);const answer=await pending;
+  expect(answer.aiMessages?.[0]).toMatchObject({senderType:'ai',replyToMessageId:answer.message.id,body:reply.text});
+  expect((await pool.query('SELECT status,current_handler_principal_id,resolved_at FROM support_conversation WHERE id=$1',[waiting.id])).rows[0]).toEqual(resolved);
+  expect(resolved.status).toBe('resolved');expect(resolved.current_handler_principal_id).toBeNull();expect(origin.message.id).not.toBe(answer.message.id);
+ });
+ it('keeps an explicitly selected draft question separate and blocks inactive-account AI processing',async()=>{
+  const original=await send('原人工问题','synthetic-draft-original');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:waiting.version},'synthetic');
+  await send('另外的基础问题','synthetic-draft-later-question');
+  const projection=await support.modelProjectionForAssignedOperator(operator.memberId,operator.principalId,waiting.id,
+    {replyToMessageId:original.message.id,expectedHumanRequestGeneration:1,contextVersion:0});
+  expect(projection.question).toMatchObject({body:'原人工问题'});expect(JSON.stringify(projection)).not.toContain('另外的基础问题');
+  const count=(await pool.query('SELECT count(*)::int n FROM support_message WHERE conversation_id=$1',[waiting.id])).rows[0].n;
+  const calls=suggest.mock.calls.length;await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[user.memberId]);
+  await expect(support.modelProjectionForAssignedOperator(operator.memberId,operator.principalId,waiting.id,
+    {replyToMessageId:original.message.id,expectedHumanRequestGeneration:1,contextVersion:0})).rejects.toMatchObject({code:'MEMBER_NOT_ACTIVE'});
+  const forbidden=await app.inject({method:'POST',url:'/v1/me/support/messages',headers:auth(user.sessionToken),payload:{body:'失效后的问题',clientMessageId:'synthetic-blocked-collaboration'}});
+  expect(forbidden.statusCode).toBe(401);expect(forbidden.json()).toMatchObject({code:'AUTH_REVOKED'});expect(suggest.mock.calls).toHaveLength(calls);
+  expect((await pool.query('SELECT count(*)::int n FROM support_message WHERE conversation_id=$1',[waiting.id])).rows[0].n).toBe(count);
  });
 });

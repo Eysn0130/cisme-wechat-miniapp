@@ -23,7 +23,8 @@ PROFILE = {'name': 'trial', 'root': str(M.ROOT), 'units': ('cisme-trial-api.serv
 
 
 def fixtures():
-    names = sorted(path.name for path in (REPO / 'db/migrations').glob('*.sql'))
+    names = sorted(path.name for path in (REPO / 'db/migrations').glob('*.sql')
+                   if path.name <= '202610300003_support_explicit_ai_resume.sql')
     assert len(names) == 103
     files = {name: (REPO / source).read_bytes() for name, source in (
         ('migrate.mjs', 'scripts/release-migrate.mjs'), ('package.json', 'package.json'), ('package-lock.json', 'package-lock.json'))}

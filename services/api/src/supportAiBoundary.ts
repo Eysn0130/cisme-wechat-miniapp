@@ -3,8 +3,12 @@ import { DomainError } from "@cisme/domain";
 
 export const SUPPORT_AI_STATUS = "PROVIDER INTEGRATION PENDING" as const;
 export type SupportAiCitation = { sourceId: string; version: string };
-export type SupportAiSuggestion = { text: string; citations: SupportAiCitation[]; confidence: number; handoffReason: string | null };
-export type ModelSafeSupportProjection = { conversationId: string; status: string; messages: Array<{ sequence: number; senderType: string; body: string }> };
+export type SupportAiRoute = 'general' | 'human_followup' | 'clarify' | 'mixed';
+export type SupportAiSuggestion = { text: string; citations: SupportAiCitation[]; confidence: number; handoffReason: string | null; route?: SupportAiRoute };
+export type ModelSafeSupportProjection = { conversationId: string; status: string;
+  question?: { sequence: number; body: string };
+  humanRequest?: { generation: number; status: 'waiting_human' | 'human_active'; anchorQuestion: string | null; anchorKnown: boolean };
+  messages: Array<{ sequence: number; senderType: string; body: string }> };
 export interface SupportAiProvider {
   readonly id: string;
   readonly available: boolean;
@@ -70,7 +74,10 @@ export class SupportAiBoundary {
       if (!Number.isFinite(output.confidence)||output.confidence<0||output.confidence>1) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI confidence is invalid", 502);
       if (!Array.isArray(output.citations)||!output.citations.length||output.citations.some((citation)=>!citation||typeof citation.sourceId!=="string"||typeof citation.version!=="string"||!this.knowledge.has(citation))) throw new DomainError("SUPPORT_AI_UNGROUNDED", "AI suggestion lacks an approved source; use human handling", 409);
       if (output.handoffReason !== null && output.handoffReason !== undefined && (typeof output.handoffReason !== "string" || output.handoffReason.length > 200)) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI handoff reason is invalid", 502);
-      return { text, citations: output.citations, confidence: output.confidence, handoffReason: output.handoffReason??null };
+      if (conversation.humanRequest ? !['general','human_followup','clarify','mixed'].includes(output.route??'') : output.route!==undefined&&output.route!=='general')
+        throw new DomainError('SUPPORT_AI_ROUTE_INVALID', 'AI did not classify the current question reliably', 502);
+      return { text, citations: output.citations, confidence: output.confidence, handoffReason: output.handoffReason??null,
+        ...(output.route!==undefined?{route:output.route}:{}) };
     } finally { if(timer)clearTimeout(timer); }
   }
 }

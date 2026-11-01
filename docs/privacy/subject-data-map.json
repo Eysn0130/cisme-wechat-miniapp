@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "e73eaef2da7e246a29cf9f2b8ea97b9fa43b44fe8b41d685235d123ecd4c80e6",
+  "migrationSetSha256": "8423dc364889d5eaff5d1ca00741f81a7e0a368a2e311a0b77da36639b5cd9a5",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -5825,7 +5825,10 @@
         "version",
         "created_at",
         "updated_at",
-        "resolved_at"
+        "resolved_at",
+        "human_request_generation",
+        "human_request_anchor_sequence",
+        "human_request_context_version"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -5966,7 +5969,8 @@
         "delivery_state",
         "order_snapshot",
         "return_instruction_snapshot",
-        "retention_purpose"
+        "retention_purpose",
+        "reply_to_message_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

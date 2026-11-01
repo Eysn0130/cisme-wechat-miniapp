@@ -1,0 +1,204 @@
+{
+  "scope": "Official WeChat DevTools synthetic native fixtures; no signed-in user writes and no physical-phone IME acceptance",
+  "packageSourceSha256": "1868cd6df93f30c2d02d1a0389ff6c32df897bdfddfaf34ae3c9956fbdf480d3",
+  "checks": [
+    {
+      "file": "operator-known-target-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-out-of-order-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "welcome-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-general-answer-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "waiting-human-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "operator-unknown-target-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-ai-thinking-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "human-active-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    },
+    {
+      "file": "operator-out-of-order-390-16-geometry.json",
+      "width": 390,
+      "font": 16,
+      "noHorizontalOverflow": true,
+      "noComposerOverlap": true
+    }
+  ],
+  "full40RouteMatrix": "blocked",
+  "artifacts": [
+    {
+      "path": "native/human-active-390-16-geometry.json",
+      "sha256": "90088ca65d357347a7e4f387132722c3ce1687ddae2db9c35c2889e8a2a62a54",
+      "bytes": 4116
+    },
+    {
+      "path": "native/human-active-390-16.png",
+      "sha256": "ed71c1d042b59c75ff0346fcfe7bb1d4aa9aee8777ef76494233708fbb9da9b8",
+      "bytes": 44365
+    },
+    {
+      "path": "native/human-ai-thinking-390-16-geometry.json",
+      "sha256": "02436e5c70dc84ecf6f056870bbc4e8d2f26901f206ab118ed7d6edff37cc9c3",
+      "bytes": 4483
+    },
+    {
+      "path": "native/human-ai-thinking-390-16.png",
+      "sha256": "5292099c715a39c032956b4a0700fe6e3990bf0c87e39028d8b37f30172a1fa8",
+      "bytes": 54340
+    },
+    {
+      "path": "native/human-general-answer-390-16-geometry.json",
+      "sha256": "90088ca65d357347a7e4f387132722c3ce1687ddae2db9c35c2889e8a2a62a54",
+      "bytes": 4116
+    },
+    {
+      "path": "native/human-general-answer-390-16.png",
+      "sha256": "107c379ad0b82986c7e010c3b62e8e342f9535e10b574dd9adb59276de91efe0",
+      "bytes": 59986
+    },
+    {
+      "path": "native/human-out-of-order-390-16-geometry.json",
+      "sha256": "bb440a6b194492ebb3f97859f535ce7824858297de98695becd73233cf1992f8",
+      "bytes": 4493
+    },
+    {
+      "path": "native/human-out-of-order-390-16.png",
+      "sha256": "360983d6e0aab4e20788cabcbdcfec593ee2155a72e92590a89f750c0d5324e8",
+      "bytes": 72853
+    },
+    {
+      "path": "native/operator-known-target-390-16-geometry.json",
+      "sha256": "819d754c4423b4d02df8f8dc4d6eb588ebe5327d7a97fe340b87e6d4b373603a",
+      "bytes": 3401
+    },
+    {
+      "path": "native/operator-known-target-390-16.png",
+      "sha256": "d4b2951d1aa90b27faa5a1374912354150dea7909e30425f247c9c95f1e2e756",
+      "bytes": 70073
+    },
+    {
+      "path": "native/operator-out-of-order-390-16-geometry.json",
+      "sha256": "20796b4e2783633fb3da3e28c4152a9483723e3cd5acf32e464962564c11d85a",
+      "bytes": 4168
+    },
+    {
+      "path": "native/operator-out-of-order-390-16.png",
+      "sha256": "1785b07e99d7f2b060e36525cfcc30c7a5fd6b974d523984e7dfa425fdff8af2",
+      "bytes": 82196
+    },
+    {
+      "path": "native/operator-unknown-target-390-16-geometry.json",
+      "sha256": "819d754c4423b4d02df8f8dc4d6eb588ebe5327d7a97fe340b87e6d4b373603a",
+      "bytes": 3401
+    },
+    {
+      "path": "native/operator-unknown-target-390-16.png",
+      "sha256": "a072c38f1c4b388c69fe84c7d9ee6e80a7e5086b7a97fd21bbc2895e00920611",
+      "bytes": 65027
+    },
+    {
+      "path": "native/waiting-human-390-16-geometry.json",
+      "sha256": "90088ca65d357347a7e4f387132722c3ce1687ddae2db9c35c2889e8a2a62a54",
+      "bytes": 4116
+    },
+    {
+      "path": "native/waiting-human-390-16.png",
+      "sha256": "f99c7b89880244a63ce9af21c64b9fae99214cb4b0e6eb7c086bfde9255aa456",
+      "bytes": 50314
+    },
+    {
+      "path": "native/welcome-390-16-geometry.json",
+      "sha256": "871bd641c2d8ebcfae830ec75ba26478ac68bc36d525553cec8a46db4b0ec076",
+      "bytes": 4113
+    },
+    {
+      "path": "native/welcome-390-16.png",
+      "sha256": "d8279badcc8e083900d40fc575bb13900e349f82cecd6d04ca9f1fdc9f66d47e",
+      "bytes": 47165
+    }
+  ],
+  "validation": {
+    "unitPassed": 2529,
+    "unitSkipped": 1,
+    "typecheck": "passed",
+    "newDeploymentOfflineGuards": 22,
+    "historicalDeploymentOfflineGuards": 98,
+    "realDeepSeekSyntheticRouting": {
+      "passed": 6,
+      "total": 6
+    },
+    "backendFocusedIntegration": "100 tests across 7 files, final collaboration file 33 tests; full CI pending",
+    "nativeCompileChecks": [
+      "support WXML",
+      "support WXSS",
+      "management-support-chat WXML",
+      "management-support-chat WXSS"
+    ],
+    "managementStaleReadRegressions": 5,
+    "backendConnectionAndFenceTests": {
+      "files": 8,
+      "passed": 110,
+      "poolMax": 1,
+      "resourcesRemoved": true
+    },
+    "localPressure": {
+      "userMessages": 100,
+      "automaticFallbacks": 100,
+      "requestFailures": 0,
+      "p95Ms": 1037.16,
+      "queue100Ms": 291.24,
+      "thresholdMs": 1000,
+      "passed": false,
+      "gate": "existing Linux CI must pass unchanged threshold before deployment"
+    }
+  },
+  "knownLimits": [
+    "No physical-phone keyboard acceptance in this run",
+    "Synthetic native layouts do not assert real-account support writes",
+    "Full 40-route state matrix remains blocked"
+  ],
+  "managementStaleMetadataGuardPresentInNativeRuntime": true,
+  "sourceBinding": "Exact mini-program source SHA-256; immutable commit and release binding recorded separately."
+}

@@ -77,6 +77,7 @@ jobs:
           python3 -I -B infra/tencent/test_trial_support_polish_update.py
           python3 -I -B infra/tencent/test_trial_support_composer_update.py
           python3 -I -B infra/tencent/test_trial_support_fresh_update.py
+          python3 -I -B infra/tencent/test_trial_support_ai_human_collaboration_upgrade.py
           trial_backup_test_venv="$RUNNER_TEMP/trial-backup-test-venv"
           python3 -m venv "$trial_backup_test_venv"
           "$trial_backup_test_venv/bin/python" -m pip install --disable-pip-version-check cryptography==50.0.1 cffi==2.1.1 pycparser==3.0

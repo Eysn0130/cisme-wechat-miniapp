@@ -80,9 +80,9 @@ describe("R2 support authority",()=>{
     const winner=claims[0]!.statusCode===200?operatorA:operatorB;const loser=winner===operatorA?operatorB:operatorA;
     const claimed=claims.find(item=>item.statusCode===200)!.json();expect(claimed.status).toBe("human_active");
     expect((await app.inject({method:"POST",url:`/v1/management/support/conversations/${conversation.id}/messages`,headers:auth(loser.sessionToken),payload:{body:"wrong agent",clientMessageId:"wrong-agent-1"}})).statusCode).toBe(409);
-    const reply=await app.inject({method:"POST",url:`/v1/management/support/conversations/${conversation.id}/messages`,headers:auth(winner.sessionToken),payload:{body:"您好，我是人工客服。",clientMessageId:"operator-reply-1"}});
+    const reply=await app.inject({method:"POST",url:`/v1/management/support/conversations/${conversation.id}/messages`,headers:auth(winner.sessionToken),payload:{body:"您好，我是人工客服。",clientMessageId:"operator-reply-1",expectedHumanRequestGeneration:1,contextVersion:0}});
     expect(reply.statusCode).toBe(200);expect(reply.json().message.senderType).toBe("admin");
-    const reply2=await app.inject({method:"POST",url:`/v1/management/support/conversations/${conversation.id}/messages`,headers:auth(winner.sessionToken),payload:{body:"我再补充一条处理说明。",clientMessageId:"operator-reply-2"}});
+    const reply2=await app.inject({method:"POST",url:`/v1/management/support/conversations/${conversation.id}/messages`,headers:auth(winner.sessionToken),payload:{body:"我再补充一条处理说明。",clientMessageId:"operator-reply-2",expectedHumanRequestGeneration:1,contextVersion:0}});
     expect(reply2.statusCode).toBe(200);
     const userSummary=(await app.inject({method:"GET",url:"/v1/me/support/summary",headers:auth(user.sessionToken)})).json();expect(userSummary.unreadCount).toBe(3);
     await app.inject({method:"POST",url:"/v1/me/support/read",headers:auth(user.sessionToken),payload:{lastSeenSequence:reply.json().message.sequence}});
@@ -117,7 +117,7 @@ describe("R2 support authority",()=>{
     const conversation=(await pool.query("SELECT id,next_sequence,status FROM support_conversation LIMIT 1")).rows[0];
     expect(conversation.status).toBe("waiting_human");
     await expect(pool.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id)
-      VALUES($1,$2,'ai','ai:r3-stale','stale answer','stale-ai-answer')`,[conversation.id,conversation.next_sequence])).rejects.toThrow(/SUPPORT_AI_REPLY_FORBIDDEN_AFTER_HANDOFF/);
+      VALUES($1,$2,'ai','ai:r3-stale','stale answer','stale-ai-answer')`,[conversation.id,conversation.next_sequence])).rejects.toThrow(/SUPPORT_AI_COLLABORATION_CONTEXT_REQUIRED/);
     await expect(pool.query("UPDATE support_conversation SET status='ai_active',version=version+1,updated_at=now() WHERE id=$1",[conversation.id])).rejects.toThrow(/SUPPORT_CONVERSATION_ILLEGAL_TRANSITION/);
   });
 

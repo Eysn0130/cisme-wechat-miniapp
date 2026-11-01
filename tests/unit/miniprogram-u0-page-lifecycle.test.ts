@@ -35,6 +35,15 @@ function mountedPage(definition: PageDefinition, overrides: Record<string, any> 
   return context;
 }
 
+function selectedOperatorQuestion() {
+  const question = { id: "confirmed-user-question", sequence: 1, senderType: "user", body: "请帮我核对订单" };
+  return {
+    messages: [question], maxSeenSequence: 1, contextVersion: 0,
+    humanRequest: { generation: 1, status: "human_active", anchorKnown: true, anchorMessageId: question.id, anchorSequence: 1 },
+    replyTarget: { id: question.id, sequence: 1, summary: question.body, generation: 1, contextVersion: 0 }
+  };
+}
+
 beforeEach(() => {
   vi.resetModules();
   requestMock.mockReset();
@@ -377,10 +386,13 @@ describe("U0 native page lifecycle regressions", () => {
     let resolveSuggestion!: (value: unknown) => void;
     requestMock.mockImplementationOnce(() => new Promise((resolve) => { resolveSuggestion = resolve; }));
     await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
-    const page = mountedPage(capturedPage!, { id: "conversation-1", pageAlive: true, visible: true, aiProviderAvailable: true, assignedToMe: true, busy: false, input: "" }, { lifecycleEpoch: 1, inputRevision: 0 });
+    const page = mountedPage(capturedPage!, { id: "conversation-1", pageAlive: true, visible: true, aiProviderAvailable: true, assignedToMe: true, busy: false, input: "", ...selectedOperatorQuestion() }, { lifecycleEpoch: 1, inputRevision: 0 });
 
     const pending = page.suggest();
-    page.updateInput({ detail: { value: "人工正在输入" } });
+    // The disabled editor rejects input during generation; a newer owned draft
+    // revision must still win if another restoration flow updates the draft.
+    page.inputRevision += 1;
+    page.setData({ input: "人工正在输入" });
     resolveSuggestion({ text: "迟到的建议" });
     await pending;
 
@@ -391,7 +403,7 @@ describe("U0 native page lifecycle regressions", () => {
     let resolveSuggestion!: (value: unknown) => void;
     requestMock.mockImplementationOnce(() => new Promise((resolve) => { resolveSuggestion = resolve; }));
     await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
-    const page = mountedPage(capturedPage!, { id: "conversation-a", pageAlive: true, visible: true, aiProviderAvailable: true, assignedToMe: true, busy: false, input: "" }, { lifecycleEpoch: 4, inputRevision: 0 });
+    const page = mountedPage(capturedPage!, { id: "conversation-a", pageAlive: true, visible: true, aiProviderAvailable: true, assignedToMe: true, busy: false, input: "", ...selectedOperatorQuestion() }, { lifecycleEpoch: 4, inputRevision: 0 });
 
     const pending = page.suggest();
     page.onHide();
@@ -608,7 +620,7 @@ describe("U0 native page lifecycle regressions", () => {
 
   it("caps and resets the operator text-only composer with the same native rules", async () => {
     await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
-    const page = mountedPage(capturedPage!, { input: "", composerSendEnabled: false, composerLineCount: 1, composerCapped: false });
+    const page = mountedPage(capturedPage!, { input: "", composerSendEnabled: false, composerLineCount: 1, composerCapped: false, ...selectedOperatorQuestion() });
 
     page.updateInput({ detail: { value: "  " } });
     expect(page.data.composerSendEnabled).toBe(false);
@@ -648,14 +660,15 @@ describe("U0 native page lifecycle regressions", () => {
     await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
     const page = mountedPage(capturedPage!, {
       id: "conversation-1", pageAlive: true, visible: true, assignedToMe: true, canReply: true, busy: false,
-      input: "我来帮你核对", conversation: { id: "conversation-1", status: "human_active", version: 2 }, messages: [], maxSeenSequence: 0
+      input: "我来帮你核对", conversation: { id: "conversation-1", status: "human_active", version: 2 }, ...selectedOperatorQuestion()
     }, { lifecycleEpoch: 4, inputRevision: 0, lastPresenceSentAt: 0 });
 
     await page.send();
 
     expect(page.data.input).toBe("我来帮你核对");
-    expect(page.data.pendingMessage).toMatchObject({ body: "我来帮你核对", deliveryLabel: "发送失败" });
-    expect(page.data.error).toContain("回复是否发送成功还未确认，文字已保留。");
+    expect(page.data.pendingMessage).toMatchObject({ body: "我来帮你核对", deliveryLabel: "结果待核对" });
+    expect(page.data.sendAttempt).toMatchObject({ body: "我来帮你核对", replyToMessageId: "confirmed-user-question", expectedHumanRequestGeneration: 1, contextVersion: 0 });
+    expect(page.data.error).toContain("回复是否发送成功还未确认，文字和回复对象已保留");
     expect(page.data.busy).toBe(false);
   });
 

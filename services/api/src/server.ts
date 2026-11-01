@@ -643,7 +643,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return support.sendMember(request.memberId,request.principalId,input,request.id,request.authScope==='privacy_rights');
   });
   app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId,
-    (request.body??{}) as {expectedConversationId?:unknown;contextVersion?:unknown}));
+    (request.body??{}) as {expectedConversationId?:unknown;contextVersion?:unknown;questionMessageId?:unknown}));
   app.post("/v1/me/support/resume-ai", async request => support.resumeAi(request.memberId, request.principalId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
   app.post("/v1/me/support/presence", async request => support.touchMemberPresence(request.memberId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
@@ -671,7 +671,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       undefined,{conversationId:request.params.conversationId,principalId:request.principalId});
   });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/claim", async request => support.claim(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
-  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown}, request.id));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId,
+    (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/read", async request => support.markTeamRead(request.memberId, request.params.conversationId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/presence", async request => support.touchOperatorPresence(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
   app.get<{Params:{conversationId:string;mediaId:string}}>("/v1/management/support/conversations/:conversationId/media/:mediaId", async (request, reply) => {
@@ -923,7 +924,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{skuId:string}}>("/v1/management/catalog/skus/:skuId/inventory-adjustments", async request => catalog.adjustInventory(request.memberId, request.principalId, request.params.skuId, idempotencyKey(request), (request.body ?? {}) as Record<string,unknown>, request.id));
   app.get("/v1/management/support/ai/status", async request => { await authority.require(request.memberId,"support.read"); return supportAi.status(); });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/suggested-reply", async request => {
-    const projection=await support.modelProjectionForAssignedOperator(request.memberId,request.principalId,request.params.conversationId);
+    const projection=await support.modelProjectionForAssignedOperator(request.memberId,request.principalId,request.params.conversationId,
+      (request.body??{}) as {replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown});
     return supportAi.suggestedReply(projection);
   });
   app.post("/v1/shares", async (request) => {

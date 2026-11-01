@@ -110,17 +110,21 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
-    // Latest103 changes the support transition guard, not daily-care fields.
-    expect(migrationTip).toBe('202610300003_support_explicit_ai_resume.sql');
+    // Latest104 adds question-scoped collaboration metadata without changing prior rows.
+    expect(migrationTip).toBe('202610310001_support_ai_human_collaboration.sql');
     const supportGuard=async()=>String((await pool.query("SELECT pg_get_functiondef('enforce_support_conversation_transition()'::regprocedure) AS definition")).rows[0].definition);
     expect(await supportGuard()).toContain('cisme.support_resume_ai_conversation_id');
+    expect(await supportGuard()).toContain('cisme.support_human_request_transition');
     await closePool(pool);await migrate('down');pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
-    expect(await supportGuard()).not.toContain('cisme.support_resume_ai_conversation_id');
+    expect(await supportGuard()).toContain('cisme.support_resume_ai_conversation_id');
+    expect(await supportGuard()).not.toContain('cisme.support_human_request_transition');
+    expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='support_message' AND column_name='reply_to_message_id'")).rowCount).toBe(0);
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='daily_care_record' AND column_name='care_day'")).rowCount).toBe(1);
     await closePool(pool);await migrate('up');pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     expect(await supportGuard()).toContain('cisme.support_resume_ai_conversation_id');
+    expect(await supportGuard()).toContain('cisme.support_human_request_transition');
 
     // Migration99 is independent from the existing98 article facts. Verify
     // its empty round-trip, then its comment preservation refusal, before

@@ -15,7 +15,7 @@ const ok = (value: unknown = output, finish = "stop") => new Response(JSON.strin
 describe("DeepSeek customer support integration", () => {
   it("versions the current care entry and published human hours without inventing consent or immediate staffing", () => {
     expect(knowledge).toHaveLength(3);
-    expect(knowledge.every(source => source.version === "2026-10-31")).toBe(true);
+    expect(knowledge.every(source => source.version === "2026-10-31-collaboration-1")).toBe(true);
     const care = knowledge.find(source => source.id === "cisme.care-guide")!;
     expect(care.content).toContain("在护理首页完成当前四步护理流程，填写护理后自我感受并点击保存");
     expect(care.content).toContain("护理记录页只用于回看，不能在那里填写或保存感受");
@@ -71,6 +71,40 @@ describe("DeepSeek customer support integration", () => {
     for (const instruction of ["通常30–100字、1–3句话", "护理四步时可用4个短项", "每轮最多1个澄清问题", "0–1个emoji", "不无故重复欢迎或自我介绍", "用户问身份时如实说明是AI", "不自称人工", "不声称已查询、已办理", "困难时只提示用户点击“申请人工”", "由用户主动决定", "不代表已转人工"])
       expect(system).toContain(instruction);
     expect(system).not.toContain("500个汉字");
+  });
+
+  it('classifies the anchored current question during human service without leaking identifiers or treating later messages as the target',async()=>{
+    let body='';const provider=new DeepSeekSupportAiProvider(config,async(_url,init)=>{
+      body=String(init?.body);return ok({...output,text:'请在护理首页完成四步后填写感受并保存。',route:'general',handoffReason:null});
+    });
+    const human={...projection,status:'human_active',question:{sequence:2,body:'如何保存护理记录？'},
+      humanRequest:{generation:47,status:'human_active' as const,anchorKnown:true,anchorQuestion:'订单问题，联系13800138000或test@example.com'},
+      messages:[...projection.messages,{sequence:2,senderType:'user',body:'如何保存护理记录？'},{sequence:3,senderType:'admin',body:'LATER_MESSAGE_MUST_NOT_REPLACE_QUESTION'}]};
+    const boundary=new SupportAiBoundary(provider,new ApprovedKnowledgeRegistry(knowledge));
+    await expect(boundary.suggestedReply(human)).resolves.toMatchObject({route:'general',handoffReason:null});
+    const sent=JSON.parse(body),system=sent.messages[0].content;
+    expect(system).toContain('"status":"human_active"');expect(system).toContain('"anchorKnown":true');
+    expect(sent.messages.at(-1).content).toContain('如何保存护理记录？');
+    for(const value of ['13800138000','test@example.com',projection.conversationId,'LATER_MESSAGE_MUST_NOT_REPLACE_QUESTION','"generation":47'])expect(body).not.toContain(value);
+    expect(sent.thinking).toEqual({type:'disabled'});expect(sent.stream).toBe(false);
+  });
+
+  it.each(['general','human_followup','clarify','mixed'] as const)('keeps the %s decision structured for the server without giving it business write authority',async(route)=>{
+    const human={...projection,humanRequest:{generation:0,status:'waiting_human' as const,anchorQuestion:null,anchorKnown:false}};
+    const boundary=new SupportAiBoundary(new DeepSeekSupportAiProvider(config,async()=>ok({...output,route})),new ApprovedKnowledgeRegistry(knowledge));
+    await expect(boundary.suggestedReply(human)).resolves.toMatchObject({route});
+    expect(boundary.status().businessWriteToolsEnabled).toBe(false);
+  });
+
+  it.each([undefined,null,'force_refund',{},['general']])('does not treat a missing or malformed human routing decision as permission to answer (%j)',async(route)=>{
+    const human={...projection,humanRequest:{generation:0,status:'human_active' as const,anchorQuestion:null,anchorKnown:false}};
+    const boundary=new SupportAiBoundary(new DeepSeekSupportAiProvider(config,async()=>ok({...output,route})),new ApprovedKnowledgeRegistry(knowledge));
+    await expect(boundary.suggestedReply(human)).rejects.toMatchObject({code:'SUPPORT_AI_ROUTE_INVALID'});
+  });
+
+  it('cannot invent a pending human request from a model routing field',async()=>{
+    const boundary=new SupportAiBoundary(new DeepSeekSupportAiProvider(config,async()=>ok({...output,route:'human_followup'})),new ApprovedKnowledgeRegistry(knowledge));
+    await expect(boundary.suggestedReply(projection)).rejects.toMatchObject({code:'SUPPORT_AI_ROUTE_INVALID'});
   });
 
   it("accepts 180 Unicode characters including an emoji, and rejects a complete longer answer without truncation", async () => {
