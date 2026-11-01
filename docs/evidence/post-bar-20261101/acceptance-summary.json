@@ -24,11 +24,11 @@
   "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
   "full40AndPhoneKeyboard": "not tested in this task",
   "targetVersion": "0.1.23",
-  "officialUpload": "pending terminal receipt",
+  "officialUpload": "success;0.1.23;confirmation_upload_395f4e77-11d4-432b-96ad-79914e1291b3",
   "artifacts": [
     {
       "path": "README.md",
-      "sha256": "4ef92a56759d498d76f52dc05e4c75b388ef1325465a3f99385b4874069696aa"
+      "sha256": "b00256054f9e9efe69d4181900f0a9994622335c92f78667ef5f5128a2bf4df6"
     },
     {
       "path": "after-geometry.json",
@@ -41,6 +41,30 @@
     {
       "path": "collapsed-state.json",
       "sha256": "cb6dba36e0adf290d5ea689a11c06a7459dd5a5a8a644a3b2fdcdb1420fa9f8e"
+    },
+    {
+      "path": "delivery-023/ci-final-summary.json",
+      "sha256": "0561b1a1113c315dfc81f42f0187dd44cee860e6c4a13a290879238e966215d8"
+    },
+    {
+      "path": "delivery-023/release-receipt.json",
+      "sha256": "97855a1e5e6126489b45fdd0969145f7ea9c7ea2550be03920aafaf3355a1f13"
+    },
+    {
+      "path": "delivery-023/upload-023-original-receipt.json",
+      "sha256": "7301e5ece520d90f04a23658234922392870c4603f571aa8fb815180dd24daee"
+    },
+    {
+      "path": "delivery-023/upload-023-poll-1.json",
+      "sha256": "25ed3b0e5abb7cf1ec9ef932026a5865fe6d8338d530e5b0440b766393b765a0"
+    },
+    {
+      "path": "delivery-023/upload-023-started.json",
+      "sha256": "1dcd0ae5b41a718e7c534daafaf0aab2f02d42ee7196d8d042b4cd47231bee25"
+    },
+    {
+      "path": "delivery-023/upload-023-task.json",
+      "sha256": "bf570900c9230023fcd21d13bcf4d51d87e9bc3b9ed483f527778ca7dbc0b4b9"
     },
     {
       "path": "expanded-state.json",
@@ -78,5 +102,16 @@
       "path": "unit-final.log",
       "sha256": "d7c48346ba6e32f95dc6b93f4e94b96116a0381880c91711b3a3878ce5849e60"
     }
-  ]
+  ],
+  "mergeCommit": "399b915a7247c5e5e4f0135b4b9a4c6e5f355dda",
+  "compiledTotalBytes": 1849892,
+  "compiledPostBytes": 98308,
+  "ci": {
+    "runId": 41329858094,
+    "head": "8eeb90aeca2e03c41c979f5d6057514231a13a44",
+    "verify": "success",
+    "unitPassed": 2618,
+    "unitSkipped": 1,
+    "integrationPassed": 1131
+  }
 }
