@@ -12,7 +12,7 @@
     <view class="support-thread__content">
     <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
-    <view wx:if="{{historyLoaded && !loading && !closedRights && !messages.length && !pendingMessage && !error && (!conversation || conversation.status === 'ai_active')}}" class="support-message support-message--{{supportAiAvailable ? 'ai' : 'admin'}} support-message--group-start support-welcome-message">
+    <view wx:if="{{historyLoaded && historyStartLoaded && !closedRights}}" class="support-message support-message--{{supportAiAvailable ? 'ai' : 'admin'}} support-message--group-start support-welcome-message">
       <view class="support-avatar-slot"><view class="support-avatar support-avatar--{{supportAiAvailable ? 'ai' : 'human'}}"><image src="{{supportAiAvailable ? '/assets/cisme/cisme-ai-avatar-v1.png' : '/assets/icons/chat-circle-plum.svg'}}" mode="aspectFit" aria-hidden="true"/></view></view>
       <view class="support-message__content"><text class="support-message__sender">{{supportAiAvailable ? 'CISME AI 客服' : 'CISME 客服'}}</text><view class="support-bubble">{{supportAiAvailable ? '你好呀，我是 CISME AI 客服 😊 护理或使用小程序有疑问，都可以问我～' : '你好呀 😊 有问题可以留言，也可以申请人工客服。'}}</view></view>
     </view>

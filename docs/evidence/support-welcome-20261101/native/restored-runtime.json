@@ -1,0 +1,11 @@
+{
+  "authReturnRestored": true,
+  "route": "pages/account/index",
+  "sessionPresent": false,
+  "privacySessionPresent": false,
+  "apiOrigin": "https://staging-api.cisme.cn",
+  "width": 390,
+  "font": 16,
+  "fixtureOwnerPresent": false,
+  "authReturnPresent": false
+}

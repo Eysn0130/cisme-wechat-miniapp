@@ -1,0 +1,100 @@
+{
+  "selectors": [
+    ".support-welcome-message",
+    ".support-welcome-message .support-bubble",
+    ".support-bubble",
+    ".support-message--pending",
+    ".support-composer",
+    ".support-thread"
+  ],
+  "boxes": [
+    [
+      {
+        "left": 13,
+        "right": 378,
+        "top": 168.59375,
+        "bottom": 250.96875,
+        "width": 365,
+        "height": 82.375,
+        "fontSize": "14px",
+        "lineHeight": "normal"
+      }
+    ],
+    [
+      {
+        "left": 61,
+        "right": 331.09375,
+        "top": 187.59375,
+        "bottom": 250.96875,
+        "width": 270.09375,
+        "height": 63.375,
+        "fontSize": "14px",
+        "lineHeight": "21.7px"
+      }
+    ],
+    [
+      {
+        "left": 61,
+        "right": 331.09375,
+        "top": 187.59375,
+        "bottom": 250.96875,
+        "width": 270.09375,
+        "height": 63.375,
+        "fontSize": "14px",
+        "lineHeight": "21.7px"
+      },
+      {
+        "left": 158,
+        "right": 378,
+        "top": 297.46875,
+        "bottom": 339.15625,
+        "width": 220,
+        "height": 41.6875,
+        "fontSize": "14px",
+        "lineHeight": "21.7px"
+      },
+      {
+        "left": 61,
+        "right": 331.09375,
+        "top": 388.15625,
+        "bottom": 451.53125,
+        "width": 270.09375,
+        "height": 63.375,
+        "fontSize": "14px",
+        "lineHeight": "21.7px"
+      }
+    ],
+    [],
+    [
+      {
+        "left": 0,
+        "right": 390,
+        "top": 678,
+        "bottom": 844,
+        "width": 390,
+        "height": 166,
+        "fontSize": "14px",
+        "lineHeight": "normal"
+      }
+    ],
+    [
+      {
+        "left": 0,
+        "right": 389,
+        "top": 91,
+        "bottom": 678,
+        "width": 389,
+        "height": 587,
+        "fontSize": "14px",
+        "lineHeight": "normal"
+      }
+    ]
+  ],
+  "historyStartLoaded": true,
+  "historyLoaded": true,
+  "messageCount": 2,
+  "pendingPresent": false,
+  "visible": false,
+  "sessionPresent": false,
+  "scope": "setData native render fixture only"
+}

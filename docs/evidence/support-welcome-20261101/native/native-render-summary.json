@@ -1,0 +1,159 @@
+{
+  "runId": "73fececf5dd749669399efb70f90dfcf",
+  "packageSourceSha256": "3942f0be14641c7cf7a77ecc092b3bf23a80ee5ae407f100459918454a732f6b",
+  "scope": "Original native WXML/WXSS setData render fixtures only. No authenticated loading, sending, polling or physical-device interaction is claimed. Actual Page state/races are tested separately.",
+  "cases": [
+    {
+      "name": "unconfirmed-head-empty",
+      "expectedWelcomeCount": 0,
+      "actualWelcomeCount": 0,
+      "screenshot": "unconfirmed-head-empty.png",
+      "geometry": "unconfirmed-head-empty-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "empty",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "empty.png",
+      "geometry": "empty-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "pending",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "pending.png",
+      "geometry": "pending-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "first-ack",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "first-ack.png",
+      "geometry": "first-ack-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "ai-reply",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "ai-reply.png",
+      "geometry": "ai-reply-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "poll-render",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "poll-render.png",
+      "geometry": "poll-render-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "waiting-human",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "waiting-human.png",
+      "geometry": "waiting-human-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "human-active",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "human-active.png",
+      "geometry": "human-active-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "resolved",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "resolved.png",
+      "geometry": "resolved-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "send-unknown",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "send-unknown.png",
+      "geometry": "send-unknown-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "loaded-refresh",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "loaded-refresh.png",
+      "geometry": "loaded-refresh-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "initial-read-error",
+      "expectedWelcomeCount": 0,
+      "actualWelcomeCount": 0,
+      "screenshot": "initial-read-error.png",
+      "geometry": "initial-read-error-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "unknown-history-start",
+      "expectedWelcomeCount": 0,
+      "actualWelcomeCount": 0,
+      "screenshot": "unknown-history-start.png",
+      "geometry": "unknown-history-start-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "paged-history",
+      "expectedWelcomeCount": 0,
+      "actualWelcomeCount": 0,
+      "screenshot": "paged-history.png",
+      "geometry": "paged-history-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "oldest-page-loaded",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "oldest-page-loaded.png",
+      "geometry": "oldest-page-loaded-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "new-topic",
+      "expectedWelcomeCount": 1,
+      "actualWelcomeCount": 1,
+      "screenshot": "new-topic.png",
+      "geometry": "new-topic-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "closed-rights",
+      "expectedWelcomeCount": 0,
+      "actualWelcomeCount": 0,
+      "screenshot": "closed-rights.png",
+      "geometry": "closed-rights-geometry.json",
+      "passed": true
+    }
+  ],
+  "networkSettingsChanged": false,
+  "serverOperations": false,
+  "realSessionUsed": false,
+  "finalSimulatorRefreshOwnedByRoot": true,
+  "nativePageMethodProof": {
+    "newDefaultPresent": true,
+    "cidProofCleared": true,
+    "sameTopicHumanStatusKept": true,
+    "newTopicProofCleared": true
+  },
+  "navigateToMockRestored": true,
+  "guestRuntimeRestored": true,
+  "privateConfigUnchanged": true,
+  "sourceHashUnchanged": true,
+  "restoreErrors": [],
+  "passed": true
+}
