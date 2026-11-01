@@ -1,0 +1,37 @@
+
+> cisme-wechat-miniapp@0.1.0 test:integration
+> node scripts/disposable-test.mjs vitest run tests/integration --exclude 'dist/**' --pool=forks --maxWorkers=1
+
+{"event":"synthetic-object-target-created","runId":"b4e94486db9c1409d47478de","container":"82f2c6da12ff6567099d59f75671ec4e4bf79b6810ad58f6490304bcb6b73782","endpoint":"http://127.0.0.1:34172"}
+{"event":"synthetic-target-created","runId":"b4e94486db9c1409d47478de","container":"1bb9e64690dfee823a058d9110b4119dfe26f8300a5d33968b10092788b8bc3c","postgresImage":"postgres:18.4-alpine","imageId":"sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15","host":"127.0.0.1","port":"34171","database":"cisme_test_b4e94486db9c1409d47478de","role":"runner_b4e94486db9c1409d47478de","purpose":"disposable-synthetic"}
+
+ RUN  v4.1.12 /Users/mini/CISME
+
+stdout | tests/integration/support-performance.test.ts > accepts one first support message from 100 isolated members without failure
+{"scenario":"100 isolated first messages","samples":100,"failures":0,"p50Ms":1205.44,"p95Ms":1270.03,"p99Ms":1271.18,"maxMs":1271.63,"queue100Ms":327.79,"queueStatus":200,"thresholdsMs":{"firstMessageP95":1000,"queue100":1000}}
+
+ ❯ tests/integration/support-performance.test.ts (1 test | 1 failed) 4136ms
+   × accepts one first support message from 100 isolated members without failure 2146ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/support-performance.test.ts > accepts one first support message from 100 isolated members without failure
+AssertionError: expected 1270.032084 to be less than 1000
+ ❯ tests/integration/support-performance.test.ts:31:94
+     29|    maxMs:Number(latencies.at(-1)!.toFixed(2)),queue100Ms:Number(queueM…
+     30|    thresholdsMs:{firstMessageP95:1000,queue100:1000}}));
+     31|  expect(queue.statusCode).toBe(200);expect(queue.json().items).toHaveL…
+       |                                                                                              ^
+     32| },15000);
+     33|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 64 passed (65)
+      Tests  1 failed | 1102 passed (1103)
+   Start at  20:43:48
+   Duration  246.46s (transform 1.03s, setup 1.88s, import 10.17s, tests 230.24s, environment 3ms)
+
+{"event":"synthetic-object-target-removed","runId":"b4e94486db9c1409d47478de","container":"82f2c6da12ff6567099d59f75671ec4e4bf79b6810ad58f6490304bcb6b73782"}
+{"event":"synthetic-target-removed","runId":"b4e94486db9c1409d47478de","container":"1bb9e64690dfee823a058d9110b4119dfe26f8300a5d33968b10092788b8bc3c"}
