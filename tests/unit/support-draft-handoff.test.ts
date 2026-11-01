@@ -20,7 +20,7 @@ it('retains an ordinary support draft and uncertain send only for the same accou
 });
 
 it('keeps the exact uncertain support message ID for a same-account order handoff',()=>{
-  const attempt={id:'support-original-1',body:'请核对漏发',linkedOrderId:'order-a'};
+  const attempt={id:'support-original-1',body:'请核对漏发',linkedOrderId:'order-a',expectedConversationId:'conversation-a',contextVersion:12};
   stageSupportSendAttempt('session-a','order-a',attempt);
   expect(takeSupportSendAttempt('session-a','order-a')).toEqual(attempt);
   expect(takeSupportSendAttempt('session-a','order-a')).toBeNull();

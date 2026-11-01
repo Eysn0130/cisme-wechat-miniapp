@@ -1,0 +1,98 @@
+{
+  "sourceHead": "83a59649715d150a1f71d7c0209fb7f126552b37",
+  "sourceTree": "334924d64940b934a1632cd538eec0771a956c14",
+  "packageSourceSha256": "95c0d5f66ef49a30c6d278fdfffcea356aa9725d4edce82296c558ceb676301a",
+  "unit": {
+    "files": 165,
+    "passed": 2496,
+    "skipped": 1,
+    "exitCode": 0
+  },
+  "integration": {
+    "files": 65,
+    "functionalPassed": 1102,
+    "performanceFailedDuringConcurrentLinuxBuild": 1,
+    "fullRunExitCode": 1,
+    "sameSourceIsolatedPerformancePassed": 1,
+    "isolatedPerformanceExitCode": 0,
+    "originalThresholdMs": 1000,
+    "thresholdChanged": false,
+    "concurrentRunId": "b4e94486db9c1409d47478de",
+    "isolatedRunId": "a7feea2ff3bbbfcfebeb5129",
+    "finalPullRequestCiPendingAtCapture": true
+  },
+  "targetedBackend": {
+    "latestFinalAffectedTestsPassed": 66,
+    "priorCrossFlowTestsPassed": 89,
+    "unitRemoteMarkerPassed": 1,
+    "allDisposableResourcesRemovedByExactLabels": true
+  },
+  "offlineGuards": {
+    "passed": 27,
+    "resourceWarningsAsErrors": true,
+    "independentReview": "no P1/P2 findings"
+  },
+  "native": {
+    "syntheticLayouts": 2,
+    "width": 390,
+    "font": 16,
+    "actualSourceConfirmationOpenedAndCancelled": true,
+    "draftPreservedAfterCancel": true,
+    "realSignedInClearPerformed": false,
+    "realChatPerformed": false,
+    "physicalPhoneVerified": false,
+    "full40PageMatrix": "blocked",
+    "mocksRestored": true,
+    "finalRoute": "pages/account/index",
+    "interimOverlongConfirmImagesNotReused": true
+  },
+  "artifact": {
+    "built": true,
+    "sourceHead": "83a59649715d150a1f71d7c0209fb7f126552b37",
+    "schemaMigrations": 103,
+    "protectedFilesUnchanged": 106,
+    "dependenciesChanged": false,
+    "newMiniProgramUploaded": false,
+    "trialActivatedAtCapture": false,
+    "productionChanged": false
+  },
+  "logNormalization": "Only trailing whitespace/end blank lines normalized for repository diff hygiene; raw logs remain in the named tmp directory; hashes preserved below.",
+  "logs": {
+    "full-unit.log": {
+      "rawSha256": "7c27afdcd1334a756ddff52650e7a469668ec4ec14ce41d274d96cc5d3628b62",
+      "publishedSha256": "4e28daff0ea2d1449da90bea8bfe8079ed967a70526304c6c1b23029b00651fc"
+    },
+    "full-integration-concurrent-build.log": {
+      "rawSha256": "ca1a4066d8d45e0186924f42dcebede0bcbde3205dba17bbccde340b74cf03ef",
+      "publishedSha256": "ca1a4066d8d45e0186924f42dcebede0bcbde3205dba17bbccde340b74cf03ef"
+    },
+    "performance-isolated.log": {
+      "rawSha256": "b6d35f9b1d0aab0462c10ab86cf5680f6eebe3207d51e6140f361bc7ca319af3",
+      "publishedSha256": "b6d35f9b1d0aab0462c10ab86cf5680f6eebe3207d51e6140f361bc7ca319af3"
+    },
+    "build.log": {
+      "rawSha256": "88e79ff9410114ac0236a419fbd500390450c9ae33a40006c573cef8dc752e1e",
+      "publishedSha256": "88e79ff9410114ac0236a419fbd500390450c9ae33a40006c573cef8dc752e1e"
+    },
+    "contracts.log": {
+      "rawSha256": "c8ec14fc82cbfd80fad83cd028944c42e8f765daba8e4ce3c645bd96e42bbdd6",
+      "publishedSha256": "c8ec14fc82cbfd80fad83cd028944c42e8f765daba8e4ce3c645bd96e42bbdd6"
+    },
+    "offline-guards.log": {
+      "rawSha256": "fdbb669e776343dd615897ef456245360ef705c3c1b7abfbfcc7c7a356e56980",
+      "publishedSha256": "fdbb669e776343dd615897ef456245360ef705c3c1b7abfbfcc7c7a356e56980"
+    },
+    "native-summary.json": {
+      "rawSha256": "4dde5ec9d17f890579e0efa2453b339d02ad5fd8e56bf0d0afd4b55255b1f945",
+      "publishedSha256": "4dde5ec9d17f890579e0efa2453b339d02ad5fd8e56bf0d0afd4b55255b1f945"
+    },
+    "native-evidence.json": {
+      "rawSha256": "7e5754be01b69540b562f34a46ca7b0832dbf524c10f3218598a2f8cca8292d2",
+      "publishedSha256": "7e5754be01b69540b562f34a46ca7b0832dbf524c10f3218598a2f8cca8292d2"
+    },
+    "native-compile-support.json": {
+      "rawSha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac",
+      "publishedSha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "activationAllowedByBuild": false,
+  "archive": "/Users/mini/CISME/tmp/support-fresh-20261031/release/tencent-release-83a59649715d.tar.gz",
+  "archiveBytes": 25668144,
+  "archiveSha256": "2cac3a392d98a64836e8bfa3f03f9b607b4d6743b2c4280c6fd1b62c3d29abab",
+  "bindingSha256": "b55434bf2ab897cf96011a18a036748963aa46355753f27e8f04fc070cd8d36b",
+  "builderImage": "sha256:43ffb442676c100df1e90d50b1d582c5af0b9dca1bdf7cbc9065dad0c5521044",
+  "containerId": "0032ef715e5cf12b3e8cf9e8ae38ea7fef9b6cd8b38b6efa39a97fbd615df026",
+  "containerRetained": true,
+  "dependenciesSha256": "d9f03813fc808eced42eacb92db4530a2cd0e0824cab5d1beb9c3bdf08144bdd",
+  "deployed": false,
+  "helperSha256": "aa71d4373f32074eef6ce8c9e3927a6d1a62d739452ae8af9050bad0a4fbbda9",
+  "hostMounts": [],
+  "kind": "trial-support-fresh-build-not-activation",
+  "manifestSha256": "2b501c6652e96865b945381a5d1d2d396d376e3e8440f5779069d2ae7c9ecf37",
+  "migrations": 103,
+  "network": "none",
+  "runtimeDependencies": {
+    "fastify": "5.12.6",
+    "sharp": "0.35.5"
+  },
+  "schemaVersion": 1,
+  "secretsIncluded": false,
+  "serverMutations": false,
+  "sourceHead": "83a59649715d150a1f71d7c0209fb7f126552b37",
+  "sourceTree": "334924d64940b934a1632cd538eec0771a956c14",
+  "stageMetaSha256": "ff32cba3199a5da6e5e293f859719accd8cc480a4192e94671f50b841d57dd51",
+  "unchangedProtectedFileCount": 106
+}

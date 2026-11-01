@@ -26,6 +26,9 @@ type SheetCase={id:string;orderId:string;state:string;kind:string;reason:string;
 type SheetAvailable={lineId:string;remainingQuantity:number;selectedQuantity:number;productName:string;skuLabel:string};
 type SheetMessage={id:string;sequence:number;senderType:string;body:string;createdAt:string;deliveryState:string;orderCard:any;returnInstruction:any};
 type SheetShown=ReturnType<typeof presentSupportMessages<SheetMessage>>[number];
+type SheetConversation={id:string;teamReadSequence?:number};
+type SheetPage={messages:SheetMessage[];latestCursor:number;conversation:SheetConversation|null;contextStartSequence?:number;contextVersion?:number};
+type SheetSendAttempt={key:string;body:string;expectedConversationId?:string|null;contextVersion?:number};
 const errorTitle=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
 function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
   return match?Number(match[1])*100+Number((match[2]??"").padEnd(2,"0")):NaN;}
@@ -43,10 +46,10 @@ Page({
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
     supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[] as SheetAvailable[],sheetConsulting:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
-    sheetConversation:null as {id:string;teamReadSequence?:number}|null,sheetKindIndex:1,sheetKindOptions:['仅退款','退货退款'],
+    sheetConversation:null as SheetConversation|null,sheetContextVersion:0,sheetContextStartSequence:0,sheetKindIndex:1,sheetKindOptions:['仅退款','退货退款'],
     sheetBasisIndex:0,sheetBasisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
-    sheetInput:"",sheetSending:false,sheetSendAttempt:null as {key:string;body:string}|null,sheetKeyboardHeight:0,sheetHeight:'78vh'},
+    sheetInput:"",sheetSending:false,sheetSendAttempt:null as SheetSendAttempt|null,sheetKeyboardHeight:0,sheetHeight:'78vh'},
   onResize(){this.setData({chromeStyle:currentChromeStyle(),sheetHeight:supportSheetHeight()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
     this.launchAftersale=query.aftersale==='1';
     this.setData({id,invalidId:!orderIdPattern.test(id),sheetHeight:supportSheetHeight()});},
@@ -55,7 +58,7 @@ Page({
     this.wechatReturn=takeWechatReceiptReturn(this.data.id,historicalCommerceToken());
     if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){
       const attempt=takeSupportSendAttempt(historicalCommerceToken(),this.data.id);
-      if(attempt)this.setData({sheetInput:attempt.body,sheetSendAttempt:{key:attempt.id,body:attempt.body},sheetError:'上次消息发送结果尚未确认，请重试原消息。'});
+      if(attempt)this.setData({sheetInput:attempt.body,sheetSendAttempt:{key:attempt.id,body:attempt.body,expectedConversationId:attempt.expectedConversationId??null,contextVersion:attempt.contextVersion??0},sheetError:'上次消息发送结果尚未确认，请重试原消息。'});
     }
     if(this.data.supportSheetOpen&&!this.data.sheetInput&&!this.data.sheetSendAttempt){
       const draft=takeSupportDraft(historicalCommerceToken(),this.data.id);
@@ -65,7 +68,7 @@ Page({
   syncSession(){const token=historicalCommerceToken(),changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
     if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
-    if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
+    if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetContextVersion:0,sheetContextStartSequence:0,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
     },
   confirmationPending:false,
   trackingAttempt:0,
@@ -318,6 +321,18 @@ Page({
   scheduleSheetPoll(){this.stopSheetPoll();if(!this.data.supportSheetOpen||!this.data.visible)return;
     this.sheetTimer=setTimeout(()=>void this.pollSupportSheet(),supportPollDelay(this.sheetFailures,false));},
   sheetReadCurrent(epoch:number,token:string,generation:number){return this.sheetCurrent(epoch,token)&&generation===this.sheetReadEpoch;},
+  sheetTopic(page:Pick<SheetPage,'conversation'|'contextStartSequence'|'contextVersion'>){
+    const same=page.conversation?.id===this.data.sheetConversation?.id;
+    const version=Number(page.contextVersion??0),boundary=Number(page.contextStartSequence??0);
+    const contextVersion=Number.isSafeInteger(version)&&version>=0?version:0,contextStartSequence=Number.isSafeInteger(boundary)&&boundary>=0?boundary:0;
+    return {contextVersion,contextStartSequence,stale:same&&contextVersion<this.data.sheetContextVersion,
+      changed:Boolean(this.data.sheetConversation&&(!same||contextVersion>this.data.sheetContextVersion||contextStartSequence>this.data.sheetContextStartSequence))};
+  },
+  clearRetiredSheetTopic(contextVersion?:number,conversationId?:string){
+    const attempt=this.data.sheetSendAttempt,keepAttempt=Boolean(attempt&&(attempt.contextVersion??0)===contextVersion
+      &&(attempt.expectedConversationId===conversationId||!attempt.expectedConversationId&&contextVersion===0));
+    this.sheetCursor=0;this.setData({sheetMessages:[],...(!keepAttempt?{sheetInput:'',sheetSendAttempt:null,sheetSending:false}:{})});
+  },
   applySheetCases(items:SheetCase[]){
     const selected=items.find(item=>!['cancelled','rejected'].includes(item.state)&&!item.resolved)??null;
     const stateLabels:Record<string,string>={requested:'申请已收到',need_info:'请补充信息',awaiting_instruction:'客服正在准备退货信息',
@@ -346,7 +361,7 @@ Page({
     try{
       // Progress is a case fact, not inferred from the latest chat message.
       const [messages,cases,availability]=await Promise.allSettled([
-        pageRead<{messages:SheetMessage[];latestCursor:number;conversation:{id:string;teamReadSequence?:number}|null}>(this,
+        pageRead<SheetPage>(this,
           {path:`/v1/me/support/messages?after=${cursor}&limit=50`,cacheTags:['support']}),
         pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`}),
         pageRead<{lines:Array<{lineId:string;remainingQuantity:number}>}>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
@@ -355,9 +370,14 @@ Page({
       if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[]);
       if(messages.status==='fulfilled'){
         const page=messages.value;
-        const state=mergeSyncPage<SheetShown>({messages:this.data.sheetMessages,syncCursor:this.sheetCursor,maxSeenSequence:this.sheetCursor,readCursor:0},
-          presentSupportMessages(page.messages??[],{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}),page.latestCursor??cursor);
-        this.sheetCursor=state.syncCursor;this.setData({sheetMessages:presentSupportMessages(state.messages,{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}).slice(-30),sheetConversation:page.conversation});
+        const topic=this.sheetTopic(page);
+        if(!topic.stale){
+          if(topic.changed)this.clearRetiredSheetTopic(topic.contextVersion,page.conversation?.id);
+          const state=mergeSyncPage<SheetShown>(topic.changed?createSupportThreadState<SheetShown>([],topic.contextStartSequence):{messages:this.data.sheetMessages,syncCursor:this.sheetCursor,maxSeenSequence:this.sheetCursor,readCursor:0},
+            presentSupportMessages((page.messages??[]).filter(item=>item.sequence>topic.contextStartSequence),{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}),page.latestCursor??cursor);
+          this.sheetCursor=state.syncCursor;this.setData({sheetMessages:presentSupportMessages(state.messages,{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}).slice(-30),sheetConversation:page.conversation,
+            sheetContextVersion:topic.contextVersion,sheetContextStartSequence:topic.contextStartSequence});
+        }
       }
       this.sheetFailures=messages.status==='rejected'||cases.status==='rejected'||availability.status==='rejected'?Math.min(this.sheetFailures+1,5):0;
       const remoteError=cases.status==='rejected'?'售后进度暂未更新，请重试。':availability.status==='rejected'||!this.data.sheetLinesReady?'商品可申请数量暂未更新，请重试。':messages.status==='rejected'?'消息暂未更新，请重试。':'';
@@ -373,14 +393,19 @@ Page({
     this.stopSheetPoll();this.sheetValidationError=false;this.setData({sheetLoading:true,sheetCasesReady:false,sheetLinesReady:false,sheetError:''});
     const [cases,messages,availability]=await Promise.allSettled([
       pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`}),
-      pageRead<{messages:SheetMessage[];latestCursor:number;conversation:{id:string;teamReadSequence?:number}|null}>(this,{path:'/v1/me/support/messages?limit=30',cacheTags:['support']}),
+      pageRead<SheetPage>(this,{path:'/v1/me/support/messages?limit=30',cacheTags:['support']}),
       pageRead<{lines:Array<{lineId:string;remainingQuantity:number}>}>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
     if(!this.sheetReadCurrent(epoch,token,generation))return;
     if(cases.status==='fulfilled')this.applySheetCases(cases.value.items??[]);
     if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[]);
     if(messages.status==='fulfilled'){
-      const page=messages.value;this.sheetCursor=page.latestCursor??0;
-      this.setData({sheetConversation:page.conversation,sheetMessages:presentSupportMessages(page.messages??[],{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0})});
+      const page=messages.value,topic=this.sheetTopic(page);
+      if(!topic.stale){
+        if(topic.changed)this.clearRetiredSheetTopic(topic.contextVersion,page.conversation?.id);
+        this.sheetCursor=page.latestCursor??0;
+        this.setData({sheetConversation:page.conversation,sheetContextVersion:topic.contextVersion,sheetContextStartSequence:topic.contextStartSequence,
+          sheetMessages:presentSupportMessages((page.messages??[]).filter(item=>item.sequence>topic.contextStartSequence),{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0})});
+      }
     }
     this.setData({sheetLoading:false,sheetError:cases.status==='rejected'?'售后记录暂未加载，请重试。':availability.status==='rejected'||!this.data.sheetLinesReady?'商品可申请数量暂未加载，请重试。':messages.status==='rejected'?'消息暂未更新，仍可提交售后申请。':''});
     this.scheduleSheetPoll();
@@ -402,7 +427,8 @@ Page({
     const handoff=this.data.sheetSendAttempt?null:this.data.sheetInput;
     if(handoff?.trim())stageSupportDraft(historicalCommerceToken(),this.data.id,handoff);
     const attempt=this.data.sheetSendAttempt;
-    if(attempt)stageSupportSendAttempt(historicalCommerceToken(),this.data.id,{id:attempt.key,body:attempt.body,linkedOrderId:this.data.id});
+    if(attempt)stageSupportSendAttempt(historicalCommerceToken(),this.data.id,{id:attempt.key,body:attempt.body,linkedOrderId:this.data.id,
+      expectedConversationId:attempt.expectedConversationId??null,contextVersion:attempt.contextVersion??0});
     this.setData({navigating:true,...(handoff?.trim()?{sheetInput:''}:{})});
     wx.navigateTo({url:`/pages/support/index?orderId=${this.data.id}`,success:()=>{
       if(attempt?.key===this.data.sheetSendAttempt?.key)this.setData({sheetInput:'',sheetSendAttempt:null,sheetError:''});
@@ -457,18 +483,31 @@ Page({
       else this.setData({sheetError:'提交结果尚未核实。请用原请求重试，或刷新本单售后记录。'});
     }}finally{if(this.current(epoch,token))this.setData({sheetSubmitting:false});}
   },
-  async sendSheetMessage(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSending)return;
+  async sendSheetMessage(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSending||this.data.sheetLoading)return;
     const body=this.data.sheetInput.trim();if(!this.data.sheetSendAttempt&&!body)return;
-    const attempt=this.data.sheetSendAttempt??{key:clientOperationKey('support-order'),body};
+    const attempt=this.data.sheetSendAttempt??{key:clientOperationKey('support-order'),body,
+      expectedConversationId:this.data.sheetConversation?.id??null,contextVersion:this.data.sheetContextVersion};
     const epoch=this.data.epoch,token=historicalCommerceToken();this.setData({sheetSending:true,sheetSendAttempt:attempt,sheetError:''});
-    try{const result=await request<{message:SheetMessage;conversation:{id:string;teamReadSequence?:number}}>({path:'/v1/me/support/messages',method:'POST',
-      data:{body:attempt.body,clientMessageId:attempt.key,linkedOrderId:this.data.id},cacheTags:['support']});
-      if(!this.sheetCurrent(epoch,token))return;
-      const state=mergeAcknowledgement<SheetShown>({messages:this.data.sheetMessages,syncCursor:this.sheetCursor,maxSeenSequence:this.sheetCursor,readCursor:0},
+    try{const result=await request<{message:SheetMessage;conversation:SheetConversation;contextVersion?:number;contextStartSequence?:number;contextSyncRequired?:boolean;acknowledgedConversationId?:string}>({path:'/v1/me/support/messages',method:'POST',
+      data:{body:attempt.body,clientMessageId:attempt.key,linkedOrderId:this.data.id,...(this.data.closedRights?{}:{contextVersion:attempt.contextVersion??0,
+        ...(attempt.expectedConversationId?{expectedConversationId:attempt.expectedConversationId}:{})})},cacheTags:['support']});
+      if(!this.sheetCurrent(epoch,token)||this.data.sheetSendAttempt?.key!==attempt.key)return;
+      const topic=this.sheetTopic(result);
+      if(topic.changed)this.clearRetiredSheetTopic();
+      const sameTopic=!topic.stale&&!result.contextSyncRequired&&(attempt.contextVersion??0)===topic.contextVersion
+        &&(!result.acknowledgedConversationId||result.acknowledgedConversationId===result.conversation.id);
+      let state:SupportThreadState<SheetShown>={messages:this.data.sheetMessages,syncCursor:this.sheetCursor,maxSeenSequence:this.sheetCursor,readCursor:0};
+      if(sameTopic&&result.message.sequence>topic.contextStartSequence)state=mergeAcknowledgement<SheetShown>(state,
         presentSupportMessages([result.message],{ownSenderType:'user',counterpartyReadSequence:result.conversation.teamReadSequence??0})[0]!);
       this.setData({sheetMessages:presentSupportMessages(state.messages,{ownSenderType:'user',counterpartyReadSequence:result.conversation.teamReadSequence??0}).slice(-30),
-        sheetConversation:result.conversation,sheetInput:'',sheetSendAttempt:null});
-    }catch{if(this.sheetCurrent(epoch,token))this.setData({sheetError:'消息结果尚未核实；请用原内容重试，或展开会话查看。'});}
+        ...(!topic.stale?{sheetConversation:result.conversation,sheetContextVersion:topic.contextVersion,sheetContextStartSequence:topic.contextStartSequence}:{}),sheetInput:'',sheetSendAttempt:null});
+      if(topic.changed||result.contextSyncRequired)await this.loadSupportSheet();
+    }catch(error){if(this.sheetCurrent(epoch,token)&&this.data.sheetSendAttempt?.key===attempt.key){
+      if((error as {code?:string})?.code==='SUPPORT_CONTEXT_CHANGED'){
+        this.sheetReadEpoch+=1;this.clearRetiredSheetTopic();await this.loadSupportSheet();
+        if(this.sheetCurrent(epoch,token))this.setData({sheetError:'会话已更新，原消息未发送，请重新输入。'});
+      }else this.setData({sheetError:'消息结果尚未核实；请用原内容重试，或展开会话查看。'});
+    }}
     finally{if(this.current(epoch,token))this.setData({sheetSending:false});}
   },
   back(){if(this.data.supportSheetOpen){this.closeSupportSheet();return;}

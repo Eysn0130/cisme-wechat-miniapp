@@ -51,8 +51,13 @@ it('stores only immutable identity digests and replays every paginated remote ma
     memberCreatedAt:'2026-09-23T00:00:00.000Z',createdAt:'2026-09-23T04:00:00.000Z',
     scope:'support_retention_messages_v1',policyCode:'support_conversation_policy_pending',removeConversation:true};
   await remote.put(support);
+  const fresh:Marker={version:7,scope:'support_new_conversation_v1',memberId:rows[0]!.memberId,
+    conversationId:'88888888-8888-4888-8888-888888888888',requestId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    expectedVersion:3,contextStartSequence:2,resultVersion:4,
+    memberCreatedAt:'2026-09-23T00:00:00.000Z',createdAt:'2026-09-23T05:00:00.000Z'};
+  await remote.put(fresh);await remote.put(fresh);
   await remote.put(rows[0]!);
-  expect(await remote.list()).toEqual([address,consent,rows[0],profile,support,rows[1]]);
+  expect(await remote.list()).toEqual([address,consent,rows[0],profile,fresh,support,rows[1]]);
   expect(JSON.stringify([...objects.values()].map(value=>value.toString()))).not.toContain('openid');
   await expect(remote.put({...rows[0]!,identityDigest:'f'.repeat(64)})).rejects.toThrow('ObjectAlreadyExists');
   versioned=true;

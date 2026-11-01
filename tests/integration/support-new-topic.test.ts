@@ -1,5 +1,8 @@
 import {afterAll,beforeAll,beforeEach,describe,expect,it,vi} from 'vitest';
 import {createHash,randomUUID} from 'node:crypto';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import type {FastifyInstance} from 'fastify';
 import {loadConfig} from '@cisme/config';
 import {TEST_DATABASE_URL,resetDatabase,testPool} from '@cisme/testkit';
@@ -7,6 +10,7 @@ import {createApp} from '../../services/api/src/server';
 import {AuthorityService} from '../../services/api/src/authority';
 import {PlatformService} from '../../services/api/src/platformService';
 import {SupportService} from '../../services/api/src/supportService';
+import {AccountClosure} from '../../services/api/src/accountClosure';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {ApprovedKnowledgeRegistry,SupportAiBoundary,type SupportAiSuggestion} from '../../services/api/src/supportAiBoundary';
 
@@ -20,7 +24,7 @@ const answer:SupportAiSuggestion={text:'这是当前问题的合成回答。',co
  citations:[{sourceId:source.id,version:source.version}],handoffReason:null};
 const suggest=vi.fn();
 const boundary=new SupportAiBoundary({id:'synthetic-new-topic',available:true,suggest},new ApprovedKnowledgeRegistry([source]),4000,true);
-const support=new SupportService(pool,new AuthorityService(pool,'test'),new PlatformService(pool,config,storage),storage,undefined,boundary);
+let support:SupportService,directory:string;
 const operation='support.conversation.new_topic';
 let app:FastifyInstance,user:any,operator:any,serial=0;
 const auth=(token:string)=>({authorization:`Bearer ${token}`});
@@ -32,7 +36,15 @@ const identity=async(name:string)=>{
 const current=async(id:string)=>(await pool.query('SELECT * FROM support_conversation WHERE id=$1',[id])).rows[0]!;
 const inputFor=(row:any,requestId:string=randomUUID())=>({conversationId:row.id,expectedVersion:row.version,requestId});
 const reset=(input:ReturnType<typeof inputFor>,actor=user.principalId)=>support.startNewTopic(user.memberId,actor,input,'synthetic-topic-trace');
-const send=(body:string,key=`synthetic-topic-message-${randomUUID()}`)=>support.sendMember(user.memberId,user.principalId,{body,clientMessageId:key},'synthetic-topic-trace');
+const send=async(body:string,key=`synthetic-topic-message-${randomUUID()}`)=>{
+ const state=await support.messagesForMember(user.memberId,{});
+ return support.sendMember(user.memberId,user.principalId,{body,clientMessageId:key,
+  expectedConversationId:state.conversation?.id,contextVersion:state.contextVersion},'synthetic-topic-trace');
+};
+const requestHuman=async()=>{
+ const state=await support.messagesForMember(user.memberId,{});
+ return support.requestHuman(user.memberId,user.principalId,{expectedConversationId:state.conversation?.id,contextVersion:state.contextVersion});
+};
 const receiptRows=async(owner=user.memberId)=>(await pool.query(`SELECT * FROM idempotency_operation
  WHERE principal_id=$1 AND operation=$2 ORDER BY created_at,idempotency_key`,[`member:${owner}`,operation])).rows;
 
@@ -57,6 +69,31 @@ async function seedHistory(count=3,status='ai_active',firstPurpose='ordinary'){
  }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
 }
 
+async function seedMixedImageHistory(){
+ const ids={ordinary:randomUUID(),shared:randomUUID(),transaction:randomUUID(),draft:randomUUID()};
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  const row=(await client.query(`INSERT INTO support_conversation(member_id,status) VALUES($1,'ai_active') RETURNING *`,[user.memberId])).rows[0]!;
+  const messages:string[]=[];
+  for(const [index,purpose,media] of [[0,'ordinary',[ids.ordinary,ids.shared]],[1,'transaction',[ids.shared,ids.transaction]]] as const){
+   const message=(await client.query(`INSERT INTO support_message(conversation_id,sequence,sender_type,sender_principal_id,
+    body,content_type,attachment_refs,client_message_id,retention_purpose)
+    VALUES($1,$2,'user',$3,'','image',$4::jsonb,$5,$6) RETURNING id`,
+    [row.id,index+1,user.principalId,JSON.stringify(media),`synthetic-topic-media-${randomUUID()}`,purpose])).rows[0]!;
+   messages.push(message.id);
+   await client.query(`UPDATE support_conversation SET next_sequence=next_sequence+1,version=version+1,
+    updated_at=clock_timestamp() WHERE id=$1`,[row.id]);
+  }
+  for(const [name,id] of Object.entries(ids))await client.query(`INSERT INTO media_object(id,kind,object_key,mime_type,size_bytes,
+   upload_state,uploaded_at,support_conversation_id,support_member_id,bound_support_message_id,support_expires_at)
+   VALUES($1,'chat_image',$2,'image/jpeg',3,'uploaded',clock_timestamp(),$3,$4,$5,clock_timestamp()+interval '1 day')`,
+   [id,`synthetic-new-conversation/${id}`,row.id,user.memberId,name==='draft'?null:name==='transaction'?messages[1]:messages[0]]);
+  await client.query('COMMIT');
+  return {row:await current(row.id),ids};
+ }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+}
+
 async function facts(id:string){
  const [conversation,messages,outbox,presence]=await Promise.all([
   pool.query(`SELECT id,member_id,status,current_handler_principal_id,priority,next_sequence,member_unread_count,team_unread_count,
@@ -75,17 +112,21 @@ function deferred<T>(){
 }
 
 beforeAll(async()=>{
- await resetDatabase(pool);await storage.ensureReady();app=await createApp({config,pool,storage});
+ await resetDatabase(pool);await storage.ensureReady();
+ directory=await mkdtemp(join(tmpdir(),'cisme-new-conversation-'));
+ config.privacy.suppressionDirectory=directory;
+ support=new SupportService(pool,new AuthorityService(pool,'test'),new PlatformService(pool,config,storage),storage,new AccountClosure(directory),boundary);
+ app=await createApp({config,pool,storage});
  operator=await identity('synthetic-new-topic-operator');
  for(const capability of ['support.read','support.assign','support.reply'])await pool.query(`INSERT INTO authority_grant
   (member_id,capability,granted_by,grant_reason,environment,grant_source)
   VALUES($1,$2,'synthetic','New-topic integration fixture','test','integration_fixture')`,[operator.memberId,capability]);
 });
 beforeEach(async()=>{user=await identity(`synthetic-new-topic-user-${++serial}`);suggest.mockReset();suggest.mockResolvedValue(answer);});
-afterAll(async()=>{await app.close();await pool.end();});
+afterAll(async()=>{await app.close();await pool.end();await rm(directory,{recursive:true,force:true});});
 
-describe('receipt-only support new topic',()=>{
- it('records one small owner-scoped receipt and actor audit without changing messages, unread, cursors, presence or outbox',async()=>{
+describe('fresh support conversation with ordinary-message erasure',()=>{
+ it('erases ordinary history, resets active read state and records one small owner-scoped receipt without inventing messages',async()=>{
   const row=await seedHistory();
   await pool.query(`UPDATE support_conversation SET member_unread_count=2,team_unread_count=3,
    member_last_read_sequence=1,team_last_read_sequence=2 WHERE id=$1`,[row.id]);
@@ -93,9 +134,13 @@ describe('receipt-only support new topic',()=>{
    VALUES($1,'member',$2,clock_timestamp()+interval '2 minutes',clock_timestamp()+interval '30 seconds')`,[row.id,user.principalId]);
   const before=await facts(row.id),input=inputFor(row);
   const result=await reset({...input,conversationId:input.conversationId.toUpperCase(),requestId:input.requestId.toUpperCase()});
-  expect(result).toMatchObject({replayed:false,contextStartSequence:3,newTopicAvailable:true,messages:[],olderCursor:4,
+  expect(result).toMatchObject({replayed:false,contextStartSequence:3,contextVersion:row.version+1,newTopicAvailable:true,messages:[],olderCursor:null,
    conversation:{id:row.id,status:'ai_active',version:row.version+1}});
-  expect(await facts(row.id)).toEqual(before);
+  const after=await facts(row.id);
+  expect(after.messages).toEqual([]);expect(after.outbox).toEqual(before.outbox);
+  expect(after.conversation).toMatchObject({...before.conversation,member_unread_count:0,team_unread_count:0,
+   member_last_read_sequence:'3',team_last_read_sequence:'3'});
+  expect(after.presence.every(item=>new Date(item.typing_expires_at).getTime()<=Date.now())).toBe(true);
   const receipts=await receiptRows();expect(receipts).toHaveLength(1);
   expect(receipts[0]).toMatchObject({principal_id:`member:${user.memberId}`,operation,idempotency_key:input.requestId,
    business_key:`support-topic:${row.id}:v${row.version}`,response_status:200,
@@ -107,19 +152,19 @@ describe('receipt-only support new topic',()=>{
   expect(JSON.stringify(audit)).not.toContain('旧话题合成历史');expect(suggest).not.toHaveBeenCalled();
  });
 
- it('keeps a large old history behind an explicit before cursor and applies the boundary together with after',async()=>{
+ it('removes a large ordinary history and refuses to reveal the previous conversation through before or after',async()=>{
   const row=await seedHistory(65);await reset(inputFor(row));
   const empty=await support.messagesForMember(user.memberId,{});
-  expect(empty).toMatchObject({contextStartSequence:65,newTopicAvailable:true,messages:[],latestCursor:65,olderCursor:66});
-  const older=await support.messagesForMember(user.memberId,{before:empty.olderCursor,limit:20});
-  expect(older.messages.map(message=>message.sequence)).toEqual(Array.from({length:20},(_,index)=>46+index));
-  expect(older.olderCursor).toBe(46);
-  expect(await support.messagesForMember(user.memberId,{after:0,limit:100})).toMatchObject({messages:[],olderCursor:66});
+  expect(empty).toMatchObject({contextStartSequence:65,newTopicAvailable:true,messages:[],latestCursor:65,olderCursor:null});
+  const older=await support.messagesForMember(user.memberId,{before:66,limit:20});
+  expect(older.messages).toEqual([]);expect(older.olderCursor).toBeNull();
+  expect((await pool.query('SELECT id FROM support_message WHERE conversation_id=$1',[row.id])).rowCount).toBe(0);
+  expect(await support.messagesForMember(user.memberId,{after:0,limit:100})).toMatchObject({messages:[],olderCursor:null});
   const sent=await send('本话题的新问题');
   const page=await support.messagesForMember(user.memberId,{after:1,limit:100});
   expect(page.contextStartSequence).toBe(65);
   expect(page.messages.map(message=>message.sequence)).toEqual([66,67]);
-  expect(page.olderCursor).toBe(66);
+  expect(page.olderCursor).toBeNull();
   expect((await support.messagesForMember(user.memberId,{after:65,limit:100})).olderCursor).toBeNull();
   expect(page.messages[0]?.id).toBe(sent.message.id);
   expect(suggest.mock.calls[0]?.[0].conversation.messages).toEqual([{sequence:66,senderType:'user',body:'本话题的新问题'}]);
@@ -146,7 +191,7 @@ describe('receipt-only support new topic',()=>{
 
  it('replays the same request across actor sessions without resetting again and returns the current human state',async()=>{
   const row=await seedHistory(2),input=inputFor(row);await reset(input);
-  const waiting=await support.requestHuman(user.memberId,user.principalId);
+  const waiting=await requestHuman();
   const claimed=await support.claim(operator.memberId,operator.principalId,row.id,{expectedVersion:waiting.version},'synthetic-topic-claim');
   const before=await facts(row.id),versionBefore=(await current(row.id)).version;
   const replay=await reset(input,'synthetic:rotated-member-session');
@@ -175,20 +220,71 @@ describe('receipt-only support new topic',()=>{
   expect((await current(row.id)).version).toBe(row.version+1);expect(await receiptRows()).toHaveLength(1);
  });
 
+ it('uses a distinct generation for consecutive empty resets even when the sequence boundary is unchanged',async()=>{
+  const row=await seedHistory(0);
+  const first=await reset(inputFor(row));
+  const second=await reset(inputFor(await current(row.id)));
+  expect(first).toMatchObject({contextStartSequence:0,contextVersion:row.version+1,messages:[],olderCursor:null});
+  expect(second).toMatchObject({contextStartSequence:0,contextVersion:row.version+2,messages:[],olderCursor:null});
+  const before=await facts(row.id);
+  for(const fields of [{},{expectedConversationId:row.id},{expectedConversationId:row.id,contextVersion:first.contextVersion},
+   {expectedConversationId:randomUUID(),contextVersion:second.contextVersion}]){
+   await expect(support.sendMember(user.memberId,user.principalId,{body:'上一会话的迟到草稿',
+    clientMessageId:`synthetic-stale-empty-${randomUUID()}`,...fields},'synthetic-stale-empty'))
+    .rejects.toMatchObject({code:'SUPPORT_CONTEXT_CHANGED',status:409});
+  }
+  for(const fields of [{},{expectedConversationId:row.id,contextVersion:first.contextVersion}]){
+   await expect(support.requestHuman(user.memberId,user.principalId,fields))
+    .rejects.toMatchObject({code:'SUPPORT_CONTEXT_CHANGED',status:409});
+  }
+  expect(await facts(row.id)).toEqual(before);expect(suggest).not.toHaveBeenCalled();
+  const sent=await send('这一会话的新问题');
+  expect(sent.message.sequence).toBe(1);expect(sent).toMatchObject({contextVersion:second.contextVersion});
+ });
+
+ it('keeps ambiguous legacy evidence isolated while deleting ordinary text in the same record',async()=>{
+  const row=await seedHistory(3,'ai_active','legacy_unknown');
+  await reset(inputFor(row));
+  expect((await pool.query('SELECT sequence,retention_purpose FROM support_message WHERE conversation_id=$1 ORDER BY sequence',[row.id])).rows)
+   .toEqual([{sequence:'1',retention_purpose:'legacy_unknown'}]);
+  for(const query of [{},{before:4},{after:0}]){
+   expect((await support.messagesForMember(user.memberId,query)).messages).toEqual([]);
+   expect((await support.operatorMessages(operator.memberId,operator.principalId,row.id,query)).messages).toEqual([]);
+  }
+  expect((await support.messagesForMember(user.memberId,{},false)).messages.map(message=>message.sequence)).toEqual([1]);
+ });
+
+ it('retains held ordinary evidence but isolates it from the new member and operator conversation',async()=>{
+  const row=await seedHistory(2);
+  const message=(await pool.query('SELECT id FROM support_message WHERE conversation_id=$1 ORDER BY sequence LIMIT 1',[row.id])).rows[0]!;
+  const hold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+   VALUES('SYNTHETIC_SUPPORT_HOLD','Isolated test evidence retention','synthetic',clock_timestamp()+interval '1 day',
+    clock_timestamp()+interval '2 days') RETURNING id`)).rows[0]!;
+  await pool.query(`INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'support_message',$2)`,[hold.id,message.id]);
+  const fresh=await reset(inputFor(row));
+  expect(fresh).toMatchObject({messages:[],olderCursor:null,contextStartSequence:2});
+  expect((await pool.query('SELECT id FROM support_message WHERE id=$1',[message.id])).rowCount).toBe(1);
+  expect((await support.messagesForMember(user.memberId,{before:3})).messages).toEqual([]);
+  expect((await support.operatorMessages(operator.memberId,operator.principalId,row.id,{before:3})).messages).toEqual([]);
+  await send('与被保全内容无关的新问题');
+  expect(suggest.mock.calls[0]?.[0].conversation.messages).toEqual([{sequence:3,senderType:'user',body:'与被保全内容无关的新问题'}]);
+ });
+
  it('returns the latest topic boundary when an earlier successful command is retried',async()=>{
   const row=await seedHistory(2),original=inputFor(row);await reset(original);
   await send('第二段话题的问题');await reset(inputFor(await current(row.id)));
   const before=await facts(row.id),versionBefore=(await current(row.id)).version;
   const replay=await reset(original);
-  expect(replay).toMatchObject({replayed:true,contextStartSequence:4,messages:[],olderCursor:5});
+  expect(replay).toMatchObject({replayed:true,contextStartSequence:4,messages:[],olderCursor:null});
   expect((await current(row.id)).version).toBe(versionBefore);expect(await facts(row.id)).toEqual(before);
   expect((await receiptRows()).map(receipt=>receipt.response_body.contextStartSequence).sort()).toEqual([2,4]);
  });
 
- it('does not regenerate an old member turn when its send acknowledgement is retried after a new topic',async()=>{
+ it('rejects an old member retry with a missing generation instead of recreating deleted text',async()=>{
   const row=await seedHistory(3);await reset(inputFor(row));const before=await facts(row.id);
-  const retry=await send('旧话题合成历史 3',`synthetic-history-${row.id}-3`);
-  expect(retry.replayed).toBe(true);expect(retry.message.sequence).toBe(3);
+  await expect(support.sendMember(user.memberId,user.principalId,{body:'旧话题合成历史 3',
+   clientMessageId:`synthetic-history-${row.id}-3`},'synthetic-stale-send'))
+   .rejects.toMatchObject({code:'SUPPORT_CONTEXT_CHANGED',status:409});
   expect(suggest).not.toHaveBeenCalled();expect(await facts(row.id)).toEqual(before);
   expect((await support.messagesForMember(user.memberId,{})).messages).toEqual([]);
  });
@@ -215,11 +311,13 @@ describe('receipt-only support new topic',()=>{
   expect(await facts(row.id)).toEqual(before);expect(await receiptRows()).toHaveLength(0);
  });
 
- it('reopens a resolved conversation as AI without adding a greeting, changing read state or entering the human queue',async()=>{
+ it('reopens a resolved conversation as a fresh AI session without adding a greeting or entering the human queue',async()=>{
   const row=await seedHistory(2,'resolved'),before=await facts(row.id),result=await reset(inputFor(row));
   expect(result).toMatchObject({replayed:false,contextStartSequence:2,messages:[],conversation:{id:row.id,status:'ai_active',version:row.version+1}});
   const after=await facts(row.id);
-  expect(after).toEqual({...before,conversation:{...before.conversation,status:'ai_active',resolved_at:null}});
+  expect(after.messages).toEqual([]);expect(after.outbox).toEqual(before.outbox);
+  expect(after.conversation).toMatchObject({...before.conversation,status:'ai_active',resolved_at:null,
+   member_last_read_sequence:'2',team_last_read_sequence:'2'});
   expect(suggest).not.toHaveBeenCalled();
  });
 
@@ -270,35 +368,51 @@ describe('receipt-only support new topic',()=>{
   expect(await support.messagesForMember(user.memberId,{})).toMatchObject({contextStartSequence:3,messages:[],olderCursor:null});
  });
 
- it('keeps operator history intact while excluding the previous topic from suggested-reply context',async()=>{
+ it('keeps the previous conversation out of operator activity and suggested-reply context',async()=>{
   const row=await seedHistory(3);await reset(inputFor(row));await send('新话题需要帮助');
-  const waiting=await support.requestHuman(user.memberId,user.principalId);
+  const waiting=await requestHuman();
   await support.claim(operator.memberId,operator.principalId,row.id,{expectedVersion:waiting.version},'synthetic-topic-claim');
   const history=await support.operatorMessages(operator.memberId,operator.principalId,row.id,{limit:100});
-  expect(history.messages.map(message=>message.sequence)).toEqual([1,2,3,4,5,6]);
-  expect(history.messages[0]?.body).toBe('旧话题合成历史 1');
+  expect(history.messages.map(message=>message.sequence)).toEqual([4,5,6]);
+  expect(JSON.stringify(history)).not.toContain('旧话题合成历史');
+  expect((await support.operatorMessages(operator.memberId,operator.principalId,row.id,{before:4,limit:100})).messages).toEqual([]);
   const projection=await support.modelProjectionForAssignedOperator(operator.memberId,operator.principalId,row.id);
   expect(projection.messages.map(message=>message.sequence)).toEqual([4,5,6]);
   expect(JSON.stringify(projection)).not.toContain('旧话题合成历史');
  });
 
- it('keeps the receipt boundary after precisely guarded deletion of old ordinary messages while old transaction history remains',async()=>{
+ it('erases ordinary messages while retaining transaction evidence outside ordinary and operator chat history',async()=>{
   const row=await seedHistory(3,'ai_active','transaction');await reset(inputFor(row));
-  const client=await pool.connect();
-  try{
-   await client.query('BEGIN');
-   await client.query("SELECT set_config('cisme.support_purge_conversation_id',$1,true)",[row.id]);
-   await client.query(`DELETE FROM support_message WHERE conversation_id=$1 AND retention_purpose='ordinary' AND sequence<=3`,[row.id]);
-   await client.query('COMMIT');
-  }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   expect((await pool.query('SELECT sequence,retention_purpose FROM support_message WHERE conversation_id=$1',[row.id])).rows)
    .toEqual([{sequence:'1',retention_purpose:'transaction'}]);
   const page=await support.messagesForMember(user.memberId,{});
-  expect(page).toMatchObject({contextStartSequence:3,messages:[],olderCursor:4});
-  expect((await support.messagesForMember(user.memberId,{before:4})).messages.map(message=>message.sequence)).toEqual([1]);
+  expect(page).toMatchObject({contextStartSequence:3,messages:[],olderCursor:null});
+  expect((await support.messagesForMember(user.memberId,{before:4})).messages).toEqual([]);
+  expect((await support.operatorMessages(operator.memberId,operator.principalId,row.id,{before:4})).messages).toEqual([]);
+  expect((await support.messagesForMember(user.memberId,{before:4},false)).messages.map(message=>message.sequence)).toEqual([1]);
+  expect((await support.queue(operator.memberId,{limit:100})).items.find(item=>item.id===row.id)?.lastMessage).toBe('暂无消息');
   await send('删除旧普通记录后的新问题');
   expect(suggest.mock.calls[0]?.[0].conversation.messages).toEqual([{sequence:4,senderType:'user',body:'删除旧普通记录后的新问题'}]);
   expect((await receiptRows())[0].response_body.contextStartSequence).toBe(3);
+ });
+
+ it('queues only orphan ordinary and draft images and blocks retained old media from active chat routes',async()=>{
+  const {row,ids}=await seedMixedImageHistory();
+  await reset(inputFor(row));
+  const queued=(await pool.query('SELECT media_id FROM media_cleanup_queue WHERE media_id=ANY($1::uuid[]) ORDER BY media_id',
+   [Object.values(ids)])).rows.map(item=>item.media_id).sort();
+  const mediaState=(await pool.query('SELECT id,upload_state,authorized_at,bound_support_message_id FROM media_object WHERE id=ANY($1::uuid[])',[Object.values(ids)])).rows;
+  const markers=await new AccountClosure(directory).supportConversationResetMarkers(user.memberId);
+  expect(queued,JSON.stringify({ids,mediaState,markers})).toEqual([ids.ordinary,ids.draft].sort());
+  expect((await pool.query('SELECT sequence,retention_purpose,attachment_refs FROM support_message WHERE conversation_id=$1',[row.id])).rows)
+   .toEqual([{sequence:'2',retention_purpose:'transaction',attachment_refs:[ids.shared,ids.transaction]}]);
+  await expect(support.deleteSupportMedia(user.memberId,user.principalId,ids.shared,'synthetic-protected-image-delete'))
+   .rejects.toMatchObject({code:'SUPPORT_MEDIA_BOUND',status:409});
+  expect((await pool.query('SELECT upload_state FROM media_object WHERE id=$1',[ids.shared])).rows[0]).toEqual({upload_state:'uploaded'});
+  for(const mediaId of [ids.ordinary,ids.shared,ids.transaction]){
+   await expect(support.memberSupportMedia(user.memberId,mediaId)).rejects.toMatchObject({code:'SUPPORT_MEDIA_NOT_FOUND',status:404});
+   await expect(support.operatorSupportMedia(operator.memberId,row.id,mediaId)).rejects.toMatchObject({code:'SUPPORT_MEDIA_NOT_FOUND',status:404});
+  }
  });
 
  it('ignores other-owner, other-operation and other-conversation receipt boundaries',async()=>{
@@ -345,6 +459,14 @@ describe('receipt-only support new topic',()=>{
   expect(result.statusCode).toBe(200);expect(result.json()).toMatchObject({replayed:false,contextStartSequence:2,newTopicAvailable:true,messages:[]});
   const page=await app.inject({method:'GET',url:'/v1/me/support/messages',headers:auth(user.sessionToken)});
   expect(page.statusCode).toBe(200);expect(page.json()).toMatchObject({contextStartSequence:2,newTopicAvailable:true,messages:[],supportAiAvailable:false});
+  const stale=await app.inject({method:'POST',url:'/v1/me/support/messages',headers:auth(user.sessionToken),
+   payload:{body:'旧界面的迟到内容',clientMessageId:`synthetic-http-stale-${randomUUID()}`}});
+  expect(stale.statusCode).toBe(409);expect(stale.json().code).toBe('SUPPORT_CONTEXT_CHANGED');
+  const sent=await app.inject({method:'POST',url:'/v1/me/support/messages',headers:auth(user.sessionToken),
+   payload:{body:'本会话的新内容',clientMessageId:`synthetic-http-current-${randomUUID()}`,
+    expectedConversationId:row.id,contextVersion:page.json().contextVersion}});
+  expect(sent.statusCode,sent.body).toBe(200);expect(sent.json().message.body).toBe('本会话的新内容');
+  expect(sent.json().contextVersion).toBe(page.json().contextVersion);
   expect(suggest).not.toHaveBeenCalled();
  });
 });

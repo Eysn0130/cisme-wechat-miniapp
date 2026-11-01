@@ -7,6 +7,8 @@ import { transaction, type DbClient } from './db.js';
 import { enqueue } from './outbox.js';
 import { applySupportMessageSuppression } from './supportMessageSuppression.js';
 import { applyDailyCareVisibility, latestDailyCareVisibility } from './dailyCare.js';
+import {applySupportConversationReset,assertSupportResetReceipt,supportNewTopicOperation,validateSupportConversationReset,
+  type SupportConversationResetMarker,type SupportResetReceipt} from './supportConversationReset.js';
 
 export type ClosureMarker={version:1;memberId:string;identityDigest:string;requestId:string;createdAt:string};
 export type ProfileErasureMarker={version:2;memberId:string;identityDigest:string;requestId:string;createdAt:string;
@@ -21,7 +23,7 @@ export type SupportMessageMarker={version:5;memberId:string;conversationId:strin
 export type DailyCareVisibilityMarker={version:6;scope:'daily_care_record_visibility_v1';memberId:string;recordId:string;
   requestId:string;identityDigest:string;recordVersion:number;action:'delete'|'restore';operationId:string;
   requestSha256:string;factsSha256:string;createdAt:string};
-export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker|ConsentWithdrawalMarker|SupportMessageMarker|DailyCareVisibilityMarker;
+export type Marker=ClosureMarker|ProfileErasureMarker|AddressErasureMarker|ConsentWithdrawalMarker|SupportMessageMarker|DailyCareVisibilityMarker|SupportConversationResetMarker;
 export interface SuppressionRemote {
   put(marker:Marker):Promise<void>;
   list():Promise<Marker[]>;
@@ -34,6 +36,7 @@ const addressMarker=/^([0-9a-f-]{36})\.address\.([0-9a-f-]{36})\.([0-9a-f-]{36})
 const consentMarker=/^([0-9a-f-]{36})\.consent\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 const supportMarker=/^([0-9a-f-]{36})\.support\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 const dailyMarker=/^([0-9a-f-]{36})\.daily\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
+const supportResetMarker=/^([0-9a-f-]{36})\.support-reset\.([0-9a-f-]{36})\.([0-9a-f-]{36})\.json$/i;
 
 /** This directory must live outside database backups and release directories. */
 export class AccountClosure {
@@ -46,6 +49,7 @@ export class AccountClosure {
     row.version===3?`${row.memberId}.address.${row.addressId}.${row.requestId}.json`:
     row.version===4?`${row.memberId}.consent.${row.grantId}.${row.requestId}.json`:
     row.version===5?`${row.memberId}.support.${row.conversationId}.${row.batchId}.json`:
+    row.version===7?`${row.memberId}.support-reset.${row.conversationId}.${row.requestId}.json`:
     `${row.memberId}.daily.${row.recordId}.${row.requestId}.json`;}
   private markerPath(row:Marker){return join(this.directory!,this.markerFilename(row));}
   static identityDigest(provider:string,appId:string,openid:string) {
@@ -118,6 +122,52 @@ export class AccountClosure {
     }
     return latestDailyCareVisibility(rows);
   }
+  private async confirmSupportConversationResets(rows:SupportConversationResetMarker[],database?:DbClient|pg.Pool){
+    if(!rows.length)return;
+    // A matching committed receipt acknowledges the independent copy: every
+    // creation/recovery path confirms that copy before creating its receipt.
+    // Polling and AI guards therefore need no repeat COS writes.
+    const receipts=database?(await database.query<SupportResetReceipt>(`SELECT principal_id,idempotency_key,business_key,
+      request_hash,response_status,response_body FROM idempotency_operation WHERE operation=$1
+      AND principal_id=ANY($2::text[]) AND idempotency_key=ANY($3::text[])`,[supportNewTopicOperation,
+      [...new Set(rows.map(row=>`member:${row.memberId}`))],rows.map(row=>row.requestId)])).rows:[];
+    const acknowledgements=new Map(receipts.map(receipt=>[`${receipt.principal_id}:${receipt.idempotency_key}`,receipt]));
+    for(const row of rows){
+      const receipt=acknowledgements.get(`member:${row.memberId}:${row.requestId}`);
+      if(receipt){assertSupportResetReceipt(row,receipt);continue;}
+      try{await this.remote?.put(row);}catch{throw new DomainError('SUPPORT_NEW_CONVERSATION_PENDING','新对话结果尚未确认，请稍后重试',503);}
+    }
+  }
+  async supportConversationResetMarkers(memberId?:string,database?:DbClient|pg.Pool):Promise<SupportConversationResetMarker[]>{
+    if(!this.directory)return [];
+    await this.requireDirectory();const rows:SupportConversationResetMarker[]=[];
+    for(const filename of await readdir(this.directory)){
+      const match=supportResetMarker.exec(filename);if(!match||memberId&&match[1]!==memberId)continue;
+      const row=await this.readFilename(filename) as SupportConversationResetMarker;
+      rows.push(row);
+    }
+    await this.confirmSupportConversationResets(rows,database);
+    return rows.sort((a,b)=>a.resultVersion-b.resultVersion||a.requestId.localeCompare(b.requestId));
+  }
+  async recordSupportConversationReset(input:Omit<SupportConversationResetMarker,'version'|'scope'>){
+    if(!this.directory)throw new DomainError('SUPPORT_NEW_CONVERSATION_UNAVAILABLE','新对话暂不可用，请稍后重试',503);
+    await this.requireDirectory();
+    const filename=`${input.memberId}.support-reset.${input.conversationId}.${input.requestId}.json`;
+    let old:SupportConversationResetMarker|null=null;
+    try{old=await this.readFilename(filename) as SupportConversationResetMarker;}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
+    const row=old??validateSupportConversationReset({version:7,scope:'support_new_conversation_v1',...input});
+    if(old&&Object.entries(input).some(([key,value])=>old[key as keyof SupportConversationResetMarker]!==value))
+      throw new DomainError('IDEMPOTENCY_CONFLICT','请求编号已用于另一项操作',409);
+    if(!old)await this.writeLocal(row);
+    try{await this.remote?.put(row);}catch{throw new DomainError('SUPPORT_NEW_CONVERSATION_PENDING','新对话结果尚未确认，请使用原请求重试',503);}
+    return row;
+  }
+  async replaySupportConversations(pool:pg.Pool,memberId?:string){
+    let changed=0;
+    for(const marker of await this.supportConversationResetMarkers(memberId,pool))
+      if(await transaction(pool,client=>applySupportConversationReset(client,marker)))changed++;
+    return changed;
+  }
   async recordDailyCareVisibility(input:Omit<DailyCareVisibilityMarker,'version'|'scope'>){
     await this.requireDirectory();
     const row=this.validDaily({version:6,scope:'daily_care_record_visibility_v1',...input},input.memberId,input.recordId,input.requestId);
@@ -139,13 +189,14 @@ export class AccountClosure {
   }
   private async readFilename(filename:string):Promise<Marker>{
     await this.requireDirectory();
-    const match=profileMarker.exec(filename),address=addressMarker.exec(filename),consent=consentMarker.exec(filename),support=supportMarker.exec(filename),daily=dailyMarker.exec(filename);
-    if(!match&&!address&&!consent&&!support&&!daily&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
+    const match=profileMarker.exec(filename),address=addressMarker.exec(filename),consent=consentMarker.exec(filename),support=supportMarker.exec(filename),daily=dailyMarker.exec(filename),reset=supportResetMarker.exec(filename);
+    if(!match&&!address&&!consent&&!support&&!daily&&!reset&&(!filename.endsWith('.json')||!uuid.test(filename.slice(0,-5))))throw new Error('ACCOUNT_CLOSURE_DIRECTORY_UNEXPECTED_FILE');
     const row=JSON.parse(await readFile(join(this.directory!,filename),'utf8')) as Marker;
     return match?this.validProfile(row as ProfileErasureMarker,match[1]!,match[2]!):
       address?this.validAddress(row as AddressErasureMarker,address[1]!,address[2]!,address[3]!):
       consent?this.validConsent(row as ConsentWithdrawalMarker,consent[1]!,consent[2]!,consent[3]!):
       support?this.validSupport(row as SupportMessageMarker,support[1]!,support[2]!,support[3]!):
+      reset?validateSupportConversationReset(row as SupportConversationResetMarker,reset[1]!,reset[2]!,reset[3]!):
       daily?this.validDaily(row as DailyCareVisibilityMarker,daily[1]!,daily[2]!,daily[3]!):
       this.valid(row,filename.slice(0,-5));
   }
@@ -247,12 +298,14 @@ export class AccountClosure {
         else if(row.version===3)this.validAddress(row,row.memberId,row.addressId,row.requestId);
         else if(row.version===4)this.validConsent(row,row.memberId,row.grantId,row.requestId);
         else if(row.version===5)this.validSupport(row,row.memberId,row.conversationId,row.batchId);
+        else if(row.version===7)validateSupportConversationReset(row);
         else this.validDaily(row,row.memberId,row.recordId,row.requestId);
         await this.writeLocal(row);
       }
     }
     const supportToFinalize:SupportMessageMarker[]=[];
     const dailyToReplay:DailyCareVisibilityMarker[]=[];
+    const resetToReplay:SupportConversationResetMarker[]=[];
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
       const row=await this.readFilename(filename);
@@ -270,12 +323,15 @@ export class AccountClosure {
       }
       else if(row.version===4)await transaction(pool,client=>applyConsentWithdrawal(client,row));
       else if(row.version===6)dailyToReplay.push(row);
+      else if(row.version===7)resetToReplay.push(row);
       else {await transaction(pool,client=>applySupportMessageSuppression(client,row));
         if(row.removeConversation)supportToFinalize.push(row);}
     }
     for(const row of supportToFinalize)
       await transaction(pool,client=>applySupportMessageSuppression(client,row));
     await this.replayDailyCare(pool,dailyToReplay);
+    for(const row of resetToReplay.sort((a,b)=>a.resultVersion-b.resultVersion))
+      await transaction(pool,client=>applySupportConversationReset(client,row));
   }
   async replayMember(pool:pg.Pool,memberId:string) {
     const row=await this.marker(memberId);
@@ -291,9 +347,14 @@ export class AccountClosure {
     await this.requireDirectory();
     let repaired=0;
     const dailyToReplay:DailyCareVisibilityMarker[]=[];
+    const resetToReplay:SupportConversationResetMarker[]=[];
     for(const filename of await readdir(this.directory)){
       if(pendingMarker.test(filename))continue;
       const marker=await this.readFilename(filename);
+      if(marker.version===7){
+        resetToReplay.push(marker);
+        continue;
+      }
       if(marker.version===6){
         try{await this.remote?.put(marker);}catch{throw new DomainError('DAILY_CARE_RECOVERY_PENDING','操作结果尚未确认，请稍后核对记录',503);}
         dailyToReplay.push(marker);
@@ -372,6 +433,9 @@ export class AccountClosure {
       if(pending){await this.replayMember(pool,memberId);repaired++;}
     }
     repaired+=await this.replayDailyCare(pool,dailyToReplay);
+    await this.confirmSupportConversationResets(resetToReplay,pool);
+    for(const row of resetToReplay.sort((a,b)=>a.resultVersion-b.resultVersion))
+      if(await transaction(pool,client=>applySupportConversationReset(client,row)))repaired++;
     return repaired;
   }
 }

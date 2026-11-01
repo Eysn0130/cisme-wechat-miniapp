@@ -137,19 +137,21 @@ describe('persistent AI support and manual handoff',()=>{
   await expect(pool.query("UPDATE support_conversation SET status='ai_active',version=version+1,updated_at=clock_timestamp() WHERE id=$1",[waiting.id])).rejects.toThrow(/SUPPORT_CONVERSATION_ILLEGAL_TRANSITION/);
  });
  it('returns the committed member receipt on a subsequent database failure, and the identical retry recovers exactly one AI reply',async()=>{
-  const original=pool.connect.bind(pool);let failed=false;
+  const original=pool.connect.bind(pool);let failed=false,memberCommitted=false;
   const observed=new Set<object>(),restores:Array<()=>void>=[];
   const spy=vi.spyOn(pool,'connect').mockImplementation((async()=>{
    const client=await original();
    if(!observed.has(client)){
-    observed.add(client);const query=client.query.bind(client);let readOnly=false;
+    observed.add(client);const query=client.query.bind(client);let wroteMemberMessage=false;
     const fault=vi.spyOn(client,'query').mockImplementation(((...args:any[])=>{
      const sql=String(args[0]);
-     if(/^BEGIN /i.test(sql))readOnly=/READ ONLY/i.test(sql);
-     if(readOnly&&!failed&&sql.includes('SELECT * FROM support_conversation WHERE member_id=$1')){
+     if(/^BEGIN /i.test(sql))wroteMemberMessage=false;
+     if(sql.includes('INSERT INTO support_message'))wroteMemberMessage=true;
+     if(/^COMMIT/i.test(sql)&&wroteMemberMessage)memberCommitted=true;
+     if(memberCommitted&&!failed&&sql.includes('SELECT * FROM support_conversation WHERE member_id=$1')){
       failed=true;return Promise.reject(new Error('synthetic read outage'));
      }
-     if(/^(COMMIT|ROLLBACK)/i.test(sql))readOnly=false;
+     if(/^(COMMIT|ROLLBACK)/i.test(sql))wroteMemberMessage=false;
      return (query as any)(...args);
     }) as any);
     restores.push(()=>fault.mockRestore());

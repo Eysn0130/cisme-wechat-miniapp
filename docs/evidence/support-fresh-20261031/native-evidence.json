@@ -1,0 +1,26 @@
+{
+  "sourceSha256": "95c0d5f66ef49a30c6d278fdfffcea356aa9725d4edce82296c558ceb676301a",
+  "scope": "Current source native local synthetic fixture. Not real-account chat, not phone IME.",
+  "noAuthenticatedSession": true,
+  "apiChatWrites": false,
+  "confirmationActualSourceOpened": true,
+  "confirmationCancelled": true,
+  "cancelPreservedDraft": true,
+  "runtimeRestoredTo": "pages/account/index",
+  "navigateToMockRestored": true,
+  "deviceSettingsChanged": false,
+  "files": {
+    "390-16-baseline.json": "8afeb33694f9409937ac698904f53b4ac37e05b9fcdcf218267bd7f2a7dafa0e",
+    "clear-confirm-390-16.png": "b44ec99386c3a2e57322513596d4d996217a7b21301b4abcd71866428cdb1325",
+    "cleared-conversation-390-16-geometry.json": "59710d0e8e28fb432ae971a8082ea20155e1b59c87fbfcfce675b9ec0fc80da9",
+    "cleared-conversation-390-16.png": "e3e08e3e2884acb40829bb9cc8d471174d11d9f5aa99934d928e173b0c4c1dda",
+    "dialog-before-cancel.json": "3d8a78fb9d8cf0b8d5d50e488a0cb0bdbc0d531cb58e5c708798798c379df4fa",
+    "dialog-cancelled.json": "79ccc3bde6799a89c2c8e5bbf0286cf8813695284ffb7d4c23fd61f17c0c39c6",
+    "dialog-open.json": "dff812c99021ca660f0eb371e43e72a537d714a120b2ecf69037a60a5727c89d",
+    "final-runtime.json": "d6dae1bfb3aaf5bb84383423556b42408ad8c4d5577a71fffa1f5703de63d416",
+    "fixture-cleared-refresh.json": "0d3845742847e1ff9afaac4a8af00b8cb92a82d6ed54b7a0db690513804112b2",
+    "mock-restored.json": "322ce362c8966a8c0ee6489883dfcfb5281578746a65df15471be07b24328704",
+    "unknown-clear-390-16-geometry.json": "3f0a6815526cb71578e9b2b27d49cb0259463fa8a12bac74128b91152f9c4152",
+    "unknown-clear-390-16.png": "2bba00c441b2c968ead8160218337e6934a83f05f9244490cdbfafb66c3cf79c"
+  }
+}

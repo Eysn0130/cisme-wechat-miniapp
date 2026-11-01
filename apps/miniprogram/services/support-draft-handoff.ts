@@ -2,7 +2,7 @@
 // private conversation text in device storage.
 export const GENERAL_SUPPORT_SCOPE="__general_support__";
 let pending:{session:string;orderId:string;text:string;createdAt:number}|null=null;
-export type SupportSendAttemptHandoff={id:string;body:string;linkedOrderId:string|null};
+export type SupportSendAttemptHandoff={id:string;body:string;linkedOrderId:string|null;expectedConversationId?:string|null;contextVersion?:number};
 let pendingAttempt:{session:string;orderId:string;attempt:SupportSendAttemptHandoff;createdAt:number}|null=null;
 const lifetimeMs=10*60*1000;
 

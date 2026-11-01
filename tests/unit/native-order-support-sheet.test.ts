@@ -12,6 +12,8 @@ const lineId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const record={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId,state:'requested',kind:'return_refund',reason:'',claimBasis:'no_reason',requestedAt:'2026-09-23T10:00:00Z',supportConversationId:null,returnDestination:null,refund:null,resolved:false};
 const messages={messages:[],latestCursor:0,conversation:null};
 const availability={lines:[{lineId,remainingQuantity:2}]};
+const supportConversation={id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',teamReadSequence:0};
+const supportMessage=(sequence:number)=>({id:`synthetic-message-${sequence}`,sequence,senderType:'user',body:'synthetic support',createdAt:'2026-10-31T00:00:00Z',deliveryState:'server_accepted',orderCard:null,returnInstruction:null});
 const reply=(input:{path:string},items:any[]=[record])=>input.path.includes('/aftersales/availability')?availability:
   input.path.includes('/aftersales?')?{items}:messages;
 function deferred(){let resolve!:(value:any)=>void;const promise=new Promise<any>(yes=>resolve=yes);return{resolve,promise};}
@@ -32,6 +34,46 @@ beforeEach(()=>{
 });
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 describe('order support sheet owns reads and reflects current cases',()=>{
+ it('pins the current generation to unknown support sends and retains it through a full-conversation handoff',async()=>{
+  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetContextVersion:4,sheetContextStartSequence:2,sheetInput:'current support'});
+  m.write.mockRejectedValue(new Error('network lost'));await p.sendSheetMessage();const first=m.write.mock.calls[0]![0].data;
+  expect(first).toMatchObject({expectedConversationId:supportConversation.id,contextVersion:4});
+  p.data.sheetContextVersion=5;await p.sendSheetMessage();expect(m.write.mock.calls[1]![0].data).toEqual(first);
+  p.expandSupport();const {takeSupportSendAttempt}=await import('../../apps/miniprogram/services/support-draft-handoff');
+  expect(takeSupportSendAttempt(m.token,orderId)).toMatchObject({id:first.clientMessageId,expectedConversationId:supportConversation.id,contextVersion:4});
+ });
+ it('clears retired chat messages while keeping independently read aftersale facts',async()=>{
+  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetMessages:[supportMessage(1)],sheetInput:'old draft'});
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
+    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
+  await p.pollSupportSheet();expect(p.data.sheetContextVersion).toBe(4);expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetInput).toBe('');expect(p.data.sheetCase.id).toBe(record.id);
+ });
+ it('keeps an uncertain send already belonging to the incoming generation when returning from full support',async()=>{
+  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetMessages:[supportMessage(1)],sheetInput:'current draft',
+    sheetSendAttempt:{key:'same-current-command',body:'current draft',expectedConversationId:supportConversation.id,contextVersion:4}});
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
+    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
+  await p.loadSupportSheet();expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetInput).toBe('current draft');expect(p.data.sheetSendAttempt.key).toBe('same-current-command');
+ });
+ it('refreshes a definitively rejected retired send instead of inserting it into the new generation',async()=>{
+  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetInput:'retired draft',sheetMessages:[supportMessage(1)]});
+  m.write.mockRejectedValue({status:409,code:'SUPPORT_CONTEXT_CHANGED'});
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
+    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
+  await p.sendSheetMessage();expect(p.data.sheetSendAttempt).toBeNull();expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetContextVersion).toBe(4);expect(p.data.sheetError).toContain('原消息未发送');
+ });
+ it('does not reintroduce an old acknowledged order message after a clear',async()=>{
+  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetInput:'old draft'});
+  m.write.mockResolvedValue({message:supportMessage(1),conversation:supportConversation,contextVersion:4,contextStartSequence:2,acknowledgedConversationId:supportConversation.id});
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
+    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
+  await p.sendSheetMessage();expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetInput).toBe('');expect(p.data.sheetSendAttempt).toBeNull();expect(p.data.sheetContextVersion).toBe(4);
+ });
+ it('still sends through the restricted historical-order identity without an ordinary context fence',async()=>{
+  const p=await page();Object.assign(p.data,{closedRights:true,sheetConversation:supportConversation,sheetContextVersion:4,sheetInput:'historical order support'});
+  m.write.mockRejectedValue(new Error('unknown'));await p.sendSheetMessage();
+  expect(m.write.mock.calls[0]![0].data).not.toHaveProperty('contextVersion');expect(m.write.mock.calls[0]![0].data).not.toHaveProperty('expectedConversationId');
+ });
  it('updates the case while polling instead of deriving progress from chat text',async()=>{
   const p=await page();await p.loadSupportSheet();
   expect(p.data.sheetCaseShortId).toBe(record.id.slice(-6));
