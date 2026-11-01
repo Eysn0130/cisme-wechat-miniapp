@@ -176,8 +176,10 @@ describe("published editorial comment Page commands",()=>{
   mocks.request.mockResolvedValueOnce({id:replyId,status:"pending",version:1,replayed:false});await page.sendComment();
   expect(calls("POST")[0]).toMatchObject({path:base,data:{body}});expect(calls("POST")[0].data.body).toHaveLength(360);
  });
- it("serializes send taps and only clears the draft after a confirmed receipt",async()=>{
+ it("keeps the editor open after native blur and serializes taps until a confirmed receipt",async()=>{
   await mount();input("确认发送的评论");const pending=deferred();mocks.request.mockReturnValueOnce(pending.promise);
+  page.blurComment({currentTarget:{dataset:{composerId:page.data.composerEventId}}});
+  expect(page.data).toMatchObject({composerOpen:true,composerFocused:false,draft:"确认发送的评论"});
   const first=page.sendComment();await page.sendComment();expect(calls("POST")).toHaveLength(1);expect(page.data.draft).toBe("确认发送的评论");
   const key=page.data.draftOperation;expect(key).not.toBe("");rows=[row(replyId,{status:"published",isMine:true,version:1})];
   pending.resolve({id:replyId,status:"published",version:1,replayed:false});await first;
@@ -378,6 +380,53 @@ describe("editorial reading controls without permanent refresh buttons",()=>{
 
 
 describe("editorial input and explicit interaction recovery ownership",()=>{
+ it.each([false,true])("dismisses the current editor without losing its reply or operation (unknown:%s)",async(unknown)=>{
+  await mount();page.replyComment(event());input("稍后继续的回复");
+  const editorId=page.data.composerEventId;page.data.draftOperation="preserved-comment-operation";page.data.commentSendUnknown=unknown;
+  page.keyboardChanged({detail:{height:280},currentTarget:{dataset:{composerId:editorId}}});
+  page.dismissComposer({currentTarget:{dataset:{composerId:editorId}}});
+  expect(page.data).toMatchObject({composerOpen:false,composerFocused:false,keyboardHeight:0,draft:"稍后继续的回复",draftLength:7,
+   replyToId:rootId,replyToName:"公开昵称",draftOperation:"preserved-comment-operation",commentSendUnknown:unknown});
+  expect(page.data.composerEventId).not.toBe(editorId);expect((globalThis as any).wx.hideKeyboard).toHaveBeenCalledOnce();
+  page.startComment();expect(page.data).toMatchObject({composerOpen:true,composerFocused:true,draft:"稍后继续的回复",
+   replyToId:rootId,draftOperation:"preserved-comment-operation",commentSendUnknown:unknown});
+  expect(calls("POST")).toEqual([]);expect(calls("PUT")).toEqual([]);
+ });
+ it.each(["replaced","hidden","identity"] as const)("ignores a late outside-dismiss event after its editor becomes %s",async(change)=>{
+  await mount();input("旧实例的输入");const oldId=page.data.composerEventId;
+  if(change==="hidden")page.onHide();
+  else{
+   if(change==="identity"){mocks.token="actor-b";await page.loadEditorialComments();}
+   else page.closeComposer();
+   page.startComment();input("当前实例的草稿");page.data.draftOperation="current-editor-operation";
+  }
+  const before=structuredClone(page.data),patchCount=patches.length,hideCount=(globalThis as any).wx.hideKeyboard.mock.calls.length;
+  page.dismissComposer({currentTarget:{dataset:{composerId:oldId}}});
+  expect(page.data).toEqual(before);expect(patches).toHaveLength(patchCount);expect((globalThis as any).wx.hideKeyboard).toHaveBeenCalledTimes(hideCount);
+  if(change==="identity")expect(page.data).toMatchObject({composerOpen:true,draft:"当前实例的草稿",draftOperation:"current-editor-operation"});
+  expect(calls("POST")).toEqual([]);expect(calls("PUT")).toEqual([]);
+ });
+ it.each(["success","failure"] as const)("retains an in-flight command's ownership when outside dismissal precedes %s",async(outcome)=>{
+  await mount();page.replyComment(event());input("发送中的原回复");const pending=deferred();mocks.request.mockReturnValueOnce(pending.promise);
+  const sending=page.sendComment(),operation=page.data.draftOperation,owner=page.commentActionOwner;
+  expect(page.data).toMatchObject({commentsBusy:true,commentSendUnknown:true});
+  page.dismissComposer({currentTarget:{dataset:{composerId:page.data.composerEventId}}});
+  expect(page.commentActionOwner).toBe(owner);expect(page.data).toMatchObject({commentsBusy:true,composerOpen:false,
+   draft:"发送中的原回复",replyToId:rootId,draftOperation:operation,commentSendUnknown:true});
+  if(outcome==="success"){
+   rows=[row(replyId,{status:"published",isMine:true,version:1})];pending.resolve({id:replyId,status:"published",version:1,replayed:false});
+  }else pending.reject({code:"NETWORK_TIMEOUT"});
+  await sending;expect(page.data.commentsBusy).toBe(false);
+  expect(calls("POST")).toHaveLength(1);expect(calls("POST")[0]).toMatchObject({path:base,idempotencyKey:operation,data:{body:"发送中的原回复",replyToId:rootId}});
+  if(outcome==="success"){
+   expect(page.data).toMatchObject({draft:"",draftOperation:"",replyToId:"",commentSendUnknown:false,composerOpen:false});
+   expect(page.data.commentsNotice).toBe("评论已发布。");expect(page.data.editorialCommentItems.some((item:any)=>item.id===replyId)).toBe(true);
+  }else{
+   expect(page.data).toMatchObject({draft:"发送中的原回复",draftOperation:operation,replyToId:rootId,commentSendUnknown:true,composerOpen:false});
+   page.startComment();expect(page.data).toMatchObject({composerOpen:true,draft:"发送中的原回复",draftOperation:operation,replyToId:rootId,commentSendUnknown:true});
+   expect(calls("POST")).toHaveLength(1);
+  }
+ });
  it("ignores old input events after closing and reopening the editor",async()=>{
   await mount();page.startComment();const oldId=page.data.composerEventId;page.closeComposer();page.startComment();
   input("只属于当前编辑器的内容");page.data.draftOperation="keep-current-operation";

@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+        "loading": false,
+        "authenticated": true,
+        "composerOpen": false,
+        "draftLength": 0,
+        "draftOperationPresent": false,
+        "replyPresent": false,
+        "sendUnknown": false,
+        "commentCount": 0
+      }
+    }
+  }
+}

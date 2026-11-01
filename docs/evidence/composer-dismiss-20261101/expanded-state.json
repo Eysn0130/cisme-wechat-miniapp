@@ -1,0 +1,82 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "loading": false,
+        "commentsEnabled": true,
+        "commentsLoading": false,
+        "commentsError": "",
+        "social": {
+          "commentCount": 0,
+          "likeCount": 1,
+          "saveCount": 0
+        },
+        "composerOpen": true,
+        "composerFocused": true,
+        "composerId": 2,
+        "draftLength": 0,
+        "boxes": [
+          {
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 91,
+            "width": 390,
+            "height": 91,
+            "z-index": "40"
+          },
+          {
+            "dataset": {
+              "composerId": 2
+            },
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 844,
+            "width": 390,
+            "height": 844,
+            "z-index": "41"
+          },
+          {
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 705,
+            "bottom": 844,
+            "width": 390,
+            "height": 139,
+            "z-index": "42"
+          },
+          {
+            "dataset": {
+              "composerId": 2
+            },
+            "left": 16,
+            "right": 374,
+            "top": 714,
+            "bottom": 754,
+            "width": 358,
+            "height": 40,
+            "z-index": "auto"
+          },
+          {
+            "dataset": {},
+            "left": 310,
+            "right": 374,
+            "top": 758,
+            "bottom": 802,
+            "width": 64,
+            "height": 44,
+            "z-index": "auto"
+          }
+        ]
+      }
+    }
+  }
+}

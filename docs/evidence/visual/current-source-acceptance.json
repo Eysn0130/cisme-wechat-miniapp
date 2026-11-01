@@ -257,7 +257,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "dcf10bb83d80fef67d7e0bbf55e854853c3fef9bc5bbbfef721f36b769ca131b",
+  "packageSourceSha256": "bbc4c6e312ecb52a32565eeae91e79e6b63d7e917c58ac46d625fbfb5f9e67b7",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -266,7 +266,7 @@
       "reason": "Current source uses the user-authorized editorial publisher avatar in the three native editorial entry points. Full40-route state and physical-device matrices remain incomplete."
     }
   ],
-  "note": "Current source removes the duplicate idle editorial comment button so flex input gains its space. Scoped native validation is separate; full40-route and physical-device matrices remain blocked, with historical evidence retaining original hashes.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-a56de746b989.json",
+  "note": "Current source removes the editorial composer cancel button and dismisses on an instance-bound outside tap while preserving draft and in-flight send ownership. Scoped native validation is separate; full40-route and physical-device matrices remain blocked, with historical evidence retaining original hashes.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-dcf10bb83d80.json",
   "pendingSourceRebind": false
 }
