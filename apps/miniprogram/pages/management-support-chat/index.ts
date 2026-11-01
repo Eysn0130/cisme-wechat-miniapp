@@ -268,6 +268,22 @@ Page({
     const incoming = this.humanRequestFrom(page);
     return Boolean(incoming && this.data.humanRequest && incoming.generation < this.data.humanRequest.generation);
   },
+  olderConversationMetadata(page: { conversation?: Conversation | null }) {
+    const current = this.data.conversation, incoming = page.conversation;
+    return Boolean(current && incoming?.id === current.id && incoming.version < current.version);
+  },
+  mergeOlderConversationMessages(page: { messages?: RawMessage[]; latestCursor?: number }) {
+    const incoming = this.normalize(page.messages || []).filter(item => item.sequence > this.data.contextStartSequence);
+    const knownIds = new Set(this.data.messages.map(item => item.id));
+    const freshCount = incoming.filter(item => !knownIds.has(item.id)).length;
+    const state = mergeSyncPage(this.threadState(), this.present(incoming), page.latestCursor ?? this.data.syncCursor);
+    const newest = state.messages[state.messages.length - 1];
+    this.applyThreadState(state, { loading: false, ...this.headerPatch(this.data.conversation, this.data.presence, this.data.assignedToMe),
+      anchor: freshCount && this.data.atBottom && newest ? `operator-${newest.sequence}` : this.data.anchor,
+      newMessagesBelowCount: this.data.atBottom ? 0 : this.data.newMessagesBelowCount + freshCount,
+      newMessagesBelow: this.data.atBottom ? false : this.data.newMessagesBelow || freshCount > 0 });
+    if (incoming.length) this.downloadMedia(incoming);
+  },
   replyContextPatch(page: { humanRequest?: unknown }, messages: readonly RawMessage[], contextVersion: number, topicChanged = false): Record<string, unknown> {
     const humanRequest = this.humanRequestFrom(page), generation = humanRequest?.generation ?? 0;
     const changed = topicChanged || Boolean(this.data.humanRequest && generation !== this.data.humanRequest.generation)
@@ -416,7 +432,9 @@ Page({
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const topic = this.topicMetadata(page);
-      if (topic.stale || this.staleHumanRequest(page)) { this.setData({ loading: false }); return; }
+      if (topic.stale) { this.setData({ loading: false }); return; }
+      if (!topic.changed && this.olderConversationMetadata(page)) { this.mergeOlderConversationMessages(page); await this.markRead(); return; }
+      if (this.staleHumanRequest(page)) { this.setData({ loading: false }); return; }
       const memberDisplayName = page.memberDisplayName || "CISME 会员";
       const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
       const assignedToMe = page.assignedToMe === true;
@@ -532,7 +550,9 @@ Page({
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       const topic = this.topicMetadata(page);
-      if (topic.stale || this.staleHumanRequest(page)) return;
+      if (topic.stale) return;
+      if (!topic.changed && this.olderConversationMetadata(page)) { this.mergeOlderConversationMessages(page); this.pollFailures = 0; await this.markRead(); return; }
+      if (this.staleHumanRequest(page)) return;
       const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
       const presence = { ...emptyPresence, ...(page.presence ?? (topic.changed ? emptyPresence : this.data.presence)) } as Presence;
       const incoming = this.normalize(page.messages || []).filter(item => item.sequence > topic.contextStartSequence);
@@ -584,12 +604,13 @@ Page({
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || boundary !== this.data.contextStartSequence) return;
       const topic = this.topicMetadata(page);
-      if (topic.stale || this.staleHumanRequest(page)) return;
+      const olderMetadata = this.olderConversationMetadata(page);
+      if (topic.stale || !olderMetadata && this.staleHumanRequest(page)) return;
       if (topic.changed) { await this.load(); return; }
       const older = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       const state = mergeHistoryPage(this.threadState(), this.present(older));
       this.applyThreadState(state, { olderCursor: page.olderCursor ?? null, anchor: preserve ? `operator-${preserve}` : "",
-        ...this.replyContextPatch(page, state.messages, topic.contextVersion) });
+        ...(!olderMetadata ? this.replyContextPatch(page, state.messages, topic.contextVersion) : {}) });
       this.downloadMedia(older);
     } catch {
       if (this.data.visible) wx.showToast({ title: "更早消息暂时无法加载", icon: "none" });

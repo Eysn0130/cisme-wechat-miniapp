@@ -1,6 +1,6 @@
 {
   "scope": "Official WeChat DevTools synthetic native fixtures; no signed-in user writes and no physical-phone IME acceptance",
-  "packageSourceSha256": "73d0f5ab470ba6bec7abfeb25552d65f52892984a349b698b49a301de295f5e4",
+  "packageSourceSha256": "1868cd6df93f30c2d02d1a0389ff6c32df897bdfddfaf34ae3c9956fbdf480d3",
   "checks": [
     {
       "file": "operator-known-target-390-16-geometry.json",
@@ -67,7 +67,6 @@
     }
   ],
   "full40RouteMatrix": "blocked",
-  "sourceHeadAssignedAfterCommit": true,
   "artifacts": [
     {
       "path": "native/human-active-390-16-geometry.json",
@@ -76,8 +75,8 @@
     },
     {
       "path": "native/human-active-390-16.png",
-      "sha256": "620233b6c20c50cb7e7f262ec917a23b07bed055972b03555c2b9c8d298c266f",
-      "bytes": 44244
+      "sha256": "ed71c1d042b59c75ff0346fcfe7bb1d4aa9aee8777ef76494233708fbb9da9b8",
+      "bytes": 44365
     },
     {
       "path": "native/human-ai-thinking-390-16-geometry.json",
@@ -86,8 +85,8 @@
     },
     {
       "path": "native/human-ai-thinking-390-16.png",
-      "sha256": "e8a592134eeae946d465571873e617ee7968a4dd93bc8c204d1665cd59809a0d",
-      "bytes": 54233
+      "sha256": "5292099c715a39c032956b4a0700fe6e3990bf0c87e39028d8b37f30172a1fa8",
+      "bytes": 54340
     },
     {
       "path": "native/human-general-answer-390-16-geometry.json",
@@ -96,8 +95,8 @@
     },
     {
       "path": "native/human-general-answer-390-16.png",
-      "sha256": "711aca1654a2837d56b2b9dce8f7433ff0c3a5c7d9b73fb5c77151d5a4ddd4b8",
-      "bytes": 59864
+      "sha256": "107c379ad0b82986c7e010c3b62e8e342f9535e10b574dd9adb59276de91efe0",
+      "bytes": 59986
     },
     {
       "path": "native/human-out-of-order-390-16-geometry.json",
@@ -106,8 +105,8 @@
     },
     {
       "path": "native/human-out-of-order-390-16.png",
-      "sha256": "26de6fbe486f6cf3eca295b6a7fcb0f0d56047c6c8e428c5eb429b3948272ec1",
-      "bytes": 72828
+      "sha256": "360983d6e0aab4e20788cabcbdcfec593ee2155a72e92590a89f750c0d5324e8",
+      "bytes": 72853
     },
     {
       "path": "native/operator-known-target-390-16-geometry.json",
@@ -116,8 +115,8 @@
     },
     {
       "path": "native/operator-known-target-390-16.png",
-      "sha256": "60e209ff952213ec5f2118618e0d824a31d8e9ee50db45bd14d864bb57b8d2c2",
-      "bytes": 70101
+      "sha256": "d4b2951d1aa90b27faa5a1374912354150dea7909e30425f247c9c95f1e2e756",
+      "bytes": 70073
     },
     {
       "path": "native/operator-out-of-order-390-16-geometry.json",
@@ -126,8 +125,8 @@
     },
     {
       "path": "native/operator-out-of-order-390-16.png",
-      "sha256": "515fbf3c829d3b91728c2f87096b6b667b3714459e986cb7e92340b486fd3747",
-      "bytes": 82216
+      "sha256": "1785b07e99d7f2b060e36525cfcc30c7a5fd6b974d523984e7dfa425fdff8af2",
+      "bytes": 82196
     },
     {
       "path": "native/operator-unknown-target-390-16-geometry.json",
@@ -136,8 +135,8 @@
     },
     {
       "path": "native/operator-unknown-target-390-16.png",
-      "sha256": "a14662786f2c0b05218d23f34056ef0eb99f093dbbd41662fa1cd656303e6d43",
-      "bytes": 65047
+      "sha256": "a072c38f1c4b388c69fe84c7d9ee6e80a7e5086b7a97fd21bbc2895e00920611",
+      "bytes": 65027
     },
     {
       "path": "native/waiting-human-390-16-geometry.json",
@@ -146,8 +145,8 @@
     },
     {
       "path": "native/waiting-human-390-16.png",
-      "sha256": "31e8dbd498a2feb489e71a312cd70e9c8a39d9d6ee56cad58a4c6182abd8f189",
-      "bytes": 50190
+      "sha256": "f99c7b89880244a63ce9af21c64b9fae99214cb4b0e6eb7c086bfde9255aa456",
+      "bytes": 50314
     },
     {
       "path": "native/welcome-390-16-geometry.json",
@@ -156,12 +155,12 @@
     },
     {
       "path": "native/welcome-390-16.png",
-      "sha256": "677c25d48200759e3bea7cdcbdaad79964d8297cb0c35829103ecf09b2e9a09c",
-      "bytes": 47035
+      "sha256": "d8279badcc8e083900d40fc575bb13900e349f82cecd6d04ca9f1fdc9f66d47e",
+      "bytes": 47165
     }
   ],
   "validation": {
-    "unitPassed": 2524,
+    "unitPassed": 2529,
     "unitSkipped": 1,
     "typecheck": "passed",
     "newDeploymentOfflineGuards": 22,
@@ -176,11 +175,14 @@
       "support WXSS",
       "management-support-chat WXML",
       "management-support-chat WXSS"
-    ]
+    ],
+    "managementStaleReadRegressions": 5
   },
   "knownLimits": [
     "No physical-phone keyboard acceptance in this run",
     "Synthetic native layouts do not assert real-account support writes",
     "Full 40-route state matrix remains blocked"
-  ]
+  ],
+  "managementStaleMetadataGuardPresentInNativeRuntime": true,
+  "sourceBinding": "Exact mini-program source SHA-256; immutable commit and release binding recorded separately."
 }

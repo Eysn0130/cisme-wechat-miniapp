@@ -76,6 +76,41 @@ async function loadHuman(extra:any={}){
  m.read.mockResolvedValueOnce(humanPage(extra));await p.load();
 }
 const select=(id:string)=>p.selectReplyTarget({currentTarget:{dataset:{id}}});
+describe('operator reads crossing a confirmed newer assignment',()=>{
+ it('merges older pagination without applying its former null human-request metadata',async()=>{
+  await loadHuman();p.data.olderCursor=2;const old=deferred();m.read.mockReturnValueOnce(old.promise);const reading=p.loadOlder();
+  p.setData({conversation:{...activeConversation,version:7},input:'新草稿',replyTargetNeedsRefresh:false,readCursor:8,syncCursor:9});
+  const target=structuredClone(p.data.replyTarget);
+  old.resolve(humanPage({conversation:{...conversation,status:'ai_active',version:4},humanRequest:null,assignedToMe:false,messages:[message(2)],latestCursor:2}));await reading;
+  expect(p.data).toMatchObject({conversation:{status:'human_active',version:7},humanRequest,assignedToMe:true,replyTarget:target,input:'新草稿',replyTargetNeedsRefresh:false,readCursor:8,syncCursor:9});
+  expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([1,2,3]);
+ });
+ it.each(['load','poll'])('keeps newer human metadata when an older AI/null snapshot finishes its %s',async(method)=>{
+  const old=deferred();Object.assign(p.data,{conversation:{...conversation,status:'ai_active',version:5},humanRequest:null,replyTarget:null,input:'',assignedToMe:false});
+  m.read.mockReturnValueOnce(old.promise);const reading=p[method]();
+  const target={id:'synthetic-1',sequence:1,summary:'synthetic chat',generation:1,contextVersion:0};
+  const attempt={id:'newer-reply',body:'新的人工回复草稿',replyToMessageId:target.id,expectedHumanRequestGeneration:1,contextVersion:0};
+  p.setData({conversation:{...activeConversation,version:7},humanRequest,assignedToMe:true,replyTarget:target,replyTargetNeedsRefresh:false,
+    input:attempt.body,sendAttempt:attempt,pendingMessage:{id:'local-newer-reply'},composerSendEnabled:true,
+    messages:[message(1)],syncCursor:9,maxSeenSequence:9,readCursor:8,olderCursor:42,atBottom:false,anchor:'newer-anchor',newMessagesBelow:true,newMessagesBelowCount:2});
+  old.resolve(humanPage({conversation:{...conversation,status:'ai_active',version:5},humanRequest:null,assignedToMe:false,messages:[message(2)],latestCursor:2,olderCursor:null}));await reading;
+  expect(p.data).toMatchObject({conversation:{status:'human_active',version:7},humanRequest,assignedToMe:true,replyTarget:target,replyTargetNeedsRefresh:false,
+    input:attempt.body,sendAttempt:attempt,pendingMessage:{id:'local-newer-reply'},composerSendEnabled:true,syncCursor:9,maxSeenSequence:9,readCursor:8,olderCursor:42,anchor:'newer-anchor',newMessagesBelowCount:3});
+  expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([1,2]);expect(m.request).not.toHaveBeenCalled();
+ });
+ it.each(['load','poll'])('keeps a claimed assignment and draft when a same-generation older waiting snapshot finishes its %s',async(method)=>{
+  const waiting={...activeConversation,status:'waiting_human',version:6};const old=deferred();
+  Object.assign(p.data,{conversation:waiting,humanRequest:{...humanRequest,status:'waiting_human'},replyTarget:null,input:'',assignedToMe:false});
+  m.read.mockReturnValueOnce(old.promise);const reading=p[method]();
+  const target={id:'synthetic-1',sequence:1,summary:'synthetic chat',generation:1,contextVersion:0};
+  p.setData({conversation:{...activeConversation,version:7},humanRequest,assignedToMe:true,replyTarget:target,replyTargetNeedsRefresh:false,
+    input:'已认领后的新草稿',composerSendEnabled:true,messages:[message(1)],syncCursor:4,maxSeenSequence:4,readCursor:4});
+  old.resolve(humanPage({conversation:waiting,humanRequest:{...humanRequest,status:'waiting_human'},assignedToMe:false,messages:[],latestCursor:1}));await reading;
+  expect(p.data).toMatchObject({conversation:{status:'human_active',version:7},humanRequest,assignedToMe:true,replyTarget:target,replyTargetNeedsRefresh:false,
+    input:'已认领后的新草稿',composerSendEnabled:true,syncCursor:4,maxSeenSequence:4,readCursor:4});
+  expect(m.request.mock.calls.some(([input])=>input.path.endsWith('/presence')&&input.data.online===false)).toBe(false);
+ });
+});
 describe('operator replies bind an explicit question',()=>{
  it('defaults to the server human-request anchor rather than the latest user question',async()=>{
   await loadHuman();expect(p.data.replyTarget).toMatchObject({id:'synthetic-1',summary:'synthetic chat',generation:1,contextVersion:0});
