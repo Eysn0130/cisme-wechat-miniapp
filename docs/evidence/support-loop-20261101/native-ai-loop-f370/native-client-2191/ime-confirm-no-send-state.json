@@ -1,0 +1,20 @@
+{
+  "route": "pages/support/index",
+  "conversation": null,
+  "contextVersion": 0,
+  "contextStartSequence": 0,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "护理四步完成后，如何保存护理感受？",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": []
+}

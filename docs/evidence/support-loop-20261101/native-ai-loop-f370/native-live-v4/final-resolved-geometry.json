@@ -1,0 +1,56 @@
+{
+  "width": 390,
+  "height": 844,
+  "font": 16,
+  "selectors": [
+    ".operator-thread",
+    ".operator-actions",
+    ".operator-human-issue",
+    ".operator-input",
+    ".operator-compose",
+    ".operator-resolve",
+    ".operator-reply-target",
+    ".operator-claim"
+  ],
+  "boxes": [
+    [
+      {
+        "left": 0,
+        "right": 389,
+        "top": 91,
+        "bottom": 732,
+        "width": 389,
+        "height": 641,
+        "fontSize": "14px",
+        "minHeight": "0px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      }
+    ],
+    [
+      {
+        "left": 0,
+        "right": 390,
+        "top": 745,
+        "bottom": 844,
+        "width": 390,
+        "height": 99,
+        "fontSize": "14px",
+        "minHeight": "0px",
+        "backgroundColor": "rgba(250, 247, 251, 0.97)",
+        "boxShadow": "rgba(55, 34, 67, 0.055) 0px -6px 17px 0px",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      }
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+  ],
+  "scope": "native page connected to live isolated HTTP API; synthetic identities"
+}

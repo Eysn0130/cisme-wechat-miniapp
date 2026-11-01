@@ -1,0 +1,14 @@
+{
+  "sourceHead": "6123a594cd673d8c72935e79d380320addcd127f",
+  "workflowRun": 41295591081,
+  "verifyJob": 124815654345,
+  "conclusion": "success",
+  "unitPassed": 2551,
+  "unitSkipped": 1,
+  "integrationPassed": 1131,
+  "deploymentOfflineTests": 30,
+  "parallel100Failures": 0,
+  "parallel100P95Ms": 857.42,
+  "parallel100ThresholdP95Ms": 1000,
+  "fullProductDesignGate": "not run for this PR event; existing complete40page matrix remains unpassed"
+}

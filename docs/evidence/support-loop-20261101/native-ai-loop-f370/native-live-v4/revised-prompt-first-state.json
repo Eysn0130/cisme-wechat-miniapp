@@ -1,0 +1,47 @@
+{
+  "route": "pages/support/index",
+  "conversation": {
+    "id": "c2dbc30c-9482-49b0-9e20-af8d3bac60df",
+    "status": "ai_active",
+    "priority": "normal",
+    "memberUnreadCount": 1,
+    "teamUnreadCount": 1,
+    "memberReadSequence": 0,
+    "teamReadSequence": 0,
+    "version": 3,
+    "updatedAt": "2026-11-01T09:35:13.611Z"
+  },
+  "contextVersion": 0,
+  "contextStartSequence": 0,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": [
+    {
+      "id": "5bd04fc0-f24d-4c69-bf5c-03d8f69e920b",
+      "sequence": 1,
+      "senderType": "user",
+      "body": "我的包裹有破损，请人工帮忙核对。",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "6d52b802-f21f-4c7c-a16b-a9af283ee70f",
+      "sequence": 2,
+      "senderType": "system",
+      "body": "这个问题需要人工核实 😊 点「申请人工」，客服会接着帮你。",
+      "replyToMessageId": "5bd04fc0-f24d-4c69-bf5c-03d8f69e920b",
+      "replyReferenceLabel": ""
+    }
+  ]
+}

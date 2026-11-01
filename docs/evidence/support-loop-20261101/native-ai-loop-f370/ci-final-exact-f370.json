@@ -1,0 +1,19 @@
+{
+  "head": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+  "tree": "9564a3825ef4e56715b160a352bc2ebcfe0d917a",
+  "workflowRun": 41293761020,
+  "verifyJob": 124810213708,
+  "verifyConclusion": "success",
+  "unitPassed": 2551,
+  "unitSkipped": 1,
+  "integrationPassed": 1131,
+  "parallel100Failures": 0,
+  "parallel100P95Ms": 601.58,
+  "thresholdP95Ms": 1000,
+  "fullProductDesignGate": {
+    "job": 124811997194,
+    "conclusion": "failure",
+    "reason": "Existing incomplete40route native evidence matrix; structuralErrors empty; not marked passed"
+  },
+  "physicalPhone": "not tested"
+}

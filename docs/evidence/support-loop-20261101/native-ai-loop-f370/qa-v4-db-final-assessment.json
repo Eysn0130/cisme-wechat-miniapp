@@ -1,0 +1,50 @@
+{
+  "recordedAt": "2026-11-01T09:39:05.047969+00:00",
+  "runtimeSourceHead": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+  "runtimeSourceDigest": "2d6f8ba77cd58707165f7f77a6c019385e82c68638bc158a6e866f450bab2a19",
+  "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "scope": "Official WeChat DevTools live UI connected to real isolated HTTP API and DeepSeek; synthetic identities; no provider-response mocks",
+  "databaseAuditMode": "read-only transaction on fresh isolated QA cluster",
+  "checks": {
+    "normalHandoffPolicyNotRouteFailure": true,
+    "noInvalidRoutesInFinalRuntimeAudit": true,
+    "waitingHumanRealAiReply": true,
+    "activeHumanRealAiReply": true,
+    "originalAnchorUnchanged": true,
+    "manualBoundToOriginal": true,
+    "manualSynchronizedToConsumer": true,
+    "exactOneResolutionVersion10To11": true,
+    "consumerSawResolution": true,
+    "exactOneResetVersion11To12Boundary8": true,
+    "nativeEmptyNewTopic": true,
+    "oldOrdinaryRowsRemoved": true,
+    "preservedOldEventPurposeDirectlyRead": true,
+    "freshAiQuestionOnlyInActiveView": true,
+    "freshAiQuestionPersisted": true,
+    "finalVersion14NoHandler": true
+  },
+  "exactFacts": {
+    "conversationId": "c2dbc30c-9482-49b0-9e20-af8d3bac60df",
+    "originalQuestionId": "5bd04fc0-f24d-4c69-bf5c-03d8f69e920b",
+    "manualMessageId": "6ce3a18d-be80-4ab0-a5ef-dff4bee1ee06",
+    "resolveAuditId": "afad43b8-7154-4f40-88eb-15681c7fae19",
+    "newTopicAuditId": "b2ee3b03-174e-44e5-a941-095ac0e22760",
+    "freshQuestionId": "021f65d9-e6ef-4468-8835-ce30a9045eaf",
+    "freshAiMessageId": "7de9a945-c30c-4cf7-9237-85df8e79b814",
+    "retainedIsolatedSystemEventId": "31d5a697-9820-405b-bc8d-5dda0f7bf78a",
+    "retainedPurpose": "legacy_unknown",
+    "aiReplyAuditCount": 3,
+    "expectedHandoffPolicyAuditCount": 1
+  },
+  "sourceReceipts": {
+    "qa-v4-db-before-resolve-readonly.json": "be084f2a7b836cdadc8aa86c54469323e26f1ac2fec936fbd15088174140e93c",
+    "qa-v4-db-final-readonly.json": "d1b37641c74a376ab2ec43096b4391118159c077812a2f31d6fdf0dbb3368f8f"
+  },
+  "limits": [
+    "Physical phone not tested",
+    "Dedicated real trial identities not used in this isolated loop",
+    "Full 40-route native matrix not claimed"
+  ],
+  "containsCredentials": false,
+  "containsMessageBodies": false
+}

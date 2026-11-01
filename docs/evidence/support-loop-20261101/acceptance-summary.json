@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-01T09:33:03.569782+00:00",
+  "recordedAt": "2026-11-01T10:36:05.139728+00:00",
   "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
   "originalPublishedVersion": "0.1.18",
   "originalPackageSourceSha256": "1868cd6df93f30c2d02d1a0389ff6c32df897bdfddfaf34ae3c9956fbdf480d3",
@@ -15,45 +15,610 @@
     "codeAnalysis": "await was outside try; human state remained active so new conversation protection persisted"
   },
   "completed": {
-    "unitPassed": 2548,
+    "unitPassed": 2551,
     "unitSkipped": 1,
-    "focusedIntegrationPassed": 82,
+    "integrationPassed": 1131,
+    "focusedIntegrationPreviouslyPassed": 82,
     "typecheck": "passed",
     "wxmlWxssCompilationPassed": 4,
-    "newDeploymentOfflineGuards": 20,
-    "priorDeploymentOfflineRegressions": 22
+    "newDeploymentOfflineGuards": 30,
+    "priorDeploymentOfflineRegressions": 22,
+    "independentLiveDatabaseChecks": 16,
+    "independentLiveDatabaseChecksV4": 16,
+    "independentLiveDatabaseAndPollChecksV5": 18,
+    "independentAutomaticPollingChecks": 18
   },
-  "nativeAuthenticatedLoop": "passed scoped isolated native run against backend40789 and client2191; see native-isolated-40789/record.json",
-  "actualTrialAccountLoop": "pending: user confirmed dedicated identities; actual login not yet performed",
+  "nativeAuthenticatedLoop": "V4 scoped full AI/human native loop passed on backendf370 and client2191; V5 same-page automatic native polling passed on mainfbc/client2191 with identical API source digest. Keep scopes separate; see native-ai-loop-f370/record.json and native-automatic-poll-fbc/record.json.",
+  "actualTrialAccountLoop": "not performed: dedicated real test login was requested, no user login supplied during this run",
   "physicalPhone": "not tested",
-  "full40RouteMatrix": "blocked",
+  "full40RouteMatrix": "not passed; current candidate-design-qa job failed for incomplete native evidence matrix",
   "networkGate": {
     "explicitAuthorizationReceived": true,
-    "currentPrivateUrlCheck": false,
-    "loopbackRequest": "native real HTTP passed",
-    "temporaryDevelopmentOnlyChange": "approved and active only for continuous isolated QA; restore required before completion"
+    "currentPrivateUrlCheck": true,
+    "v5PrivateConfigRestoredExactBytes": true,
+    "originalAndRestoredSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+    "temporaryDevelopmentOnlyChange": "Both isolated QA rounds finished; original checks restored, session keys removed, held page reference removed, runtime returned to staging guest",
+    "local18089ListenerPresent": false
   },
-  "knownLimit": "40789 isolated native loop passed, one real model invalid-route failure triggered minimal prompt followup. Final backend followup, real trial identities, physical phone and full40 route matrix remain unverified.",
+  "knownLimit": "Native real-HTTP/DeepSeek AI loop and same-Page automatic polling passed using isolated synthetic identities. Actual trial identities, physical phone, additional width/font boundaries and full40route product matrix remain unverified. Historical screenshots retain source scope.",
   "artifacts": [
     {
+      "path": "README.md",
+      "sha256": "04cf23206db6efb9926320185ebb32c981472dae653e034392ac3e3ae8daf720",
+      "bytes": 3580
+    },
+    {
+      "path": "delivery-019/ci-6123.json",
+      "sha256": "2319add30fb4a40418cd7b18a65b3d090c507f8df13f085747659b59122ff9cf",
+      "bytes": 452
+    },
+    {
+      "path": "delivery-019/official-upload-success.json",
+      "sha256": "1229f782aac3098b24d8cce85559165efee8709abd15cd39dd515c3242eb940a",
+      "bytes": 625
+    },
+    {
+      "path": "delivery-019/preservation-summary.json",
+      "sha256": "9581fccde8ece07aabbb86694940ac4fa787a9024e31bc47daa0e530b4831732",
+      "bytes": 1211
+    },
+    {
+      "path": "delivery-019/restored-environment-final.json",
+      "sha256": "2bc55c01bf5b2d9875ad2d4e44dadd9a13d79b0389c6740104773cfc2d98b335",
+      "bytes": 421
+    },
+    {
+      "path": "delivery-019/runtime-byte-equivalence.json",
+      "sha256": "3f1d4bb4a2494795db4a56a3224fbfbaa21bb4e23b40385a65e88e5a1a2d9332",
+      "bytes": 518
+    },
+    {
+      "path": "delivery-019/trial-active-verified.json",
+      "sha256": "c9c6807d7f4a0b7022c4eb4f743ccd277ca168d70ba010402967d4e88f9d8dad",
+      "bytes": 186
+    },
+    {
+      "path": "delivery-019/trial-deployed.json",
+      "sha256": "b6c12e6ec037de87d49e83b20bf4e4cd345a35d9634a2ec8f00ec9866e628fcb",
+      "bytes": 835
+    },
+    {
       "path": "native-018-five-character-modal-probe.json",
-      "sha256": "48cdcaaf3221e14e6ec9e87072b0103621fcee919fc0e092d393401dd5662a0f"
+      "sha256": "48cdcaaf3221e14e6ec9e87072b0103621fcee919fc0e092d393401dd5662a0f",
+      "bytes": 288
     },
     {
-      "path": "native-compile-support-wxml.json",
-      "sha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac"
+      "path": "native-ai-loop-f370/ci-final-exact-f370.json",
+      "sha256": "3d1408643193f8d9eb43e39ed5872bd519ec7c72a73373b488affeeaf37e4039",
+      "bytes": 588
     },
     {
-      "path": "native-compile-support-wxss.json",
-      "sha256": "5af378e6a2dae316f0f5045a8075138c0d8a9919736b984fe1e341cb6c7d1f84"
+      "path": "native-ai-loop-f370/native-client-2191/ime-confirm-no-send-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-ai-loop-f370/native-client-2191/ime-confirm-no-send-state.json",
+      "sha256": "1c15a7e8397ad2c061f41842353a9ac6cbad3481bad2625a160d2ce5fd3a5136",
+      "bytes": 499
+    },
+    {
+      "path": "native-ai-loop-f370/native-client-2191/welcome-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-ai-loop-f370/native-client-2191/welcome-state.json",
+      "sha256": "ca4c382843f4d8e97412c9ae6ffa6a23f472b1a5b1cb17f43242cd0bcac2042a",
+      "bytes": 448
+    },
+    {
+      "path": "native-ai-loop-f370/native-client-2191/welcome.png",
+      "sha256": "09ce14d90fa11fc48d2495620e9abe94058d06d7e0b6a08254baf7626a1b7290",
+      "bytes": 46852
+    },
+    {
+      "path": "native-ai-loop-f370/native-final-scope-receipt.json",
+      "sha256": "f990ed6464e86b0005d2a5ef8863e291a3706433e2cb6b71110fcb249967a28d",
+      "bytes": 1815
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-active-ai-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429",
+      "bytes": 2803
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-active-ai-state.json",
+      "sha256": "5922a53a707c80e9bacb4f440a98568a1b668d3a393a6bf069427eee8ab7b66b",
+      "bytes": 3113
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-consumer-resolved-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-consumer-resolved-state.json",
+      "sha256": "ee4774b4331deba9df8fe0647017f79009a9114298081e090d8f44a041ea72a2",
+      "bytes": 3109
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-manual-sent-geometry.json",
+      "sha256": "02c648c84051959de7b0d32a2a168ddc2769e2b8d4515b75c717f29628390579",
+      "bytes": 2960
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-manual-sent-state.json",
+      "sha256": "393685d50126bff5ad8c3f186f7c63827c33821b5f2d9bf23228079f2422832f",
+      "bytes": 2874
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-manual-synced-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429",
+      "bytes": 2803
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-manual-synced-state.json",
+      "sha256": "100e95c386acec9a8f3b3f28447c67716c2f01f88242fa3a89ef43567a25be52",
+      "bytes": 2466
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-manual-synced.png",
+      "sha256": "70354f1db3b23a57821205a65fb117b741ab454d29744b893dd4807021f4ba1a",
+      "bytes": 99315
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-new-topic-ai-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-new-topic-ai-state.json",
+      "sha256": "d78d937bf27c719f9568aad30c7dbe8b6d29dedf900533d7a897f07c2ea96b1b",
+      "bytes": 1336
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-new-topic-ai.png",
+      "sha256": "7de6751ce3b0d39122ff0ab855167a379f864d98e5ae874286976e15220b5c9a",
+      "bytes": 58418
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-new-topic-empty-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-new-topic-empty-state.json",
+      "sha256": "4e0cfbcc6176a3a304a8e496e95fc750b89725f1e2c21bafda5136707866940c",
+      "bytes": 726
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-new-topic-empty.png",
+      "sha256": "7f1f1092481dc41f6a5dea81ef62b439f3742b8f4f963d91034a51975078022a",
+      "bytes": 47158
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-operator-anchor-geometry.json",
+      "sha256": "2c70c20278fd9307dc881b70584a18751078d919d055c24e77f10ce83f215548",
+      "bytes": 1890
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-operator-anchor-state.json",
+      "sha256": "cc3048f936b298dbf3cba8d621b30981b83c2d81cfa41fb83ca59c4975a41359",
+      "bytes": 2304
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-resolved-geometry.json",
+      "sha256": "5a5a767f581ec7b5bf3f4c781d5caba93f9f9c0f19ba7f1a0df75f6069a7843f",
+      "bytes": 1168
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-resolved-state.json",
+      "sha256": "cc2914238d5f03c0746070fb59d2558d92979a7a2db808bcc6d04044a8c0ebbe",
+      "bytes": 3051
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-waiting-ai-geometry.json",
+      "sha256": "fe3904738620bc6253359eda3d6b3aad210eac3ebbf52a3583f84f5aec366d25",
+      "bytes": 2854
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/final-waiting-ai-state.json",
+      "sha256": "315582b652fe06b77efdf66f2e8231eeca93806decb58688a7642a9f50898340",
+      "bytes": 1894
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/restored-runtime.json",
+      "sha256": "6c176165f38f2f2f55b86860824c25279dd8383f522fd60e0f1bdb1fe8820474",
+      "bytes": 96
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/revised-prompt-first-geometry.json",
+      "sha256": "c4a4c2b537e0de671f7f47a4017a352a6198039b9e46e4e835a3e741dd4aaafd",
+      "bytes": 2849
+    },
+    {
+      "path": "native-ai-loop-f370/native-live-v4/revised-prompt-first-state.json",
+      "sha256": "cd512bf6010a01feabe429e6e3e2bd77b135161fe04c42b3fa21807ffcac7c9b",
+      "bytes": 1286
+    },
+    {
+      "path": "native-ai-loop-f370/native-network-gate.json",
+      "sha256": "40703120d535f8ccd284f6017af17e718462234b40286a9a2e1551030ed2e7b5",
+      "bytes": 1232
+    },
+    {
+      "path": "native-ai-loop-f370/prompt-final-validation.json",
+      "sha256": "80d88af73812087d79141cd4ba73432fd73a812465c5868faed29a61da49349a",
+      "bytes": 517
+    },
+    {
+      "path": "native-ai-loop-f370/qa-v4-db-before-resolve-readonly.json",
+      "sha256": "be084f2a7b836cdadc8aa86c54469323e26f1ac2fec936fbd15088174140e93c",
+      "bytes": 6013
+    },
+    {
+      "path": "native-ai-loop-f370/qa-v4-db-final-assessment.json",
+      "sha256": "84abdee0e42a2dda791c3d9967ea932fe474c3d91d7f52a80083a0d08004aa9f",
+      "bytes": 2330
+    },
+    {
+      "path": "native-ai-loop-f370/qa-v4-db-final-readonly.json",
+      "sha256": "d1b37641c74a376ab2ec43096b4391118159c077812a2f31d6fdf0dbb3368f8f",
+      "bytes": 7883
+    },
+    {
+      "path": "native-ai-loop-f370/qa-v4-quarantine-receipt.json",
+      "sha256": "40123e0a97c171a1a3354f757ef39114688a65003db58b5b5d5526acf0815546",
+      "bytes": 212
+    },
+    {
+      "path": "native-ai-loop-f370/record.json",
+      "sha256": "4faf519a0920615db05970a63762f76b17e0e745a2b628e2a40126dae08f06e2",
+      "bytes": 11764
+    },
+    {
+      "path": "native-ai-loop-f370/trial-after-all-isolated-qa-preservation.json",
+      "sha256": "a81574a22fc9960bcb9e4a536ff586cf3a7cbb29752b4a98a30e5f75bd5f1f3f",
+      "bytes": 208
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-consumer-before-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429",
+      "bytes": 2803
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-consumer-before-state.json",
+      "sha256": "552a312871f80f3cfb751dfd788abb6c11dfd085ea1d09be4acec0f8ed8d1caa",
+      "bytes": 1514
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-manual-arrived-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429",
+      "bytes": 2803
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-manual-arrived-state.json",
+      "sha256": "c7d708e3b86967edd3055d2cfbb7f51ad7561276cd056bdcbd15004f45bdc48e",
+      "bytes": 1817
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-manual-arrived.png",
+      "sha256": "807774448af2f167e2775cc431641ad26b2293f2d85e1cb28e84849d036a8b63",
+      "bytes": 66931
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-new-topic-empty-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-new-topic-empty-state.json",
+      "sha256": "889e5308aefc74c31386fd2d8d58ccf56c842852c091000aaba5c9a1f21c63b0",
+      "bytes": 724
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-new-topic-empty.png",
+      "sha256": "287725fb8b5bc70cf7d7c063e3a791a3df3495a84812b20f4cc9fcbcad64df95",
+      "bytes": 47000
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-operator-claimed-geometry.json",
+      "sha256": "02c648c84051959de7b0d32a2a168ddc2769e2b8d4515b75c717f29628390579",
+      "bytes": 2960
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-operator-claimed-state.json",
+      "sha256": "52a00e0d04d5e721b6e40ef04b09cd2b0a4ba22615753eaca2445ccb97a6100d",
+      "bytes": 1922
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-requested-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429",
+      "bytes": 2803
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-requested-state.json",
+      "sha256": "b324dc35bb640540863f78fc7ae0e9779a025bcedb98bd2fc0c1a3fc6bce9cdf",
+      "bytes": 1290
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-resolved-arrived-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-resolved-arrived-state.json",
+      "sha256": "f9bd62189e7e487a6ba78e11d3a0a51e942dd9f9c77537afa3d3f6c0dd99244e",
+      "bytes": 1813
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-resolved-arrived.png",
+      "sha256": "733e91c59e52422aed21532dc4bdd9f9ad3a01c4ff99fc569de364402e5f126f",
+      "bytes": 67146
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-same-page-after-manual.json",
+      "sha256": "ef9da580df571abe76ccf1763de5ed61559ff329f8bac8fc1f8d7f06aa5ed28e",
+      "bytes": 573
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-same-page-after-new-topic.json",
+      "sha256": "2b80d227dc8a1a2ee58cbe27fff9eff78d6ab0a36d59bf73bc3e948cb52a6c1f",
+      "bytes": 306
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-same-page-after-resolve.json",
+      "sha256": "2da5cc66df19ef804a65d3b58a32c0eee1c9d8a5cd81c01dfaf3094e2edffcbe",
+      "bytes": 361
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-live-v5/restored-runtime.json",
+      "sha256": "6c176165f38f2f2f55b86860824c25279dd8383f522fd60e0f1bdb1fe8820474",
+      "bytes": 96
+    },
+    {
+      "path": "native-automatic-poll-fbc/native-network-gate-v5.json",
+      "sha256": "bc47577d0a47fc346ee0bf763939522db0d7e32af0d978fdf5d9524e89c4aa1f",
+      "bytes": 580
+    },
+    {
+      "path": "native-automatic-poll-fbc/operator-http-v5/reply-ack.json",
+      "sha256": "3bdec34ee95c2d05f3d8ca35d75021882fdffe16e9b068c74d6f15fee9357799",
+      "bytes": 704
+    },
+    {
+      "path": "native-automatic-poll-fbc/operator-http-v5/resolve-ack.json",
+      "sha256": "48ff141be4b6ebe83a7fd5f42855906719d0386acb64304c765f52a544f4330a",
+      "bytes": 398
+    },
+    {
+      "path": "native-automatic-poll-fbc/qa-v5-db-final-readonly.json",
+      "sha256": "2cd2eb9a53118320472b8ec5e0d4f17c4853b1948c715c1b4a489f39574e4baa",
+      "bytes": 4641
+    },
+    {
+      "path": "native-automatic-poll-fbc/qa-v5-poll-assessment.json",
+      "sha256": "21907d0c51b4f81b15228611b2bd8b2b5a921b8b403ab861e7fd5041f0a3a36f",
+      "bytes": 4840
+    },
+    {
+      "path": "native-automatic-poll-fbc/qa-v5-quarantine-receipt.json",
+      "sha256": "257ddc16c6cb0a08b6a0bb8be42e5d7b061b03ed21769fa5c5cebbb5b2a52e15",
+      "bytes": 212
+    },
+    {
+      "path": "native-automatic-poll-fbc/record.json",
+      "sha256": "cc124fdd0f663d3cfadbd70e6b1994099b9080d1f9a284a7714c34b18f5a7d7b",
+      "bytes": 8975
     },
     {
       "path": "native-compile-management-support-chat-wxml.json",
-      "sha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac"
+      "sha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac",
+      "bytes": 132
     },
     {
       "path": "native-compile-management-support-chat-wxss.json",
-      "sha256": "5af378e6a2dae316f0f5045a8075138c0d8a9919736b984fe1e341cb6c7d1f84"
+      "sha256": "5af378e6a2dae316f0f5045a8075138c0d8a9919736b984fe1e341cb6c7d1f84",
+      "bytes": 205
+    },
+    {
+      "path": "native-compile-support-wxml.json",
+      "sha256": "0bd26197d7fd48d0b01846de450bb692dd9e373efc0ecd87ae258b04cbad42ac",
+      "bytes": 132
+    },
+    {
+      "path": "native-compile-support-wxss.json",
+      "sha256": "5af378e6a2dae316f0f5045a8075138c0d8a9919736b984fe1e341cb6c7d1f84",
+      "bytes": 205
+    },
+    {
+      "path": "native-isolated-40789/active-human-other-ai-state.json",
+      "sha256": "e7ccdafcc483673e69bb10dc8db48a30711b0b906b4a8d838397fb8329bbb3ad",
+      "bytes": 3274
+    },
+    {
+      "path": "native-isolated-40789/ai-first-pending-state.json",
+      "sha256": "e4e3127c425f99bb405bdc2b8361318ed9fa78d6063f7ff2b2a590cb3e402378",
+      "bytes": 1360
+    },
+    {
+      "path": "native-isolated-40789/consumer-resolved-state.json",
+      "sha256": "acde55b3083bb30ac104752e7aa0a06008408d73a2441706989446f019c46cdd",
+      "bytes": 3622
+    },
+    {
+      "path": "native-isolated-40789/human-requested-state.json",
+      "sha256": "e8a2c8b22e99d8b5d582bd790f35e8714db14cb3f49200576dfaf4f18d085c83",
+      "bytes": 1936
+    },
+    {
+      "path": "native-isolated-40789/ime-confirm-no-send-state.json",
+      "sha256": "1c15a7e8397ad2c061f41842353a9ac6cbad3481bad2625a160d2ce5fd3a5136",
+      "bytes": 499
+    },
+    {
+      "path": "native-isolated-40789/manual-reply-synced-state.json",
+      "sha256": "5ce2a419c158893b5b769aa8cefd7b34f7eeb49f5e83276f832c16b76e6c1b1b",
+      "bytes": 3625
+    },
+    {
+      "path": "native-isolated-40789/manual-reply-synced.png",
+      "sha256": "0bd3546b7f01eef5df9dee6df1a1e83d39b820b13ad761d6f579103de71b1ab5",
+      "bytes": 97100
+    },
+    {
+      "path": "native-isolated-40789/new-topic-ai-state.json",
+      "sha256": "949a5ddfa94cb3bd064eb176d7d02fad2ecb1d1d287317d2ca700043717a5624",
+      "bytes": 1363
+    },
+    {
+      "path": "native-isolated-40789/new-topic-empty-state.json",
+      "sha256": "eb3fdab1f4b4f77738c98ba852a8d9de40322e95d40efb87d5732911bb8ffcc4",
+      "bytes": 729
+    },
+    {
+      "path": "native-isolated-40789/new-topic-empty.png",
+      "sha256": "b47e0f65bdd979d219e6b82e50fbb6a9d7030d9bf9ed9f25486c0db822caf45b",
+      "bytes": 46876
+    },
+    {
+      "path": "native-isolated-40789/operator-after-claim-state.json",
+      "sha256": "4a722cf6f96fa32dbe34bc4c64611c85be1be84e8a5da333480374cd1dc2f3cb",
+      "bytes": 3113
+    },
+    {
+      "path": "native-isolated-40789/operator-before-claim-state.json",
+      "sha256": "f7607c363be7fb4b26a0a6039ff24326d325284e7e736d64412ab46d93e73101",
+      "bytes": 2891
+    },
+    {
+      "path": "native-isolated-40789/operator-before-claim.png",
+      "sha256": "61280b3f33eba5c61a45c7208f7023c3ed7016eef3fbc3c2a2810e4afb58ecd3",
+      "bytes": 99746
+    },
+    {
+      "path": "native-isolated-40789/operator-reply-sent-state.json",
+      "sha256": "e0ca58ec6db4a99b9b2ce83c711ccff256099c5005dbac9fad2df40bb87ba2e4",
+      "bytes": 4033
+    },
+    {
+      "path": "native-isolated-40789/operator-resolved-state.json",
+      "sha256": "a7966b4ae8353162f931add32a30ecf8231b172834b5c5130a9f74a3eb3e0fc3",
+      "bytes": 3564
+    },
+    {
+      "path": "native-isolated-40789/record.json",
+      "sha256": "cd41e5c39a009e633cc5cbd588f5d74044d42347b927dbbfcc735cc44410c328",
+      "bytes": 4567
+    },
+    {
+      "path": "native-isolated-40789/resolve-modal.png",
+      "sha256": "70c3ee220fd7d5b9c36113b9bf086039e3e0bb20bdf60efc02c6842cefbc0218",
+      "bytes": 74582
+    },
+    {
+      "path": "native-isolated-40789/restored-runtime.json",
+      "sha256": "6c176165f38f2f2f55b86860824c25279dd8383f522fd60e0f1bdb1fe8820474",
+      "bytes": 96
+    },
+    {
+      "path": "native-isolated-40789/waiting-human-other-ai-state.json",
+      "sha256": "6c4a4b6cd079d9f2f3abaf242ed2605ab55c9ecc762079f4699fdeedcafee041",
+      "bytes": 2481
+    },
+    {
+      "path": "native-isolated-40789/welcome-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a",
+      "bytes": 2801
+    },
+    {
+      "path": "native-isolated-40789/welcome-state.json",
+      "sha256": "ca4c382843f4d8e97412c9ae6ffa6a23f472b1a5b1cb17f43242cd0bcac2042a",
+      "bytes": 448
+    },
+    {
+      "path": "native-isolated-40789/welcome.png",
+      "sha256": "09ce14d90fa11fc48d2495620e9abe94058d06d7e0b6a08254baf7626a1b7290",
+      "bytes": 46852
     }
-  ]
+  ],
+  "testedBackendSourceHead": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+  "testedBackendSourceTree": "87483c74161100d4bdb37bcdc19d620503da13f9",
+  "mainMerge": {
+    "pr": 59,
+    "commit": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+    "tree": "87483c74161100d4bdb37bcdc19d620503da13f9",
+    "candidateSource": "6123a594cd673d8c72935e79d380320addcd127f",
+    "treeIdenticalToNativePollSource": true,
+    "priorSupportFixPr": 58
+  },
+  "coreCi": {
+    "sourceHead": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+    "workflowRun": 41293761020,
+    "verifyJob": 124810213708,
+    "verifyConclusion": "success",
+    "unitPassed": 2551,
+    "integrationPassed": 1131,
+    "parallel100Failures": 0,
+    "parallel100P95Ms": 601.58,
+    "thresholdP95Ms": 1000
+  },
+  "fullProductDesignGate": {
+    "job": 124811997194,
+    "conclusion": "failure",
+    "reason": "Existing incomplete40route native evidence matrix; structuralErrors empty; not marked passed",
+    "scope": "Full product40route evidence requirement; this scoped support loop does not satisfy it"
+  },
+  "additionalObservedIssue": {
+    "initialSource": "40789a6f0b076571e874c61de1f3db1c7efafd66",
+    "initialAuditReason": "SUPPORT_AI_ROUTE_INVALID",
+    "minimalCorrection": "JSON route example follows actual human-request state; strict boundary unchanged",
+    "finalSource": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+    "finalResult": "Expected policy handoff and3 real AI replies; no invalid-route audit"
+  },
+  "releaseDelivery": {
+    "targetMiniProgramVersion": "0.1.19",
+    "trialRuntimeDeployment": "success; source6123/schema104/config/authority/production unchanged",
+    "officialUpload": "success; one official task, one poll; native window warned this upload overwrites current trial version; Allow confirmed",
+    "compiledPackageBytes": 1756323,
+    "runtimeSourceHead": "6123a594cd673d8c72935e79d380320addcd127f",
+    "mainAtRuntimeRelease": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+    "postDeployOriginal22FactsPreserved": true,
+    "postDeploy147TableFactsIdentical": true,
+    "exactQaIdsAbsentFromTrial": true,
+    "productionOriginalProcessesPreserved": true
+  },
+  "treeIdenticalRuntimeCandidateSource": "6123a594cd673d8c72935e79d380320addcd127f",
+  "nativeAutomaticPolling": {
+    "result": "passed",
+    "sourceHead": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+    "independentChecks": 18,
+    "manualReply": "Real HTTP operator ACK arrived automatically on the same visible/alive consumer Page object; no re-entry or reload",
+    "resolution": "Real HTTP resolution automatically updated the same consumer Page object",
+    "newTopic": "Native action on the same Page cleared the current topic; contextVersion8, boundary4, messagesempty"
+  },
+  "sourceTransportRepair": {
+    "source": "6123a594cd673d8c72935e79d380320addcd127f",
+    "mergedMain": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+    "offlineTestsPassed": 30,
+    "helperSha256": "0ec259652485bb620c0f683e8dff34666e6d6a86cef6c62e872015effd7a9053",
+    "scope": "Only exact repository public GitHub source endpoints may retry up to3 times for known truncated transport; IMDS remains one attempt; TLS/redirect/size/content/identity/hash gates unchanged.",
+    "productApiDigestUnchanged": true
+  },
+  "latestCoreCi": {
+    "sourceHead": "6123a594cd673d8c72935e79d380320addcd127f",
+    "workflowRun": 41295591081,
+    "verifyJob": 124815654345,
+    "conclusion": "success",
+    "unitPassed": 2551,
+    "unitSkipped": 1,
+    "integrationPassed": 1131,
+    "deploymentOfflineTests": 30,
+    "parallel100Failures": 0,
+    "parallel100P95Ms": 857.42,
+    "parallel100ThresholdP95Ms": 1000,
+    "fullProductDesignGate": "not run for this PR event; existing complete40page matrix remains unpassed"
+  },
+  "artifactManifestSha256": "4f045aa1180a16ff9aa1cb29acecff68c4050326ae42b87f664e9066e8213df4"
 }

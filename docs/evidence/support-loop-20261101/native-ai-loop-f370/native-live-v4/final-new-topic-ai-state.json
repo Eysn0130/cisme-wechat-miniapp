@@ -1,0 +1,47 @@
+{
+  "route": "pages/support/index",
+  "conversation": {
+    "id": "c2dbc30c-9482-49b0-9e20-af8d3bac60df",
+    "status": "ai_active",
+    "priority": "normal",
+    "memberUnreadCount": 1,
+    "teamUnreadCount": 1,
+    "memberReadSequence": 8,
+    "teamReadSequence": 8,
+    "version": 14,
+    "updatedAt": "2026-11-01T09:37:57.327Z"
+  },
+  "contextVersion": 12,
+  "contextStartSequence": 8,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": [
+    {
+      "id": "021f65d9-e6ef-4468-8835-ce30a9045eaf",
+      "sequence": 9,
+      "senderType": "user",
+      "body": "之前保存的护理记录在哪里查看？",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "7de9a945-c30c-4cf7-9237-85df8e79b814",
+      "sequence": 10,
+      "senderType": "ai",
+      "body": "在护理记录页可以回看已保存的护理记录；注意记录页只用于查看，填写感受和保存要在护理首页完成。",
+      "replyToMessageId": "021f65d9-e6ef-4468-8835-ce30a9045eaf",
+      "replyReferenceLabel": ""
+    }
+  ]
+}

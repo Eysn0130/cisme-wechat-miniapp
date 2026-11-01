@@ -1,0 +1,159 @@
+{
+  "recordedAt": "2026-11-01T10:29:44.475474+00:00",
+  "scope": "Official native consumer page remained the same object, visible and alive during independent real-HTTP operator reply and resolution. No re-entry/reload/navigation used to deliver these updates. Synthetic V5 identities only.",
+  "method": "Root claimed in native operator UI, switched once to consumer before baseline and held page; private operator HTTP driver then sent and resolved while native page polled. The prior V4 evidence separately covers native operator send and resolve buttons.",
+  "sourceHead": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+  "sourceTree": "87483c74161100d4bdb37bcdc19d620503da13f9",
+  "treeIdenticalRuntimeCandidateSource": "6123a594cd673d8c72935e79d380320addcd127f",
+  "productApiSourceDigest": "2d6f8ba77cd58707165f7f77a6c019385e82c68638bc158a6e866f450bab2a19",
+  "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "sourceContinuity": {
+    "v4BackendSource": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+    "changedPathsSinceV4": [
+      "infra/tencent/test_trial_support_closure_update.py",
+      "infra/tencent/trial-support-closure-update.py"
+    ],
+    "apiClientSchemaChangesSinceV4": false,
+    "v4AndV5ApiSourceDigestIdentical": true,
+    "evidenceReusedOnlyWithinItsOriginalScope": true
+  },
+  "checks": {
+    "v5RuntimeSourceAndOwnedDatabasePinned": true,
+    "consumerBeforeReplyVersion5": true,
+    "uiClaimedOriginalQuestion": true,
+    "exactReplyContractWithLocalVersionGuard": true,
+    "apiReplyAcknowledgedVersion6": true,
+    "manualReplyArrivedOnSameVisiblePage": true,
+    "nativeBubbleMatchesApiAckIdTargetAndTextHash": true,
+    "exactOneManualReplyAudit": true,
+    "apiResolveContractVersion6": true,
+    "exactOneResolveAuditVersion6To7": true,
+    "resolvedAutomaticallyOnSameVisiblePage": true,
+    "newTopicOnSamePageAndEmpty": true,
+    "exactOneNewTopicAuditVersion7To8Boundary4": true,
+    "oldOrdinaryRowsRemoved": true,
+    "onlyIsolatedLegacySystemEventRemains": true,
+    "finalAiActiveVersion8NoHandler": true,
+    "noAutomaticMutationRetriesOrDriverNavigation": true,
+    "normalHandoffNoInvalidRoute": true
+  },
+  "independentCheckCount": 18,
+  "provenance": [
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-consumer-before-geometry.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-consumer-before-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-consumer-before-state.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-consumer-before-state.json",
+      "sha256": "552a312871f80f3cfb751dfd788abb6c11dfd085ea1d09be4acec0f8ed8d1caa"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-manual-arrived-geometry.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-manual-arrived-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-manual-arrived-state.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-manual-arrived-state.json",
+      "sha256": "c7d708e3b86967edd3055d2cfbb7f51ad7561276cd056bdcbd15004f45bdc48e"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-manual-arrived.png",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-manual-arrived.png",
+      "sha256": "807774448af2f167e2775cc431641ad26b2293f2d85e1cb28e84849d036a8b63"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-new-topic-empty-geometry.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-new-topic-empty-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-new-topic-empty-state.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-new-topic-empty-state.json",
+      "sha256": "889e5308aefc74c31386fd2d8d58ccf56c842852c091000aaba5c9a1f21c63b0"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-new-topic-empty.png",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-new-topic-empty.png",
+      "sha256": "287725fb8b5bc70cf7d7c063e3a791a3df3495a84812b20f4cc9fcbcad64df95"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-operator-claimed-geometry.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-operator-claimed-geometry.json",
+      "sha256": "02c648c84051959de7b0d32a2a168ddc2769e2b8d4515b75c717f29628390579"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-operator-claimed-state.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-operator-claimed-state.json",
+      "sha256": "52a00e0d04d5e721b6e40ef04b09cd2b0a4ba22615753eaca2445ccb97a6100d"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-requested-geometry.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-requested-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-requested-state.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-requested-state.json",
+      "sha256": "b324dc35bb640540863f78fc7ae0e9779a025bcedb98bd2fc0c1a3fc6bce9cdf"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-resolved-arrived-geometry.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-resolved-arrived-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-resolved-arrived-state.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-resolved-arrived-state.json",
+      "sha256": "f9bd62189e7e487a6ba78e11d3a0a51e942dd9f9c77537afa3d3f6c0dd99244e"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-resolved-arrived.png",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-resolved-arrived.png",
+      "sha256": "733e91c59e52422aed21532dc4bdd9f9ad3a01c4ff99fc569de364402e5f126f"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-same-page-after-manual.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-same-page-after-manual.json",
+      "sha256": "ef9da580df571abe76ccf1763de5ed61559ff329f8bac8fc1f8d7f06aa5ed28e"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-same-page-after-new-topic.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-same-page-after-new-topic.json",
+      "sha256": "2b80d227dc8a1a2ee58cbe27fff9eff78d6ab0a36d59bf73bc3e948cb52a6c1f"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/poll-same-page-after-resolve.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/poll-same-page-after-resolve.json",
+      "sha256": "2da5cc66df19ef804a65d3b58a32c0eee1c9d8a5cd81c01dfaf3094e2edffcbe"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v5/restored-runtime.json",
+      "path": "native-automatic-poll-fbc/native-live-v5/restored-runtime.json",
+      "sha256": "6c176165f38f2f2f55b86860824c25279dd8383f522fd60e0f1bdb1fe8820474"
+    }
+  ],
+  "restoration": {
+    "privateConfigOriginalAndRestoredSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+    "privateUrlCheckRestoredExactBytes": true,
+    "runtimeOrigin": "https://staging-api.cisme.cn",
+    "sessionPresent": false,
+    "qaSessionKeysRemoved": 2,
+    "heldPageReferenceRemoved": "root confirmed after automatic-poll checks",
+    "qaRunStoppedAndRetained": "/var/lib/cisme-support-qa/retained-4e881d98121c4cf7c10c3d5b",
+    "databaseDropped": false,
+    "originalServicesChanged": false,
+    "local18089ListenerPresentAtEvidenceAssembly": false
+  },
+  "providerScope": "V5 has1 real model-backed policy handoff;3 general AI replies whilewaiting/active/newtopic belong to V4, whose product API source digest is identical. Do not relabel them V5.",
+  "limits": [
+    "Isolated synthetic QA, not dedicated real trial accounts",
+    "No physical phone",
+    "V5 automatic-poll proof is consumer page plus operator HTTP action; administrator native buttons were separately tested in V4",
+    "Full40route design gate not claimed"
+  ],
+  "containsRealUserMessagesOrCredentials": false,
+  "releaseDeliveryStatus": "See root acceptance-summary.json; runtime/app upload terminal outcomes remain pending until independent receipts."
+}

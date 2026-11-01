@@ -1,0 +1,128 @@
+{
+  "width": 390,
+  "height": 844,
+  "font": 16,
+  "selectors": [
+    ".support-thread",
+    ".support-composer",
+    ".support-composer__actions",
+    ".support-human",
+    ".support-topic",
+    ".support-composer__surface",
+    ".support-typing"
+  ],
+  "boxes": [
+    [
+      {
+        "left": 0,
+        "right": 389,
+        "top": 91,
+        "bottom": 634,
+        "width": 389,
+        "height": 543,
+        "fontSize": "14px",
+        "minHeight": "0px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      }
+    ],
+    [
+      {
+        "left": 0,
+        "right": 390,
+        "top": 634,
+        "bottom": 844,
+        "width": 390,
+        "height": 210,
+        "fontSize": "14px",
+        "minHeight": "0px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      }
+    ],
+    [
+      {
+        "left": 10,
+        "right": 380,
+        "top": 641,
+        "bottom": 685,
+        "width": 370,
+        "height": 44,
+        "fontSize": "14px",
+        "minHeight": "0px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      }
+    ],
+    [
+      {
+        "left": 10,
+        "right": 84,
+        "top": 641,
+        "bottom": 685,
+        "width": 74,
+        "height": 44,
+        "fontSize": "12px",
+        "minHeight": "44px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      },
+      {
+        "left": 88,
+        "right": 150,
+        "top": 641,
+        "bottom": 685,
+        "width": 62,
+        "height": 44,
+        "fontSize": "12px",
+        "minHeight": "44px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      }
+    ],
+    [
+      {
+        "left": 88,
+        "right": 150,
+        "top": 641,
+        "bottom": 685,
+        "width": 62,
+        "height": 44,
+        "fontSize": "12px",
+        "minHeight": "44px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      }
+    ],
+    [
+      {
+        "left": 10,
+        "right": 380,
+        "top": 685,
+        "bottom": 803,
+        "width": 370,
+        "height": 118,
+        "fontSize": "14px",
+        "minHeight": "0px",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "boxShadow": "none",
+        "maxHeight": "none",
+        "overflowY": "hidden"
+      }
+    ],
+    []
+  ],
+  "scope": "native page connected to live isolated HTTP API; synthetic identities"
+}

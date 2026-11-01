@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "samePage": true,
+        "route": "pages/support/index",
+        "visible": true,
+        "pageAlive": true,
+        "version": 6,
+        "messageIds": [
+          "3dee6a1b-5a14-4c37-8a5f-ccb917d9cb93",
+          "066edb43-60bb-4e5b-9c08-bb779b313bee",
+          "4dfe70d1-f1b2-4ce7-bd48-d76a0e77f4ae",
+          "d3535d16-2a7b-451f-a4ad-6b050a7ecb0d"
+        ],
+        "observedAt": 1793528654654
+      }
+    }
+  }
+}

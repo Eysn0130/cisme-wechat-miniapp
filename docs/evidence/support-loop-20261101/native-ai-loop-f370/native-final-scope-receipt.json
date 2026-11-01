@@ -1,0 +1,46 @@
+{
+  "recordedAt": "2026-11-01T09:39:48.554573+00:00",
+  "sourceHead": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+  "sourceTree": "9564a3825ef4e56715b160a352bc2ebcfe0d917a",
+  "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "scope": "official native WeChat DevTools + original HTTP API/real DeepSeek on owned separate formal-host QA PostgreSQL; two synthetic identities; not actual trial accounts or physical phone",
+  "completeNativeLoop": "passed",
+  "independentDatabaseChecks": 16,
+  "privateProjectSettingRestoredExactBytes": true,
+  "runtimeRestoredStagingGuest": true,
+  "width": 390,
+  "font": 16,
+  "realTrialAccountLoop": "pending user dedicated login",
+  "physicalPhone": "not tested",
+  "full40RouteMatrix": "blocked",
+  "artifacts": [
+    {
+      "path": "qa-v4-db-final-assessment.json",
+      "sha256": "84abdee0e42a2dda791c3d9967ea932fe474c3d91d7f52a80083a0d08004aa9f"
+    },
+    {
+      "path": "qa-v4-db-final-readonly.json",
+      "sha256": "d1b37641c74a376ab2ec43096b4391118159c077812a2f31d6fdf0dbb3368f8f"
+    },
+    {
+      "path": "qa-v4-quarantine-receipt.json",
+      "sha256": "40123e0a97c171a1a3354f757ef39114688a65003db58b5b5d5526acf0815546"
+    },
+    {
+      "path": "native-network-gate.json",
+      "sha256": "40703120d535f8ccd284f6017af17e718462234b40286a9a2e1551030ed2e7b5"
+    },
+    {
+      "path": "native-live-v4/final-new-topic-ai-state.json",
+      "sha256": "d78d937bf27c719f9568aad30c7dbe8b6d29dedf900533d7a897f07c2ea96b1b"
+    },
+    {
+      "path": "native-live-v4/restored-runtime.json",
+      "sha256": "6c176165f38f2f2f55b86860824c25279dd8383f522fd60e0f1bdb1fe8820474"
+    },
+    {
+      "path": "prompt-final-validation.json",
+      "sha256": "80d88af73812087d79141cd4ba73432fd73a812465c5868faed29a61da49349a"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "recordedAt": "2026-11-01T10:27:25.122928+00:00",
+  "runtimeSourceHead": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+  "runtimeSourceDigest": "2d6f8ba77cd58707165f7f77a6c019385e82c68638bc158a6e866f450bab2a19",
+  "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "scope": "Official native consumer page remained the same object, visible and alive during independent real-HTTP operator reply and resolution. No re-entry/reload/navigation used to deliver these updates. Synthetic V5 identities only.",
+  "method": "Root claimed in native operator UI, switched once to consumer before baseline and held page; private operator HTTP driver then sent and resolved while native page polled. The prior V4 evidence separately covers native operator send and resolve buttons.",
+  "checks": {
+    "v5RuntimeSourceAndOwnedDatabasePinned": true,
+    "consumerBeforeReplyVersion5": true,
+    "uiClaimedOriginalQuestion": true,
+    "exactReplyContractWithLocalVersionGuard": true,
+    "apiReplyAcknowledgedVersion6": true,
+    "manualReplyArrivedOnSameVisiblePage": true,
+    "nativeBubbleMatchesApiAckIdTargetAndTextHash": true,
+    "exactOneManualReplyAudit": true,
+    "apiResolveContractVersion6": true,
+    "exactOneResolveAuditVersion6To7": true,
+    "resolvedAutomaticallyOnSameVisiblePage": true,
+    "newTopicOnSamePageAndEmpty": true,
+    "exactOneNewTopicAuditVersion7To8Boundary4": true,
+    "oldOrdinaryRowsRemoved": true,
+    "onlyIsolatedLegacySystemEventRemains": true,
+    "finalAiActiveVersion8NoHandler": true,
+    "noAutomaticMutationRetriesOrDriverNavigation": true,
+    "normalHandoffNoInvalidRoute": true
+  },
+  "facts": {
+    "conversationId": "01433a58-c485-4559-b649-226c70015269",
+    "originalQuestionId": "3dee6a1b-5a14-4c37-8a5f-ccb917d9cb93",
+    "manualMessageId": "d3535d16-2a7b-451f-a4ad-6b050a7ecb0d",
+    "manualSequence": 4,
+    "resolveAuditId": "74c9f19d-4b19-43ea-b0c2-d659fa009386",
+    "newTopicAuditId": "54fdd04c-7c29-443f-948d-c2aafff94e15",
+    "contextVersionAfterReset": 8,
+    "contextStartSequenceAfterReset": 4,
+    "finalConversationVersion": 8,
+    "retainedLegacySystemId": "4dfe70d1-f1b2-4ce7-bd48-d76a0e77f4ae"
+  },
+  "nativePresentationNote": "Reply reference label may be empty when the original question is already immediately preceding conversation context; exact server replyTo binding is checked independently.",
+  "providerScope": "V5 has1 real model-backed policy handoff;3 general AI replies whilewaiting/active/newtopic belong to V4, whose product API source digest is identical. Do not relabel them V5.",
+  "limits": [
+    "Isolated synthetic QA, not dedicated real trial accounts",
+    "No physical phone",
+    "V5 automatic-poll proof is consumer page plus operator HTTP action; administrator native buttons were separately tested in V4",
+    "Full40route design gate not claimed"
+  ],
+  "sourceReceipts": [
+    {
+      "path": "qa-v5-db-final-readonly.json",
+      "sha256": "2cd2eb9a53118320472b8ec5e0d4f17c4853b1948c715c1b4a489f39574e4baa"
+    },
+    {
+      "path": "operator-http-v5/reply-ack.json",
+      "sha256": "3bdec34ee95c2d05f3d8ca35d75021882fdffe16e9b068c74d6f15fee9357799"
+    },
+    {
+      "path": "operator-http-v5/reply-attempt.json",
+      "sha256": "02587699983868f82d45d6295fa60091764eef2012e5e32b6a87fbbe216cbef9"
+    },
+    {
+      "path": "operator-http-v5/resolve-ack.json",
+      "sha256": "48ff141be4b6ebe83a7fd5f42855906719d0386acb64304c765f52a544f4330a"
+    },
+    {
+      "path": "operator-http-v5/resolve-attempt.json",
+      "sha256": "726f437171be5ffd31429136947ade67f901569fac7311d82dd0fe1bf0dae0c3"
+    },
+    {
+      "path": "native-live-v5/poll-consumer-before-state.json",
+      "sha256": "552a312871f80f3cfb751dfd788abb6c11dfd085ea1d09be4acec0f8ed8d1caa"
+    },
+    {
+      "path": "native-live-v5/poll-manual-arrived-state.json",
+      "sha256": "c7d708e3b86967edd3055d2cfbb7f51ad7561276cd056bdcbd15004f45bdc48e"
+    },
+    {
+      "path": "native-live-v5/poll-resolved-arrived-state.json",
+      "sha256": "f9bd62189e7e487a6ba78e11d3a0a51e942dd9f9c77537afa3d3f6c0dd99244e"
+    },
+    {
+      "path": "native-live-v5/poll-new-topic-empty-state.json",
+      "sha256": "889e5308aefc74c31386fd2d8d58ccf56c842852c091000aaba5c9a1f21c63b0"
+    },
+    {
+      "path": "native-live-v5/poll-same-page-after-manual.json",
+      "sha256": "ef9da580df571abe76ccf1763de5ed61559ff329f8bac8fc1f8d7f06aa5ed28e"
+    },
+    {
+      "path": "native-live-v5/poll-same-page-after-resolve.json",
+      "sha256": "2da5cc66df19ef804a65d3b58a32c0eee1c9d8a5cd81c01dfaf3094e2edffcbe"
+    },
+    {
+      "path": "native-live-v5/poll-same-page-after-new-topic.json",
+      "sha256": "2b80d227dc8a1a2ee58cbe27fff9eff78d6ab0a36d59bf73bc3e948cb52a6c1f"
+    }
+  ],
+  "containsCredentials": false,
+  "containsMessageBodies": false
+}

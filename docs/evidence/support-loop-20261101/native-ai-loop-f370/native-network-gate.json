@@ -1,0 +1,23 @@
+{
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "file": "apps/miniprogram/project.private.config.json",
+  "originalSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+  "originalUrlCheck": true,
+  "actualLoopbackRequestResult": "request:fail url not in domain list",
+  "proposedDevelopmentOnlyOrigin": "http://127.0.0.1:18089",
+  "proposedFlagChange": "private setting.urlCheck: true -> false -> restore original exact bytes",
+  "authorizationReceived": true,
+  "changed": true,
+  "restoreRequiredIfChanged": true,
+  "productPackageIncludesPrivateConfig": false,
+  "realAccountsUsed": false,
+  "approvalReceivedAt": "2026-11-01T09:15:34.748018+00:00",
+  "approvalText": "同意，实测后恢复原校验",
+  "approvalScope": "Only this project private DevTools domain/TLS/certificate validation for http://127.0.0.1:18089 via SSH to isolated QA; restore after tests",
+  "changedAt": "2026-11-01T09:23:40.769050+00:00",
+  "changedFileSha256": "98329e08b25dfaa3deebe0046c12e1c545f0e4bb663314e6c7b404517b5be0d2",
+  "restoreRequired": false,
+  "restored": true,
+  "restoredAt": "2026-11-01T09:38:16.184477+00:00",
+  "restoredSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648"
+}

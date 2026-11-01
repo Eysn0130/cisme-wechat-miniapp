@@ -1,0 +1,11 @@
+{
+  "authorizationReceived": true,
+  "authorizationScopeReference": "native-network-gate.json; same project and loopback18089 for remaining support-loop tests",
+  "originalSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+  "changedFileSha256": "98329e08b25dfaa3deebe0046c12e1c545f0e4bb663314e6c7b404517b5be0d2",
+  "restoreRequired": false,
+  "changedAt": "2026-11-01T10:21:33.798320+00:00",
+  "restored": true,
+  "restoredSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+  "restoredAt": "2026-11-01T10:26:26.940657+00:00"
+}

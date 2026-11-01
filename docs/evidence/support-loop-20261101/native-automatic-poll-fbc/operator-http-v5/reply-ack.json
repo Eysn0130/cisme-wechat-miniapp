@@ -1,0 +1,23 @@
+{
+  "recordedAt": "2026-11-01T10:23:14.394384+00:00",
+  "runId": "4e881d98121c4cf7c10c3d5b",
+  "sourceHead": "fbc28b6ec78a9d4a7af1f77a99868119dbc4ed76",
+  "action": "reply",
+  "acknowledgement": {
+    "conversation": {
+      "id": "01433a58-c485-4559-b649-226c70015269",
+      "status": "human_active",
+      "version": 6
+    },
+    "message": {
+      "id": "d3535d16-2a7b-451f-a4ad-6b050a7ecb0d",
+      "sequence": 4,
+      "senderType": "admin",
+      "replyToMessageId": "3dee6a1b-5a14-4c37-8a5f-ccb917d9cb93",
+      "bodySha256": "0a86ddbc3e30a5744a771cabb7c10bedf12633ab941495bfd87d2af7acf0f4c2"
+    },
+    "contextVersion": 0
+  },
+  "noNavigationPerformedByDriver": true,
+  "automaticRetries": 0
+}

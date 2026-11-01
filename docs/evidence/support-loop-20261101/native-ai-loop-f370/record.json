@@ -1,0 +1,226 @@
+{
+  "recordedAt": "2026-11-01T09:51:40.483955+00:00",
+  "scope": "Historical V4 full AI/human loop: official native WeChat DevTools + real HTTP and DeepSeek, synthetic identities, backendf370. This is separate from the later V5 same-page automatic-poll proof.",
+  "sourceHead": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+  "sourceTree": "9564a3825ef4e56715b160a352bc2ebcfe0d917a",
+  "packageSourceSha256": "2191d52e04da7c57b35f8ed1acdf52c32d2d0d0f71b33f76ade46b3f3ad94eb5",
+  "runtimeSourceDigest": "2d6f8ba77cd58707165f7f77a6c019385e82c68638bc158a6e866f450bab2a19",
+  "nativeViewport": {
+    "width": 390,
+    "height": 844,
+    "fontSizeSetting": 16
+  },
+  "completeSupportLoop": "passed in isolated QA",
+  "independentDatabaseCheckCount": 16,
+  "checks": {
+    "normalHandoffPolicyNotRouteFailure": true,
+    "noInvalidRoutesInFinalRuntimeAudit": true,
+    "waitingHumanRealAiReply": true,
+    "activeHumanRealAiReply": true,
+    "originalAnchorUnchanged": true,
+    "manualBoundToOriginal": true,
+    "manualSynchronizedToConsumer": true,
+    "exactOneResolutionVersion10To11": true,
+    "consumerSawResolution": true,
+    "exactOneResetVersion11To12Boundary8": true,
+    "nativeEmptyNewTopic": true,
+    "oldOrdinaryRowsRemoved": true,
+    "preservedOldEventPurposeDirectlyRead": true,
+    "freshAiQuestionOnlyInActiveView": true,
+    "freshAiQuestionPersisted": true,
+    "finalVersion14NoHandler": true
+  },
+  "nativeEvidenceProvenance": [
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-active-ai-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-active-ai-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-active-ai-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-active-ai-state.json",
+      "sha256": "5922a53a707c80e9bacb4f440a98568a1b668d3a393a6bf069427eee8ab7b66b"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-consumer-resolved-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-consumer-resolved-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-consumer-resolved-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-consumer-resolved-state.json",
+      "sha256": "ee4774b4331deba9df8fe0647017f79009a9114298081e090d8f44a041ea72a2"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-manual-sent-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-manual-sent-geometry.json",
+      "sha256": "02c648c84051959de7b0d32a2a168ddc2769e2b8d4515b75c717f29628390579"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-manual-sent-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-manual-sent-state.json",
+      "sha256": "393685d50126bff5ad8c3f186f7c63827c33821b5f2d9bf23228079f2422832f"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-manual-synced-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-manual-synced-geometry.json",
+      "sha256": "779722f0472ea493de68b3741f653cc4eb75ed8eac6e7c70084af9c0f9ec3429"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-manual-synced-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-manual-synced-state.json",
+      "sha256": "100e95c386acec9a8f3b3f28447c67716c2f01f88242fa3a89ef43567a25be52"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-manual-synced.png",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-manual-synced.png",
+      "sha256": "70354f1db3b23a57821205a65fb117b741ab454d29744b893dd4807021f4ba1a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-new-topic-ai-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-new-topic-ai-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-new-topic-ai-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-new-topic-ai-state.json",
+      "sha256": "d78d937bf27c719f9568aad30c7dbe8b6d29dedf900533d7a897f07c2ea96b1b"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-new-topic-ai.png",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-new-topic-ai.png",
+      "sha256": "7de6751ce3b0d39122ff0ab855167a379f864d98e5ae874286976e15220b5c9a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-new-topic-empty-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-new-topic-empty-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-new-topic-empty-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-new-topic-empty-state.json",
+      "sha256": "4e0cfbcc6176a3a304a8e496e95fc750b89725f1e2c21bafda5136707866940c"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-new-topic-empty.png",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-new-topic-empty.png",
+      "sha256": "7f1f1092481dc41f6a5dea81ef62b439f3742b8f4f963d91034a51975078022a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-operator-anchor-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-operator-anchor-geometry.json",
+      "sha256": "2c70c20278fd9307dc881b70584a18751078d919d055c24e77f10ce83f215548"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-operator-anchor-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-operator-anchor-state.json",
+      "sha256": "cc3048f936b298dbf3cba8d621b30981b83c2d81cfa41fb83ca59c4975a41359"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-resolved-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-resolved-geometry.json",
+      "sha256": "5a5a767f581ec7b5bf3f4c781d5caba93f9f9c0f19ba7f1a0df75f6069a7843f"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-resolved-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-resolved-state.json",
+      "sha256": "cc2914238d5f03c0746070fb59d2558d92979a7a2db808bcc6d04044a8c0ebbe"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-waiting-ai-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-waiting-ai-geometry.json",
+      "sha256": "fe3904738620bc6253359eda3d6b3aad210eac3ebbf52a3583f84f5aec366d25"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/final-waiting-ai-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/final-waiting-ai-state.json",
+      "sha256": "315582b652fe06b77efdf66f2e8231eeca93806decb58688a7642a9f50898340"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/restored-runtime.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/restored-runtime.json",
+      "sha256": "6c176165f38f2f2f55b86860824c25279dd8383f522fd60e0f1bdb1fe8820474"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/revised-prompt-first-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/revised-prompt-first-geometry.json",
+      "sha256": "c4a4c2b537e0de671f7f47a4017a352a6198039b9e46e4e835a3e741dd4aaafd"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live-v4/revised-prompt-first-state.json",
+      "bundlePath": "native-ai-loop-f370/native-live-v4/revised-prompt-first-state.json",
+      "sha256": "cd512bf6010a01feabe429e6e3e2bd77b135161fe04c42b3fa21807ffcac7c9b"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live/ime-confirm-no-send-state.json",
+      "bundlePath": "native-ai-loop-f370/native-client-2191/ime-confirm-no-send-state.json",
+      "sha256": "1c15a7e8397ad2c061f41842353a9ac6cbad3481bad2625a160d2ce5fd3a5136"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live/ime-confirm-no-send-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-client-2191/ime-confirm-no-send-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live/welcome-state.json",
+      "bundlePath": "native-ai-loop-f370/native-client-2191/welcome-state.json",
+      "sha256": "ca4c382843f4d8e97412c9ae6ffa6a23f472b1a5b1cb17f43242cd0bcac2042a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live/welcome-geometry.json",
+      "bundlePath": "native-ai-loop-f370/native-client-2191/welcome-geometry.json",
+      "sha256": "d825160d2db63e7cbf3760ea7220cdb1974d08dae86d03ff11eaadcb7035092a"
+    },
+    {
+      "source": "tmp/support-loop-acceptance-20261101/native-live/welcome.png",
+      "bundlePath": "native-ai-loop-f370/native-client-2191/welcome.png",
+      "sha256": "09ce14d90fa11fc48d2495620e9abe94058d06d7e0b6a08254baf7626a1b7290"
+    }
+  ],
+  "sameClientAdditionalEvidence": {
+    "directory": "native-client-2191",
+    "sourceBackend": "40789a6f0b076571e874c61de1f3db1c7efafd66",
+    "scope": "Welcome layout, floating capsule geometry and IME confirmation behavior only; client hash unchanged2191; not proof of final backend model routing."
+  },
+  "realProviderResults": {
+    "successfulAiReplies": 3,
+    "successWhileWaitingHuman": true,
+    "successWhileHumanActive": true,
+    "successAfterNewTopic": true,
+    "expectedPolicyHandoff": 1,
+    "expectedHandoffReason": "SUPPORT_AI_HANDOFF_REQUIRED",
+    "invalidRouteAuditCount": 0,
+    "rawProviderPayloadOrPrivateReasoningRecorded": false
+  },
+  "conversationReset": {
+    "ordinaryOldChatRemoved": true,
+    "oldSystemEventPreserved": "One legacy_unknown claim system event retained outside contextStartSequence8; actual retention_purpose was directly read. It is absent from current user/admin chat views.",
+    "newTopicContextVersion": 12,
+    "newTopicStartSequence": 8,
+    "newTopicMessages": [
+      9,
+      10
+    ],
+    "finalConversationVersion": 14
+  },
+  "restoration": {
+    "privateUrlCheckRestoredExactBytes": true,
+    "privateConfigSha256": "4f8b417a706ef52253c82a513c617522b2afc80ccc400896c28c9efe41c8e648",
+    "runtimeRestored": "staging guest; exact two synthetic session storage keys removed",
+    "qaProcesses": "stopped; exact run retained recoverably; no DB dropped",
+    "realTrialData": "22 original message facts and original handler/status/version preserved; no changed tables in read-only comparison"
+  },
+  "notVerified": [
+    "Dedicated real trial user/admin login loop",
+    "Physical phone keyboard and two-device synchronization",
+    "Full40route native visual/state matrix",
+    "Additional375px or large-font boundary states in this final live loop"
+  ],
+  "releaseStatus": {
+    "targetMiniProgramVersion": "0.1.19",
+    "trialRuntimeDeployment": "pending root independent receipt",
+    "officialUpload": "pending root terminal success receipt"
+  },
+  "containsRealUserMessageBodies": false,
+  "containsSecrets": false
+}

@@ -1,0 +1,95 @@
+{
+  "route": "pages/support/index",
+  "conversation": {
+    "id": "c2dbc30c-9482-49b0-9e20-af8d3bac60df",
+    "status": "resolved",
+    "priority": "normal",
+    "memberUnreadCount": 0,
+    "teamUnreadCount": 0,
+    "memberReadSequence": 8,
+    "teamReadSequence": 8,
+    "version": 11,
+    "updatedAt": "2026-11-01T09:37:01.959Z"
+  },
+  "contextVersion": 0,
+  "contextStartSequence": 0,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": [
+    {
+      "id": "5bd04fc0-f24d-4c69-bf5c-03d8f69e920b",
+      "sequence": 1,
+      "senderType": "user",
+      "body": "我的包裹有破损，请人工帮忙核对。",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "6d52b802-f21f-4c7c-a16b-a9af283ee70f",
+      "sequence": 2,
+      "senderType": "system",
+      "body": "这个问题需要人工核实 😊 点「申请人工」，客服会接着帮你。",
+      "replyToMessageId": "5bd04fc0-f24d-4c69-bf5c-03d8f69e920b",
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "a453a6f4-98db-4714-a49f-842505f0619b",
+      "sequence": 3,
+      "senderType": "user",
+      "body": "护理四步按什么顺序完成？",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "c091ed98-9d2d-4d1f-9d9e-8937902003bb",
+      "sequence": 4,
+      "senderType": "ai",
+      "body": "护理四步顺序是：00 净澈 → 01 清洁 → 02 修护 → 03 精护。在护理首页完成当前流程，填写感受后保存即可。",
+      "replyToMessageId": "a453a6f4-98db-4714-a49f-842505f0619b",
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "31d5a697-9820-405b-bc8d-5dda0f7bf78a",
+      "sequence": 5,
+      "senderType": "system",
+      "body": "已为你接入人工客服",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "6ce3a18d-be80-4ab0-a5ef-dff4bee1ee06",
+      "sequence": 6,
+      "senderType": "admin",
+      "body": "已收到这次包裹破损问题，会继续为你核对。",
+      "replyToMessageId": "5bd04fc0-f24d-4c69-bf5c-03d8f69e920b",
+      "replyReferenceLabel": "回复：我的包裹有破损，请人工帮忙核对。"
+    },
+    {
+      "id": "5302897a-7bc2-4052-bbd0-08262a350ac5",
+      "sequence": 7,
+      "senderType": "user",
+      "body": "护理完成以后，应该在哪里填写感受并保存？",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "10a7a82c-ea3c-4992-b5f9-c72e301baa93",
+      "sequence": 8,
+      "senderType": "ai",
+      "body": "护理完成后，在护理首页当前四步流程里填写护理后自我感受并点击保存；护理记录页只能回看，不能在那里填写或保存。",
+      "replyToMessageId": "5302897a-7bc2-4052-bbd0-08262a350ac5",
+      "replyReferenceLabel": ""
+    }
+  ]
+}

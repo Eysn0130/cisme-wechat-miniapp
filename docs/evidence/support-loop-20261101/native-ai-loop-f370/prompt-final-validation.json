@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-11-01T09:34:47.936161+00:00",
+  "sourceHeadAtReceipt": "f370317a5ea79f5b516c851d4cb63240a2bdfbc6",
+  "scope": "dynamic route prompt template with strict boundary unchanged",
+  "unit": {
+    "passed": 2551,
+    "skipped": 1,
+    "filesPassed": 166
+  },
+  "typecheck": "passed",
+  "logs": {
+    "prompt-final-unit.log": "fedcff9638807eac203ef7e3bb4badb6260782f65408b227919bb38e184f1913",
+    "prompt-final-typecheck.log": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c"
+  }
+}
