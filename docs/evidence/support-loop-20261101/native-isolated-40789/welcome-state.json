@@ -1,0 +1,20 @@
+{
+  "route": "pages/support/index",
+  "conversation": null,
+  "contextVersion": 0,
+  "contextStartSequence": 0,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": []
+}

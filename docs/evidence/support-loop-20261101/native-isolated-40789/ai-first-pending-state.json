@@ -1,0 +1,47 @@
+{
+  "route": "pages/support/index",
+  "conversation": {
+    "id": "2f9e9e79-0b64-4f6c-b3be-6dce6b0f6df4",
+    "status": "ai_active",
+    "priority": "normal",
+    "memberUnreadCount": 1,
+    "teamUnreadCount": 1,
+    "memberReadSequence": 0,
+    "teamReadSequence": 0,
+    "version": 3,
+    "updatedAt": "2026-11-01T09:28:17.522Z"
+  },
+  "contextVersion": 0,
+  "contextStartSequence": 0,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": [
+    {
+      "id": "b0489d4e-a700-43ce-8521-f0f5a959d122",
+      "sequence": 1,
+      "senderType": "user",
+      "body": "护理四步完成后，如何保存护理感受？",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "66a90df0-e917-4387-a5f1-af9f8a746816",
+      "sequence": 2,
+      "senderType": "ai",
+      "body": "在护理首页完成四步护理后，填写护理后自我感受并点击保存即可；护理记录页只能回看，不能在那里填写或保存感受。",
+      "replyToMessageId": "b0489d4e-a700-43ce-8521-f0f5a959d122",
+      "replyReferenceLabel": ""
+    }
+  ]
+}

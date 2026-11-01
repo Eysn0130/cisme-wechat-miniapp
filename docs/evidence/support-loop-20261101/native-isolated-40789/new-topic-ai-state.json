@@ -1,0 +1,47 @@
+{
+  "route": "pages/support/index",
+  "conversation": {
+    "id": "2f9e9e79-0b64-4f6c-b3be-6dce6b0f6df4",
+    "status": "ai_active",
+    "priority": "normal",
+    "memberUnreadCount": 1,
+    "teamUnreadCount": 1,
+    "memberReadSequence": 10,
+    "teamReadSequence": 10,
+    "version": 16,
+    "updatedAt": "2026-11-01T09:31:54.460Z"
+  },
+  "contextVersion": 14,
+  "contextStartSequence": 10,
+  "loading": false,
+  "error": "",
+  "errorAction": "",
+  "input": "",
+  "sending": false,
+  "historyLoaded": true,
+  "supportAiAvailable": true,
+  "supportAiCanRespond": true,
+  "newTopicAvailable": true,
+  "aiReplyWaiting": false,
+  "newTopicAttempt": null,
+  "sendAttemptPresent": false,
+  "pendingMessage": null,
+  "messages": [
+    {
+      "id": "407f875d-e2a4-4f4e-95da-f7f09d70a602",
+      "sequence": 11,
+      "senderType": "user",
+      "body": "你好，护理流程从哪一步开始？",
+      "replyToMessageId": null,
+      "replyReferenceLabel": ""
+    },
+    {
+      "id": "ccefc27f-04bf-465d-9ee9-4f132d6d861a",
+      "sequence": 12,
+      "senderType": "ai",
+      "body": "护理流程从 00 净澈开始，接着是 01 清洁、02 修护、03 精护。请在护理首页按顺序完成当前四步，并填写护理后感受后保存。",
+      "replyToMessageId": "407f875d-e2a4-4f4e-95da-f7f09d70a602",
+      "replyReferenceLabel": ""
+    }
+  ]
+}

@@ -73,6 +73,21 @@ describe("DeepSeek customer support integration", () => {
     expect(system).not.toContain("500个汉字");
   });
 
+  it.each([undefined, 'waiting_human', 'human_active'] as const)('offers only routes valid for the current human-request state (%s)',async(status)=>{
+    let system='';
+    const provider=new DeepSeekSupportAiProvider(config,async(_url,init)=>{
+      system=JSON.parse(String(init?.body)).messages[0].content;
+      return ok({...output,route:'general'});
+    });
+    const conversation={...projection,...(status?{humanRequest:{generation:1,status,anchorKnown:true,anchorQuestion:'包裹破损，需要人工核对'}}:{})};
+    await provider.suggest({conversation,knowledge});
+    const schema=system.match(/严格按此字段顺序输出一个 JSON 对象：(.*?)。至少引用/);
+    expect(schema).not.toBeNull();
+    expect(schema![1]!.match(/^\{"route":"([^"]+)"/)?.[1])
+      .toBe(status?'general或human_followup或clarify或mixed':'general');
+    if(!status)expect(system).not.toContain('general或human_followup或clarify或mixed');
+  });
+
   it('classifies the anchored current question during human service without leaking identifiers or treating later messages as the target',async()=>{
     let body='';const provider=new DeepSeekSupportAiProvider(config,async(_url,init)=>{
       body=String(init?.body);return ok({...output,text:'请在护理首页完成四步后填写感受并保存。',route:'general',handoffReason:null});

@@ -286,7 +286,7 @@ Page({
     if (this.data.closedRights) return "";
     const status = this.data.conversation?.status;
     const human = status === "waiting_human" || status === "human_active";
-    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (human || this.data.supportAiAvailable && this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
+    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (human || this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
       ? this.data.newTopicBusy ? ":topic-busy" : this.data.newTopicAttempt ? ":topic-retry" : ":topic" : "";
     if (human) return status + topic;
     if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))
@@ -817,10 +817,12 @@ Page({
     const previous = this.data.newTopicAttempt;
     const status = this.data.conversation?.status;
     if (!previous && (status === "waiting_human" || status === "human_active")) {
-      await wx.showModal({ title: "人工事项处理中", content: "人工申请会继续保留，你可以直接咨询其他问题。人工事项结束后可开启新对话。", showCancel: false, confirmText: "知道了" });
+      const epoch = this.lifecycleEpoch, token = sessionToken();
+      try { await wx.showModal({ title: "人工事项处理中", content: "人工申请会继续保留，你可以直接咨询其他问题。人工事项结束后可开启新对话。", showCancel: false, confirmText: "知道了" }); }
+      catch { if (this.owns(epoch, token)) this.setData({ error: "提示暂时无法打开，请稍后重试。人工申请会继续保留。", errorAction: "" }); }
       return;
     }
-    if (!previous && (!this.data.historyLoaded || this.data.loading || !this.data.newTopicAvailable || !this.data.supportAiAvailable
+    if (!previous && (!this.data.historyLoaded || this.data.loading || !this.data.newTopicAvailable
       || status && status !== "ai_active" && status !== "resolved")) return;
     let epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
@@ -828,6 +830,7 @@ Page({
     const revision = ++this.newTopicRevision;
     const draft = () => JSON.stringify([this.inputRevision, this.data.input, this.data.selectedImage?.localPath, this.data.selectedImage?.mediaId, this.data.selectedOrder?.id]);
     const reviewedDraft = draft();
+    let submitted = false;
     this.setComposerState({ newTopicBusy: true });
     try {
       if (!previous && (this.data.conversation || this.data.messages.length || this.data.input.trim() || this.data.selectedImage || this.data.selectedOrder)) {
@@ -842,6 +845,7 @@ Page({
       this.stopPolling(); cancelPageReads(this); this.stopAiReplyWait(); this.abortDownloads();
       epoch = ++this.lifecycleEpoch;
       this.setComposerState({ newTopicAttempt: attempt, error: "", errorAction: "", loadingOlder: false });
+      submitted = true;
       const page = await request<any>({ path: "/v1/me/support/new-topic", method: "POST", data: attempt, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       if (page.conversation?.id !== attempt.conversationId || !Number.isSafeInteger(page.contextStartSequence) || page.contextStartSequence < 0
@@ -862,7 +866,8 @@ Page({
     } catch (error) {
       if (this.owns(epoch, ownerToken)) {
         const status = (error as { status?: number })?.status;
-        if (status && status >= 400 && status < 500) {
+        if (!submitted) this.setData({ error: "确认窗口暂时无法打开，聊天和未发送内容已保留，请重试。", errorAction: "" });
+        else if (status && status >= 400 && status < 500) {
           this.setComposerState({ newTopicAttempt: null });
           await this.load();
           if (this.owns(epoch, ownerToken)) this.setData({ error: "会话已变化，请核对后再开启新对话。", errorAction: "sync" });
