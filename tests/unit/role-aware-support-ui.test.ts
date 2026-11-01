@@ -44,6 +44,17 @@ describe("role-aware native support UX",()=>{
   }
   expect(style).not.toContain('.support-bubble--welcome');
  });
+ it('keeps lightweight handoff pills above the composer and submits only through its explicit send button',async()=>{
+  const [view,style]=await Promise.all([read('apps/miniprogram/pages/support/index.wxml'),read('apps/miniprogram/pages/support/index.wxss')]);
+  const actionStart=view.indexOf('class="support-composer__actions"'),surfaceStart=view.indexOf('class="support-composer__surface ');
+  expect(actionStart).toBeGreaterThan(0);expect(actionStart).toBeLessThan(surfaceStart);
+  const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).toContain('bindtap="resumeAi"');expect(actions).toContain('support-action-pill');
+  const textarea=view.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toContain('confirm-type="done"');expect(textarea).not.toContain('bindconfirm');expect(textarea).not.toContain('confirm-hold="true"');
+  expect(view.match(/bindtap="send"/g)).toHaveLength(1);
+  expect(view).toContain('AI 可能出错，请勿发敏感信息。');expect(view).not.toContain('DeepSeek');
+  expect(style).toMatch(/\.support-human\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s);
+  expect(style).toMatch(/\.support-composer__actions\s*\{[^}]*flex-wrap:\s*wrap;/s);
+ });
  it("uses owned secure image and order references without adding WebSocket or AI framework dependencies",async()=>{
   const [app,user,userView,operator,operatorView,lock]=await Promise.all([read("apps/miniprogram/app.json"),read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml"),read("package-lock.json")]);
   expect(app).not.toContain("connectSocket");expect(user).toContain("wx.chooseMedia");expect(user).toContain("/v1/me/support/media/authorize");expect(user).toContain("linkedOrderId");
