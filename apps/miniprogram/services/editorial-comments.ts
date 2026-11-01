@@ -55,6 +55,9 @@ function read<T>(page:object|undefined,path:string,authMode:"optional"|"required
   const options={path,authMode};return page?pageRead<T>(page,options):request<T>(options);
 }
 export async function readEditorialComments(articleId:string,page?:object,cursor?:string|null):Promise<EditorialCommentsPage> {
+  if(!getApp<IAppOption>().globalData.sessionToken)throw {status:401,code:"AUTH_REQUIRED",title:"登录后查看评论"};
+  // Optional transport auth handles expiry without opening login over public article text.
+  // The server independently requires the canonical active member for this route.
   const result=await read<EditorialCommentsPage>(page,commentPath(articleId)+query({limit:"30",cursor:cursor??undefined}),"optional");
   if(!result||!Array.isArray(result.comments)||!result.comments.every(validateComment)||!nonnegative(result.commentCount)
     ||typeof result.commentsEnabled!=="boolean"||typeof result.canModerate!=="boolean"||!nonnegative(result.commentsPolicyVersion)
@@ -93,7 +96,7 @@ export async function readEditorialBlocks(page?:object,cursor?:string|null):Prom
     ||!validPage(result,result.items.length))throw new Error("EDITORIAL_BLOCKS_RESPONSE_INVALID");return result;
 }
 export async function editorialCommentReviewQueue(page?:object,input:{state?:EditorialCommentReviewState;cursor?:string|null;articleId?:string}={}):Promise<EditorialCommentReviewPage> {
-  const result=await read<EditorialCommentReviewPage>(page,"/v1/management/editorial/comments"+query({state:input.state??"pending",limit:"30",cursor:input.cursor??undefined,articleId:input.articleId}),"required");
+  const result=await read<EditorialCommentReviewPage>(page,"/v1/management/editorial/comments"+query({state:input.state??"published",limit:"30",cursor:input.cursor??undefined,articleId:input.articleId}),"required");
   if(!result||!Array.isArray(result.items)||!result.items.every(item=>editorialIdentifier(item.id)&&editorialIdentifier(item.articleId)&&nonnegative(item.version)&&item.version>0&&validStatus(item.status)
     &&typeof item.body==="string"&&typeof item.articleTitle==="string"&&editorialIdentifier(item.authorId)&&typeof item.authorName==="string"
     &&(item.parentId===null||editorialIdentifier(item.parentId))&&(item.replyToId===null||editorialIdentifier(item.replyToId))&&editorialIdentifier(item.replyRootId)

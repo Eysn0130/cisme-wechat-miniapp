@@ -92,7 +92,7 @@ describe("published editorial native contracts",()=>{
   mocks.request.mockResolvedValueOnce({kind:"save",active:true,count:14,liked:true,saved:true,likeCount:25,saveCount:14});await page.toggleSave();
   expect(page.data.social).toMatchObject({liked:true,saved:true,likeCount:25,saveCount:14});
  });
- it.each(["","member-a"])("shows public comments without creating a write or starting authentication for session %j",async(token)=>{
+ it.each(["","member-a"])("opens the member comment section or guest wall without writing or starting authentication for session %j",async(token)=>{
   mocks.token=token;mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();
   mocks.request.mockClear();mocks.resume.mockClear();mocks.renew.mockClear();const before=structuredClone(page.data.social);
   await page.showComments();

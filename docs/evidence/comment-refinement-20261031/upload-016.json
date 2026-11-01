@@ -1,0 +1,20 @@
+{
+  "version": "0.1.16",
+  "sourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+  "sourceTree": "b1367944538deab535b77ab028c7287ea4728449",
+  "packageSourceSha256": "5a292ca070e49f25e3284ff3281c7c465ccdd3996adceb8d9700a5280ff02b3e",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "appId": "wx4eac2d4fb11d299b",
+  "previousSuccessfulVersion": "0.1.15",
+  "taskId": "confirmation_upload_7c66e767-9ee0-4b79-b035-78d34f06aa13",
+  "status": "success",
+  "detail": "execution_success",
+  "officialSuccess": true,
+  "completedAtUtc": "2026-10-31T23:52:17.922000+00:00",
+  "compiledBytes": 1705097,
+  "compiledMainBytes": 663575,
+  "terminalReceiptSha256": "d5270de0de0b92089854eb59e53cd3aca161e95f7bce72c575462ef5075f7e92",
+  "nativeRealSignedInAcceptance": false,
+  "physicalDeviceAcceptance": false,
+  "uploadCountThisVersion": 1
+}

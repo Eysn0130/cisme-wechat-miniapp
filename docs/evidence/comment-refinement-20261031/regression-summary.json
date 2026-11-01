@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-11-01T00:03:55.880889+00:00",
+  "runtimeSourceHead": "de9c85a84faa14931708965e85decee2773475b3",
+  "packageSourceSha256": "5a292ca070e49f25e3284ff3281c7c465ccdd3996adceb8d9700a5280ff02b3e",
+  "finalFullDisposableIntegration": {
+    "filesPassed": 63,
+    "passed": 1050,
+    "failed": 0,
+    "durationSeconds": 133.39,
+    "logSha256": "60bfab3bb371453d1f632f7dc5dec6ac39517bedae123eaa129d9252bfe84948",
+    "localLog": "tmp/pr52-ci-full-integration-regression-final.log",
+    "ownedTargetsRemoved": 2,
+    "realTrialOrProductionDatabaseUsed": false
+  },
+  "fullUnit": {
+    "filesPassed": 163,
+    "passed": 2409,
+    "skipped": 1,
+    "localLog": "tmp/comment-access-final-unit-tests.log",
+    "logSha256": "5548704b80bb88f605ab5bd7efb556e23c3c51752e2f12c5dc6f5777a6ba34ce",
+    "scope": "Before last CSS min-width44 correction; final CSS covered by28 targeted/native geometry checks; TypeScript/API bytes preserved"
+  },
+  "postUploadCorrections": {
+    "runtimeChanged": false,
+    "miniprogramPackageChanged": false,
+    "migrationsChanged": false,
+    "files": [
+      "tests/integration/migration-lifecycle.test.ts",
+      "tests/integration/support-commercial-chat.test.ts",
+      "docs/privacy/subject-data-map.json"
+    ],
+    "reasons": [
+      "Historical care fixture needed an explicit schema101 boundary after current tip advanced to103; data-preservation assertions kept.",
+      "Review map digest and descriptions updated for existing103 columns and direct-publication/explicit AI routing; no field/authority expansion.",
+      "Presence expiry fixture now uses application serverTime rather than skewed local Docker DB clock; exact10s/9s TTL and affected-row assertions added."
+    ],
+    "targetedChecksPassed": 7,
+    "privacyInventoryChecksPassed": 4,
+    "typecheck": "passed",
+    "independentReview": "No P1/P2; no assertions weakened."
+  },
+  "historicalFailuresRetained": {
+    "originalRemoteCi": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/41253757458",
+    "originalRemoteCiCounts": {
+      "passed": 1048,
+      "failed": 2
+    },
+    "firstLocalFullCounts": {
+      "passed": 1049,
+      "failed": 1
+    },
+    "finalCounts": {
+      "passed": 1050,
+      "failed": 0
+    }
+  },
+  "remoteCiAtRecordTime": "Follow-up branch checks running; not represented as already passed."
+}

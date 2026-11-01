@@ -355,7 +355,7 @@ describe("mini program submission flow safety", () => {
     expect(post).toContain('loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true');
     expect(post).toContain('currentEditorial(attempt:number,token:string){return this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken;}');
     expect(post.slice(post.indexOf("onHide()"),post.indexOf("onUnload()"))).toContain('this.pauseVideo();');
-    expect(post).toContain('this.readVisible=false;cancelPageReads(this);this.data.loadAttempt += 1;');
+    expect(post).toContain('this.readVisible=false;cancelPageReads(this);if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1;');
     expect(tab).toContain("wx.pageScrollTo({ scrollTop: 0, duration: 0 })");
     expect(tab).toContain("reducedMotion: shouldReduceMotion()");
     expect(tabView).toContain("bar--reduced-motion");

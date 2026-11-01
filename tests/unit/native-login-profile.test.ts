@@ -1,4 +1,5 @@
 import {beforeEach,expect,it,vi} from 'vitest';
+import {readFile} from 'node:fs/promises';
 const mocks=vi.hoisted(()=>({request:vi.fn(),navigate:vi.fn(async()=> 'target'),prepare:vi.fn(),local:vi.fn(),publish:vi.fn(),token:''}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:mocks.request,navigateAfterAuthentication:mocks.navigate,setSessionToken:(token:string)=>{mocks.token=token;},consumeAuthReturnUrl:()=>'/pages/home/index',cancelAuthentication:vi.fn(),clearAuthenticationRedirectSuppression:vi.fn(),suppressAuthenticationRedirectOnce:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'neutral',localMemberAvatar:mocks.local,prepareAvatarUpload:mocks.prepare}));
@@ -33,50 +34,31 @@ it('keeps a fresh cold launch on Account without starting identity or phone auth
  expect(page.data.leaving).toBe(false);expect(wxMock.switchTab).not.toHaveBeenCalled();
  expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
 });
-it('waits for the native form final value instead of starting identity from the ordinary tap',async()=>{
- page.loginTap();expect(wxMock.login).not.toHaveBeenCalled();
- await page.submitLogin({detail:{value:{nickname:'  微信填写昵称  '}}});
+it('starts ordinary WeChat login directly with the default nickname and no profile write',async()=>{
+ await page.loginTap();
  expect(wxMock.login).toHaveBeenCalledTimes(1);
- expect(mocks.request.mock.calls.find(([options])=>options.path==='/v1/identity/wechat')?.[0].data.displayName).toBe('微信填写昵称');
+ expect(mocks.request.mock.calls.find(([options])=>options.path==='/v1/identity/wechat')?.[0].data).toMatchObject({code:'identity-code',displayName:'CISME 会员'});
  expect(mocks.navigate).toHaveBeenCalledWith('/pages/home/index');
  expect(mocks.request.mock.calls.some(([options])=>options.path==='/v1/me/profile'&&options.method==='PUT')).toBe(false);
 });
-it.each(['', '   '])('keeps the nickname optional and logs in with the default when the native field is %j',async(nickname)=>{
- await page.submitLogin({detail:{value:{nickname}}});
- expect(mocks.token).toBe('member-session');expect(mocks.request.mock.calls[0]![0].data.displayName).toBe('CISME 会员');
+it('keeps agreement confirmation required for the direct login button',async()=>{
+ page.data.agreementAccepted=false;await page.loginTap();
+ expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
+ expect(page.data.error).toContain('请先阅读并同意');
 });
-it('uses the native form value even if autofill did not emit an input or blur event',async()=>{
- page.editNickname({detail:{value:'之前输入'}});await page.submitLogin({detail:{value:{nickname:'自动填入的最终昵称'}}});
- expect(mocks.request.mock.calls[0]![0].data.displayName).toBe('自动填入的最终昵称');
-});
-it('never persists a nickname refused by native review while still allowing an optional-name login',async()=>{
- page.editNickname({detail:{value:'被拒绝昵称'}});page.reviewNickname({detail:{pass:false}});
- await page.submitLogin({detail:{value:{nickname:'被拒绝昵称'}}});
- expect(mocks.token).toBe('member-session');expect(mocks.request.mock.calls[0]![0].data.displayName).toBe('CISME 会员');
-});
-it('rechecks nickname review after asynchronous wx.login and does not send a late-refused value',async()=>{
+it('does not duplicate a pending direct login when the button is tapped again',async()=>{
  let finish!:(value:{code:string})=>void;wxMock.login.mockReturnValue(new Promise(resolve=>{finish=resolve;}));
- const pending=page.submitLogin({detail:{value:{nickname:'审核待返回昵称'}}});page.reviewNickname({detail:{pass:false}});
- finish({code:'identity-code'});await pending;expect(mocks.request.mock.calls[0]![0].data.displayName).toBe('CISME 会员');
+ const first=page.loginTap();await page.loginTap();finish({code:'identity-code'});await first;
+ expect(wxMock.login).toHaveBeenCalledTimes(1);expect(mocks.request.mock.calls.filter(([options])=>options.path==='/v1/identity/wechat')).toHaveLength(1);
 });
-it.each(['\u202e方向控制','过'.repeat(41)])('does not persist invalid optional nickname %j',async(nickname)=>{
- await page.submitLogin({detail:{value:{nickname}}});expect(mocks.request.mock.calls[0]![0].data.displayName).toBe('CISME 会员');
+it('does not race the native phone or avatar callback from the login button tap',async()=>{
+ page.data.phoneBindingEnabled=true;await page.loginTap();
+ page.data.phoneBindingEnabled=false;page.data.loginStage='avatar';await page.loginTap();
+ expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
 });
-it('does not let nickname form submission bypass current legal consent or duplicate a pending identity',async()=>{
- page.data.agreementAccepted=false;await page.submitLogin({detail:{value:{nickname:'用户昵称'}}});expect(wxMock.login).not.toHaveBeenCalled();
- page.data.agreementAccepted=true;let finish!:(value:{code:string})=>void;wxMock.login.mockReturnValue(new Promise(resolve=>{finish=resolve;}));
- const first=page.submitLogin({detail:{value:{nickname:'首次昵称'}}});await page.submitLogin({detail:{value:{nickname:'重复点击昵称'}}});
- finish({code:'identity-code'});await first;expect(wxMock.login).toHaveBeenCalledTimes(1);expect(mocks.request.mock.calls[0]![0].data.displayName).toBe('首次昵称');
-});
-it('keeps the optional nickname form out of renewal and native phone flows',async()=>{
- page.data.renewalMode=true;await page.submitLogin({detail:{value:{nickname:'不应生效'}}});
- page.data.renewalMode=false;page.data.phoneBindingEnabled=true;await page.submitLogin({detail:{value:{nickname:'不应生效'}}});
- expect(wxMock.login).not.toHaveBeenCalled();await page.loginWithPhone({detail:{code:'phone-code'}});
- expect(wxMock.login).toHaveBeenCalledTimes(1);expect(mocks.request.mock.calls[0]![0].data.displayName).toBe('CISME 会员');
-});
-it('continues an existing session without applying a registration nickname over the saved custom profile',async()=>{
- mocks.token='existing-session';page.data.pendingDestination='/pages/profile/index';page.registrationNickname='首次填写值';
- await page.login();expect(mocks.request).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');
+it('continues an existing session without submitting a default nickname over its saved profile',async()=>{
+ mocks.token='existing-session';page.data.pendingDestination='/pages/profile/index';
+ await page.loginTap();expect(mocks.request).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.navigate).toHaveBeenCalledWith('/pages/profile/index');
 });
 it('verifies an existing business session before restoring Home without a second login',async()=>{
  mocks.token='retained-member-session';page.onLoad({});
@@ -191,4 +173,10 @@ it('keeps successful identity navigable when profile refresh fails and retries n
  await page.login();
  expect(mocks.navigate).toHaveBeenCalledTimes(2);expect(page.data.error).toBe('');
  expect(mocks.request.mock.calls.filter(([options])=>options.path==='/v1/identity/wechat')).toHaveLength(1);expect(wxMock.login).toHaveBeenCalledTimes(1);
+});
+
+it('removes nickname entry from login while keeping explicit profile editing in settings',async()=>{
+ const [login,settings]=await Promise.all([readFile('apps/miniprogram/pages/account/index.wxml','utf8'),readFile('apps/miniprogram/pages/settings/index.wxml','utf8')]);
+ expect(login).not.toContain('type="nickname"');expect(login).not.toContain('昵称（选填）');expect(login).not.toContain('bindsubmit');
+ expect(login).toContain('bindtap="loginTap"');expect(settings).toContain('type="nickname"');
 });

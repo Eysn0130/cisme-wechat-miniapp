@@ -83,7 +83,7 @@ describe("community activity editorial and submission sources",()=>{
     f.page.data.source="ugc";f.page.data.items=[row];f.page.openPost(event("id",row.postId,"editorial"));assert.equal(f.navigation.length,1);
     f.page.openPost(event("id",row.postId,"ugc"));assert.equal(f.navigation[1].url,`/pages/community-post/index?id=${row.postId}`);
   });
-  for(const action of ["save","comment","block"] as const){
+  for(const action of ["save","block"] as const){
     it(`${action}: uses only its real editorial write and reconciles the same source after settlement`,async()=>{
       const f=fixture("editorial");f.page.data.section=action==="save"?"saves":action==="block"?"blocks":"comments";f.page.data.items=[{...editorialRow,available:false,postTitle:null}];
       const method=action==="save"?"removeSaved":action==="block"?"unblock":"deleteComment",id=action==="save"?editorialRow.postId:action==="block"?editorialRow.memberId:editorialRow.id;
@@ -94,7 +94,7 @@ describe("community activity editorial and submission sources",()=>{
     });
   }
   it("does not dispatch a modal-confirmed editorial mutation after a source switch",async()=>{
-    const f=fixture("editorial");f.page.data.items=[editorialRow];const operation=f.page.deleteComment(event("id",editorialRow.id,"editorial"));f.page.selectSource(event("source","ugc"));f.modals[0].resolve({confirm:true});await operation;assert.ok(f.calls.every(call=>!call.method));
+    const f=fixture("editorial");f.page.data.section="saves";f.page.data.items=[editorialRow];const operation=f.page.removeSaved(event("id",editorialRow.postId,"editorial"));f.page.selectSource(event("source","ugc"));f.modals[0].resolve({confirm:true});await operation;assert.ok(f.calls.every(call=>!call.method));
   });
   it("does not paint an old source's notice or refresh over the new source after its write completes",async()=>{
     const f=fixture("editorial");f.page.data.section="saves";f.page.data.items=[editorialRow];const operation=f.page.removeSaved(event("id",editorialRow.postId,"editorial"));f.modals[0].resolve({confirm:true});await flush();
@@ -134,7 +134,7 @@ describe("community activity editorial and submission sources",()=>{
     f.page.onShow();assert.equal(f.calls[1].path,"/v1/me/editorial/activity/comments?limit=30");f.calls[1].resolve(editorialPage());await flush();assert.equal(f.page.data.loading,false);
   });
   it("never dispatches an editorial confirmation after the account changes",async()=>{
-    const f=fixture("editorial");f.page.data.items=[editorialRow];const operation=f.page.deleteComment(event("id",editorialRow.id,"editorial"));f.state.token="synthetic-b";f.state.revision+=1;f.modals[0].resolve({confirm:true});await operation;assert.equal(f.calls.length,0);
+    const f=fixture("editorial");f.page.data.section="saves";f.page.data.items=[editorialRow];const operation=f.page.removeSaved(event("id",editorialRow.postId,"editorial"));f.state.token="synthetic-b";f.state.revision+=1;f.modals[0].resolve({confirm:true});await operation;assert.equal(f.calls.length,0);
   });
   it("an old editorial account cannot clear a new account's mutation lock or private rows",async()=>{
     const f=fixture("editorial");f.page.data.section="saves";f.page.data.items=[editorialRow];const first=f.page.removeSaved(event("id",editorialRow.postId,"editorial"));f.modals[0].resolve({confirm:true});await flush();
@@ -143,10 +143,14 @@ describe("community activity editorial and submission sources",()=>{
     f.calls[0].resolve({id:editorialRow.postId,saved:false});await first;assert.equal(f.page.data.busy,true);assert.equal(f.page.data.items.length,1);
     f.calls[2].resolve({id:editorialRow.postId,saved:false});await second;assert.equal(f.page.data.busy,false);assert.equal(f.calls.length,4);f.calls[3].resolve(editorialPage());await flush();
   });
+  it("keeps normal editorial authors from removing a published comment in personal activity",async()=>{
+    const f=fixture("editorial");f.page.data.items=[editorialRow];await f.page.deleteComment(event("id",editorialRow.id,"editorial"));
+    assert.equal(f.modals.length,0);assert.equal(f.calls.length,0);
+  });
   it("does not offer a deleted editorial comment another deletion",async()=>{
     const f=fixture("editorial");f.page.data.items=[{...editorialRow,state:"deleted",body:null}];await f.page.deleteComment(event("id",editorialRow.id,"editorial"));assert.equal(f.modals.length,0);assert.equal(f.calls.length,0);
   });
-  for(const action of ["save","comment","block"] as const)it(`${action}: preserves the editorial write lock through hide/resume and supersedes an earlier read`,async()=>{
+  for(const action of ["save","block"] as const)it(`${action}: preserves the editorial write lock through hide/resume and supersedes an earlier read`,async()=>{
     const f=fixture("editorial");f.page.data.section=action==="save"?"saves":action==="block"?"blocks":"comments";f.page.data.items=[editorialRow];
     const method=action==="save"?"removeSaved":action==="block"?"unblock":"deleteComment",id=action==="save"?editorialRow.postId:action==="block"?editorialRow.memberId:editorialRow.id;
     const operation=f.page[method](event("id",id,"editorial"));f.modals[0].resolve({confirm:true});await flush();f.page.onHide();f.page.onShow();assert.equal(f.page.data.busy,true);

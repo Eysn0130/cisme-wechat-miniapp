@@ -108,3 +108,18 @@ it('publishes only native login capability switches without authentication or ac
  expect(response.statusCode).toBe(200);
  expect(response.json()).toEqual({phoneBindingEnabled:false,avatarSelection:'chooseAvatar'});
 });
+
+it('initializes the default login name once and preserves a later explicit settings edit on reauthentication',async()=>{
+ const input={externalUserId:'synthetic-default-name-login',displayName:'CISME 会员',consents:[{documentType:'privacy',version:'v1'},{documentType:'terms',version:'v1'}]};
+ const first=await app.inject({method:'POST',url:'/v1/identity/dev',payload:input});expect(first.statusCode).toBe(200);
+ const identity=first.json(),profilePath='/v1/me/profile';
+ const initial=(await app.inject({method:'GET',url:profilePath,headers:headers(identity.sessionToken)})).json();
+ expect(initial).toMatchObject({id:identity.memberId,display_name:'CISME 会员',profile_revision:0});
+ const edited=await app.inject({method:'PUT',url:profilePath,headers:headers(identity.sessionToken),payload:{displayName:'设置中保存的昵称',expectedVersion:0}});
+ expect(edited.statusCode).toBe(200);expect(edited.json()).toMatchObject({display_name:'设置中保存的昵称',profile_revision:1});
+ const again=await app.inject({method:'POST',url:'/v1/identity/dev',payload:input});expect(again.statusCode).toBe(200);
+ expect(again.json().memberId).toBe(identity.memberId);
+ const current=(await app.inject({method:'GET',url:profilePath,headers:headers(again.json().sessionToken)})).json();
+ expect(current).toMatchObject({id:identity.memberId,display_name:'设置中保存的昵称',profile_revision:1});
+ expect((await pool.query('SELECT count(*)::int n FROM wechat_identity WHERE member_id=$1',[identity.memberId])).rows[0].n).toBe(1);
+});

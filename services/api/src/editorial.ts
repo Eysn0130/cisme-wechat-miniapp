@@ -115,11 +115,11 @@ export function validateEditorialPublication(input:EditorialPublication){
 export class EditorialService{
   constructor(private pool:pg.Pool,private config:AppConfig,private storage:ObjectStorage,private authority:AuthorityService){}
   private canonicalApp(){return this.config.wechat.appId===CANONICAL_WECHAT_MINIPROGRAM_APP_ID?this.config.wechat.appId:null;}
-  private async actor(client:DbClient,memberId:string|undefined,principalId:string|undefined){
+  private async actor(client:DbClient,memberId:string|undefined,principalId:string|undefined,lock=true){
     if(!memberId||!principalId)throw new DomainError('AUTH_REQUIRED','请先使用微信账号登录',401);
     const found=await client.query(`SELECT 1 FROM member m JOIN wechat_identity w ON w.member_id=m.id
       WHERE m.id=$1 AND m.status='active' AND w.provider='wechat_miniprogram' AND w.adapter='wechat'
-        AND w.app_id=$2 AND ('wechat_miniprogram:'||w.id::text)=$3 FOR SHARE OF m,w`,
+        AND w.app_id=$2 AND ('wechat_miniprogram:'||w.id::text)=$3${lock?' FOR SHARE OF m,w':''}`,
       [memberId,this.canonicalApp(),principalId]);
     if(!found.rowCount)throw new DomainError('AUTH_REQUIRED','需要当前小程序的真实微信身份',401);
     return memberId;
@@ -157,6 +157,10 @@ export class EditorialService{
     const owner=await this.actor(client,memberId,principalId);
     if(requireLegal)await this.requireCurrentLegal(client,owner);
     return owner;
+  }
+  /** Read-only snapshots verify the same canonical actor without row locks or new consent. */
+  async commentReader(client:DbClient,memberId:string|undefined,principalId:string|undefined){
+    return this.actor(client,memberId,principalId,false);
   }
   async commentArticle(client:DbClient,id:string,lock=false){
     const article=await this.article(client,id,lock);

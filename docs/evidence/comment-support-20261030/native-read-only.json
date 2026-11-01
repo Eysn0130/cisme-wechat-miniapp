@@ -1,0 +1,92 @@
+{
+  "observedDate": "2026-10-30",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "packageSourceSha256": "0ddfbcb69ba1bdd288431c04507c80829272c8ef0d32f7518ba4f7159d190b50",
+  "serverSourceHeadPrefix": "0caed61677df",
+  "serverMigrationCount": 103,
+  "scope": "Post-deployment read-only native simulator inspection with the existing signed-in trial account. No comment, chat, assignment, deletion, read receipt or presence command issued.",
+  "originalRoute": "pages/home/index",
+  "restoredRoute": "pages/home/index",
+  "noSourceFilesChanged": true,
+  "screenshots": [
+    {
+      "path": "management-after-server-deploy.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "9a20c09ab2c6fabea37550ed6eff322fdd9489b257f73e3cdb9e0a82f6db70a8"
+    },
+    {
+      "path": "comments-after-server-deploy.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "1e3e21f8dc65b3c9f92501120d270aac44588a6eee047f0aba88840a3429ba5f"
+    },
+    {
+      "path": "support-queue-after-server-deploy.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "4f3a22b409843a42e292b350bb125b139c3605e9af208b2262d75fab32bca3da"
+    }
+  ],
+  "management": {
+    "commentEntryVisible": true,
+    "supportEntryVisible": true,
+    "supportAttentionCount": 1
+  },
+  "comments": {
+    "defaultState": "published",
+    "publishedCommentsVisible": true,
+    "currentNicknameVisible": true,
+    "currentAvatarVisible": true,
+    "coloredDeleteVisible": true,
+    "deleteNotInvoked": true
+  },
+  "currentProfileComparison": {
+    "profileHttpStatus": 200,
+    "commentsHttpStatus": 200,
+    "ownCommentCount": 4,
+    "currentAuthorProjectionPresent": true,
+    "nicknameMatchesCurrentProfile": true,
+    "avatarMatchesCurrentProfile": true,
+    "avatarRevisionMatchesCurrentProfile": true,
+    "memberIdentifiersAndAvatarDataExported": false
+  },
+  "supportQueue": {
+    "readSucceeded": true,
+    "visibleConversations": 1,
+    "status": "waiting_human",
+    "unreadBadge": 2,
+    "conversationNotOpened": true
+  },
+  "authenticatedPublicProjections": [
+    {
+      "path": "/v1/me/authority",
+      "httpStatus": 200,
+      "version": 1,
+      "managementAvailable": true,
+      "capabilities": [
+        "editorial.manage",
+        "support.assign",
+        "support.read",
+        "support.reply"
+      ]
+    },
+    {
+      "path": "/v1/management/support/ai/status",
+      "httpStatus": 200,
+      "status": "READY",
+      "providerId": "deepseek-flash",
+      "providerAvailable": true,
+      "autoSendEnabled": true,
+      "businessWriteToolsEnabled": false,
+      "approvedKnowledgeSourceCount": 3
+    }
+  ],
+  "limits": [
+    "Native evidence covers these read-only pages and current profile projections only.",
+    "No comment publishing/deletion, human claim/reply, AI chat generation, keyboard or real-device acceptance performed in this read-only pass.",
+    "User and operator conversation detail pages were not opened because their lifecycle writes presence and read receipts.",
+    "No preview or trial upload executed.",
+    "This does not mark the full current-source acceptance manifest passed."
+  ]
+}

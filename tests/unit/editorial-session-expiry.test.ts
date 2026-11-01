@@ -12,6 +12,7 @@ const author={author:{id:authorId,name:"公开作者",avatar:"",postCount:1,foll
 let page:any,runtime:any,requests:any[],storage:Map<string,unknown>,expirePath:string|null,holdPath:string|null,held:any[],patches:any[];
 function payload(path:string):unknown {
  if(path===`/v1/editorial/articles/${articleId}`)return article;
+ if(path.startsWith(`/v1/editorial/articles/${articleId}/comments?`))return {comments:[{id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",version:1,body:"只对登录会员展示的评论",status:"published",parentId:null,replyToId:null,replyRootId:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",createdAt:"2026-10-26T00:00:00Z",authorId,authorName:"会员昵称",replyToName:null,isMine:false,likeCount:0,liked:false}],authors:{[authorId]:{name:"会员昵称",avatar:"",avatarRevision:null}},commentCount:1,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:1,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-26T00:00:00Z"};
  if(path.startsWith("/v1/editorial/authors/"))return author;
  if(path.startsWith("/v1/editorial/articles?"))return {items:[card],nextCursor:"next"};
  if(path==="/v1/capabilities")return {communityPreviewEnabled:false};
@@ -40,6 +41,26 @@ beforeEach(()=>{
 });
 
 describe("editorial reads after a real transport session revocation",()=>{
+ it.each(["like","follow"] as const)("clears private comments when an explicit article %s action detects session expiry",async(action)=>{
+  await mount("post");await page.load();await vi.waitFor(()=>expect(page.data.commentsLoading).toBe(false));
+  expect(page.data.threads).toHaveLength(1);
+  expirePath=`/v1/editorial/articles/${articleId}/${action==="like"?"reaction":"follow"}`;
+  if(action==="like")await page.toggleLike();else await page.toggleFollow();
+  expect(runtime.globalData.sessionToken).toBe("");
+  expect(page.data).toMatchObject({threads:[],editorialCommentItems:[],commentAuthenticated:false,canModerate:false});
+  expect(page.data.item).toMatchObject({id:articleId,body:"公开正文"});
+ });
+ it("locks only comments on actual comment HTTP401, preserves public text and logs in only from the explicit wall action",async()=>{
+  await mount("post");await page.load();await vi.waitFor(()=>expect(page.data.commentsLoading).toBe(false));
+  expect(page.data.threads[0].body).toBe("只对登录会员展示的评论");
+  expirePath=`/v1/editorial/articles/${articleId}/comments`;await page.loadEditorialComments();
+  expect(runtime.globalData.sessionToken).toBe("");expect(page.data.item).toMatchObject({id:articleId,body:"公开正文"});
+  expect(page.data).toMatchObject({threads:[],editorialCommentItems:[],commentAuthenticated:false,canModerate:false,commentsLoading:false,commentCursor:null,commentHasMore:false});
+  expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
+  const count=requests.length;await page.loadEditorialComments();expect(requests).toHaveLength(count);
+  page.loginToViewComments();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledOnce();
+  expect(storage.get("cisme.authReturnUrl")).toBe(`/pages/post/index?id=${articleId}&source=editorial`);
+ });
  it.each(["post","community-author"] as const)("clears %s private state and offers a fresh anonymous retry after actual HTTP401",async(route)=>{
   await mount(route);expirePath=route==="post"?`/v1/editorial/articles/${articleId}`:`/v1/editorial/authors/${authorId}`;
   Object.assign(page.data,route==="post"?{following:true,social:{liked:true,saved:true},draft:"old private draft"}:{author:{following:true,isMine:true},articleContextId:articleId,busy:true});

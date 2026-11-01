@@ -22,10 +22,11 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();});
 it("retains the explicit authentication denominator",()=>{
-  expect(routes).toHaveLength(245);
-  // Nine new protected methods accompany the independently reviewed optional
-  // GET comments read. Blocks are member-private, never an anonymous exception.
+  expect(routes).toHaveLength(247);
+  // Editorial comments and blocks are member-private. Article text stays public.
   for(const operation of [
+    {method:"POST",path:"/v1/me/support/resume-ai"},
+    {method:"GET",path:"/v1/editorial/articles/{id}/comments"},
     {method:"POST",path:"/v1/editorial/articles/{id}/comments"},
     {method:"DELETE",path:"/v1/editorial/articles/{id}/comments/{commentId}"},
     {method:"PUT",path:"/v1/editorial/articles/{id}/comments/{commentId}/like"},
@@ -43,7 +44,7 @@ it("retains the explicit authentication denominator",()=>{
     {method:"DELETE",path:"/v1/me/daily-care-records/{id}"},
     {method:"POST",path:"/v1/me/daily-care-records/{id}/restore"},
   ])expect(routes).toContainEqual(operation);
-  expect(routes).not.toContainEqual({method:"GET",path:"/v1/editorial/articles/{id}/comments"});
+  expect(routes).not.toContainEqual({method:"GET",path:"/v1/editorial/articles/{id}"});
 });
 it.each(routes)("rejects missing and invalid authentication before data access: $method $path",async({method,path})=>{
   const index=routes.findIndex(r=>r.method===method&&r.path===path);

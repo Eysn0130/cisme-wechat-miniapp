@@ -72,5 +72,14 @@
     "package": "passed",
     "contracts": "passed",
     "diffHygiene": "passed"
+  },
+  "deliveryAfterSourceReview": {
+    "latestVerifiedUploadVersion": "0.1.15",
+    "officialUploadSucceeded": true,
+    "sourceHead": "5a481fa3f8c10f719a49ffe43b59b758a55dc165",
+    "packageSourceSha256": "12c04828fc5243d05ee8c0518cdc5b41af0bbbde62b54d586c7f441d578be6b9",
+    "completedAtUtc": "2026-10-30T15:05:17.405000+00:00",
+    "evidence": "docs/evidence/records-calendar-20261030/upload-015.json",
+    "note": "The earlier statusAtSourceReview remains the historical pre-upload snapshot; it is not the latest delivered-version record."
   }
 }

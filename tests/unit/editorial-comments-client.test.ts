@@ -37,13 +37,18 @@ beforeEach(()=>{
 });
 
 describe("editorial comment reads through the real native transport",()=>{
- it("reads as a guest, encodes an opaque cursor, and keeps published counts distinct from rows",async()=>{
-  runtime.globalData.sessionToken="";response={...commentsPage(),commentCount:4,nextCursor:"next_cursor",hasMore:true,truncated:true};
+ it("reads as a member, encodes an opaque cursor, and keeps published counts distinct from rows",async()=>{
+  response={...commentsPage(),commentCount:4,nextCursor:"next_cursor",hasMore:true,truncated:true};
   const result=await (await client()).readEditorialComments(articleId,undefined,"opaque+/= &中文");
   expect(pathOf(requests[0]!)).toBe(`${commentBase}?limit=30&cursor=opaque%2B%2F%3D%20%26%E4%B8%AD%E6%96%87`);
-  expect(requests[0]).toMatchObject({method:"GET",header:{Authorization:"","Idempotency-Key":""}});
+  expect(requests[0]).toMatchObject({method:"GET",header:{Authorization:"Bearer synthetic-member-session","Idempotency-Key":""}});
   expect(result).toMatchObject({commentCount:4,loadedCount:1,hasMore:true,preview:false,canModerate:false});
   expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
+ });
+ it("refuses guest comment reads locally without transport or automatic login",async()=>{
+  runtime.globalData.sessionToken="";
+  await expect((await client()).readEditorialComments(articleId)).rejects.toMatchObject({status:401,code:"AUTH_REQUIRED"});
+  expect(requests).toEqual([]);expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
  });
  it("accepts an actor's private pending row without falsely counting it as published",async()=>{
   response={...commentsPage(),comments:[{...publicComment(),status:"pending",isMine:true}],commentCount:0};
@@ -56,8 +61,8 @@ describe("editorial comment reads through the real native transport",()=>{
   await expect(api.readEditorialComments(articleId)).rejects.toMatchObject({status:401,code:"AUTH_EXPIRED"});
   expect(runtime.globalData.sessionToken).toBe("");expect(storage.get("synthetic.session")).toBe("");
   expect(requests).toHaveLength(1);expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
-  status=200;response=commentsPage();await api.readEditorialComments(articleId);
-  expect(requests).toHaveLength(2);expect(requests[1]!.header.Authorization).toBe("");
+  status=200;response=commentsPage();await expect(api.readEditorialComments(articleId)).rejects.toMatchObject({status:401});
+  expect(requests).toHaveLength(1);
  });
  it("rejects an older read's HTTP401 without revoking a different current actor",async()=>{
   hold=true;const reading=(await client()).readEditorialComments(articleId);const rejected=expect(reading).rejects.toMatchObject({code:"REQUEST_SESSION_CHANGED"});

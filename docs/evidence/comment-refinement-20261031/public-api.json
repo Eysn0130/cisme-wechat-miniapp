@@ -1,0 +1,13 @@
+{
+  "verifiedAtUtc": "2026-10-31T23:51:33.946511+00:00",
+  "origin": "https://staging-api.cisme.cn",
+  "articleStatus": 200,
+  "articleBodyReadable": true,
+  "guestCommentsStatus": 401,
+  "guestCode": "AUTH_REQUIRED",
+  "guestCommentDataPresent": false,
+  "tlsVerifiedByDefaultClient": true,
+  "credentialsSent": false,
+  "businessWrites": false,
+  "dnsScope": "local resolver uses synthetic proxy addresses; not used as an origin-IP assertion"
+}

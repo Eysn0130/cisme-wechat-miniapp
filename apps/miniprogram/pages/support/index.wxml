@@ -17,6 +17,8 @@
       <text>护理、账号或订单有问题？请在这里留言。</text>
     </view>
 
+    <view wx:if="{{supportAiAvailable && (!conversation || conversation.status === 'ai_active')}}" class="support-ai-notice">AI 回复由 DeepSeek 提供，请勿发送密码、验证码或完整联系方式，可随时申请人工。</view>
+
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
       <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system"><text>{{item.displayBody}}</text>
@@ -89,6 +91,7 @@
         <button class="support-tool support-tool--send {{!composerSendEnabled || sending || sendAttempt || uploadBusy ? 'control--disabled' : ''}} {{composerSendEnabled && !sending && !sendAttempt && !uploadBusy ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || sending || sendAttempt || uploadBusy}}" aria-label="{{sending ? '正在发送消息' : sendAttempt ? '请先核对上条消息' : '发送消息'}}"><image src="{{composerSendEnabled && !sending && !sendAttempt && !uploadBusy ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
       </view>
     </view>
+    <button wx:if="{{!closedRights && supportAiAvailable && conversation && conversation.status === 'waiting_human'}}" class="support-human {{handoffBusy || sending ? 'control--disabled' : ''}}" bindtap="resumeAi" disabled="{{handoffBusy || sending}}">继续 AI 咨询</button>
     <button wx:if="{{!closedRights && conversation && conversation.status === 'ai_active'}}" class="support-human {{handoffBusy ? 'control--disabled' : ''}}" bindtap="requestHuman" disabled="{{handoffBusy}}">联系人工客服</button>
   </view>
 

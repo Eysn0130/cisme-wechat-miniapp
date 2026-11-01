@@ -313,7 +313,7 @@ Page({
     const ownerToken = sessionToken();
     try {
       const status = await pageRead<any>(this,{ path: "/v1/management/support/ai/status", cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: status.status || "PROVIDER INTEGRATION PENDING", aiProviderAvailable: status.providerAvailable === true && status.autoSendEnabled === false });
+      if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: status.status || "PROVIDER INTEGRATION PENDING", aiProviderAvailable: status.providerAvailable === true });
     } catch {
       if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: "PROVIDER INTEGRATION PENDING", aiProviderAvailable: false });
     }
@@ -649,7 +649,7 @@ Page({
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     const draftWarning = this.data.input.trim() ? "当前未发送的回复草稿会清除。" : "";
-    const decision = await wx.showModal({ title: "确认解决这次问题？", content: `${draftWarning}会话历史会保留。用户再次发送消息时会重新进入待人工队列。`, confirmText: "标记已解决" });
+    const decision = await wx.showModal({ title: "确认解决这次问题？", content: `${draftWarning}会话历史会保留。用户再次发送消息时会重新开启咨询。`, confirmText: "标记已解决" });
     if (!decision.confirm || !this.owns(epoch, ownerToken)) return;
     this.setData({ busy: true, error: "" });
     try {

@@ -869,3 +869,5 @@
     transform: none;
   }
 }
+
+.support-ai-notice { margin:12px 12px 20px; color:var(--cisme-color-text-muted,#6c6071); font-size:24rpx; line-height:1.6; text-align:center; }
