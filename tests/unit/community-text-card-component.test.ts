@@ -150,7 +150,7 @@ describe("local staged community text card",()=>{
   it("shows only actual PNGs as ordinary images and keeps the one drawing canvas offscreen",async()=>{
     const [markup,styles]=await Promise.all([readFile(resolve("apps/miniprogram/components/community-text-card/index.wxml"),"utf8"),readFile(resolve("apps/miniprogram/components/community-text-card/index.wxss"),"utf8")]);
     expect(markup).toMatch(/<image\b[^>]*src="\{\{previewPath\}\}"[^>]*binderror="previewImageFailed"/);expect(markup).not.toMatch(/<canvas\b[^>]*previewWidth/);expect(markup.match(/<canvas\b/g)).toHaveLength(1);
-    expect(styles).toMatch(/\.text-card-canvas\{[^}]*left:-2000px;[^}]*width:1px;height:1px/);expect(styles).toContain('right:calc(var(--cisme-nav-side,106px) + 8px)');
+    expect(styles).toMatch(/\.text-card-canvas\{[^}]*left:-2000px;[^}]*width:1px;height:1px/);
     expect(markup).toContain("bindtap=\"cancelGeneration\"");expect(markup).not.toContain("%");
     expect(markup).toContain("/assets/icons/close-plum.svg");expect(markup).toContain("/assets/icons/arrow-left-ink.svg");
     expect(styles).toContain(".text-card-confirm{width:112px;min-height:48px;");expect(styles).toContain(".text-card-footer{display:flex;justify-content:flex-end;");

@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 361,
+        "height": 804,
+        "canProceed": true,
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 227,
+            "right": 339,
+            "top": 744,
+            "bottom": 792,
+            "width": 112,
+            "height": 48
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 18,
+            "right": 343,
+            "top": 103,
+            "bottom": 632,
+            "width": 325,
+            "height": 529
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 18,
+            "right": 343,
+            "top": 652,
+            "bottom": 716,
+            "width": 325,
+            "height": 64
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 361,
+            "top": 79,
+            "bottom": 736,
+            "width": 361,
+            "height": 657
+          },
+          null
+        ],
+        "postId": "",
+        "writes": []
+      }
+    }
+  }
+}

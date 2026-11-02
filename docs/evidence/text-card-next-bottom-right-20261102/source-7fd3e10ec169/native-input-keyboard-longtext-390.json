@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled keyboardChange height only; not physical keyboard or finger scroll",
+        "count": 209,
+        "longGeometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 91,
+            "bottom": 742,
+            "width": 390,
+            "height": 651
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 91,
+            "bottom": 1379.8984375,
+            "width": 390,
+            "height": 1288.8984375
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "scrollLeft": 0,
+            "scrollTop": 0,
+            "scrollWidth": 390,
+            "scrollHeight": 1289
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 256,
+            "right": 368,
+            "top": 750,
+            "bottom": 798,
+            "width": 112,
+            "height": 48
+          }
+        ],
+        "footerHidden": true,
+        "footerRestored": true,
+        "restored": {
+          "id": "",
+          "dataset": {},
+          "left": 256,
+          "right": 368,
+          "top": 750,
+          "bottom": 798,
+          "width": 112,
+          "height": 48
+        }
+      }
+    }
+  }
+}
